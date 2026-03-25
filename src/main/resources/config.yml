@@ -1,0 +1,65 @@
+# ==================== API配置 ====================
+api:
+  # DeepSeek API密钥
+  key: "sk-afbe212f24ca4014bcb8f6a152904677"
+
+  # API请求地址
+  url: "https://api.deepseek.com/v1/chat/completions"
+
+  # 使用的模型名称
+  # deepseek-chat: 标准对话模型
+  # deepseek-coder: 代码专用模型
+  model: "deepseek-chat"
+
+  # 温度参数（0-2之间）
+  # 值越高回答越有创意和随机性
+  # 值越低回答越保守和确定性
+  # 0.7是平衡点，适合一般对话
+  temperature: 0.7
+
+  # 最大返回token数
+  # 控制AI回复的最大长度（约1token≈0.75个中文）
+  # 1000约等于750个中文字符
+  max_tokens: 1000
+
+# ==================== 插件设置 ====================
+settings:
+  # 是否启用聊天命令模式
+  # true: 可以使用/kilacraft chat进入对话模式
+  # false: 禁用聊天模式，只能用/kilacraft命令
+  enable_chat_command: true
+
+  # 冷却时间（秒）
+  # 防止玩家频繁调用API导致费用过高
+  # 设置为0可禁用冷却
+  cooldown_seconds: 5
+
+  # 是否在控制台显示API请求日志
+  # 调试时开启，正常使用建议关闭
+  debug_mode: false
+
+  # 最大历史消息数（用于上下文对话）
+  # 保存最近的N轮对话作为上下文
+  # max_history: 0 - 禁用历史记录（不保存）
+  # max_history: 5 - 保存最近 5 轮对话（10 条消息）
+  # max_history: 10 - 保存最近 10 轮对话（20 条消息）
+  # max_history: 20 - 保存最近 20 轮对话（40 条消息）
+  max_history: 10
+
+  # 是否启用关键词触发
+  # 玩家在公共频道说"@kila"即可触发AI回复
+  enable_trigger: true
+
+  # 触发关键词（多个用逗号分隔）
+  trigger_keywords: "@kila,@ai,@zm"
+
+  # 是否限制特定世界使用
+  # 留空表示所有世界可用
+  allowed_worlds:
+    #- "world"
+
+  # 禁止使用的世界（优先级更高，比allowed_worlds高，如果一个世界同时在两个列表中会被禁止）
+  # 在这些世界中禁用AI功能
+  banned_worlds:
+  #- "world_nether"
+  #- "world_the_end"
