@@ -54,7 +54,12 @@ public class DeepSeekAPI {
                         int index = 0;
                         for (com.zm.kilacraftAI.listener.ChatListener.Message msg : history) {
                             index++;
-                            plugin.getLogger().info("[DEBUG] 历史 [" + index + "] (" + msg.getRole() + "): " + msg.getContent());
+                            String content = msg.getContent();
+                            // AI 回答的历史记录只打印前若干个字符，避免日志过长
+                            if ("assistant".equals(msg.getRole()) && content.length() > 50) {
+                                content = content.substring(0, 50) + "... (共" + msg.getContent().length() + " 字符)";
+                            }
+                            plugin.getLogger().info("[DEBUG] 历史 [" + index + "] (" + msg.getRole() + "): " + content);
                         }
                     } else {
                         plugin.getLogger().info("[DEBUG] 历史对话：无");
