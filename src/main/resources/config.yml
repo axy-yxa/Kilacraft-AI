@@ -24,34 +24,34 @@ api:
 
 # ==================== 插件设置 ====================
 settings:
+  # 是否在控制台显示API请求日志
+  # 调试时开启，正常使用建议关闭
+  debug_mode: false
+
   # 是否启用聊天命令模式
   # true: 可以使用/kilacraft chat进入对话模式
   # false: 禁用聊天模式，只能用/kilacraft命令
   enable_chat_command: true
+
+  # 是否启用关键词触发
+  # 玩家在公共频道说"@kilacraft"即可触发AI回复
+  enable_trigger: true
+
+  # 触发关键词（多个用逗号分隔）
+  trigger_keywords: "@kila,@ai,@zm"
 
   # 冷却时间（秒）
   # 防止玩家频繁调用API导致费用过高
   # 设置为0可禁用冷却
   cooldown_seconds: 5
 
-  # 是否在控制台显示API请求日志
-  # 调试时开启，正常使用建议关闭
-  debug_mode: false
-
   # 最大历史消息数（用于上下文对话）
-  # 保存最近的N轮对话作为上下文
+  # 保存最近的 N 轮对话作为上下文
   # max_history: 0 - 禁用历史记录（不保存）
   # max_history: 5 - 保存最近 5 轮对话（10 条消息）
   # max_history: 10 - 保存最近 10 轮对话（20 条消息）
   # max_history: 20 - 保存最近 20 轮对话（40 条消息）
   max_history: 10
-
-  # 是否启用关键词触发
-  # 玩家在公共频道说"@kila"即可触发AI回复
-  enable_trigger: true
-
-  # 触发关键词（多个用逗号分隔）
-  trigger_keywords: "@kila,@ai,@zm"
 
   # 是否限制特定世界使用
   # 留空表示所有世界可用
@@ -63,3 +63,7 @@ settings:
   banned_worlds:
   #- "world_nether"
   #- "world_the_end"
+
+  # 系统提示词（AI 的默认回答方式和风格）
+  # 使用 {player} 占位符，会被自动替换为实际玩家名称
+  system_prompt: "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。"

@@ -43,6 +43,8 @@ public class ConfigManager {
     private List<String> allowedWorlds;
     @Getter
     private List<String> bannedWorlds;
+    @Getter
+    private String systemPrompt;
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -50,38 +52,33 @@ public class ConfigManager {
     }
 
     public void loadConfig() {
+        // 加载配置文件，配置项不存在时使用默认配置
         plugin.reloadConfig();
         FileConfiguration config = plugin.getConfig();
 
-        // 读取 API 配置
+        // API配置
         this.apiKey = config.getString("api.key", "sk-afbe212f24ca4014bcb8f6a152904677");
         this.apiUrl = config.getString("api.url", "https://api.deepseek.com/v1/chat/completions");
         this.model = config.getString("api.model", "deepseek-chat");
         this.temperature = config.getDouble("api.temperature", 0.7);
         this.maxTokens = config.getInt("api.max_tokens", 1000);
 
-        // 读取基础设置
-        this.enableChatCommand = config.getBoolean("settings.enable_chat_command", true);
-        this.cooldownSeconds = config.getInt("settings.cooldown_seconds", 5);
-
-        // 读取高级设置
+        // 插件设置
         this.debugMode = config.getBoolean("settings.debug_mode", false);
-        this.maxHistory = config.getInt("settings.max_history", 10);
+        this.enableChatCommand = config.getBoolean("settings.enable_chat_command", true);
         this.enableTrigger = config.getBoolean("settings.enable_trigger", true);
-
-        // 读取关键词列表（逗号分隔）
         String keywordsStr = config.getString("settings.trigger_keywords", "@kila,@ai,@zm");
         this.triggerKeywords = Arrays.asList(keywordsStr.split(","));
-
-        // 读取世界列表
+        this.cooldownSeconds = config.getInt("settings.cooldown_seconds", 5);
+        this.maxHistory = config.getInt("settings.max_history", 10);
         this.allowedWorlds = config.getStringList("settings.allowed_worlds");
         if (this.allowedWorlds.isEmpty()) {
             this.allowedWorlds = new ArrayList<>();
         }
-
         this.bannedWorlds = config.getStringList("settings.banned_worlds");
         if (this.bannedWorlds.isEmpty()) {
             this.bannedWorlds = new ArrayList<>();
         }
+        this.systemPrompt = config.getString("settings.system_prompt", "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。");
     }
 }

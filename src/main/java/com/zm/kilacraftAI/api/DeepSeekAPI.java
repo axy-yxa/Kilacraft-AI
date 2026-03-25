@@ -79,7 +79,9 @@ public class DeepSeekAPI {
                 // 系统提示
                 JsonObject systemMessage = new JsonObject();
                 systemMessage.addProperty("role", "system");
-                systemMessage.addProperty("content", "你是一个 Minecraft 游戏助手，正在和玩家" + playerName + "对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。");
+                // 从配置读取系统提示词，替换 {player} 占位符
+                String systemPrompt = configManager.getSystemPrompt().replace("{player}", playerName);
+                systemMessage.addProperty("content", systemPrompt);
                 messages.add(systemMessage);
                 
                 // 添加历史对话记录
