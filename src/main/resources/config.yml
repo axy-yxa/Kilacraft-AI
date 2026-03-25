@@ -40,9 +40,14 @@ settings:
   # 触发关键词（多个用逗号分隔）
   trigger_keywords: "@kila,@ai,@zm"
 
+  # 是否启用流式输出
+  # true: AI 边生成边显示，玩家能实时看到回答过程
+  # false: 等待完整回答后一次性显示
+  enable_stream_output: false
+
   # 冷却时间（秒）
-  # 防止玩家频繁调用API导致费用过高
-  # 设置为0可禁用冷却
+  # 防止玩家频繁调用 API 导致费用过高
+  # 设置为 0 可禁用冷却
   cooldown_seconds: 5
 
   # 最大历史消息数（用于上下文对话）
@@ -67,3 +72,18 @@ settings:
   # 系统提示词（AI 的默认回答方式和风格）
   # 使用 {player} 占位符，会被自动替换为实际玩家名称
   system_prompt: "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。"
+
+# ==================== 消息格式配置 ====================
+messages:
+  # AI 名称（用于提示语中的 AI 标识）
+  # 例如："Kilacraft-AI"、"AI 助手" 等
+  ai_name: "Kilacraft-AI"
+  
+  # AI 响应前缀（用于各种 AI 提示消息）
+  # 支持颜色代码（§ + 数字/字母）
+  # 例如：§7=灰色，§f=白色，§b=浅蓝色，§a=绿色，§c=红色
+  # 可以使用任何符号包裹，如 []、【】、『』等，或者不用符号
+  ai_prefix: "§7[Kilacraft-AI] §f"
+  
+  # "正在思考"提示文本
+  thinking_message: "正在思考中..."

@@ -40,11 +40,19 @@ public class ConfigManager {
     @Getter
     private List<String> triggerKeywords;
     @Getter
+    private boolean enableStreamOutput;
+    @Getter
     private List<String> allowedWorlds;
     @Getter
     private List<String> bannedWorlds;
     @Getter
     private String systemPrompt;
+    @Getter
+    private String aiPrefix;
+    @Getter
+    private String aiName;
+    @Getter
+    private String thinkingMessage;
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -69,6 +77,7 @@ public class ConfigManager {
         this.enableTrigger = config.getBoolean("settings.enable_trigger", true);
         String keywordsStr = config.getString("settings.trigger_keywords", "@kila,@ai,@zm");
         this.triggerKeywords = Arrays.asList(keywordsStr.split(","));
+        this.enableStreamOutput = config.getBoolean("settings.enable_stream_output", false);
         this.cooldownSeconds = config.getInt("settings.cooldown_seconds", 5);
         this.maxHistory = config.getInt("settings.max_history", 10);
         this.allowedWorlds = config.getStringList("settings.allowed_worlds");
@@ -80,5 +89,10 @@ public class ConfigManager {
             this.bannedWorlds = new ArrayList<>();
         }
         this.systemPrompt = config.getString("settings.system_prompt", "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。");
+        
+        // 消息格式配置
+        this.aiName = config.getString("messages.ai_name", "Kilacraft-AI");
+        this.aiPrefix = config.getString("messages.ai_prefix", "§7[Kilacraft-AI] §f");
+        this.thinkingMessage = config.getString("messages.thinking_message", "正在思考中...");
     }
 }

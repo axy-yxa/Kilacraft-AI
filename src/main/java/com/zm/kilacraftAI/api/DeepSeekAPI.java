@@ -5,6 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.listener.ChatListener;
 import okhttp3.*;
 
@@ -78,11 +79,37 @@ public class DeepSeekAPI {
         plugin.getLogger().info("[DEBUG] ========== DeepSeek API 请求结束 ==========");
     }
 
-    public CompletableFuture<String> sendMessage(String userMessage, String playerName) {
-        return sendMessage(userMessage, playerName, null);
-    }
-    
-    public CompletableFuture<String> sendMessage(String userMessage, String playerName, Deque<ChatListener.Message> history) {
+    /**
+     * 处理 AI 请求（统一入口）
+     * 
+     * <p>
+     * <strong>推荐使用此方法处理所有 AI 请求</strong>
+     * </p>
+     * 
+     * <p><strong>使用示例：</strong></p>
+     * <pre>{@code
+     * // 游戏内玩家请求（非流式或流式由配置决定）
+     * AIResponseHandler handler = new PlayerResponseHandler(player, message, history);
+     * api.processRequest(message, player.getName(), history, handler)
+     *     .thenAccept(response -> {
+     *         // 可选：处理额外逻辑
+     *         saveToHistory(message, response);
+     *     });
+     * 
+     * // 控制台请求（始终使用普通模式）
+     * AIResponseHandler handler = new ConsoleResponseHandler(sender);
+     * api.processRequest(message, "Console", null, handler);
+     * }</pre>
+     * 
+     * @param userMessage 用户消息
+     * @param playerName 玩家名称
+     * @param history 历史对话记录
+     * @param responseHandler 响应处理器（如果为 null 则使用普通模式，不显示响应）
+     * @return 完整的 AI 响应（CompletableFuture 可用于异步处理）
+     */
+    public CompletableFuture<String> processRequest(String userMessage, String playerName, 
+                                                     Deque<ChatListener.Message> history, 
+                                                     AIResponseHandler responseHandler) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 // 打印调试日志
@@ -137,6 +164,7 @@ public class DeepSeekAPI {
                     }
                 
                     StringBuilder fullResponse = new StringBuilder();
+                    StringBuilder currentStreamMessage = new StringBuilder();
                     String[] lines = body.string().split("\n");
                 
                     for (String line : lines) {
@@ -155,12 +183,23 @@ public class DeepSeekAPI {
                                     if (delta != null && delta.has("content")) {
                                         String content = delta.get("content").getAsString();
                                         fullResponse.append(content);
+                                        
+                                        // 如果是流式模式，回调每个文本片段
+                                        if (responseHandler != null && responseHandler.isStreamOutputEnabled()) {
+                                            currentStreamMessage.append(content);
+                                            responseHandler.showStreamChunk(content, currentStreamMessage.toString());
+                                        }
                                     }
                                 }
                             } catch (com.google.gson.JsonParseException e) {
                                 // 忽略 JSON 解析错误，继续处理下一行
                             }
                         }
+                    }
+                
+                    // 如果不是流式模式，在完成后一次性显示
+                    if (responseHandler != null && !responseHandler.isStreamOutputEnabled()) {
+                        responseHandler.showResponse(fullResponse.toString());
                     }
                 
                     return fullResponse.toString();
@@ -171,7 +210,11 @@ public class DeepSeekAPI {
                 if (configManager.isDebugMode()) {
                     plugin.getLogger().severe("[DEBUG] 错误详情：" + e.getMessage());
                 }
-                return "§c请求失败：" + e.getMessage();
+                String errorMsg = "§c请求失败：" + e.getMessage();
+                if (responseHandler != null) {
+                    responseHandler.handleError(errorMsg);
+                }
+                return errorMsg;
             }
         });
     }
