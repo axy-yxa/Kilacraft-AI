@@ -63,9 +63,9 @@ public class ChatListener implements Listener {
         if (chatMode.getOrDefault(playerId, false)) {
             event.setCancelled(true);
                 
-            // 检查是否启用了聊天命令模式
+            // 检查是否启用了连续对话模式
             if (!plugin.getConfigManager().isEnableChatCommand()) {
-                player.sendMessage("§c 聊天命令模式已被禁用！请使用 /kila <消息> 与 Kilacraft-AI 对话。");
+                player.sendMessage("§c连续对话模式已被禁用！请使用 /kilacraft <消息> 与 Kilacraft-AI 对话。");
                 chatMode.put(playerId, false);
                 return;
             }
@@ -76,7 +76,7 @@ public class ChatListener implements Listener {
                 if (plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().warning("[DEBUG] [世界限制] 玩家 " + player.getName() + " 在禁止的世界 " + player.getWorld().getName() + " 尝试使用 Kilacraft-AI（连续对话模式）");
                 }
-                player.sendMessage("§c 当前世界禁止使用 Kilacraft-AI！");
+                player.sendMessage("§c当前世界禁止使用 Kilacraft-AI！");
                 return;
             }
                 
@@ -98,7 +98,7 @@ public class ChatListener implements Listener {
                             if (plugin.getConfigManager().isDebugMode()) {
                                 plugin.getLogger().warning("[DEBUG] [世界限制] 玩家 " + player.getName() + " 在禁止的世界 " + player.getWorld().getName() + " 尝试使用 Kilacraft-AI（关键词触发）");
                             }
-                            player.sendMessage("§c 当前世界禁止使用 Kilacraft-AI！");
+                            player.sendMessage("§c当前世界禁止使用 Kilacraft-AI！");
                             return;
                         }
                         handleAIRequest(player, playerId, actualMessage);
@@ -121,7 +121,7 @@ public class ChatListener implements Listener {
             Long lastUsed = cooldowns.get(playerId);
             long timeLeft = (lastUsed + (cooldownSeconds * 1000L)) - currentTime;
             if (timeLeft > 0) {
-                player.sendMessage("§c 请等待 " + (timeLeft / 1000) + " 秒后再试！");
+                player.sendMessage("§c请等待 " + (timeLeft / 1000) + " 秒后再试！");
                 return;
             }
         }
@@ -170,7 +170,7 @@ public class ChatListener implements Listener {
                 }
             }
         }).exceptionally(throwable -> {
-            player.sendMessage("§c 发生错误：" + throwable.getMessage());
+            player.sendMessage("§c发生错误：" + throwable.getMessage());
             return null;
         });
     }

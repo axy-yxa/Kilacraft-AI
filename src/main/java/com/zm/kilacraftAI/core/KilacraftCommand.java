@@ -32,7 +32,7 @@ public class KilacraftCommand implements CommandExecutor {
             sender.sendMessage("§e使用方法：/kilacraft <消息>");
             sender.sendMessage("§e简写：/kila <消息> 或者 /ai <消息> 或者 /zm <消息>");
             if (plugin.getConfigManager().isEnableChatCommand()) {
-                sender.sendMessage("§e进入对话模式：/kilacraft chat");
+                sender.sendMessage("§e进入连续对话模式：/kilacraft chat");
             }
             sender.sendMessage("§e清除历史：/kilacraft clear");
             sender.sendMessage("§e重载配置：/kilacraft reload");
@@ -41,37 +41,37 @@ public class KilacraftCommand implements CommandExecutor {
     
         if (args[0].equalsIgnoreCase("reload")) {
             if (!sender.hasPermission("kilacraft.reload")) {
-                sender.sendMessage("§c 你没有权限重载配置！");
+                sender.sendMessage("§c你没有权限重载配置！");
                 return true;
             }
             
             plugin.getConfigManager().loadConfig();
-            sender.sendMessage("§a 配置已重载！");
+            sender.sendMessage("§a配置已重载！");
             return true;
         }
                 
         // 清除历史记录命令
         if (args[0].equalsIgnoreCase("clear")) {
             if (!(sender instanceof Player player)) {
-                sender.sendMessage("§c 只有玩家才能使用此命令！");
+                sender.sendMessage("§c只有玩家才能使用此命令！");
                 return true;
             }
                     
             UUID playerId = player.getUniqueId();
             plugin.getChatListener().clearHistory(playerId);
-            player.sendMessage("§a 已清除你的对话历史记录！");
+            player.sendMessage("§a已清除你的对话历史记录！");
             return true;
         }
     
-        // 检查 chat 命令（进入对话模式）
+        // 检查 chat 命令（进入连续对话模式）
         if (args[0].equalsIgnoreCase("chat")) {
             if (!plugin.getConfigManager().isEnableChatCommand()) {
-                sender.sendMessage("§c聊天命令模式已被禁用！");
+                sender.sendMessage("§c连续对话模式已被禁用！");
                 return true;
             }
             
             if (!(sender instanceof Player player)) {
-                sender.sendMessage("§c只有玩家才能使用对话模式！");
+                sender.sendMessage("§c只有玩家才能使用连续对话模式！");
                 return true;
             }
             
@@ -81,10 +81,10 @@ public class KilacraftCommand implements CommandExecutor {
             plugin.getChatListener().setChatMode(playerId, !inChatMode);
             
             if (!inChatMode) {
-                player.sendMessage("§a已进入对话模式！现在你说的每句话都会发送给 Kilacraft-AI。");
-                player.sendMessage("§7输入 §e/kilacraft chat§7 退出对话模式");
+                player.sendMessage("§a已进入连续对话模式！现在你说的每句话都会发送给 Kilacraft-AI。");
+                player.sendMessage("§7输入 §e/kilacraft chat§7 退出连续对话模式");
             } else {
-                player.sendMessage("§7已退出对话模式");
+                player.sendMessage("§7已退出连续对话模式");
             }
             return true;
         }
@@ -105,7 +105,7 @@ public class KilacraftCommand implements CommandExecutor {
                 if (plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().warning("[DEBUG] [世界限制] 玩家 " + player.getName() + " 在禁止的世界 " + worldName + " 尝试使用 Kilacraft-AI（命令模式）");
                 }
-                player.sendMessage("§c 当前世界禁止使用 Kilacraft-AI！");
+                player.sendMessage("§c当前世界禁止使用 Kilacraft-AI！");
                 return true;
             }
             
@@ -115,7 +115,7 @@ public class KilacraftCommand implements CommandExecutor {
                 if (plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().warning("[DEBUG] [世界限制] 玩家 " + player.getName() + " 在未授权的世界 " + worldName + " 尝试使用 Kilacraft-AI（命令模式）");
                 }
-                player.sendMessage("§c 当前世界禁止使用 Kilacraft-AI！");
+                player.sendMessage("§c当前世界禁止使用 Kilacraft-AI！");
                 return true;
             }
 
@@ -136,12 +136,7 @@ public class KilacraftCommand implements CommandExecutor {
 
             // 构建消息
             String message = String.join(" ", args);
-            
-            // 调试模式日志
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 收到玩家命令请求：" + player.getName() + " - " + message);
-            }
-            
+
             // 获取历史记录（普通命令模式也支持历史）
             // 匿名变量
             var ref = new Object() {
@@ -156,7 +151,7 @@ public class KilacraftCommand implements CommandExecutor {
             
             // 调试模式：打印历史记录信息
             if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] [普通命令] 玩家 " + player.getName() + " 的历史记录数量：" + ref.playerHistory.size());
+                plugin.getLogger().info("[DEBUG] 玩家 " + player.getName() + " 的历史记录数量：" + ref.playerHistory.size());
             }
             
             player.sendMessage("§7[Kilacraft-AI] §f正在思考中...");
@@ -187,13 +182,13 @@ public class KilacraftCommand implements CommandExecutor {
                     while (ref.playerHistory.size() > maxHistory * 2) {
                         com.zm.kilacraftAI.listener.ChatListener.Message removed = ref.playerHistory.removeFirst();
                         if (plugin.getConfigManager().isDebugMode()) {
-                            plugin.getLogger().info("[DEBUG] [普通命令] 移除最早的历史记录：" + removed.getContent().substring(0, Math.min(20, removed.getContent().length())) + "...");
+                            plugin.getLogger().info("[DEBUG] 移除最早的历史记录：" + removed.getContent().substring(0, Math.min(20, removed.getContent().length())) + "...");
                         }
                     }
                     
                     // 调试模式：打印保存后的历史记录
                     if (plugin.getConfigManager().isDebugMode()) {
-                        plugin.getLogger().info("[DEBUG] [普通命令] 已保存新对话，当前历史记录数量：" + ref.playerHistory.size());
+                        plugin.getLogger().info("[DEBUG] 已保存新对话，当前历史记录数量：" + ref.playerHistory.size());
                     }
                 }
             }).exceptionally(throwable -> {
@@ -204,17 +199,12 @@ public class KilacraftCommand implements CommandExecutor {
             // 后台控制台使用
             String message = String.join(" ", args);
             
-            // 调试模式日志
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 收到控制台命令请求 - " + message);
-            }
-            
             sender.sendMessage("§7[Kilacraft-AI] §f正在思考中...");
 
             plugin.getDeepSeekAPI().sendMessage(message, "Console").thenAccept(response -> {
                 // 调试模式日志
                 if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] 收到 AI 响应（控制台），长度：" + response.length());
+                    plugin.getLogger().info("[DEBUG] 收到 AI 响应，长度：" + response.length());
                 }
                 
                 String formattedResponse = formatResponse(response);
