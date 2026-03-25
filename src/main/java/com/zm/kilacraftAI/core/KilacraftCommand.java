@@ -1,7 +1,13 @@
 package com.zm.kilacraftAI.core;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.handler.AIResponseHandler;
+import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
+import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.listener.ChatListener;
+import com.zm.kilacraftAI.util.AIRequestValidator;
+import com.zm.kilacraftAI.util.MessageUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -18,230 +24,228 @@ import java.util.*;
  */
 public class KilacraftCommand implements CommandExecutor {
 
+    private static final String[] HELP_MESSAGES = {"§e使用方法：/kilacraft <消息>", "§e简写：/kila <消息> 或者 /ai <消息> 或者 /zm <消息>", "§e进入连续对话模式：/kilacraft chat", "§e清除历史：/kilacraft clear", "§e重载配置：/kilacraft reload"};
+
+    private static final String PERMISSION_RELOAD = "kilacraft.reload";
+    private static final String PERMISSION_CLEAR = "kilacraft.clear";
+
     private final KilacraftAI plugin;
-    private final Map<UUID, Long> cooldowns;
+    private final AIRequestValidator validator;
 
     public KilacraftCommand(KilacraftAI plugin) {
         this.plugin = plugin;
-        this.cooldowns = new HashMap<>();
+        this.validator = new AIRequestValidator(plugin);
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
-        if (args.length == 0) {
-            sender.sendMessage("§e使用方法：/kilacraft <消息>");
-            sender.sendMessage("§e简写：/kila <消息> 或者 /ai <消息> 或者 /zm <消息>");
-            if (plugin.getConfigManager().isEnableChatCommand()) {
-                sender.sendMessage("§e进入对话模式：/kilacraft chat");
-            }
-            sender.sendMessage("§e清除历史：/kilacraft clear");
-            sender.sendMessage("§e重载配置：/kilacraft reload");
-            return true;
-        }
-    
-        if (args[0].equalsIgnoreCase("reload")) {
-            if (!sender.hasPermission("kilacraft.reload")) {
-                sender.sendMessage("§c 你没有权限重载配置！");
-                return true;
-            }
-            
-            plugin.getConfigManager().loadConfig();
-            sender.sendMessage("§a 配置已重载！");
-            return true;
-        }
-                
-        // 清除历史记录命令
-        if (args[0].equalsIgnoreCase("clear")) {
-            if (!(sender instanceof Player player)) {
-                sender.sendMessage("§c 只有玩家才能使用此命令！");
-                return true;
-            }
-                    
-            UUID playerId = player.getUniqueId();
-            plugin.getChatListener().clearHistory(playerId);
-            player.sendMessage("§a 已清除你的对话历史记录！");
-            return true;
-        }
-    
-        // 检查 chat 命令（进入对话模式）
-        if (args[0].equalsIgnoreCase("chat")) {
-            if (!plugin.getConfigManager().isEnableChatCommand()) {
-                sender.sendMessage("§c聊天命令模式已被禁用！");
-                return true;
-            }
-            
-            if (!(sender instanceof Player player)) {
-                sender.sendMessage("§c只有玩家才能使用对话模式！");
-                return true;
-            }
-            
-            // 切换对话模式状态
-            UUID playerId = player.getUniqueId();
-            boolean inChatMode = plugin.getChatListener().isInChatMode(playerId);
-            plugin.getChatListener().setChatMode(playerId, !inChatMode);
-            
-            if (!inChatMode) {
-                player.sendMessage("§a已进入对话模式！现在你说的每句话都会发送给 Kilacraft-AI。");
-                player.sendMessage("§7输入 §e/kilacraft chat§7 退出对话模式");
-            } else {
-                player.sendMessage("§7已退出对话模式");
-            }
-            return true;
-        }
-    
-        // 普通消息发送命令（不需要检查 enable_chat_command）
+        // 缓存配置管理器引用，避免重复调用
+        ConfigManager configManager = plugin.getConfigManager();
 
+        if (args.length == 0) {
+            sendHelpMessage(sender, configManager.isEnableChatCommand());
+            return true;
+        }
+
+        // 子命令处理
+        String subCommand = args[0].toLowerCase(Locale.ROOT);
+        return switch (subCommand) {
+            case "reload" -> handleReloadCommand(sender);
+            case "clear" -> handleClearCommand(sender);
+            case "chat" -> handleChatCommand(sender, configManager);
+            default ->
+                // 普通消息发送命令
+                    handleNormalMessageCommand(sender, args);
+        };
+    }
+
+    /**
+     * 发送帮助消息
+     */
+    private void sendHelpMessage(CommandSender sender, boolean chatCommandEnabled) {
+        for (int i = 0; i < HELP_MESSAGES.length; i++) {
+            // 跳过 chat 命令提示如果功能被禁用
+            if (i == 2 && !chatCommandEnabled) {
+                continue;
+            }
+            sender.sendMessage(HELP_MESSAGES[i]);
+        }
+    }
+
+    /**
+     * 处理 reload 命令
+     */
+    private boolean handleReloadCommand(CommandSender sender) {
+        if (!sender.hasPermission(PERMISSION_RELOAD)) {
+            sender.sendMessage("§c你没有权限重载配置！");
+            return true;
+        }
+
+        try {
+            plugin.getConfigManager().loadConfig();
+            sender.sendMessage("§a配置已重载！");
+            plugin.getLogger().info("配置已由 " + getSenderName(sender) + " 重载");
+        } catch (Exception e) {
+            sender.sendMessage("§c配置重载失败：" + e.getMessage());
+            plugin.getLogger().severe("配置重载失败：" + e.getMessage());
+        }
+        return true;
+    }
+
+    /**
+     * 处理 clear 命令
+     */
+    private boolean handleClearCommand(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§c只有玩家才能使用此命令！");
+            return true;
+        }
+
+        if (!sender.hasPermission(PERMISSION_CLEAR)) {
+            sender.sendMessage("§c你没有权限清除对话历史记录！");
+            return true;
+        }
+
+        UUID playerId = player.getUniqueId();
+        plugin.getChatListener().clearHistory(playerId);
+        player.sendMessage("§a已清除你的对话历史记录！");
+        plugin.getLogger().info("玩家 " + player.getName() + " 已清除对话历史记录");
+        return true;
+    }
+
+    /**
+     * 处理 chat 命令
+     */
+    private boolean handleChatCommand(CommandSender sender, ConfigManager configManager) {
+        if (!configManager.isEnableChatCommand()) {
+            sender.sendMessage("§c连续对话模式已被禁用！");
+            return true;
+        }
+
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§c只有玩家才能使用连续对话模式！");
+            return true;
+        }
+
+        // 切换对话模式状态
+        UUID playerId = player.getUniqueId();
+        boolean inChatMode = plugin.getChatListener().isInChatMode(playerId);
+        plugin.getChatListener().setChatMode(playerId, !inChatMode);
+
+        if (!inChatMode) {
+            player.sendMessage("§a已进入连续对话模式！现在你说的每句话都会发送给 Kilacraft-AI。");
+            player.sendMessage("§7输入 §e/kilacraft chat§7 退出连续对话模式");
+            plugin.getLogger().info("玩家 " + player.getName() + " 已进入连续对话模式");
+        } else {
+            player.sendMessage("§7已退出连续对话模式");
+            plugin.getLogger().info("玩家 " + player.getName() + " 已退出连续对话模式");
+        }
+        return true;
+    }
+
+    /**
+     * 处理普通消息命令
+     */
+    private boolean handleNormalMessageCommand(CommandSender sender, String[] args) {
         // 检查是否为玩家（非玩家跳过冷却和 API 调用）
         if (sender instanceof Player player) {
-            
-            // 检查世界限制
-            String worldName = player.getWorld().getName();
-            List<String> allowedWorlds = plugin.getConfigManager().getAllowedWorlds();
-            List<String> bannedWorlds = plugin.getConfigManager().getBannedWorlds();
-            
-            // 优先检查禁止列表
-            if (!bannedWorlds.isEmpty() && bannedWorlds.contains(worldName)) {
-                // 调试模式：打印玩家信息
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().warning("[DEBUG] [世界限制] 玩家 " + player.getName() + " 在禁止的世界 " + worldName + " 尝试使用 Kilacraft-AI（命令模式）");
-                }
-                player.sendMessage("§c 当前世界禁止使用 Kilacraft-AI！");
-                return true;
-            }
-            
-            // 再检查允许列表（如果为空表示所有世界都允许）
-            if (!allowedWorlds.isEmpty() && !allowedWorlds.contains(worldName)) {
-                // 调试模式：打印玩家信息
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().warning("[DEBUG] [世界限制] 玩家 " + player.getName() + " 在未授权的世界 " + worldName + " 尝试使用 Kilacraft-AI（命令模式）");
-                }
-                player.sendMessage("§c 当前世界禁止使用 Kilacraft-AI！");
-                return true;
-            }
-
-            // 检查冷却时间
-            UUID playerId = player.getUniqueId();
-            long currentTime = System.currentTimeMillis();
-            int cooldownSeconds = plugin.getConfigManager().getCooldownSeconds();
-
-            if (cooldownSeconds > 0 && cooldowns.containsKey(playerId)) {
-                long lastUsed = cooldowns.get(playerId);
-                long timeLeft = (lastUsed + (cooldownSeconds * 1000L)) - currentTime;
-
-                if (timeLeft > 0) {
-                    player.sendMessage("§c请等待 " + (timeLeft / 1000) + " 秒后再试！");
-                    return true;
-                }
-            }
-
-            // 构建消息
-            String message = String.join(" ", args);
-            
-            // 调试模式日志
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 收到玩家命令请求：" + player.getName() + " - " + message);
-            }
-            
-            // 获取历史记录（普通命令模式也支持历史）
-            // 匿名变量
-            var ref = new Object() {
-                Deque<ChatListener.Message> playerHistory =
-                        plugin.getChatListener().getHistory(playerId);
-            };
-            if (ref.playerHistory == null) {
-                ref.playerHistory = new ArrayDeque<>();
-                // 重要：将新创建的历史记录放入 Map 中，否则下次获取还是 null
-                plugin.getChatListener().setHistory(playerId, ref.playerHistory);
-            }
-            
-            // 调试模式：打印历史记录信息
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] [普通命令] 玩家 " + player.getName() + " 的历史记录数量：" + ref.playerHistory.size());
-            }
-            
-            player.sendMessage("§7[Kilacraft-AI] §f正在思考中...");
-
-            // 立即更新冷却时间（在发送请求时）
-            cooldowns.put(playerId, currentTime);
-
-            // 发送 API 请求（带历史记录）
-            plugin.getDeepSeekAPI().sendMessage(message, player.getName(), ref.playerHistory).thenAccept(response -> {
-                // 调试模式日志
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] 收到 AI 响应，长度：" + response.length());
-                }
-                
-                // 格式化响应，每 40 个字符换行
-                String formattedResponse = formatResponse(response);
-                player.sendMessage("§b[Kilacraft-AI] §f" + formattedResponse);
-                
-                // 保存对话到历史记录（使用之前获取的同一引用）
-                int maxHistory = plugin.getConfigManager().getMaxHistory();
-                if (maxHistory > 0) {
-                    // 添加用户消息
-                    ref.playerHistory.add(new com.zm.kilacraftAI.listener.ChatListener.Message("user", message));
-                    // 添加 AI 回复
-                    ref.playerHistory.add(new com.zm.kilacraftAI.listener.ChatListener.Message("assistant", response));
-                    
-                    // 保持历史记录不超过限制
-                    while (ref.playerHistory.size() > maxHistory * 2) {
-                        com.zm.kilacraftAI.listener.ChatListener.Message removed = ref.playerHistory.removeFirst();
-                        if (plugin.getConfigManager().isDebugMode()) {
-                            plugin.getLogger().info("[DEBUG] [普通命令] 移除最早的历史记录：" + removed.getContent().substring(0, Math.min(20, removed.getContent().length())) + "...");
-                        }
-                    }
-                    
-                    // 调试模式：打印保存后的历史记录
-                    if (plugin.getConfigManager().isDebugMode()) {
-                        plugin.getLogger().info("[DEBUG] [普通命令] 已保存新对话，当前历史记录数量：" + ref.playerHistory.size());
-                    }
-                }
-            }).exceptionally(throwable -> {
-                player.sendMessage("§c发生错误：" + throwable.getMessage());
-                return null;
-            });
+            return handlePlayerMessageCommand(player, args);
         } else {
-            // 后台控制台使用
-            String message = String.join(" ", args);
-            
-            // 调试模式日志
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 收到控制台命令请求 - " + message);
-            }
-            
-            sender.sendMessage("§7[Kilacraft-AI] §f正在思考中...");
-
-            plugin.getDeepSeekAPI().sendMessage(message, "Console").thenAccept(response -> {
-                // 调试模式日志
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] 收到 AI 响应（控制台），长度：" + response.length());
-                }
-                
-                String formattedResponse = formatResponse(response);
-                sender.sendMessage("§b[Kilacraft-AI] §f" + formattedResponse);
-            }).exceptionally(throwable -> {
-                sender.sendMessage("§c发生错误：" + throwable.getMessage());
-                return null;
-            });
+            return handleConsoleMessageCommand(sender, args);
         }
+    }
+
+    /**
+     * 处理玩家消息命令
+     */
+    private boolean handlePlayerMessageCommand(Player player, String[] args) {
+        // 检查世界限制
+        if (!validator.checkWorldLimitAndNotify(player, "命令模式")) {
+            return true;
+        }
+
+        // 检查冷却时间
+        UUID playerId = player.getUniqueId();
+        if (!validator.checkCooldownAndNotify(player)) {
+            return true;
+        }
+
+        // 获取或创建历史记录（同步块保证线程安全）
+        Deque<ChatListener.Message> playerHistory = getOrCreateHistory(playerId);
+
+        // 调试模式：打印历史记录信息
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("[DEBUG] 玩家 " + player.getName() + " 的历史记录数量：" + playerHistory.size());
+        }
+
+        // 发送"正在思考"消息（从配置文件读取）
+        MessageUtil.sendThinkingMessage(player);
+
+        // 立即更新冷却时间（在发送请求时）
+        validator.startCooldown(playerId);
+
+        // 构建消息
+        String message = String.join(" ", args);
+
+        // 创建玩家响应处理器
+        AIResponseHandler handler = new PlayerResponseHandler(player, message, playerHistory);
+
+        // 使用统一的 API 处理请求
+        plugin.getDeepSeekAPI().processRequest(message, player.getName(), playerHistory, handler).thenAccept(fullResponse -> {
+            // 保存对话到历史记录
+            validator.saveToHistory(playerHistory, message, fullResponse);
+        }).exceptionally(throwable -> {
+            player.sendMessage("§c发生错误：" + throwable.getMessage());
+            plugin.getLogger().severe("处理 AI 请求时发生错误：" + throwable.getMessage());
+            return null;
+        });
 
         return true;
     }
 
-    private String formatResponse(String response) {
-        StringBuilder formatted = new StringBuilder();
-        String[] words = response.split(" ");
-        int lineLength = 0;
+    /**
+     * 获取或创建历史记录（线程安全）
+     */
+    private Deque<ChatListener.Message> getOrCreateHistory(UUID playerId) {
+        ChatListener chatListener = plugin.getChatListener();
+        Deque<ChatListener.Message> history = chatListener.getHistory(playerId);
 
-        for (String word : words) {
-            if (lineLength + word.length() > 40) {
-                formatted.append("\n");
-                lineLength = 0;
-            }
-            formatted.append(word).append(" ");
-            lineLength += word.length() + 1;
+        if (history == null) {
+            // 使用 computeIfAbsent 保证线程安全
+            history = chatListener.getHistoryMap().computeIfAbsent(playerId, k -> new ArrayDeque<>());
         }
 
-        return formatted.toString().trim();
+        return history;
     }
+
+    /**
+     * 处理控制台消息命令
+     */
+    private boolean handleConsoleMessageCommand(CommandSender sender, String[] args) {
+        // 后台控制台使用
+        String message = String.join(" ", args);
+
+        // 发送"正在思考"消息（从配置文件读取）
+        MessageUtil.sendThinkingMessage(sender);
+
+        // 创建控制台响应处理器
+        AIResponseHandler handler = new ConsoleResponseHandler(sender);
+
+        // 使用统一的 API 处理请求
+        plugin.getDeepSeekAPI().processRequest(message, "Console", null, handler).exceptionally(throwable -> {
+            sender.sendMessage("§c发生错误：" + throwable.getMessage());
+            plugin.getLogger().severe("控制台 AI 请求发生错误：" + throwable.getMessage());
+            return null;
+        });
+
+        return true;
+    }
+
+    /**
+     * 获取发送者名称（安全处理）
+     */
+    private String getSenderName(CommandSender sender) {
+        return sender instanceof Player player ? player.getName() : "Console";
+    }
+
 }

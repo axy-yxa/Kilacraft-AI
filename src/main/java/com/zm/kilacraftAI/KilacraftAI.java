@@ -51,7 +51,7 @@ public final class KilacraftAI extends JavaPlugin {
         getLogger().info("╻┏ ╻╻  ┏━┓┏━╸┏━┓┏━┓┏━╸╺┳╸   ┏━┓╻");
         getLogger().info("┣┻┓┃┃  ┣━┫┃  ┣┳┛┣━┫┣╸  ┃ ╺━╸┣━┫┃");
         getLogger().info("╹ ╹╹┗━╸╹ ╹┗━╸╹┗╸╹ ╹╹   ╹    ╹ ╹╹");
-        getLogger().info("版本：" + getDescription().getVersion());
+        getLogger().info("版本：v" + getDescription().getVersion());
         getLogger().info("作者：Zm_Mmm");
         getLogger().info("状态：已启用 ✓");
     }
