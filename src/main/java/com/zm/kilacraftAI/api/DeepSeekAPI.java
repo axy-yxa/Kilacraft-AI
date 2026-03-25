@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
+import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
 import com.zm.kilacraftAI.listener.ChatListener;
 import okhttp3.*;
 
@@ -117,6 +118,32 @@ public class DeepSeekAPI {
                     printDebugLog(playerName, userMessage, history);
                 }
 
+                // ========== 知识检索增强 ==========
+                String enhancedUserMessage = userMessage;
+                
+                // 检查知识库是否启用
+                if (configManager.isKnowledgeEnabled()) {
+                    KnowledgeRetriever retriever = plugin.getKnowledgeRetriever();
+                    
+                    if (retriever != null) {
+                        // 检索相关知识
+                        var relevantKnowledge = retriever.retrieveKnowledge(userMessage);
+                        
+                        // 如果有相关知识，添加到上下文中
+                        if (!relevantKnowledge.isEmpty()) {
+                            String knowledgeContext = retriever.formatAsContext(relevantKnowledge);
+                            
+                            // 增强用户消息（知识 + 原问题）
+                            enhancedUserMessage = knowledgeContext + "\n用户问题：" + userMessage;
+                            
+                            if (configManager.isDebugMode()) {
+                                plugin.getLogger().info("[DEBUG] 已检索到 " + relevantKnowledge.size() + " 条相关知识");
+                            }
+                        }
+                    }
+                }
+                // ===================================
+
                 JsonObject requestBody = new JsonObject();
                 requestBody.addProperty("model", configManager.getModel());
                 requestBody.addProperty("temperature", configManager.getTemperature());
@@ -146,7 +173,7 @@ public class DeepSeekAPI {
                 // 用户消息
                 JsonObject userMsg = new JsonObject();
                 userMsg.addProperty("role", ROLE_USER);
-                userMsg.addProperty("content", userMessage);
+                userMsg.addProperty("content", enhancedUserMessage);  // 使用增强后的消息
                 messages.add(userMsg);
 
                 requestBody.add("messages", messages);

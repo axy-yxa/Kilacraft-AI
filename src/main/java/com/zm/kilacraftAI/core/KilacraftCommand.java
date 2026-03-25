@@ -24,10 +24,11 @@ import java.util.*;
  */
 public class KilacraftCommand implements CommandExecutor {
 
-    private static final String[] HELP_MESSAGES = {"§e使用方法：/kilacraft <消息>", "§e简写：/kila <消息> 或者 /ai <消息> 或者 /zm <消息>", "§e进入连续对话模式：/kilacraft chat", "§e清除历史：/kilacraft clear", "§e重载配置：/kilacraft reload"};
+    private static final String[] HELP_MESSAGES = {"§e使用方法：/kilacraft <消息>", "§e简写：/kila <消息> 或者 /ai <消息> 或者 /zm <消息>", "§e进入连续对话模式：/kilacraft chat", "§e清除历史：/kilacraft clear", "§e重载配置：/kilacraft reload", "§e重载知识库：/kilacraft knowledge reload"};
 
     private static final String PERMISSION_RELOAD = "kilacraft.reload";
     private static final String PERMISSION_CLEAR = "kilacraft.clear";
+    private static final String PERMISSION_KNOWLEDGE = "kilacraft.knowledge";
 
     private final KilacraftAI plugin;
     private final AIRequestValidator validator;
@@ -53,6 +54,7 @@ public class KilacraftCommand implements CommandExecutor {
             case "reload" -> handleReloadCommand(sender);
             case "clear" -> handleClearCommand(sender);
             case "chat" -> handleChatCommand(sender, configManager);
+            case "knowledge" -> handleKnowledgeCommand(sender, args);
             default ->
                 // 普通消息发送命令
                     handleNormalMessageCommand(sender, args);
@@ -139,6 +141,48 @@ public class KilacraftCommand implements CommandExecutor {
         } else {
             player.sendMessage("§7已退出连续对话模式");
             plugin.getLogger().info("玩家 " + player.getName() + " 已退出连续对话模式");
+        }
+        return true;
+    }
+
+    /**
+     * 处理 knowledge 命令
+     */
+    private boolean handleKnowledgeCommand(CommandSender sender, String[] args) {
+        // 检查权限
+        if (!sender.hasPermission(PERMISSION_KNOWLEDGE)) {
+            sender.sendMessage("§c你没有权限管理知识库！");
+            return true;
+        }
+
+        // 如果没有子命令，显示帮助
+        if (args.length < 2) {
+            sender.sendMessage("§e使用方法：/kilacraft knowledge reload");
+            return true;
+        }
+
+        String subCommand = args[1].toLowerCase(Locale.ROOT);
+        if ("reload".equals(subCommand)) {
+            return handleKnowledgeReloadCommand(sender);
+        } else {
+            sender.sendMessage("§c未知的子命令：" + subCommand);
+            sender.sendMessage("§e可用子命令：reload");
+            return true;
+        }
+    }
+
+    /**
+     * 处理 knowledge reload 命令
+     */
+    private boolean handleKnowledgeReloadCommand(CommandSender sender) {
+        try {
+            plugin.getKnowledgeBase().reload();
+            sender.sendMessage("§a知识库已重载！");
+            sender.sendMessage("§7" + plugin.getKnowledgeBase().getStatistics());
+            plugin.getLogger().info("知识库已由 " + getSenderName(sender) + " 重载");
+        } catch (Exception e) {
+            sender.sendMessage("§c知识库重载失败：" + e.getMessage());
+            plugin.getLogger().severe("知识库重载失败：" + e.getMessage());
         }
         return true;
     }

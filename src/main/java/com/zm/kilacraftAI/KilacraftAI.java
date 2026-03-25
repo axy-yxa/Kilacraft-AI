@@ -5,6 +5,8 @@ import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.listener.ChatListener;
+import com.zm.kilacraftAI.knowledge.KnowledgeBaseManager;
+import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -22,6 +24,8 @@ public final class KilacraftAI extends JavaPlugin {
     private ConfigManager configManager;
     private DeepSeekAPI deepSeekAPI;
     private ChatListener chatListener;
+    private KnowledgeBaseManager knowledgeBase;
+    private KnowledgeRetriever knowledgeRetriever;
 
     @Override
     public void onEnable() {
@@ -34,6 +38,14 @@ public final class KilacraftAI extends JavaPlugin {
         configManager = new ConfigManager(this);
         deepSeekAPI = new DeepSeekAPI(configManager);
         chatListener = new ChatListener(this);
+        
+        // 初始化知识库管理器
+        knowledgeBase = new KnowledgeBaseManager(this, getDataFolder().getAbsolutePath());
+        knowledgeBase.loadAllKnowledge();
+        
+        // 初始化知识检索器（从配置读取最大返回数量）
+        int maxChunks = configManager.getMaxRelevantChunks();
+        knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, maxChunks);
     
         // 注册命令
         var command = getCommand("kilacraft");
@@ -46,6 +58,11 @@ public final class KilacraftAI extends JavaPlugin {
     
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(chatListener, this);
+
+        // 输出知识库统计信息
+        if (knowledgeBase != null) {
+            getLogger().info(knowledgeBase.getStatistics());
+        }
 
         // ASCII Art 启动标志
         getLogger().info("╻┏ ╻╻  ┏━┓┏━╸┏━┓┏━┓┏━╸╺┳╸   ┏━┓╻");
