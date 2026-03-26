@@ -53,6 +53,10 @@ public class ConfigManager {
     private String aiName;
     @Getter
     private String thinkingMessage;
+    @Getter
+    private boolean knowledgeEnabled;
+    @Getter
+    private int maxRelevantChunks;
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -94,5 +98,9 @@ public class ConfigManager {
         this.aiName = config.getString("messages.ai_name", "Kilacraft-AI");
         this.aiPrefix = config.getString("messages.ai_prefix", "§7[Kilacraft-AI] §f");
         this.thinkingMessage = config.getString("messages.thinking_message", "正在思考中...");
+        
+        // 知识库配置
+        this.knowledgeEnabled = config.getBoolean("knowledge.enabled", true);
+        this.maxRelevantChunks = config.getInt("knowledge.max_relevant_chunks", 3);
     }
 }

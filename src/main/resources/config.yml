@@ -87,3 +87,16 @@ messages:
   
   # "正在思考"提示文本
   thinking_message: "正在思考中..."
+
+# ==================== 知识库配置 ====================
+# 知识库功能说明：
+# 1. 在插件目录/plugins/Kilacraft-AI/knowledge/下创建 Markdown 或 TXT 文件
+# 2. 将服务器特有的知识、规则、FAQ 等内容放入文件中
+# 3. AI 会自动检索相关知识并基于知识回答
+# 4. 使用 /kilacraft knowledge reload 命令重新加载知识库
+knowledge:
+  # 是否启用知识库检索（默认开启）
+  enabled: true
+  
+  # 每次检索最多返回的相关知识数量（建议 1-5）
+  max_relevant_chunks: 3
