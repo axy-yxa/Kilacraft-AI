@@ -4,9 +4,11 @@ import com.zm.kilacraftAI.api.DeepSeekAPI;
 import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
 import com.zm.kilacraftAI.listener.ChatListener;
 import com.zm.kilacraftAI.knowledge.KnowledgeBaseManager;
 import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
+import com.zm.kilacraftAI.manager.ConversationManager;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -22,8 +24,11 @@ public final class KilacraftAI extends JavaPlugin {
     @Getter
     private static KilacraftAI instance;
     private ConfigManager configManager;
+    @Getter
+    private PersonalitiesConfigManager personalitiesConfigManager;
     private DeepSeekAPI deepSeekAPI;
     private ChatListener chatListener;
+    private ConversationManager conversationManager;
     private KnowledgeBaseManager knowledgeBase;
     private KnowledgeRetriever knowledgeRetriever;
 
@@ -36,6 +41,8 @@ public final class KilacraftAI extends JavaPlugin {
     
         // 初始化管理器
         configManager = new ConfigManager(this);
+        personalitiesConfigManager = new PersonalitiesConfigManager(this);
+        conversationManager = new ConversationManager();
         deepSeekAPI = new DeepSeekAPI(configManager);
         chatListener = new ChatListener(this);
         

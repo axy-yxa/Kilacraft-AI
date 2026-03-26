@@ -1,7 +1,7 @@
 package com.zm.kilacraftAI.handler.impl;
 
 import com.zm.kilacraftAI.handler.BaseResponseHandler;
-import com.zm.kilacraftAI.listener.ChatListener;
+import com.zm.kilacraftAI.manager.ConversationManager;
 import org.bukkit.entity.Player;
 
 import java.util.Deque;
@@ -17,7 +17,8 @@ public class PlayerResponseHandler extends BaseResponseHandler {
     
     private final Player player;
     
-    public PlayerResponseHandler(Player player, String userMessage, Deque<ChatListener.Message> history) {
+    public PlayerResponseHandler(Player player, String userMessage, Deque<ConversationManager.Message> history) {
+        super();
         this.player = player;
     }
     

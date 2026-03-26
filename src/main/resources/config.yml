@@ -50,6 +50,11 @@ settings:
   # 设置为 0 可禁用冷却
   cooldown_seconds: 5
 
+  # 插件命令专用冷却时间（秒）
+  # 仅针对 /kilacraft plugins 命令生效
+  # 设置为 0 可禁用冷却，-1 表示与普通命令共用冷却时间
+  plugins_cooldown_seconds: 3
+
   # 最大历史消息数（用于上下文对话）
   # 保存最近的 N 轮对话作为上下文
   # max_history: 0 - 禁用历史记录（不保存）

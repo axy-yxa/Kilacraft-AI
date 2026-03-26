@@ -2,8 +2,9 @@ package com.zm.kilacraftAI.util;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.ConfigManager;
-import com.zm.kilacraftAI.listener.ChatListener;
+import com.zm.kilacraftAI.manager.ConversationManager;
 import lombok.Getter;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayDeque;
@@ -58,11 +59,7 @@ public class AIRequestValidator {
         }
 
         // 再检查允许列表（如果为空表示所有世界都允许）
-        if (!allowedWorlds.isEmpty() && !allowedWorlds.contains(worldName)) {
-            return false;
-        }
-
-        return true;
+        return allowedWorlds.isEmpty() || allowedWorlds.contains(worldName);
     }
 
     /**
@@ -85,9 +82,7 @@ public class AIRequestValidator {
             Long lastUsed = cooldowns.get(playerId);
             long timeLeft = (lastUsed + (cooldownSeconds * 1000L)) - currentTime;
 
-            if (timeLeft > 0) {
-                return false; // 仍在冷却中
-            }
+            return timeLeft <= 0; // 仍在冷却中
         }
 
         return true; // 冷却已完成
@@ -118,6 +113,67 @@ public class AIRequestValidator {
     }
 
     /**
+     * 检查插件命令的冷却时间
+     * 
+     * <p>插件命令使用独立的冷却配置</p>
+     * 
+     * @param playerId 玩家 UUID
+     * @return true=冷却已完成可以使用，false=仍在冷却中
+     */
+    public boolean isPluginCommandCooldownReady(UUID playerId) {
+        int pluginsCooldownSeconds = plugin.getConfigManager().getPluginsCooldownSeconds();
+
+        // 如果配置为 -1，使用普通冷却时间
+        if (pluginsCooldownSeconds < 0) {
+            return isCooldownReady(playerId);
+        }
+
+        // 如果配置为 0，表示无冷却
+        if (pluginsCooldownSeconds <= 0) {
+            return true;
+        }
+
+        long currentTime = System.currentTimeMillis();
+
+        if (cooldowns.containsKey(playerId)) {
+            Long lastUsed = cooldowns.get(playerId);
+            long timeLeft = (lastUsed + (pluginsCooldownSeconds * 1000L)) - currentTime;
+
+            return timeLeft <= 0; // 仍在冷却中
+        }
+
+        return true; // 冷却已完成
+    }
+
+    /**
+     * 检查插件命令的冷却时间，如果仍在冷却中则发送提示消息到控制台
+     * 
+     * @param sender 命令发送者（控制台）
+     * @param playerId 目标玩家 UUID（用于检查冷却）
+     * @param playerName 目标玩家名称（用于显示）
+     * @return true=冷却已完成可以使用，false=仍在冷却中
+     */
+    public boolean checkPluginCommandCooldownAndNotify(CommandSender sender, UUID playerId, String playerName) {
+        if (playerId == null) {
+            return true; // 没有玩家 UUID，跳过冷却检查
+        }
+
+        if (!isPluginCommandCooldownReady(playerId)) {
+            int pluginsCooldownSeconds = plugin.getConfigManager().getPluginsCooldownSeconds();
+            Long lastUsed = cooldowns.get(playerId);
+            long currentTime = System.currentTimeMillis();
+            long timeLeft = (lastUsed + (pluginsCooldownSeconds * 1000L)) - currentTime;
+
+            if (timeLeft > 0) {
+                sender.sendMessage("§c玩家 " + playerName + " 正在冷却中，请等待 " + (timeLeft / 1000) + " 秒后再试！");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * 记录冷却时间开始
      *
      * @param playerId 玩家 UUID
@@ -133,7 +189,7 @@ public class AIRequestValidator {
      * @param playerId   玩家 UUID
      * @return 历史记录队列
      */
-    public Deque<ChatListener.Message> getOrCreateHistory(Map<UUID, Deque<ChatListener.Message>> historyMap, UUID playerId) {
+    public Deque<ConversationManager.Message> getOrCreateHistory(Map<UUID, Deque<ConversationManager.Message>> historyMap, UUID playerId) {
         return historyMap.computeIfAbsent(playerId, k -> new ArrayDeque<>());
     }
 
@@ -144,7 +200,7 @@ public class AIRequestValidator {
      * @param userMessage 用户消息
      * @param aiResponse  AI 响应
      */
-    public void saveToHistory(Deque<ChatListener.Message> history, String userMessage, String aiResponse) {
+    public void saveToHistory(Deque<ConversationManager.Message> history, String userMessage, String aiResponse) {
         int maxHistory = plugin.getConfigManager().getMaxHistory();
 
         if (maxHistory <= 0 || history == null) {
@@ -152,13 +208,13 @@ public class AIRequestValidator {
         }
 
         // 添加用户消息
-        history.add(new ChatListener.Message("user", userMessage));
+        history.add(new ConversationManager.Message("user", userMessage));
         // 添加 AI 回复
-        history.add(new ChatListener.Message("assistant", aiResponse));
+        history.add(new ConversationManager.Message("assistant", aiResponse));
 
         // 保持历史记录不超过限制（每轮对话算 2 条）
         while (history.size() > maxHistory * 2) {
-            ChatListener.Message removed = history.removeFirst();
+            ConversationManager.Message removed = history.removeFirst();
 
             // 调试模式日志
             if (plugin.getConfigManager().isDebugMode()) {
@@ -189,6 +245,39 @@ public class AIRequestValidator {
             return false;
         }
         return true;
+    }
+
+    /**
+     * 为插件命令生成隔离的历史记录 key
+     * 
+     * <p>格式：UUID_人格名称</p>
+     * <p>这样可以让不同人格的对话历史相互隔离</p>
+     * 
+     * @param playerId 玩家 UUID
+     * @param personality 人格名称
+     * @return 隔离的历史记录 key
+     */
+    public String getPluginCommandHistoryKey(UUID playerId, String personality) {
+        return playerId.toString() + "_" + personality;
+    }
+
+    /**
+     * 从插件命令历史记录 key 中解析玩家 UUID
+     * 
+     * @param key 历史记录 key（格式：UUID_人格名称）
+     * @return 玩家 UUID，如果格式不正确则返回 null
+     */
+    public UUID parsePlayerIdFromKey(String key) {
+        if (key == null || !key.contains("_")) {
+            return null;
+        }
+        try {
+            int lastUnderscore = key.lastIndexOf('_');
+            String uuidPart = key.substring(0, lastUnderscore);
+            return UUID.fromString(uuidPart);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
 }

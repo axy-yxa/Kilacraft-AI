@@ -3,20 +3,23 @@ package com.zm.kilacraftAI.listener;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
+import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.util.AIRequestValidator;
 import com.zm.kilacraftAI.util.MessageUtil;
-import lombok.Getter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Deque;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * 聊天监听器
+ *
+ * <p>仅负责监听和处理聊天事件，对话状态管理由 ConversationManager 负责</p>
  *
  * @author Zm_Mmm
  * @since 2026-03-24 17:22:06
@@ -24,30 +27,27 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ChatListener implements Listener {
 
     private final KilacraftAI plugin;
-    private final Map<UUID, Boolean> chatMode;
-    private final Map<UUID, Deque<Message>> history; // 历史对话记录
     private final AIRequestValidator validator;
-
+    
     public ChatListener(KilacraftAI plugin) {
         this.plugin = plugin;
-        this.chatMode = new HashMap<>();
-        this.history = new ConcurrentHashMap<>();
         this.validator = new AIRequestValidator(plugin);
     }
 
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
+        ConversationManager convManager = plugin.getConversationManager();
         UUID playerId = player.getUniqueId();
             
         // 检查是否处于连续对话模式
-        if (chatMode.getOrDefault(playerId, false)) {
+        if (convManager.isInChatMode(playerId)) {
             event.setCancelled(true);
                 
             // 检查是否启用了连续对话模式
             if (!plugin.getConfigManager().isEnableChatCommand()) {
-                player.sendMessage("§c连续对话模式已被禁用！请使用 /kilacraft <消息> 与 " + MessageUtil.getAIName() + " 对话。");
-                chatMode.put(playerId, false);
+                player.sendMessage("§c 连续对话模式已被禁用！请使用 /kilacraft <消息> 与 " + MessageUtil.getAIName() + " 对话。");
+                convManager.setChatMode(playerId, false);
                 return;
             }
                             
@@ -55,7 +55,7 @@ public class ChatListener implements Listener {
             if (!validator.checkWorldLimitAndNotify(player, "连续对话模式")) {
                 return;
             }
-                
+                            
             handleAIRequest(player, playerId, event.getMessage());
             return;
         }
@@ -90,7 +90,8 @@ public class ChatListener implements Listener {
         }
 
         // 获取历史记录
-        Deque<Message> playerHistory = validator.getOrCreateHistory(history, playerId);
+        ConversationManager convManager = plugin.getConversationManager();
+        Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
 
         // 调试模式：打印当前历史记录
         if (plugin.getConfigManager().isDebugMode()) {
@@ -112,7 +113,7 @@ public class ChatListener implements Listener {
                 // 保存对话到历史记录
                 validator.saveToHistory(playerHistory, message, fullResponse);
             }).exceptionally(throwable -> {
-                player.sendMessage("§c发生错误：" + throwable.getMessage());
+                player.sendMessage("§c 发生错误：" + throwable.getMessage());
                 return null;
             });
     }
@@ -124,74 +125,12 @@ public class ChatListener implements Listener {
         return message.replace(keyword, "").trim();
     }
 
-    public void setChatMode(UUID playerId, boolean enabled) {
-        chatMode.put(playerId, enabled);
-    }
-
-    public boolean isInChatMode(UUID playerId) {
-        return chatMode.getOrDefault(playerId, false);
-    }
-
-    /**
-     * 获取玩家的历史对话记录
-     */
-    public Deque<Message> getHistory(UUID playerId) {
-        return history.get(playerId);
-    }
-
-    /**
-     * 设置玩家的历史对话记录
-     */
-    public void setHistory(UUID playerId, Deque<Message> historyDeque) {
-        history.put(playerId, historyDeque);
-    }
-    
-    /**
-     * 获取历史记录 Map（用于线程安全的操作）
-     * @return 历史记录 Map
-     */
-    public Map<UUID, Deque<Message>> getHistoryMap() {
-        return history;
-    }
-
-    /**
-     * 清除玩家的历史对话记录
-     */
-    public void clearHistory(UUID playerId) {
-        history.remove(playerId);
-    }
-
     /**
      * 玩家退出游戏时自动关闭连续对话模式
      */
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        UUID playerId = player.getUniqueId();
-
-        // 如果玩家处于连续对话模式，自动退出
-        if (chatMode.getOrDefault(playerId, false)) {
-            chatMode.put(playerId, false);
-
-            // 调试模式日志
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 玩家 " + player.getName() + " 退出游戏，已自动关闭连续对话模式");
-            }
-        }
-    }
-
-    /**
-     * 消息类
-     */
-    @Getter
-    public static class Message {
-        private final String role;
-        private final String content;
-
-        public Message(String role, String content) {
-            this.role = role;
-            this.content = content;
-        }
-
+        plugin.getConversationManager().onPlayerQuit(player);
     }
 }
