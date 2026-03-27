@@ -61,7 +61,6 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
             String type = null;
             if (typeSegment != null) {
                 var resolvedPlaceholderString = typeSegment.value();
-                KilacraftAI.getInstance().getLogger().severe("resolvedPlaceholderString: " + resolvedPlaceholderString);
                 if (resolvedPlaceholderString != null) {
                     // 使用 PlaceholderContext 解析占位符
                     type = resolvedPlaceholderString.get(placeholderContext);
@@ -72,9 +71,12 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
                 return "[错误：必须指定 type 参数]";
             }
 
-            // 从 ConversationManager 获取 AI 回复
-            String response = KilacraftAI.getInstance().getConversationManager().getLatestAIResponse(casterId, type);
-            return Objects.requireNonNullElse(response, "[暂无 AI 回复]");
+            // 从 ConversationManager 获取并清除 AI 回复（读取后自动删除）
+            String response = KilacraftAI.getInstance().getConversationManager().pollLatestAIResponse(casterId, type);
+            
+            // 如果没有数据，说明 AI 正在思考还未回复，返回等待标识
+            return Objects.requireNonNullElse(response, "UNDEFINED");
+
         } catch (Exception e) {
             // 尝试获取插件实例记录错误
             try {

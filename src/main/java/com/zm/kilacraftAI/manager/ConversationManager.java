@@ -34,6 +34,18 @@ public class ConversationManager {
     private final Map<String, Deque<Message>> pluginCommandHistory = new ConcurrentHashMap<>();
 
     /**
+     * AI 最新回复缓存（key: UUID_人格，value: AI 回复内容）
+     * <p>
+     * 特性：
+     * - 只保存每个"玩家 UUID_人格"的最新一条 AI 回复
+     * - 对话结束后保存，新的自动覆盖旧的
+     * - 被读取后自动清除
+     * </p>
+     */
+    @Getter
+    private final Map<String, String> latestAIResponses = new ConcurrentHashMap<>();
+
+    /**
      * 消息记录类
      */
     @Getter
@@ -160,6 +172,49 @@ public class ConversationManager {
         }
         
         return lastMessage != null ? lastMessage.getContent() : null;
+    }
+
+    /**
+     * 保存 AI 回复到最新回复缓存
+     * <p>
+     * 在对话结束时调用，保存 AI 的最新回复
+     * </p>
+     * 
+     * @param playerId 玩家 UUID
+     * @param personality 人偶类型
+     * @param response AI 回复内容
+     */
+    public void saveLatestAIResponse(UUID playerId, String personality, String response) {
+        String key = generatePluginHistoryKey(playerId, personality);
+        latestAIResponses.put(key, response);
+    }
+
+    /**
+     * 获取并清除 AI 最新回复
+     * <p>
+     * 用于自定义占位符解析，获取后会清除该回复
+     * </p>
+     * 
+     * @param playerId 玩家 UUID
+     * @param personality 人偶类型
+     * @return AI 回复内容，如果不存在则返回 null
+     */
+    public String pollLatestAIResponse(UUID playerId, String personality) {
+        String key = generatePluginHistoryKey(playerId, personality);
+        // 先获取值，然后删除
+        return latestAIResponses.remove(key);
+    }
+
+    /**
+     * 检查是否存在 AI 最新回复（不删除）
+     * 
+     * @param playerId 玩家 UUID
+     * @param personality 人偶类型
+     * @return true 表示存在 AI 回复
+     */
+    public boolean hasLatestAIResponse(UUID playerId, String personality) {
+        String key = generatePluginHistoryKey(playerId, personality);
+        return latestAIResponses.containsKey(key);
     }
     
     /**
