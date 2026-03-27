@@ -114,9 +114,9 @@ public class AIRequestValidator {
 
     /**
      * 检查插件命令的冷却时间
-     * 
+     *
      * <p>插件命令使用独立的冷却配置</p>
-     * 
+     *
      * @param playerId 玩家 UUID
      * @return true=冷却已完成可以使用，false=仍在冷却中
      */
@@ -147,9 +147,9 @@ public class AIRequestValidator {
 
     /**
      * 检查插件命令的冷却时间，如果仍在冷却中则发送提示消息到控制台
-     * 
-     * @param sender 命令发送者（控制台）
-     * @param playerId 目标玩家 UUID（用于检查冷却）
+     *
+     * @param sender     命令发送者（控制台）
+     * @param playerId   目标玩家 UUID（用于检查冷却）
      * @param playerName 目标玩家名称（用于显示）
      * @return true=冷却已完成可以使用，false=仍在冷却中
      */
@@ -201,6 +201,19 @@ public class AIRequestValidator {
      * @param aiResponse  AI 响应
      */
     public void saveToHistory(Deque<ConversationManager.Message> history, String userMessage, String aiResponse) {
+        saveToHistory(history, userMessage, aiResponse, null, null);
+    }
+
+    /**
+     * 保存对话到历史记录（支持保存到最新回复缓存）
+     *
+     * @param history     历史记录队列
+     * @param userMessage 用户消息
+     * @param aiResponse  AI 响应
+     * @param playerId    玩家 UUID（用于保存到最新回复缓存，如果为 null 则不保存）
+     * @param personality 人格名称（用于保存到最新回复缓存，如果为 null 则不保存）
+     */
+    public void saveToHistory(Deque<ConversationManager.Message> history, String userMessage, String aiResponse, UUID playerId, String personality) {
         int maxHistory = plugin.getConfigManager().getMaxHistory();
 
         if (maxHistory <= 0 || history == null) {
@@ -219,6 +232,14 @@ public class AIRequestValidator {
             // 调试模式日志
             if (plugin.getConfigManager().isDebugMode()) {
                 plugin.getLogger().info("[DEBUG] 移除最早的历史记录：" + removed.getContent().substring(0, Math.min(20, removed.getContent().length())) + "...");
+            }
+        }
+
+        // 如果提供了 playerId 和 personality，保存到最新回复缓存
+        if (playerId != null && personality != null) {
+            plugin.getConversationManager().saveLatestAIResponse(playerId, personality, aiResponse);
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().info("[DEBUG] 已保存 AI 回复到最新回复缓存：" + playerId + "_" + personality);
             }
         }
 
@@ -249,11 +270,11 @@ public class AIRequestValidator {
 
     /**
      * 为插件命令生成隔离的历史记录 key
-     * 
+     *
      * <p>格式：UUID_人格名称</p>
      * <p>这样可以让不同人格的对话历史相互隔离</p>
-     * 
-     * @param playerId 玩家 UUID
+     *
+     * @param playerId    玩家 UUID
      * @param personality 人格名称
      * @return 隔离的历史记录 key
      */
@@ -263,7 +284,7 @@ public class AIRequestValidator {
 
     /**
      * 从插件命令历史记录 key 中解析玩家 UUID
-     * 
+     *
      * @param key 历史记录 key（格式：UUID_人格名称）
      * @return 玩家 UUID，如果格式不正确则返回 null
      */

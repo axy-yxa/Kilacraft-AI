@@ -57,9 +57,7 @@ public class KnowledgeRetriever {
         for (int i = 0; i < count; i++) {
             String fileName = sortedEntries.get(i).getKey();
             String content = allKnowledge.get(fileName);
-            
-            // 添加来源标记
-            relevantKnowledge.add("【来源：" + fileName + "】\n" + content);
+            relevantKnowledge.add(content);
         }
         
         return relevantKnowledge;
@@ -111,7 +109,7 @@ public class KnowledgeRetriever {
                 for (int len = keyword.length() - 1; len >= 2; len--) {
                     String subKeyword = keyword.substring(0, len);
                     if (lowerContent.contains(subKeyword)) {
-                        matchedKeywords += weight * 0.5;
+                        matchedKeywords += (int) (weight * 0.5);
                         score += 0.5; // 部分匹配得分
                         break;
                     }
@@ -200,7 +198,7 @@ public class KnowledgeRetriever {
         // 较长的词权重更高
         if (keyword.length() >= 4) {
             return 3;
-        } else if (keyword.length() >= 3) {
+        } else if (keyword.length() == 3) {
             return 2;
         } else {
             return 1;

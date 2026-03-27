@@ -26,9 +26,8 @@ import java.util.*;
  */
 public class KilacraftCommand implements CommandExecutor {
 
-    private static final String[] HELP_MESSAGES = {"§e 使用方法：/kilacraft <消息>", "§e 简写：/kila <消息> 或者 /ai <消息> 或者 /zm <消息>", "§e 进入连续对话模式：/kilacraft chat", "§e 清除历史：/kilacraft clear [玩家名称]", "§e 重载配置：/kilacraft reload", "§e 重载知识库：/kilacraft knowledge reload", "§e 重载人格配置：/kilacraft personalities reload"};
+    private static final String[] HELP_MESSAGES = {"§e 使用方法：/kilacraft <消息>", "§e 简写：/kila <消息> 或者 /ai <消息> 或者 /zm <消息>", "§e 进入连续对话模式：/kilacraft chat", "§e 重载配置：/kilacraft reload", "§e 重载知识库：/kilacraft knowledge reload", "§e 重载人格配置：/kilacraft personalities reload"};
     
-    private static final String PERMISSION_USE = "kilacraft.use";
     private static final String PERMISSION_RELOAD = "kilacraft.reload";
     private static final String PERMISSION_CLEAR_SELF = "kilacraft.clear.self";
     private static final String PERMISSION_CLEAR_OTHER = "kilacraft.clear.other";
@@ -63,7 +62,7 @@ public class KilacraftCommand implements CommandExecutor {
             case "plugins" -> handlePluginsCommand(sender, args);
             case "personalities" -> handlePersonalitiesCommand(sender, args);
             default ->
-                // 普通消息发送命令
+                // 普通消息发送命令（无需权限检查）
                     handleNormalMessageCommand(sender, args);
         };
     }
@@ -78,6 +77,14 @@ public class KilacraftCommand implements CommandExecutor {
                 continue;
             }
             sender.sendMessage(HELP_MESSAGES[i]);
+        }
+        
+        // 根据权限显示清除历史提示
+        if (sender.hasPermission(PERMISSION_CLEAR_SELF)) {
+            sender.sendMessage("§e 清除历史：/kilacraft clear");
+        }
+        if (sender.hasPermission(PERMISSION_CLEAR_OTHER)) {
+            sender.sendMessage("§e 清除玩家历史：/kilacraft clear [玩家名称]");
         }
     }
 
@@ -379,8 +386,8 @@ public class KilacraftCommand implements CommandExecutor {
         // 使用统一的 API 处理请求（传入人格提示词）
         plugin.getDeepSeekAPI().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt)
             .thenAccept(fullResponse -> {
-                // 保存对话到历史记录（隔离的）
-                validator.saveToHistory(pluginHistory, message, fullResponse);
+                // 保存对话到历史记录（隔离的），并保存到最新回复缓存
+                validator.saveToHistory(pluginHistory, message, fullResponse, targetPlayerId, personality);
                 
                 // 调试模式日志
                 if (plugin.getConfigManager().isDebugMode()) {
