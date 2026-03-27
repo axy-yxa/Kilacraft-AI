@@ -15,7 +15,8 @@ import java.util.UUID;
 
 /**
  * AI 回答占位符
- * 用法: <caster.ai.answer{type=人偶类型}>
+ * 用法：<caster.ai.answer{type=人偶类型}>
+ * 支持动态占位符：<caster.ai.answer{type=<skill.puppet>}>
  */
 @MythicPlaceholder(placeholder = "ai.answer", usedPlaceholderArguments = -1)
 public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> implements StringPlaceholder {
@@ -24,7 +25,7 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
 
     public AIAnswerPlaceholder(EntityScopedPlaceholderArguments arguments) {
         super(arguments);
-        // 获取 type 参数（使用 mlcGetter 从 MythicLineConfig 获取 {type=xxx} 格式）
+        // 获取 type 参数（保存为 ResolvedPlaceholderSegment，以便在 applyToScope 中解析动态占位符）
         this.typeSegment = this.<PlaceholderString>getResolver().mlcGetter(mythicLineConfig -> {
             String typeValue = mythicLineConfig.getString(new String[]{"type"}, null);
             return typeValue == null ? null : PlaceholderString.of(typeValue);
@@ -56,12 +57,20 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
                 return "[错误：无法获取 UUID]";
             }
 
-            // 获取人偶类型参数
-            var placeholderString = typeSegment.value();
-            if (placeholderString == null) {
+            // 使用 placeholderContext 解析 typeSegment，支持动态占位符
+            String type = null;
+            if (typeSegment != null) {
+                var resolvedPlaceholderString = typeSegment.value();
+                KilacraftAI.getInstance().getLogger().severe("resolvedPlaceholderString: " + resolvedPlaceholderString);
+                if (resolvedPlaceholderString != null) {
+                    // 使用 PlaceholderContext 解析占位符
+                    type = resolvedPlaceholderString.get(placeholderContext);
+                }
+            }
+
+            if (type == null || type.isEmpty()) {
                 return "[错误：必须指定 type 参数]";
             }
-            String type = placeholderString.get();
 
             // 从 ConversationManager 获取 AI 回复
             String response = KilacraftAI.getInstance().getConversationManager().getLatestAIResponse(casterId, type);
