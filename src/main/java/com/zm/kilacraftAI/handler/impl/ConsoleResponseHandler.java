@@ -33,4 +33,10 @@ public class ConsoleResponseHandler extends BaseResponseHandler {
     protected void sendMessage(String message) {
         sender.sendMessage(message);
     }
+
+    @Override
+    public boolean isStreamOutputEnabled() {
+        // 控制台模式不支持流式输出（可以，但是体验不好，会刷屏）
+        return false;
+    }
 }

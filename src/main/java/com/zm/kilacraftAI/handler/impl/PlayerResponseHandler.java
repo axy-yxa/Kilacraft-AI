@@ -36,4 +36,10 @@ public class PlayerResponseHandler extends BaseResponseHandler {
     protected void sendMessage(String message) {
         player.sendMessage(message);
     }
+
+    @Override
+    public boolean isStreamOutputEnabled() {
+        // 命令模式不支持流式输出（可以，但是体验不好，会刷屏）
+        return false;
+    }
 }

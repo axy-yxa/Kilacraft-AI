@@ -40,7 +40,7 @@ settings:
   # 触发关键词（多个用逗号分隔）
   trigger_keywords: "@kila,@ai,@zm"
 
-  # 是否启用流式输出
+  # 是否启用流式输出 命令模式与控制台模式不支持流式输出（可以，但是体验不好，会刷屏）
   # true: AI 边生成边显示，玩家能实时看到回答过程
   # false: 等待完整回答后一次性显示
   enable_stream_output: false
