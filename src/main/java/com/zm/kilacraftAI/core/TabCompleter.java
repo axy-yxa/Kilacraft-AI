@@ -27,7 +27,7 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             }
 
             // clear 命令（需要权限）
-            if (sender.hasPermission("kilacraft.clear")) {
+            if (sender.hasPermission("kilacraft.clear.self") || sender.hasPermission("kilacraft.clear.other")) {
                 completions.add("clear");
             }
 
@@ -39,6 +39,11 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
                 completions.add("knowledge");
             }
 
+            // personalities 命令（需要权限）
+            if (sender.hasPermission("kilacraft.personalities")) {
+                completions.add("personalities");
+            }
+
             return getCompletions(args[0], completions);
         }
 
@@ -47,6 +52,17 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             List<String> completions = new ArrayList<>();
 
             if (sender.hasPermission("kilacraft.knowledge")) {
+                completions.add("reload");
+            }
+
+            return getCompletions(args[1], completions);
+        }
+
+        if (args.length == 2 && "personalities".equals(args[0])) {
+            // personalities 的子命令
+            List<String> completions = new ArrayList<>();
+
+            if (sender.hasPermission("kilacraft.personalities")) {
                 completions.add("reload");
             }
 
