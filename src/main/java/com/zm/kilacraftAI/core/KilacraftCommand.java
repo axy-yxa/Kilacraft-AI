@@ -371,9 +371,6 @@ public class KilacraftCommand implements CommandExecutor {
             plugin.getLogger().info("[DEBUG] 历史记录数量：" + pluginHistory.size());
         }
 
-        // 发送"正在思考"消息到控制台
-        MessageUtil.sendThinkingMessage(sender);
-
         // 立即更新冷却时间（基于 UUID）
         validator.startCooldown(targetPlayerId);
 
