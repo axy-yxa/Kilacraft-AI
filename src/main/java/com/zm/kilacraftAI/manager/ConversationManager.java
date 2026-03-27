@@ -135,6 +135,43 @@ public class ConversationManager {
         clearHistory(playerId);
         clearPluginHistory(playerId);
     }
+    
+    /**
+     * 获取指定玩家的插件命令历史中的最新 AI 回复
+     * 
+     * @param playerId 玩家 UUID
+     * @param personality 人偶类型
+     * @return 最新的 AI 回复消息，如果不存在则返回 null
+     */
+    public String getLatestAIResponse(UUID playerId, String personality) {
+        String key = generatePluginHistoryKey(playerId, personality);
+        Deque<Message> history = pluginCommandHistory.get(key);
+        
+        if (history == null || history.isEmpty()) {
+            return null;
+        }
+        
+        // 获取最后一条 assistant 角色的消息
+        Message lastMessage = null;
+        for (Message msg : history) {
+            if ("assistant".equals(msg.getRole())) {
+                lastMessage = msg;
+            }
+        }
+        
+        return lastMessage != null ? lastMessage.getContent() : null;
+    }
+    
+    /**
+     * 生成插件命令历史记录键
+     * 
+     * @param playerId 玩家 UUID
+     * @param personality 人偶类型
+     * @return 历史记录键（格式：UUID_人格）
+     */
+    private String generatePluginHistoryKey(UUID playerId, String personality) {
+        return playerId.toString() + "_" + personality;
+    }
 
     /**
      * 玩家退出游戏时清理相关状态
