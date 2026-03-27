@@ -7,7 +7,7 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
-import com.zm.kilacraftAI.listener.ChatListener;
+import com.zm.kilacraftAI.manager.ConversationManager;
 import okhttp3.*;
 
 import java.util.Deque;
@@ -53,7 +53,7 @@ public class DeepSeekAPI {
     /**
      * 打印调试日志
      */
-    private void printDebugLog(String playerName, String userMessage, Deque<ChatListener.Message> history) {
+    private void printDebugLog(String playerName, String userMessage, Deque<ConversationManager.Message> history) {
         plugin.getLogger().info("[DEBUG] ========== DeepSeek API 请求开始 ==========");
         plugin.getLogger().info("[DEBUG] 玩家：" + playerName);
         plugin.getLogger().info("[DEBUG] 当前消息：" + userMessage);
@@ -65,7 +65,7 @@ public class DeepSeekAPI {
         if (history != null && !history.isEmpty()) {
             plugin.getLogger().info("[DEBUG] 历史对话数量：" + history.size() + " 条");
             int index = 0;
-            for (ChatListener.Message msg : history) {
+            for (ConversationManager.Message msg : history) {
                 index++;
                 String content = msg.getContent();
                 // AI 回答的历史记录只打印前若干个字符，避免日志过长
@@ -109,8 +109,28 @@ public class DeepSeekAPI {
      * @return 完整的 AI 响应（CompletableFuture 可用于异步处理）
      */
     public CompletableFuture<String> processRequest(String userMessage, String playerName, 
-                                                     Deque<ChatListener.Message> history, 
+                                                     Deque<ConversationManager.Message> history, 
                                                      AIResponseHandler responseHandler) {
+        // 使用默认的系统提示词
+        return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, configManager.getSystemPrompt());
+    }
+
+    /**
+     * 处理 AI 请求（支持自定义系统提示词）
+     * 
+     * <p>用于插件命令等需要临时替换人格的场景</p>
+     * 
+     * @param userMessage 用户消息
+     * @param playerName 玩家名称
+     * @param history 历史对话记录
+     * @param responseHandler 响应处理器
+     * @param customSystemPrompt 自定义系统提示词
+     * @return 完整的 AI 响应（CompletableFuture 可用于异步处理）
+     */
+    public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName,
+                                                                           Deque<ConversationManager.Message> history,
+                                                                           AIResponseHandler responseHandler,
+                                                                           String customSystemPrompt) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 // 打印调试日志
@@ -153,8 +173,8 @@ public class DeepSeekAPI {
 
                 JsonArray messages = new JsonArray();
 
-                // 从配置读取系统提示词，替换 {player} 占位符
-                String systemPrompt = configManager.getSystemPrompt().replace("{player}", playerName);
+                // 使用自定义的系统提示词，替换 {player} 占位符
+                String systemPrompt = customSystemPrompt.replace("{player}", playerName);
                 JsonObject systemMessage = new JsonObject();
                 systemMessage.addProperty("role", ROLE_SYSTEM);
                 systemMessage.addProperty("content", systemPrompt);
@@ -162,7 +182,7 @@ public class DeepSeekAPI {
                 
                 // 添加历史对话记录
                 if (history != null && !history.isEmpty()) {
-                    for (ChatListener.Message msg : history) {
+                    for (ConversationManager.Message msg : history) {
                         JsonObject msgObj = new JsonObject();
                         msgObj.addProperty("role", msg.getRole());
                         msgObj.addProperty("content", msg.getContent());

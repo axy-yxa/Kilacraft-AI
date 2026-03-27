@@ -32,6 +32,8 @@ public class ConfigManager {
     @Getter
     private int cooldownSeconds;
     @Getter
+    private int pluginsCooldownSeconds;
+    @Getter
     private boolean debugMode;
     @Getter
     private int maxHistory;
@@ -83,6 +85,7 @@ public class ConfigManager {
         this.triggerKeywords = Arrays.asList(keywordsStr.split(","));
         this.enableStreamOutput = config.getBoolean("settings.enable_stream_output", false);
         this.cooldownSeconds = config.getInt("settings.cooldown_seconds", 5);
+        this.pluginsCooldownSeconds = config.getInt("settings.plugins_cooldown_seconds", 5);
         this.maxHistory = config.getInt("settings.max_history", 10);
         this.allowedWorlds = config.getStringList("settings.allowed_worlds");
         if (this.allowedWorlds.isEmpty()) {
