@@ -5,6 +5,7 @@ target/
 dependency-reduced-pom.xml
 test/
 *.md
+.qoder
 
 ### IntelliJ IDEA ###
 .idea
