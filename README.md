@@ -70,6 +70,37 @@ knowledge:
   max_relevant_chunks: 3              # 最大相关知识数量
 ```
 
+### 语言配置 (language.yml)
+
+所有系统提示文本都可以在 `language.yml` 中自定义，包括：
+
+- **帮助消息**：各种命令的帮助提示
+- **权限相关**：无权限时的错误消息
+- **功能状态**：功能启用/禁用状态的提示
+- **命令执行结果**：成功/失败等操作反馈
+- **日志消息**：控制台输出的日志格式
+
+示例配置：
+
+```yaml
+help:
+  messages:
+    - "§e使用方法：/kilacraft <消息>"
+    - "§e简写：/kila <消息>"
+  clear-self: "§e 清除历史：/kilacraft clear"
+  
+permissions:
+  reload: "§c你没有权限重载配置！"
+  
+features:
+  chat-mode-enter: "§a已进入连续对话模式！"
+  
+commands:
+  reload-success: "§a配置已重载！"
+```
+
+支持变量占位符：`{player}`, `{sender}` 等
+
 ### 人格配置 (personalities.yml)
 
 在 `plugins/Kilacraft-AI/personalities/` 目录下创建 YAML 文件来定义不同的人格：
@@ -95,7 +126,7 @@ knowledge:
 | `/kilacraft chat` | 无（所有玩家） | 进入/退出连续对话模式 |
 | `/kilacraft clear` | `kilacraft.clear.self` | 清除自己的对话历史 |
 | `/kilacraft clear <玩家>` | `kilacraft.clear.other` | 清除指定玩家的对话历史 |
-| `/kilacraft reload` | `kilacraft.reload` | 重载主配置 |
+| `/kilacraft reload` | `kilacraft.reload` | 重载主配置和语言配置 |
 | `/kilacraft knowledge reload` | `kilacraft.knowledge` | 重载知识库 |
 | `/kilacraft personalities reload` | `kilacraft.personalities` | 重载人格配置 |
 | `/kilacraft plugins <人格> <内容> <UUID>` | 控制台专用 | 第三方插件调用 |
@@ -212,6 +243,27 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - 检查玩家是否有相应权限
 
 ## 📝 更新日志
+
+### v1.2.3
+- ✅ **新增语言配置系统**：将所有系统提示文本提取到 `language.yml` 配置文件
+  - 支持自定义所有命令帮助、权限提示、功能状态等消息
+  - 支持颜色代码和变量占位符（`{player}`, `{sender}`）
+  - `/kilacraft reload` 命令现在会同时重载主配置和语言配置
+  - 服务器管理员可以完全自定义 AI 插件的所有系统提示
+- ✅ **动态帮助消息**：help 命令根据玩家权限动态展示对应的提示内容
+- ✅ **架构优化**：新增 `LanguageManager` 统一管理所有语言配置
+- ✅ **权限管理优化**：创建 `PluginPermission` 枚举类，统一管理所有权限节点
+  - 移除所有硬编码的权限字符串
+  - 所有权限检查使用枚举类 `PluginPermission.XXX.hasPermission(sender)`
+  - Tab 补全也基于权限枚举动态显示
+- ✅ **提示文本优化**：整合重复的提示文本，提高复用性
+  - 统一错误消息格式
+  - 优化连续对话模式禁用提示
+- ✅ **校验逻辑重构**：将工具类的校验与提示分离，遵循单一职责原则
+  - `AIRequestValidator` 只负责校验，不再直接发送提示
+  - 冷却时间提示：调用方根据校验结果自行处理
+  - 世界限制提示：调用方根据校验结果自行处理
+  - 所有提示文本从 `language.yml` 读取，支持占位符
 
 ### v1.2.2
 - ✅ 移除 `kilacraft.use` 权限要求，所有玩家默认可用

@@ -40,9 +40,9 @@ public class AIRequestValidator {
     }
 
     /**
-     * 检查玩家是否可以在当前世界使用 AI
+     * 检查世界限制
      *
-     * @param player 玩家
+     * @param player  玩家
      * @return true=允许使用，false=禁止使用
      */
     public boolean canUseAIInWorld(Player player) {
@@ -89,27 +89,23 @@ public class AIRequestValidator {
     }
 
     /**
-     * 检查冷却时间，如果仍在冷却中则发送提示消息
+     * 获取冷却剩余时间（秒）
      *
-     * @param player 玩家
-     * @return true=冷却已完成可以使用，false=仍在冷却中
+     * @param playerId 玩家 UUID
+     * @return 剩余秒数，如果不在冷却中则返回 0
      */
-    public boolean checkCooldownAndNotify(Player player) {
-        UUID playerId = player.getUniqueId();
+    public long getRemainingCooldownSeconds(UUID playerId) {
+        int cooldownSeconds = plugin.getConfigManager().getCooldownSeconds();
 
-        if (!isCooldownReady(playerId)) {
-            int cooldownSeconds = plugin.getConfigManager().getCooldownSeconds();
-            long lastUsed = cooldowns.get(playerId);
-            long currentTime = System.currentTimeMillis();
-            long timeLeft = (lastUsed + (cooldownSeconds * 1000L)) - currentTime;
-
-            if (timeLeft > 0) {
-                player.sendMessage("§c请等待 " + (timeLeft / 1000) + " 秒后再试！");
-                return false;
-            }
+        if (cooldownSeconds <= 0 || !cooldowns.containsKey(playerId)) {
+            return 0;
         }
 
-        return true;
+        long currentTime = System.currentTimeMillis();
+        Long lastUsed = cooldowns.get(playerId);
+        long timeLeft = (lastUsed + (cooldownSeconds * 1000L)) - currentTime;
+
+        return Math.max(0, timeLeft / 1000);
     }
 
     /**
@@ -146,31 +142,28 @@ public class AIRequestValidator {
     }
 
     /**
-     * 检查插件命令的冷却时间，如果仍在冷却中则发送提示消息到控制台
+     * 获取插件命令冷却剩余时间（秒）
      *
-     * @param sender     命令发送者（控制台）
-     * @param playerId   目标玩家 UUID（用于检查冷却）
-     * @param playerName 目标玩家名称（用于显示）
-     * @return true=冷却已完成可以使用，false=仍在冷却中
+     * @param playerId 玩家 UUID
+     * @return 剩余秒数，如果不在冷却中则返回 0
      */
-    public boolean checkPluginCommandCooldownAndNotify(CommandSender sender, UUID playerId, String playerName) {
-        if (playerId == null) {
-            return true; // 没有玩家 UUID，跳过冷却检查
+    public long getPluginCommandRemainingCooldownSeconds(UUID playerId) {
+        int pluginsCooldownSeconds = plugin.getConfigManager().getPluginsCooldownSeconds();
+
+        // 如果配置为 -1，使用普通冷却时间
+        if (pluginsCooldownSeconds < 0) {
+            return getRemainingCooldownSeconds(playerId);
         }
 
-        if (!isPluginCommandCooldownReady(playerId)) {
-            int pluginsCooldownSeconds = plugin.getConfigManager().getPluginsCooldownSeconds();
-            Long lastUsed = cooldowns.get(playerId);
-            long currentTime = System.currentTimeMillis();
-            long timeLeft = (lastUsed + (pluginsCooldownSeconds * 1000L)) - currentTime;
-
-            if (timeLeft > 0) {
-                sender.sendMessage("§c玩家 " + playerName + " 正在冷却中，请等待 " + (timeLeft / 1000) + " 秒后再试！");
-                return false;
-            }
+        if (pluginsCooldownSeconds <= 0 || !cooldowns.containsKey(playerId)) {
+            return 0;
         }
 
-        return true;
+        long currentTime = System.currentTimeMillis();
+        Long lastUsed = cooldowns.get(playerId);
+        long timeLeft = (lastUsed + (pluginsCooldownSeconds * 1000L)) - currentTime;
+
+        return Math.max(0, timeLeft / 1000);
     }
 
     /**
@@ -247,25 +240,6 @@ public class AIRequestValidator {
         if (plugin.getConfigManager().isDebugMode()) {
             plugin.getLogger().info("[DEBUG] 已保存新对话，当前历史记录数量：" + history.size());
         }
-    }
-
-    /**
-     * 检查世界限制，如果不允许则发送提示消息
-     *
-     * @param player  玩家
-     * @param context 上下文描述（用于日志，如"命令模式"、"连续对话模式"等）
-     * @return true=允许使用，false=禁止使用
-     */
-    public boolean checkWorldLimitAndNotify(Player player, String context) {
-        if (!canUseAIInWorld(player)) {
-            // 调试模式：打印玩家信息
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().warning("[DEBUG] [世界限制] 玩家 " + player.getName() + " 在禁止的世界 " + player.getWorld().getName() + " 尝试使用 " + MessageUtil.getAIName() + "（" + context + "）");
-            }
-            player.sendMessage("§c当前世界禁止使用 " + MessageUtil.getAIName() + "！");
-            return false;
-        }
-        return true;
     }
 
     /**

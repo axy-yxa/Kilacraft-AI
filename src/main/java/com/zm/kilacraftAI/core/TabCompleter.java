@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.core;
 
+import com.zm.kilacraftAI.config.PluginPermission;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -22,12 +23,12 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             List<String> completions = new ArrayList<>();
 
             // reload 命令（需要权限）
-            if (sender.hasPermission("kilacraft.reload")) {
+            if (PluginPermission.RELOAD.hasPermission(sender)) {
                 completions.add("reload");
             }
 
             // clear 命令（需要权限）
-            if (sender.hasPermission("kilacraft.clear.self") || sender.hasPermission("kilacraft.clear.other")) {
+            if (PluginPermission.CLEAR_SELF.hasPermission(sender) || PluginPermission.CLEAR_OTHER.hasPermission(sender)) {
                 completions.add("clear");
             }
 
@@ -35,12 +36,12 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             completions.add("chat");
 
             // knowledge 命令（需要权限）
-            if (sender.hasPermission("kilacraft.knowledge")) {
+            if (PluginPermission.KNOWLEDGE.hasPermission(sender)) {
                 completions.add("knowledge");
             }
 
             // personalities 命令（需要权限）
-            if (sender.hasPermission("kilacraft.personalities")) {
+            if (PluginPermission.PERSONALITIES.hasPermission(sender)) {
                 completions.add("personalities");
             }
 
@@ -51,7 +52,7 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             // knowledge 的子命令
             List<String> completions = new ArrayList<>();
 
-            if (sender.hasPermission("kilacraft.knowledge")) {
+            if (PluginPermission.KNOWLEDGE.hasPermission(sender)) {
                 completions.add("reload");
             }
 
@@ -62,7 +63,7 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             // personalities 的子命令
             List<String> completions = new ArrayList<>();
 
-            if (sender.hasPermission("kilacraft.personalities")) {
+            if (PluginPermission.PERSONALITIES.hasPermission(sender)) {
                 completions.add("reload");
             }
 

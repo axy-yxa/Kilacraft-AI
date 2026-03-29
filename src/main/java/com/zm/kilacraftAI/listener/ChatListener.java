@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.listener;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
@@ -13,7 +14,6 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.Deque;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -28,10 +28,12 @@ public class ChatListener implements Listener {
 
     private final KilacraftAI plugin;
     private final AIRequestValidator validator;
-    
+    private final LanguageManager languageManager;
+
     public ChatListener(KilacraftAI plugin) {
         this.plugin = plugin;
         this.validator = new AIRequestValidator(plugin);
+        this.languageManager = plugin.getLanguageManager();
     }
 
     @EventHandler
@@ -39,27 +41,28 @@ public class ChatListener implements Listener {
         Player player = event.getPlayer();
         ConversationManager convManager = plugin.getConversationManager();
         UUID playerId = player.getUniqueId();
-            
+
         // 检查是否处于连续对话模式
         if (convManager.isInChatMode(playerId)) {
             event.setCancelled(true);
-                
+
             // 检查是否启用了连续对话模式
             if (!plugin.getConfigManager().isEnableChatCommand()) {
-                player.sendMessage("§c 连续对话模式已被禁用！请使用 /kilacraft <消息> 与 " + MessageUtil.getAIName() + " 对话。");
+                player.sendMessage(languageManager.getFeatureChatModeDisabled());
                 convManager.setChatMode(playerId, false);
                 return;
             }
-                            
+
             // 检查世界限制
-            if (!validator.checkWorldLimitAndNotify(player, "连续对话模式")) {
+            if (!validator.canUseAIInWorld(player)) {
+                player.sendMessage(languageManager.replacePlaceholders(languageManager.getWorldBannedHint(), "ai_name", MessageUtil.getAIName()));
                 return;
             }
-                            
+
             handleAIRequest(player, playerId, event.getMessage());
             return;
         }
-            
+
         // 检查关键词触发（普通聊天模式）
         if (plugin.getConfigManager().isEnableTrigger()) {
             String message = event.getMessage();
@@ -69,7 +72,8 @@ public class ChatListener implements Listener {
                     String actualMessage = removeKeyword(message, keyword).trim();
                     if (!actualMessage.isEmpty()) {
                         // 检查世界限制
-                        if (!validator.checkWorldLimitAndNotify(player, "关键词触发")) {
+                        if (!validator.canUseAIInWorld(player)) {
+                            player.sendMessage(languageManager.replacePlaceholders(languageManager.getWorldBannedHint(), "ai_name", MessageUtil.getAIName()));
                             return;
                         }
                         handleAIRequest(player, playerId, actualMessage);
@@ -85,7 +89,11 @@ public class ChatListener implements Listener {
      */
     private void handleAIRequest(Player player, UUID playerId, String message) {
         // 检查冷却时间
-        if (!validator.checkCooldownAndNotify(player)) {
+        if (!validator.isCooldownReady(playerId)) {
+            long remainingSeconds = validator.getRemainingCooldownSeconds(playerId);
+            if (remainingSeconds > 0) {
+                player.sendMessage(languageManager.replacePlaceholders(languageManager.getCooldownWarning(), "seconds", String.valueOf(remainingSeconds)));
+            }
             return;
         }
 
@@ -106,16 +114,15 @@ public class ChatListener implements Listener {
 
         // 创建玩家响应处理器
         AIResponseHandler handler = new PlayerResponseHandler(player, message, playerHistory);
-        
+
         // 使用统一的 API 处理请求
-        plugin.getDeepSeekAPI().processRequest(message, player.getName(), playerHistory, handler)
-            .thenAccept(fullResponse -> {
-                // 保存对话到历史记录
-                validator.saveToHistory(playerHistory, message, fullResponse);
-            }).exceptionally(throwable -> {
-                player.sendMessage("§c 发生错误：" + throwable.getMessage());
-                return null;
-            });
+        plugin.getDeepSeekAPI().processRequest(message, player.getName(), playerHistory, handler).thenAccept(fullResponse -> {
+            // 保存对话到历史记录
+            validator.saveToHistory(playerHistory, message, fullResponse);
+        }).exceptionally(throwable -> {
+            player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
+            return null;
+        });
     }
 
     /**
