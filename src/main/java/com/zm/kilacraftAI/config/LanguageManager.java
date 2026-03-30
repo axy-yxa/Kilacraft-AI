@@ -2,8 +2,10 @@ package com.zm.kilacraftAI.config;
 
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -138,12 +140,20 @@ public class LanguageManager {
      * 加载语言配置文件
      */
     public void loadConfig() {
-        // 保存默认语言配置（如果不存在）
-        plugin.saveResource("language.yml", false);
+        // 只在 language.yml 不存在时才保存默认配置
+        File languageFile = new File(plugin.getDataFolder(), "language.yml");
+        if (!languageFile.exists()) {
+            plugin.saveResource("language.yml", false);
+            plugin.getLogger().info("已创建默认 language.yml 配置文件");
+        }
         
-        // 重新加载配置
-        plugin.reloadConfig();
-        this.config = plugin.getConfig();
+        // 手动加载 language.yml 文件内容到内存
+        try {
+            // 使用 YamlConfiguration 直接读取 language.yml
+            this.config = YamlConfiguration.loadConfiguration(languageFile);
+        } catch (Exception e) {
+            plugin.getLogger().severe("加载 language.yml 失败：" + e.getMessage());
+        }
         
         // 加载语言配置
         loadLanguageConfig();
@@ -155,8 +165,8 @@ public class LanguageManager {
     private void loadLanguageConfig() {
         // 帮助消息
         this.helpMessages = config.getStringList("help.messages");
-        this.helpClearSelf = config.getString("help.clear-self", "§e 清除历史：/kilacraft clear");
-        this.helpClearOther = config.getString("help.clear-other", "§e 清除玩家历史：/kilacraft clear [玩家名称]");
+        this.helpClearSelf = config.getString("help.clear-self", "§e清除历史：/kilacraft clear");
+        this.helpClearOther = config.getString("help.clear-other", "§e清除玩家历史：/kilacraft clear [玩家名称]");
         this.helpKnowledge = config.getString("help.knowledge", "§e使用方法：/kilacraft knowledge reload");
         this.helpPersonalities = config.getString("help.personalities", "§e使用方法：/kilacraft personalities reload");
         this.helpPersonalitiesSubcommands = config.getString("help.personalities-subcommands", "§e可用子命令：reload - 重新加载人格配置");
