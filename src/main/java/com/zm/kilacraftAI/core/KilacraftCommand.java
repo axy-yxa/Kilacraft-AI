@@ -4,7 +4,7 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
-import com.zm.kilacraftAI.config.PluginPermission;
+import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
@@ -77,10 +77,10 @@ public class KilacraftCommand implements CommandExecutor {
         }
 
         // 根据权限显示清除历史提示
-        if (PluginPermission.CLEAR_SELF.hasPermission(sender)) {
+        if (PluginPermissionEnum.CLEAR_SELF.hasPermission(sender)) {
             sender.sendMessage(languageManager.getHelpClearSelf());
         }
-        if (PluginPermission.CLEAR_OTHER.hasPermission(sender)) {
+        if (PluginPermissionEnum.CLEAR_OTHER.hasPermission(sender)) {
             sender.sendMessage(languageManager.getHelpClearOther());
         }
     }
@@ -89,7 +89,7 @@ public class KilacraftCommand implements CommandExecutor {
      * 处理 reload 命令
      */
     private boolean handleReloadCommand(CommandSender sender) {
-        if (!PluginPermission.RELOAD.hasPermission(sender)) {
+        if (!PluginPermissionEnum.RELOAD.hasPermission(sender)) {
             sender.sendMessage(languageManager.getPermissionReload());
             return true;
         }
@@ -118,7 +118,7 @@ public class KilacraftCommand implements CommandExecutor {
     private boolean handleClearCommand(CommandSender sender, String[] args) {
         // 如果提供了玩家名称参数，清除指定玩家的历史（需要 kilacraft.clear.other 权限）
         if (args.length >= 2) {
-            if (!PluginPermission.CLEAR_OTHER.hasPermission(sender)) {
+            if (!PluginPermissionEnum.CLEAR_OTHER.hasPermission(sender)) {
                 sender.sendMessage(languageManager.getPermissionClearOther());
                 return true;
             }
@@ -144,7 +144,7 @@ public class KilacraftCommand implements CommandExecutor {
         }
 
         // 没有参数，清除自己的历史记录（需要 kilacraft.clear.self 权限）
-        if (!PluginPermission.CLEAR_SELF.hasPermission(sender)) {
+        if (!PluginPermissionEnum.CLEAR_SELF.hasPermission(sender)) {
             sender.sendMessage(languageManager.getPermissionClearSelf());
             return true;
         }
@@ -197,7 +197,7 @@ public class KilacraftCommand implements CommandExecutor {
      */
     private boolean handleKnowledgeCommand(CommandSender sender, String[] args) {
         // 检查权限
-        if (!PluginPermission.KNOWLEDGE.hasPermission(sender)) {
+        if (!PluginPermissionEnum.KNOWLEDGE.hasPermission(sender)) {
             sender.sendMessage(languageManager.getPermissionKnowledge());
             return true;
         }
@@ -243,7 +243,7 @@ public class KilacraftCommand implements CommandExecutor {
      */
     private boolean handlePersonalitiesCommand(CommandSender sender, String[] args) {
         // 检查权限
-        if (!PluginPermission.PERSONALITIES.hasPermission(sender)) {
+        if (!PluginPermissionEnum.PERSONALITIES.hasPermission(sender)) {
             sender.sendMessage(languageManager.getPermissionPersonalities());
             return true;
         }
