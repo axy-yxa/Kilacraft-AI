@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.api.DeepSeekAPI;
 import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
 import com.zm.kilacraftAI.listener.ChatListener;
 import com.zm.kilacraftAI.knowledge.KnowledgeBaseManager;
@@ -26,6 +27,8 @@ public final class KilacraftAI extends JavaPlugin {
     private static KilacraftAI instance;
     private ConfigManager configManager;
     @Getter
+    private LanguageManager languageManager;
+    @Getter
     private PersonalitiesConfigManager personalitiesConfigManager;
     private DeepSeekAPI deepSeekAPI;
     private ChatListener chatListener;
@@ -43,6 +46,7 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 初始化管理器
         configManager = new ConfigManager(this);
+        languageManager = new LanguageManager(this);
         personalitiesConfigManager = new PersonalitiesConfigManager(this);
         conversationManager = new ConversationManager();
         deepSeekAPI = new DeepSeekAPI(configManager);

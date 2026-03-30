@@ -1,0 +1,154 @@
+# ==================== Kilacraft-AI 语言配置文件 ====================
+# 本配置文件用于管理 AI 插件的所有系统提示文本
+# 管理员可以自定义这些消息来适配服务器风格
+# 支持颜色代码（§ + 数字/字母）和变量占位符
+
+# ==================== 命令帮助消息 ====================
+help:
+  # 基础帮助消息（每行一条）
+  messages:
+    - "§e使用方法：/kilacraft <消息>"
+    - "§e简写：/kila <消息> 或者 /ai <消息> 或者 /zm <消息>"
+    - "§e进入连续对话模式：/kilacraft chat"
+    - "§e重载配置：/kilacraft reload"
+    - "§e重载知识库：/kilacraft knowledge reload"
+    - "§e重载人格配置：/kilacraft personalities reload"
+  
+  # 清除历史提示（根据权限动态显示）
+  clear-self: "§e清除历史：/kilacraft clear"
+  clear-other: "§e清除玩家历史：/kilacraft clear [玩家名称]"
+  
+  # 知识管理帮助
+  knowledge: "§e使用方法：/kilacraft knowledge reload"
+  
+  # 人格管理帮助
+  personalities: "§e使用方法：/kilacraft personalities reload"
+  personalities-subcommands: "§e可用子命令：reload - 重新加载人格配置"
+
+# ==================== 权限相关消息 ====================
+permissions:
+  reload: "§c你没有权限重载配置！"
+  clear-self: "§c你没有权限清除自己的对话历史记录！"
+  clear-other: "§c你没有权限清除其他玩家的历史记录！"
+  knowledge: "§c你没有权限管理知识库！"
+  personalities: "§c你没有权限管理人格配置！"
+
+# ==================== 功能状态消息 ====================
+features:
+  # 连续对话模式被禁用
+  chat-mode-disabled: "§c连续对话模式已被禁用！"
+  
+  # 非玩家使用聊天模式
+  chat-mode-player-only: "§c只有玩家才能使用连续对话模式！"
+  
+  # 进入连续对话模式
+  chat-mode-enter: "§a已进入连续对话模式！现在你说的每句话都会发送给 Kilacraft-AI。"
+  chat-mode-enter-subtitle: "§7输入 §e/kilacraft chat§7 退出连续对话模式"
+  
+  # 退出连续对话模式
+  chat-mode-exit: "§7已退出连续对话模式"
+
+# ==================== 命令执行结果消息 ====================
+commands:
+  # 重载成功
+  reload-success: "§a配置已重载！"
+  
+  # 重载失败
+  reload-failure: "§c配置重载失败："
+  
+  # 清除自己历史成功
+  clear-self-success: "§a已清除你的对话历史记录！"
+  
+  # 清除他人历史成功
+  clear-other-success: "§a已清除玩家 {player} 的对话历史记录！"
+  
+  # 控制台清除命令提示
+  clear-console-hint: "§c请在命令中添加玩家名称来清除其历史记录：/kilacraft clear <玩家名称>"
+  
+  # 知识库重载成功
+  knowledge-reload-success: "§a知识库已重载！"
+  
+  # 知识库重载失败
+  knowledge-reload-failure: "§c知识库重载失败："
+  
+  # 人格配置重载成功
+  personalities-reload-success: "§a人格配置已重载！"
+  
+  # 人格配置重载失败
+  personalities-reload-failure: "§c人格配置重载失败："
+  
+  # 未知子命令
+  unknown-subcommand: "§c未知的子命令："
+  
+  # 可用子命令列表
+  available-subcommands: "§e可用子命令：reload"
+  
+  # 冷却时间提示
+  cooldown-warning: "§c请等待 {seconds} 秒后再试！"
+  
+  # 插件命令冷却时间提示
+  plugin-command-cooldown-warning: "§c玩家 {player} 正在冷却中，请等待 {seconds} 秒后再试！"
+  
+  # 世界限制提示
+  world-banned-hint: "§c当前世界禁止使用 {ai_name}！"
+
+# ==================== 插件命令专用消息 ====================
+plugins-command:
+  # 玩家尝试执行控制台命令
+  player-blocked: "§c请使用 /kilacraft <消息>"
+  
+  # 参数不足
+  insufficient-args: "§c参数不足！使用方法：/kilacraft plugins <人格> <内容> <玩家 UUID>"
+  
+  # 使用示例
+  usage-example: "§e示例：/kilacraft plugins 严厉教师 你好 069a79f4-44e9-4726-a5be-fca90e38aaf5"
+  
+  # 无效 UUID 格式
+  invalid-uuid: "§c无效的玩家 UUID 格式："
+  
+  # UUID 格式提示
+  uuid-format-hint: "§e请确保 UUID 格式正确，例如：069a79f4-44e9-4726-a5be-fca90e38aaf5"
+  
+  # 人格不存在
+  personality-not-found: "§c未找到人格配置："
+  
+  # 人格列表提示
+  personality-list-hint: "§e可用的人格列表："
+  
+  # 错误消息
+  error: "§c发生错误："
+
+# ==================== 日志消息（带变量） ====================
+logs:
+  # 配置重载日志
+  config-reloaded: "配置已由 {sender} 重载"
+  
+  # 知识库重载日志
+  knowledge-reloaded: "知识库已由 {sender} 重载"
+  
+  # 人格配置重载日志
+  personalities-reloaded: "人格配置已由 {sender} 重载"
+  
+  # 玩家进入聊天模式
+  chat-mode-entered: "玩家 {player} 已进入连续对话模式"
+  
+  # 玩家退出聊天模式
+  chat-mode-exited: "玩家 {player} 已退出连续对话模式"
+  
+  # 清除自己历史日志
+  clear-self-logged: "玩家 {player} 已清除对话历史记录"
+  
+  # 清除他人历史日志
+  clear-other-logged: "{sender} 已清除玩家 {player} 的对话历史记录"
+  
+  # 玩家尝试执行控制台命令
+  player-command-attempt: "玩家 {player} 尝试执行控制台专用命令 /kilacraft plugins"
+  
+  # AI 请求错误日志
+  ai-request-error: "AI 请求发生错误："
+  
+  # 控制台 AI 请求错误
+  console-ai-error: "控制台 AI 请求发生错误："
+  
+  # 插件命令 AI 请求错误
+  plugin-command-ai-error: "插件命令 AI 请求发生错误："

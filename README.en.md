@@ -70,6 +70,37 @@ knowledge:
   max_relevant_chunks: 3              # Maximum relevant chunks
 ```
 
+### Language Configuration (language.yml)
+
+All system prompt texts can be customized in `language.yml`, including:
+
+- **Help Messages**: Help prompts for various commands
+- **Permission Messages**: Error messages when lacking permissions
+- **Feature Status**: Prompts for feature enabled/disabled states
+- **Command Results**: Success/failure operation feedback
+- **Log Messages**: Console output log formats
+
+Example configuration:
+
+```yaml
+help:
+  messages:
+    - "§eUsage: /kilacraft <message>"
+    - "§eShortcuts: /kila, /ai, /zm"
+  clear-self: "§eClear history: /kilacraft clear"
+  
+permissions:
+  reload: "§cYou don't have permission to reload configuration!"
+  
+features:
+  chat-mode-enter: "§aEntered continuous chat mode!"
+  
+commands:
+  reload-success: "§aConfiguration reloaded!"
+```
+
+Supports variable placeholders: `{player}`, `{sender}`, etc.
+
 ### Personality Configuration (personalities.yml)
 
 Create YAML files in `plugins/Kilacraft-AI/personalities/` to define different personalities:
@@ -95,7 +126,7 @@ FriendlyHelper:
 | `/kilacraft chat` | None (all players) | Enter/Exit continuous chat mode |
 | `/kilacraft clear` | `kilacraft.clear.self` | Clear your own chat history |
 | `/kilacraft clear <player>` | `kilacraft.clear.other` | Clear specified player's chat history |
-| `/kilacraft reload` | `kilacraft.reload` | Reload main configuration |
+| `/kilacraft reload` | `kilacraft.reload` | Reload main and language configurations |
 | `/kilacraft knowledge reload` | `kilacraft.knowledge` | Reload knowledge base |
 | `/kilacraft personalities reload` | `kilacraft.personalities` | Reload personality configurations |
 | `/kilacraft plugins <personality> <message> <UUID>` | Console only | Third-party plugin call |
@@ -212,6 +243,27 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - Check if player has appropriate permissions
 
 ## 📝 Changelog
+
+### v1.2.3
+- ✅ **Language Configuration System**: Extracted all system prompt texts to `language.yml` configuration file
+  - Supports customizing all command help, permission prompts, feature status messages
+  - Supports color codes and variable placeholders (`{player}`, `{sender}`)
+  - `/kilacraft reload` command now reloads both main and language configurations
+  - Server administrators can fully customize all AI plugin system prompts
+- ✅ **Dynamic Help Messages**: help command dynamically displays prompts based on player permissions
+- ✅ **Architecture Optimization**: Added `LanguageManager` for unified management of all language configurations
+- ✅ **Permission Management Optimization**: Created `PluginPermission` enum class for unified permission node management
+  - Removed all hardcoded permission strings
+  - All permission checks use enum class `PluginPermission.XXX.hasPermission(sender)`
+  - Tab completion also dynamically displays based on permission enum
+- ✅ **Prompt Text Optimization**: Integrated duplicate prompts for better reusability
+  - Unified error message format
+  - Optimized continuous chat mode disabled prompts
+- ✅ **Validation Logic Refactoring**: Separated validation and notification in utility classes, following Single Responsibility Principle
+  - `AIRequestValidator` only handles validation, no longer sends notifications directly
+  - Cooldown notification: handled by caller based on validation result
+  - World restriction notification: handled by caller based on validation result
+  - All notification texts read from `language.yml`, support placeholders
 
 ### v1.2.2
 - ✅ Removed `kilacraft.use` permission requirement, available to all players by default
