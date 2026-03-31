@@ -6,15 +6,31 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
 
 ## 📋 Features
 
-- **Multiple Interaction Modes**: Command mode, continuous chat mode, keyword trigger mode
-- **Personality System**: Support for multiple personality configurations, customizable AI roles and response styles
+### 🤖 AI Agent Core Capabilities
+- **LLM Intent Recognition Engine**: Intelligently understands user's true intentions and routes to corresponding skills
+- **Skills System Framework**: Extensible AI skill execution framework with async non-blocking support
+- **Multi-modal Interaction**: Command mode, continuous chat mode, keyword trigger mode
+
+### 💰 Economy Integration (Experimental)
+- **GlobalMarketPlus Deep Integration**: Player balance inquiry, market price inquiry, product list inquiry
+- **Multi-item Joint Query**: Check prices of multiple items at once, format: `diamond:2,stick:1`
+- **Quantity Recognition**: Natural language understanding for "buy 5 sticks" etc.
+- **Optimal Price Calculation**: Smart combination from cheapest to most expensive, considering actual stock
+- **Insufficient Stock Notification**: Shows detailed prices and quantities of all available items
+
+### 🎭 Personalization & Context
+- **Personality System**: Multiple personality configurations, customizable AI roles and response styles
 - **Contextual Conversations**: Automatically saves chat history, supports continuous context-aware conversations
-- **Knowledge Base Enhancement**: Local knowledge base retrieval support, making AI understand your server better
+- **Knowledge Base Enhancement**: Local knowledge base retrieval, making AI understand your server better
+
+### 🔌 Third-party Plugin Support
+- **MythicMobs Placeholders**: Use `%kilacraft_ai_answer%` to get latest AI responses
+- **Console Command Calls**: Other plugins can integrate AI functionality via console commands
+
+### ⚙️ Management & Security
 - **Permission Management**: Fine-grained permission control, admins can clear other players' history
 - **Cooldown & Limits**: Prevent abuse, supports customizable cooldown times and world restrictions
 - **Streaming Output**: Real-time display of AI response generation (optional)
-- **Third-party Plugin Integration**: Support for MythicMobs and other plugins to call AI functions
-- **MythicMobs Placeholders**: Custom placeholders to get latest AI responses
 
 ## 🔧 Installation
 
@@ -32,6 +48,8 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
   
 - **Optional** (for extended features):
   - MythicMobs 5.12.0+ (for placeholder functionality)
+  - GlobalMarketPlus 1.3.8.0+ (for economy system skills, experimental)
+  - Vault (for multi-currency support)
 
 ## ⚙️ Configuration
 
@@ -202,6 +220,28 @@ A: You can earn money by mining, fishing, or selling items at player shops.
 ```
 
 ## 🔌 Developer API
+
+### Skills Skill Framework (v1.3.0+)
+
+The plugin uses an LLM intent-based skill execution framework, supporting custom extensions:
+
+```java
+// Implement custom skill
+public class MyCustomSkill implements Skill {
+    @Override
+    public String getName() {
+        return "my_skill";
+    }
+    
+    @Override
+    public CompletableFuture<SkillResult> execute(SkillContext context) {
+        // Async skill execution
+        return CompletableFuture.completedFuture(
+            SkillResult.success("Success!")
+        );
+    }
+}
+```
 
 ### Console Command Call
 
@@ -392,5 +432,4 @@ Zm_Mmm
 ## 🔗 Related Links
 
 - [DeepSeek API Documentation](https://platform.deepseek.com/api-docs/)
-- [SpigotMC Plugin Page](Please add link)
 - [Issue Tracker](Please add link)
