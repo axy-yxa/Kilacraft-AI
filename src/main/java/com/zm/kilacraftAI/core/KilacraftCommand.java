@@ -10,6 +10,7 @@ import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.util.AIRequestValidator;
 import com.zm.kilacraftAI.util.MessageUtil;
 import org.bukkit.command.Command;
@@ -97,6 +98,13 @@ public class KilacraftCommand implements CommandExecutor {
         try {
             plugin.getConfigManager().loadConfig();
             plugin.getLanguageManager().loadConfig();
+
+            // 重新加载技能配置
+            if (plugin.getSkillConfigManager() != null) {
+                plugin.getSkillConfigManager().loadAllSkillConfigs();
+                sender.sendMessage("§a已重新加载技能配置文件");
+            }
+
             sender.sendMessage(languageManager.getCommandReloadSuccess());
             plugin.getLogger().info(languageManager.replacePlaceholders(languageManager.getLogConfigReloaded(), "sender", getSenderName(sender)));
         } catch (Exception e) {
@@ -450,14 +458,88 @@ public class KilacraftCommand implements CommandExecutor {
             plugin.getLogger().info("[DEBUG] 玩家 " + player.getName() + " 的历史记录数量：" + playerHistory.size());
         }
 
-        // 发送"正在思考"消息（从配置文件读取）
-        MessageUtil.sendThinkingMessage(player);
-
-        // 立即更新冷却时间（在发送请求时）
-        validator.startCooldown(playerId);
-
         // 构建消息
         String message = String.join(" ", args);
+
+        // LLM 意图识别
+        handleSkillExecution(player, playerId, message, playerHistory);
+        return true;
+    }
+
+    /**
+     * 处理技能执行（基于 LLM 意图识别）
+     *
+     * <p>统一入口：所有消息都先经过 LLM 意图识别，再决定是否调用技能</p>
+     */
+    private void handleSkillExecution(Player player, UUID playerId, String message, Deque<ConversationManager.Message> playerHistory) {
+        // 调试模式：打印意图识别信息
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("[DEBUG] 开始 LLM 意图识别，玩家：" + player.getName() + ", 消息：" + message);
+        }
+
+        // 使用 LLM 识别意图
+        var intentRecognizer = plugin.getIntentRecognizer();
+        if (intentRecognizer != null) {
+            intentRecognizer.recognize(message, playerHistory).thenAccept(intent -> {
+                // 调试日志
+                if (plugin.getConfigManager().isDebugMode()) {
+                    plugin.getLogger().info("[DEBUG] LLM 意图识别结果：" + intent);
+                }
+
+                // 检查意图是否有效
+                if (intent.isValid()) {
+                    // 发送"正在思考"消息
+                    MessageUtil.sendThinkingMessage(player);
+
+                    // 立即更新冷却时间
+                    validator.startCooldown(playerId);
+
+                    // 创建技能上下文并执行（使用 LLM 识别出的 action 和 entities）
+                    var skillManager = plugin.getSkillManager();
+                    SkillContext context = new SkillContext(player, intent.getAction(), intent.getEntities());
+
+                    skillManager.executeSkillByIntent(intent, context).thenAccept(result -> {
+                        if (result.isSuccess()) {
+                            // 技能成功，发送结果给玩家
+                            player.sendMessage(result.getMessage());
+
+                            // 保存对话到历史记录
+                            validator.saveToHistory(playerHistory, message, result.getMessage());
+                        } else {
+                            // 技能执行失败，回退到普通 AI（不需要再次执行 thinking 和 cooldown）
+                            handleNormalAIRequestWithoutThinking(player, message, playerHistory);
+                        }
+                    }).exceptionally(throwable -> {
+                        player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
+                        plugin.getLogger().severe("[技能执行异常] " + throwable.getMessage());
+                        return null;
+                    });
+                } else {
+                    // 意图识别失败，回退到普通 AI 处理
+                    if (plugin.getConfigManager().isDebugMode()) {
+                        plugin.getLogger().info("[DEBUG] 意图识别失败，使用普通 AI 处理");
+                    }
+                    handleNormalAIRequest(player, playerId, message, playerHistory);
+                }
+            }).exceptionally(throwable -> {
+                player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
+                return null;
+            });
+        } else {
+            // 意图识别器不可用，回退到普通 AI 处理
+            handleNormalAIRequest(player, playerId, message, playerHistory);
+        }
+    }
+
+    /**
+     * 处理普通 AI 请求
+     */
+    private boolean handleNormalAIRequest(Player player, UUID playerId, String message, Deque<ConversationManager.Message> playerHistory) {
+        // 发送"正在思考"消息
+        MessageUtil.sendThinkingMessage(player);
+
+        // 立即更新冷却时间
+        validator.startCooldown(playerId);
 
         // 创建玩家响应处理器
         AIResponseHandler handler = new PlayerResponseHandler(player, message, playerHistory);
@@ -473,6 +555,24 @@ public class KilacraftCommand implements CommandExecutor {
         });
 
         return true;
+    }
+
+    /**
+     * 处理普通 AI 请求（不发送 thinking message 和 cooldown，用于技能回退）
+     */
+    private void handleNormalAIRequestWithoutThinking(Player player, String message, Deque<ConversationManager.Message> playerHistory) {
+        // 创建玩家响应处理器
+        AIResponseHandler handler = new PlayerResponseHandler(player, message, playerHistory);
+
+        // 使用统一的 API 处理请求
+        plugin.getDeepSeekAPI().processRequest(message, player.getName(), playerHistory, handler).thenAccept(fullResponse -> {
+            // 保存对话到历史记录
+            validator.saveToHistory(playerHistory, message, fullResponse);
+        }).exceptionally(throwable -> {
+            player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
+            plugin.getLogger().severe(languageManager.getLogAiRequestError() + throwable.getMessage());
+            return null;
+        });
     }
 
     /**

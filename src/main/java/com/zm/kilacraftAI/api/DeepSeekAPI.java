@@ -131,18 +131,42 @@ public class DeepSeekAPI {
                                                                            Deque<ConversationManager.Message> history,
                                                                            AIResponseHandler responseHandler,
                                                                            String customSystemPrompt) {
+        // 默认启用知识检索增强
+        return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, true, true);
+    }
+    
+    /**
+     * 处理 AI 请求（支持自定义系统提示词和知识检索控制）
+     * 
+     * <p>用于需要精确控制是否启用知识检索的场景（如 LLM 意图识别不需要知识增强）</p>
+     * 
+     * @param userMessage 用户消息
+     * @param playerName 玩家名称
+     * @param history 历史对话记录
+     * @param responseHandler 响应处理器
+     * @param customSystemPrompt 自定义系统提示词
+     * @param enableKnowledgeRetrieval 是否启用知识检索增强
+     * @param enableLLMDebugLog 是否显示意图识别Debug日志
+     * @return 完整的 AI 响应（CompletableFuture 可用于异步处理）
+     */
+    public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName,
+                                                                           Deque<ConversationManager.Message> history,
+                                                                           AIResponseHandler responseHandler,
+                                                                           String customSystemPrompt,
+                                                                           boolean enableKnowledgeRetrieval,
+                                                                           boolean enableLLMDebugLog) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 // 打印调试日志
-                if (configManager.isDebugMode()) {
+                if (enableLLMDebugLog && configManager.isDebugMode()) {
                     printDebugLog(playerName, userMessage, history);
                 }
 
                 // ========== 知识检索增强 ==========
                 String enhancedUserMessage = userMessage;
                 
-                // 检查知识库是否启用
-                if (configManager.isKnowledgeEnabled()) {
+                // 检查知识库和知识检索开关
+                if (enableKnowledgeRetrieval && configManager.isKnowledgeEnabled()) {
                     KnowledgeRetriever retriever = plugin.getKnowledgeRetriever();
                     
                     if (retriever != null) {

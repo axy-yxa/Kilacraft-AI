@@ -6,11 +6,16 @@ import com.zm.kilacraftAI.core.TabCompleter;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
+import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.listener.ChatListener;
 import com.zm.kilacraftAI.knowledge.KnowledgeBaseManager;
 import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.compat.mythicmobs.MythicMobsPlaceholderManager;
+import com.zm.kilacraftAI.skills.framework.SkillManager;
+import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
+import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
+import com.zm.kilacraftAI.translate.ItemTranslator;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -30,12 +35,17 @@ public final class KilacraftAI extends JavaPlugin {
     private LanguageManager languageManager;
     @Getter
     private PersonalitiesConfigManager personalitiesConfigManager;
+    @Getter
+    private SkillConfigManager skillConfigManager;
     private DeepSeekAPI deepSeekAPI;
     private ChatListener chatListener;
     private ConversationManager conversationManager;
     private KnowledgeBaseManager knowledgeBase;
     private KnowledgeRetriever knowledgeRetriever;
     private MythicMobsPlaceholderManager placeholderManager;
+    private SkillManager skillManager;
+    private SkillIntentRecognizer intentRecognizer;
+    private ItemTranslator itemTranslator;
 
     @Override
     public void onEnable() {
@@ -81,12 +91,40 @@ public final class KilacraftAI extends JavaPlugin {
         placeholderManager = new MythicMobsPlaceholderManager(this);
         placeholderManager.registerPlaceholders();
 
+        // 初始化物品翻译器
+        itemTranslator = new ItemTranslator();
+        itemTranslator.loadTranslationTable();
+        
+        // 初始化技能配置管理器
+        skillConfigManager = new SkillConfigManager(this);
+        
+        // 加载所有技能配置
+        skillConfigManager.loadAllSkillConfigs();
+        
+        // 初始化 Skills 系统
+        skillManager = new SkillManager();
+        registerDefaultSkills();
+        
+        // 初始化意图识别器（传入 skillManager）
+        intentRecognizer = new SkillIntentRecognizer(deepSeekAPI, configManager, skillManager);
+        getLogger().info("已初始化 LLM 意图识别器（动态技能描述）");
+
         // ASCII Art 启动标志
         getLogger().info("╻┏ ╻╻  ┏━┓┏━╸┏━┓┏━┓┏━╸╺┳╸   ┏━┓╻");
         getLogger().info("┣┻┓┃┃  ┣━┫┃  ┣┳┛┣━┫┣╸  ┃ ╺━╸┣━┫┃");
         getLogger().info("╹ ╹╹┗━╸╹ ╹┗━╸╹┗╸╹ ╹╹   ╹    ╹ ╹╹");
         getLogger().info("版本：v" + getDescription().getVersion());
         getLogger().info("作者：Zm_Mmm");
+
+    }
+    
+    /**
+     * 注册默认技能
+     */
+    private void registerDefaultSkills() {
+        // 注册市场查询技能
+        skillManager.registerSkill(new MarketQuerySkill());
+        getLogger().info("已注册 " + skillManager.getAllSkills().size() + " 个技能");
     }
 
     @Override

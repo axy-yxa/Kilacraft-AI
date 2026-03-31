@@ -1,0 +1,104 @@
+package com.zm.kilacraftAI.skills.framework;
+
+import lombok.Getter;
+
+import java.util.concurrent.CompletableFuture;
+
+/**
+ * Skill 执行结果
+ *
+ * <p>封装 Skill 执行的返回结果</p>
+ *
+ * @author Zm_Mmm
+ * @since 2026-03-30
+ */
+@Getter
+public class SkillResult {
+
+    /**
+     * 是否执行成功
+     * true=成功，false=失败
+     */
+    private final boolean success;
+
+    /**
+     * 消息内容
+     */
+    private final String message;
+
+    /**
+     * 数据对象
+     */
+    private final Object data;
+
+    /**
+     * 创建成功的结果（无数据）
+     *
+     * @param message 成功消息
+     * @return 成功结果
+     */
+    public static SkillResult success(String message) {
+        return new SkillResult(true, message, null);
+    }
+
+    /**
+     * 创建成功的结果（带数据）
+     *
+     * @param message 成功消息
+     * @param data    返回数据
+     * @return 成功结果
+     */
+    public static SkillResult success(String message, Object data) {
+        return new SkillResult(true, message, data);
+    }
+
+    /**
+     * 创建失败的结果
+     *
+     * @param message 失败消息
+     * @return 失败结果
+     */
+    public static SkillResult failure(String message) {
+        return new SkillResult(false, message, null);
+    }
+
+    /**
+     * 创建失败的结果（带异常）
+     *
+     * @param message 失败消息
+     * @param error   异常对象
+     * @return 失败结果
+     */
+    public static SkillResult failure(String message, Throwable error) {
+        return new SkillResult(false, message + " (" + error.getMessage() + ")", null);
+    }
+
+    public SkillResult(boolean success, String message, Object data) {
+        this.success = success;
+        this.message = message;
+        this.data = data;
+    }
+
+    /**
+     * 获取泛型数据
+     *
+     * @param <T> 数据类型
+     * @return 转换后的数据
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T getData(Class<T> clazz) {
+        if (clazz.isInstance(data)) {
+            return (T) data;
+        }
+        return null;
+    }
+
+    /**
+     * 转换为 CompletableFuture
+     *
+     * @return 完成的 Future
+     */
+    public CompletableFuture<SkillResult> toFuture() {
+        return CompletableFuture.completedFuture(this);
+    }
+}

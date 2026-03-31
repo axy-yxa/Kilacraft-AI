@@ -1,5 +1,7 @@
 # Kilacraft-AI
 
+> **🎉 v1.3.0 Major Update**: Evolved from conversational AI to **AI Agent**! New features include Skills System, Intent Recognition, Economy Integration, and more. See [Changelog](#-changelog)
+
 A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intelligent interactive experiences for server players.
 
 ## 📋 Features
@@ -243,6 +245,80 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - Check if player has appropriate permissions
 
 ## 📝 Changelog
+
+### v1.3.0 - AI Agent Evolution 🚀
+
+**Major Upgrade**: Evolved from conversational AI to AI Agent with skill execution and intent recognition capabilities!
+
+#### 🎯 Core Features
+
+- ✅ **Skills System Framework**: New extensible AI skill execution framework
+  - LLM intent-based automatic skill routing
+  - Asynchronous execution model, non-blocking
+  - Easy-to-extend skill interface design
+  - Read-only operations first, ensuring safety
+  
+- ✅ **LLM Intent Recognition Engine**: Intelligently understands user's true intentions
+  - Dynamic skill prompt construction
+  - Multi-entity extraction support (items, quantities, etc.)
+  - Confidence evaluation and reasoning explanation
+  - Fallback mechanism to ensure user experience
+
+- ✅ **GlobalMarketPlus Deep Integration** (Experimental): Economy system skills
+  - Player balance inquiry (multi-currency support)
+  - Market price inquiry (intelligent exact matching)
+  - Product list inquiry
+  - **Multi-item Joint Query**: Check prices of multiple items at once
+  - **Quantity Recognition**: Natural language understanding for "buy 5 sticks"
+  - **Optimal Price Calculation**: Smart combination from cheapest to most expensive, considering actual stock
+  - **Insufficient Stock Notification**: Shows detailed prices and quantities of all available items
+
+#### 🔧 Technical Optimizations
+
+- ✅ **Core Architecture Refactoring**:
+  - Added `SkillContext` execution context
+  - Added `SkillResult` result encapsulation
+  - Added `SkillManager` skill manager
+  - Added `Skill` base interface
+  - Added `SkillConfig` configuration encapsulation
+  
+- ✅ **Intent Recognition System**:
+  - Added `SkillIntentRecognizer` intent recognizer
+  - Added `SkillIntent` intent encapsulation
+  - Dynamic JSON Schema generation
+  - Configurable skill descriptions
+
+- ✅ **Anti-Duplication Mechanism**:
+  - Fixed duplicate thinking message issue during skill fallback
+  - Fixed duplicate cooldown issue during skill fallback
+  - Unified logical consistency between command handler and chat listener
+
+- ✅ **Intelligent Item Name Matching**:
+  - Priority exact matching (searching "diamond" excludes "diamond sword")
+  - Fallback fuzzy matching (available when searching "diamond sword")
+  - Chinese-English translation mapping support
+
+- ✅ **Configuration System Enhancement**:
+  - Independent skill configuration management (`skills/` directory)
+  - Item translation configuration (`translate/items_CN.yml`)
+  - Hot-reload support for skill configurations
+  - YAML configuration key-value order preservation
+
+#### 📦 New Files
+
+- `src/main/java/com/zm/kilacraftAI/skills/framework/` - Skill framework core
+- `src/main/java/com/zm/kilacraftAI/skills/globalmarketplus/` - GlobalMarketPlus skill implementation
+- `src/main/java/com/zm/kilacraftAI/skills/config/` - Skill configuration management
+- `src/main/resources/skills/` - Skill configuration files
+- `src/main/resources/translate/` - Item translation configuration
+
+#### ⚠️ Compatibility Notes
+
+- Configuration structure changed, recommended to backup and regenerate config files
+- Skill system is experimental, API may be adjusted in future versions
+- GlobalMarketPlus integration requires plugin version 1.3.8.0+
+
+---
 
 ### v1.2.3
 - ✅ **Language Configuration System**: Extracted all system prompt texts to `language.yml` configuration file

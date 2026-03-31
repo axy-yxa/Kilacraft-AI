@@ -1,5 +1,7 @@
 # Kilacraft-AI
 
+> **🎉 v1.3.0 重大更新**：从对话式 AI 进化为 **AI Agent**！新增技能系统、意图识别、经济系统集成等强大功能。详见 [更新日志](#-更新日志)
+
 一个功能强大的 Minecraft AI 对话插件，集成 DeepSeek AI，为服务器玩家提供智能交互体验。
 
 ## 📋 特性亮点
@@ -243,6 +245,80 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - 检查玩家是否有相应权限
 
 ## 📝 更新日志
+
+### v1.3.0 - AI Agent 进化版 🚀
+
+**重大升级**：从对话式 AI 进化为 AI Agent，具备技能执行和意图识别能力！
+
+#### 🎯 核心特性
+
+- ✅ **Skills 技能系统框架**：全新的可扩展 AI 技能执行框架
+  - 基于 LLM 意图识别的自动技能路由
+  - 异步执行模型，不阻塞主线程
+  - 易于扩展的技能接口设计
+  - 只读操作优先，保证安全性
+  
+- ✅ **LLM 意图识别引擎**：智能理解用户真实意图
+  - 动态构建技能提示词
+  - 支持多实体提取（物品、数量等）
+  - 置信度评估和推理说明
+  - 失败回退机制，保证用户体验
+
+- ✅ **GlobalMarketPlus 深度集成**（实验性）：经济系统技能
+  - 玩家余额查询（支持多货币）
+  - 市场价格查询（智能精确匹配）
+  - 商品列表查询
+  - **多物品联合查询**：一次查询多个商品价格
+  - **数量识别**：支持"买 5 个木棍"的自然语言理解
+  - **最优价格计算**：从便宜到贵智能组合，考虑实际库存
+  - **库存不足提示**：显示所有在售商品的详细价格和数量
+
+#### 🔧 技术优化
+
+- ✅ **核心架构重构**：
+  - 新增 `SkillContext` 执行上下文
+  - 新增 `SkillResult` 结果封装
+  - 新增 `SkillManager` 技能管理器
+  - 新增 `Skill` 基础接口
+  - 新增 `SkillConfig` 配置封装
+  
+- ✅ **意图识别系统**：
+  - 新增 `SkillIntentRecognizer` 意图识别器
+  - 新增 `SkillIntent` 意图封装
+  - 动态 JSON Schema 生成
+  - 支持技能描述配置化
+
+- ✅ **防重复机制**：
+  - 修复技能回退时的重复 thinking message 问题
+  - 修复技能回退时的重复 cooldown 问题
+  - 统一命令处理器和聊天监听器的逻辑一致性
+
+- ✅ **物品名称智能匹配**：
+  - 优先精确匹配（搜索"钻石"排除"钻石剑"）
+  - 降级模糊匹配（搜索"钻石剑"时可用）
+  - 支持中英文翻译映射
+
+- ✅ **配置系统完善**：
+  - 技能配置独立管理（`skills/` 目录）
+  - 物品翻译配置（`translate/items_CN.yml`）
+  - 支持热重载技能配置
+  - YAML 配置保持键值顺序
+
+#### 📦 新增文件
+
+- `src/main/java/com/zm/kilacraftAI/skills/framework/` - 技能框架核心
+- `src/main/java/com/zm/kilacraftAI/skills/globalmarketplus/` - GlobalMarketPlus 技能实现
+- `src/main/java/com/zm/kilacraftAI/skills/config/` - 技能配置管理
+- `src/main/resources/skills/` - 技能配置文件
+- `src/main/resources/translate/` - 物品翻译配置
+
+#### ⚠️ 兼容性说明
+
+- 配置结构变更，建议备份后重新生成配置文件
+- 技能系统处于实验阶段，API 可能在未来版本调整
+- GlobalMarketPlus 集成需要插件版本 1.3.8.0+
+
+---
 
 ### v1.2.3
 - ✅ **新增语言配置系统**：将所有系统提示文本提取到 `language.yml` 配置文件

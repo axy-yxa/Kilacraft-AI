@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.util.AIRequestValidator;
 import com.zm.kilacraftAI.util.MessageUtil;
 import org.bukkit.entity.Player;
@@ -86,6 +87,8 @@ public class ChatListener implements Listener {
 
     /**
      * 处理 AI 请求（带冷却、历史记录等）
+     * 
+     * <p>所有请求统一使用 LLM 意图识别，不再使用关键词匹配</p>
      */
     private void handleAIRequest(Player player, UUID playerId, String message) {
         // 检查冷却时间
@@ -97,6 +100,83 @@ public class ChatListener implements Listener {
             return;
         }
 
+        // LLM 意图识别
+        handleSkillExecution(player, playerId, message);
+    }
+
+    /**
+     * 处理技能执行（基于 LLM 意图识别）
+     * 
+     * <p>统一入口：所有消息都先经过 LLM 意图识别，再决定是否调用技能</p>
+     */
+    private void handleSkillExecution(Player player, UUID playerId, String message) {
+        // 获取或创建历史记录
+        ConversationManager convManager = plugin.getConversationManager();
+        Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
+
+        // 调试模式：打印意图识别信息
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("[DEBUG] 开始 LLM 意图识别，玩家：" + player.getName() + ", 消息：" + message);
+        }
+
+        // 使用 LLM 识别意图
+        var intentRecognizer = plugin.getIntentRecognizer();
+        if (intentRecognizer != null) {
+            intentRecognizer.recognize(message, playerHistory).thenAccept(intent -> {
+                // 调试日志
+                if (plugin.getConfigManager().isDebugMode()) {
+                    plugin.getLogger().info("[DEBUG] LLM 意图识别结果：" + intent);
+                }
+                
+                // 检查意图是否有效
+                if (intent.isValid()) {
+                    // 发送"正在思考"消息
+                    MessageUtil.sendThinkingMessage(player);
+
+                    // 立即更新冷却时间
+                    validator.startCooldown(playerId);
+                    
+                    // 创建技能上下文并执行（使用 LLM 识别出的 action 和 entities）
+                    var skillManager = plugin.getSkillManager();
+                    SkillContext context = new SkillContext(player, intent.getAction(), intent.getEntities());
+                    
+                    skillManager.executeSkillByIntent(intent, context).thenAccept(result -> {
+                        if (result.isSuccess()) {
+                            // 技能成功，发送结果给玩家
+                            player.sendMessage(result.getMessage());
+
+                            // 保存对话到历史记录
+                            validator.saveToHistory(playerHistory, message, result.getMessage());
+                        } else {
+                            // 技能失败，回退到普通 AI 处理（不需要再次发送 thinking 和 cooldown）
+                            handleNormalAIRequestWithoutThinking(player, playerId, message);
+                        }
+                    }).exceptionally(throwable -> {
+                        player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
+                        plugin.getLogger().severe("[技能执行异常] " + throwable.getMessage());
+                        return null;
+                    });
+                } else {
+                    // 意图识别失败，回退到普通 AI 处理
+                    if (plugin.getConfigManager().isDebugMode()) {
+                        plugin.getLogger().info("[DEBUG] 意图识别失败，使用普通 AI 处理");
+                    }
+                    handleNormalAIRequest(player, playerId, message);
+                }
+            }).exceptionally(throwable -> {
+                player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
+                return null;
+            });
+        } else {
+            // 意图识别器不可用，回退到普通 AI 处理
+            handleNormalAIRequest(player, playerId, message);
+        }
+    }
+
+    /**
+     * 处理普通 AI 请求
+     */
+    private void handleNormalAIRequest(Player player, UUID playerId, String message) {
         // 获取历史记录
         ConversationManager convManager = plugin.getConversationManager();
         Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
@@ -106,11 +186,32 @@ public class ChatListener implements Listener {
             plugin.getLogger().info("[DEBUG] 玩家 " + player.getName() + " 的历史记录数量：" + playerHistory.size());
         }
 
-        // 发送消息到 AI（带历史记录）
+        // 发送"正在思考"消息
         MessageUtil.sendThinkingMessage(player);
 
-        // 立即更新冷却时间（在发送请求时）
+        // 立即更新冷却时间
         validator.startCooldown(playerId);
+
+        // 创建玩家响应处理器
+        AIResponseHandler handler = new PlayerResponseHandler(player, message, playerHistory);
+
+        // 使用统一的 API 处理请求
+        plugin.getDeepSeekAPI().processRequest(message, player.getName(), playerHistory, handler).thenAccept(fullResponse -> {
+            // 保存对话到历史记录
+            validator.saveToHistory(playerHistory, message, fullResponse);
+        }).exceptionally(throwable -> {
+            player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
+            return null;
+        });
+    }
+    
+    /**
+     * 处理普通 AI 请求（不发送 thinking message 和 cooldown，用于技能回退）
+     */
+    private void handleNormalAIRequestWithoutThinking(Player player, UUID playerId, String message) {
+        // 获取历史记录
+        ConversationManager convManager = plugin.getConversationManager();
+        Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
 
         // 创建玩家响应处理器
         AIResponseHandler handler = new PlayerResponseHandler(player, message, playerHistory);

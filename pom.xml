@@ -6,7 +6,7 @@
 
     <groupId>com.zm</groupId>
     <artifactId>Kilacraft-AI</artifactId>
-    <version>1.2.3</version>
+    <version>1.3.0</version>
     <packaging>jar</packaging>
 
     <name>Kilacraft-AI</name>
@@ -139,6 +139,15 @@
             <artifactId>Mythic-Dist</artifactId>
             <version>5.12.0-SNAPSHOT</version>
             <scope>provided</scope>
+        </dependency>
+        
+        <!-- GlobalMarketPlus Dependency (Provided) - 本地 JAR -->
+        <dependency>
+            <groupId>com.gmp</groupId>
+            <artifactId>GlobalMarketPlus</artifactId>
+            <version>1.3.8.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/GlobalMarketPlus-1.3.8.0.jar</systemPath>
         </dependency>
     </dependencies>
 </project>
