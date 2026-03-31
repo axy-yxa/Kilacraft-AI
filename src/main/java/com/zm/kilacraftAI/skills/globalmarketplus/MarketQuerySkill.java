@@ -54,12 +54,12 @@ public class MarketQuerySkill implements Skill {
         responseMessages.put("query_error", "查询失败：{error}");
         responseMessages.put("balance_not_player", "请在游戏中使用此功能");
         responseMessages.put("balance_api_error", "无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装");
-        responseMessages.put("balance_success", "§e[GlobalMarketPlus] §f你的余额为：§a${balance}");
+        responseMessages.put("balance_success", "§f你的余额为：§a${balance}");
         responseMessages.put("price_no_item", "请指定要查询的物品名称，例如：'钻石的价格'");
         responseMessages.put("price_not_found", "未找到物品 '{item}' 的价格信息");
-        responseMessages.put("price_success", "§e[GlobalMarketPlus] §f{item} 当前价格：§a${price}");
-        responseMessages.put("items_empty", "§e[GlobalMarketPlus] §f市场上暂无商品");
-        responseMessages.put("items_header", "§e[GlobalMarketPlus] §f市场商品列表:\n");
+        responseMessages.put("price_success", "§f{item} 当前价格：§a${price}");
+        responseMessages.put("items_empty", "§f市场上暂无商品");
+        responseMessages.put("items_header", "§f市场商品列表:\n");
         responseMessages.put("items_format", "§7- ");
 
         configManager.saveDefaultSkillConfig("globalmarketplus", "MarketQuerySkill", "查询全球市场插件信息，包括玩家余额、市场价格、商品列表等只读操作。当用户询问金钱、余额、物价、商品价格、市场有什么物品时使用此技能。", actionDescriptions, responseMessages);
@@ -163,7 +163,7 @@ public class MarketQuerySkill implements Skill {
         Map<String, String> vars = new LinkedHashMap<>();
         vars.put("balance", String.format("%.2f", balance));
 
-        return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("balance_success", "§e[GlobalMarketPlus] §f你的余额为：§a$%.2f", vars)));
+        return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("balance_success", "§f你的余额为：§a$%.2f", vars)));
     }
 
     /**
@@ -283,7 +283,7 @@ public class MarketQuerySkill implements Skill {
         if (successCount == 0 && !priceResults.isEmpty()) {
             // 有物品但库存不足的情况，返回成功（告知用户库存不足）
             StringBuilder sb = new StringBuilder();
-            sb.append(getResponseMessage("price_header", "§e[GlobalMarketPlus] §f商品价格:\n"));
+            sb.append(getResponseMessage("price_header", "§f商品价格:\n"));
             
             for (String result : priceResults) {
                 sb.append("§7- ").append(result).append("\n");
@@ -300,7 +300,7 @@ public class MarketQuerySkill implements Skill {
         
         // 构建响应消息
         StringBuilder sb = new StringBuilder();
-        sb.append(getResponseMessage("price_header", "§e[GlobalMarketPlus] §f商品价格:\n"));
+        sb.append(getResponseMessage("price_header", "§f商品价格:\n"));
         
         for (String result : priceResults) {
             sb.append("§7- ").append(result).append("\n");
@@ -353,14 +353,14 @@ public class MarketQuerySkill implements Skill {
         java.util.List<String> items = GlobalMarketPlusAPI.getAllMarketItems();
 
         if (items == null || items.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("items_empty", "§e[GlobalMarketPlus] §f市场上暂无商品")));
+            return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("items_empty", "§f市场上暂无商品")));
         }
 
         // 获取翻译器实例
         ItemTranslator translator = ItemTranslator.getInstance();
 
         StringBuilder sb = new StringBuilder();
-        sb.append(getResponseMessage("items_header", "§e[GlobalMarketPlus] §f市场商品列表:\n"));
+        sb.append(getResponseMessage("items_header", "§f市场商品列表:\n"));
 
         for (String item : items) {
             // 解析物品名称和价格（格式可能是 "DIAMOND: $100.00" 或 "DIAMOND"）

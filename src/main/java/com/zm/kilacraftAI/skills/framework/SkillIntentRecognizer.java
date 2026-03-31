@@ -11,6 +11,8 @@ import com.zm.kilacraftAI.manager.ConversationManager;
 
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,7 +26,7 @@ public class SkillIntentRecognizer {
     private final ConfigManager configManager;
     private final Gson gson;
     private final SkillManager skillManager; // 用于获取所有技能的描述
-    
+
     /**
      * 构建系统提示词（动态从 Skill 实例中读取描述）
      */
@@ -32,12 +34,12 @@ public class SkillIntentRecognizer {
         StringBuilder sb = new StringBuilder();
         sb.append("你是一个技能意图识别助手。你的任务是分析用户的输入，识别他们想要使用的技能。\n");
         sb.append("\n可用技能列表：\n");
-        
+
         // 遍历所有已注册的技能，动态构建技能描述
         int index = 1;
         for (Skill skill : skillManager.getAllSkills()) {
             sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
-            
+
             // 如果是 MarketQuerySkill，列出它的动作描述
             if ("market_query".equals(skill.getName())) {
                 sb.append("可用动作：\n");
@@ -46,7 +48,7 @@ public class SkillIntentRecognizer {
                 sb.append("  - query_items: ").append(getActionDescription(skill, "query_items")).append("\n");
             }
         }
-        
+
         sb.append("\n请按照以下 JSON 格式返回识别结果：\n");
         sb.append("{\n");
         sb.append("  \"skill_name\": \"技能名称\",\n");
@@ -68,11 +70,32 @@ public class SkillIntentRecognizer {
         sb.append("  \"entities\": {},\n");
         sb.append("  \"confidence\": 0.0,\n");
         sb.append("  \"reasoning\": \"无法识别到相关技能\"\n");
-        sb.append("}");
-        
+        sb.append("}\n");
+
+        sb.append("\n【多步骤任务】复杂任务可以分解为多个有序步骤：\n");
+        sb.append("{\n");
+        sb.append("  \"goal\": \"总体目标\",\n");
+        sb.append("  \"steps\": [\n");
+        sb.append("    {\n");
+        sb.append("      \"id\": \"step_1\",\n");
+        sb.append("      \"skill_name\": \"技能名称\",\n");
+        sb.append("      \"action\": \"具体动作\",\n");
+        sb.append("      \"entities\": {},\n");
+        sb.append("      \"depends_on\": []\n");
+        sb.append("    }\n");
+        sb.append("  ]\n");
+        sb.append("}\n");
+
+        sb.append("\n何时使用多步骤任务：\n");
+        sb.append("- 当用户的问题需要多个独立操作才能完成时（如：先查余额，再查价格，然后比较）\n");
+        sb.append("- 示例：\"帮我看看我的余额是多少，够不够去市场买两个钻石\"\n");
+        sb.append("  应该分解为：\n");
+        sb.append("  1. query_balance（查询余额）\n");
+        sb.append("  2. query_price（查询钻石价格）\n");
+
         return sb.toString();
     }
-    
+
     /**
      * 获取动作描述（优先从配置文件读取）
      */
@@ -85,55 +108,54 @@ public class SkillIntentRecognizer {
                 return description;
             }
         }
-        
+
         // 默认描述
         return switch (action) {
             case "query_balance" -> "查询玩家账户余额，当用户问'我有多少钱'、'余额'时使用";
-            case "query_price" -> "查询指定物品的市场价格，当用户询问物品价格、购买物品（如'买 5 个木棍'、'钻石多少钱'）时使用，需提取物品名称和数量";
+            case "query_price" ->
+                    "查询指定物品的市场价格，当用户询问物品价格、购买物品（如'买 5 个木棍'、'钻石多少钱'）时使用，需提取物品名称和数量";
             case "query_items" -> "查询市场上架的商品列表，当用户问'市场上有什么'、'列出所有商品'时使用";
             default -> "未知动作";
         };
     }
-    
+
     public SkillIntentRecognizer(DeepSeekAPINew deepSeekAPI, ConfigManager configManager, SkillManager skillManager) {
         this.deepSeekAPI = deepSeekAPI;
         this.configManager = configManager;
         this.gson = new Gson();
         this.skillManager = skillManager;
     }
-    
+
     /**
-     * 识别用户意图（纯 LLM 方式，不需要知识检索增强）
-     * 
+     * 识别用户意图（统一入口，支持单意图和多步骤任务）
+     *
      * @param userInput 用户输入
-     * @param history 对话历史（用于上下文理解，可选）
-     * @return 识别出的意图（异步）
+     * @param history   对话历史（用于上下文理解，可选）
+     * @return 识别结果（可能是 SkillIntent 或 TaskPlan，异步）
      */
-    public CompletableFuture<SkillIntent> recognize(String userInput, Deque<ConversationManager.Message> history) {
+    public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history) {
         if (configManager == null || deepSeekAPI == null) {
             return CompletableFuture.completedFuture(null);
         }
-        
+
         // 构建用户提示词
         String userPrompt = buildUserPrompt(userInput, history);
-        
+
         // 使用专用的意图识别 Handler（不显示任何响应给玩家）
         AIResponseHandler handler = new IntentRecognitionResponseHandler();
 
         // 动态构建系统提示词
         String systemPrompt = buildSystemPrompt();
         // 调用 LLM 进行意图识别（禁用知识检索，因为意图识别是分类任务，不需要知识增强）
-        return deepSeekAPI.processRequestWithCustomSystemPrompt(
-                userPrompt, "IntentRecognizer", null, handler, systemPrompt, false, false)
-            .thenApply(this::parseIntentFromResponse);
+        return deepSeekAPI.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, systemPrompt, false, false).thenApply(this::parseIntentFromResponse);
     }
-    
+
     /**
      * 构建用户提示词
      */
     private String buildUserPrompt(String userInput, Deque<ConversationManager.Message> history) {
         StringBuilder prompt = new StringBuilder();
-        
+
         // 添加聊天历史
         if (history != null && !history.isEmpty()) {
             prompt.append("[聊天历史]\n");
@@ -141,71 +163,49 @@ public class SkillIntentRecognizer {
             for (ConversationManager.Message msg : history) {
                 // 最多显示 5 条历史记录
                 if (count++ >= 5) break;
-                
+
                 // 根据角色显示不同的标识
                 String roleDisplay = switch (msg.getRole()) {
                     case "user" -> "用户";
                     case "assistant" -> "AI";
                     default -> msg.getRole();
                 };
-                
+
                 prompt.append("-").append(roleDisplay).append(": ").append(msg.getContent()).append("\n");
             }
             prompt.append("\n");
         }
-        
+
         // 添加当前输入
         prompt.append("[当前输入]\n");
         prompt.append("用户说：").append(userInput).append("\n\n");
-        
+
         // 添加指令
         prompt.append("请分析用户想要使用什么技能，并返回 JSON 格式的识别结果。");
-        
+
         return prompt.toString();
     }
-    
+
     /**
-     * 解析 LLM 响应为 SkillIntent
+     * 解析 LLM 响应（支持单意图和多步骤任务）
      */
-    private SkillIntent parseIntentFromResponse(String response) {
+    private Object parseIntentFromResponse(String response) {
         try {
             // 提取 JSON 部分
             String jsonStr = extractJson(response);
             if (jsonStr == null) {
                 return createInvalidIntent("无法解析响应为 JSON");
             }
-            
+
             JsonObject json = gson.fromJson(jsonStr, JsonObject.class);
-            
-            // 解析字段（需要检查是否为 JsonNull）
-            String skillName = null;
-            if (json.has("skill_name") && !json.get("skill_name").isJsonNull()) {
-                skillName = json.get("skill_name").getAsString();
+
+            // 检查是否是多步骤任务（包含 goal 和 steps 字段）
+            if (json.has("goal") && json.has("steps")) {
+                return parseTaskPlanFromResponse(json);
             }
-            
-            String action = null;
-            if (json.has("action") && !json.get("action").isJsonNull()) {
-                action = json.get("action").getAsString();
-            }
-            
-            double confidence = 0.0;
-            if (json.has("confidence") && !json.get("confidence").isJsonNull()) {
-                confidence = json.get("confidence").getAsDouble();
-            }
-            
-            // 解析实体
-            Map<String, String> entities = new HashMap<>();
-            if (json.has("entities") && json.get("entities").isJsonObject()) {
-                JsonObject entitiesObj = json.getAsJsonObject("entities");
-                for (String key : entitiesObj.keySet()) {
-                    var value = entitiesObj.get(key);
-                    if (!value.isJsonNull()) {
-                        entities.put(key, value.getAsString());
-                    }
-                }
-            }
-            return new SkillIntent(skillName, action, entities, confidence, "");
-            
+
+            // 否则按单意图处理
+            return parseSingleIntentFromResponse(json);
         } catch (Exception e) {
             if (configManager.isDebugMode()) {
                 plugin.getLogger().warning("[DEBUG] 解析意图失败：" + e.getMessage());
@@ -213,24 +213,120 @@ public class SkillIntentRecognizer {
             return createInvalidIntent("解析失败：" + e.getMessage());
         }
     }
-    
+
+    /**
+     * 解析单意图
+     */
+    private SkillIntent parseSingleIntentFromResponse(JsonObject json) {
+        // 解析字段（需要检查是否为 JsonNull）
+        String skillName = null;
+        if (json.has("skill_name") && !json.get("skill_name").isJsonNull()) {
+            skillName = json.get("skill_name").getAsString();
+        }
+
+        String action = null;
+        if (json.has("action") && !json.get("action").isJsonNull()) {
+            action = json.get("action").getAsString();
+        }
+
+        double confidence = 0.0;
+        if (json.has("confidence") && !json.get("confidence").isJsonNull()) {
+            confidence = json.get("confidence").getAsDouble();
+        }
+
+        // 解析实体
+        Map<String, String> entities = new HashMap<>();
+        if (json.has("entities") && json.get("entities").isJsonObject()) {
+            JsonObject entitiesObj = json.getAsJsonObject("entities");
+            for (String key : entitiesObj.keySet()) {
+                var value = entitiesObj.get(key);
+                if (!value.isJsonNull()) {
+                    entities.put(key, value.getAsString());
+                }
+            }
+        }
+        return new SkillIntent(skillName, action, entities, confidence, "");
+    }
+
+    /**
+     * 解析多步骤任务计划
+     */
+    private TaskPlan parseTaskPlanFromResponse(JsonObject json) {
+        try {
+            String goal = json.get("goal").getAsString();
+            TaskPlan plan = new TaskPlan(goal);
+
+            // 解析步骤列表
+            if (json.has("steps") && json.get("steps").isJsonArray()) {
+                var stepsArray = json.getAsJsonArray("steps");
+                for (var stepElement : stepsArray) {
+                    JsonObject stepObj = stepElement.getAsJsonObject();
+
+                    String id = stepObj.has("id") ? stepObj.get("id").getAsString() : "step_" + (plan.getStepCount() + 1);
+
+                    String skillName = null;
+                    if (stepObj.has("skill_name") && !stepObj.get("skill_name").isJsonNull()) {
+                        skillName = stepObj.get("skill_name").getAsString();
+                    }
+
+                    String action = null;
+                    if (stepObj.has("action") && !stepObj.get("action").isJsonNull()) {
+                        action = stepObj.get("action").getAsString();
+                    }
+
+                    // 解析实体
+                    Map<String, String> entities = new HashMap<>();
+                    if (stepObj.has("entities") && stepObj.get("entities").isJsonObject()) {
+                        JsonObject entitiesObj = stepObj.getAsJsonObject("entities");
+                        for (String key : entitiesObj.keySet()) {
+                            var value = entitiesObj.get(key);
+                            if (!value.isJsonNull()) {
+                                entities.put(key, value.getAsString());
+                            }
+                        }
+                    }
+
+                    // 解析依赖
+                    List<String> dependsOn = new ArrayList<>();
+                    if (stepObj.has("depends_on") && stepObj.get("depends_on").isJsonArray()) {
+                        var dependsArray = stepObj.getAsJsonArray("depends_on");
+                        for (var depElement : dependsArray) {
+                            dependsOn.add(depElement.getAsString());
+                        }
+                    }
+
+                    if (skillName != null && action != null) {
+                        plan.addStep(new TaskPlan.TaskStep(id, skillName, action, entities, dependsOn));
+                    }
+                }
+            }
+            return plan;
+
+        } catch (Exception e) {
+            if (configManager.isDebugMode()) {
+                plugin.getLogger().warning("[DEBUG] 解析任务计划失败：" + e.getMessage());
+            }
+            return null;
+        }
+    }
+
     /**
      * 从响应中提取 JSON
      */
     private String extractJson(String response) {
         if (response == null) return null;
-        
+
         // 尝试查找 JSON 块
         int start = response.indexOf('{');
         int end = response.lastIndexOf('}');
-        
+
         if (start != -1 && end != -1 && end > start) {
             return response.substring(start, end + 1);
         }
-        
+
         return response.trim();
     }
-    
+
     /**
      * 创建无效的意图
      */

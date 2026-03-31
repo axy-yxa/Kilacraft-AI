@@ -1,6 +1,6 @@
 # Kilacraft-AI
 
-> **🎉 v1.3.0 Major Update**: Evolved from conversational AI to **AI Agent**! New features include Skills System, Intent Recognition, Economy Integration, and more. See [Changelog](#-changelog)
+> **🎉 v1.3.2 Major Update**: Agent capabilities fully configurable! New multi-step task executor, intent recognition prompts configurable, unified AI request handler and more. See [Changelog](#-changelog)
 
 A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intelligent interactive experiences for server players.
 
@@ -10,6 +10,10 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
 - **LLM Intent Recognition Engine**: Intelligently understands user's true intentions and routes to corresponding skills
 - **Skills System Framework**: Extensible AI skill execution framework with async non-blocking support
 - **Multi-modal Interaction**: Command mode, continuous chat mode, keyword trigger mode
+- **Multi-Step Task Executor (v1.3.2+)**: Complex task automatic decomposition and sequential execution
+  - Topological sort-based dependency management
+  - Previous step results automatically passed as context to subsequent steps
+  - LLM comprehensively analyzes all step results and generates friendly responses
 
 ### 💰 Economy Integration (Experimental)
 - **GlobalMarketPlus Deep Integration**: Player balance inquiry, market price inquiry, product list inquiry
@@ -84,6 +88,15 @@ messages:
   ai_prefix: "§7[Kilacraft-AI] §f"
   thinking_message: "Thinking..."
 
+# Agent Configuration (v1.3.2+)
+agent:
+  enabled: true                       # Master switch (highest priority)
+  enable_chat_listener: true          # Enable Agent for ChatListener entry
+  enable_command: true                # Enable Agent for KilaccraftCommand entry
+  prompts:
+    system_prompt: "You are a professional Minecraft game assistant..."  # System prompt for result analysis
+    analysis_prompt: "Please provide comprehensive analysis...\n\n{results}\n\nPlease reply to the player in a concise and friendly manner."
+
 # Knowledge Base Configuration
 knowledge:
   enabled: true                       # Enable knowledge base
@@ -120,6 +133,56 @@ commands:
 ```
 
 Supports variable placeholders: `{player}`, `{sender}`, etc.
+
+### Agent Configuration (v1.3.2+)
+
+Agent capabilities provide fine-grained configuration control, allowing server administrators to decide which entry points enable AI's intelligent intent recognition features.
+
+#### Configuration Details
+
+```yaml
+agent:
+  # Master switch - Priority over all sub-switches
+  # true: Enable Agent capabilities, AI will perform intent recognition first
+  # false: Disable Agent capabilities, directly enter normal AI chat
+  enabled: true
+  
+  # ChatListener entry independent switch
+  # Controls keyword triggers (@ai etc.) and continuous chat mode (/kilacraft chat)
+  enable_chat_listener: true
+  
+  # KilacraftCommand entry independent switch
+  # Controls /kilacraft command entry
+  enable_command: true
+  
+  # LLM prompts configuration
+  prompts:
+    # System prompt - Defines LLM's role when analyzing execution results
+    system_prompt: "You are a professional Minecraft game assistant, please provide useful suggestions based on the provided data."
+    
+    # Analysis prompt - Guides LLM on how to analyze execution results
+    # Supports {results} placeholder, replaced with task execution result summary
+    analysis_prompt: "Please provide a comprehensive analysis and recommendations based on the following task execution results:\n\n{results}\n\nPlease reply to the player in a concise and friendly manner."
+```
+
+#### Workflow
+
+**When Agent Capabilities Enabled**:
+1. User input → LLM intent recognition
+2. Determine if single intent or multi-step task
+3. Execute skill or task plan
+4. LLM analyzes execution results and generates friendly response
+5. If intent recognition fails or skill execution fails → Fallback to normal AI chat
+
+**When Agent Capabilities Disabled**:
+1. User input → Directly enter normal AI chat
+2. No intent recognition or skill invocation
+
+#### Use Cases
+
+- **All Entries Enabled**: Suitable for servers needing complex task handling, AI can automatically execute multi-step operations
+- **Command Mode Only**: Suitable for providing intelligent features only in `/kilacraft` command, keeping simple chat in conversations
+- **All Disabled**: Suitable for servers only needing basic AI chat functionality
 
 ### Personality Configuration (personalities.yml)
 
@@ -285,6 +348,81 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - Check if player has appropriate permissions
 
 ## 📝 Changelog
+
+### v1.3.2 - Agent Configuration & Multi-Step Task Executor 🚀
+
+**Major Upgrade**: Agent capabilities fully configurable with multi-step task planning and execution!
+
+#### 🎯 Core Features
+
+- ✅ **Fine-grained Agent Configuration**: Fully config-driven Agent capability switches
+  - **Master Control**: `agent.enabled` takes priority over all sub-switches
+  - **Independent Entry Control**: `enable_chat_listener` (keyword trigger/continuous chat) and `enable_command` (/kilacraft command)
+  - **Flexible Fallback**: Directly enters normal AI chat when Agent is disabled, no intent analysis needed
+  - **Config-driven Behavior**: Caller decides whether to enable Agent based on configuration, passing state instead of caching
+
+- ✅ **Multi-Step Task Executor (TaskExecutor)**: Complex task planning and automatic execution
+  - **Topological Sort Algorithm**: DFS-based dependency detection, automatic cycle identification
+  - **Step Dependency Management**: Previous step results automatically passed as context to subsequent steps
+  - **Result Summary Analysis**: LLM comprehensively analyzes all steps and generates friendly responses
+  - **Optimized Debug Logs**: Detailed execution tracking for easy troubleshooting
+
+- ✅ **Enhanced LLM Intent Recognition**: Automatic decomposition of complex tasks
+  - **Single Intent Fast Path**: Simple tasks execute directly with zero overhead
+  - **Multi-Step Task Planning**: Complex tasks automatically decomposed into ordered steps
+  - **JSON Schema Validation**: Strict intent format validation ensuring parsing reliability
+  - **Fallback Mechanism**: Automatically falls back to normal AI on intent recognition or skill execution failure
+
+#### 🔧 Technical Optimizations
+
+- ✅ **Unified AI Request Handler (AIRequestHandler)**:
+  - Eliminated ~130 lines of duplicate logic in ChatListener and KilacraftCommand
+  - Unified intent recognition + skill execution workflow
+  - Config-based state passing design, no internal state caching
+  - Supports dynamic enabling/disabling of Agent capabilities
+
+- ✅ **Prompt Configuration**:
+  - **system_prompt**: Defines LLM's role during result analysis phase (default: "You are a professional game assistant..."
+  - **analysis_prompt**: Guides LLM on how to analyze execution results and generate responses (supports `{results}` placeholder)
+  - Fully customizable prompts without code changes
+  - Automatic placeholder replacement (`{player}`, `{results}`)
+
+- ✅ **Architecture Refactoring**:
+  - Removed redundant single-step processing logic from TaskExecutor
+  - Deleted old compatibility methods from SkillIntentRecognizer
+  - ChatListener now fully supports multi-step task handling
+  - Separation of responsibilities: caller handles config checks, AIRequestHandler handles execution
+
+- ✅ **Message Format Optimization**:
+  - All AI responses automatically prefixed with `MessageUtil.getAIPrefix()`
+  - Unified visual experience matching language.yml configuration
+  - Optimized debug mode logging, using logger.info instead of System.out.println
+
+#### 📦 New Files
+
+- `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java` - Unified AI request handler
+- `src/main/java/com/zm/kilacraftAI/skills/framework/TaskExecutor.java` - Multi-step task executor
+
+#### ⚙️ Configuration Changes
+
+```yaml
+# config.yml new Agent configuration
+agent:
+  enabled: true                    # Master switch (highest priority)
+  enable_chat_listener: true       # Enable Agent for ChatListener entry
+  enable_command: true             # Enable Agent for KilacraftCommand entry
+  prompts:
+    system_prompt: "You are a professional game assistant..."  # System prompt for result analysis
+    analysis_prompt: "Please provide a comprehensive analysis based on the following task execution results...\n\n{results}\n\nPlease reply to the player in a concise and friendly manner."
+```
+
+#### ⚠️ Compatibility Notes
+
+- Agent configuration structure changed, recommended to backup and regenerate config files
+- TaskExecutor prompt configuration, original hardcoded prompts migrated to config.yml
+- AIRequestHandler location adjusted to `handler` package (not `handler.impl` subpackage)
+
+---
 
 ### v1.3.1 - RAG Retrieval Optimization & Response Speed Improvement 🚀
 

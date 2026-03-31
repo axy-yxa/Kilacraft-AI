@@ -1,6 +1,6 @@
 # Kilacraft-AI
 
-> **🎉 v1.3.0 重大更新**：从对话式 AI 进化为 **AI Agent**！新增技能系统、意图识别、经济系统集成等强大功能。详见 [更新日志](#-更新日志)
+> **🎉 v1.3.2 重大更新**：Agent 能力全面配置化！新增多步骤任务执行器、意图识别提示词可配置、统一 AI 请求处理器等强大功能。详见 [更新日志](#-更新日志)
 
 一个功能强大的 Minecraft AI 对话插件，集成 DeepSeek AI，为服务器玩家提供智能交互体验。
 
@@ -10,6 +10,10 @@
 - **LLM 意图识别引擎**：智能理解用户真实意图，自动路由到对应技能
 - **Skills 技能系统框架**：可扩展的 AI 技能执行框架，支持异步非阻塞执行
 - **多模态交互**：命令模式、连续对话模式、关键词触发模式
+- **多步骤任务执行器（v1.3.2+）**：复杂任务自动分解与顺序执行
+  - 基于拓扑排序的依赖关系管理
+  - 前置步骤结果自动传递给后续步骤
+  - LLM 综合分析所有步骤结果并生成友好回复
 
 ### 💰 经济系统集成（实验性）
 - **GlobalMarketPlus 深度集成**：玩家余额查询、市场价格查询、商品列表查询
@@ -84,10 +88,23 @@ messages:
   ai_prefix: "§7[Kilacraft-AI] §f"
   thinking_message: "正在思考中..."
 
+# Agent 能力配置（v1.3.2+）
+agent:
+  enabled: true                       # 总开关（优先级最高）
+  enable_chat_listener: true          # ChatListener 入口是否启用 Agent
+  enable_command: true                # KilacraftCommand 入口是否启用 Agent
+  prompts:
+    system_prompt: "你是一个专业的 Minecraft 游戏助手..."  # 结果分析的系统提示词
+    analysis_prompt: "请根据以下任务执行结果...\n\n{results}\n\n请用简洁友好的语言回复玩家。"
+
 # 知识库配置
 knowledge:
   enabled: true                       # 启用知识库
   max_relevant_chunks: 3              # 最大相关知识数量
+  segment:                            # 知识库分段配置
+    max_size: 500                     # 每个片段最大字符数（超过此值会继续分割）
+    min_size: 25                      # 每个片段最小字符数（小于此值的片段会被忽略）
+    overlap: 30                       # 片段重叠字符数（保持上下文连贯性）
 ```
 
 ### 语言配置 (language.yml)
@@ -120,6 +137,56 @@ commands:
 ```
 
 支持变量占位符：`{player}`, `{sender}` 等
+
+### Agent 能力配置（v1.3.2+）
+
+Agent 能力提供细粒度的配置控制，允许服务器管理员决定在哪些入口启用 AI 的智能意图识别功能。
+
+#### 配置说明
+
+```yaml
+agent:
+  # 总开关 - 优先级高于所有分开关
+  # true: 启用 Agent 能力，AI 会先进行意图识别
+  # false: 禁用 Agent 能力，直接进入普通 AI 对话
+  enabled: true
+  
+  # ChatListener 入口独立开关
+  # 控制关键词触发（@ai 等）和连续对话模式（/kilacraft chat）
+  enable_chat_listener: true
+  
+  # KilacraftCommand 入口独立开关
+  # 控制 /kilacraft 命令入口
+  enable_command: true
+  
+  # LLM 提示词配置
+  prompts:
+    # 系统提示词 - 定义 LLM 在分析执行结果时的角色
+    system_prompt: "你是一个专业的 Minecraft 游戏助手，请根据提供的数据给出有用的建议。"
+    
+    # 分析提示词 - 指导 LLM 如何分析执行结果
+    # 支持 {results} 占位符，会被替换为任务执行结果摘要
+    analysis_prompt: "请根据以下任务执行结果，给出综合性的分析和建议：\n\n{results}\n\n请用简洁友好的语言回复玩家。"
+```
+
+#### 工作流程
+
+**启用 Agent 能力时**：
+1. 用户输入 → LLM 意图识别
+2. 判断是单意图还是多步骤任务
+3. 执行技能或任务计划
+4. LLM 分析执行结果并生成友好回复
+5. 如果意图识别失败或技能执行失败 → 回退到普通 AI 对话
+
+**禁用 Agent 能力时**：
+1. 用户输入 → 直接进入普通 AI 对话
+2. 不进行意图识别和技能调用
+
+#### 使用场景
+
+- **全入口启用**：适合需要复杂任务处理的服务器，AI 可以自动执行多步骤操作
+- **仅命令模式启用**：适合只想在 `/kilacraft` 命令中提供智能功能，聊天中保持简单对话
+- **全部禁用**：适合只需要基础 AI 对话功能的服务器
 
 ### 人格配置 (personalities.yml)
 
@@ -285,6 +352,81 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - 检查玩家是否有相应权限
 
 ## 📝 更新日志
+
+### v1.3.2 - Agent 能力配置化与多步骤任务执行器 🚀
+
+**重大升级**：Agent 能力全面配置化，新增多步骤任务规划与执行能力！
+
+#### 🎯 核心特性
+
+- ✅ **Agent 能力细粒度配置**：完全由配置文件控制的 Agent 能力开关
+  - **总开关控制**：`agent.enabled` 优先级高于所有分开关
+  - **入口独立控制**：`enable_chat_listener`（关键词触发/连续对话）和 `enable_command`（/kilacraft 命令）
+  - **灵活回退机制**：关闭 Agent 后直接进入普通 AI 对话，无需意图分析
+  - **配置驱动行为**：调用方根据配置决定是否启用 Agent，传递状态而非缓存状态
+
+- ✅ **多步骤任务执行器（TaskExecutor）**：复杂的任务规划与自动执行
+  - **拓扑排序算法**：基于 DFS 的依赖关系检测，自动识别循环依赖
+  - **步骤依赖管理**：前置步骤结果自动传递给后续步骤作为上下文
+  - **结果汇总分析**：所有步骤执行完成后，LLM 综合分析并生成友好回复
+  - **调试日志优化**：详细的执行过程追踪，便于问题排查
+
+- ✅ **LLM 意图识别增强**：支持复杂任务的自动分解
+  - **单意图快速路径**：简单任务直接执行，零额外开销
+  - **多步骤任务规划**：复杂任务自动分解为多个有序步骤
+  - **JSON Schema 验证**：严格的意图格式校验，确保解析可靠性
+  - **失败回退机制**：意图识别失败或技能执行失败时自动回退到普通 AI
+
+#### 🔧 技术优化
+
+- ✅ **统一 AI 请求处理器（AIRequestHandler）**：
+  - 消除 ChatListener 和 KilacraftCommand 中的重复逻辑（约 130 行代码）
+  - 统一的意图识别 + 技能执行流程
+  - 基于配置的状态传递设计，无内部状态缓存
+  - 支持动态启用/禁用 Agent 能力
+
+- ✅ **提示词配置化**：
+  - **system_prompt**：定义 LLM 在结果分析阶段的角色（默认："你是一个专业的游戏助手..."
+  - **analysis_prompt**：指导 LLM 如何分析执行结果并生成回复（支持 `{results}` 占位符）
+  - 完全可自定义的提示词配置，无需修改代码
+  - 占位符自动替换机制（`{player}`, `{results}`）
+
+- ✅ **架构重构**：
+  - 移除 TaskExecutor 中的单步骤处理冗余逻辑
+  - 删除 SkillIntentRecognizer 中的旧兼容方法
+  - ChatListener 完整支持多步骤任务处理
+  - 职责分离：调用方负责配置判断，AIRequestHandler 负责执行
+
+- ✅ **消息格式优化**：
+  - 所有 AI 回复自动添加前缀（`MessageUtil.getAIPrefix()`）
+  - 统一的视觉体验，符合 language.yml 配置
+  - 调试模式日志优化，使用 logger.info 替代 System.out.println
+
+#### 📦 新增文件
+
+- `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java` - 统一 AI 请求处理器
+- `src/main/java/com/zm/kilacraftAI/skills/framework/TaskExecutor.java` - 多步骤任务执行器
+
+#### ⚙️ 配置变更
+
+```yaml
+# config.yml 新增 Agent 能力配置
+agent:
+  enabled: true                    # 总开关（优先级最高）
+  enable_chat_listener: true       # ChatListener 入口是否启用 Agent
+  enable_command: true             # KilacraftCommand 入口是否启用 Agent
+  prompts:
+    system_prompt: "你是一个专业的游戏助手..."  # 结果分析的系统提示词
+    analysis_prompt: "请根据以下任务执行结果...\n\n{results}\n\n请用简洁友好的语言回复玩家。"
+```
+
+#### ⚠️ 兼容性说明
+
+- Agent 能力配置结构变更，建议备份后重新生成配置文件
+- TaskExecutor 提示词配置化，原有的硬编码提示词已迁移到 config.yml
+- AIRequestHandler 位置调整到 `handler` 包（非 `handler.impl` 子包）
+
+---
 
 ### v1.3.1 - RAG 检索优化与响应速度提升 🚀
 

@@ -98,7 +98,7 @@ public class SkillManager {
         }
 
         if (isDebug) {
-            plugin.getLogger().info("[DEBUG] [SkillManager] 开始执行技能：" + skillName + ", action=" + intent.getAction());
+            plugin.getLogger().info("[DEBUG] 开始执行技能：" + skillName + ", action=" + intent.getAction());
         }
 
         // 执行技能

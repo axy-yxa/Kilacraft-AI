@@ -6,7 +6,9 @@ dependency-reduced-pom.xml
 test/
 *.md
 .qoder
+.shelf
 lib/
+knowledge
 
 ### IntelliJ IDEA ###
 .idea

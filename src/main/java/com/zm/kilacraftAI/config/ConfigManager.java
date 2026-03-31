@@ -65,6 +65,18 @@ public class ConfigManager {
     private int knowledgeMinChunkSize;      // 每个片段最小字符数
     @Getter
     private int knowledgeChunkOverlap;      // 片段重叠字符数
+    
+    // Agent 能力配置
+    @Getter
+    private boolean agentEnabled;           // Agent 总开关
+    @Getter
+    private boolean agentEnableChatListener;  // ChatListener 入口是否启用 Agent
+    @Getter
+    private boolean agentEnableCommand;       // KilacraftCommand 入口是否启用 Agent
+    @Getter
+    private String agentSystemPrompt;         // LLM 意图识别系统提示词
+    @Getter
+    private String agentAnalysisPrompt;       // LLM 分析执行结果提示词
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -116,6 +128,13 @@ public class ConfigManager {
         this.knowledgeMaxChunkSize = config.getInt("knowledge.segment.max_size", 500);
         this.knowledgeMinChunkSize = config.getInt("knowledge.segment.min_size", 25);
         this.knowledgeChunkOverlap = config.getInt("knowledge.segment.overlap", 30);
+            
+        // Agent 能力配置
+        this.agentEnabled = config.getBoolean("agent.enabled", true);
+        this.agentEnableChatListener = config.getBoolean("agent.enable_chat_listener", true);
+        this.agentEnableCommand = config.getBoolean("agent.enable_command", true);
+        this.agentSystemPrompt = config.getString("agent.prompts.system_prompt", "");
+        this.agentAnalysisPrompt = config.getString("agent.prompts.analysis_prompt", "");
             
         // 通知 DeepSeekAPI 刷新配置缓存
         refreshAPICache();

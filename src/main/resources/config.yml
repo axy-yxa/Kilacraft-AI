@@ -78,6 +78,34 @@ settings:
   # 使用 {player} 占位符，会被自动替换为实际玩家名称
   system_prompt: "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。"
 
+# ==================== Agent 能力配置 ====================
+# Agent 能力说明：
+# 1. 启用后，AI 会先进行意图识别，判断是否需要调用技能（单意图或多步骤任务）
+# 2. 意图识别失败或技能执行失败时，回退到普通 AI 对话
+# 3. 关闭后，直接进入普通 AI 对话，不进行意图分析
+agent:
+  # 是否启用 Agent 能力（总开关，优先级高于以下两个独立配置）
+  enabled: true
+  
+  # ChatListener 入口是否启用 Agent 能力（关键词触发、连续对话模式）
+  # true: 玩家通过@ai 等关键词触发时，会先进行意图识别
+  # false: 玩家通过关键词触发时，直接进入普通 AI 对话
+  enable_chat_listener: true
+  
+  # KilacraftCommand 入口是否启用 Agent 能力（/kilacraft 命令）
+  # true: 玩家使用/kilacraft 命令时，会先进行意图识别
+  # false: 玩家使用/kilacraft 命令时，直接进入普通 AI 对话
+  enable_command: true
+  
+  # LLM 分析执行结果并生成最终回复提示词配置
+  prompts:
+    # 系统提示词
+    system_prompt: "你是一个专业的 Minecraft 游戏助手，请根据提供的数据给出有用的建议。"
+    
+    # 分析提示词（指导 LLM 如何分析执行结果并生成最终回复）
+    # 可以使用 {results} 占位符，会被替换为任务执行结果
+    analysis_prompt: "请根据以下任务执行结果，给出综合性的分析和建议：\n\n{results}\n\n请用简洁友好的语言回复玩家。"
+
 # ==================== 消息格式配置 ====================
 messages:
   # AI 名称（用于提示语中的 AI 标识）
