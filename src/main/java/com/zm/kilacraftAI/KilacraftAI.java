@@ -1,6 +1,6 @@
 package com.zm.kilacraftAI;
 
-import com.zm.kilacraftAI.api.DeepSeekAPI;
+import com.zm.kilacraftAI.api.DeepSeekAPINew;
 import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
 import com.zm.kilacraftAI.config.ConfigManager;
@@ -37,7 +37,8 @@ public final class KilacraftAI extends JavaPlugin {
     private PersonalitiesConfigManager personalitiesConfigManager;
     @Getter
     private SkillConfigManager skillConfigManager;
-    private DeepSeekAPI deepSeekAPI;
+    @Getter
+    private DeepSeekAPINew deepSeekAPI;
     private ChatListener chatListener;
     private ConversationManager conversationManager;
     private KnowledgeBaseManager knowledgeBase;
@@ -59,7 +60,7 @@ public final class KilacraftAI extends JavaPlugin {
         languageManager = new LanguageManager(this);
         personalitiesConfigManager = new PersonalitiesConfigManager(this);
         conversationManager = new ConversationManager();
-        deepSeekAPI = new DeepSeekAPI(configManager);
+        deepSeekAPI = new DeepSeekAPINew(configManager);
         chatListener = new ChatListener(this);
 
         // 初始化知识库管理器
@@ -132,5 +133,10 @@ public final class KilacraftAI extends JavaPlugin {
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         getLogger().info("  Kilacraft-AI 已停止运行");
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        
+        // 关闭 HTTP 连接池
+        if (deepSeekAPI != null) {
+            deepSeekAPI.shutdown();
+        }
     }
 }

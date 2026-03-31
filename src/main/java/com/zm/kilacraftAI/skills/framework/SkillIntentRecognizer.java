@@ -3,7 +3,7 @@ package com.zm.kilacraftAI.skills.framework;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.api.DeepSeekAPI;
+import com.zm.kilacraftAI.api.DeepSeekAPINew;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.IntentRecognitionResponseHandler;
@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 public class SkillIntentRecognizer {
 
     private final KilacraftAI plugin = KilacraftAI.getInstance();
-    private final DeepSeekAPI deepSeekAPI;
+    private final DeepSeekAPINew deepSeekAPI;
     private final ConfigManager configManager;
     private final Gson gson;
     private final SkillManager skillManager; // 用于获取所有技能的描述
@@ -95,7 +95,7 @@ public class SkillIntentRecognizer {
         };
     }
     
-    public SkillIntentRecognizer(DeepSeekAPI deepSeekAPI, ConfigManager configManager, SkillManager skillManager) {
+    public SkillIntentRecognizer(DeepSeekAPINew deepSeekAPI, ConfigManager configManager, SkillManager skillManager) {
         this.deepSeekAPI = deepSeekAPI;
         this.configManager = configManager;
         this.gson = new Gson();
@@ -136,10 +136,11 @@ public class SkillIntentRecognizer {
         
         // 添加聊天历史
         if (history != null && !history.isEmpty()) {
-            prompt.append("【聊天历史】\n");
+            prompt.append("[聊天历史]\n");
             int count = 0;
             for (ConversationManager.Message msg : history) {
-                if (count++ >= 5) break;  // 最多显示 5 条历史记录
+                // 最多显示 5 条历史记录
+                if (count++ >= 5) break;
                 
                 // 根据角色显示不同的标识
                 String roleDisplay = switch (msg.getRole()) {
@@ -155,7 +156,7 @@ public class SkillIntentRecognizer {
         }
         
         // 添加当前输入
-        prompt.append("【当前输入】\n");
+        prompt.append("[当前输入]\n");
         prompt.append("用户说：").append(userInput).append("\n\n");
         
         // 添加指令

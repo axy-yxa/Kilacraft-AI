@@ -20,6 +20,7 @@ import java.util.logging.Level;
  * @author Zm_Mmm
  * @since 2026-03-24 17:22:42
  */
+@Deprecated
 public class DeepSeekAPI {
 
     private static final String ROLE_SYSTEM = "system";

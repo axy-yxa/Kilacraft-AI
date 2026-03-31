@@ -69,14 +69,14 @@ public class ConfigManager {
         // 加载配置文件，配置项不存在时使用默认配置
         plugin.reloadConfig();
         FileConfiguration config = plugin.getConfig();
-
-        // API配置
+    
+        // API 配置
         this.apiKey = config.getString("api.key", "sk-afbe212f24ca4014bcb8f6a152904677");
         this.apiUrl = config.getString("api.url", "https://api.deepseek.com/v1/chat/completions");
         this.model = config.getString("api.model", "deepseek-chat");
         this.temperature = config.getDouble("api.temperature", 0.7);
         this.maxTokens = config.getInt("api.max_tokens", 1000);
-
+    
         // 插件设置
         this.debugMode = config.getBoolean("settings.debug_mode", false);
         this.enableChatCommand = config.getBoolean("settings.enable_chat_command", true);
@@ -96,14 +96,31 @@ public class ConfigManager {
             this.bannedWorlds = new ArrayList<>();
         }
         this.systemPrompt = config.getString("settings.system_prompt", "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。");
-        
+            
         // 消息格式配置
         this.aiName = config.getString("messages.ai_name", "Kilacraft-AI");
         this.aiPrefix = config.getString("messages.ai_prefix", "§7[Kilacraft-AI] §f");
         this.thinkingMessage = config.getString("messages.thinking_message", "正在思考中...");
-        
+            
         // 知识库配置
         this.knowledgeEnabled = config.getBoolean("knowledge.enabled", true);
         this.maxRelevantChunks = config.getInt("knowledge.max_relevant_chunks", 3);
+            
+        // 通知 DeepSeekAPI 刷新配置缓存
+        refreshAPICache();
+    }
+        
+    /**
+     * 刷新 API 配置缓存（由 DeepSeekAPI 使用）
+     */
+    private void refreshAPICache() {
+        try {
+            com.zm.kilacraftAI.KilacraftAI plugin = com.zm.kilacraftAI.KilacraftAI.getInstance();
+            if (plugin != null && plugin.getDeepSeekAPI() != null) {
+                plugin.getDeepSeekAPI().refreshConfigCache();
+            }
+        } catch (Exception e) {
+            // 忽略异常，避免配置加载失败
+        }
     }
 }
