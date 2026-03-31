@@ -113,7 +113,6 @@ public class DeepSeekAPINew {
         } else {
             plugin.getLogger().info("[DEBUG] 历史对话：无");
         }
-        plugin.getLogger().info("[DEBUG] ========== DeepSeek API 请求结束 ==========");
     }
 
     /**
@@ -320,6 +319,10 @@ public class DeepSeekAPINew {
                     responseHandler.handleError(errorMsg);
                 }
                 return errorMsg;
+            } finally {
+                if (enableDebugLog && cachedDebugMode) {
+                    plugin.getLogger().info("[DEBUG] ========== DeepSeek API 请求结束 ==========");
+                }
             }
         });
     }

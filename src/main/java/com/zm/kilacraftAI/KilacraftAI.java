@@ -67,9 +67,12 @@ public final class KilacraftAI extends JavaPlugin {
         knowledgeBase = new KnowledgeBaseManager(this, getDataFolder().getAbsolutePath());
         knowledgeBase.loadAllKnowledge();
 
-        // 初始化知识检索器（从配置读取最大返回数量）
+        // 初始化知识检索器（从配置读取参数）
         int maxChunks = configManager.getMaxRelevantChunks();
-        knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, maxChunks);
+        int maxChunkSize = configManager.getKnowledgeMaxChunkSize();
+        int minChunkSize = configManager.getKnowledgeMinChunkSize();
+        int chunkOverlap = configManager.getKnowledgeChunkOverlap();
+        knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, maxChunks, maxChunkSize, minChunkSize, chunkOverlap);
 
         // 注册命令
         var command = getCommand("kilacraft");
@@ -106,9 +109,8 @@ public final class KilacraftAI extends JavaPlugin {
         skillManager = new SkillManager();
         registerDefaultSkills();
         
-        // 初始化意图识别器（传入 skillManager）
+        // 初始化意图识别器
         intentRecognizer = new SkillIntentRecognizer(deepSeekAPI, configManager, skillManager);
-        getLogger().info("已初始化 LLM 意图识别器（动态技能描述）");
 
         // ASCII Art 启动标志
         getLogger().info("╻┏ ╻╻  ┏━┓┏━╸┏━┓┏━┓┏━╸╺┳╸   ┏━┓╻");
@@ -130,13 +132,12 @@ public final class KilacraftAI extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        getLogger().info("  Kilacraft-AI 已停止运行");
-        getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        
         // 关闭 HTTP 连接池
         if (deepSeekAPI != null) {
             deepSeekAPI.shutdown();
         }
+        getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        getLogger().info("  Kilacraft-AI 已停止运行");
+        getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 }

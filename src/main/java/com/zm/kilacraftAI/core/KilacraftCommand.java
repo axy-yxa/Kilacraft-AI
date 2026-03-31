@@ -461,8 +461,13 @@ public class KilacraftCommand implements CommandExecutor {
         // 构建消息
         String message = String.join(" ", args);
 
+        // 发送"正在思考"消息
+        MessageUtil.sendThinkingMessage(player);
+        // 立即更新冷却时间
+        validator.startCooldown(playerId);
+
         // LLM 意图识别
-        handleSkillExecution(player, playerId, message, playerHistory);
+        handleSkillExecution(player, message, playerHistory);
         return true;
     }
 
@@ -471,7 +476,7 @@ public class KilacraftCommand implements CommandExecutor {
      *
      * <p>统一入口：所有消息都先经过 LLM 意图识别，再决定是否调用技能</p>
      */
-    private void handleSkillExecution(Player player, UUID playerId, String message, Deque<ConversationManager.Message> playerHistory) {
+    private void handleSkillExecution(Player player, String message, Deque<ConversationManager.Message> playerHistory) {
         // 调试模式：打印意图识别信息
         if (plugin.getConfigManager().isDebugMode()) {
             plugin.getLogger().info("[DEBUG] 开始 LLM 意图识别，玩家：" + player.getName() + ", 消息：" + message);
@@ -481,19 +486,8 @@ public class KilacraftCommand implements CommandExecutor {
         var intentRecognizer = plugin.getIntentRecognizer();
         if (intentRecognizer != null) {
             intentRecognizer.recognize(message, playerHistory).thenAccept(intent -> {
-                // 调试日志
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] LLM 意图识别结果：" + intent);
-                }
-
                 // 检查意图是否有效
                 if (intent.isValid()) {
-                    // 发送"正在思考"消息
-                    MessageUtil.sendThinkingMessage(player);
-
-                    // 立即更新冷却时间
-                    validator.startCooldown(playerId);
-
                     // 创建技能上下文并执行（使用 LLM 识别出的 action 和 entities）
                     var skillManager = plugin.getSkillManager();
                     SkillContext context = new SkillContext(player, intent.getAction(), intent.getEntities());
@@ -506,8 +500,8 @@ public class KilacraftCommand implements CommandExecutor {
                             // 保存对话到历史记录
                             validator.saveToHistory(playerHistory, message, result.getMessage());
                         } else {
-                            // 技能执行失败，回退到普通 AI（不需要再次执行 thinking 和 cooldown）
-                            handleNormalAIRequestWithoutThinking(player, message, playerHistory);
+                            // 技能执行失败，回退到普通 AI
+                            handleNormalAIRequest(player, message, playerHistory);
                         }
                     }).exceptionally(throwable -> {
                         player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
@@ -515,11 +509,11 @@ public class KilacraftCommand implements CommandExecutor {
                         return null;
                     });
                 } else {
-                    // 意图识别失败，回退到普通 AI 处理
+                    // 意图识别结束，回退到普通 AI 处理
                     if (plugin.getConfigManager().isDebugMode()) {
-                        plugin.getLogger().info("[DEBUG] 意图识别失败，使用普通 AI 处理");
+                        plugin.getLogger().info("[DEBUG] 意图识别结束，回退到普通 AI 处理");
                     }
-                    handleNormalAIRequest(player, playerId, message, playerHistory);
+                    handleNormalAIRequest(player, message, playerHistory);
                 }
             }).exceptionally(throwable -> {
                 player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
@@ -527,20 +521,14 @@ public class KilacraftCommand implements CommandExecutor {
             });
         } else {
             // 意图识别器不可用，回退到普通 AI 处理
-            handleNormalAIRequest(player, playerId, message, playerHistory);
+            handleNormalAIRequest(player, message, playerHistory);
         }
     }
 
     /**
      * 处理普通 AI 请求
      */
-    private boolean handleNormalAIRequest(Player player, UUID playerId, String message, Deque<ConversationManager.Message> playerHistory) {
-        // 发送"正在思考"消息
-        MessageUtil.sendThinkingMessage(player);
-
-        // 立即更新冷却时间
-        validator.startCooldown(playerId);
-
+    private boolean handleNormalAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory) {
         // 创建玩家响应处理器
         AIResponseHandler handler = new PlayerResponseHandler(player, message, playerHistory);
 
@@ -555,24 +543,6 @@ public class KilacraftCommand implements CommandExecutor {
         });
 
         return true;
-    }
-
-    /**
-     * 处理普通 AI 请求（不发送 thinking message 和 cooldown，用于技能回退）
-     */
-    private void handleNormalAIRequestWithoutThinking(Player player, String message, Deque<ConversationManager.Message> playerHistory) {
-        // 创建玩家响应处理器
-        AIResponseHandler handler = new PlayerResponseHandler(player, message, playerHistory);
-
-        // 使用统一的 API 处理请求
-        plugin.getDeepSeekAPI().processRequest(message, player.getName(), playerHistory, handler).thenAccept(fullResponse -> {
-            // 保存对话到历史记录
-            validator.saveToHistory(playerHistory, message, fullResponse);
-        }).exceptionally(throwable -> {
-            player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
-            plugin.getLogger().severe(languageManager.getLogAiRequestError() + throwable.getMessage());
-            return null;
-        });
     }
 
     /**
@@ -597,7 +567,7 @@ public class KilacraftCommand implements CommandExecutor {
         // 后台控制台使用
         String message = String.join(" ", args);
 
-        // 发送"正在思考"消息（从配置文件读取）
+        // 发送"正在思考"消息
         MessageUtil.sendThinkingMessage(sender);
 
         // 创建控制台响应处理器

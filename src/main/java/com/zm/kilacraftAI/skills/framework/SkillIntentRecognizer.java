@@ -146,7 +146,6 @@ public class SkillIntentRecognizer {
                 String roleDisplay = switch (msg.getRole()) {
                     case "user" -> "用户";
                     case "assistant" -> "AI";
-                    case "system" -> "系统";
                     default -> msg.getRole();
                 };
                 
@@ -205,16 +204,6 @@ public class SkillIntentRecognizer {
                     }
                 }
             }
-            
-            // 创建调试日志
-            if (configManager.isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 意图识别成功：" +
-                    "技能=" + skillName + 
-                    ", 动作=" + action + 
-                    ", 置信度=" + confidence + 
-                    ", 实体=" + entities);
-            }
-            
             return new SkillIntent(skillName, action, entities, confidence, "");
             
         } catch (Exception e) {

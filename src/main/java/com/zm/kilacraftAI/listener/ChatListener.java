@@ -100,6 +100,12 @@ public class ChatListener implements Listener {
             return;
         }
 
+        // 发送"正在思考"消息
+        MessageUtil.sendThinkingMessage(player);
+
+        // 立即更新冷却时间
+        validator.startCooldown(playerId);
+
         // LLM 意图识别
         handleSkillExecution(player, playerId, message);
     }
@@ -123,19 +129,8 @@ public class ChatListener implements Listener {
         var intentRecognizer = plugin.getIntentRecognizer();
         if (intentRecognizer != null) {
             intentRecognizer.recognize(message, playerHistory).thenAccept(intent -> {
-                // 调试日志
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] LLM 意图识别结果：" + intent);
-                }
-                
                 // 检查意图是否有效
                 if (intent.isValid()) {
-                    // 发送"正在思考"消息
-                    MessageUtil.sendThinkingMessage(player);
-
-                    // 立即更新冷却时间
-                    validator.startCooldown(playerId);
-                    
                     // 创建技能上下文并执行（使用 LLM 识别出的 action 和 entities）
                     var skillManager = plugin.getSkillManager();
                     SkillContext context = new SkillContext(player, intent.getAction(), intent.getEntities());
@@ -148,8 +143,8 @@ public class ChatListener implements Listener {
                             // 保存对话到历史记录
                             validator.saveToHistory(playerHistory, message, result.getMessage());
                         } else {
-                            // 技能失败，回退到普通 AI 处理（不需要再次发送 thinking 和 cooldown）
-                            handleNormalAIRequestWithoutThinking(player, playerId, message);
+                            // 技能失败，回退到普通 AI 处理
+                            handleNormalAIRequest(player, playerId, message);
                         }
                     }).exceptionally(throwable -> {
                         player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
@@ -157,9 +152,9 @@ public class ChatListener implements Listener {
                         return null;
                     });
                 } else {
-                    // 意图识别失败，回退到普通 AI 处理
+                    // 意图识别结束，回退到普通 AI 处理
                     if (plugin.getConfigManager().isDebugMode()) {
-                        plugin.getLogger().info("[DEBUG] 意图识别失败，使用普通 AI 处理");
+                        plugin.getLogger().info("[DEBUG] 意图识别结束，回退到普通 AI 处理");
                     }
                     handleNormalAIRequest(player, playerId, message);
                 }
@@ -185,33 +180,6 @@ public class ChatListener implements Listener {
         if (plugin.getConfigManager().isDebugMode()) {
             plugin.getLogger().info("[DEBUG] 玩家 " + player.getName() + " 的历史记录数量：" + playerHistory.size());
         }
-
-        // 发送"正在思考"消息
-        MessageUtil.sendThinkingMessage(player);
-
-        // 立即更新冷却时间
-        validator.startCooldown(playerId);
-
-        // 创建玩家响应处理器
-        AIResponseHandler handler = new PlayerResponseHandler(player, message, playerHistory);
-
-        // 使用统一的 API 处理请求
-        plugin.getDeepSeekAPI().processRequest(message, player.getName(), playerHistory, handler).thenAccept(fullResponse -> {
-            // 保存对话到历史记录
-            validator.saveToHistory(playerHistory, message, fullResponse);
-        }).exceptionally(throwable -> {
-            player.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
-            return null;
-        });
-    }
-    
-    /**
-     * 处理普通 AI 请求（不发送 thinking message 和 cooldown，用于技能回退）
-     */
-    private void handleNormalAIRequestWithoutThinking(Player player, UUID playerId, String message) {
-        // 获取历史记录
-        ConversationManager convManager = plugin.getConversationManager();
-        Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
 
         // 创建玩家响应处理器
         AIResponseHandler handler = new PlayerResponseHandler(player, message, playerHistory);

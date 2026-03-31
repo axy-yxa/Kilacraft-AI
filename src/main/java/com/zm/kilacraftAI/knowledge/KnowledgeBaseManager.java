@@ -20,12 +20,14 @@ public class KnowledgeBaseManager {
 
     private final KilacraftAI plugin;
     private final Path knowledgeDir;
-    private final Map<String, String> knowledgeCache;
+    private final Map<String, String> knowledgeCache;           // 原始文件内容缓存
+    private final Map<String, List<String>> chunkCache;         // 分段后内容缓存
 
     public KnowledgeBaseManager(KilacraftAI plugin, String dataFolderPath) {
         this.plugin = plugin;
         this.knowledgeDir = Paths.get(dataFolderPath, "knowledge");
         this.knowledgeCache = new HashMap<>();
+        this.chunkCache = new HashMap<>();
 
         // 确保知识库目录存在
         initializeKnowledgeDirectory();
@@ -146,10 +148,11 @@ public class KnowledgeBaseManager {
     }
 
     /**
-     * 加载所有知识文件到缓存
+     * 加载所有知识文件到缓存（同时清空分段缓存）
      */
     public void loadAllKnowledge() {
         knowledgeCache.clear();
+        chunkCache.clear();  // 清空分段缓存，重新加载
 
         if (!Files.exists(knowledgeDir)) {
             plugin.getLogger().warning("知识库目录不存在：" + knowledgeDir);
@@ -157,11 +160,7 @@ public class KnowledgeBaseManager {
         }
 
         try (var stream = Files.walk(knowledgeDir)) {
-            List<Path> files = stream
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".md") ||
-                            path.toString().endsWith(".txt"))
-                    .collect(Collectors.toList());
+            List<Path> files = stream.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".md") || path.toString().endsWith(".txt")).toList();
 
             for (Path file : files) {
                 try {
@@ -191,6 +190,61 @@ public class KnowledgeBaseManager {
     }
 
     /**
+     * 获取或创建分段缓存
+     *
+     * @param fileName 文件名
+     * @param chunks   分段列表
+     */
+    public void setChunkCache(String fileName, List<String> chunks) {
+        chunkCache.put(fileName, chunks);
+    }
+
+    /**
+     * 获取分段缓存
+     *
+     * @param fileName 文件名
+     * @return 分段列表，如果不存在则返回 null
+     */
+    public List<String> getChunkCache(String fileName) {
+        return chunkCache.get(fileName);
+    }
+
+    /**
+     * 输出 INFO 级别日志（使用 Bukkit）
+     *
+     * @param message 日志消息
+     */
+    public void logInfo(String message) {
+        plugin.getLogger().info(message);
+    }
+
+    /**
+     * 输出 WARNING 级别日志（使用 Bukkit）
+     *
+     * @param message 日志消息
+     */
+    public void logWarning(String message) {
+        plugin.getLogger().warning(message);
+    }
+
+    /**
+     * 检查是否开启调试模式
+     *
+     * @return 如果是调试模式返回 true
+     */
+    public boolean isDebugMode() {
+        try {
+            KilacraftAI instance = KilacraftAI.getInstance();
+            if (instance != null && instance.getConfigManager() != null) {
+                return instance.getConfigManager().isDebugMode();
+            }
+        } catch (Exception e) {
+            // 忽略异常
+        }
+        return false;
+    }
+
+    /**
      * 获取单个知识文件内容
      *
      * @param fileName 文件名
@@ -216,9 +270,7 @@ public class KnowledgeBaseManager {
      */
     public String getStatistics() {
         int fileCount = knowledgeCache.size();
-        int totalChars = knowledgeCache.values().stream()
-                .mapToInt(String::length)
-                .sum();
+        int totalChars = knowledgeCache.values().stream().mapToInt(String::length).sum();
 
         return String.format("知识库：%d 个文件，共 %d 字符", fileCount, totalChars);
     }

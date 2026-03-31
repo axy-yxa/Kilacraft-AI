@@ -86,28 +86,14 @@ public class SkillManager {
         KilacraftAI plugin = KilacraftAI.getInstance();
         boolean isDebug = plugin != null && plugin.getConfigManager().isDebugMode();
 
-        if (isDebug) {
-            plugin.getLogger().info("[DEBUG] [SkillManager] 查找技能：" + skillName);
-        }
-
         Skill skill = skills.get(skillName);
 
         if (skill == null) {
-            if (isDebug) {
-                plugin.getLogger().warning("[DEBUG] [SkillManager] 技能不存在：" + skillName);
-            }
             return java.util.concurrent.CompletableFuture.completedFuture(SkillResult.failure("抱歉，我没有找到名为 '" + skillName + "' 的技能"));
-        }
-
-        if (isDebug) {
-            plugin.getLogger().info("[DEBUG] [SkillManager] 找到技能：" + skill.getName() + ", 可用=" + skill.isAvailable(context));
         }
 
         // 检查技能是否可用
         if (!skill.isAvailable(context)) {
-            if (isDebug) {
-                plugin.getLogger().warning("[DEBUG] [SkillManager] 技能不可用：" + skillName);
-            }
             return java.util.concurrent.CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
         }
 

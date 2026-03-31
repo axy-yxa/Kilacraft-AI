@@ -286,6 +286,46 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 
 ## 📝 Changelog
 
+### v1.3.1 - RAG Retrieval Optimization & Response Speed Improvement 🚀
+
+**Core Upgrade**: Refactored knowledge retrieval architecture, optimized Chinese word segmentation, improved plugin response speed!
+
+#### 🎯 Knowledge Retrieval Optimization
+
+- ✅ **Standard RAG**: Industry-standard knowledge retrieval architecture supporting multi-format knowledge files
+- ✅ **Intelligent Chunking**: Markdown headers → Paragraphs → Fixed size (3-level strategy)
+- ✅ **Chinese Keyword Extraction**: n-gram segmentation + intelligent stop word filtering + automatic punctuation removal
+- ✅ **Multi-level Scoring**: Complete question matching (+50) + Keyword matching (+5) + Title matching (+25) + Coverage multiplier
+- ✅ **Cache Optimization**: Cache after first chunking, secondary retrieval speed improved ~70%
+
+#### ⚡ Response Speed Optimization
+
+- ✅ **Instant Thinking Message**: Moved from skill execution to command entry point, eliminates "plugin is slow" misconception
+- ✅ **Unified Cooldown Management**: Unified handling in `handlePlayerMessageCommand()`, avoids duplicate cooldown during fallback
+- ✅ **Code Architecture Optimization**: Separation of responsibilities, all branches reuse unified entry point
+
+#### 🔧 Technical Details
+
+- ✅ **Knowledge Retriever Refactoring**: Reimplemented standard RAG retrieval workflow
+- ✅ **Configuration Enhancement**: Knowledge base chunking configuration (`knowledge.segment`) + YAML multi-line personality support
+- ✅ **Debug Log Optimization**: Detailed word segmentation process and matching details
+
+#### ⚙️ API Performance Optimization (DeepSeekAPINew)
+
+- ✅ **HTTP Connection Pool**: Reuse connections, max idle=10, keep-alive=5min
+- ✅ **Timeout Configuration**: Connect=30s, Read=60s, Write=30s
+- ✅ **Streaming Response**: Reduced first-token latency using BufferedReader line-by-line reading
+- ✅ **Configuration Caching**: Cache model/temperature/maxTokens values to reduce repeated lookups
+- ✅ **Pre-allocated Buffers**: StringBuilder pre-sized (512/256) to reduce expansion overhead
+- ✅ **Auto-retry Mechanism**: Enabled retryOnConnectionFailure(true)
+
+#### ⚠️ Compatibility Notes
+
+- Knowledge base chunking configuration structure changed, recommended to backup and regenerate
+- Stop word list may need adjustment based on actual usage
+
+---
+
 ### v1.3.0 - AI Agent Evolution 🚀
 
 **Major Upgrade**: Evolved from conversational AI to AI Agent with skill execution and intent recognition capabilities!

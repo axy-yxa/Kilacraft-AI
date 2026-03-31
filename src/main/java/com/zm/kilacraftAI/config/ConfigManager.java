@@ -59,6 +59,12 @@ public class ConfigManager {
     private boolean knowledgeEnabled;
     @Getter
     private int maxRelevantChunks;
+    @Getter
+    private int knowledgeMaxChunkSize;      // 每个片段最大字符数
+    @Getter
+    private int knowledgeMinChunkSize;      // 每个片段最小字符数
+    @Getter
+    private int knowledgeChunkOverlap;      // 片段重叠字符数
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -105,6 +111,11 @@ public class ConfigManager {
         // 知识库配置
         this.knowledgeEnabled = config.getBoolean("knowledge.enabled", true);
         this.maxRelevantChunks = config.getInt("knowledge.max_relevant_chunks", 3);
+        
+        // 知识库分段配置
+        this.knowledgeMaxChunkSize = config.getInt("knowledge.segment.max_size", 500);
+        this.knowledgeMinChunkSize = config.getInt("knowledge.segment.min_size", 25);
+        this.knowledgeChunkOverlap = config.getInt("knowledge.segment.overlap", 30);
             
         // 通知 DeepSeekAPI 刷新配置缓存
         refreshAPICache();

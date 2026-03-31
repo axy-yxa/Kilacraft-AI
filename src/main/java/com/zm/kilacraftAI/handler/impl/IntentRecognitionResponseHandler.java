@@ -29,7 +29,7 @@ public class IntentRecognitionResponseHandler extends BaseResponseHandler {
     protected void sendMessage(String message) {
         // 意图识别场景下，只记录日志，不向玩家显示任何内容
         if (plugin != null && plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] [意图识别] " + message);
+            plugin.getLogger().info("[DEBUG] [意图识别结果] \n" + message);
         }
     }
 
