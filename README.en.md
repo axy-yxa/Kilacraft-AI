@@ -1,6 +1,6 @@
 # Kilacraft-AI
 
-> **🎉 v1.3.2 Major Update**: Agent capabilities fully configurable! New multi-step task executor, intent recognition prompts configurable, unified AI request handler and more. See [Changelog](#-changelog)
+> **🎉 v1.3.4 Major Update**: MarketQuerySkill capabilities expanded! New item availability query, my items, mailbox query, market stats, optimized multi-step task intent recognition & data passing. See [Changelog](#-changelog)
 
 A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intelligent interactive experiences for server players.
 
@@ -23,6 +23,10 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
 
 ### 💰 Economy Integration (Experimental)
 - **GlobalMarketPlus Deep Integration**: Player balance inquiry, market price inquiry, product list inquiry
+- **Item Availability Query (v1.3.4+)**: Check if item is available, stock quantity, seller info
+- **My Items Query (v1.3.4+)**: Check player's own listed items
+- **Mailbox Query (v1.3.4+)**: Check pending mailbox items
+- **Market Stats (v1.3.4+)**: Query total market items and seller count
 - **Multi-item Joint Query**: Check prices of multiple items at once, format: `diamond:2,stick:1`
 - **Quantity Recognition**: Natural language understanding for "buy 5 sticks" etc.
 - **Optimal Price Calculation**: Smart combination from cheapest to most expensive, considering actual stock
@@ -487,6 +491,93 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - Check if player has appropriate permissions
 
 ## 📝 Changelog
+
+### v1.3.4 - MarketQuerySkill Expansion & Multi-Step Task Optimization 🚀
+
+**Major Upgrade**: Economy system skills fully expanded, multi-step task intent recognition & data passing mechanism optimized!
+
+#### 🎯 Core Features
+
+- ✅ **MarketQuerySkill Added 4 Read-Only Actions**:
+  - **query_availability**: Check if item is available, stock quantity, seller info
+    - Supports exact matching and fuzzy matching
+    - Seller name auto-deduplication (same player with multiple items shows once)
+    - Smart item name cleaning and Chinese translation when no results
+  - **query_my_items**: Check player's own listed items
+  - **query_mailbox**: Check pending mailbox items (sender, quantity, time)
+  - **query_market_stats**: Query market statistics (total items, total sellers)
+
+- ✅ **GlobalMarketPlusAPI Extension**:
+  - Added `MailItem` inner class: encapsulates mail info (item name, quantity, sender, send time)
+  - Added `MarketStats` inner class: encapsulates market stats (total items, total sellers)
+  - Added `getMyMerchandises()` method: get player's own listed items
+  - Added `getMailboxItems()` method: get player's pending mailbox items
+  - Added `getMarketStats()` method: get market statistics
+
+- ✅ **Multi-Step Task Prompt Optimization**:
+  - Added single-intent format examples to help LLM distinguish between single-intent and multi-step tasks
+  - Optimized multi-step task examples with complete JSON format
+  - Added placeholder syntax explanation `{step_xxx.field}` for step-to-step data passing
+  - Improved intent recognition accuracy, reduced false positives
+
+- ✅ **Multi-Step Task Data Passing Mechanism**:
+  - TaskExecutor added `resolvePlaceholders()` method
+  - Supports `{step_xxx.field}` placeholder resolution
+  - Previous step results auto-injected into subsequent step's entities
+  - GenericBukkitAPISkill adds `item_name` and `item_amount` fields for ItemStack results
+
+- ✅ **Display Format Optimization**:
+  - **Item Name Cleaning**: Removes `:1` suffix, auto-translates to Chinese
+  - **Exp Progress Percentage**: `0.47826084` → `47%`
+  - **Game Time Formatting**: Ticks auto-converted to `HH:MM` format (MC time system)
+  - **Online Players Simplified**: Removed UUID, aggregate format display
+
+#### 🔧 Technical Implementation
+
+- ✅ **Intent Recognition Logic Fix**:
+  - AIRequestHandler supports recognizing TaskPlan format (both single-step and multi-step)
+  - Debug logs show step count for easier troubleshooting
+
+- ✅ **Code Quality Improvements**:
+  - Removed unused reflection method `getPropertyValue()`
+  - Optimized code formatting and indentation
+
+#### 📦 Modified Files
+
+- `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/GlobalMarketPlusAPI.java`
+- `src/main/java/com/zm/kilacraftAI/skills/globalmarketplus/MarketQuerySkill.java`
+- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillIntentRecognizer.java`
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/TaskExecutor.java`
+- `src/main/java/com/zm/kilacraftAI/skills/bukkit/GenericBukkitAPISkill.java`
+- `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java`
+- `src/main/resources/skills/globalmarketplus/MarketQuerySkill.yml`
+
+#### 🎮 Usage Examples
+
+```
+Player: Is enchanting bottle available?
+AI: Enchanting Bottle is available
+    Stock: 15 units
+    Price: $100.00 - $150.00
+    Sellers: Steve, Alex, ... and 3 more
+
+Player: What am I selling?
+AI: Your listed items (3 total):
+    1. Diamond x10 - $50.00/each
+    2. ...
+
+Player: Do I have mail?
+AI: You have 2 pending mails:
+    1. Diamond x5 - from Steve
+    2. ...
+
+Player: How many items in market?
+AI: Market Statistics:
+    Total Items: 1234
+    Total Sellers: 56
+```
+
+---
 
 ### v1.3.3 - Bukkit API Capabilities & Automated System Prompt 🚀
 

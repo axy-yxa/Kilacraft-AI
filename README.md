@@ -1,6 +1,6 @@
 # Kilacraft-AI
 
-> **🎉 v1.3.2 重大更新**：Agent 能力全面配置化！新增多步骤任务执行器、意图识别提示词可配置、统一 AI 请求处理器等强大功能。详见 [更新日志](#-更新日志)
+> **🎉 v1.3.4 重大更新**：MarketQuerySkill 能力扩展！新增商品在售查询、我的商品、邮箱查询、市场统计等功能，优化多步骤任务意图识别与数据传递。详见 [更新日志](#-更新日志)
 
 一个功能强大的 Minecraft AI 对话插件，集成 DeepSeek AI，为服务器玩家提供智能交互体验。
 
@@ -23,6 +23,10 @@
 
 ### 💰 经济系统集成（实验性）
 - **GlobalMarketPlus 深度集成**：玩家余额查询、市场价格查询、商品列表查询
+- **商品在售查询（v1.3.4+）**：查询指定物品是否在售、库存数量、卖家信息
+- **我的商品查询（v1.3.4+）**：查询玩家自己在售的商品列表
+- **邮箱查询（v1.3.4+）**：查询玩家邮箱待领取的邮件
+- **市场统计（v1.3.4+）**：查询市场总商品数和卖家数
 - **多物品联合查询**：一次查询多个商品价格，格式：`钻石：2,木棍:1`
 - **数量识别**：自然语言理解，支持"买 5 个木棍"等表达
 - **最优价格计算**：从便宜到贵智能组合，考虑实际库存
@@ -491,6 +495,93 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - 检查玩家是否有相应权限
 
 ## 📝 更新日志
+
+### v1.3.4 - MarketQuerySkill 能力扩展与多步骤任务优化 🚀
+
+**重大升级**：经济系统技能全面扩展，多步骤任务意图识别与数据传递机制优化！
+
+#### 🎯 核心特性
+
+- ✅ **MarketQuerySkill 新增 4 个只读动作**：
+  - **query_availability**：查询指定物品是否在售、库存数量、卖家信息
+    - 支持精确匹配和模糊匹配
+    - 卖家名称自动去重（同一玩家多件商品只显示一次）
+    - 无结果时智能净化物品名称并翻译为中文
+  - **query_my_items**：查询玩家自己在售的商品列表
+  - **query_mailbox**：查询玩家邮箱待领取的邮件（发件人、数量、时间）
+  - **query_market_stats**：查询市场统计信息（总商品数、总卖家数）
+
+- ✅ **GlobalMarketPlusAPI 扩展**：
+  - 新增 `MailItem` 内部类：封装邮件信息（物品名、数量、发件人、发送时间）
+  - 新增 `MarketStats` 内部类：封装市场统计（总商品数、总卖家数）
+  - 新增 `getMyMerchandises()` 方法：获取玩家自己的在售商品
+  - 新增 `getMailboxItems()` 方法：获取玩家邮箱待领取邮件
+  - 新增 `getMarketStats()` 方法：获取市场统计信息
+
+- ✅ **多步骤任务提示词优化**：
+  - 添加单意图格式示例，帮助 LLM 正确区分单意图和多步骤任务
+  - 优化多步骤任务示例，使用完整 JSON 格式展示
+  - 添加占位符语法说明 `{step_xxx.field}` 用于步骤间数据传递
+  - 提高意图识别准确率，减少误判
+
+- ✅ **多步骤任务数据传递机制**：
+  - TaskExecutor 新增 `resolvePlaceholders()` 方法
+  - 支持 `{step_xxx.field}` 占位符解析
+  - 前置步骤结果自动注入后续步骤的 entities 中
+  - GenericBukkitAPISkill 对 ItemStack 结果添加 `item_name` 和 `item_amount` 字段
+
+- ✅ **显示格式优化**：
+  - **物品名称净化**：移除 `:1` 等后缀，自动翻译为中文
+  - **经验进度百分比**：`0.47826084` → `47%`
+  - **游戏时间格式化**：刻数自动转换为 `HH:MM` 格式（MC 时间系统）
+  - **在线玩家精简**：移除 UUID，聚合格式显示
+
+#### 🔧 技术实现
+
+- ✅ **意图识别逻辑修复**：
+  - AIRequestHandler 支持识别 TaskPlan 格式（无论单步骤还是多步骤）
+  - 调试日志显示步骤数量，便于问题排查
+
+- ✅ **代码质量提升**：
+  - 删除未使用的反射方法 `getPropertyValue()`
+  - 优化代码格式和缩进
+
+#### 📦 修改文件
+
+- `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/GlobalMarketPlusAPI.java`
+- `src/main/java/com/zm/kilacraftAI/skills/globalmarketplus/MarketQuerySkill.java`
+- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillIntentRecognizer.java`
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/TaskExecutor.java`
+- `src/main/java/com/zm/kilacraftAI/skills/bukkit/GenericBukkitAPISkill.java`
+- `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java`
+- `src/main/resources/skills/globalmarketplus/MarketQuerySkill.yml`
+
+#### 🎮 使用示例
+
+```
+玩家：附魔瓶有人卖吗？
+AI：附魔瓶 有在售
+    库存：15 个
+    价格：$100.00 - $150.00
+    卖家：Steve, Alex, ... 等5人
+
+玩家：我在卖什么？
+AI：你在售的商品 (共 3 个):
+    1. 钻石 x10 - $50.00/个
+    2. ...
+
+玩家：我有邮件吗？
+AI：你的邮箱有 2 封待领取邮件：
+    1. 钻石 x5 - 来自 Steve
+    2. ...
+
+玩家：市场有多少商品？
+AI：市场统计：
+    总商品数：1234
+    总卖家数：56
+```
+
+---
 
 ### v1.3.3 - Bukkit API 能力与系统提示词自动化 🚀
 

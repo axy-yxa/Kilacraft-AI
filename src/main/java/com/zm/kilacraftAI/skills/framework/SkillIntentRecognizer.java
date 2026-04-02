@@ -9,6 +9,7 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.IntentRecognitionResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
+import com.zm.kilacraftAI.skills.framework.task.TaskStep;
 
 import java.util.Deque;
 import java.util.HashMap;
@@ -100,30 +101,56 @@ public class SkillIntentRecognizer {
         sb.append("- 当后续步骤依赖于前一步骤的结果时\n");
         sb.append("- 当某些步骤可能失败，需要条件判断时\n");
 
-        sb.append("\n多步骤任务示例：\n");
-        sb.append("示例 1 - 查询手持物品并检查余额：\n");
-        sb.append("用户问：\"我手上的东西市场上有卖吗？我的余额够买吗？\"\n");
-        sb.append("分解步骤：\n");
-        sb.append("  step_1: get_player_hand_item（获取玩家主手物品）\n");
-        sb.append("  step_2: query_price（查询该物品的市场价格，依赖 step_1 的结果）\n");
-        sb.append("  step_3: query_balance（查询玩家余额）\n");
-        sb.append("  执行完毕后：综合所有结果，回答用户问题\n");
-        sb.append("注意：如果 step_2 发现市场上没有该物品，则停止执行后续步骤\n");
+        sb.append("\n多步骤任务示例（必须输出完整的 JSON 格式）：\n");
+        sb.append("示例 1 - 用户问：'我手上的东西市场上有卖吗？'\n");
+        sb.append("{\n");
+        sb.append("  \"goal\": \"查询玩家手持物品是否在市场有售\",\n");
+        sb.append("  \"steps\": [\n");
+        sb.append("    {\n");
+        sb.append("      \"id\": \"step_1\",\n");
+        sb.append("      \"skill_name\": \"GenericBukkitAPI\",\n");
+        sb.append("      \"action\": \"get_player_hand_item\",\n");
+        sb.append("      \"entities\": {},\n");
+        sb.append("      \"depends_on\": []\n");
+        sb.append("    },\n");
+        sb.append("    {\n");
+        sb.append("      \"id\": \"step_2\",\n");
+        sb.append("      \"skill_name\": \"market_query\",\n");
+        sb.append("      \"action\": \"query_availability\",\n");
+        sb.append("      \"entities\": { \"item\": \"{step_1.item_name}\" },\n");
+        sb.append("      \"depends_on\": [\"step_1\"]\n");
+        sb.append("    }\n");
+        sb.append("  ]\n");
+        sb.append("}\n");
+        sb.append("注意：只有当后续步骤需要依赖前一步骤的结果时，才使用多步骤任务格式。\n");
+        
+        sb.append("\n示例 2 - 用户问：'我手上拿的是什么？'（单意图示例）\n");
+        sb.append("{\n");
+        sb.append("  \"skill_name\": \"GenericBukkitAPI\",\n");
+        sb.append("  \"action\": \"get_player_hand_item\",\n");
+        sb.append("  \"entities\": {},\n");
+        sb.append("  \"confidence\": 0.95,\n");
+        sb.append("  \"reasoning\": \"用户只想知道手持物品，不需要后续操作\"\n");
+        sb.append("}\n");
 
-        sb.append("\n示例 2 - 比较多个物品价格：\n");
-        sb.append("用户问：\"钻石和绿宝石哪个更贵？\"\n");
-        sb.append("分解步骤：\n");
-        sb.append("  step_1: query_price（查询钻石价格）\n");
-        sb.append("  step_2: query_price（查询绿宝石价格）\n");
-        sb.append("  执行完毕后：比较两个价格，返回结果\n");
+        sb.append("\n示例 3 - 用户问：'钻石和绿宝石哪个更贵？'\n");
+        sb.append("{\n");
+        sb.append("  \"goal\": \"比较钻石和绿宝石的价格\",\n");
+        sb.append("  \"steps\": [\n");
+        sb.append("    { \"id\": \"step_1\", \"skill_name\": \"market_query\", \"action\": \"query_price\", \"entities\": { \"item\": \"钻石:1\" }, \"depends_on\": [] },\n");
+        sb.append("    { \"id\": \"step_2\", \"skill_name\": \"market_query\", \"action\": \"query_price\", \"entities\": { \"item\": \"绿宝石:1\" }, \"depends_on\": [] }\n");
+        sb.append("  ]\n");
+        sb.append("}\n");
 
-        sb.append("\n示例 3 - 综合信息查询：\n");
-        sb.append("用户问：\"我现在在哪里？这个世界现在是什么时间？天气如何？\"\n");
-        sb.append("分解步骤：\n");
-        sb.append("  step_1: get_player_location（获取玩家位置）\n");
-        sb.append("  step_2: get_world_time（获取世界时间）\n");
-        sb.append("  step_3: get_weather（获取天气状况）\n");
-        sb.append("  执行完毕后：整合所有信息，返回完整回答\n");
+        sb.append("\n示例 4 - 用户问：'我现在在哪里？这个世界现在是什么时间？天气如何？'\n");
+        sb.append("{\n");
+        sb.append("  \"goal\": \"获取玩家位置、世界时间和天气\",\n");
+        sb.append("  \"steps\": [\n");
+        sb.append("    { \"id\": \"step_1\", \"skill_name\": \"GenericBukkitAPI\", \"action\": \"get_player_location\", \"entities\": {}, \"depends_on\": [] },\n");
+        sb.append("    { \"id\": \"step_2\", \"skill_name\": \"GenericBukkitAPI\", \"action\": \"get_world_time\", \"entities\": {}, \"depends_on\": [] },\n");
+        sb.append("    { \"id\": \"step_3\", \"skill_name\": \"GenericBukkitAPI\", \"action\": \"get_weather\", \"entities\": {}, \"depends_on\": [] }\n");
+        sb.append("  ]\n");
+        sb.append("}\n");
 
         sb.append("\n重要说明：\n");
         sb.append("- 只需列出需要调用技能的步骤，不需要添加'分析结果'之类的虚拟步骤\n");
@@ -316,7 +343,7 @@ public class SkillIntentRecognizer {
                     }
 
                     if (skillName != null && action != null) {
-                        plan.addStep(new TaskPlan.TaskStep(id, skillName, action, entities, dependsOn));
+                        plan.addStep(new TaskStep(id, skillName, action, entities, dependsOn));
                     }
                 }
             }

@@ -54,8 +54,7 @@ public class GenericBukkitAPISkill implements Skill {
                 if (api.getDisplayName() != null && !api.getDisplayName().isEmpty()) {
                     desc.append(api.getDisplayName());
                     // 如果description不为空且与displayName不同，则添加详细说明
-                    if (api.getDescription() != null && !api.getDescription().isEmpty()
-                        && !api.getDescription().equals(api.getDisplayName())) {
+                    if (api.getDescription() != null && !api.getDescription().isEmpty() && !api.getDescription().equals(api.getDisplayName())) {
                         desc.append("：").append(api.getDescription());
                     }
                 } else {
@@ -119,6 +118,21 @@ public class GenericBukkitAPISkill implements Skill {
             dataMap.put("raw_result", result);
             dataMap.put("api_id", api.getId());
 
+            // 对于 ItemStack 类型，额外添加 item_name 和 item_amount 字段
+            // 供后续步骤通过 {step_x.item_name} 引用
+            if (result instanceof org.bukkit.inventory.ItemStack itemStack) {
+                if (itemStack.getType() != org.bukkit.Material.AIR) {
+                    String itemName;
+                    if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
+                        itemName = itemStack.getItemMeta().getDisplayName();
+                    } else {
+                        itemName = itemStack.getType().name();
+                    }
+                    dataMap.put("item_name", itemName);
+                    dataMap.put("item_amount", itemStack.getAmount());
+                }
+            }
+
             return CompletableFuture.completedFuture(SkillResult.success(formatted, dataMap));
         } catch (Exception e) {
             KilacraftAI.getInstance().getLogger().log(Level.SEVERE, "执行 Bukkit API 失败：" + api.getId(), e);
@@ -144,6 +158,17 @@ public class GenericBukkitAPISkill implements Skill {
             }
             case org.bukkit.GameMode gameMode -> {
                 return formatGameMode(gameMode);
+            }
+            // 在线玩家列表
+            case java.util.Collection<?> collection -> {
+                return formatPlayerCollection(collection);
+            }
+            // 世界时间（刻数）
+            case Long ticks when api.getId().equals("get_world_time") -> {
+                return formatGameTime(ticks);
+            }
+            case Integer ticks when api.getId().equals("get_world_time") -> {
+                return formatGameTime(ticks.longValue());
             }
 
             // additional_methods 模式返回的 Map
@@ -191,6 +216,16 @@ public class GenericBukkitAPISkill implements Skill {
             return formatWeatherResult(resultMap);
         }
 
+        // 特殊处理：经验值 API 需要将进度转为百分比
+        if ("get_player_exp".equals(api.getId())) {
+            return formatExpResult(resultMap);
+        }
+
+        // 特殊处理：世界时间 API 需要将刻数转为可读时间
+        if ("get_world_time".equals(api.getId())) {
+            return formatTimeResult(resultMap);
+        }
+
         // 替换模板中的占位符
         for (Map.Entry<?, ?> entry : resultMap.entrySet()) {
             String key = entry.getKey().toString();
@@ -217,6 +252,78 @@ public class GenericBukkitAPISkill implements Skill {
         } else {
             return "天气：雨天";
         }
+    }
+
+    /**
+     * 格式化经验值结果
+     */
+    private String formatExpResult(java.util.Map<?, ?> resultMap) {
+        Object levelObj = resultMap.get("level");
+        Object expObj = resultMap.get("exp_progress");
+
+        int level = levelObj instanceof Number ? ((Number) levelObj).intValue() : 0;
+        float expProgress = expObj instanceof Number ? ((Number) expObj).floatValue() : 0f;
+
+        // 将经验进度转为百分比
+        int percentage = Math.round(expProgress * 100);
+        return String.format("等级：%d，经验进度：%d%%", level, percentage);
+    }
+
+    /**
+     * 格式化世界时间结果
+     */
+    private String formatTimeResult(java.util.Map<?, ?> resultMap) {
+        return "该 API 不应返回 Map 类型";
+    }
+
+    /**
+     * 格式化游戏时间（刻数转可读时间）
+     */
+    private String formatGameTime(long ticks) {
+        // MC 中 24000 刻 = 1 天
+        // 0 刻 = 日出（6:00）
+        // 6000 刻 = 正午（12:00）
+        // 12000 刻 = 日落（18:00）
+        // 18000 刻 = 午夜（0:00）
+
+        long dayTicks = ticks % 24000;
+        if (dayTicks < 0) dayTicks += 24000;
+
+        // 转换为小时和分钟（MC 中 1 小时 = 1000 刻，1 分钟 = 16.67 刻）
+        int hours = (int) ((dayTicks / 1000.0 + 6) % 24);  // +6 因为 0 刻 = 6:00
+        int minutes = (int) ((dayTicks % 1000) * 60 / 1000.0);
+
+        return String.format("游戏时间：%02d:%02d", hours, minutes);
+    }
+
+    /**
+     * 格式化在线玩家列表
+     */
+    private String formatPlayerCollection(java.util.Collection<?> players) {
+        if (players == null || players.isEmpty()) {
+            return "当前没有玩家在线";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("在线玩家（").append(players.size()).append("人）：\n");
+
+        int count = 0;
+        for (Object obj : players) {
+            if (obj instanceof org.bukkit.entity.Player player) {
+                if (count > 0) sb.append(", ");
+                sb.append(player.getName());
+                count++;
+                // 最多显示 20 个玩家名
+                if (count >= 20) {
+                    int remaining = players.size() - count;
+                    if (remaining > 0) {
+                        sb.append(" ... 等 ").append(remaining).append(" 人");
+                    }
+                    break;
+                }
+            }
+        }
+        return sb.toString();
     }
 
     /**
@@ -275,35 +382,6 @@ public class GenericBukkitAPISkill implements Skill {
             Object value = method.invoke(target);
             return value != null ? value.toString() : null;
         } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * 通过反射获取对象的属性值
-     *
-     * @param obj          目标对象
-     * @param propertyName 属性名
-     * @return 属性值字符串
-     */
-    private String getPropertyValue(Object obj, String propertyName) {
-        try {
-            Class<?> clazz = obj.getClass();
-
-            // 尝试调用 getter 方法
-            String getterName = "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
-            try {
-                java.lang.reflect.Method method = clazz.getMethod(getterName);
-                Object value = method.invoke(obj);
-                return value != null ? value.toString() : null;
-            } catch (NoSuchMethodException e) {
-                // 尝试直接访问 public 字段
-                java.lang.reflect.Field field = clazz.getField(propertyName);
-                Object value = field.get(obj);
-                return value != null ? value.toString() : null;
-            }
-        } catch (Exception e) {
-            // 如果获取失败，返回 null
             return null;
         }
     }

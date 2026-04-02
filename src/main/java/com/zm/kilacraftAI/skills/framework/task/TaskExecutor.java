@@ -40,7 +40,7 @@ public class TaskExecutor {
         }
 
         // 多步骤任务：先进行拓扑排序
-        List<TaskPlan.TaskStep> sortedSteps = topologicalSort(plan);
+        List<TaskStep> sortedSteps = topologicalSort(plan);
         if (sortedSteps == null) {
             return CompletableFuture.completedFuture(SkillResult.failure("任务计划存在循环依赖，无法执行"));
         }
@@ -63,14 +63,14 @@ public class TaskExecutor {
      * @param baseContext 基础上下文
      * @return 最终结果
      */
-    private CompletableFuture<SkillResult> executeSteps(TaskPlan plan, List<TaskPlan.TaskStep> sortedSteps, int stepIndex, SkillContext baseContext) {
+    private CompletableFuture<SkillResult> executeSteps(TaskPlan plan, List<TaskStep> sortedSteps, int stepIndex, SkillContext baseContext) {
 
         if (stepIndex >= sortedSteps.size()) {
             // 所有步骤执行完成，进行最终分析
             return synthesizeResults(plan, baseContext);
         }
 
-        TaskPlan.TaskStep currentStep = sortedSteps.get(stepIndex);
+        TaskStep currentStep = sortedSteps.get(stepIndex);
 
         // 检查依赖是否已满足
         if (!checkDependencies(plan, currentStep)) {
@@ -84,8 +84,13 @@ public class TaskExecutor {
         // 创建技能意图
         SkillIntent intent = new SkillIntent(currentStep.getSkillName(), currentStep.getAction(), currentStep.getEntities(), 1.0, plan.getGoal());
 
-        // 构建步骤上下文
-        SkillContext stepContext = buildStepContext(currentStep, baseContext);
+        // 构建步骤上下文（可能失败，如占位符解析失败）
+        BuildContextResult buildResult = buildStepContext(currentStep, plan, baseContext);
+        if (buildResult.isFailed()) {
+            // 占位符解析失败，终止执行
+            return CompletableFuture.completedFuture(SkillResult.failure(buildResult.errorMessage));
+        }
+        SkillContext stepContext = buildResult.context;
 
         // 执行技能
         return skillManager.executeSkillByIntent(intent, stepContext).thenCompose(result -> {
@@ -103,18 +108,18 @@ public class TaskExecutor {
      *
      * @return 排序后的步骤列表，如果存在循环依赖则返回 null
      */
-    private List<TaskPlan.TaskStep> topologicalSort(TaskPlan plan) {
-        Map<String, TaskPlan.TaskStep> stepMap = new HashMap<>();
-        for (TaskPlan.TaskStep step : plan.getSteps()) {
+    private List<TaskStep> topologicalSort(TaskPlan plan) {
+        Map<String, TaskStep> stepMap = new HashMap<>();
+        for (TaskStep step : plan.getSteps()) {
             stepMap.put(step.getId(), step);
         }
 
-        List<TaskPlan.TaskStep> result = new ArrayList<>();
+        List<TaskStep> result = new ArrayList<>();
         Set<String> visited = new HashSet<>();
         Set<String> visiting = new HashSet<>(); // 用于检测循环依赖
 
         // DFS 遍历所有节点
-        for (TaskPlan.TaskStep step : plan.getSteps()) {
+        for (TaskStep step : plan.getSteps()) {
             if (!visited.contains(step.getId())) {
                 if (visit(step, stepMap, visited, visiting, result)) {
                     return null; // 存在循环依赖
@@ -130,7 +135,7 @@ public class TaskExecutor {
      *
      * @return false 如果检测到循环依赖
      */
-    private boolean visit(TaskPlan.TaskStep step, Map<String, TaskPlan.TaskStep> stepMap, Set<String> visited, Set<String> visiting, List<TaskPlan.TaskStep> result) {
+    private boolean visit(TaskStep step, Map<String, TaskStep> stepMap, Set<String> visited, Set<String> visiting, List<TaskStep> result) {
         String id = step.getId();
 
         // 如果当前节点正在访问中，说明存在循环依赖
@@ -151,7 +156,7 @@ public class TaskExecutor {
 
         // 递归访问所有依赖的前置步骤
         for (String dependencyId : step.getDependsOn()) {
-            TaskPlan.TaskStep dependency = stepMap.get(dependencyId);
+            TaskStep dependency = stepMap.get(dependencyId);
             if (dependency != null) {
                 if (visit(dependency, stepMap, visited, visiting, result)) {
                     return true;
@@ -169,7 +174,7 @@ public class TaskExecutor {
     /**
      * 检查步骤依赖是否已满足
      */
-    private boolean checkDependencies(TaskPlan plan, TaskPlan.TaskStep step) {
+    private boolean checkDependencies(TaskPlan plan, TaskStep step) {
         for (String dependencyId : step.getDependsOn()) {
             if (!plan.getContext().containsKey(dependencyId)) {
                 if (plugin.getConfigManager().isDebugMode()) {
@@ -184,9 +189,64 @@ public class TaskExecutor {
     /**
      * 构建步骤上下文
      */
-    private SkillContext buildStepContext(TaskPlan.TaskStep step, SkillContext baseContext) {
-        // 直接使用步骤的 action 和 entities
-        return new SkillContext(baseContext.getPlayer(), step.getAction(), step.getEntities());
+    private BuildContextResult buildStepContext(TaskStep step, TaskPlan plan, SkillContext baseContext) {
+        // 解析 entities 中的占位符（如 {step_1.item_name}）
+        Map<String, String> resolvedEntities = new HashMap<>();
+        for (Map.Entry<String, String> entry : step.getEntities().entrySet()) {
+            PlaceholderResolveResult result = resolvePlaceholders(entry.getValue(), plan);
+            if (result.isFailed()) {
+                // 占位符解析失败，终止执行
+                String errorMsg = String.format("步骤 %s 的参数 '%s' 解析失败：找不到 %s", 
+                    step.getId(), entry.getKey(), result.failedPlaceholder);
+                if (plugin.getConfigManager().isDebugMode()) {
+                    plugin.getLogger().warning("[DEBUG] " + errorMsg);
+                }
+                return new BuildContextResult(null, errorMsg);
+            }
+            resolvedEntities.put(entry.getKey(), result.resolvedValue);
+        }
+        return new BuildContextResult(new SkillContext(baseContext.getPlayer(), step.getAction(), resolvedEntities), null);
+    }
+
+    /**
+     * 解析占位符（如 {step_1.item_name}）
+     * 解析失败时返回失败信息，而不是保留原占位符
+     */
+    @SuppressWarnings("unchecked")
+    private PlaceholderResolveResult resolvePlaceholders(String value, TaskPlan plan) {
+        if (value == null || !value.contains("{")) {
+            return new PlaceholderResolveResult(value, null);
+        }
+
+        // 匹配 {step_xxx.field} 格式的占位符
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{(step_\\w+)\\.(\\w+)\\}");
+        java.util.regex.Matcher matcher = pattern.matcher(value);
+
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String stepId = matcher.group(1);
+            String fieldName = matcher.group(2);
+            String placeholder = matcher.group(0); // 完整的占位符，如 {step_1.item_name}
+
+            // 从 plan.context 中获取步骤结果
+            Object stepResult = plan.getContext().get(stepId);
+            if (stepResult instanceof SkillResult skillResult && skillResult.getData() instanceof Map) {
+                Map<String, Object> data = (Map<String, Object>) skillResult.getData();
+                Object fieldValue = data.get(fieldName);
+                if (fieldValue != null) {
+                    matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(fieldValue.toString()));
+                    continue;
+                }
+            }
+            // 占位符解析失败，返回失败信息
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().warning("[DEBUG] 占位符解析失败：" + placeholder + 
+                    " (步骤 " + stepId + " 不存在或没有字段 " + fieldName + ")");
+            }
+            return new PlaceholderResolveResult(null, placeholder);
+        }
+        matcher.appendTail(sb);
+        return new PlaceholderResolveResult(sb.toString(), null);
     }
 
     /**
@@ -213,6 +273,7 @@ public class TaskExecutor {
 
         if (plugin.getConfigManager().isDebugMode()) {
             plugin.getLogger().info("[DEBUG] 所有步骤执行完成，开始分析结果...");
+            plugin.getLogger().info("[DEBUG] 结果摘要:\n" + summary);
         }
 
         // 使用 LLM 分析结果

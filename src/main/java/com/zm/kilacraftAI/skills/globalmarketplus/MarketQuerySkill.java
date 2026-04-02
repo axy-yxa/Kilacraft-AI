@@ -1,6 +1,10 @@
 package com.zm.kilacraftAI.skills.globalmarketplus;
 
 import com.zm.kilacraftAI.compat.globalmarketplus.GlobalMarketPlusAPI;
+import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
+import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItem;
+import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
+import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
@@ -132,6 +136,10 @@ public class MarketQuerySkill implements Skill {
                 case "query_balance" -> queryBalance(context);
                 case "query_price" -> queryPrices(context);
                 case "query_items" -> queryMarketItems(context);
+                case "query_availability" -> queryAvailability(context);
+                case "query_my_items" -> queryMyItems(context);
+                case "query_mailbox" -> queryMailbox(context);
+                case "query_market_stats" -> queryMarketStats(context);
                 case null, default ->
                         CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("unknown_action", "抱歉，我还不会查询其他市场信息。你可以问我：'我的余额是多少'、'市场上有什么商品'等")));
             };
@@ -225,7 +233,7 @@ public class MarketQuerySkill implements Skill {
             String englishItemName = translator.translateToEnglish(itemNameOnly);
             
             // 使用 API 获取所有匹配的商品信息
-            List<GlobalMarketPlusAPI.MarketItem> matchingItems = GlobalMarketPlusAPI.getMatchingItems(englishItemName);
+            List<MarketItem> matchingItems = GlobalMarketPlusAPI.getMatchingItems(englishItemName);
             
             // 如果找不到，尝试用中文名再查一次（兼容情况）
             if (matchingItems.isEmpty()) {
@@ -275,7 +283,7 @@ public class MarketQuerySkill implements Skill {
                 }
             } else {
                 // 未找到价格
-                priceResults.add(String.format("§f%s: §c未找到价格", translator.translateToEnglish(itemNameOnly)));
+                priceResults.add(String.format("§f%s: §c未找到价格", itemNameOnly));
             }
         }
         
@@ -294,7 +302,14 @@ public class MarketQuerySkill implements Skill {
         
         if (successCount == 0) {
             Map<String, String> vars = new LinkedHashMap<>();
-            vars.put("item", itemName);
+            // 提取纯净的物品名称（去掉数量后缀）
+            String cleanItemName = itemName;
+            int colonIdx = itemName.lastIndexOf(':');
+            if (colonIdx > 0) {
+                cleanItemName = itemName.substring(0, colonIdx).trim();
+            }
+            // 翻译为中文显示
+            vars.put("item", translator.translateToChinese(cleanItemName));
             return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("price_not_found", "未找到物品 '{item}' 的价格信息", vars)));
         }
         
@@ -315,17 +330,17 @@ public class MarketQuerySkill implements Skill {
     /**
      * 计算商品总库存
      */
-    private int getTotalStock(List<GlobalMarketPlusAPI.MarketItem> items) {
+    private int getTotalStock(List<MarketItem> items) {
         if (items == null || items.isEmpty()) {
             return 0;
         }
-        return items.stream().mapToInt(GlobalMarketPlusAPI.MarketItem::getAmount).sum();
+        return items.stream().mapToInt(MarketItem::getAmount).sum();
     }
     
     /**
      * 生成库存不足的详细提示消息
      */
-    private String formatInsufficientStockMessage(String displayName, int neededQuantity, List<GlobalMarketPlusAPI.MarketItem> matchingItems) {
+    private String formatInsufficientStockMessage(String displayName, int neededQuantity, List<MarketItem> matchingItems) {
         int totalStock = getTotalStock(matchingItems);
         
         StringBuilder sb = new StringBuilder();
@@ -336,7 +351,7 @@ public class MarketQuerySkill implements Skill {
         if (!matchingItems.isEmpty()) {
             sb.append("\n§7  在售信息:");
             for (int i = 0; i < matchingItems.size(); i++) {
-                GlobalMarketPlusAPI.MarketItem item = matchingItems.get(i);
+                MarketItem item = matchingItems.get(i);
                 sb.append(String.format("\n§7    [%d] $%.2f × %d个", 
                     i + 1, item.getPrice(), item.getAmount()));
             }
@@ -380,6 +395,158 @@ public class MarketQuerySkill implements Skill {
             // 拼接翻译后的名称和价格
             sb.append(getResponseMessage("items_format", "§7- ")).append(translator.translateToChinese(itemName)).append(pricePart).append("\n");
         }
+        return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
+    }
+
+    /**
+     * 查询物品是否在售、在售数量和卖家信息
+     */
+    private CompletableFuture<SkillResult> queryAvailability(SkillContext context) {
+        String itemName = context.getEntity("item");
+
+        if (itemName == null || itemName.isEmpty()) {
+            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("availability_no_item", "请指定要查询的物品名称")));
+        }
+
+        // 去掉数量后缀（如果有）
+        int colonIdx = itemName.lastIndexOf(':');
+        if (colonIdx > 0) {
+            itemName = itemName.substring(0, colonIdx).trim();
+        }
+
+        ItemTranslator translator = ItemTranslator.getInstance();
+        String englishItemName = translator.translateToEnglish(itemName);
+
+        // 获取详细信息（包含卖家）
+        List<MarketItemDetail> details = GlobalMarketPlusAPI.getMatchingItemsDetail(englishItemName);
+
+        // 如果找不到，尝试用中文名再查一次
+        if (details.isEmpty()) {
+            details = GlobalMarketPlusAPI.getMatchingItemsDetail(itemName);
+        }
+
+        if (details.isEmpty()) {
+            return CompletableFuture.completedFuture(SkillResult.success("§f" + translator.translateToChinese(englishItemName) + " §c目前市场上没有在售"));
+        }
+
+        // 物品在售
+        String displayName = translator.translateToChinese(englishItemName);
+        int totalStock = details.stream().mapToInt(MarketItemDetail::getAmount).sum();
+        double minPrice = details.getFirst().getPrice();
+        double maxPrice = details.getLast().getPrice();
+
+        // 收集卖家名称（去重，保持顺序）
+        java.util.Set<String> uniqueSellers = new java.util.LinkedHashSet<>();
+        for (MarketItemDetail detail : details) {
+            uniqueSellers.add(detail.getSellerName());
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("§f%s §a有在售\n", displayName));
+        sb.append(String.format("§7库存：%d 个\n", totalStock));
+        sb.append(String.format("§7价格：$%.2f - $%.2f\n", minPrice, maxPrice));
+        sb.append("§7卖家：");
+
+        // 显示去重后的卖家名称
+        java.util.List<String> sellerList = new java.util.ArrayList<>(uniqueSellers);
+        int showCount = Math.min(5, sellerList.size());
+        for (int i = 0; i < showCount; i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(sellerList.get(i));
+        }
+        if (sellerList.size() > 5) {
+            sb.append(String.format(" ... 等%d人", sellerList.size()));
+        }
+
+        return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
+    }
+
+    /**
+     * 查询玩家自己在售的商品
+     */
+    private CompletableFuture<SkillResult> queryMyItems(SkillContext context) {
+        Player player = context.getPlayer();
+
+        if (player == null) {
+            return CompletableFuture.completedFuture(SkillResult.failure("请在游戏中使用此功能"));
+        }
+
+        List<MarketItemDetail> myItems = GlobalMarketPlusAPI.getMyMerchandises(player);
+
+        if (myItems.isEmpty()) {
+            return CompletableFuture.completedFuture(SkillResult.success("§f你没有在售的商品"));
+        }
+
+        ItemTranslator translator = ItemTranslator.getInstance();
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("§f你在售的商品 (共 %d 个):\n", myItems.size()));
+
+        int showCount = Math.min(10, myItems.size());
+        for (int i = 0; i < showCount; i++) {
+            MarketItemDetail item = myItems.get(i);
+            String displayName = translator.translateToChinese(item.getItemName());
+            sb.append(String.format("§7[%d] §f%s × %d §7- §a$%.2f\n",
+                i + 1, displayName, item.getAmount(), item.getPrice()));
+        }
+
+        if (myItems.size() > 10) {
+            sb.append(String.format("§7... 还有 %d 个商品", myItems.size() - 10));
+        }
+
+        return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
+    }
+
+    /**
+     * 查询玩家邮箱待领取邮件
+     */
+    private CompletableFuture<SkillResult> queryMailbox(SkillContext context) {
+        Player player = context.getPlayer();
+
+        if (player == null) {
+            return CompletableFuture.completedFuture(SkillResult.failure("请在游戏中使用此功能"));
+        }
+
+        List<MailItem> mails = GlobalMarketPlusAPI.getMailboxItems(player);
+
+        if (mails.isEmpty()) {
+            return CompletableFuture.completedFuture(SkillResult.success("§f你的邮箱是空的"));
+        }
+
+        ItemTranslator translator = ItemTranslator.getInstance();
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("§f邮箱待领取 (共 %d 封):\n", mails.size()));
+
+        int showCount = Math.min(5, mails.size());
+        for (int i = 0; i < showCount; i++) {
+            MailItem mail = mails.get(i);
+            String displayName = translator.translateToChinese(mail.getItemName());
+            sb.append(String.format("§7[%d] §f%s × %d §7来自: §e%s\n",
+                i + 1, displayName, mail.getAmount(),
+                mail.getSenderName() != null ? mail.getSenderName() : "系统"));
+        }
+
+        if (mails.size() > 5) {
+            sb.append(String.format("§7... 还有 %d 封邮件", mails.size() - 5));
+        }
+
+        return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
+    }
+
+    /**
+     * 查询市场统计信息
+     */
+    private CompletableFuture<SkillResult> queryMarketStats(SkillContext context) {
+        MarketStats stats = GlobalMarketPlusAPI.getMarketStats();
+
+        if (stats.getTotalItems() == 0) {
+            return CompletableFuture.completedFuture(SkillResult.success("§f市场暂无商品"));
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("§f=== 市场统计 ===\n");
+        sb.append(String.format("§7商品总数: §f%d 个\n", stats.getTotalItems()));
+        sb.append(String.format("§7卖家数量: §f%d 人", stats.getTotalSellers()));
+
         return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
     }
 }
