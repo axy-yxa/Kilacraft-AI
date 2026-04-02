@@ -148,15 +148,24 @@ public class BukkitAPIExecutor {
     }
 
     /**
-     * 查找方法
+     * 查找方法（优先选择无参方法）
      */
     private Method findMethod(Class<?> clazz, String methodName) {
+        Method noArgMethod = null;
+        
         // 遍历所有公共方法
         for (Method method : clazz.getMethods()) {
             if (method.getName().equals(methodName)) {
-                return method;
+                // 优先返回无参方法
+                if (method.getParameterCount() == 0) {
+                    return method;
+                }
+                // 记录第一个找到的方法作为备选
+                if (noArgMethod == null) {
+                    noArgMethod = method;
+                }
             }
         }
-        return null;
+        return noArgMethod;
     }
 }

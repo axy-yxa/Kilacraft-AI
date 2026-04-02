@@ -536,7 +536,7 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
   - **Player API（29 个）**：物品栏（主手/副手）、状态（生命/饥饿/氧气/经验/睡眠/攻击冷却/着火/冰冻/挂机）、信息（位置/飞行/游戏模式/Ping/客户端/载具/死亡点/姿势）
   - **World API（9 个）**：时间、天气、世界信息、种子、出生点、高度限制、生物生成规则、PVP 设置、视距
   - **Server API（6 个）**：在线玩家、最大玩家数、版本、MOTD、世界列表、服务器设置、平均 Tick 时间
-  - **Paper 特有 API**：客户端品牌、客户端视距、挂机时间、累计总经验、升到下一级所需经验、服务器平均 Tick 时间
+  - **Paper 特有 API**：客户端品牌、客户端视距、挂机时间、累计总经验、服务器平均 Tick 时间
   - **权限系统完善**：5 类权限节点全部配置 `required_permission`，支持粗粒度权限分组
 
 - ✅ **显示格式优化**：
@@ -550,6 +550,11 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - ✅ **意图识别逻辑修复**：
   - AIRequestHandler 支持识别 TaskPlan 格式（无论单步骤还是多步骤）
   - 调试日志显示步骤数量，便于问题排查
+  - 新增多步骤任务识别 hints，引导 LLM 正确识别多意图场景
+
+- ✅ **BukkitAPI 执行器优化**：
+  - `findMethod()` 优先选择无参方法，修复 `getLocation()` 等带重载的方法调用失败
+  - 解决方法签名冲突问题（如 `getLocation(Location)` vs `getLocation()`）
 
 - ✅ **占位符解析容错增强**：
   - 实现「快速失败」策略：占位符解析失败时终止执行
@@ -578,10 +583,12 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - `src/main/java/com/zm/kilacraftAI/skills/framework/task/PlaceholderResolveResult.java` （新增）
 - `src/main/java/com/zm/kilacraftAI/skills/framework/task/BuildContextResult.java` （新增）
 - `src/main/java/com/zm/kilacraftAI/skills/bukkit/GenericBukkitAPISkill.java`
+- `src/main/java/com/zm/kilacraftAI/skills/bukkit/BukkitAPIExecutor.java` （findMethod 优化）
 - `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java`
 - `src/main/resources/skills/globalmarketplus/MarketQuerySkill.yml`
-- `src/main/resources/skills/bukkit/apis.yml` （v1.3.4 扩展：44 个 API + 权限配置）
+- `src/main/resources/skills/bukkit/apis.yml` （v1.3.4 扩展：44 个 API + 权限配置 + 显示格式优化）
 - `src/main/resources/plugin.yml` （v1.3.4 权限描述优化）
+- `README.md` / `README.en.md` （双语文档同步更新）
 
 #### 🎮 使用示例
 

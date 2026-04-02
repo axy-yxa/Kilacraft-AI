@@ -178,9 +178,9 @@ public class GenericBukkitAPISkill implements Skill {
             case java.time.Duration duration -> {
                 return formatDuration(duration);
             }
-            // 在线玩家列表
+            // 在线玩家列表或世界列表
             case java.util.Collection<?> collection -> {
-                return formatPlayerCollection(collection);
+                return formatCollection(collection, api);
             }
             // 世界时间（刻数）
             case Long ticks when api.getId().equals("get_world_time") -> {
@@ -215,8 +215,8 @@ public class GenericBukkitAPISkill implements Skill {
             case Integer totalExp when api.getId().equals("get_player_total_exp") -> {
                 return "累计总经验：" + totalExp + " 点";
             }
-            // 升级所需经验
-            case Integer expNeeded when api.getId().equals("get_player_exp_to_next_level") -> {
+            // 升到下一级所需经验（Bukkit 原生方法）
+            case Integer expNeeded when api.getId().equals("get_player_exp_to_level") -> {
                 return "升到下一级需要：" + expNeeded + " 点经验";
             }
             // 服务器平均 tick 时间（Paper 特有）
@@ -235,24 +235,11 @@ public class GenericBukkitAPISkill implements Skill {
                 return bool ? "是" : "否";
             }
 
+            // 其他类型默认返回 toString
             default -> {
+                return result.toString();
             }
         }
-
-        // 使用模板格式化（旧逻辑，兼容单个值返回）
-        String template = api.getResultTemplate();
-        if (template != null && !template.isEmpty()) {
-            // 替换通用占位符 {result}
-            template = template.replace("{result}", result.toString());
-
-            // 替换特定属性占位符（基于反射）
-            template = replacePropertyPlaceholders(template, result, api, player);
-
-            return template;
-        }
-
-        // 默认直接返回 toString
-        return result.toString();
     }
 
     /**
@@ -278,6 +265,11 @@ public class GenericBukkitAPISkill implements Skill {
         // 特殊处理：经验值 API 需要将进度转为百分比
         if ("get_player_exp".equals(api.getId())) {
             return formatExpResult(resultMap);
+        }
+
+        // 特殊处理：着火状态 API 需要根据 fire_ticks 判断是否着火
+        if ("get_player_fire_status".equals(api.getId())) {
+            return formatFireResult(resultMap);
         }
 
         // 特殊处理：世界时间 API 需要将刻数转为可读时间
@@ -352,6 +344,25 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
+     * 格式化着火状态结果
+     */
+    private String formatFireResult(java.util.Map<?, ?> resultMap) {
+        Object fireTicksObj = resultMap.get("fire_ticks");
+        Object maxFireTicksObj = resultMap.get("max_fire_ticks");
+
+        int fireTicks = fireTicksObj instanceof Number ? ((Number) fireTicksObj).intValue() : 0;
+        int maxFireTicks = maxFireTicksObj instanceof Number ? ((Number) maxFireTicksObj).intValue() : 200;
+
+        if (fireTicks <= 0) {
+            return "着火状态：未着火";
+        }
+
+        // 将 tick 转换为秒（20 tick = 1 秒）
+        double seconds = fireTicks / 20.0;
+        return String.format("着火状态：正在燃烧！剩余 %.1f 秒 (%d/%d tick)", seconds, fireTicks, maxFireTicks);
+    }
+
+    /**
      * 格式化世界时间结果
      */
     private String formatTimeResult(java.util.Map<?, ?> resultMap) {
@@ -376,6 +387,31 @@ public class GenericBukkitAPISkill implements Skill {
         int minutes = (int) ((dayTicks % 1000) * 60 / 1000.0);
 
         return String.format("游戏时间：%02d:%02d", hours, minutes);
+    }
+
+    /**
+     * 格式化集合类型（区分玩家列表和世界列表）
+     */
+    private String formatCollection(java.util.Collection<?> collection, BukkitAPIMetadata api) {
+        if (collection == null || collection.isEmpty()) {
+            // 根据API类型返回不同的空消息
+            if (api.getId().equals("get_server_worlds")) {
+                return "服务器暂无已加载的世界";
+            }
+            return "当前没有玩家在线";
+        }
+
+        // 判断集合元素类型
+        Object first = collection.iterator().next();
+        
+        if (first instanceof org.bukkit.entity.Player) {
+            return formatPlayerCollection(collection);
+        } else if (first instanceof org.bukkit.World) {
+            return formatWorldCollection(collection);
+        }
+        
+        // 未知类型，默认输出
+        return collection.toString();
     }
 
     /**
@@ -409,63 +445,22 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
-     * 替换模板中的属性占位符（如 {health}, {maxHealth} 等）
-     *
-     * @param template 原始模板
-     * @param result   返回值对象
-     * @param api      API 元数据
-     * @param player   玩家对象
-     * @return 替换后的模板
+     * 格式化世界列表
      */
-    private String replacePropertyPlaceholders(String template, Object result, BukkitAPIMetadata api, org.bukkit.entity.Player player) {
-        if (result == null || api.getAdditionalMethods() == null || api.getAdditionalMethods().isEmpty()) {
-            return template;
-        }
-
-        // 查找所有 {xxx} 格式的占位符
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{(\\w+)}");
-        java.util.regex.Matcher matcher = pattern.matcher(template);
-
+    private String formatWorldCollection(java.util.Collection<?> worlds) {
         StringBuilder sb = new StringBuilder();
-        while (matcher.find()) {
-            String placeholderName = matcher.group(1);
-            String value = null;
+        sb.append("服务器世界列表（").append(worlds.size()).append("个）：\n");
 
-            // 1. 尝试从额外方法中获取（在 player 上调用）
-            if (api.getAdditionalMethods().containsKey(placeholderName)) {
-                String methodName = api.getAdditionalMethods().get(placeholderName);
-                value = invokeMethodOnTarget(player, methodName);
-            }
-
-            // 替换占位符
-            if (value != null) {
-                matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(value));
-            } else {
-                // 保留原始占位符
-                matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(matcher.group(0)));
+        int count = 0;
+        for (Object obj : worlds) {
+            if (obj instanceof org.bukkit.World world) {
+                if (count > 0) sb.append(", ");
+                sb.append(world.getName());
+                sb.append("(").append(formatEnvironment(world.getEnvironment())).append(")");
+                count++;
             }
         }
-        matcher.appendTail(sb);
-
         return sb.toString();
-    }
-
-    /**
-     * 在目标对象上调用方法
-     */
-    private String invokeMethodOnTarget(Object target, String methodName) {
-        try {
-            if (target == null) {
-                return null;
-            }
-
-            java.lang.reflect.Method method = target.getClass().getMethod(methodName);
-            method.setAccessible(true);
-            Object value = method.invoke(target);
-            return value != null ? value.toString() : null;
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     /**
@@ -574,7 +569,37 @@ public class GenericBukkitAPISkill implements Skill {
      * 格式化速度向量
      */
     private String formatVector(org.bukkit.util.Vector vector) {
-        return String.format("速度向量：X=%.2f, Y=%.2f, Z=%.2f", vector.getX(), vector.getY(), vector.getZ());
+        double speed = vector.length();
+        
+        // 判断是否静止（阈值设为 0.1，因为 MC 中站立时也有微小的重力影响）
+        if (speed < 0.1) {
+            return "移动状态：静止";
+        }
+        
+        // 获取各方向的速度分量
+        double vx = vector.getX();
+        double vy = vector.getY();
+        double vz = vector.getZ();
+        
+        // 构建移动方向描述
+        java.util.List<String> directions = new java.util.ArrayList<>();
+        
+        // 水平方向（阈值设为 0.05）
+        if (Math.abs(vx) > 0.05) {
+            directions.add(vx > 0 ? "东" : "西");
+        }
+        if (Math.abs(vz) > 0.05) {
+            directions.add(vz > 0 ? "南" : "北");
+        }
+        
+        // 垂直方向（阈值设为 0.05，区分明显的上升/下降）
+        if (Math.abs(vy) > 0.05) {
+            directions.add(vy > 0 ? "上升" : "下降");
+        }
+        
+        String directionStr = directions.isEmpty() ? "静止" : String.join("、", directions);
+        
+        return String.format("移动状态：%s，速度：%.2f", directionStr, speed);
     }
 
     /**

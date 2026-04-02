@@ -532,7 +532,7 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
   - **Player APIs (29)**: Inventory (main/offhand), Status (health/hunger/oxygen/exp/sleep/attack cooldown/fire/freeze/AFK), Info (location/flight/game mode/Ping/client/vehicle/death point/pose)
   - **World APIs (9)**: Time, weather, world info, seed, spawn point, height limit, mob spawn rules, PVP settings, view distance
   - **Server APIs (6)**: Online players, max players, version, MOTD, world list, server settings, average tick time
-  - **Paper-specific APIs**: Client brand, client view distance, idle duration, total experience, exp to next level, server average tick time
+  - **Paper-specific APIs**: Client brand, client view distance, idle duration, total experience, server average tick time
   - **Permission System Enhancement**: All 5 permission categories configured with `required_permission`, supports coarse-grained permission grouping
 
 - ✅ **Display Format Optimization**:
@@ -546,6 +546,11 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - ✅ **Intent Recognition Logic Fix**:
   - AIRequestHandler supports recognizing TaskPlan format (both single-step and multi-step)
   - Debug logs show step count for easier troubleshooting
+  - Added multi-step task recognition hints to guide LLM for multi-intent scenarios
+
+- ✅ **BukkitAPI Executor Optimization**:
+  - `findMethod()` prioritizes no-arg methods, fixes `getLocation()` and other overloaded method call failures
+  - Resolves method signature conflicts (e.g., `getLocation(Location)` vs `getLocation()`)
 
 - ✅ **Placeholder Resolution Fault Tolerance Enhancement**:
   - Implemented "fail-fast" strategy: terminate execution when placeholder resolution fails
@@ -574,10 +579,12 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - `src/main/java/com/zm/kilacraftAI/skills/framework/task/PlaceholderResolveResult.java` (new)
 - `src/main/java/com/zm/kilacraftAI/skills/framework/task/BuildContextResult.java` (new)
 - `src/main/java/com/zm/kilacraftAI/skills/bukkit/GenericBukkitAPISkill.java`
+- `src/main/java/com/zm/kilacraftAI/skills/bukkit/BukkitAPIExecutor.java` (findMethod optimization)
 - `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java`
 - `src/main/resources/skills/globalmarketplus/MarketQuerySkill.yml`
-- `src/main/resources/skills/bukkit/apis.yml` (v1.3.4 expansion: 44 APIs + permission config)
+- `src/main/resources/skills/bukkit/apis.yml` (v1.3.4 expansion: 44 APIs + permission config + display format optimization)
 - `src/main/resources/plugin.yml` (v1.3.4 permission description optimization)
+- `README.md` / `README.en.md` (bilingual documentation sync update)
 
 #### 🎮 Usage Examples
 

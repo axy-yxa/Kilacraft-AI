@@ -148,6 +148,8 @@ hints:
   - "API 调用失败时会自动回退到普通 AI 回答"
   - "可以组合多个 API 完成复杂查询，例如：先获取玩家位置，再查询世界信息"
   - "多步骤任务中可使用 {step_xxx.field} 引用前置步骤的结果数据"
+  - "**多步骤任务识别**：当用户同时询问多个独立信息（如'血量和饥饿值'、'位置和时间'），应识别为多步骤任务，返回 steps 数组"
+  - "**多步骤任务格式**：当需要调用多个 API 时，返回 JSON 格式应为 {\"goal\": \"...\", \"steps\": [{\"id\": \"step_1\", \"skill_name\": \"GenericBukkitAPI\", \"action\": \"xxx\"}, ...]}"
 
 # 玩家相关 API (Bukkit 原生)
 # ============================================
@@ -254,11 +256,12 @@ player:
   
   get_player_eye_location:
     id: "get_player_eye_location"
-    display_name: "获取玩家眼睛位置"
-    description: "获取玩家眼睛的精确位置（视线起点），常用于判断视线方向"
+    display_name: "获取玩家视线位置"
+    description: "获取玩家眼睛（视线起点）的精确坐标位置，常用于判断视线方向或精确位置。返回的 data 中包含 x、y、z 坐标。"
     usage_scenarios:
-      - "我的视线在哪里"
+      - "我的眼睛在哪"
       - "我眼睛的位置"
+      - "我的视线起点在哪"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
     method_chain:
@@ -347,10 +350,11 @@ player:
   
   get_player_exp_to_level:
     id: "get_player_exp_to_level"
-    display_name: "获取升级所需经验"
-    description: "获取玩家升到下一级所需的总经验值"
+    display_name: "获取升到下一级所需经验"
+    description: "获取从当前经验进度升到下一级所需的经验值点数。注意：方法名容易混淆，实际返回的是到下一级的经验需求"
     usage_scenarios:
       - "升到下一级需要多少经验"
+      - "我还要多少经验才能升级"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
     method_chain:
@@ -439,10 +443,11 @@ player:
   get_player_fire_status:
     id: "get_player_fire_status"
     display_name: "获取玩家着火状态"
-    description: "获取玩家当前是否着火以及剩余燃烧时间"
+    description: "获取玩家当前是否着火，未着火时显示'未着火'，着火时显示剩余燃烧时间（秒）"
     usage_scenarios:
       - "我着火了吗"
       - "还要烧多久"
+      - "我在燃烧吗"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
     additional_methods:
@@ -532,17 +537,6 @@ paper_player:
     required_permission: "kilacraft.api.player.status"
     method_chain:
       - "calculateTotalExperiencePoints"
-  
-  get_player_exp_to_next_level:
-    id: "get_player_exp_to_next_level"
-    display_name: "获取升到下一级所需经验"
-    description: "获取从当前进度升到下一级所需的经验值点数"
-    usage_scenarios:
-      - "升到下一级还需要多少经验"
-    target_type: "Player"
-    required_permission: "kilacraft.api.player.status"
-    method_chain:
-      - "getExperiencePointsNeededForNextLevel"
 
 # ============================================
 # 世界相关 API (Bukkit 原生)
