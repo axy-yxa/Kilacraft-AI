@@ -527,6 +527,14 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
   - Previous step results auto-injected into subsequent step's entities
   - GenericBukkitAPISkill adds `item_name` and `item_amount` fields for ItemStack results
 
+- ✅ **Bukkit API Capability Expansion**:
+  - Added **44 API** definitions covering all core Player/World/Server query capabilities
+  - **Player APIs (29)**: Inventory (main/offhand), Status (health/hunger/oxygen/exp/sleep/attack cooldown/fire/freeze/AFK), Info (location/flight/game mode/Ping/client/vehicle/death point/pose)
+  - **World APIs (9)**: Time, weather, world info, seed, spawn point, height limit, mob spawn rules, PVP settings, view distance
+  - **Server APIs (6)**: Online players, max players, version, MOTD, world list, server settings, average tick time
+  - **Paper-specific APIs**: Client brand, client view distance, idle duration, total experience, exp to next level, server average tick time
+  - **Permission System Enhancement**: All 5 permission categories configured with `required_permission`, supports coarse-grained permission grouping
+
 - ✅ **Display Format Optimization**:
   - **Item Name Cleaning**: Removes `:1` suffix, auto-translates to Chinese
   - **Exp Progress Percentage**: `0.47826084` → `47%`
@@ -568,6 +576,8 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - `src/main/java/com/zm/kilacraftAI/skills/bukkit/GenericBukkitAPISkill.java`
 - `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java`
 - `src/main/resources/skills/globalmarketplus/MarketQuerySkill.yml`
+- `src/main/resources/skills/bukkit/apis.yml` (v1.3.4 expansion: 44 APIs + permission config)
+- `src/main/resources/plugin.yml` (v1.3.4 permission description optimization)
 
 #### 🎮 Usage Examples
 

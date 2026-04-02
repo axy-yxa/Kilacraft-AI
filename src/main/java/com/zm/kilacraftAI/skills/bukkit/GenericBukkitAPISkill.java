@@ -159,6 +159,25 @@ public class GenericBukkitAPISkill implements Skill {
             case org.bukkit.GameMode gameMode -> {
                 return formatGameMode(gameMode);
             }
+            case org.bukkit.World.Environment environment -> {
+                return formatEnvironment(environment);
+            }
+            case org.bukkit.Difficulty difficulty -> {
+                return formatDifficulty(difficulty);
+            }
+            case org.bukkit.entity.Pose pose -> {
+                return formatPose(pose);
+            }
+            case org.bukkit.inventory.MainHand mainHand -> {
+                return formatMainHand(mainHand);
+            }
+            case org.bukkit.util.Vector vector -> {
+                return formatVector(vector);
+            }
+            // Duration 类型（Paper 特有，用于 AFK 时间）
+            case java.time.Duration duration -> {
+                return formatDuration(duration);
+            }
             // 在线玩家列表
             case java.util.Collection<?> collection -> {
                 return formatPlayerCollection(collection);
@@ -170,10 +189,50 @@ public class GenericBukkitAPISkill implements Skill {
             case Integer ticks when api.getId().equals("get_world_time") -> {
                 return formatGameTime(ticks.longValue());
             }
+            // 世界种子
+            case Long seed when api.getId().equals("get_world_seed") -> {
+                return "世界种子：" + seed;
+            }
+            // 飞行速度/行走速度（Float 类型）
+            case Float speed when api.getId().contains("speed") -> {
+                return String.format("速度：%.2f", speed);
+            }
+            // 攻击冷却（Float 类型，0-1）
+            case Float cooldown when api.getId().equals("get_player_attack_cooldown") -> {
+                int percentage = Math.round(cooldown * 100);
+                return "攻击冷却进度：" + percentage + "%";
+            }
+            // 客户端视距
+            case Integer viewDistance when api.getId().contains("view_distance") -> {
+                return "视距：" + viewDistance + " 区块";
+            }
+            // Ping 延迟
+            case Integer ping when api.getId().equals("get_player_ping") -> {
+                String quality = ping < 100 ? "极好" : (ping < 200 ? "良好" : (ping < 300 ? "一般" : "较差"));
+                return "延迟：" + ping + "ms (" + quality + ")";
+            }
+            // 累计总经验
+            case Integer totalExp when api.getId().equals("get_player_total_exp") -> {
+                return "累计总经验：" + totalExp + " 点";
+            }
+            // 升级所需经验
+            case Integer expNeeded when api.getId().equals("get_player_exp_to_next_level") -> {
+                return "升到下一级需要：" + expNeeded + " 点经验";
+            }
+            // 服务器平均 tick 时间（Paper 特有）
+            case Double tickTime when api.getId().equals("get_server_average_tick_time") -> {
+                String status = tickTime < 50 ? "流畅" : (tickTime < 100 ? "轻微延迟" : "严重延迟");
+                return String.format("平均 Tick 时间：%.2fms (%s)", tickTime, status);
+            }
 
             // additional_methods 模式返回的 Map
             case java.util.Map<?, ?> resultMap -> {
                 return formatWithAdditionalMethods(api, resultMap);
+            }
+
+            // Boolean 类型（如 isInsideVehicle、getAllowFlight 等）
+            case Boolean bool -> {
+                return bool ? "是" : "否";
             }
 
             default -> {
@@ -206,7 +265,7 @@ public class GenericBukkitAPISkill implements Skill {
             StringBuilder sb = new StringBuilder();
             resultMap.forEach((key, value) -> {
                 if (!sb.isEmpty()) sb.append(", ");
-                sb.append(key).append(": ").append(value != null ? value.toString() : "null");
+                sb.append(key).append(": ").append(formatMapValue(value));
             });
             return sb.toString();
         }
@@ -231,11 +290,34 @@ public class GenericBukkitAPISkill implements Skill {
             String key = entry.getKey().toString();
             Object value = entry.getValue();
             String placeholder = "{" + key + "}";
-            String replacement = value != null ? value.toString() : "N/A";
+            String replacement = formatMapValue(value);
             template = template.replace(placeholder, replacement);
         }
 
         return template;
+    }
+
+    /**
+     * 格式化 Map 中的值（处理特殊类型）
+     */
+    private String formatMapValue(Object value) {
+        if (value == null) {
+            return "N/A";
+        }
+        // 处理特殊类型
+        if (value instanceof org.bukkit.World.Environment env) {
+            return formatEnvironment(env);
+        }
+        if (value instanceof org.bukkit.Difficulty diff) {
+            return formatDifficulty(diff);
+        }
+        if (value instanceof Boolean bool) {
+            return bool ? "是" : "否";
+        }
+        if (value instanceof Float || value instanceof Double) {
+            return String.format("%.2f", ((Number) value).doubleValue());
+        }
+        return value.toString();
     }
 
     /**
@@ -432,5 +514,84 @@ public class GenericBukkitAPISkill implements Skill {
             case SPECTATOR -> "旁观模式";
         };
         return "游戏模式：" + displayName;
+    }
+
+    /**
+     * 格式化世界环境类型
+     */
+    private String formatEnvironment(org.bukkit.World.Environment environment) {
+        String displayName = switch (environment) {
+            case NORMAL -> "主世界";
+            case NETHER -> "下界";
+            case THE_END -> "末地";
+            case CUSTOM -> "自定义";
+        };
+        return displayName;
+    }
+
+    /**
+     * 格式化游戏难度
+     */
+    private String formatDifficulty(org.bukkit.Difficulty difficulty) {
+        String displayName = switch (difficulty) {
+            case PEACEFUL -> "和平";
+            case EASY -> "简单";
+            case NORMAL -> "普通";
+            case HARD -> "困难";
+        };
+        return displayName;
+    }
+
+    /**
+     * 格式化玩家姿势
+     */
+    private String formatPose(org.bukkit.entity.Pose pose) {
+        String displayName = switch (pose) {
+            case STANDING -> "站立";
+            case FALL_FLYING -> "鞘翅飞行";
+            case SLEEPING -> "睡觉";
+            case SWIMMING -> "游泳";
+            case SPIN_ATTACK -> "旋转攻击";
+            case SNEAKING -> "潜行";
+            case DYING -> "死亡";
+            default -> pose.name().toLowerCase();
+        };
+        return "当前姿势：" + displayName;
+    }
+
+    /**
+     * 格式化主手偏好
+     */
+    private String formatMainHand(org.bukkit.inventory.MainHand mainHand) {
+        String displayName = switch (mainHand) {
+            case LEFT -> "左手（左撇子）";
+            case RIGHT -> "右手（右撇子）";
+        };
+        return "主手偏好：" + displayName;
+    }
+
+    /**
+     * 格式化速度向量
+     */
+    private String formatVector(org.bukkit.util.Vector vector) {
+        return String.format("速度向量：X=%.2f, Y=%.2f, Z=%.2f", vector.getX(), vector.getY(), vector.getZ());
+    }
+
+    /**
+     * 格式化时长（用于 AFK 时间）
+     */
+    private String formatDuration(java.time.Duration duration) {
+        long seconds = duration.getSeconds();
+        if (seconds < 60) {
+            return "挂机时间：" + seconds + " 秒";
+        } else if (seconds < 3600) {
+            long minutes = seconds / 60;
+            long remainingSeconds = seconds % 60;
+            return "挂机时间：" + minutes + " 分 " + remainingSeconds + " 秒";
+        } else {
+            long hours = seconds / 3600;
+            long minutes = (seconds % 3600) / 60;
+            return "挂机时间：" + hours + " 小时 " + minutes + " 分";
+        }
     }
 }

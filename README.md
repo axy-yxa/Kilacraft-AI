@@ -531,6 +531,14 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
   - 前置步骤结果自动注入后续步骤的 entities 中
   - GenericBukkitAPISkill 对 ItemStack 结果添加 `item_name` 和 `item_amount` 字段
 
+- ✅ **Bukkit API 能力扩展**：
+  - 新增 **44 个 API** 定义，覆盖 Player/World/Server 全部核心查询能力
+  - **Player API（29 个）**：物品栏（主手/副手）、状态（生命/饥饿/氧气/经验/睡眠/攻击冷却/着火/冰冻/挂机）、信息（位置/飞行/游戏模式/Ping/客户端/载具/死亡点/姿势）
+  - **World API（9 个）**：时间、天气、世界信息、种子、出生点、高度限制、生物生成规则、PVP 设置、视距
+  - **Server API（6 个）**：在线玩家、最大玩家数、版本、MOTD、世界列表、服务器设置、平均 Tick 时间
+  - **Paper 特有 API**：客户端品牌、客户端视距、挂机时间、累计总经验、升到下一级所需经验、服务器平均 Tick 时间
+  - **权限系统完善**：5 类权限节点全部配置 `required_permission`，支持粗粒度权限分组
+
 - ✅ **显示格式优化**：
   - **物品名称净化**：移除 `:1` 等后缀，自动翻译为中文
   - **经验进度百分比**：`0.47826084` → `47%`
@@ -572,6 +580,8 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - `src/main/java/com/zm/kilacraftAI/skills/bukkit/GenericBukkitAPISkill.java`
 - `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java`
 - `src/main/resources/skills/globalmarketplus/MarketQuerySkill.yml`
+- `src/main/resources/skills/bukkit/apis.yml` （v1.3.4 扩展：44 个 API + 权限配置）
+- `src/main/resources/plugin.yml` （v1.3.4 权限描述优化）
 
 #### 🎮 使用示例
 

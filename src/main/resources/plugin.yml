@@ -51,24 +51,25 @@ permissions:
     description: 允许管理人格配置
     default: op                # 默认仅 OP 拥有此权限
 
-  # Bukkit API 技能权限
+  # Bukkit API 技能权限（按功能类别分组）
+  # 玩家相关 API 分为三类：inventory(物品栏)、status(实时状态)、info(基础信息)
   kilacraft.api.player.inventory:
-    description: 允许查询玩家物品栏信息
+    description: 查询玩家物品栏（主手/副手物品）
     default: true
   kilacraft.api.player.status:
-    description: 允许查询玩家状态信息（生命值、经验等）
+    description: 查询玩家实时状态（生命值、饥饿、氧气、经验、睡眠、攻击冷却、着火、冰冻、挂机等）
     default: true
   kilacraft.api.player.info:
-    description: 允许查询玩家信息（位置、游戏模式等）
+    description: 查询玩家基础信息（位置、游戏模式、飞行、Ping、客户端、载具、死亡点等）
     default: true
   kilacraft.api.world.info:
-    description: 允许查询世界信息（时间、天气等）
+    description: 查询世界信息（时间、天气、世界类型、种子、出生点、高度限制、生物生成、PVP等）
     default: true
   kilacraft.api.server.info:
-    description: 允许查询服务器信息（在线玩家等）
+    description: 查询服务器信息（在线玩家、最大人数、版本、MOTD、世界列表、服务器设置、TPS等）
     default: true
   kilacraft.api.*:
-    description: 允许使用所有 Bukkit API 技能
+    description: 允许使用所有 Bukkit API 技能（包含以上全部）
     default: true
     children:
       kilacraft.api.player.inventory: true
