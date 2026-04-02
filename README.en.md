@@ -508,11 +508,12 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
   - **query_market_stats**: Query market statistics (total items, total sellers)
 
 - ✅ **GlobalMarketPlusAPI Extension**:
-  - Added `MailItem` inner class: encapsulates mail info (item name, quantity, sender, send time)
-  - Added `MarketStats` inner class: encapsulates market stats (total items, total sellers)
+  - Added `MailItem` class: encapsulates mail info (item name, quantity, sender, send time)
+  - Added `MarketStats` class: encapsulates market stats (total items, total sellers)
   - Added `getMyMerchandises()` method: get player's own listed items
   - Added `getMailboxItems()` method: get player's pending mailbox items
   - Added `getMarketStats()` method: get market statistics
+  - Added `MarketItem` and `MarketItemDetail` classes: encapsulate item info
 
 - ✅ **Multi-Step Task Prompt Optimization**:
   - Added single-intent format examples to help LLM distinguish between single-intent and multi-step tasks
@@ -538,16 +539,32 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
   - AIRequestHandler supports recognizing TaskPlan format (both single-step and multi-step)
   - Debug logs show step count for easier troubleshooting
 
-- ✅ **Code Quality Improvements**:
+- ✅ **Placeholder Resolution Fault Tolerance Enhancement**:
+  - Implemented "fail-fast" strategy: terminate execution when placeholder resolution fails
+  - Added `PlaceholderResolveResult` and `BuildContextResult` classes for result encapsulation
+  - Clear error messages for easier troubleshooting
+
+- ✅ **Code Architecture Refactoring**:
+  - Extracted inner classes into standalone files for better maintainability
+  - Added `compat/globalmarketplus/model/` subpackage for data model classes
+  - Added `TaskStep`, `PlaceholderResolveResult`, `BuildContextResult` classes under `skills/framework/task/` package
   - Removed unused reflection method `getPropertyValue()`
   - Optimized code formatting and indentation
 
 #### 📦 Modified Files
 
 - `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/GlobalMarketPlusAPI.java`
+- `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/model/MarketItem.java` (new)
+- `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/model/MarketItemDetail.java` (new)
+- `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/model/MailItem.java` (new)
+- `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/model/MarketStats.java` (new)
 - `src/main/java/com/zm/kilacraftAI/skills/globalmarketplus/MarketQuerySkill.java`
 - `src/main/java/com/zm/kilacraftAI/skills/framework/SkillIntentRecognizer.java`
 - `src/main/java/com/zm/kilacraftAI/skills/framework/task/TaskExecutor.java`
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/TaskPlan.java`
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/TaskStep.java` (new)
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/PlaceholderResolveResult.java` (new)
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/BuildContextResult.java` (new)
 - `src/main/java/com/zm/kilacraftAI/skills/bukkit/GenericBukkitAPISkill.java`
 - `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java`
 - `src/main/resources/skills/globalmarketplus/MarketQuerySkill.yml`

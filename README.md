@@ -512,11 +512,12 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
   - **query_market_stats**：查询市场统计信息（总商品数、总卖家数）
 
 - ✅ **GlobalMarketPlusAPI 扩展**：
-  - 新增 `MailItem` 内部类：封装邮件信息（物品名、数量、发件人、发送时间）
-  - 新增 `MarketStats` 内部类：封装市场统计（总商品数、总卖家数）
+  - 新增 `MailItem` 类：封装邮件信息（物品名、数量、发件人、发送时间）
+  - 新增 `MarketStats` 类：封装市场统计（总商品数、总卖家数）
   - 新增 `getMyMerchandises()` 方法：获取玩家自己的在售商品
   - 新增 `getMailboxItems()` 方法：获取玩家邮箱待领取邮件
   - 新增 `getMarketStats()` 方法：获取市场统计信息
+  - 新增 `MarketItem` 和 `MarketItemDetail` 类：封装商品信息
 
 - ✅ **多步骤任务提示词优化**：
   - 添加单意图格式示例，帮助 LLM 正确区分单意图和多步骤任务
@@ -542,16 +543,32 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
   - AIRequestHandler 支持识别 TaskPlan 格式（无论单步骤还是多步骤）
   - 调试日志显示步骤数量，便于问题排查
 
-- ✅ **代码质量提升**：
+- ✅ **占位符解析容错增强**：
+  - 实现「快速失败」策略：占位符解析失败时终止执行
+  - 新增 `PlaceholderResolveResult` 和 `BuildContextResult` 类封装解析结果
+  - 明确的错误提示，便于问题排查
+
+- ✅ **代码架构重构**：
+  - 提取内部类为独立文件，提高代码可维护性
+  - 新增 `compat/globalmarketplus/model/` 子包存放数据模型类
+  - 新增 `skills/framework/task/` 包下的 `TaskStep`、`PlaceholderResolveResult`、`BuildContextResult` 类
   - 删除未使用的反射方法 `getPropertyValue()`
   - 优化代码格式和缩进
 
 #### 📦 修改文件
 
 - `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/GlobalMarketPlusAPI.java`
+- `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/model/MarketItem.java` （新增）
+- `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/model/MarketItemDetail.java` （新增）
+- `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/model/MailItem.java` （新增）
+- `src/main/java/com/zm/kilacraftAI/compat/globalmarketplus/model/MarketStats.java` （新增）
 - `src/main/java/com/zm/kilacraftAI/skills/globalmarketplus/MarketQuerySkill.java`
 - `src/main/java/com/zm/kilacraftAI/skills/framework/SkillIntentRecognizer.java`
 - `src/main/java/com/zm/kilacraftAI/skills/framework/task/TaskExecutor.java`
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/TaskPlan.java`
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/TaskStep.java` （新增）
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/PlaceholderResolveResult.java` （新增）
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/BuildContextResult.java` （新增）
 - `src/main/java/com/zm/kilacraftAI/skills/bukkit/GenericBukkitAPISkill.java`
 - `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java`
 - `src/main/resources/skills/globalmarketplus/MarketQuerySkill.yml`
