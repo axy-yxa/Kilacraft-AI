@@ -100,9 +100,9 @@ public class KilacraftCommand implements CommandExecutor {
             plugin.getConfigManager().loadConfig();
             plugin.getLanguageManager().loadConfig();
 
-            // 重新加载技能配置
+            // 热重载技能配置（包括 Bukkit API 元数据）
             if (plugin.getSkillConfigManager() != null) {
-                plugin.getSkillConfigManager().loadAllSkillConfigs();
+                plugin.getSkillConfigManager().reloadAllConfigs();
                 sender.sendMessage("§a已重新加载技能配置文件");
             }
 
@@ -164,7 +164,8 @@ public class KilacraftCommand implements CommandExecutor {
         }
 
         UUID playerId = player.getUniqueId();
-        plugin.getConversationManager().clearHistory(playerId);
+        // 清除所有历史记录（包括普通和插件命令）
+        plugin.getConversationManager().clearAllHistory(playerId);
         player.sendMessage(languageManager.getCommandClearSelfSuccess());
         plugin.getLogger().info(languageManager.replacePlaceholders(languageManager.getLogClearSelfLogged(), "player", player.getName()));
         return true;
@@ -376,12 +377,6 @@ public class KilacraftCommand implements CommandExecutor {
         // 获取或创建历史记录（使用隔离的 key）
         Deque<ConversationManager.Message> pluginHistory = getOrCreatePluginHistory(historyKey);
 
-        // 调试模式日志
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 插件命令请求 - 人格：" + personality + ", 玩家：" + targetPlayerName + ", UUID: " + targetPlayerId);
-            plugin.getLogger().info("[DEBUG] 历史记录数量：" + pluginHistory.size());
-        }
-
         // 立即更新冷却时间（基于 UUID）
         validator.startCooldown(targetPlayerId);
 
@@ -390,6 +385,13 @@ public class KilacraftCommand implements CommandExecutor {
 
         // 获取人格提示词并替换玩家名称占位符
         String personalityPrompt = personalitiesConfig.getPersonalityPrompt(personality).replace("{player}", targetPlayerName);
+
+        // 调试模式日志
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("[DEBUG] 插件命令请求 - 人格：" + personality + ", 玩家：" + targetPlayerName + ", UUID: " + targetPlayerId);
+            plugin.getLogger().info("[DEBUG] 人格提示词：" + personalityPrompt);
+            plugin.getLogger().info("[DEBUG] 历史记录数量：" + pluginHistory.size());
+        }
 
         // 使用统一的 API 处理请求（传入人格提示词）
         plugin.getDeepSeekAPI().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt).thenAccept(fullResponse -> {
@@ -489,25 +491,18 @@ public class KilacraftCommand implements CommandExecutor {
     }
 
     /**
-     * 处理控制台消息命令
+     * 处理控制台消息命令（支持与玩家相同的完整功能，无冷却和世界限制）
      */
     private boolean handleConsoleMessageCommand(CommandSender sender, String[] args) {
-        // 后台控制台使用
+        // 构建消息
         String message = String.join(" ", args);
-
+        
         // 发送"正在思考"消息
         MessageUtil.sendThinkingMessage(sender);
-
-        // 创建控制台响应处理器
-        AIResponseHandler handler = new ConsoleResponseHandler(sender);
-
-        // 使用统一的 API 处理请求
-        plugin.getDeepSeekAPI().processRequest(message, "Console", null, handler).exceptionally(throwable -> {
-            sender.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
-            plugin.getLogger().severe(languageManager.getLogConsoleAiError() + throwable.getMessage());
-            return null;
-        });
-
+        
+        // 使用统一的 AI 请求处理器（传入 null 表示控制台）
+        boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableCommand();
+        aiRequestHandler.handleAIRequestForConsole(sender, message, enableAgent);
         return true;
     }
 

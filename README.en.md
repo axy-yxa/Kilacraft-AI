@@ -9,6 +9,12 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
 ### 🤖 AI Agent Core Capabilities
 - **LLM Intent Recognition Engine**: Intelligently understands user's true intentions and routes to corresponding skills
 - **Skills System Framework**: Extensible AI skill execution framework with async non-blocking support
+- **Bukkit API Dynamic Invocation (v1.3.3+)**: Data-driven vanilla API calling capability
+  - Load API definitions from `apis.yml` configuration file, no hardcoding required
+  - Supports method_chain and additional_methods invocation patterns
+  - Reflection-based execution engine for dynamic Player/World/Server method calls
+  - Permission control, hot-reload support, instant configuration changes
+  - Pre-configured APIs for player status, world info, and server queries
 - **Multi-modal Interaction**: Command mode, continuous chat mode, keyword trigger mode
 - **Multi-Step Task Executor (v1.3.2+)**: Complex task automatic decomposition and sequential execution
   - Topological sort-based dependency management
@@ -186,7 +192,9 @@ agent:
 
 ### Personality Configuration (personalities.yml)
 
-Create YAML files in `plugins/Kilacraft-AI/personalities/` to define different personalities:
+Create YAML files in the `plugins/Kilacraft-AI/personalities/` directory to define different personalities.
+
+#### Basic Usage
 
 ```yaml
 StrictTeacher:
@@ -195,6 +203,19 @@ StrictTeacher:
 FriendlyHelper:
   prompt: "You are a friendly AI helper, assisting player {player} with various tasks."
 ```
+
+#### Advanced Features (v1.3.3+)
+
+- **YAML Multi-line Text Support**: Use `|` or `>` for complex personality descriptions
+- **JSON Format Fault Tolerance**: Auto-repair common JSON format errors
+- **{player} Placeholder**: Automatically replaced with current player name
+- **Hot-Reload Support**: Use `/kilacraft personalities reload` after modifying config
+
+#### Best Practices
+
+- **Naming**: Use concise, clear names; avoid special characters
+- **Prompt Design**: Clearly define AI's role, language style, and behavior guidelines
+- **Multi-file Management**: Distribute personalities across multiple files by scenario or function
 
 ## 🎮 Usage
 
@@ -244,7 +265,9 @@ Player: @ai How do I do this?
 Kilacraft-AI: Let me help you...
 ```
 
-### Permissions
+#### Permissions
+
+#### Basic Permissions
 
 | Permission Node | Default | Description |
 |-----------------|---------|-------------|
@@ -254,7 +277,21 @@ Kilacraft-AI: Let me help you...
 | `kilacraft.knowledge` | op | Manage knowledge base |
 | `kilacraft.personalities` | op | Manage personality configurations |
 
-**Note**: Basic chat functionality requires no permissions, available to all players by default.
+#### Bukkit API Skill Permissions (v1.3.3+)
+
+| Permission Node | Default | Description |
+|-----------------|---------|-------------|
+| `kilacraft.api.player.inventory` | true | Query player inventory info |
+| `kilacraft.api.player.status` | true | Query player status (health, experience, etc.) |
+| `kilacraft.api.player.info` | true | Query player info (location, game mode, etc.) |
+| `kilacraft.api.world.info` | true | Query world info (time, weather, etc.) |
+| `kilacraft.api.server.info` | true | Query server info (online players, etc.) |
+| `kilacraft.api.*` | true | Use all Bukkit API skills (wildcard permission) |
+
+**Notes**:
+- Basic chat functionality requires no permissions, available to all players by default
+- Bukkit API skill permissions control AI's ability to call vanilla APIs
+- Use permission plugins (e.g., LuckPerms) for fine-grained per-player/group control
 
 ## 📚 Knowledge Base Feature
 
@@ -263,6 +300,108 @@ Kilacraft-AI: Let me help you...
 1. Create `.md` or `.txt` files in `plugins/Kilacraft-AI/knowledge/` directory
 2. Add server-related knowledge content
 3. Use `/kilacraft knowledge reload` to reload
+
+### Intelligent Segmentation Rules (v1.3.1+)
+
+The plugin uses a **three-level intelligent segmentation strategy** to automatically split knowledge base files into retrievable chunks:
+
+#### 1. Markdown Header Splitting (Highest Priority)
+- **Recognizes `#`, `##`, `###` and other header markers**
+- **Each header and its content becomes an independent chunk**
+- **Best for**: Rule lists, FAQs, categorized guides with clear structure
+
+**Example**:
+```markdown
+# Server Rules
+All content belongs to "Server Rules" chunk
+
+## Economy System
+All content belongs to "Economy System" chunk
+
+## Land Protection
+All content belongs to "Land Protection" chunk
+```
+
+#### 2. Paragraph Splitting (Medium Priority)
+- **Automatically splits when paragraph exceeds configured size**
+- **Maintains semantic integrity**, splits at natural paragraph boundaries
+- **Best for**: Long descriptions, detailed explanations
+
+#### 3. Fixed Size Splitting (Fallback Strategy)
+- **Maximum chunk size**: Default 500 characters (adjustable in config.yml)
+- **Minimum chunk size**: Default 25 characters (chunks smaller than this are ignored)
+- **Overlap area**: Default 30 characters (maintains context coherence)
+
+### Best Practices
+
+#### ✅ Recommended Knowledge Base File Formats
+
+**1. FAQ Q&A Format (Highly Recommended)**
+```markdown
+# Frequently Asked Questions
+
+## How do I get land?
+Use the /claim command to designate your land. Requires at least 10 gold coins.
+
+## How do I earn money?
+You can earn money by:
+- Mining and selling ores
+- Fishing and crafting food
+- Selling items at player shops
+- Completing quests for rewards
+```
+
+**2. Rule List Format**
+```markdown
+# Server Rules
+
+## Basic Rules
+1. No cheating or using hacks
+2. Be friendly, no insulting others
+3. No destroying other players' builds
+
+## Economy Rules
+4. No exploiting money glitches
+5. Trading must follow market rates
+```
+
+**3. Categorized Guide Format**
+```markdown
+# Beginner's Guide
+
+## Step 1: Get Familiar
+Learn basic controls and interface
+
+## Step 2: Gather Resources
+Collect wood, stone and basic materials
+
+## Step 3: Establish Base
+Choose a suitable location for your home
+```
+
+#### ❌ Formats to Avoid
+
+- **Oversized Paragraphs**: Continuous text exceeding 2000 characters
+- **Unstructured Content**: Large blocks of text without headers or paragraphs
+- **Pure Code/Command Lists**: Command listings without explanatory text
+
+### Configuration Options
+
+Adjust knowledge base segmentation parameters in `config.yml`:
+
+```yaml
+knowledge:
+  segment:
+    max_size: 500     # Maximum characters per chunk
+    min_size: 25      # Minimum characters per chunk
+    overlap: 30       # Overlap characters between chunks
+```
+
+### Caching Mechanism
+
+- **Auto-cache on First Load**: No manual cache clearing needed after file modifications
+- **~70% Faster Secondary Retrieval**: Cached files read segmentation results directly
+- **Hot-Reload Support**: Use `/kilacraft knowledge reload` to refresh cache immediately
 
 **Example File** (`server_rules.md`):
 ```markdown
@@ -348,6 +487,116 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - Check if player has appropriate permissions
 
 ## 📝 Changelog
+
+### v1.3.3 - Bukkit API Capabilities & Automated System Prompt 🚀
+
+**Major Upgrade**: Dynamic Bukkit API invocation with fully automated system prompt construction!
+
+#### 🎯 Core Features
+
+- ✅ **Bukkit API Skill System (GenericBukkitAPI)**: Data-driven vanilla API calling framework
+  - **Dynamic Metadata-Driven**: Load API definitions from `apis.yml`, zero hardcoding
+  - **Reflection Execution Engine**: Dynamic Bukkit API calls via reflection (Player/World/Server)
+  - **Dual Mode Support**:
+    - **method_chain**: Chained calls returning complex objects (ItemStack, Location, etc.)
+    - **additional_methods**: Parallel independent method calls for simple values
+  - **Smart Formatting**: Template placeholder replacement, special type handling (Location/GameMode/ItemStack)
+  - **Permission Control**: Configurable permission nodes per API
+  - **Hot-Reload Support**: Modify `apis.yml` and use `/kilacraft reload` to apply instantly
+
+- ✅ **Fully Automated System Prompt**: Zero hardcoding dynamic prompt construction
+  - **Auto-traverse All Skills**: Including traditional skills and Bukkit API skills
+  - **Dynamic Action Generation**: Automatically lists all available actions per skill
+  - **Automatic Hint Integration**: Skill hints automatically integrated into system prompt
+  - **Multi-Step Task Examples**: Automatically generates practical example scenarios
+  - **Maintenance Cost Reduced ~90%**: No code changes needed when adding new skills
+
+#### 🔧 Technical Implementation
+
+- ✅ **New Files**:
+  - `src/main/java/com/zm/kilacraftAI/skills/bukkit/BukkitAPIExecutor.java` - API execution engine
+  - `src/main/java/com/zm/kilacraftAI/skills/bukkit/BukkitAPIMetadata.java` - API metadata encapsulation
+  - `src/main/java/com/zm/kilacraftAI/skills/bukkit/BukkitAPIConfigLoader.java` - configuration loader
+  - `src/main/java/com/zm/kilacraftAI/skills/bukkit/GenericBukkitAPISkill.java` - generic API skill implementation
+  - `src/main/resources/skills/bukkit/apis.yml` - Bukkit API metadata configuration file
+
+- ✅ **Architecture Refactoring**:
+  - `SkillConfig.java` moved to `skills.framework.config` package
+  - `TaskExecutor.java` moved to `skills.framework.task` package
+  - `TaskPlan.java` moved to `skills.framework.task` package
+  - `Skill` interface added `isAvailable()` default method
+
+- ✅ **Configuration Management Enhancement**:
+  - `SkillConfigManager` added `loadBukkitAPIs()` method
+  - `SkillConfigManager` added `reloadAllConfigs()` hot-reload method
+  - `MarketQuerySkill` fixed hot-reload issue (from fixed reference to dynamic retrieval)
+
+- ✅ **Permission System Extension**:
+  - Added 5 Bukkit API permission nodes (player/world/server queries)
+  - Added wildcard permission `kilacraft.api.*`
+
+- ✅ **Personality Configuration Optimization**:
+  - **YAML Multi-line Text Support**: Use `|` or `>` for complex personality descriptions
+  - **JSON Format Fault Tolerance**: Auto-repair common JSON format errors
+  - **Empty Config Detection**: Auto-create example file when config is empty
+  - **Error Recovery Mechanism**: Auto-generate default config on load failure
+  - **Common Prompt Feature**: Shared base prompt for all personalities
+
+- ✅ **Console AI Capabilities Enhancement**:
+  - **Refactored Console Command Logic**: `handleConsoleMessageCommand()` method completely rewritten
+  - **Unified AI Request Handling**: Console now supports same full features as players (intent recognition, skill invocation, multi-step tasks)
+  - **No Cooldown or World Restrictions**: Console calls exempt from cooldown time and world limitations
+  - **Fixed UUID Identifier**: Uses `00000000-0000-0000-0000-000000000000` as console's unique identifier
+  - **Independent History**: Console has independent conversation history, isolated from players
+  - **Simplified Response Handler**: `ConsoleResponseHandler` constructor optimized, removed unnecessary parameters
+
+- ✅ **Code Quality Improvements**:
+  - Optimized logging output, reduced redundant information
+  - Improved exception handling mechanism
+  - Optimized configuration loading process
+
+#### 📦 Pre-configured Bukkit API Examples
+
+**Player Related**:
+- `get_player_hand_item` - Get main hand item (chain: getInventory → getItemInMainHand)
+- `get_player_health` - Get health value (parallel: getHealth + getMaxHealth)
+- `get_player_location` - Get position coordinates (supports getLocation.getX chain calls)
+- `get_player_game_mode` - Get game mode
+- `get_player_level` - Get level and experience
+
+**World Related**:
+- `get_world_time` - Get world time
+- `get_weather` - Get weather status (hasStorm + isThundering)
+
+**Server Related**:
+- `get_server_online_players` - Get online player count
+
+#### ⚙️ Configuration Example
+
+```yaml
+# apis.yml example
+player:
+  get_player_health:
+    id: "get_player_health"
+    display_name: "Get Player Health"
+    description: "Get player's current and maximum health value"
+    usage_scenarios:
+      - "How much HP do I have left"
+      - "My health"
+    target_type: "Player"
+    additional_methods:
+      health: "getHealth"
+      max_health: "getMaxHealth"
+    result_template: "Health: {health}/{max_health}"
+```
+
+#### ⚠️ Compatibility Notes
+
+- New `apis.yml` configuration file, auto-created on first startup
+- New permission nodes, recommended to update permission configuration
+- Package structure adjustments don't affect existing skill implementations
+
+---
 
 ### v1.3.2 - Agent Configuration & Multi-Step Task Executor 🚀
 

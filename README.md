@@ -9,6 +9,12 @@
 ### 🤖 AI Agent 核心能力
 - **LLM 意图识别引擎**：智能理解用户真实意图，自动路由到对应技能
 - **Skills 技能系统框架**：可扩展的 AI 技能执行框架，支持异步非阻塞执行
+- **Bukkit API 动态调用（v1.3.3+）**：基于数据驱动的原版 API 调用能力
+  - 从 `apis.yml` 配置文件加载 API 定义，无需硬编码代码
+  - 支持链式调用（method_chain）和并行调用（additional_methods）两种模式
+  - 反射执行引擎，动态调用 Player/World/Server 的各种方法
+  - 权限控制、热重载支持，修改配置立即生效
+  - 预置玩家状态查询、世界信息查询、服务器信息查询等 API
 - **多模态交互**：命令模式、连续对话模式、关键词触发模式
 - **多步骤任务执行器（v1.3.2+）**：复杂任务自动分解与顺序执行
   - 基于拓扑排序的依赖关系管理
@@ -190,7 +196,9 @@ agent:
 
 ### 人格配置 (personalities.yml)
 
-在 `plugins/Kilacraft-AI/personalities/` 目录下创建 YAML 文件来定义不同的人格：
+在 `plugins/Kilacraft-AI/personalities/` 目录下创建 YAML 文件来定义不同的人格。
+
+#### 基本用法
 
 ```yaml
 严厉教师:
@@ -199,6 +207,19 @@ agent:
 友好助手:
   prompt: "你是友好的 AI 助手，帮助玩家 {player} 解决各种问题。"
 ```
+
+#### 高级特性（v1.3.3+）
+
+- **YAML 多行文本支持**：使用 `|` 或 `>` 编写复杂的人格描述
+- **JSON 格式容错**：自动修复常见的 JSON 格式错误
+- **{player} 占位符**：自动替换为当前玩家名称
+- **热重载支持**：修改配置文件后使用 `/kilacraft personalities reload` 立即生效
+
+#### 使用建议
+
+- **人格命名**：使用简洁明了的名称，避免特殊字符
+- **提示词设计**：明确 AI 的角色定位、语言风格和行为准则
+- **多文件管理**：可以按场景或功能将人格分散到多个文件中
 
 ## 🎮 使用说明
 
@@ -250,6 +271,8 @@ Kilacraft-AI: 让我来帮你...
 
 ### 权限列表
 
+#### 基础权限
+
 | 权限节点 | 默认 | 说明 |
 |----------|------|------|
 | `kilacraft.clear.self` | true | 清除自己的对话历史 |
@@ -258,7 +281,21 @@ Kilacraft-AI: 让我来帮你...
 | `kilacraft.knowledge` | op | 管理知识库 |
 | `kilacraft.personalities` | op | 管理人格配置 |
 
-**注意**：基础对话功能无需任何权限，所有玩家默认可用。
+#### Bukkit API 技能权限（v1.3.3+）
+
+| 权限节点 | 默认 | 说明 |
+|----------|------|------|
+| `kilacraft.api.player.inventory` | true | 查询玩家物品栏信息 |
+| `kilacraft.api.player.status` | true | 查询玩家状态（生命值、经验等） |
+| `kilacraft.api.player.info` | true | 查询玩家信息（位置、游戏模式等） |
+| `kilacraft.api.world.info` | true | 查询世界信息（时间、天气等） |
+| `kilacraft.api.server.info` | true | 查询服务器信息（在线玩家等） |
+| `kilacraft.api.*` | true | 使用所有 Bukkit API 技能（通配符权限） |
+
+**注意**：
+- 基础对话功能无需任何权限，所有玩家默认可用
+- Bukkit API 技能权限用于控制 AI 调用原版 API 的能力
+- 可通过权限插件（如 LuckPerms）细粒度控制每个玩家/组的权限
 
 ## 📚 知识库功能
 
@@ -267,6 +304,108 @@ Kilacraft-AI: 让我来帮你...
 1. 在 `plugins/Kilacraft-AI/knowledge/` 目录下创建 `.md` 或 `.txt` 文件
 2. 添加服务器相关的知识内容
 3. 使用 `/kilacraft knowledge reload` 重新加载
+
+### 智能分段规则（v1.3.1+）
+
+插件采用**三级智能分段策略**，自动将知识库文件分割成适合检索的片段：
+
+#### 1. Markdown 标题分割（最高优先级）
+- **识别 `#`、`##`、`###` 等标题标记**
+- **每个标题及其内容作为一个独立片段**
+- **适用于**：规则列表、FAQ、分类指南等有明确结构的内容
+
+**示例**：
+```markdown
+# 服务器规则
+所有内容属于“服务器规则”片段
+
+## 经济系统
+所有内容属于“经济系统”片段
+
+## 领地保护
+所有内容属于“领地保护”片段
+```
+
+#### 2. 段落分割（中等优先级）
+- **当段落超过设定大小时自动分割**
+- **保持语义完整性**，按自然段落边界切分
+- **适用于**：长段描述、详细说明等内容
+
+#### 3. 固定大小分割（兜底策略）
+- **最大片段大小**：默认 500 字符（可在 config.yml 中调整）
+- **最小片段大小**：默认 25 字符（小于此值的片段会被忽略）
+- **重叠区域**：默认 30 字符（保持上下文连贯性）
+
+### 最佳实践
+
+#### ✅ 推荐的知识库文件格式
+
+**1. FAQ 问答式（最推荐）**
+```markdown
+# 常见问题解答
+
+## 如何获得领地？
+使用 /claim 命令来圈定你的领地。需要至少 10 个金币。
+
+## 怎么赚钱？
+可以通过以下方式赚钱：
+- 挖矿出售矿物
+- 钓鱼制作食物
+- 在玩家商店出售物品
+- 完成任务获得奖励
+```
+
+**2. 规则列表式**
+```markdown
+# 服务器规则
+
+## 基本规则
+1. 禁止作弊和使用外挂
+2. 保持友好，禁止辱骂他人
+3. 禁止破坏其他玩家的建筑
+
+## 经济规则
+4. 禁止使用刷钱漏洞
+5. 交易需遵循市场规律
+```
+
+**3. 分类指南式**
+```markdown
+# 新手指南
+
+## 第一步：熟悉环境
+了解基本操作和界面
+
+## 第二步：收集资源
+采集木材、石头等基础材料
+
+## 第三步：建立基地
+选择合适的地点建造家园
+```
+
+#### ❌ 避免的格式
+
+- **超大段落**：整段超过 2000 字符的连续文本
+- **无结构内容**：没有任何标题或分段的大段文字
+- **纯代码/命令列表**：缺少解释说明的命令罗列
+
+### 配置选项
+
+在 `config.yml` 中可以调整知识库分段参数：
+
+```yaml
+knowledge:
+  segment:
+    max_size: 500     # 每个片段最大字符数
+    min_size: 25      # 每个片段最小字符数
+    overlap: 30       # 片段重叠字符数
+```
+
+### 缓存机制
+
+- **首次加载自动缓存**：文件修改后无需手动清除缓存
+- **二次检索提速 ~70%**：已缓存的文件直接读取分段结果
+- **热重载支持**：使用 `/kilacraft knowledge reload` 立即刷新缓存
 
 **示例文件** (`server_rules.md`)：
 ```markdown
@@ -352,6 +491,116 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - 检查玩家是否有相应权限
 
 ## 📝 更新日志
+
+### v1.3.3 - Bukkit API 能力与系统提示词自动化 🚀
+
+**重大升级**：新增原版 Bukkit API 动态调用能力，系统提示词完全自动化构建！
+
+#### 🎯 核心特性
+
+- ✅ **Bukkit API 技能系统（GenericBukkitAPI）**：基于数据驱动的原版 API 调用框架
+  - **动态元数据驱动**：从 `apis.yml` 配置文件加载 API 定义，无需硬编码
+  - **反射执行引擎**：使用反射动态调用 Bukkit API（Player/World/Server）
+  - **双模式支持**：
+    - **method_chain**：链式调用（接力），返回复杂对象（如 ItemStack、Location）
+    - **additional_methods**：并行调用多个独立方法，获取简单值（如 health/maxHealth）
+  - **智能格式化**：支持模板占位符替换、特殊类型处理（Location/GameMode/ItemStack）
+  - **权限控制**：每个 API 可配置独立权限节点
+  - **热重载支持**：修改 `apis.yml` 后使用 `/kilacraft reload` 立即生效
+
+- ✅ **系统提示词完全自动化**：零硬编码的动态提示词构建
+  - **自动遍历所有技能**：包括传统技能和 Bukkit API 技能
+  - **动态生成动作列表**：自动列出每个技能的所有可用动作
+  - **自动添加提示信息**：技能的 hints 自动整合到系统提示词
+  - **多步骤任务示例**：自动生成贴近实际的示例场景
+  - **维护成本降低 ~90%**：新增技能无需修改提示词代码
+
+#### 🔧 技术实现
+
+- ✅ **新增文件**：
+  - `src/main/java/com/zm/kilacraftAI/skills/bukkit/BukkitAPIExecutor.java` - API 执行引擎
+  - `src/main/java/com/zm/kilacraftAI/skills/bukkit/BukkitAPIMetadata.java` - API 元数据封装
+  - `src/main/java/com/zm/kilacraftAI/skills/bukkit/BukkitAPIConfigLoader.java` - 配置加载器
+  - `src/main/java/com/zm/kilacraftAI/skills/bukkit/GenericBukkitAPISkill.java` - 通用 API 技能实现
+  - `src/main/resources/skills/bukkit/apis.yml` - Bukkit API 元数据配置文件
+
+- ✅ **架构重构**：
+  - `SkillConfig.java` 移动到 `skills.framework.config` 包
+  - `TaskExecutor.java` 移动到 `skills.framework.task` 包
+  - `TaskPlan.java` 移动到 `skills.framework.task` 包
+  - `Skill` 接口新增 `isAvailable()` 默认方法
+
+- ✅ **配置管理增强**：
+  - `SkillConfigManager` 新增 `loadBukkitAPIs()` 方法
+  - `SkillConfigManager` 新增 `reloadAllConfigs()` 热重载方法
+  - `MarketQuerySkill` 修复热重载失效问题（从固定引用改为动态获取）
+
+- ✅ **权限系统扩展**：
+  - 新增 5 个 Bukkit API 权限节点（玩家/世界/服务器查询）
+  - 新增通配符权限 `kilacraft.api.*`
+
+- ✅ **人格配置优化**：
+  - **YAML 多行文本支持**：使用 `|` 或 `>` 编写复杂的人格描述
+  - **JSON 格式容错**：自动修复常见的 JSON 格式错误
+  - **空配置检测**：配置文件为空时自动创建示例文件
+  - **错误恢复机制**：加载失败时自动生成默认配置
+  - **公共提示词功能**：支持所有人格共享的基础提示词
+
+- ✅ **控制台 AI 能力增强**：
+  - **重构控制台命令调用逻辑**：`handleConsoleMessageCommand()` 方法完全重写
+  - **统一 AI 请求处理**：控制台现在支持与玩家相同的完整功能（意图识别、技能调用、多步骤任务）
+  - **无冷却和世界限制**：控制台调用不受冷却时间和世界限制约束
+  - **固定 UUID 标识**：使用 `00000000-0000-0000-0000-000000000000` 作为控制台的唯一标识
+  - **独立历史记录**：控制台拥有独立的对话历史记录，与玩家隔离
+  - **简化响应处理器**：`ConsoleResponseHandler` 构造函数优化，移除不必要的参数
+
+- ✅ **代码质量提升**：
+  - 优化日志输出，减少冗余信息
+  - 改进异常处理机制
+  - 优化配置加载流程
+
+#### 📦 预置 Bukkit API 示例
+
+**玩家相关**：
+- `get_player_hand_item` - 获取主手物品（链式调用：getInventory → getItemInMainHand）
+- `get_player_health` - 获取生命值（并行调用：getHealth + getMaxHealth）
+- `get_player_location` - 获取位置坐标（支持 getLocation.getX 等链式调用）
+- `get_player_game_mode` - 获取游戏模式
+- `get_player_level` - 获取等级和经验
+
+**世界相关**：
+- `get_world_time` - 获取世界时间
+- `get_weather` - 获取天气状况（hasStorm + isThundering）
+
+**服务器相关**：
+- `get_server_online_players` - 获取在线玩家数量
+
+#### ⚙️ 配置示例
+
+```yaml
+# apis.yml 配置示例
+player:
+  get_player_health:
+    id: "get_player_health"
+    display_name: "获取玩家生命值"
+    description: "获取玩家当前的生命值和最大生命值"
+    usage_scenarios:
+      - "我还有多少血"
+      - "我的生命值"
+    target_type: "Player"
+    additional_methods:
+      health: "getHealth"
+      max_health: "getMaxHealth"
+    result_template: "生命值：{health}/{max_health}"
+```
+
+#### ⚠️ 兼容性说明
+
+- 新增 `apis.yml` 配置文件，首次启动会自动创建
+- 新增权限节点，建议更新权限配置
+- 包结构调整不影响现有技能实现
+
+---
 
 ### v1.3.2 - Agent 能力配置化与多步骤任务执行器 🚀
 

@@ -26,6 +26,9 @@ public class PersonalitiesConfigManager {
     // 人格缓存（人格中文名 -> 提示词）
     private final Map<String, String> personalitiesCache;
 
+    // 公共提示词（所有人格共享的基础提示词）
+    private String commonPrompt;
+
     // 配置文件对象
     private FileConfiguration config;
 
@@ -69,6 +72,9 @@ public class PersonalitiesConfigManager {
         try {
             // 使用 Bukkit 的配置 API 写入 YAML
             FileConfiguration newConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(personalitiesFile);
+
+            // 公共提示词（所有人格共享的基础提示词）
+            newConfig.set("common_prompt", "你是一个 Minecraft 游戏的 NPC，需要满足玩家的常见要求。");
 
             // 严厉教师
             newConfig.set("严厉教师", "你是一位严厉的 Minecraft 教师，正在教导玩家 {player}。\n" + "你对学生的要求很高，说话简洁直接，但会耐心解答问题。\n" + "专注于教授游戏机制、红石电路和建筑技巧。");
@@ -119,8 +125,18 @@ public class PersonalitiesConfigManager {
                 return;
             }
 
+            // 加载公共提示词
+            commonPrompt = config.getString("common_prompt", "");
+            if (!commonPrompt.isEmpty()) {
+                plugin.getLogger().info("已加载公共提示词");
+            }
+
             // 加载所有的人格配置
             for (String key : section.getKeys(false)) {
+                // 跳过 common_prompt 配置项
+                if ("common_prompt".equals(key)) {
+                    continue;
+                }
                 String prompt = section.getString(key);
                 if (!key.trim().isEmpty() && prompt != null && !prompt.trim().isEmpty()) {
                     personalitiesCache.put(key, prompt);
@@ -144,10 +160,20 @@ public class PersonalitiesConfigManager {
      * 获取指定人格的提示词
      *
      * @param personalityName 人格名称（中文）
-     * @return 人格提示词，如果不存在则返回 null
+     * @return 人格提示词（包含公共提示词 + 人格私有提示词），如果不存在则返回 null
      */
     public String getPersonalityPrompt(String personalityName) {
-        return personalitiesCache.get(personalityName);
+        String personalityPrompt = personalitiesCache.get(personalityName);
+        if (personalityPrompt == null) {
+            return null;
+        }
+
+        // 如果有公共提示词，则追加到人格提示词前面
+        if (commonPrompt != null && !commonPrompt.isEmpty()) {
+            return commonPrompt + "\n" + personalityPrompt;
+        }
+
+        return personalityPrompt;
     }
 
     /**
@@ -167,15 +193,6 @@ public class PersonalitiesConfigManager {
      */
     public java.util.Set<String> getAllPersonalities() {
         return personalitiesCache.keySet();
-    }
-
-    /**
-     * 获取配置文件路径（用于调试）
-     *
-     * @return 配置文件路径
-     */
-    public String getConfigPath() {
-        return personalitiesFile.getAbsolutePath();
     }
 
     /**

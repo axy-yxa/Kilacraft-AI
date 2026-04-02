@@ -12,6 +12,7 @@ import com.zm.kilacraftAI.knowledge.KnowledgeBaseManager;
 import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.compat.mythicmobs.MythicMobsPlaceholderManager;
+import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
@@ -127,7 +128,9 @@ public final class KilacraftAI extends JavaPlugin {
     private void registerDefaultSkills() {
         // 注册市场查询技能
         skillManager.registerSkill(new MarketQuerySkill());
-        getLogger().info("已注册 " + skillManager.getAllSkills().size() + " 个技能");
+        
+        // 注册通用 Bukkit API 执行器（数据驱动的原版功能调用）
+        skillManager.registerSkill(new GenericBukkitAPISkill());
     }
 
     @Override

@@ -181,7 +181,7 @@ public class DeepSeekAPINew {
                             enhancedUserMessage = enhancedBuilder.toString();
 
                             if (cachedDebugMode) {
-                                plugin.getLogger().info("[DEBUG] 已检索到 " + relevantKnowledge.size() + " 条相关知识");
+                                plugin.getLogger().info("[DEBUG] 已添加 " + relevantKnowledge.size() + " 个知识片段到上下文中");
                             }
                         }
                     }

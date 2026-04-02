@@ -1,4 +1,4 @@
-package com.zm.kilacraftAI.skills.framework;
+package com.zm.kilacraftAI.skills.framework.task;
 
 import lombok.Getter;
 import java.util.ArrayList;

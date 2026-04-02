@@ -1,42 +1,54 @@
 package com.zm.kilacraftAI.skills.framework;
 
-import com.zm.kilacraftAI.skills.config.SkillConfig;
-
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * Skill 基础接口
- * 
+ *
  * <p>所有技能实现都必须实现此接口</p>
  *
  * @author Zm_Mmm
  * @since 2026-03-30
  */
 public interface Skill {
-    
+
     /**
      * 获取技能名称（唯一标识）
      *
      * @return 技能名称
      */
     String getName();
-    
+
     /**
      * 获取技能描述（用于 LLM 意图识别）
      *
      * @return 技能描述
      */
     String getDescription();
-    
+
     /**
-     * 获取技能配置（从 YAML 文件读取）
+     * 获取动作列表（如果有多个动作）
+     * 默认返回空列表（表示只有一个动作）
      *
-     * @return 技能配置对象，如果未配置则返回 null
+     * @return Map<String, String> key=动作名称，value=动作描述
      */
-    default SkillConfig getSkillConfig() {
-        return null;
+    default Map<String, String> getActions() {
+        return Collections.emptyMap();
     }
-    
+
+    /**
+     * 获取额外提示信息（可选）
+     * 用于提供使用示例、注意事项等
+     *
+     * @return 提示列表
+     */
+    default List<String> getHints() {
+        return Collections.emptyList();
+    }
+
     /**
      * 执行技能
      *
@@ -44,7 +56,7 @@ public interface Skill {
      * @return 执行结果（异步）
      */
     CompletableFuture<SkillResult> execute(SkillContext context);
-    
+
     /**
      * 检查技能是否可用
      *

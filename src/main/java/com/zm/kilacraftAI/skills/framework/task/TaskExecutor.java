@@ -1,7 +1,11 @@
-package com.zm.kilacraftAI.skills.framework;
+package com.zm.kilacraftAI.skills.framework.task;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.SkillIntent;
+import com.zm.kilacraftAI.skills.framework.SkillManager;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
 import lombok.RequiredArgsConstructor;
 
 import java.util.*;

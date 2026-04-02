@@ -8,6 +8,7 @@ import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.IntentRecognitionResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
+import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 
 import java.util.Deque;
 import java.util.HashMap;
@@ -28,27 +29,38 @@ public class SkillIntentRecognizer {
     private final SkillManager skillManager; // 用于获取所有技能的描述
 
     /**
-     * 构建系统提示词（动态从 Skill 实例中读取描述）
+     * 构建系统提示词（完全自动化，无需硬编码）
      */
     private String buildSystemPrompt() {
         StringBuilder sb = new StringBuilder();
         sb.append("你是一个技能意图识别助手。你的任务是分析用户的输入，识别他们想要使用的技能。\n");
         sb.append("\n可用技能列表：\n");
 
-        // 遍历所有已注册的技能，动态构建技能描述
+        // 自动遍历所有技能，无需硬编码判断
         int index = 1;
         for (Skill skill : skillManager.getAllSkills()) {
             sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
 
-            // 如果是 MarketQuerySkill，列出它的动作描述
-            if ("market_query".equals(skill.getName())) {
-                sb.append("可用动作：\n");
-                sb.append("  - query_balance: ").append(getActionDescription(skill, "query_balance")).append("\n");
-                sb.append("  - query_price: ").append(getActionDescription(skill, "query_price")).append("\n");
-                sb.append("  - query_items: ").append(getActionDescription(skill, "query_items")).append("\n");
+            // 如果技能有多个动作，自动列出
+            if (!skill.getActions().isEmpty()) {
+                sb.append("  可用动作：\n");
+                for (Map.Entry<String, String> entry : skill.getActions().entrySet()) {
+                    sb.append("    - ").append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
+                }
+            }
+
+            // 如果有额外提示，也加上
+            if (!skill.getHints().isEmpty()) {
+                sb.append("  提示：\n");
+                for (String hint : skill.getHints()) {
+                    sb.append("    - ").append(hint).append("\n");
+                }
             }
         }
 
+        // ============================================
+        // 通用响应格式（所有技能都需要遵循）
+        // ============================================
         sb.append("\n请按照以下 JSON 格式返回识别结果：\n");
         sb.append("{\n");
         sb.append("  \"skill_name\": \"技能名称\",\n");
@@ -57,12 +69,8 @@ public class SkillIntentRecognizer {
         sb.append("  \"confidence\": 0.9,\n");
         sb.append("  \"reasoning\": \"识别理由\"\n");
         sb.append("}\n");
-        sb.append("\n重要规范：\n");
-        sb.append("- 当用户询问多个物品时，entities.item 字段必须使用英文逗号 ',' 分隔每个物品\n");
-        sb.append("- 每个物品的格式为'物品名称：数量'，例如：'木棍:2，钻石:1'\n");
-        sb.append("- 如果用户没有指定数量，默认数量为 1，例如：'钻石'应写为'钻石:1'\n");
-        sb.append("- 不要使用'和'、'与'、'及'等连接词，统一用逗号分隔\n");
-        sb.append("- **关键**：当用户输入中提到具体物品名称时，必须提取到 entities.item 字段，不能为空\n");
+
+        // 无效意图的返回格式
         sb.append("\n如果用户输入与任何技能都不相关，返回：\n");
         sb.append("{\n");
         sb.append("  \"skill_name\": null,\n");
@@ -72,6 +80,7 @@ public class SkillIntentRecognizer {
         sb.append("  \"reasoning\": \"无法识别到相关技能\"\n");
         sb.append("}\n");
 
+        // 多步骤任务支持
         sb.append("\n【多步骤任务】复杂任务可以分解为多个有序步骤：\n");
         sb.append("{\n");
         sb.append("  \"goal\": \"总体目标\",\n");
@@ -81,42 +90,48 @@ public class SkillIntentRecognizer {
         sb.append("      \"skill_name\": \"技能名称\",\n");
         sb.append("      \"action\": \"具体动作\",\n");
         sb.append("      \"entities\": {},\n");
-        sb.append("      \"depends_on\": []\n");
+        sb.append("      \"depends_on\": []  // 依赖的步骤 ID 列表，空表示第一步\n");
         sb.append("    }\n");
         sb.append("  ]\n");
         sb.append("}\n");
 
         sb.append("\n何时使用多步骤任务：\n");
-        sb.append("- 当用户的问题需要多个独立操作才能完成时（如：先查余额，再查价格，然后比较）\n");
-        sb.append("- 示例：\"帮我看看我的余额是多少，够不够去市场买两个钻石\"\n");
-        sb.append("  应该分解为：\n");
-        sb.append("  1. query_balance（查询余额）\n");
-        sb.append("  2. query_price（查询钻石价格）\n");
+        sb.append("- 当用户的问题需要多个独立操作才能完成时\n");
+        sb.append("- 当后续步骤依赖于前一步骤的结果时\n");
+        sb.append("- 当某些步骤可能失败，需要条件判断时\n");
+
+        sb.append("\n多步骤任务示例：\n");
+        sb.append("示例 1 - 查询手持物品并检查余额：\n");
+        sb.append("用户问：\"我手上的东西市场上有卖吗？我的余额够买吗？\"\n");
+        sb.append("分解步骤：\n");
+        sb.append("  step_1: get_player_hand_item（获取玩家主手物品）\n");
+        sb.append("  step_2: query_price（查询该物品的市场价格，依赖 step_1 的结果）\n");
+        sb.append("  step_3: query_balance（查询玩家余额）\n");
+        sb.append("  执行完毕后：综合所有结果，回答用户问题\n");
+        sb.append("注意：如果 step_2 发现市场上没有该物品，则停止执行后续步骤\n");
+
+        sb.append("\n示例 2 - 比较多个物品价格：\n");
+        sb.append("用户问：\"钻石和绿宝石哪个更贵？\"\n");
+        sb.append("分解步骤：\n");
+        sb.append("  step_1: query_price（查询钻石价格）\n");
+        sb.append("  step_2: query_price（查询绿宝石价格）\n");
+        sb.append("  执行完毕后：比较两个价格，返回结果\n");
+
+        sb.append("\n示例 3 - 综合信息查询：\n");
+        sb.append("用户问：\"我现在在哪里？这个世界现在是什么时间？天气如何？\"\n");
+        sb.append("分解步骤：\n");
+        sb.append("  step_1: get_player_location（获取玩家位置）\n");
+        sb.append("  step_2: get_world_time（获取世界时间）\n");
+        sb.append("  step_3: get_weather（获取天气状况）\n");
+        sb.append("  执行完毕后：整合所有信息，返回完整回答\n");
+
+        sb.append("\n重要说明：\n");
+        sb.append("- 只需列出需要调用技能的步骤，不需要添加'分析结果'之类的虚拟步骤\n");
+        sb.append("- 所有步骤执行完毕后，系统会自动整合结果并生成最终回复\n");
+        sb.append("- depends_on 字段用于指定步骤间的依赖关系，确保正确的执行顺序\n");
+        sb.append("- 如果某个步骤失败或返回空结果，后续依赖它的步骤将不会执行\n");
 
         return sb.toString();
-    }
-
-    /**
-     * 获取动作描述（优先从配置文件读取）
-     */
-    private String getActionDescription(Skill skill, String action) {
-        var config = skill.getSkillConfig();
-        if (config != null && config.getActionDescriptions() != null) {
-            // Map 格式：直接通过 action 名称获取
-            String description = config.getActionDescriptions().get(action);
-            if (description != null && !description.isEmpty()) {
-                return description;
-            }
-        }
-
-        // 默认描述
-        return switch (action) {
-            case "query_balance" -> "查询玩家账户余额，当用户问'我有多少钱'、'余额'时使用";
-            case "query_price" ->
-                    "查询指定物品的市场价格，当用户询问物品价格、购买物品（如'买 5 个木棍'、'钻石多少钱'）时使用，需提取物品名称和数量";
-            case "query_items" -> "查询市场上架的商品列表，当用户问'市场上有什么'、'列出所有商品'时使用";
-            default -> "未知动作";
-        };
     }
 
     public SkillIntentRecognizer(DeepSeekAPINew deepSeekAPI, ConfigManager configManager, SkillManager skillManager) {
@@ -146,6 +161,11 @@ public class SkillIntentRecognizer {
 
         // 动态构建系统提示词
         String systemPrompt = buildSystemPrompt();
+
+        if (configManager.isDebugMode()) {
+            plugin.getLogger().warning("[DEBUG] 动态构建系统提示词：" + systemPrompt);
+        }
+
         // 调用 LLM 进行意图识别（禁用知识检索，因为意图识别是分类任务，不需要知识增强）
         return deepSeekAPI.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, systemPrompt, false, false).thenApply(this::parseIntentFromResponse);
     }

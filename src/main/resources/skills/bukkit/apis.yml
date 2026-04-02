@@ -1,0 +1,284 @@
+# ============================================
+# Bukkit API 元数据配置文件
+# ============================================
+# 
+# 【文件说明】
+# 此文件定义了所有可被 LLM 调用的原版 Bukkit API，用于实现 AI 与 Minecraft 游戏的交互。
+# 插件启动时会自动加载此配置文件，并在技能意图识别时动态生成提示词。
+#
+# 【配置项说明】
+# --------------------------------------------
+# 每个 API 支持以下配置项：
+#
+# 1. id (必需)
+#    - 类型：String
+#    - 说明：API 的唯一标识符，用于在代码中查找和引用
+#    - 示例："get_player_hand_item"
+#    - 自定义：✅ 允许自定义，建议使用小写字母和下划线
+#
+# 2. display_name (必需)
+#    - 类型：String
+#    - 说明：API 的显示名称，用于向用户展示
+#    - 示例："获取玩家主手物品"
+#    - 自定义：✅ 允许自定义，建议简洁明了
+#
+# 3. description (必需)
+#    - 类型：String
+#    - 说明：API 的详细描述，会发送给 LLM 帮助其理解何时使用该 API
+#    - 示例："获取玩家主要手持的物品信息，包括物品类型、数量、附魔等"
+#    - 自定义：✅ 允许自定义，建议包含功能说明和使用场景
+#
+# 4. usage_scenarios (可选)
+#    - 类型：List<String>
+#    - 说明：使用场景示例，帮助 LLM 更好地理解触发条件
+#    - 示例：["当用户询问'我手上拿的是什么'", "看看我的物品"]
+#    - 自定义：✅ 允许自定义，建议提供 2-5 个典型问法
+#
+# 5. target_type (必需)
+#    - 类型：String
+#    - 说明：API 调用的目标对象类型
+#    - 可选值："Player", "World", "Server"
+#    - 示例："Player"
+#    - 自定义：❌ 仅限预定义的三种类型
+#
+# 6. method_chain (可选)
+#    - 类型：List<String>
+#    - 说明：方法链，按顺序调用多个方法（接力调用）
+#    - 示例：["getInventory", "getItemInMainHand"] → player.getInventory().getItemInMainHand()
+#    - 注意：如果使用了 method_chain，则不应再使用 additional_methods
+#    - 自定义：✅ 允许自定义，但必须确保方法在目标对象上存在
+#
+# 7. additional_methods (可选)
+#    - 类型：Map<String, String>
+#    - 说明：额外方法集合，key 是占位符名称，value 是方法名
+#    - 示例：
+#        health: "getHealth"
+#        max_health: "getMaxHealth"
+#      对应模板："生命值：{health}/{max_health}"
+#    - 注意：如果使用了 additional_methods，则不应再使用 method_chain
+#    - 自定义：✅ 允许自定义，但 key 必须在 result_template 中使用
+#    - **重要特性**：支持简单链式调用！
+#      * 语法：方法名中可以包含点号 "." 实现两层链式调用
+#      * 示例："getLocation.getX" → player.getLocation().getX()
+#      * 限制：最多支持 2 层链式（如 "a.b"），不支持 3 层+ 或带参数的方法
+#      * 典型用途：获取复杂对象的属性（如 Location 的 x/y/z 坐标）
+#
+# 8. result_template (可选)
+#    - 类型：String
+#    - 说明：结果格式化模板，支持占位符替换
+#    - 占位符格式：{key_name}，其中 key_name 必须是 additional_methods 中的 key
+#    - 示例："等级：{level}, 经验进度：{exp_progress}"
+#    - 自定义：✅ 允许自定义，但占位符必须与 additional_methods 的 key 一致
+#
+# 【重要规则】
+# --------------------------------------------
+# 1. method_chain 和 additional_methods 二选一，不能同时使用
+#    - method_chain：用于链式调用（接力）
+#    - additional_methods：用于并行调用多个独立方法
+#
+# 2. result_template 中的占位符 {xxx} 必须与 additional_methods 的 key 完全一致
+#    - ✅ 正确：additional_methods: {health: "getHealth"} → template: "{health}"
+#    - ❌ 错误：additional_methods: {health: "getHealth"} → template: "{Health}"
+#
+# 3. target_type 只能是 "Player", "World", "Server" 之一
+#    - Player：方法会在 org.bukkit.entity.Player 对象上调用
+#    - World：方法会在 org.bukkit.World 对象上调用
+#    - Server：方法会在 org.bukkit.Server 对象上调用
+#
+# 4. 所有方法名必须是 Bukkit API 中真实存在的
+#    - 参考：https://hub.spigotmc.org/javadocs/bukkit/
+#
+# 5. method_chain 和 additional_methods 的使用场景区别（重要！）
+#    - method_chain：
+#      * 用途：链式调用（接力），返回复杂对象（如 ItemStack, Location 等）
+#      * 示例：["getInventory", "getItemInMainHand"] → player.getInventory().getItemInMainHand()
+#      * 格式化：不配置 result_template，由代码通过特殊类型处理（如 formatItemStack, formatLocation）
+#      * 适用：当返回值是复杂对象，需要特殊格式化逻辑时
+#
+#    - additional_methods：
+#      * 用途：并行调用多个独立方法，获取简单值（如 double, int, String 等）
+#      * 示例：在 player 上分别调用 getHealth() 和 getMaxHealth()
+#      * 格式化：必须配置 result_template，占位符与 additional_methods 的 key 一致
+#      * 适用：当需要同时获取多个独立的属性值时
+#      * **重要特性**：支持简单链式调用！
+#        - 语法：方法名使用点号分隔，如 "getLocation.getX"
+#        - 执行：player.getLocation().getX() → Double 值
+#        - 典型应用：
+#          · Location 坐标："getLocation.getX", "getLocation.getY", "getLocation.getZ"
+#          · World 名称："getLocation.getWorld.getName"
+#          · 其他属性：任何类似的 getter 链式调用
+#
+# 6. 配置选择建议
+#    - 如果返回值是 ItemStack → 使用 method_chain + 代码特殊格式化
+#    - 如果返回值是 Location → 使用 method_chain + 代码特殊格式化
+#    - 如果返回值是 GameMode → 使用 method_chain + 代码特殊格式化
+#    - 如果需要同时获取多个数值（如 health 和 maxHealth）→ 使用 additional_methods + result_template
+#
+# 【配置示例】
+# --------------------------------------------
+# player:
+#   get_player_health:
+#     id: "get_player_health"
+#     display_name: "获取玩家生命值"
+#     description: "获取玩家当前的生命值和最大生命值"
+#     usage_scenarios:
+#       - "我还有多少血"
+#       - "我的生命值"
+#     target_type: "Player"
+#     additional_methods:
+#       health: "getHealth"
+#       max_health: "getMaxHealth"
+#     result_template: "生命值：{health}/{max_health}"
+#
+# ============================================
+
+# 全局配置信息
+# 技能描述（用于 LLM 意图识别）
+skill_description: "通用 Bukkit API 执行器，可根据用户意图调用各种原版功能，包括查询玩家状态、世界信息、服务器数据等。"
+
+hints:
+  - "这些 API 都是只读操作，不会改变游戏状态"
+  - "当用户提到'我手上'、'我的位置'、'我的血量'等关键词，直接调用对应的 API"
+  - "API 调用失败时会自动回退到普通 AI 回答"
+
+# 玩家相关 API
+# ============================================
+
+player:
+  # --- 物品栏 ---
+  get_player_hand_item:
+    id: "get_player_hand_item"
+    display_name: "获取玩家主手物品"
+    description: "获取玩家主要手持的物品信息，包括物品类型、数量、附魔等"
+    usage_scenarios:
+      - "当用户询问'我手上拿的是什么'"
+      - "看看我的物品"
+      - "主手有什么东西"
+    target_type: "Player"
+    method_chain:
+      - "getInventory"
+      - "getItemInMainHand"
+    
+  get_player_offhand_item:
+    id: "get_player_offhand_item"
+    display_name: "获取玩家副手物品"
+    description: "获取玩家副手（盾牌槽）持有的物品"
+    usage_scenarios:
+      - "副手拿了什么"
+      - "看看我的副手"
+    target_type: "Player"
+    method_chain:
+      - "getInventory"
+      - "getItemInOffHand"
+    
+  # --- 状态信息 ---
+  get_player_health:
+    id: "get_player_health"
+    display_name: "获取玩家生命值"
+    description: "获取玩家当前的生命值和最大生命值"
+    usage_scenarios:
+      - "我还有多少血"
+      - "我的生命值"
+      - "我还剩多少 HP"
+    target_type: "Player"
+    additional_methods:
+      health: "getHealth"
+      max_health: "getMaxHealth"
+    result_template: "生命值：{health}/{max_health}"
+    
+  get_player_location:
+    id: "get_player_location"
+    display_name: "获取玩家位置"
+    description: "获取玩家在游戏中的坐标位置（X, Y, Z）和所在世界"
+    usage_scenarios:
+      - "我在哪里"
+      - "我的坐标是多少"
+      - "看看我的位置"
+    target_type: "Player"
+    additional_methods:
+      x: "getLocation.getX"
+      y: "getLocation.getY"
+      z: "getLocation.getZ"
+      world: "getLocation.getWorld.getName"
+    result_template: "位置：X={x}, Y={y}, Z={z}, 世界={world}"
+    
+  get_player_gamemode:
+    id: "get_player_gamemode"
+    display_name: "获取玩家游戏模式"
+    description: "获取玩家当前的游戏模式（生存/创造/冒险/旁观）"
+    usage_scenarios:
+      - "我是什么模式"
+      - "我的游戏模式"
+    target_type: "Player"
+    method_chain:
+      - "getGameMode"
+    
+  # --- 属性信息 ---
+  get_player_exp:
+    id: "get_player_exp"
+    display_name: "获取玩家经验值"
+    description: "获取玩家当前的经验值和等级"
+    usage_scenarios:
+      - "我有多少经验"
+      - "我的等级是多少"
+    target_type: "Player"
+    additional_methods:
+      exp_progress: "getExp"
+      level: "getLevel"
+    result_template: "等级：{level}, 经验进度：{exp_progress}"
+
+# ============================================
+# 世界相关 API
+# ============================================
+
+world:
+  get_world_time:
+    id: "get_world_time"
+    display_name: "获取世界时间"
+    description: "获取当前世界的游戏时间（刻数）"
+    usage_scenarios:
+      - "现在几点了"
+      - "世界时间"
+    target_type: "World"
+    method_chain:
+      - "getTime"
+    
+  get_weather:
+    id: "get_weather"
+    display_name: "获取天气状况"
+    description: "获取当前世界的天气（晴天/雨天/雷暴）"
+    usage_scenarios:
+      - "现在天气如何"
+      - "会下雨吗"
+    target_type: "World"
+    additional_methods:
+      has_storm: "hasStorm"
+      is_thundering: "isThundering"
+    result_template: "天气：{weather_desc}"
+
+# ============================================
+# 服务器相关 API
+# ============================================
+
+server:
+  get_online_players:
+    id: "get_online_players"
+    display_name: "获取在线玩家数量"
+    description: "获取当前服务器上的在线玩家数量和列表"
+    usage_scenarios:
+      - "有多少人在线"
+      - "服务器有几个人"
+    target_type: "Server"
+    method_chain:
+      - "getOnlinePlayers"
+    
+  get_max_players:
+    id: "get_max_players"
+    display_name: "获取最大玩家数"
+    description: "获取服务器允许的最大玩家数量"
+    usage_scenarios:
+      - "服务器能容纳多少人"
+      - "最大玩家数量"
+    target_type: "Server"
+    method_chain:
+      - "getMaxPlayers"

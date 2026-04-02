@@ -14,14 +14,15 @@ import java.util.UUID;
 public class ConsoleResponseHandler extends BaseResponseHandler {
     
     private final CommandSender sender;
-    
+
     public ConsoleResponseHandler(CommandSender sender) {
         this.sender = sender;
     }
     
     @Override
     public UUID getPlayerId() {
-        return null; // 控制台没有 UUID
+        // 控制台专用 UUID
+        return UUID.fromString("00000000-0000-0000-0000-000000000000");
     }
     
     @Override

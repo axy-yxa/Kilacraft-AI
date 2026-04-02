@@ -4,7 +4,7 @@ import com.zm.kilacraftAI.compat.globalmarketplus.GlobalMarketPlusAPI;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.config.SkillConfig;
+import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import org.bukkit.entity.Player;
@@ -25,44 +25,29 @@ import java.util.concurrent.CompletableFuture;
  */
 public class MarketQuerySkill implements Skill {
 
-    private final SkillConfig config;
+    private final SkillConfigManager configManager;
 
     public MarketQuerySkill() {
-        // 从配置管理器加载配置
-        SkillConfigManager configManager = SkillConfigManager.getInstance();
-        this.config = configManager != null ? configManager.getSkillConfig("globalmarketplus", "MarketQuerySkill") : null;
-
-        // 如果配置不存在，保存默认配置
-        if (this.config == null && configManager != null) {
-            saveDefaultConfig(configManager);
+        // 获取配置管理器实例
+        this.configManager = SkillConfigManager.getInstance();
+        
+        // 如果配置不存在，保存默认配置并动态加载
+        if (configManager != null && configManager.getSkillConfig("globalmarketplus", "MarketQuerySkill") == null) {
+            // 保存默认配置到磁盘
+            configManager.saveDefaultSkillConfig("globalmarketplus", "MarketQuerySkill");
+            // 从磁盘动态加载配置到内存
+            configManager.loadSingleSkillConfig("globalmarketplus", "MarketQuerySkill");
         }
     }
-
+    
     /**
-     * 保存默认配置文件
+     * 获取当前最新的技能配置（支持热重载）
      */
-    private void saveDefaultConfig(SkillConfigManager configManager) {
-        // 使用 LinkedHashMap 保持插入顺序
-        Map<String, String> actionDescriptions = new LinkedHashMap<>();
-        actionDescriptions.put("query_balance", "查询玩家账户余额，当用户问'我有多少钱'时使用");
-        actionDescriptions.put("query_price", "查询指定物品的市场价格，当用户问'钻石多少钱'时使用");
-        actionDescriptions.put("query_items", "查询市场上架的商品列表，当用户问'市场上有什么'时使用");
-
-        // 使用 LinkedHashMap 保持插入顺序
-        Map<String, String> responseMessages = new LinkedHashMap<>();
-        responseMessages.put("unknown_action", "抱歉，我还不会查询其他市场信息。你可以问我：'我的余额是多少'、'市场上有什么商品'等");
-        responseMessages.put("query_error", "查询失败：{error}");
-        responseMessages.put("balance_not_player", "请在游戏中使用此功能");
-        responseMessages.put("balance_api_error", "无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装");
-        responseMessages.put("balance_success", "§f你的余额为：§a${balance}");
-        responseMessages.put("price_no_item", "请指定要查询的物品名称，例如：'钻石的价格'");
-        responseMessages.put("price_not_found", "未找到物品 '{item}' 的价格信息");
-        responseMessages.put("price_success", "§f{item} 当前价格：§a${price}");
-        responseMessages.put("items_empty", "§f市场上暂无商品");
-        responseMessages.put("items_header", "§f市场商品列表:\n");
-        responseMessages.put("items_format", "§7- ");
-
-        configManager.saveDefaultSkillConfig("globalmarketplus", "MarketQuerySkill", "查询全球市场插件信息，包括玩家余额、市场价格、商品列表等只读操作。当用户询问金钱、余额、物价、商品价格、市场有什么物品时使用此技能。", actionDescriptions, responseMessages);
+    private SkillConfig getConfig() {
+        if (configManager == null) {
+            return null;
+        }
+        return configManager.getSkillConfig("globalmarketplus", "MarketQuerySkill");
     }
 
     @Override
@@ -73,15 +58,29 @@ public class MarketQuerySkill implements Skill {
     @Override
     public String getDescription() {
         // 优先使用配置文件中的描述，如果没有则使用默认值
+        SkillConfig config = getConfig();
         if (config != null && !config.getDescription().isEmpty()) {
             return config.getDescription();
         }
-        return "查询全球市场插件信息，包括玩家余额、市场价格、商品列表等只读操作。当用户询问金钱、余额、物价、商品价格、市场有什么物品时使用此技能。";
+        return null;
     }
 
     @Override
-    public SkillConfig getSkillConfig() {
-        return config;
+    public Map<String, String> getActions() {
+        SkillConfig config = getConfig();
+        if (config != null && config.getActionDescriptions() != null) {
+            return new LinkedHashMap<>(config.getActionDescriptions());
+        }
+        return java.util.Collections.emptyMap();
+    }
+
+    @Override
+    public List<String> getHints() {
+        SkillConfig config = getConfig();
+        if (config != null && config.getHints() != null && !config.getHints().isEmpty()) {
+            return new ArrayList<>(config.getHints());
+        }
+        return new ArrayList<>();
     }
 
     /**
@@ -92,6 +91,7 @@ public class MarketQuerySkill implements Skill {
      * @return 配置的消息或默认消息
      */
     protected String getResponseMessage(String key, String defaultMessage) {
+        SkillConfig config = getConfig();
         if (config != null && config.getResponseMessages() != null) {
             String message = config.getResponseMessages().get(key);
             if (message != null && !message.isEmpty()) {
