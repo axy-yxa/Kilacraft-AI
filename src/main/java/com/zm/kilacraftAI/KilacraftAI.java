@@ -1,6 +1,5 @@
 package com.zm.kilacraftAI;
 
-import com.zm.kilacraftAI.api.DeepSeekAPINew;
 import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
 import com.zm.kilacraftAI.config.ConfigManager;
@@ -11,6 +10,7 @@ import com.zm.kilacraftAI.listener.ChatListener;
 import com.zm.kilacraftAI.knowledge.KnowledgeBaseManager;
 import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
 import com.zm.kilacraftAI.manager.ConversationManager;
+import com.zm.kilacraftAI.manager.LLMManager;
 import com.zm.kilacraftAI.compat.mythicmobs.MythicMobsPlaceholderManager;
 import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
@@ -38,8 +38,6 @@ public final class KilacraftAI extends JavaPlugin {
     private PersonalitiesConfigManager personalitiesConfigManager;
     @Getter
     private SkillConfigManager skillConfigManager;
-    @Getter
-    private DeepSeekAPINew deepSeekAPI;
     private ChatListener chatListener;
     private ConversationManager conversationManager;
     private KnowledgeBaseManager knowledgeBase;
@@ -47,6 +45,8 @@ public final class KilacraftAI extends JavaPlugin {
     private MythicMobsPlaceholderManager placeholderManager;
     private SkillManager skillManager;
     private SkillIntentRecognizer intentRecognizer;
+    @Getter
+    private LLMManager llmManager;
     private ItemTranslator itemTranslator;
 
     @Override
@@ -61,12 +61,13 @@ public final class KilacraftAI extends JavaPlugin {
         languageManager = new LanguageManager(this);
         personalitiesConfigManager = new PersonalitiesConfigManager(this);
         conversationManager = new ConversationManager();
-        deepSeekAPI = new DeepSeekAPINew(configManager);
-        chatListener = new ChatListener(this);
 
         // 初始化知识库管理器
         knowledgeBase = new KnowledgeBaseManager(this, getDataFolder().getAbsolutePath());
         knowledgeBase.loadAllKnowledge();
+        
+        // 初始化 LLM 管理器（优先级高，其他组件依赖它）
+        llmManager = new LLMManager();
 
         // 初始化知识检索器（从配置读取参数）
         int maxChunks = configManager.getMaxRelevantChunks();
@@ -74,6 +75,9 @@ public final class KilacraftAI extends JavaPlugin {
         int minChunkSize = configManager.getKnowledgeMinChunkSize();
         int chunkOverlap = configManager.getKnowledgeChunkOverlap();
         knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, maxChunks, maxChunkSize, minChunkSize, chunkOverlap);
+
+        // 初始化聊天监听器（需要在 LLM 管理器之后）
+        chatListener = new ChatListener(this);
 
         // 注册命令
         var command = getCommand("kilacraft");
@@ -111,7 +115,7 @@ public final class KilacraftAI extends JavaPlugin {
         registerDefaultSkills();
         
         // 初始化意图识别器
-        intentRecognizer = new SkillIntentRecognizer(deepSeekAPI, configManager, skillManager);
+        intentRecognizer = new SkillIntentRecognizer(llmManager.getCurrentProvider(), configManager, skillManager);
 
         // ASCII Art 启动标志
         getLogger().info("╻┏ ╻╻  ┏━┓┏━╸┏━┓┏━┓┏━╸╺┳╸   ┏━┓╻");
@@ -135,9 +139,9 @@ public final class KilacraftAI extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // 关闭 HTTP 连接池
-        if (deepSeekAPI != null) {
-            deepSeekAPI.shutdown();
+        // 关闭 LLM 管理器（包含所有提供商的连接池）
+        if (llmManager != null) {
+            llmManager.shutdownAll();
         }
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         getLogger().info("  Kilacraft-AI 已停止运行");

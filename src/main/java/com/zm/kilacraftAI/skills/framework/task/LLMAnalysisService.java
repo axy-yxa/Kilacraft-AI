@@ -1,7 +1,7 @@
 package com.zm.kilacraftAI.skills.framework.task;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.api.DeepSeekAPINew;
+import com.zm.kilacraftAI.api.LLMProvider;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
@@ -24,12 +24,12 @@ import java.util.concurrent.CompletableFuture;
 public class LLMAnalysisService {
 
     private final KilacraftAI plugin;
-    private final DeepSeekAPINew deepSeekAPI;
+    private final LLMProvider llmProvider;
     private final ConfigManager configManager;
 
     public LLMAnalysisService() {
         this.plugin = KilacraftAI.getInstance();
-        this.deepSeekAPI = plugin.getDeepSeekAPI();
+        this.llmProvider = plugin.getLlmManager().getCurrentProvider();
         this.configManager = plugin.getConfigManager();
     }
 
@@ -62,7 +62,7 @@ public class LLMAnalysisService {
         String enhancedPrompt = buildAnalysisPromptWithHistory(analysisPrompt, history);
 
         // 调用 LLM
-        deepSeekAPI.processRequestWithCustomSystemPrompt(enhancedPrompt, playerName, null, createAnalysisHandler(playerName, responseFuture), systemPrompt, false, false);
+        llmProvider.processRequestWithCustomSystemPrompt(enhancedPrompt, playerName, null, createAnalysisHandler(playerName, responseFuture), systemPrompt, false, false);
         return responseFuture.thenApply(SkillResult::success);
     }
 

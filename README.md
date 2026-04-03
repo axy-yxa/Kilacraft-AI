@@ -1,6 +1,6 @@
 # Kilacraft-AI
 
-> **🎉 v1.3.5 重大更新**：历史对话上下文增强！新增意图识别和分析阶段的历史记录配置，优化 LLM 对连续对话的理解。详见 [更新日志](#-更新日志)
+> **🎉 v1.3.6 重大更新**：LLM 架构重构为通用 Provider！移除冗余代码，简化架构设计。详见 [更新日志](#-更新日志)
 
 一个功能强大的 Minecraft AI 对话插件，集成 DeepSeek AI，为服务器玩家提供智能交互体验。
 
@@ -9,6 +9,12 @@
 ### 🤖 AI Agent 核心能力
 - **LLM 意图识别引擎**：智能理解用户真实意图，自动路由到对应技能
 - **Skills 技能系统框架**：可扩展的 AI 技能执行框架，支持异步非阻塞执行
+- **通用 LLM Provider 架构（v1.3.6+）**：支持 OpenAI 标准 API 格式的 LLM 服务
+  - 配置驱动，通过 config.yml 即可切换不同 LLM 厂商
+  - 支持 DeepSeek、智谱 AI、Moonshot 等所有遵循 OpenAI 标准的 API
+  - HTTP 连接池优化，复用连接提升性能
+  - 流式响应支持，降低首字延迟
+  - 为未来扩展更多 LLM 提供商奠定基础
 - **Bukkit API 动态调用（v1.3.3+）**：基于数据驱动的原版 API 调用能力
   - 从 `apis.yml` 配置文件加载 API 定义，无需硬编码代码
   - 支持链式调用（method_chain）和并行调用（additional_methods）两种模式
@@ -70,13 +76,20 @@
 ### 核心配置 (config.yml)
 
 ```yaml
-# API 配置
+# LLM Provider 配置（v1.3.6+）
+# 通用 LLM Provider 架构，支持所有遵循 OpenAI 标准 API 格式的厂商
 api:
-  key: "your-deepseek-api-key"      # DeepSeek API 密钥（必填）
-  url: "https://api.deepseek.com/v1/chat/completions"
-  model: "deepseek-chat"              # 使用的模型
-  temperature: 0.7                    # 温度参数（0-2）
-  max_tokens: 1000                    # 最大回复长度
+  key: "your-api-key"              # LLM API 密钥（必填）
+  url: "https://api.deepseek.com/v1/chat/completions"  # API 地址
+  model: "deepseek-chat"            # 使用的模型名称
+  temperature: 0.7                  # 温度参数（0-2，越高越随机）
+  max_tokens: 1000                  # 最大回复长度（Token 数）
+  
+  # 支持的 LLM 厂商示例：
+  # - DeepSeek: https://api.deepseek.com/v1/chat/completions
+  # - 智谱 AI: https://open.bigmodel.cn/api/paas/v4/chat/completions
+  # - Moonshot: https://api.moonshot.cn/v1/chat/completions
+  # 只需修改 url 和 model 即可切换不同厂商
 
 # 插件设置
 settings:
@@ -121,6 +134,28 @@ knowledge:
     min_size: 25                      # 每个片段最小字符数（小于此值的片段会被忽略）
     overlap: 30                       # 片段重叠字符数（保持上下文连贯性）
 ```
+
+#### API 配置说明
+
+**通用 LLM Provider 架构（v1.3.6+）**：
+- 配置驱动，通过修改 `url` 和 `model` 即可切换不同 LLM 厂商
+- 支持所有遵循 **OpenAI 标准 API 格式** 的服务商
+- HTTP 连接池优化，自动重试机制
+- 流式响应支持，降低首字延迟
+
+**常用 LLM 厂商配置**：
+
+| 厂商 | API URL | 推荐模型 |
+|------|---------|----------|
+| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-chat` |
+| 智谱 AI | `https://open.bigmodel.cn/api/paas/v4/chat/completions` | `glm-4` |
+| Moonshot | `https://api.moonshot.cn/v1/chat/completions` | `moonshot-v1-8k` |
+
+**切换 LLM 厂商步骤**：
+1. 修改 `api.url` 为目标厂商的 API 地址
+2. 修改 `api.model` 为目标厂商的模型名称
+3. 确保 `api.key` 填写正确的 API 密钥
+4. 使用 `/kilacraft reload` 重载配置（或重启服务器）
 
 ### 语言配置 (language.yml)
 
@@ -538,6 +573,74 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - 检查玩家是否有相应权限
 
 ## 📝 更新日志
+
+### v1.3.6 - 通用 LLM Provider 架构 🚀
+
+**核心升级**：引入通用 LLM Provider 架构，支持通过配置切换不同 LLM 厂商（DeepSeek、智谱 AI 等）！
+
+#### 🎯 核心特性
+
+- ✅ **LLMProvider 接口**（新增）：
+  - 统一的 LLM 提供商标准接口
+  - 定义核心方法：`processRequest`、`refreshConfigCache`、`shutdown`
+  - 支持异步非阻塞请求处理
+  - 为未来扩展更多 LLM 厂商奠定基础
+
+- ✅ **GenericLLMProvider 实现**（新增）：
+  - 通用 LLM 提供商实现，支持所有遵循 OpenAI 标准 API 格式的厂商
+  - 配置驱动，通过 config.yml 即可切换不同 LLM 服务
+  - HTTP 连接池优化，复用连接提升性能
+  - 流式响应支持，降低首字延迟
+  - 自动重试机制，增强稳定性
+
+- ✅ **LLMManager 管理器**（新增）：
+  - 统一管理 LLM Provider 的生命周期
+  - 支持配置热重载，无需重启插件
+  - 简洁的 API 封装，便于其他模块调用
+
+- ✅ **架构优势**：
+  - **解耦设计**：LLM 实现与业务逻辑完全分离
+  - **可扩展性**：未来可轻松添加新的 Provider 实现（如 ClaudeProvider、GeminiProvider）
+  - **配置灵活**：只需修改配置即可切换 LLM 服务商
+  - **向后兼容**：现有功能完全兼容，不影响已有配置
+
+#### 🔧 技术实现
+
+- ✅ **代码架构重构**：
+  - 从硬编码的 DeepSeekAPI 迁移到通用 Provider 架构
+  - 删除旧的 `DeepSeekAPI.java` 和 `DeepSeekAPINew.java`
+  - 新增 `api/LLMProvider.java` 接口
+  - 新增 `api/provider/GenericLLMProvider.java` 实现
+  - 新增 `manager/LLMManager.java` 管理器
+
+- ✅ **HTTP 客户端优化**：
+  - 预分配连接池（最大空闲连接数=10，保持时间=5 分钟）
+  - 超时配置优化（连接=30s, 读取=60s, 写入=30s）
+  - 自动重试失败连接
+  - 流式读取使用 BufferedReader 逐行处理
+
+- ✅ **配置缓存机制**：
+  - 缓存 API Key、URL、Model 等配置值
+  - 减少重复获取配置的开销
+  - 支持动态刷新配置缓存
+
+#### 📦 修改文件
+
+- `src/main/java/com/zm/kilacraftAI/api/LLMProvider.java` - 新增通用接口
+- `src/main/java/com/zm/kilacraftAI/api/provider/GenericLLMProvider.java` - 新增通用实现
+- `src/main/java/com/zm/kilacraftAI/manager/LLMManager.java` - 新增管理器
+- ~~`src/main/java/com/zm/kilacraftAI/api/DeepSeekAPI.java`~~ - 删除旧实现
+- ~~`src/main/java/com/zm/kilacraftAI/api/DeepSeekAPINew.java`~~ - 删除旧实现
+- `src/main/resources/plugin.yml` - 移除废弃的 `/llm` 命令及权限
+
+#### ⚙️ 影响范围
+
+- **配置变更**：config.yml 中的 `api.*` 配置项现在由 GenericLLMProvider 统一管理
+- **性能提升**：HTTP 连接池优化减少连接建立开销
+- **维护性提升**：清晰的职责划分，代码更易维护和扩展
+- **兼容性**：现有功能完全兼容，无需修改配置
+
+---
 
 ### v1.3.5 - 历史对话上下文增强 🚀
 

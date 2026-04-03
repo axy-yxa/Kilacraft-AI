@@ -177,7 +177,7 @@ public class AIRequestHandler {
             handler = new ConsoleResponseHandler(getSenderFromContext(ctx));
         }
 
-        plugin.getDeepSeekAPI().processRequest(message, ctx.name(), ctx.history(), handler).thenAccept(fullResponse -> {
+        plugin.getLlmManager().getCurrentProvider().processRequest(message, ctx.name(), ctx.history(), handler).thenAccept(fullResponse -> {
             if (plugin.getConfigManager().isDebugMode()) {
                 plugin.getLogger().info("[DEBUG] AI请求完成：" + fullResponse);
             }

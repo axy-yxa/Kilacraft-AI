@@ -18,12 +18,6 @@ public class ConfigManager {
 
     private final JavaPlugin plugin;
     @Getter
-    private String apiKey;
-    @Getter
-    private String apiUrl;
-    @Getter
-    private String model;
-    @Getter
     private double temperature;
     @Getter
     private int maxTokens;
@@ -81,6 +75,14 @@ public class ConfigManager {
     private String agentSystemPrompt;         // LLM 意图识别系统提示词
     @Getter
     private String agentAnalysisPrompt;       // LLM 分析执行结果提示词
+    
+    // LLM 提供商配置（通用）
+    @Getter
+    private String llmApiKey;                  // LLM API 密钥
+    @Getter
+    private String llmApiUrl;                  // LLM API 地址
+    @Getter
+    private String llmModel;                   // LLM 模型名称
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -92,12 +94,9 @@ public class ConfigManager {
         plugin.reloadConfig();
         FileConfiguration config = plugin.getConfig();
     
-        // API 配置
-        this.apiKey = config.getString("api.key", "sk-afbe212f24ca4014bcb8f6a152904677");
-        this.apiUrl = config.getString("api.url", "https://api.deepseek.com/v1/chat/completions");
-        this.model = config.getString("api.model", "deepseek-chat");
-        this.temperature = config.getDouble("api.temperature", 0.7);
-        this.maxTokens = config.getInt("api.max_tokens", 1000);
+        // 通用配置
+        this.temperature = config.getDouble("llm.temperature", 0.7);
+        this.maxTokens = config.getInt("llm.max_tokens", 1000);
     
         // 插件设置
         this.debugMode = config.getBoolean("settings.debug_mode", false);
@@ -142,18 +141,23 @@ public class ConfigManager {
         this.agentSystemPrompt = config.getString("agent.prompts.system_prompt", "");
         this.agentAnalysisPrompt = config.getString("agent.prompts.analysis_prompt", "");
             
-        // 通知 DeepSeekAPI 刷新配置缓存
-        refreshAPICache();
+        // LLM 提供商配置（通用）
+        this.llmApiKey = config.getString("llm.api_key", "");
+        this.llmApiUrl = config.getString("llm.api_url", "https://api.deepseek.com/v1/chat/completions");
+        this.llmModel = config.getString("llm.model", "deepseek-chat");
+            
+        // 通知 LLM 管理器刷新配置缓存
+        refreshLLMConfigCache();
     }
         
     /**
-     * 刷新 API 配置缓存（由 DeepSeekAPI 使用）
+     * 刷新 LLM 配置缓存
      */
-    private void refreshAPICache() {
+    public void refreshLLMConfigCache() {
         try {
             com.zm.kilacraftAI.KilacraftAI plugin = com.zm.kilacraftAI.KilacraftAI.getInstance();
-            if (plugin != null && plugin.getDeepSeekAPI() != null) {
-                plugin.getDeepSeekAPI().refreshConfigCache();
+            if (plugin != null && plugin.getLlmManager() != null) {
+                plugin.getLlmManager().refreshProviderConfig();
             }
         } catch (Exception e) {
             // 忽略异常，避免配置加载失败

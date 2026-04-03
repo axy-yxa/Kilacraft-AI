@@ -1,6 +1,6 @@
 # Kilacraft-AI
 
-> **🎉 v1.3.5 Major Update**: Enhanced historical conversation context! New history configuration for intent recognition and analysis stages, optimizing LLM's understanding of continuous conversations. See [Changelog](#-changelog)
+> **🎉 v1.3.6 Major Update**: LLM architecture refactored to Generic Provider! Code cleanup and architecture simplification. See [Changelog](#-changelog)
 
 A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intelligent interactive experiences for server players.
 
@@ -9,6 +9,12 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
 ### 🤖 AI Agent Core Capabilities
 - **LLM Intent Recognition Engine**: Intelligently understands user's true intentions and routes to corresponding skills
 - **Skills System Framework**: Extensible AI skill execution framework with async non-blocking support
+- **Generic LLM Provider Architecture (v1.3.6+)**: Supports LLM services following OpenAI standard API format
+  - Configuration-driven, switch between different LLM vendors via config.yml
+  - Supports DeepSeek, Zhipu AI, Moonshot, and all APIs following OpenAI standards
+  - HTTP connection pool optimization for improved performance
+  - Streaming response support with reduced first-token latency
+  - Foundation for future expansion to more LLM providers
 - **Bukkit API Dynamic Invocation (v1.3.3+)**: Data-driven vanilla API calling capability
   - Load API definitions from `apis.yml` configuration file, no hardcoding required
   - Supports method_chain and additional_methods invocation patterns
@@ -70,13 +76,20 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
 ### Core Configuration (config.yml)
 
 ```yaml
-# API Configuration
+# LLM Provider Configuration (v1.3.6+)
+# Generic LLM Provider architecture, supports all vendors following OpenAI standard API format
 api:
-  key: "your-deepseek-api-key"      # DeepSeek API key (required)
-  url: "https://api.deepseek.com/v1/chat/completions"
-  model: "deepseek-chat"              # Model to use
-  temperature: 0.7                    # Temperature parameter (0-2)
-  max_tokens: 1000                    # Maximum response length
+  key: "your-api-key"              # LLM API key (required)
+  url: "https://api.deepseek.com/v1/chat/completions"  # API endpoint
+  model: "deepseek-chat"            # Model name to use
+  temperature: 0.7                  # Temperature parameter (0-2, higher = more random)
+  max_tokens: 1000                  # Maximum response length (tokens)
+  
+  # Supported LLM vendor examples:
+  # - DeepSeek: https://api.deepseek.com/v1/chat/completions
+  # - Zhipu AI: https://open.bigmodel.cn/api/paas/v4/chat/completions
+  # - Moonshot: https://api.moonshot.cn/v1/chat/completions
+  # Just modify url and model to switch between different vendors
 
 # Plugin Settings
 settings:
@@ -102,11 +115,11 @@ messages:
 agent:
   enabled: true                       # Master switch (highest priority)
   enable_chat_listener: true          # Enable Agent for ChatListener entry
-  enable_command: true                # Enable Agent for KilaccraftCommand entry
+  enable_command: true                # Enable Agent for KilacraftCommand entry
   
   # Historical Conversation Context (v1.3.5+)
-  intent_history_count: 5             # Number of historical conversation turns for intent recognition
-  analysis_history_count: 2           # Number of historical conversation turns for result analysis
+  intent_history_count: 5           # Number of historical turns for intent recognition
+  analysis_history_count: 2         # Number of historical turns for result analysis
   
   prompts:
     system_prompt: "You are a professional Minecraft game assistant..."
@@ -114,9 +127,35 @@ agent:
 
 # Knowledge Base Configuration
 knowledge:
-  enabled: true                       # Enable knowledge base
-  max_relevant_chunks: 3              # Maximum relevant chunks
+  enabled: true                     # Enable knowledge base
+  max_relevant_chunks: 3            # Maximum relevant chunks
+  segment:                          # Knowledge base segmentation configuration
+    max_size: 500                   # Max characters per segment (will split further if exceeded)
+    min_size: 25                    # Min characters per segment (segments smaller than this will be ignored)
+    overlap: 30                     # Overlap characters between segments (maintains context coherence)
 ```
+
+#### API Configuration Details
+
+**Generic LLM Provider Architecture (v1.3.6+)**:
+- Configuration-driven, switch between different LLM vendors by modifying `url` and `model`
+- Supports all vendors following **OpenAI standard API format**
+- HTTP connection pool optimization with auto-retry mechanism
+- Streaming response support with reduced first-token latency
+
+**Common LLM Vendor Configurations**:
+
+| Vendor | API URL | Recommended Model |
+|--------|---------|-------------------|
+| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-chat` |
+| Zhipu AI | `https://open.bigmodel.cn/api/paas/v4/chat/completions` | `glm-4` |
+| Moonshot | `https://api.moonshot.cn/v1/chat/completions` | `moonshot-v1-8k` |
+
+**Steps to Switch LLM Vendor**:
+1. Modify `api.url` to target vendor's API endpoint
+2. Modify `api.model` to target vendor's model name
+3. Ensure `api.key` contains the correct API key
+4. Use `/kilacraft reload` to reload configuration (or restart server)
 
 ### Language Configuration (language.yml)
 
@@ -534,6 +573,74 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - Check if player has appropriate permissions
 
 ## 📝 Changelog
+
+### v1.3.6 - Generic LLM Provider Architecture 🚀
+
+**Core Upgrade**: Introduced generic LLM Provider architecture, supporting configuration-based switching between different LLM vendors (DeepSeek, Zhipu AI, etc.)!
+
+#### 🎯 Core Features
+
+- ✅ **LLMProvider Interface** (NEW):
+  - Unified standard interface for LLM providers
+  - Defines core methods: `processRequest`, `refreshConfigCache`, `shutdown`
+  - Supports async non-blocking request processing
+  - Lays foundation for future expansion to more LLM vendors
+
+- ✅ **GenericLLMProvider Implementation** (NEW):
+  - Generic LLM provider implementation supporting all vendors following OpenAI standard API format
+  - Configuration-driven, switch between different LLM services via config.yml
+  - HTTP connection pool optimization for improved performance
+  - Streaming response support with reduced first-token latency
+  - Auto-retry mechanism for enhanced stability
+
+- ✅ **LLMManager** (NEW):
+  - Unified management of LLM Provider lifecycle
+  - Supports configuration hot-reload without plugin restart
+  - Clean API encapsulation for easy module invocation
+
+- ✅ **Architecture Advantages**:
+  - **Decoupled Design**: Complete separation between LLM implementation and business logic
+  - **Extensibility**: Easy to add new Provider implementations in the future (e.g., ClaudeProvider, GeminiProvider)
+  - **Flexible Configuration**: Switch LLM provider by modifying configuration only
+  - **Backward Compatible**: Existing features remain fully compatible
+
+#### 🔧 Technical Implementation
+
+- ✅ **Code Architecture Refactoring**:
+  - Migrated from hardcoded DeepSeekAPI to generic Provider architecture
+  - Deleted old `DeepSeekAPI.java` and `DeepSeekAPINew.java`
+  - Added `api/LLMProvider.java` interface
+  - Added `api/provider/GenericLLMProvider.java` implementation
+  - Added `manager/LLMManager.java` manager
+
+- ✅ **HTTP Client Optimization**:
+  - Pre-allocated connection pool (max idle connections=10, keep-alive=5 minutes)
+  - Optimized timeout configuration (connect=30s, read=60s, write=30s)
+  - Auto-retry failed connections
+  - Stream reading using BufferedReader line-by-line processing
+
+- ✅ **Configuration Cache Mechanism**:
+  - Caches API Key, URL, Model, and other configuration values
+  - Reduces overhead of repeated configuration retrieval
+  - Supports dynamic configuration cache refresh
+
+#### 📦 Modified Files
+
+- `src/main/java/com/zm/kilacraftAI/api/LLMProvider.java` - Added generic interface
+- `src/main/java/com/zm/kilacraftAI/api/provider/GenericLLMProvider.java` - Added generic implementation
+- `src/main/java/com/zm/kilacraftAI/manager/LLMManager.java` - Added manager
+- ~~`src/main/java/com/zm/kilacraftAI/api/DeepSeekAPI.java`~~ - Removed old implementation
+- ~~`src/main/java/com/zm/kilacraftAI/api/DeepSeekAPINew.java`~~ - Removed old implementation
+- `src/main/resources/plugin.yml` - Removed deprecated `/llm` command and permissions
+
+#### ⚙️ Impact Scope
+
+- **Configuration Changes**: `api.*` configuration items in config.yml are now managed by GenericLLMProvider
+- **Performance Improvement**: HTTP connection pool optimization reduces connection establishment overhead
+- **Maintainability Improvement**: Clear responsibility separation, easier code maintenance and extension
+- **Compatibility**: Existing features remain fully compatible, no configuration changes needed
+
+---
 
 ### v1.3.5 - Enhanced Historical Conversation Context 🚀
 

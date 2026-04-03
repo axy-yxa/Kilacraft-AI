@@ -7,7 +7,6 @@ import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.AIRequestHandler;
-import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.util.AIRequestValidator;
@@ -104,6 +103,12 @@ public class KilacraftCommand implements CommandExecutor {
             if (plugin.getSkillConfigManager() != null) {
                 plugin.getSkillConfigManager().reloadAllConfigs();
                 sender.sendMessage("§a已重新加载技能配置文件");
+            }
+
+            // 热重载 LLM 提供商配置缓存
+            if (plugin.getLlmManager() != null) {
+                plugin.getLlmManager().refreshProviderConfig();
+                sender.sendMessage("§a已重新加载 LLM 提供商配置");
             }
 
             sender.sendMessage(languageManager.getCommandReloadSuccess());
@@ -394,7 +399,7 @@ public class KilacraftCommand implements CommandExecutor {
         }
 
         // 使用统一的 API 处理请求（传入人格提示词）
-        plugin.getDeepSeekAPI().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt).thenAccept(fullResponse -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt).thenAccept(fullResponse -> {
             // 保存对话到历史记录（隔离的），并保存到最新回复缓存
             validator.saveToHistory(pluginHistory, message, fullResponse, targetPlayerId, personality);
 

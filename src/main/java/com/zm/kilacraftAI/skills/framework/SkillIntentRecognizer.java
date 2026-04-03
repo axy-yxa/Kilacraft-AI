@@ -3,7 +3,7 @@ package com.zm.kilacraftAI.skills.framework;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.api.DeepSeekAPINew;
+import com.zm.kilacraftAI.api.LLMProvider;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.IntentRecognitionResponseHandler;
@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture;
 public class SkillIntentRecognizer {
 
     private final KilacraftAI plugin = KilacraftAI.getInstance();
-    private final DeepSeekAPINew deepSeekAPI;
+    private final LLMProvider llmProvider;
     private final ConfigManager configManager;
     private final Gson gson;
     private final SkillManager skillManager; // 用于获取所有技能的描述
@@ -165,8 +165,8 @@ public class SkillIntentRecognizer {
         return sb.toString();
     }
 
-    public SkillIntentRecognizer(DeepSeekAPINew deepSeekAPI, ConfigManager configManager, SkillManager skillManager) {
-        this.deepSeekAPI = deepSeekAPI;
+    public SkillIntentRecognizer(LLMProvider llmProvider, ConfigManager configManager, SkillManager skillManager) {
+        this.llmProvider = llmProvider;
         this.configManager = configManager;
         this.gson = new Gson();
         this.skillManager = skillManager;
@@ -180,7 +180,7 @@ public class SkillIntentRecognizer {
      * @return 识别结果（可能是 SkillIntent 或 TaskPlan，异步）
      */
     public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history) {
-        if (configManager == null || deepSeekAPI == null) {
+        if (configManager == null || llmProvider == null) {
             return CompletableFuture.completedFuture(null);
         }
 
@@ -198,7 +198,7 @@ public class SkillIntentRecognizer {
 //        }
 
         // 调用 LLM 进行意图识别（禁用知识检索，因为意图识别是分类任务，不需要知识增强）
-        return deepSeekAPI.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, systemPrompt, false, false).thenApply(this::parseIntentFromResponse);
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, systemPrompt, false, false).thenApply(this::parseIntentFromResponse);
     }
 
     /**
