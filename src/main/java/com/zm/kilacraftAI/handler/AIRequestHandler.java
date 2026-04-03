@@ -136,7 +136,7 @@ public class AIRequestHandler {
                 if (plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().info("[DEBUG] 技能执行成功");
                 }
-                String summary = "用户问题：" + message + "\n\n执行结果：\n- " + execResult.getMessage() + "\n";
+                String summary = "用户说：" + message + "\n\n[执行结果]\n- " + execResult.getMessage();
                 return analysisService.analyzeResult(summary, context, ctx.history());
             } else {
                 return CompletableFuture.completedFuture(execResult);

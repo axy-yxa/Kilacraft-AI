@@ -159,4 +159,13 @@ public class ConfigManager {
             // 忽略异常，避免配置加载失败
         }
     }
+
+    /**
+     * 将配置的轮数转换为实际的消息数量（1轮=2条消息）
+     * @param rounds 轮数
+     * @return 实际消息数量
+     */
+    public int getHistoryMessageCount(int rounds) {
+        return Math.max(0, rounds * 2);
+    }
 }

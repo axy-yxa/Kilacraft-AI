@@ -10,6 +10,7 @@ import com.zm.kilacraftAI.handler.impl.IntentRecognitionResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import com.zm.kilacraftAI.skills.framework.task.TaskStep;
+import com.zm.kilacraftAI.util.HistoryUtil;
 
 import java.util.Deque;
 import java.util.HashMap;
@@ -203,25 +204,9 @@ public class SkillIntentRecognizer {
     private String buildUserPrompt(String userInput, Deque<ConversationManager.Message> history) {
         StringBuilder prompt = new StringBuilder();
 
-        // 添加聊天历史
+        // 添加对话历史
         if (history != null && !history.isEmpty()) {
-            prompt.append("[聊天历史]\n");
-            int count = 0;
-            // 使用配置化的历史对话数
-            int maxHistoryCount = configManager.getAgentIntentHistoryCount();
-            for (ConversationManager.Message msg : history) {
-                if (count++ >= maxHistoryCount) break;
-
-                // 根据角色显示不同的标识
-                String roleDisplay = switch (msg.getRole()) {
-                    case "user" -> "用户";
-                    case "assistant" -> "AI";
-                    default -> msg.getRole();
-                };
-
-                prompt.append("-").append(roleDisplay).append(": ").append(msg.getContent()).append("\n");
-            }
-            prompt.append("\n");
+            prompt.append(HistoryUtil.buildHistoryDisplay(history, configManager, configManager.getAgentIntentHistoryCount()));
         }
 
         // 添加当前输入
@@ -230,7 +215,6 @@ public class SkillIntentRecognizer {
 
         // 添加指令
         prompt.append("请分析用户想要使用什么技能，并返回 JSON 格式的识别结果。");
-
         return prompt.toString();
     }
 

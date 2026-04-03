@@ -7,6 +7,7 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.util.HistoryUtil;
 
 import java.util.Deque;
 import java.util.UUID;
@@ -62,7 +63,6 @@ public class LLMAnalysisService {
 
         // 调用 LLM
         deepSeekAPI.processRequestWithCustomSystemPrompt(enhancedPrompt, playerName, null, createAnalysisHandler(playerName, responseFuture), systemPrompt, false, false);
-
         return responseFuture.thenApply(SkillResult::success);
     }
 
@@ -70,33 +70,16 @@ public class LLMAnalysisService {
      * 构建带历史上下文的分析提示词
      */
     private String buildAnalysisPromptWithHistory(String analysisPrompt, Deque<ConversationManager.Message> history) {
+        String prefix = "[当前输入]\n";
         if (history == null || history.isEmpty()) {
-            return analysisPrompt;
+            return prefix + analysisPrompt;
         }
 
         int historyCount = configManager.getAgentAnalysisHistoryCount();
         if (historyCount <= 0) {
-            return analysisPrompt;
+            return prefix + analysisPrompt;
         }
-
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("[对话历史]\n");
-
-        int count = 0;
-        for (ConversationManager.Message msg : history) {
-            if (count++ >= historyCount) break;
-
-            String roleDisplay = switch (msg.getRole()) {
-                case "user" -> "用户";
-                case "assistant" -> "AI";
-                default -> msg.getRole();
-            };
-
-            prompt.append("-").append(roleDisplay).append(": ").append(msg.getContent()).append("\n");
-        }
-        prompt.append("\n").append(analysisPrompt);
-
-        return prompt.toString();
+        return HistoryUtil.buildHistoryDisplay(history, configManager, historyCount) + prefix + analysisPrompt;
     }
 
     /**
