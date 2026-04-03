@@ -1,6 +1,6 @@
 # Kilacraft-AI
 
-> **🎉 v1.3.4 Major Update**: MarketQuerySkill capabilities expanded! New item availability query, my items, mailbox query, market stats, optimized multi-step task intent recognition & data passing. See [Changelog](#-changelog)
+> **🎉 v1.3.5 Major Update**: Enhanced historical conversation context! New history configuration for intent recognition and analysis stages, optimizing LLM's understanding of continuous conversations. See [Changelog](#-changelog)
 
 A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intelligent interactive experiences for server players.
 
@@ -103,6 +103,11 @@ agent:
   enabled: true                       # Master switch (highest priority)
   enable_chat_listener: true          # Enable Agent for ChatListener entry
   enable_command: true                # Enable Agent for KilaccraftCommand entry
+  
+  # Historical Conversation Context (v1.3.5+)
+  intent_history_count: 5             # Number of historical conversation turns for intent recognition
+  analysis_history_count: 2           # Number of historical conversation turns for result analysis
+  
   prompts:
     system_prompt: "You are a professional Minecraft game assistant..."  # System prompt for result analysis
     analysis_prompt: "Please provide comprehensive analysis...\n\n{results}\n\nPlease reply to the player in a concise and friendly manner."
@@ -491,6 +496,112 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - Check if player has appropriate permissions
 
 ## 📝 Changelog
+
+### v1.3.5 - Enhanced Historical Conversation Context 🚀
+
+**Core Upgrade**: LLM intent recognition and result analysis stages now fully support historical conversation context, improving continuous conversation understanding!
+
+#### 🎯 Core Features
+
+- ✅ **Historical Conversation Context Configuration**:
+  - **intent_history_count**: Number of historical conversation turns for intent recognition stage (default: 5)
+    - Helps LLM understand referential expressions like "check that item again"
+    - Larger values provide richer context but consume more tokens
+    - Recommended value: 3-5 turns
+  - **analysis_history_count**: Number of historical conversation turns for result analysis stage (default: 2)
+    - Allows LLM to reference conversation history when analyzing skill execution results
+    - Makes final responses more natural and contextually relevant
+    - Recommended value: 1-2 turns, minimal history is sufficient for most scenarios
+
+- ✅ **HistoryUtil Utility Class**:
+  - Unified history record formatting logic
+  - Configurable turn count conversion
+  - Automatic extraction of recent N turns
+  - Clear conversation history display format
+
+- ✅ **LLMAnalysisService Optimization**:
+  - Integrated historical conversation into analysis prompts
+  - Dynamic construction of complete context including history
+  - Optimized prompt template structure
+
+- ✅ **SkillIntentRecognizer Optimization**:
+  - Hidden debug logs for dynamic system prompt construction
+  - Cleaner console output
+
+- ✅ **ConfigManager Enhancement**:
+  - Added `getAgentIntentHistoryCount()` method
+  - Added `getAgentAnalysisHistoryCount()` method
+  - Configuration file automatically supports new parameters
+
+#### 🔧 Technical Implementation
+
+- ✅ **Code Architecture Refactoring**:
+  - Extracted history formatting logic to `HistoryUtil` utility class
+  - Simplified history processing in `LLMAnalysisService`
+  - Optimized response summary format in `AIRequestHandler`
+  - Reduced redundant logging in `SkillIntentRecognizer`
+
+- ✅ **Prompt Optimization**:
+  - Adjusted `analysis_prompt` template to integrate history and current input
+  - More natural conversation flow, LLM can understand contextual relationships
+  - Clear documentation of history usage and scenarios in configuration
+
+#### 📦 Modified Files
+
+- `src/main/java/com/zm/kilacraftAI/config/ConfigManager.java` - Added history configuration methods
+- `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java` - Optimized response summary format
+- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillIntentRecognizer.java` - Hidden debug logs
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/LLMAnalysisService.java` - Integrated history
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/TaskExecutor.java` - Code optimization
+- `src/main/java/com/zm/kilacraftAI/util/HistoryUtil.java` - New utility class
+- `src/main/resources/config.yml` - Added history configuration items
+- `src/main/resources/plugin.yml` - Version number update
+- `pom.xml` - Version number update
+
+#### ⚙️ Configuration Example
+
+```yaml
+agent:
+  enabled: true
+  enable_chat_listener: true
+  enable_command: true
+  
+  # Historical Conversation Context Configuration
+  intent_history_count: 5      # Use 5 turns of history for intent recognition
+  analysis_history_count: 2    # Use 2 turns of history for result analysis
+  
+  prompts:
+    system_prompt: "You are a professional Minecraft game assistant..."
+    analysis_prompt: "{results}\nBased on the conversation history, current input, and execution results above, provide comprehensive analysis and suggestions. Please reply to the player in a concise and friendly manner."
+```
+
+#### 🎮 Usage Examples
+
+**Without Historical Context**:
+```
+Player: Check diamond price
+AI: Diamond price is $100
+
+Player: Check that item again
+AI: ❌ Cannot understand what "that item" refers to
+```
+
+**With Historical Context** (intent_history_count=5):
+```
+Player: Check diamond price
+AI: Diamond price is $100
+
+Player: Check that item again
+AI: ✅ Do you mean diamond? Current price is $100
+```
+
+#### ⚠️ Compatibility Notes
+
+- Configuration file added `intent_history_count` and `analysis_history_count` entries
+- Recommended to backup and regenerate configuration file
+- Existing features remain fully compatible, new configurations are optional
+
+---
 
 ### v1.3.4 - MarketQuerySkill Expansion & Multi-Step Task Optimization 🚀
 

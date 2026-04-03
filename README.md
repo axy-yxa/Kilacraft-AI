@@ -1,6 +1,6 @@
 # Kilacraft-AI
 
-> **🎉 v1.3.4 重大更新**：MarketQuerySkill 能力扩展！新增商品在售查询、我的商品、邮箱查询、市场统计等功能，优化多步骤任务意图识别与数据传递。详见 [更新日志](#-更新日志)
+> **🎉 v1.3.5 重大更新**：历史对话上下文增强！新增意图识别和分析阶段的历史记录配置，优化 LLM 对连续对话的理解。详见 [更新日志](#-更新日志)
 
 一个功能强大的 Minecraft AI 对话插件，集成 DeepSeek AI，为服务器玩家提供智能交互体验。
 
@@ -103,6 +103,11 @@ agent:
   enabled: true                       # 总开关（优先级最高）
   enable_chat_listener: true          # ChatListener 入口是否启用 Agent
   enable_command: true                # KilacraftCommand 入口是否启用 Agent
+  
+  # 历史对话上下文配置（v1.3.5+）
+  intent_history_count: 5             # 意图识别时的历史对话轮数，用于理解连续对话意图
+  analysis_history_count: 2           # 结果分析时的历史对话轮数，使回复更自然
+  
   prompts:
     system_prompt: "你是一个专业的 Minecraft 游戏助手..."  # 结果分析的系统提示词
     analysis_prompt: "请根据以下任务执行结果...\n\n{results}\n\n请用简洁友好的语言回复玩家。"
@@ -495,6 +500,112 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - 检查玩家是否有相应权限
 
 ## 📝 更新日志
+
+### v1.3.5 - 历史对话上下文增强 🚀
+
+**核心升级**：LLM 意图识别和结果分析阶段全面支持历史对话上下文，提升连续对话理解能力！
+
+#### 🎯 核心特性
+
+- ✅ **历史对话上下文配置**：
+  - **intent_history_count**：意图识别阶段的历史对话轮数（默认 5 轮）
+    - 帮助 LLM 理解"再查一下那个物品"等指代性表达
+    - 值越大上下文越丰富，但 token 消耗也越高
+    - 建议值：3-5 轮
+  - **analysis_history_count**：结果分析阶段的历史对话轮数（默认 2 轮）
+    - 让 LLM 在分析技能执行结果时参考对话历史
+    - 使最终回复更自然、能关联上下文
+    - 建议值：1-2 轮，精简历史即可满足大部分场景
+
+- ✅ **HistoryUtil 工具类**：
+  - 统一的历史记录格式化逻辑
+  - 支持配置化的轮数转换
+  - 自动截取最近 N 轮对话
+  - 清晰的对话历史展示格式
+
+- ✅ **LLMAnalysisService 优化**：
+  - 集成历史对话到分析提示词
+  - 动态构建包含历史的完整上下文
+  - 优化提示词模板结构
+
+- ✅ **SkillIntentRecognizer 优化**：
+  - 隐藏动态构建系统提示词的调试日志
+  - 保持控制台输出清爽
+
+- ✅ **ConfigManager 增强**：
+  - 新增 `getAgentIntentHistoryCount()` 方法
+  - 新增 `getAgentAnalysisHistoryCount()` 方法
+  - 配置文件自动支持新参数
+
+#### 🔧 技术实现
+
+- ✅ **代码架构重构**：
+  - 提取历史对话格式化逻辑到 `HistoryUtil` 工具类
+  - `LLMAnalysisService` 简化历史处理逻辑
+  - `AIRequestHandler` 优化响应摘要格式
+  - `SkillIntentRecognizer` 减少冗余日志
+
+- ✅ **提示词优化**：
+  - `analysis_prompt` 模板调整，整合历史对话和当前输入
+  - 更自然的对话流程，LLM 能理解上下文关联
+  - 配置文件中明确历史记录的作用和使用场景
+
+#### 📦 修改文件
+
+- `src/main/java/com/zm/kilacraftAI/config/ConfigManager.java` - 新增历史记录配置方法
+- `src/main/java/com/zm/kilacraftAI/handler/AIRequestHandler.java` - 优化响应摘要格式
+- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillIntentRecognizer.java` - 隐藏调试日志
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/LLMAnalysisService.java` - 集成历史对话
+- `src/main/java/com/zm/kilacraftAI/skills/framework/task/TaskExecutor.java` - 代码优化
+- `src/main/java/com/zm/kilacraftAI/util/HistoryUtil.java` - 新增工具类
+- `src/main/resources/config.yml` - 新增历史记录配置项
+- `src/main/resources/plugin.yml` - 版本号更新
+- `pom.xml` - 版本号更新
+
+#### ⚙️ 配置示例
+
+```yaml
+agent:
+  enabled: true
+  enable_chat_listener: true
+  enable_command: true
+  
+  # 历史对话上下文配置
+  intent_history_count: 5      # 意图识别时使用 5 轮历史
+  analysis_history_count: 2    # 结果分析时使用 2 轮历史
+  
+  prompts:
+    system_prompt: "你是一个专业的 Minecraft 游戏助手..."
+    analysis_prompt: "{results}\n请根据以上对话历史、当前输入、执行结果，给出综合性的分析和建议，请用简洁友好的语言回复玩家。"
+```
+
+#### 🎮 使用效果
+
+**无历史对话时**：
+```
+玩家：查询钻石价格
+AI: 钻石价格为$100
+
+玩家：再查一下那个物品
+AI: ❌ 无法理解"那个物品"指什么
+```
+
+**有历史对话时**（intent_history_count=5）：
+```
+玩家：查询钻石价格
+AI: 钻石价格为$100
+
+玩家：再查一下那个物品
+AI: ✅ 您是指钻石吗？当前价格为$100
+```
+
+#### ⚠️ 兼容性说明
+
+- 配置文件新增 `intent_history_count` 和 `analysis_history_count` 项
+- 建议备份后重新生成配置文件
+- 现有功能完全兼容，新增配置为可选
+
+---
 
 ### v1.3.4 - MarketQuerySkill 能力扩展与多步骤任务优化 🚀
 
