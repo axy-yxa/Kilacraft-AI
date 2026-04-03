@@ -190,9 +190,9 @@ public class SkillIntentRecognizer {
         // 动态构建系统提示词
         String systemPrompt = buildSystemPrompt();
 
-        if (configManager.isDebugMode()) {
-            plugin.getLogger().warning("[DEBUG] 动态构建系统提示词：" + systemPrompt);
-        }
+//        if (configManager.isDebugMode()) {
+//            plugin.getLogger().warning("[DEBUG] 动态构建系统提示词：" + systemPrompt);
+//        }
 
         // 调用 LLM 进行意图识别（禁用知识检索，因为意图识别是分类任务，不需要知识增强）
         return deepSeekAPI.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, systemPrompt, false, false).thenApply(this::parseIntentFromResponse);
