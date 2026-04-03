@@ -21,12 +21,6 @@ public abstract class BaseResponseHandler implements AIResponseHandler {
     
     @Override
     public void showResponse(String response) {
-        // 调试模式日志
-        if (plugin != null && plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 收到 AI 响应，长度：" + response.length());
-        }
-        
-        // 使用配置的前缀显示 AI 响应
         sendMessage(MessageUtil.getAIPrefix() + response);
     }
     

@@ -143,6 +143,9 @@ public class AIRequestHandler {
             }
         }).thenAccept(finalResult -> {
             if (finalResult.isSuccess()) {
+                if (plugin.getConfigManager().isDebugMode()) {
+                    plugin.getLogger().info("[DEBUG] 技能执行完成：" + finalResult.getMessage());
+                }
                 ctx.sendResponse.accept(finalResult.getMessage());
                 validator.saveToHistory(ctx.history(), message, finalResult.getMessage());
             } else {
@@ -175,6 +178,9 @@ public class AIRequestHandler {
         }
 
         plugin.getDeepSeekAPI().processRequest(message, ctx.name(), ctx.history(), handler).thenAccept(fullResponse -> {
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().info("[DEBUG] AI请求完成：" + fullResponse);
+            }
             validator.saveToHistory(ctx.history(), message, fullResponse);
         }).exceptionally(throwable -> {
             ctx.sendError.accept(throwable.getMessage());
