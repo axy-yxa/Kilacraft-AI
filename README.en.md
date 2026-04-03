@@ -109,8 +109,8 @@ agent:
   analysis_history_count: 2           # Number of historical conversation turns for result analysis
   
   prompts:
-    system_prompt: "You are a professional Minecraft game assistant..."  # System prompt for result analysis
-    analysis_prompt: "Please provide comprehensive analysis...\n\n{results}\n\nPlease reply to the player in a concise and friendly manner."
+    system_prompt: "You are a professional Minecraft game assistant..."
+    analysis_prompt: "{results}\nBased on the conversation history, current input, and execution results above, provide comprehensive analysis and suggestions. Please reply to the player in a concise and friendly manner."
 
 # Knowledge Base Configuration
 knowledge:
@@ -177,7 +177,7 @@ agent:
     
     # Analysis prompt - Guides LLM on how to analyze execution results
     # Supports {results} placeholder, replaced with task execution result summary
-    analysis_prompt: "Please provide a comprehensive analysis and recommendations based on the following task execution results:\n\n{results}\n\nPlease reply to the player in a concise and friendly manner."
+    analysis_prompt: "{results}\nBased on the conversation history, current input, and execution results above, provide comprehensive analysis and suggestions. Please reply to the player in a concise and friendly manner."
 ```
 
 #### Workflow
@@ -201,30 +201,68 @@ agent:
 
 ### Personality Configuration (personalities.yml)
 
-Create YAML files in the `plugins/Kilacraft-AI/personalities/` directory to define different personalities.
+Define different personality configurations in the `plugins/Kilacraft-AI/personalities.yml` file.
 
 #### Basic Usage
 
 ```yaml
-StrictTeacher:
-  prompt: "You are a strict Minecraft teacher, strict but caring towards player {player}."
-  
-FriendlyHelper:
-  prompt: "You are a friendly AI helper, assisting player {player} with various tasks."
+# Common prompt (optional, shared base prompt for all personalities)
+common_prompt: "You are an NPC in Minecraft game, here to fulfill players' common requests."
+
+# Strict Teacher personality
+StrictTeacher: |
+  You are a strict Minecraft teacher, currently teaching player {player}.
+  You have high standards for your students, speak concisely and directly, but patiently answer questions.
+  Focus on teaching game mechanics, redstone circuits, and building techniques.
+
+# Adventure Companion personality
+AdventureCompanion: |
+  You are player {player}'s loyal adventure companion, cheerful and humorous.
+  You love sharing exploration stories, providing combat advice, recommending equipment combinations, and always encourage players to explore bravely.
+
+# Librarian personality
+Librarian: |
+  You are a knowledgeable librarian, providing knowledge services to adventurer {player}.
+  You speak elegantly, enjoy quoting ancient texts, and are well-versed in Minecraft's history, creature characteristics, mineral distributions, and various trivia.
+
+# Cunning Merchant personality
+CunningMerchant: |
+  You are a shrewd Minecraft merchant, currently conversing with customer {player}.
+  You speak smoothly, always trying to promote your goods, know the economic system and trading prices inside out, and occasionally crack a joke.
 ```
+
+#### Configuration Details
+
+- **common_prompt** (Optional): Common prompt that automatically appends to each personality's prompt
+  - Used to define shared base settings for all personalities, such as "You are an NPC in Minecraft"
+  - If not needed, this item can be omitted
+  
+- **Personality Name**: Such as `StrictTeacher`, `AdventureCompanion`, etc., using YAML key-value format
+  - Chinese names are recommended for easier recognition and invocation
+  - Avoid special characters and spaces
+  
+- **Prompt Content**: Detailed settings for each personality
+  - Supports YAML multi-line text format (using `|` or `>`)
+  - Supports `{player}` placeholder, automatically replaced with current player name
+  - Describes AI's role positioning, language style, professional field, and behavior guidelines
 
 #### Advanced Features (v1.3.3+)
 
 - **YAML Multi-line Text Support**: Use `|` or `>` for complex personality descriptions
+  - `|` preserves line breaks, suitable for multi-line paragraphs
+  - `>` folds line breaks, suitable for long sentences
+  
 - **JSON Format Fault Tolerance**: Auto-repair common JSON format errors
 - **{player} Placeholder**: Automatically replaced with current player name
 - **Hot-Reload Support**: Use `/kilacraft personalities reload` after modifying config
+- **Common Prompt Mechanism**: Configure shared base settings via `common_prompt` to avoid repetition
 
 #### Best Practices
 
 - **Naming**: Use concise, clear names; avoid special characters
 - **Prompt Design**: Clearly define AI's role, language style, and behavior guidelines
-- **Multi-file Management**: Distribute personalities across multiple files by scenario or function
+- **Common Prompt**: Put general settings in `common_prompt`, personality-specific settings in their own configs
+- **Multi-scenario Application**: Create multiple personalities by scenario or function, such as teaching, adventure, trading, etc.
 
 ## 🎮 Usage
 
