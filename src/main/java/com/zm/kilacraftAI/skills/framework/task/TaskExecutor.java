@@ -1,7 +1,7 @@
 package com.zm.kilacraftAI.skills.framework.task;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.handler.AIResponseHandler;
+import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillIntent;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 public class TaskExecutor {
 
     private final SkillManager skillManager;
+    private final LLMAnalysisService analysisService;
 
     private final KilacraftAI plugin = KilacraftAI.getInstance();
 
@@ -32,9 +33,10 @@ public class TaskExecutor {
      *
      * @param plan        任务计划
      * @param baseContext 基础上下文
+     * @param history     对话历史（用于二次分析时的上下文关联）
      * @return 最终执行结果
      */
-    public CompletableFuture<SkillResult> executeTask(TaskPlan plan, SkillContext baseContext) {
+    public CompletableFuture<SkillResult> executeTask(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history) {
         if (plugin.getConfigManager().isDebugMode()) {
             plugin.getLogger().info("[DEBUG] 共 " + plan.getStepCount() + " 个步骤");
         }
@@ -50,9 +52,8 @@ public class TaskExecutor {
         }
 
         // 递归执行所有步骤
-        return executeSteps(plan, sortedSteps, 0, baseContext);
+        return executeSteps(plan, sortedSteps, 0, baseContext, history);
     }
-
 
     /**
      * 递归执行步骤列表
@@ -61,13 +62,14 @@ public class TaskExecutor {
      * @param sortedSteps 已排序的步骤列表
      * @param stepIndex   当前执行的步骤索引
      * @param baseContext 基础上下文
+     * @param history     对话历史
      * @return 最终结果
      */
-    private CompletableFuture<SkillResult> executeSteps(TaskPlan plan, List<TaskStep> sortedSteps, int stepIndex, SkillContext baseContext) {
+    private CompletableFuture<SkillResult> executeSteps(TaskPlan plan, List<TaskStep> sortedSteps, int stepIndex, SkillContext baseContext, Deque<ConversationManager.Message> history) {
 
         if (stepIndex >= sortedSteps.size()) {
             // 所有步骤执行完成，进行最终分析
-            return synthesizeResults(plan, baseContext);
+            return synthesizeResults(plan, baseContext, history);
         }
 
         TaskStep currentStep = sortedSteps.get(stepIndex);
@@ -98,7 +100,7 @@ public class TaskExecutor {
             plan.getContext().put(currentStep.getId(), result);
 
             // 继续执行下一步
-            return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext);
+            return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history);
         });
     }
 
@@ -196,8 +198,8 @@ public class TaskExecutor {
             PlaceholderResolveResult result = resolvePlaceholders(entry.getValue(), plan);
             if (result.isFailed()) {
                 // 占位符解析失败，终止执行
-                String errorMsg = String.format("步骤 %s 的参数 '%s' 解析失败：找不到 %s", 
-                    step.getId(), entry.getKey(), result.failedPlaceholder);
+                String errorMsg = String.format("步骤 %s 的参数 '%s' 解析失败：找不到 %s",
+                        step.getId(), entry.getKey(), result.failedPlaceholder);
                 if (plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().warning("[DEBUG] " + errorMsg);
                 }
@@ -240,8 +242,8 @@ public class TaskExecutor {
             }
             // 占位符解析失败，返回失败信息
             if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().warning("[DEBUG] 占位符解析失败：" + placeholder + 
-                    " (步骤 " + stepId + " 不存在或没有字段 " + fieldName + ")");
+                plugin.getLogger().warning("[DEBUG] 占位符解析失败：" + placeholder +
+                        " (步骤 " + stepId + " 不存在或没有字段 " + fieldName + ")");
             }
             return new PlaceholderResolveResult(null, placeholder);
         }
@@ -250,9 +252,13 @@ public class TaskExecutor {
     }
 
     /**
-     * 汇总所有步骤的结果，使用 LLM 进行最终分析
+     * 汇总所有步骤的结果，使用 LLMAnalysisService 进行最终分析
      */
-    private CompletableFuture<SkillResult> synthesizeResults(TaskPlan plan, SkillContext baseContext) {
+    private CompletableFuture<SkillResult> synthesizeResults(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history) {
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("[DEBUG] 所有步骤执行完成，开始分析结果...");
+        }
+
         // 构建结果摘要
         StringBuilder summary = new StringBuilder();
         summary.append("任务目标：").append(plan.getGoal()).append("\n\n");
@@ -263,73 +269,14 @@ public class TaskExecutor {
             Object result = entry.getValue();
 
             summary.append("- ").append(stepId).append(": ");
-            if (result instanceof SkillResult) {
-                summary.append(((SkillResult) result).getMessage());
+            if (result instanceof SkillResult skillResult) {
+                summary.append(skillResult.getMessage());
             } else {
                 summary.append(result);
             }
             summary.append("\n");
         }
 
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 所有步骤执行完成，开始分析结果...");
-            plugin.getLogger().info("[DEBUG] 结果摘要:\n" + summary);
-        }
-
-        // 使用 LLM 分析结果
-        return analyzeWithLLM(summary.toString(), baseContext);
-    }
-
-    /**
-     * 使用 LLM 分析执行结果并生成最终回复
-     */
-    private CompletableFuture<SkillResult> analyzeWithLLM(String resultsSummary, SkillContext baseContext) {
-        KilacraftAI plugin = KilacraftAI.getInstance();
-        var deepSeekAPI = plugin.getDeepSeekAPI();
-
-        // 创建一个简单的 Handler 来捕获响应
-        String playerName = baseContext.getPlayer() != null ? baseContext.getPlayer().getName() : "Console";
-        java.util.concurrent.CompletableFuture<String> responseFuture = new java.util.concurrent.CompletableFuture<>();
-
-        AIResponseHandler handler = new AIResponseHandler() {
-            @Override
-            public UUID getPlayerId() {
-                return null;
-            }
-
-            @Override
-            public String getPlayerName() {
-                return playerName;
-            }
-
-            @Override
-            public void showResponse(String response) {
-                responseFuture.complete(response);
-            }
-
-            @Override
-            public void showStreamChunk(String chunk, String currentMessage) {
-            }
-
-            @Override
-            public void handleError(String errorMessage) {
-                responseFuture.completeExceptionally(new RuntimeException(errorMessage));
-            }
-
-            @Override
-            public boolean isStreamOutputEnabled() {
-                return false;
-            }
-        };
-
-        // 使用配置文件中的提示词
-        String baseAnalysisPrompt = plugin.getConfigManager().getAgentAnalysisPrompt();
-        String systemPrompt = plugin.getConfigManager().getAgentSystemPrompt();
-        
-        // 替换占位符 {results}
-        String analysisPrompt = baseAnalysisPrompt.replace("{results}", resultsSummary);
-        
-        deepSeekAPI.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, null, handler, systemPrompt, false, false);
-        return responseFuture.thenApply(SkillResult::success);
+        return analysisService.analyzeResult(summary.toString(), baseContext, history);
     }
 }

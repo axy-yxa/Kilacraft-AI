@@ -207,9 +207,10 @@ public class SkillIntentRecognizer {
         if (history != null && !history.isEmpty()) {
             prompt.append("[聊天历史]\n");
             int count = 0;
+            // 使用配置化的历史对话数
+            int maxHistoryCount = configManager.getAgentIntentHistoryCount();
             for (ConversationManager.Message msg : history) {
-                // 最多显示 5 条历史记录
-                if (count++ >= 5) break;
+                if (count++ >= maxHistoryCount) break;
 
                 // 根据角色显示不同的标识
                 String roleDisplay = switch (msg.getRole()) {

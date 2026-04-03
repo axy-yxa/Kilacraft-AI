@@ -74,6 +74,10 @@ public class ConfigManager {
     @Getter
     private boolean agentEnableCommand;       // KilacraftCommand 入口是否启用 Agent
     @Getter
+    private int agentIntentHistoryCount;      // 意图识别时的历史对话数
+    @Getter
+    private int agentAnalysisHistoryCount;    // 二次分析时的历史对话数
+    @Getter
     private String agentSystemPrompt;         // LLM 意图识别系统提示词
     @Getter
     private String agentAnalysisPrompt;       // LLM 分析执行结果提示词
@@ -133,6 +137,8 @@ public class ConfigManager {
         this.agentEnabled = config.getBoolean("agent.enabled", true);
         this.agentEnableChatListener = config.getBoolean("agent.enable_chat_listener", true);
         this.agentEnableCommand = config.getBoolean("agent.enable_command", true);
+        this.agentIntentHistoryCount = config.getInt("agent.intent_history_count", 5);
+        this.agentAnalysisHistoryCount = config.getInt("agent.analysis_history_count", 2);
         this.agentSystemPrompt = config.getString("agent.prompts.system_prompt", "");
         this.agentAnalysisPrompt = config.getString("agent.prompts.analysis_prompt", "");
             
