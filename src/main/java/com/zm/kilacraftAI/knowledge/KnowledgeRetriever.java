@@ -109,7 +109,7 @@ public class KnowledgeRetriever {
             knowledgeBase.logInfo("[DEBUG] [知识库] 匹配片段：" + chunkScores.size() + ", 返回得分最高的 " + count + " 条");
     
             // 输出匹配的详细信息
-            for (int i = 0; i < chunkScores.size(); i++) {
+            for (int i = 0; i < count; i++) {
                 KnowledgeChunk chunk = chunkScores.get(i);
                 String preview = chunk.getContent().length() > 100 ? chunk.getContent().substring(0, 100) + "..." : chunk.getContent();
                 knowledgeBase.logInfo("[DEBUG] [知识库] 匹配 #" + (i + 1) + " - 文件：" + chunk.getFileName() + ", 得分：" + String.format("%.2f", chunk.getScore()) + ", 长度：" + chunk.getContent().length() + " 字符");
