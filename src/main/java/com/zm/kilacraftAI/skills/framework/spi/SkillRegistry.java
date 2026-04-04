@@ -35,8 +35,7 @@ public class SkillRegistry {
      * @return 成功注册的第三方 Skill 数量
      */
     public int discoverAndRegister() {
-        Collection<RegisteredServiceProvider<SkillProvider>> registrations =
-                plugin.getServer().getServicesManager().getRegistrations(SkillProvider.class);
+        Collection<RegisteredServiceProvider<SkillProvider>> registrations = plugin.getServer().getServicesManager().getRegistrations(SkillProvider.class);
 
         if (registrations.isEmpty()) {
             plugin.getLogger().info("未发现第三方 SkillProvider");
@@ -60,18 +59,13 @@ public class SkillRegistry {
                     if (existingSkill == null) {
                         skillManager.registerSkill(skill);
                         registeredCount++;
-                        plugin.getLogger().info(String.format("  发现并注册第三方技能：%s (来自 %s)",
-                                skill.getName(), sourcePlugin.getName()));
+                        plugin.getLogger().info(String.format("发现并注册第三方技能：%s (来自 %s)", skill.getName(), sourcePlugin.getName()));
                     } else {
                         // 已存在内置 Skill，不覆盖，跳过
-                        plugin.getLogger().warning(String.format(
-                            "跳过第三方技能 '%s'（来自 %s）：名称与已注册技能冲突",
-                            skill.getName(), sourcePlugin.getName()));
+                        plugin.getLogger().warning(String.format("跳过第三方技能 '%s'（来自 %s）：名称与已注册技能冲突", skill.getName(), sourcePlugin.getName()));
                     }
                 } catch (Exception e) {
-                    plugin.getLogger().log(Level.WARNING,
-                        String.format("注册第三方技能失败:%s (来自 %s): %s",
-                            skill.getName(), sourcePlugin.getName(), e.getMessage()));
+                    plugin.getLogger().log(Level.WARNING, String.format("注册第三方技能失败:%s (来自 %s): %s", skill.getName(), sourcePlugin.getName(), e.getMessage()));
                 }
             }
         }

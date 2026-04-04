@@ -160,7 +160,8 @@ public class ConfigManager {
                 plugin.getLlmManager().refreshProviderConfig();
             }
         } catch (Exception e) {
-            // 忽略异常，避免配置加载失败
+            // 忽略异常，避免配置加载失败导致插件崩溃
+            com.zm.kilacraftAI.KilacraftAI.getInstance().getLogger().warning("[ConfigManager] 刷新 LLM 配置缓存时发生异常: " + e.getMessage());
         }
     }
 

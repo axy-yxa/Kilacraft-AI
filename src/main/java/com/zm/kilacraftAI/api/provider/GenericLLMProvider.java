@@ -67,9 +67,7 @@ public class GenericLLMProvider implements LLMProvider {
         refreshConfigCache();
 
         // 输出 HTTP 连接池配置日志
-        plugin.getLogger().info("[HTTP] 已启用连接池优化：最大空闲连接数=10, 保持时间=5 分钟");
-        plugin.getLogger().info("[HTTP] 超时配置：连接=30s, 读取=60s, 写入=30s");
-        plugin.getLogger().info("[HTTP] 已启用自动重试失败连接");
+        plugin.getLogger().info("初始化HTTP连接池");
     }
 
     @Override
@@ -311,7 +309,7 @@ public class GenericLLMProvider implements LLMProvider {
         try {
             httpClient.dispatcher().executorService().shutdown();
             httpClient.connectionPool().evictAll();
-            plugin.getLogger().info("[HTTP] 连接池已关闭");
+            plugin.getLogger().info("HTTP连接池已关闭");
         } catch (Exception e) {
             plugin.getLogger().log(Level.WARNING, "关闭 HTTP 客户端时发生错误", e);
         }

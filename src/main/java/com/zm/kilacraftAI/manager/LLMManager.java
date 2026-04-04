@@ -32,7 +32,7 @@ public class LLMManager {
      */
     private void initializeProvider() {
         this.currentProvider = new GenericLLMProvider();
-        plugin.getLogger().info("[LLMManager] 已初始化通用 LLM 提供商");
+        plugin.getLogger().info("已初始化通用 LLM 提供商");
     }
 
     /**
@@ -44,18 +44,16 @@ public class LLMManager {
             currentProvider = null;
         }
         this.currentProvider = new GenericLLMProvider();
-        plugin.getLogger().info("[LLMManager] 已刷新 LLM 提供商配置");
+        plugin.getLogger().info("已刷新 LLM 提供商配置");
     }
 
     /**
      * 关闭 LLM 提供商的资源
      */
     public void shutdownAll() {
-        plugin.getLogger().info("[LLMManager] 正在关闭 LLM 提供商...");
         if (currentProvider != null) {
             currentProvider.shutdown();
-            plugin.getLogger().info("[LLMManager] 已关闭 LLM 提供商");
+            plugin.getLogger().info("已关闭 LLM 提供商");
         }
-        plugin.getLogger().info("[LLMManager] LLM 提供商已关闭");
     }
 }

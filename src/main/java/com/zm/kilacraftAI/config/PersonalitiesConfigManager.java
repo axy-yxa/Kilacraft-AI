@@ -127,9 +127,6 @@ public class PersonalitiesConfigManager {
 
             // 加载公共提示词
             commonPrompt = config.getString("common_prompt", "");
-            if (!commonPrompt.isEmpty()) {
-                plugin.getLogger().info("已加载公共提示词");
-            }
 
             // 加载所有的人格配置
             for (String key : section.getKeys(false)) {
