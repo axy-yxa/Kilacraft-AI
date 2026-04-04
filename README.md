@@ -1,12 +1,15 @@
 # Kilacraft-AI
 
-> **🎉 v1.3.6 重大更新**：LLM 架构重构为通用 Provider！移除冗余代码，简化架构设计。详见 [更新日志](#-更新日志)
+> **🎉 v1.4.0 重大更新**：引入第三方 Skill SPI 扩展机制！支持插件开发者无缝接入 AI Agent。详见 [更新日志](#-更新日志)
 
 一个功能强大的 Minecraft AI 对话插件，集成 DeepSeek AI，为服务器玩家提供智能交互体验。
 
 ## 📋 特性亮点
 
 ### 🤖 AI Agent 核心能力
+- **第三方 Skill SPI 扩展机制（v1.4.0+）**：支持插件开发者无缝接入 AI Agent
+  - `SkillProvider` 接口与自动发现机制
+  - 零耦合接入与错误隔离
 - **LLM 意图识别引擎**：智能理解用户真实意图，自动路由到对应技能
 - **Skills 技能系统框架**：可扩展的 AI 技能执行框架，支持异步非阻塞执行
 - **通用 LLM Provider 架构（v1.3.6+）**：支持 OpenAI 标准 API 格式的 LLM 服务
@@ -43,7 +46,12 @@
 - **上下文对话**：自动保存历史对话，支持连续的上下文交流
 - **知识库增强**：支持本地知识库检索，让 AI 更了解你的服务器
 
-### 🔌 第三方插件支持
+### 🔌 第三方插件支持与扩展
+- **Skill SPI 扩展机制（v1.4.0+）**：支持第三方插件通过 SPI 注册自定义 Skill
+  - 零耦合接入：只需引入 `Kilacraft-Skill-API.jar` 作为 compileOnly 依赖
+  - 自动发现：基于 Bukkit ServicesManager 启动时自动扫描
+  - 错误隔离：第三方 Skill 异常不影响核心流程
+  - 提供完整的 SPI 接入文档与示例
 - **MythicMobs 占位符**：支持 `%kilacraft_ai_answer%` 获取 AI 最新回复
 - **控制台命令调用**：其他插件可通过控制台命令集成 AI 功能
 
@@ -511,25 +519,44 @@ A: 可以通过挖矿、钓鱼或在玩家商店出售物品来赚钱。
 
 ### Skills 技能框架（v1.3.0+）
 
-插件采用基于 LLM 意图识别的技能执行框架，支持自定义扩展：
+插件采用基于 LLM 意图识别的技能执行框架，支持自定义扩展。
+
+#### 内置 Skills
+
+- **Bukkit API 动态调用**：从 `apis.yml` 加载原版 API 定义，无需硬编码
+- **GlobalMarketPlus 经济系统**：余额查询、市场价格、商品列表等
+
+#### 第三方 Skill SPI（v1.4.0+）
+
+从 v1.4.0 开始，支持第三方插件通过 SPI 机制注册自定义 Skill：
 
 ```java
-// 实现自定义技能
+// 1. 实现 Skill 接口
 public class MyCustomSkill implements Skill {
     @Override
-    public String getName() {
-        return "my_skill";
-    }
+    public String getName() { return "my_skill"; }
     
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
-        // 异步执行技能逻辑
-        return CompletableFuture.completedFuture(
-            SkillResult.success("执行成功！")
-        );
+        return CompletableFuture.completedFuture(SkillResult.success("执行成功！"));
+    }
+}
+
+// 2. 在插件主类中注册
+public class MyPlugin extends JavaPlugin implements SkillProvider {
+    @Override
+    public void onEnable() {
+        getServer().getServicesManager().register(SkillProvider.class, this, this, ServicePriority.Normal);
+    }
+    
+    @Override
+    public List<Skill> getSkills() {
+        return List.of(new MyCustomSkill());
     }
 }
 ```
+
+详细接入指南请参考 `Kilacraft-AI-Skill-SPI-接入文档.md`。
 
 ### 控制台命令调用
 
@@ -573,6 +600,95 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 - 检查玩家是否有相应权限
 
 ## 📝 更新日志
+
+### v1.4.0 - 第三方 Skill SPI 扩展机制 🚀
+
+**核心升级**：支持第三方插件通过 SPI 机制注册自定义 Skill，实现与 AI Agent 的无缝集成！
+
+#### 🎯 核心特性
+
+- ✅ **Skill SPI 接口**（新增）：
+  - `SkillProvider` 接口：第三方插件实现此接口提供 Skill 列表
+  - `SkillRegistry` 自动发现：基于 Bukkit ServicesManager 自动扫描注册
+  - 零耦合接入：只需引入 `Kilacraft-Skill-API.jar` 作为 compileOnly 依赖
+
+- ✅ **错误隔离机制**：
+  - 第三方 Skill 执行异常不会影响核心流程
+  - 自动捕获异常并返回友好错误信息
+  - 详细的日志记录便于问题排查
+
+- ✅ **API JAR 打包**：
+  - 新增 `Kilacraft-Skill-API-1.4.0.jar`（仅 5KB）
+  - 包含 5 个 SPI 接口：Skill, SkillContext, SkillResult, SkillIntent, SkillProvider
+  - 第三方开发者无需依赖完整插件
+
+- ✅ **SkillContext 简化**：
+  - 移除冗余的 `rawInput` 字段
+  - 保留核心字段：player, action, entities
+  - 更清晰的接口设计
+
+#### 📦 新增文件
+
+- `src/main/java/com/zm/kilacraftAI/skills/framework/spi/SkillProvider.java` - SPI 接口
+- `src/main/java/com/zm/kilacraftAI/skills/framework/spi/SkillRegistry.java` - 自动发现机制
+- `src/assembly/skill-api.xml` - Assembly 打包配置
+- `knowledge/Skill-SPI-接入文档.md` - 完整的 SPI 接入文档
+
+#### 📦 修改文件
+
+- `src/main/java/com/zm/kilacraftAI/KilacraftAI.java` - 集成 SkillRegistry 自动发现
+- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillManager.java` - 增强错误隔离
+- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillContext.java` - 简化字段
+- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillResult.java` - 新增 getDataMap() 方法
+- `pom.xml` - 版本号更新 + Assembly 插件配置
+
+#### ⚙️ 接入示例
+
+```java
+// 1. 添加依赖
+<dependency>
+    <groupId>com.zm</groupId>
+    <artifactId>Kilacraft-Skill-API</artifactId>
+    <version>1.4.0</version>
+    <scope>system</scope>
+    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API.jar</systemPath>
+</dependency>
+
+// 2. 实现 Skill 接口
+public class MyCustomSkill implements Skill {
+    @Override
+    public String getName() { return "my_skill"; }
+    
+    @Override
+    public String getDescription() { return "我的自定义技能"; }
+    
+    @Override
+    public CompletableFuture<SkillResult> execute(SkillContext context) {
+        return CompletableFuture.completedFuture(SkillResult.success("执行成功！"));
+    }
+}
+
+// 3. 在插件主类中注册
+public class MyPlugin extends JavaPlugin implements SkillProvider {
+    @Override
+    public void onEnable() {
+        getServer().getServicesManager().register(SkillProvider.class, this, this, ServicePriority.Normal);
+    }
+    
+    @Override
+    public List<Skill> getSkills() {
+        return List.of(new MyCustomSkill());
+    }
+}
+```
+
+#### ⚠️ 兼容性说明
+
+- 现有功能完全兼容，无需修改配置
+- 第三方 Skill 需要在 plugin.yml 中声明 `softdepend: [Kilacraft-AI]`
+- 内置 Skill 优先级高于第三方 Skill（同名时第三方 Skill 被跳过）
+
+---
 
 ### v1.3.6 - 通用 LLM Provider 架构 🚀
 

@@ -15,6 +15,7 @@ import com.zm.kilacraftAI.compat.mythicmobs.MythicMobsPlaceholderManager;
 import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
+import com.zm.kilacraftAI.skills.framework.spi.SkillRegistry;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import lombok.Getter;
@@ -117,6 +118,9 @@ public final class KilacraftAI extends JavaPlugin {
         // 初始化意图识别器
         intentRecognizer = new SkillIntentRecognizer(llmManager.getCurrentProvider(), configManager, skillManager);
 
+        // 延迟发现并注册第三方 SkillProvider 提供的 Skill
+        getServer().getScheduler().runTaskLater(this, () -> new SkillRegistry(this, skillManager).discoverAndRegister(), 20L);
+
         // ASCII Art 启动标志
         getLogger().info("╻┏ ╻╻  ┏━┓┏━╸┏━┓┏━┓┏━╸╺┳╸   ┏━┓╻");
         getLogger().info("┣┻┓┃┃  ┣━┫┃  ┣┳┛┣━┫┣╸  ┃ ╺━╸┣━┫┃");
@@ -132,8 +136,8 @@ public final class KilacraftAI extends JavaPlugin {
     private void registerDefaultSkills() {
         // 注册市场查询技能
         skillManager.registerSkill(new MarketQuerySkill());
-        
-        // 注册通用 Bukkit API 执行器（数据驱动的原版功能调用）
+
+        // 注册通用 Bukkit API 执行器（数据驱动的原版功能调用)
         skillManager.registerSkill(new GenericBukkitAPISkill());
     }
 

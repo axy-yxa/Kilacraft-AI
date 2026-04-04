@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.skills.framework;
 
 import lombok.Getter;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -27,7 +28,7 @@ public class SkillResult {
     private final String message;
 
     /**
-     * 数据对象
+     * 数据对象（约定为 Map<String, Object> 类型，供多步骤任务参数传递）
      */
     private final Object data;
 
@@ -89,6 +90,21 @@ public class SkillResult {
     public <T> T getData(Class<T> clazz) {
         if (clazz.isInstance(data)) {
             return (T) data;
+        }
+        return null;
+    }
+
+    /**
+     * 获取数据 Map（便捷方法）
+     * <p>多步骤任务参数传递约定： data 应为 Map<String, Object> 类型，</p>
+     * <p>第三方 Skill 开发者应使用此方法获取 data Map 以确保类型安全。</p>
+     *
+     * @return data Map，如果 data 不是 Map 类型则返回 null
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getDataMap() {
+        if (data instanceof Map) {
+            return (Map<String, Object>) data;
         }
         return null;
     }

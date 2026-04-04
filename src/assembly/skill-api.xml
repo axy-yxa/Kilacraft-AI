@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/1.2.0 https://maven.apache.org/xsd/assembly-1.2.0.xsd">
+    <id>skill-api</id>
+    <formats>
+        <format>jar</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <fileSets>
+        <fileSet>
+            <directory>${project.build.outputDirectory}</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>com/zm/kilacraftAI/skills/framework/Skill.class</include>
+                <include>com/zm/kilacraftAI/skills/framework/SkillContext.class</include>
+                <include>com/zm/kilacraftAI/skills/framework/SkillResult.class</include>
+                <include>com/zm/kilacraftAI/skills/framework/SkillIntent.class</include>
+                <include>com/zm/kilacraftAI/skills/framework/spi/SkillProvider.class</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+</assembly>

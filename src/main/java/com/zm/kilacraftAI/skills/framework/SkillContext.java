@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Skill 执行上下文
  * 
- * <p>封装 Skill 执行时所需的所有信息</p>
+ * <p>封装 Skill 执行时所需的所有信息。</p>
  *
  * @author Zm_Mmm
  * @since 2026-03-30
@@ -29,7 +29,10 @@ public class SkillContext {
      * LLM 提取的实体参数
      */
     private final Map<String, String> entities;
-    
+
+    /**
+     * 创建 SkillContext
+     */
     public SkillContext(Player player, String action, Map<String, String> entities) {
         this.player = player;
         this.action = action;

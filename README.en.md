@@ -1,6 +1,6 @@
 # Kilacraft-AI
 
-> **🎉 v1.3.6 Major Update**: LLM architecture refactored to Generic Provider! Code cleanup and architecture simplification. See [Changelog](#-changelog)
+> **🎉 v1.4.0 Major Update**: Introduced Third-party Skill SPI Extension! Seamless integration for plugin developers. See [Changelog](#-changelog)
 
 A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intelligent interactive experiences for server players.
 
@@ -43,7 +43,12 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
 - **Contextual Conversations**: Automatically saves chat history, supports continuous context-aware conversations
 - **Knowledge Base Enhancement**: Local knowledge base retrieval, making AI understand your server better
 
-### 🔌 Third-party Plugin Support
+### 🔌 Third-party Plugin Support & Extensions
+- **Skill SPI Extension (v1.4.0+)**: Support third-party plugins to register custom Skills via SPI
+  - Zero-coupling integration: Just include `Kilacraft-Skill-API.jar` as compileOnly dependency
+  - Auto-discovery: Scans automatically on startup via Bukkit ServicesManager
+  - Error isolation: Third-party Skill exceptions won't affect core processes
+  - Complete SPI documentation and examples provided
 - **MythicMobs Placeholders**: Use `%kilacraft_ai_answer%` to get latest AI responses
 - **Console Command Calls**: Other plugins can integrate AI functionality via console commands
 
@@ -511,25 +516,44 @@ A: You can earn money by mining, fishing, or selling items at player shops.
 
 ### Skills Skill Framework (v1.3.0+)
 
-The plugin uses an LLM intent-based skill execution framework, supporting custom extensions:
+The plugin uses an LLM intent-based skill execution framework, supporting custom extensions.
+
+#### Built-in Skills
+
+- **Bukkit API Dynamic Calls**: Load vanilla API definitions from `apis.yml` without hardcoding
+- **GlobalMarketPlus Economy System**: Balance checks, market prices, item lists, etc.
+
+#### Third-party Skill SPI (v1.4.0+)
+
+Starting from v1.4.0, third-party plugins can register custom Skills via SPI mechanism:
 
 ```java
-// Implement custom skill
+// 1. Implement Skill interface
 public class MyCustomSkill implements Skill {
     @Override
-    public String getName() {
-        return "my_skill";
-    }
+    public String getName() { return "my_skill"; }
     
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
-        // Async skill execution
-        return CompletableFuture.completedFuture(
-            SkillResult.success("Success!")
-        );
+        return CompletableFuture.completedFuture(SkillResult.success("Success!"));
+    }
+}
+
+// 2. Register in main plugin class
+public class MyPlugin extends JavaPlugin implements SkillProvider {
+    @Override
+    public void onEnable() {
+        getServer().getServicesManager().register(SkillProvider.class, this, this, ServicePriority.Normal);
+    }
+    
+    @Override
+    public List<Skill> getSkills() {
+        return List.of(new MyCustomSkill());
     }
 }
 ```
+
+For detailed integration guide, refer to `Kilacraft-AI-Skill-SPI-接入文档.md`.
 
 ### Console Command Call
 
@@ -573,6 +597,95 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 - Check if player has appropriate permissions
 
 ## 📝 Changelog
+
+### v1.4.0 - Third-party Skill SPI Extension 🚀
+
+**Core Upgrade**: Third-party plugins can now register custom Skills via SPI mechanism for seamless AI Agent integration!
+
+#### 🎯 Core Features
+
+- ✅ **Skill SPI Interface** (NEW):
+  - `SkillProvider` interface: Third-party plugins implement this to provide Skill list
+  - `SkillRegistry` auto-discovery: Automatic scanning and registration via Bukkit ServicesManager
+  - Zero-coupling integration: Only need `Kilacraft-Skill-API.jar` as compileOnly dependency
+
+- ✅ **Error Isolation Mechanism**:
+  - Third-party Skill execution exceptions don't affect core workflow
+  - Auto-catch exceptions and return friendly error messages
+  - Detailed logging for troubleshooting
+
+- ✅ **API JAR Packaging**:
+  - Added `Kilacraft-Skill-API-1.4.0.jar` (only 5KB)
+  - Contains 5 SPI interfaces: Skill, SkillContext, SkillResult, SkillIntent, SkillProvider
+  - Third-party developers don't need full plugin dependency
+
+- ✅ **SkillContext Simplification**:
+  - Removed redundant `rawInput` field
+  - Kept core fields: player, action, entities
+  - Cleaner interface design
+
+#### 📦 New Files
+
+- `src/main/java/com/zm/kilacraftAI/skills/framework/spi/SkillProvider.java` - SPI interface
+- `src/main/java/com/zm/kilacraftAI/skills/framework/spi/SkillRegistry.java` - Auto-discovery mechanism
+- `src/assembly/skill-api.xml` - Assembly packaging config
+- `knowledge/Skill-SPI-接入文档.md` - Complete SPI integration documentation
+
+#### 📦 Modified Files
+
+- `src/main/java/com/zm/kilacraftAI/KilacraftAI.java` - Integrated SkillRegistry auto-discovery
+- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillManager.java` - Enhanced error isolation
+- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillContext.java` - Simplified fields
+- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillResult.java` - Added getDataMap() method
+- `pom.xml` - Version update + Assembly plugin config
+
+#### ⚙️ Integration Example
+
+```java
+// 1. Add dependency
+<dependency>
+    <groupId>com.zm</groupId>
+    <artifactId>Kilacraft-Skill-API</artifactId>
+    <version>1.4.0</version>
+    <scope>system</scope>
+    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API.jar</systemPath>
+</dependency>
+
+// 2. Implement Skill interface
+public class MyCustomSkill implements Skill {
+    @Override
+    public String getName() { return "my_skill"; }
+    
+    @Override
+    public String getDescription() { return "My custom skill"; }
+    
+    @Override
+    public CompletableFuture<SkillResult> execute(SkillContext context) {
+        return CompletableFuture.completedFuture(SkillResult.success("Success!"));
+    }
+}
+
+// 3. Register in plugin main class
+public class MyPlugin extends JavaPlugin implements SkillProvider {
+    @Override
+    public void onEnable() {
+        getServer().getServicesManager().register(SkillProvider.class, this, this, ServicePriority.Normal);
+    }
+    
+    @Override
+    public List<Skill> getSkills() {
+        return List.of(new MyCustomSkill());
+    }
+}
+```
+
+#### ⚠️ Compatibility Notes
+
+- Existing features fully compatible, no config changes needed
+- Third-party Skills should declare `softdepend: [Kilacraft-AI]` in plugin.yml
+- Built-in Skills have higher priority (third-party Skills with same name are skipped)
+
+---
 
 ### v1.3.6 - Generic LLM Provider Architecture 🚀
 

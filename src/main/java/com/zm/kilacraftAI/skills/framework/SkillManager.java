@@ -5,7 +5,8 @@ import com.zm.kilacraftAI.KilacraftAI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 /**
  * 技能管理器
@@ -18,9 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SkillManager {
 
     private final Map<String, Skill> skills;
+    private final KilacraftAI plugin;
 
     public SkillManager() {
-        this.skills = new ConcurrentHashMap<>();
+        this.skills = new java.util.concurrent.ConcurrentHashMap<>();
+        this.plugin = KilacraftAI.getInstance();
     }
 
     /**
@@ -70,40 +73,55 @@ public class SkillManager {
     }
 
     /**
-     * 根据意图执行技能
+     * 根据意图执行技能（带错误隔离）
+     *
+     * <p>第三方 Skill 的异常会被 try-catch 捕获，不会影响 KilacraftAI 核心流程。</p>
      *
      * @param intent  识别出的意图
      * @param context 执行上下文
      * @return 执行结果
      */
-    public java.util.concurrent.CompletableFuture<SkillResult> executeSkillByIntent(SkillIntent intent, SkillContext context) {
+    public CompletableFuture<SkillResult> executeSkillByIntent(SkillIntent intent, SkillContext context) {
         if (intent == null || !intent.isValid()) {
-            return java.util.concurrent.CompletableFuture.completedFuture(SkillResult.failure("无法识别你的意图，请详细描述你的需求"));
+            return CompletableFuture.completedFuture(SkillResult.failure("无法识别你的意图，请详细描述你的需求"));
         }
 
-        // 根据技能名称查找技能
         String skillName = intent.getSkillName();
-        KilacraftAI plugin = KilacraftAI.getInstance();
         boolean isDebug = plugin != null && plugin.getConfigManager().isDebugMode();
 
         Skill skill = skills.get(skillName);
 
         if (skill == null) {
-            return java.util.concurrent.CompletableFuture.completedFuture(SkillResult.failure("抱歉，我没有找到名为 '" + skillName + "' 的技能"));
+            return CompletableFuture.completedFuture(SkillResult.failure("抱歉，我没有找到名为 '" + skillName + "' 的技能"));
         }
 
-        // 检查技能是否可用
-        if (!skill.isAvailable(context)) {
-            return java.util.concurrent.CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
+        // 检查技能是否可用（带错误隔离）
+        try {
+            if (!skill.isAvailable(context)) {
+                return CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
+            }
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.WARNING,
+                "检查技能可用性时异常：" + skillName + " - " + e.getMessage());
+            return CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
         }
 
         if (isDebug) {
             plugin.getLogger().info("[DEBUG] 开始执行技能：" + skillName + ", action=" + intent.getAction());
         }
 
-        // 执行技能
-        return skill.execute(context);
+        // 执行技能（带错误隔离，第三方 Skill 异常不影响核心流程）
+        try {
+            return skill.execute(context).exceptionally(ex -> {
+                plugin.getLogger().log(Level.SEVERE,
+                    "技能执行异常（可能为第三方技能）：" + skillName + " - " + ex.getMessage());
+                return SkillResult.failure("技能执行出错，请联系管理员");
+            });
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE,
+                "技能执行失败：" + skillName + " - " + e.getMessage());
+            return CompletableFuture.completedFuture(SkillResult.failure("技能执行出错，请联系管理员"));
+        }
     }
-
 
 }

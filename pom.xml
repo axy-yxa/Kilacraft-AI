@@ -61,6 +61,30 @@
                     </includes>
                 </configuration>
             </plugin>
+
+            <!-- Kilacraft-Skill-API.jar 生成插件 -->
+            <!-- 在 package 阶段额外生成一个仅包含 SPI 接口的精简 JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <executions>
+                    <execution>
+                        <id>skill-api-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/skill-api.xml</descriptor>
+                            </descriptors>
+                            <finalName>Kilacraft-Skill-API-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
         <resources>
             <resource>
