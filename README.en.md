@@ -6,7 +6,7 @@
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/Zm-Mmm/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.4.0-orange)](doc/Kilacraft-AI-Changelog.md)
+[![Version](https://img.shields.io/badge/Version-1.4.0-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 
 ---
 
@@ -81,16 +81,16 @@ That's it! 🎉
 ## 📖 Documentation
 
 ### For Server Owners
-- **[Server Owner Guide](doc/服主指南)** - Complete setup, configuration, and troubleshooting
-- **[Changelog](doc/Kilacraft-AI-Changelog.md)** - Version history and updates
+- **[Server Owner Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Server-Owner-Guide)** - Complete setup, configuration, and troubleshooting
+- **[Changelog](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)** - Version history and updates
 
 ### Technical References
-- **[Bukkit API Reference](doc/Bukkit-API参考手册)** - Detailed documentation for 44+ APIs
-- **[Personality System Guide](doc/人格系统配置指南)** - Managing and customizing multiple AI personalities
-- **[Knowledge Base Guide](doc/知识库增强指南)** - RAG knowledge base usage guide
+- **[Bukkit API Reference](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Bukkit-API-Reference)** - Detailed documentation for 44+ APIs
+- **[Personality System Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Personality-System-Guide)** - Managing and customizing multiple AI personalities
+- **[Knowledge Base Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Knowledge-Base-Guide)** - RAG knowledge base usage guide
 
 ### For Plugin Developers
-- **[Skill SPI Integration Guide](doc/Kilacraft-AI-Skill-SPI-Integration-Guide.md)** - How to extend Kilacraft-AI with custom skills (includes async handling, error isolation best practices)
+- **[Skill SPI Integration Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Skill-SPI-Integration-Guide)** - How to extend Kilacraft-AI with custom skills (includes async handling, error isolation best practices)
 
 ---
 
