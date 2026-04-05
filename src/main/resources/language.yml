@@ -98,11 +98,13 @@ plugins-command:
   player-blocked: "§c请使用 /kilacraft <消息>"
   
   # 参数不足
-  insufficient-args: "§c参数不足！使用方法：/kilacraft plugins <人格> <内容> <玩家 UUID>"
+  insufficient-args: "§c参数不足！"
   
   # 使用示例
-  usage-example: "§e示例：/kilacraft plugins 严厉教师 你好 069a79f4-44e9-4726-a5be-fca90e38aaf5"
-  
+  usage-example: "§e用法："
+  usage-request: "§7  /kilacraft plugins <人格> <内容> <玩家UUID> - 生成AI回复"
+  usage-get: "§7  /kilacraft plugins get <人格> <玩家UUID> - 获取最新AI回复"
+
   # 无效 UUID 格式
   invalid-uuid: "§c无效的玩家 UUID 格式："
   

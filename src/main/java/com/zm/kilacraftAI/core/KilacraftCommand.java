@@ -11,12 +11,16 @@ import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.util.AIRequestValidator;
 import com.zm.kilacraftAI.util.MessageUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -299,7 +303,11 @@ public class KilacraftCommand implements CommandExecutor {
     /**
      * 处理 plugins 命令（第三方插件调用）
      *
-     * <p>命令格式：/kilacraft plugins <人格> <内容> <玩家 UUID></p>
+     * <p>支持两种模式：</p>
+     * <ul>
+     *   <li>请求模式：/kilacraft plugins <人格> <内容> <玩家 UUID> - 生成AI回复</li>
+     *   <li>获取模式：/kilacraft plugins get <人格> <玩家 UUID> - 获取最新AI回复</li>
+     * </ul>
      * <p>此命令只能由控制台执行，玩家禁止使用</p>
      *
      * @param sender 命令发送者
@@ -314,16 +322,33 @@ public class KilacraftCommand implements CommandExecutor {
             return true;
         }
 
-        // 检查参数数量（至少需要 3 个参数：人格、内容、UUID）
+        // 检查是否有子命令
+        if (args.length < 2) {
+            sender.sendMessage(languageManager.getPluginCommandInsufficientArgs());
+            sender.sendMessage(languageManager.getPluginCommandUsageExample());
+            sender.sendMessage(languageManager.getPluginCommandUsageRequest());
+            sender.sendMessage(languageManager.getPluginCommandUsageGet());
+            return true;
+        }
+
+        // 判断是否为 get 子命令
+        if ("get".equalsIgnoreCase(args[1])) {
+            return handlePluginsGetCommand(sender, args);
+        }
+
+        // 请求模式：检查参数数量（至少需要 3 个参数：人格、内容、UUID，可选第 4 个参数：回调命令）
         if (args.length < 4) {
             sender.sendMessage(languageManager.getPluginCommandInsufficientArgs());
             sender.sendMessage(languageManager.getPluginCommandUsageExample());
+            sender.sendMessage(languageManager.getPluginCommandUsageRequest());
             return true;
         }
 
         String personality = args[1];
         String message = args[2];
         String uuidString = args[3];
+        // 可选的回调命令（第 5 个参数，索引为 4）
+        String callbackCommand = args.length >= 5 ? args[4] : null;
 
         // 解析玩家 UUID
         UUID targetPlayerId;
@@ -386,6 +411,8 @@ public class KilacraftCommand implements CommandExecutor {
         AIResponseHandler handler = new PluginCommandResponseHandler(sender, targetPlayerId, targetPlayerName);
 
         // 获取人格提示词并替换玩家名称占位符
+        final String finalPersonality = personality;
+        final String finalTargetPlayerName = targetPlayerName;
         String personalityPrompt = personalitiesConfig.getPersonalityPrompt(personality).replace("{player}", targetPlayerName);
 
         // 调试模式日志
@@ -398,7 +425,19 @@ public class KilacraftCommand implements CommandExecutor {
         // 使用统一的 API 处理请求（传入人格提示词）
         plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt).thenAccept(fullResponse -> {
             // 保存对话到历史记录（隔离的），并保存到最新回复缓存
-            validator.saveToHistory(pluginHistory, message, fullResponse, targetPlayerId, personality);
+            validator.saveToHistory(pluginHistory, message, fullResponse, targetPlayerId, finalPersonality);
+
+            // 优先执行回调命令（如果指定了）
+            if (callbackCommand != null && !callbackCommand.isEmpty()) {
+                executeCallback(callbackCommand, fullResponse);
+                // 立即删除缓存
+                plugin.getConversationManager().pollLatestAIResponse(targetPlayerId, finalPersonality);
+            } else {
+                // 没有回调命令，发送 Plugin Message
+                sendPluginMessage(targetPlayerId, finalTargetPlayerName, finalPersonality, fullResponse);
+                // 立即删除缓存
+                plugin.getConversationManager().pollLatestAIResponse(targetPlayerId, finalPersonality);
+            }
 
             // 调试模式日志
             if (plugin.getConfigManager().isDebugMode()) {
@@ -414,6 +453,65 @@ public class KilacraftCommand implements CommandExecutor {
     }
 
     /**
+     * 处理 plugins get 子命令（获取最新AI回复）
+     *
+     * <p>命令格式：/kilacraft plugins get <人格> <玩家 UUID></p>
+     * <p>功能：获取指定人格的最新AI回复（获取后立即删除，一次性消费）</p>
+     *
+     * @param sender 命令发送者
+     * @param args   命令参数
+     * @return 执行结果
+     */
+    private boolean handlePluginsGetCommand(CommandSender sender, String[] args) {
+        // 检查参数数量（get 人格 UUID）
+        if (args.length < 4) {
+            sender.sendMessage(languageManager.getPluginCommandInsufficientArgs());
+            sender.sendMessage(languageManager.getPluginCommandUsageExample());
+            sender.sendMessage(languageManager.getPluginCommandUsageGet());
+            return true;
+        }
+
+        String personality = args[2];
+        String uuidString = args[3];
+
+        // 解析玩家 UUID
+        UUID targetPlayerId;
+        try {
+            targetPlayerId = UUID.fromString(uuidString);
+        } catch (IllegalArgumentException e) {
+            sender.sendMessage(languageManager.getPluginCommandInvalidUuid() + uuidString);
+            sender.sendMessage(languageManager.getPluginCommandUuidFormatHint());
+            return true;
+        }
+
+        // 检查人格是否存在
+        PersonalitiesConfigManager personalitiesConfig = plugin.getPersonalitiesConfigManager();
+        if (!personalitiesConfig.hasPersonality(personality)) {
+            sender.sendMessage(languageManager.getPluginCommandPersonalityNotFound() + personality);
+            sender.sendMessage(languageManager.getPluginCommandPersonalityListHint() + String.join(", ", personalitiesConfig.getAllPersonalities()));
+            return true;
+        }
+
+        // 获取并删除 AI 回复（一次性消费）
+        String response = plugin.getConversationManager().pollLatestAIResponse(targetPlayerId, personality);
+
+        // 调试模式日志
+        if (plugin.getConfigManager().isDebugMode()) {
+            if (response != null) {
+                plugin.getLogger().info("[DEBUG] plugins get 获取到 AI 回复 - 玩家: " + targetPlayerId + ", 人格: " + personality + ", 回复长度: " + response.length());
+            } else {
+                plugin.getLogger().info("[DEBUG] plugins get 未找到 AI 回复（缓存为空或已被消费）- 玩家: " + targetPlayerId + ", 人格: " + personality);
+            }
+        }
+
+        // 返回结果（适配轮询机制）
+        // 如果没有数据，说明 AI 正在思考还未回复，返回等待标识
+        sender.sendMessage(Objects.requireNonNullElse(response, "UNDEFINED"));
+
+        return true;
+    }
+
+    /**
      * 获取或创建插件命令的历史记录（线程安全）
      *
      * @param historyKey 历史记录 key（格式：UUID_人格）
@@ -421,6 +519,72 @@ public class KilacraftCommand implements CommandExecutor {
      */
     private Deque<ConversationManager.Message> getOrCreatePluginHistory(String historyKey) {
         return plugin.getConversationManager().getOrCreatePluginHistory(historyKey);
+    }
+
+    /**
+     * 通过 Plugin Message 发送 AI 回复（供第三方插件监听，完全解耦）
+     *
+     * @param playerId   玩家 UUID
+     * @param playerName 玩家名称
+     * @param personality 人格类型
+     * @param response   AI 回复内容
+     */
+    private void sendPluginMessage(UUID playerId, String playerName, String personality, String response) {
+        try {
+            // 构建消息数据
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(stream);
+
+            out.writeUTF("AI_RESPONSE");           // 消息类型
+            out.writeUTF(playerId.toString());      // 玩家 UUID
+            out.writeUTF(playerName);               // 玩家名称
+            out.writeUTF(personality);              // 人格类型
+            out.writeUTF(response);                 // AI 回复内容
+
+            // 发送给所有在线玩家（第三方插件可以拦截）
+            Player onlinePlayer = plugin.getServer().getOnlinePlayers().stream().findFirst().orElse(null);
+            if (onlinePlayer != null) {
+                onlinePlayer.sendPluginMessage(plugin, "kilacraft:ai_response", stream.toByteArray());
+                if (plugin.getConfigManager().isDebugMode()) {
+                    plugin.getLogger().info("[DEBUG] Plugin Message 已发送 - 玩家: " + playerName + ", 人格: " + personality + ", 回复长度: " + response.length());
+                }
+            } else {
+                if (plugin.getConfigManager().isDebugMode()) {
+                    plugin.getLogger().warning("[DEBUG] 无在线玩家，跳过 Plugin Message 发送");
+                }
+            }
+
+        } catch (IOException e) {
+            plugin.getLogger().warning("发送 Plugin Message 失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 执行回调命令（配置驱动型插件集成）
+     *
+     * @param callbackCommand 回调命令模板（支持 {response} 占位符）
+     * @param response        AI 回复内容
+     */
+    private void executeCallback(String callbackCommand, String response) {
+        try {
+            // 替换占位符
+            String finalCommand = callbackCommand.replace("{response}", response.replace("\"", "\\\""));
+
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().info("[DEBUG] 执行回调命令: " + finalCommand);
+            }
+
+            // 以控制台身份执行回调命令
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
+
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().info("[DEBUG] 回调命令执行成功");
+            }
+
+        } catch (Exception e) {
+            plugin.getLogger().warning("执行回调命令失败: " + e.getMessage());
+            plugin.getLogger().warning("原始命令: " + callbackCommand);
+        }
     }
 
     /**

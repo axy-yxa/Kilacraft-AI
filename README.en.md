@@ -49,6 +49,36 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
   - Auto-discovery: Scans automatically on startup via Bukkit ServicesManager
   - Error isolation: Third-party Skill exceptions won't affect core processes
   - Complete SPI documentation and examples provided
+- **Plugin Command Mode Generalization (v1.4.0+)**: Decouple AI personality system from MythicMobs, providing two integration methods
+  - **Method A: Plugin Message Fully Decoupled** (✅ Highly Recommended, no dependencies)
+    ```java
+    // Register listener in your plugin main class
+    getServer().getMessenger().registerIncomingPluginChannel(
+        this, "kilacraft:ai_response", 
+        (channel, player, message) -> {
+            DataInputStream in = new DataInputStream(new ByteArrayInputStream(message));
+            String type = in.readUTF(); // "AI_RESPONSE"
+            String playerId = in.readUTF();
+            String playerName = in.readUTF();
+            String personality = in.readUTF();
+            String response = in.readUTF(); // AI response content
+            // Handle response...
+        }
+    );
+    ```
+  - **Method B: Console Command + Callback Command** (For configuration-driven plugins like MythicMobs)
+    ```bash
+    # Request AI response (optional 5th parameter: callback command)
+    /kilacraft plugins <personality> <content> <playerUUID> [callback_command]
+    
+    # Example: Auto-execute myplugin command after AI completion
+    /kilacraft plugins StrictTeacher Hello 00000000-0000-0000-0000-000000000000 "myplugin handleAI {response}"
+    
+    # Poll for latest response (returns UNDEFINED if incomplete)
+    /kilacraft plugins get <personality> <playerUUID>
+    ```
+  - **One-time Consumption Cache**: Deleted on get, avoid data pollution
+  - **Context Isolation**: Conversation history completely isolated per personality and player
 - **MythicMobs Placeholders**: Use `%kilacraft_ai_answer%` to get latest AI responses
 - **Console Command Calls**: Other plugins can integrate AI functionality via console commands
 
@@ -598,9 +628,9 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 
 ## 📝 Changelog
 
-### v1.4.0 - Third-party Skill SPI Extension 🚀
+### v1.4.0 - Third-party Skill SPI Extension & Plugin Command Mode Generalization 🚀
 
-**Core Upgrade**: Third-party plugins can now register custom Skills via SPI mechanism for seamless AI Agent integration!
+**Core Upgrade**: Support third-party plugins to register custom Skills via SPI mechanism, and decouple AI personality system from MythicMobs for true generalization!
 
 #### 🎯 Core Features
 
@@ -624,22 +654,130 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
   - Kept core fields: player, action, entities
   - Cleaner interface design
 
+- ✅ **Plugin Command Mode Generalization** (NEW):
+  - **Plugin Message Fully Decoupled Communication** (✅ Highly Recommended): Send AI responses via Bukkit message channel
+    - Third-party plugins **completely no dependency** on Kilacraft-AI, just register message listener
+    - Message channel: `kilacraft:ai_response` (follows Bukkit naming convention)
+    - Message format: `AI_RESPONSE | playerId | playerName | personality | response`
+    - Real-time notification, zero coupling, suitable for all Java plugins
+    - **One-time consumption**: Cache deleted immediately after sending, avoid duplicate consumption
+  - **Console Command + Callback Command Mechanism**: Adapted for configuration-driven plugins (e.g., MythicMobs)
+    - `/kilacraft plugins <personality> <content> <playerUUID> [callback_command]` - Request AI response with callback
+    - `/kilacraft plugins get <personality> <playerUUID>` - Poll for latest response
+    - Callback command supports `{response}` placeholder, auto-executes after AI completion
+    - Returns `UNDEFINED` if AI is still thinking, returns actual content when complete
+    - **One-time consumption**: Cache deleted immediately after callback execution, avoid data pollution
+  - **Context Isolation**: Conversation history completely isolated per personality and player (format: UUID_personality)
+  - **Decoupled from MythicMobs**: Any third-party plugin can easily use AI personality system
+  - **Three Mutually Exclusive Methods with Priority**:
+    - **Priority 1 (Highest)**: Specify callback command → Execute callback → Delete cache
+    - **Priority 2**: No callback command → Send Plugin Message → Delete cache
+    - **Priority 3 (Lowest)**: Manual polling `plugins get` → Get and delete cache
+    - ⚠️ **Important**: After high-priority method executes, low-priority methods cannot get cache
+  - **DEBUG Log Enhancement**: Debug logs added at key steps for troubleshooting
+
 #### 📦 New Files
 
 - `src/main/java/com/zm/kilacraftAI/skills/framework/spi/SkillProvider.java` - SPI interface
 - `src/main/java/com/zm/kilacraftAI/skills/framework/spi/SkillRegistry.java` - Auto-discovery mechanism
+- `src/main/java/com/zm/kilacraftAI/api/event/AIResponseReadyEvent.java` - AI response ready event
 - `src/assembly/skill-api.xml` - Assembly packaging config
-- `knowledge/Skill-SPI-接入文档.md` - Complete SPI integration documentation
+- `knowledge/Skill-SPI-Integration-Guide.md` - Complete SPI integration documentation
 
 #### 📦 Modified Files
 
-- `src/main/java/com/zm/kilacraftAI/KilacraftAI.java` - Integrated SkillRegistry auto-discovery
+- `src/main/java/com/zm/kilacraftAI/KilacraftAI.java` - Integrated SkillRegistry + Registered Plugin Message channel
+- `src/main/java/com/zm/kilacraftAI/core/KilacraftCommand.java` - Removed Bukkit Event + Added callback command support + Plugin Message sending + DEBUG log enhancement
 - `src/main/java/com/zm/kilacraftAI/skills/framework/SkillManager.java` - Enhanced error isolation
 - `src/main/java/com/zm/kilacraftAI/skills/framework/SkillContext.java` - Simplified fields
 - `src/main/java/com/zm/kilacraftAI/skills/framework/SkillResult.java` - Added getDataMap() method
+- `src/main/java/com/zm/kilacraftAI/manager/ConversationManager.java` - Optimized cache management (one-time consumption)
 - `pom.xml` - Version update + Assembly plugin config
 
-#### ⚙️ Integration Example
+#### ⚙️ Integration Examples
+
+**⚠️ Three Mutually Exclusive Methods with Priority**:
+- **Priority 1 (Highest)**: Specify callback command → Execute callback → Delete cache
+- **Priority 2**: No callback command → Send Plugin Message → Delete cache
+- **Priority 3 (Lowest)**: Manual polling `plugins get` → Get and delete cache
+- **Important**: After high-priority method executes, low-priority methods cannot get cache
+
+**Method A: Plugin Message Fully Decoupled (✅ Highly Recommended)**
+```java
+// Register listener in your plugin main class
+@Override
+public void onEnable() {
+    getServer().getMessenger().registerIncomingPluginChannel(
+        this, 
+        "kilacraft:ai_response", 
+        new DecoupledAIListener()
+    );
+}
+
+// Listener implementation
+public class DecoupledAIListener implements PluginMessageListener {
+    @Override
+    public void onPluginMessageReceived(String channel, Player player, byte[] message) {
+        try {
+            DataInputStream in = new DataInputStream(new ByteArrayInputStream(message));
+            String type = in.readUTF(); // "AI_RESPONSE"
+            
+            if ("AI_RESPONSE".equals(type)) {
+                String playerId = in.readUTF();
+                String playerName = in.readUTF();
+                String personality = in.readUTF();
+                String response = in.readUTF(); // AI response content
+                
+                // Handle AI response
+                handleAIResponse(playerId, playerName, personality, response);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+**⚠️ Note**: Cache is deleted immediately after Plugin Message is sent, subsequent `plugins get` calls will return UNDEFINED.
+
+**Method B: Console Command + Callback Command**
+```bash
+# 1. Request AI response with callback command
+/kilacraft plugins StrictTeacher Hello 00000000-0000-0000-0000-000000000000 "myplugin handleAI {response}"
+
+# 2. Auto-executes after AI completion: myplugin handleAI <actual response>
+
+# 3. Or use polling method
+/kilacraft plugins get StrictTeacher 00000000-0000-0000-0000-000000000000
+# Returns UNDEFINED if incomplete, returns actual content when complete
+```
+
+**⚠️ Note**: Cache is deleted immediately after callback command execution, subsequent `plugins get` calls will return UNDEFINED.
+
+**📌 Complete Priority Examples**:
+```bash
+# Scenario 1: Specified callback command (Priority 1)
+/kilacraft plugins StrictTeacher Hello UUID "myplugin handleAI {response}"
+# → Executes callback command myplugin handleAI <response> after AI completion
+# → Cache deleted
+# → Calling plugins get now will return UNDEFINED
+
+# Scenario 2: No callback command (Priority 2)
+/kilacraft plugins StrictTeacher Hello UUID
+# → Sends Plugin Message after AI completion
+# → Cache deleted
+# → Calling plugins get now will return UNDEFINED
+
+# Scenario 3: Polling only (Priority 3)
+/kilacraft plugins StrictTeacher Hello UUID
+# → No callback executed, no Plugin Message sent after AI completion
+# → Wait for a while then call
+/kilacraft plugins get StrictTeacher UUID
+# → Returns actual response content and deletes cache
+# → Calling again will return UNDEFINED
+```
+
+**Method C: MythicMobs Placeholder**
 
 ```java
 // 1. Add dependency
@@ -684,6 +822,7 @@ public class MyPlugin extends JavaPlugin implements SkillProvider {
 - Existing features fully compatible, no config changes needed
 - Third-party Skills should declare `softdepend: [Kilacraft-AI]` in plugin.yml
 - Built-in Skills have higher priority (third-party Skills with same name are skipped)
+- AI response cache changed to one-time consumption mechanism (deleted on get), consistent with MythicMobs placeholder behavior
 
 ---
 

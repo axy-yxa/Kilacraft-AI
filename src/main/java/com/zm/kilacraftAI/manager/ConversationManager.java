@@ -192,7 +192,7 @@ public class ConversationManager {
     /**
      * 获取并清除 AI 最新回复
      * <p>
-     * 用于自定义占位符解析，获取后会清除该回复
+     * 用于自定义占位符解析和 plugins get 命令，获取后立即删除
      * </p>
      * 
      * @param playerId 玩家 UUID
@@ -203,18 +203,6 @@ public class ConversationManager {
         String key = generatePluginHistoryKey(playerId, personality);
         // 先获取值，然后删除
         return latestAIResponses.remove(key);
-    }
-
-    /**
-     * 检查是否存在 AI 最新回复（不删除）
-     * 
-     * @param playerId 玩家 UUID
-     * @param personality 人偶类型
-     * @return true 表示存在 AI 回复
-     */
-    public boolean hasLatestAIResponse(UUID playerId, String personality) {
-        String key = generatePluginHistoryKey(playerId, personality);
-        return latestAIResponses.containsKey(key);
     }
     
     /**
