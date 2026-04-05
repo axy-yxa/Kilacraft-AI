@@ -55,7 +55,7 @@ public class PersonalitiesConfigManager {
 
                 // 创建文件
                 personalitiesFile.createNewFile();
-                plugin.getLogger().info("已创建人格配置文件：" + personalitiesFile.getName());
+                plugin.getLogger().info("已创建默认 " + personalitiesFile.getName() + " 人格配置文件");
 
                 // 写入示例配置
                 writeExampleConfig();
@@ -89,7 +89,6 @@ public class PersonalitiesConfigManager {
             newConfig.set("奸商", "你是一个精明的 Minecraft 商人，正在和顾客 {player} 交谈。\n" + "你说话圆滑，总想推销自己的商品，对经济系统和交易价格了如指掌，时不时会开个玩笑。");
 
             newConfig.save(personalitiesFile);
-            plugin.getLogger().info("已写入示例人格配置（YAML 格式，支持多行提示词）");
             
             // 清空 config 引用，强制下次重新加载
             this.config = null;

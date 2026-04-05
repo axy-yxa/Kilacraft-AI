@@ -165,7 +165,7 @@ public class SkillConfigManager {
             File defaultApisFile = new File(bukkitFolder, "apis.yml");
             if (!defaultApisFile.exists()) {
                 plugin.saveResource("skills/bukkit/apis.yml", false);
-                plugin.getLogger().info("已创建默认 Bukkit API 配置：" + defaultApisFile.getPath());
+                plugin.getLogger().info("已创建默认 Bukkit API 技能配置文件");
             }
         } catch (Exception e) {
             plugin.getLogger().warning("无法创建默认 Bukkit API 配置：" + e.getMessage());
@@ -243,7 +243,7 @@ public class SkillConfigManager {
         try {
             String resourcePath = "skills/" + packageName + "/" + skillName + ".yml";
             plugin.saveResource(resourcePath, false);
-            plugin.getLogger().info("已创建默认技能配置：" + configFile.getPath());
+            plugin.getLogger().info("已创建默认 " + skillName + ".yml" + " 技能配置文件");
         } catch (Exception e) {
             plugin.getLogger().severe("保存技能配置失败：" + configFile.getPath());
             e.printStackTrace();

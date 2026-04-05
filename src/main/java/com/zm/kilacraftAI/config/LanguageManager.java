@@ -148,7 +148,7 @@ public class LanguageManager {
         File languageFile = new File(plugin.getDataFolder(), "language.yml");
         if (!languageFile.exists()) {
             plugin.saveResource("language.yml", false);
-            plugin.getLogger().info("已创建默认 language.yml 配置文件");
+            plugin.getLogger().info("已创建默认 language.yml 语言配置文件");
         }
         
         // 手动加载 language.yml 文件内容到内存
