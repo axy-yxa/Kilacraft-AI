@@ -1,4 +1,4 @@
-﻿# Kilacraft-AI
+# Kilacraft-AI
 
 > **🎉 v1.4.0 Major Update**: Introduced Third-party Skill SPI Extension! Seamless integration for plugin developers. See [Changelog](#-changelog)
 
@@ -9,23 +9,15 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
 ### 🤖 AI Agent Core Capabilities
 - **LLM Intent Recognition Engine**: Intelligently understands user's true intentions and routes to corresponding skills
 - **Skills System Framework**: Extensible AI skill execution framework with async non-blocking support
+- **Multi-modal Interaction**: Command mode, continuous chat mode, keyword trigger mode
 - **Generic LLM Provider Architecture (v1.3.6+)**: Supports LLM services following OpenAI standard API format
   - Configuration-driven, switch between different LLM vendors via config.yml
   - Supports DeepSeek, Zhipu AI, Moonshot, and all APIs following OpenAI standards
   - HTTP connection pool optimization for improved performance
   - Streaming response support with reduced first-token latency
-  - Foundation for future expansion to more LLM providers
-- **Bukkit API Dynamic Invocation (v1.3.3+)**: Data-driven vanilla API calling capability
-  - Load API definitions from `apis.yml` configuration file, no hardcoding required
-  - Supports method_chain and additional_methods invocation patterns
-  - Reflection-based execution engine for dynamic Player/World/Server method calls
-  - Permission control, hot-reload support, instant configuration changes
-  - Pre-configured APIs for player status, world info, and server queries
-- **Multi-modal Interaction**: Command mode, continuous chat mode, keyword trigger mode
-- **Multi-Step Task Executor (v1.3.2+)**: Complex task automatic decomposition and sequential execution
-  - Topological sort-based dependency management
-  - Previous step results automatically passed as context to subsequent steps
-  - LLM comprehensively analyzes all step results and generates friendly responses
+- **Historical Conversation Context (v1.3.5+)**: Support historical dialogue in intent recognition and result analysis
+  - intent_history_count: 5 turns for intent recognition
+  - analysis_history_count: 2 turns for result analysis
 
 ### ⚠️ Streaming Output Notice
 
@@ -34,6 +26,13 @@ Streaming output is not supported in the current version. The `enable_stream_out
 **Tip for Third-party Plugin Developers**: If you need streaming effects, you can implement "pseudo-streaming output" in your own plugin by receiving the complete AI response and displaying it in batches using `BukkitRunnable` (e.g., show 10 characters every 500ms to simulate a typewriter effect).
 
 **Note**: Callback commands execute on the main thread (required by Bukkit API), but third-party plugins should **return immediately** and process complex logic in async threads to avoid blocking.
+
+---
+
+### 🎭 Personalization & Context
+- **Personality System**: Multiple personality configurations, customizable AI roles and response styles
+- **Contextual Conversations**: Automatically saves chat history, supports continuous context-aware conversations
+- **Knowledge Base Enhancement**: Local knowledge base retrieval, making AI understand your server better
 
 ---
 
@@ -48,10 +47,25 @@ Streaming output is not supported in the current version. The `enable_stream_out
 - **Optimal Price Calculation**: Smart combination from cheapest to most expensive, considering actual stock
 - **Insufficient Stock Notification**: Shows detailed prices and quantities of all available items
 
-### 🎭 Personalization & Context
-- **Personality System**: Multiple personality configurations, customizable AI roles and response styles
-- **Contextual Conversations**: Automatically saves chat history, supports continuous context-aware conversations
-- **Knowledge Base Enhancement**: Local knowledge base retrieval, making AI understand your server better
+---
+
+### 🔌 Bukkit API Dynamic Invocation (v1.3.3+)
+- **Data-driven Vanilla API Calling**: Load API definitions from `apis.yml` configuration file, no hardcoding required
+- **Reflection-based Execution Engine**: Dynamically call Player/World/Server methods
+- **Dual Mode Support**: method_chain (chained calls) and additional_methods (parallel independent calls)
+- **Permission Control**: Each API has independent permission nodes
+- **Hot-reload Support**: Instant configuration changes
+- **44+ Built-in APIs**: Cover player status, world info, and server queries
+
+---
+
+### 🧠 Multi-Step Task Executor (v1.3.2+)
+- **Complex Task Automatic Decomposition**: Topological sort-based dependency management
+- **Automatic Data Flow**: Previous step results automatically passed as context to subsequent steps
+- **Intelligent Result Analysis**: LLM comprehensively analyzes all step results and generates friendly responses
+- **Failure Fallback Mechanism**: Automatically fallback to normal AI chat when intent recognition or skill execution fails
+
+---
 
 ### 🔌 Third-party Plugin Support & Extensions
 - **Skill SPI Extension (v1.4.0+)**: Support third-party plugins to register custom Skills via SPI
@@ -60,42 +74,49 @@ Streaming output is not supported in the current version. The `enable_stream_out
   - Error isolation: Third-party Skill exceptions won't affect core processes
   - Complete SPI documentation and examples provided
 - **Plugin Command Mode Generalization (v1.4.0+)**: Decouple AI personality system from MythicMobs, providing two integration methods
-  - **Method A: Plugin Message Fully Decoupled** (✅ Highly Recommended, no dependencies)
+  - **Method A: Bukkit Event Notification** (✅ Recommended, best real-time)
     ```java
-    // Register listener in your plugin main class
-    getServer().getMessenger().registerIncomingPluginChannel(
-        this, "kilacraft:ai_response", 
-        (channel, player, message) -> {
-            DataInputStream in = new DataInputStream(new ByteArrayInputStream(message));
-            String type = in.readUTF(); // "AI_RESPONSE"
-            String playerId = in.readUTF();
-            String playerName = in.readUTF();
-            String personality = in.readUTF();
-            String response = in.readUTF(); // AI response content
-            // Handle response...
+    // Register listener in your plugin main class (zero-coupling via reflection)
+    @EventHandler
+    public void onAIResponse(org.bukkit.event.Event event) {
+        try {
+            Class<?> eventClass = event.getClass();
+            if (!eventClass.getName().equals("com.zm.kilacraftAI.api.event.AIResponseReadyEvent")) {
+                return;
+            }
+            
+            String playerName = (String) eventClass.getMethod("getPlayerName").invoke(event);
+            String response = (String) eventClass.getMethod("getResponse").invoke(event);
+            String personality = (String) eventClass.getMethod("getPersonality").invoke(event);
+            
+            // Handle AI response
+            getLogger().info("Received AI response: " + response);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-    );
+    }
     ```
-  - **Method B: Console Command + Callback Command** (For configuration-driven plugins like MythicMobs)
+  - **Method B: Console Command + Callback Command** (✅ Highly recommended, configuration-driven)
     ```bash
-    # Request AI response (optional 5th parameter: callback command)
-    /kilacraft plugins <personality> <content> <playerUUID> [callback_command]
+    # Request AI response with callback command
+    /kilacraft plugins <personality> <content> <playerUUID> "myplugin handleAI {response}"
     
-    # Example: Auto-execute myplugin command after AI completion
-    /kilacraft plugins StrictTeacher Hello 00000000-0000-0000-0000-000000000000 "myplugin handleAI {response}"
+    # Auto-execute after AI completion: myplugin handleAI <actual response>
     
-    # Poll for latest response (returns UNDEFINED if incomplete)
+    # Or use polling method
     /kilacraft plugins get <personality> <playerUUID>
+    # Returns UNDEFINED if incomplete, actual content if complete
     ```
   - **One-time Consumption Cache**: Deleted on get, avoid data pollution
   - **Context Isolation**: Conversation history completely isolated per personality and player
 - **MythicMobs Placeholders**: Use `%kilacraft_ai_answer%` to get latest AI responses
 - **Console Command Calls**: Other plugins can integrate AI functionality via console commands
 
+---
+
 ### ⚙️ Management & Security
 - **Permission Management**: Fine-grained permission control, admins can clear other players' history
 - **Cooldown & Limits**: Prevent abuse, supports customizable cooldown times and world restrictions
-- **Streaming Output**: Real-time display of AI response generation (optional)
 
 ## 🔧 Installation
 
