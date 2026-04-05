@@ -655,23 +655,22 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
   - Cleaner interface design
 
 - ✅ **Plugin Command Mode Generalization** (NEW):
-  - **Bukkit Event Notification Mechanism** (✅ Recommended): Automatically triggers `AIResponseReadyEvent` when AI response completes
-    - Third-party plugins listen to events via reflection, **completely zero-coupling**
-    - Real-time notification with optimal performance
-    - Event includes: playerId, playerName, personality, response
-  - **Console Command + Callback Command Mechanism** (✅ Highly Recommended): Adapted for configuration-driven plugins (e.g., MythicMobs)
-    - `/kilacraft plugins <personality> <content> <playerUUID> "callback_command"` - Request AI response with callback
-    - `/kilacraft plugins get <personality> <playerUUID>` - Poll for latest response
+  - **Console Command + Callback Command Mechanism** (✅ Only Recommended): Adapted for configuration-driven plugins (e.g., MythicMobs)
+    - `/kilacraft plugins <personality> <content> <playerUUID> [callback_command...]` - Request AI response with callback
+    - **Callback command supports spaces**: All parameters from 5th onwards are merged into callback command
     - Callback command supports `{response}` placeholder, auto-executes after AI completion
-    - Returns `UNDEFINED` if AI is still thinking, returns actual content when complete
+    - **Execution Role**: Callback commands are executed as **console**, not player
     - **One-time consumption**: Cache deleted immediately after callback execution, avoid data pollution
+    - **Design Philosophy**: Plugin command mode is for third-party plugins, not for direct player use
   - **Context Isolation**: Conversation history completely isolated per personality and player (format: UUID_personality)
   - **Decoupled from MythicMobs**: Any third-party plugin can easily use AI personality system
-  - **Two Mutually Exclusive Methods with Priority**:
-    - **Priority 1 (Highest)**: Specify callback command → Execute callback → Delete cache
-    - **Priority 2**: No callback command → Trigger Bukkit Event → Delete cache
-    - **Priority 3 (Lowest)**: Manual polling `plugins get` → Get and delete cache
-    - ⚠️ **Important**: After high-priority method executes, low-priority methods cannot get cache
+  - **Callback Command Mechanism**:
+    - **Priority (Only Method)**: Specify callback command → Execute callback → Delete cache
+    - ⚠️ **Important Principles**:
+      - Follows **“use once, delete immediately”** principle
+      - **Personality Naming Uniqueness**: Each plugin/module must use unique personality name to avoid cache conflicts
+      - Cache isolation mechanism: `UUID_personality` as cache key, different personalities are naturally isolated
+      - **No Duplicate Names**: Multiple plugins using same personality will cause cache being accidentally deleted
   - **DEBUG Log Enhancement**: Debug logs added at key steps for troubleshooting
 
 #### 📦 New Files
@@ -739,28 +738,33 @@ public void onAIResponse(org.bukkit.event.Event event) {
 # Returns UNDEFINED if incomplete, returns actual content when complete
 ```
 
-**📌 Complete Priority Examples**:
+**📌 Complete Usage Example**:
 ```bash
-# Scenario 1: Specified callback command (Priority 1)
-/kilacraft plugins StrictTeacher Hello UUID "myplugin handleAI {response}"
-# → Executes callback command myplugin handleAI <response> after AI completion
+# Scenario: Third-party plugin requests AI response with callback
+/kilacraft plugins mm_ai Hello UUID testai handleAI {response} mm_ai
+# → Executes callback command after AI completion (as console)
 # → Cache deleted
-# → Calling plugins get now will return UNDEFINED
-# → Will NOT trigger Bukkit Event
+```
 
-# Scenario 2: No callback command (Priority 2)
-/kilacraft plugins StrictTeacher Hello UUID
-# → Triggers Bukkit Event after AI completion
-# → Cache deleted
-# → Calling plugins get now will return UNDEFINED
+**⚠️ Important Notes**:
+- **Callback Command Execution Role**: All callback commands are executed as **console**, not player
+- **Callback Command Format**: Supports spaces, all parameters from 5th onwards are merged
+- **Placeholder Replacement**: `{response}` will be replaced with actual AI response content
+- **Design Philosophy**: Plugin command mode is for third-party plugins, not for direct player use
+- **Only Integration Method**: Only supports callback command method, no polling
 
-# Scenario 3: Polling only (Priority 3)
-/kilacraft plugins StrictTeacher Hello UUID
-# → No callback executed, no Event triggered after AI completion
-# → Wait for a while then call
-/kilacraft plugins get StrictTeacher UUID
-# → Returns actual response content and deletes cache
-# → Calling again will return UNDEFINED
+**⚠️ Personality Naming Uniqueness Principle**:
+```bash
+# ✅ Correct: Different plugins use different personalities
+MythicMobs uses: mm_ai
+Third-party Plugin A uses: shop_assistant
+Third-party Plugin B uses: quest_guide
+# → Cache completely isolated, no interference
+
+# ❌ Wrong: Multiple plugins use same personality
+MythicMobs uses: default
+Third-party Plugin A also uses: default
+# → Will cause cache conflict, first execution deletes cache, second cannot get data
 ```
 
 **Method C: MythicMobs Placeholder**

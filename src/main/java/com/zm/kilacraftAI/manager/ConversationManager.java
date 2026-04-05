@@ -192,7 +192,7 @@ public class ConversationManager {
     /**
      * 获取并清除 AI 最新回复
      * <p>
-     * 用于自定义占位符解析和 plugins get 命令，获取后立即删除
+     * 用于自定义占位符解析，获取后会清除该回复
      * </p>
      * 
      * @param playerId 玩家 UUID

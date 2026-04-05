@@ -98,13 +98,20 @@ plugins-command:
   player-blocked: "§c请使用 /kilacraft <消息>"
   
   # 参数不足
-  insufficient-args: "§c参数不足！"
+  insufficient-args: "§c参数不足！使用方法：/kilacraft plugins <人格> <内容> <玩家 UUID> [回调命令...]"
   
-  # 使用示例
-  usage-example: "§e用法："
-  usage-request: "§7  /kilacraft plugins <人格> <内容> <玩家UUID> - 生成AI回复"
-  usage-get: "§7  /kilacraft plugins get <人格> <玩家UUID> - 获取最新AI回复"
-
+  # 使用示例（基础）
+  usage-example: "§e示例：/kilacraft plugins 严厉教师 你好 069a79f4-44e9-4726-a5be-fca90e38aaf5"
+  
+  # 回调命令说明
+  callback-hint: "§7可选：在末尾添加回调命令，AI 完成后自动执行"
+  
+  # 回调命令示例
+  callback-example: "§e带回调：/kilacraft plugins mm_ai 你好 UUID testai handleAI {response} mm_ai"
+  
+  # 占位符说明
+  callback-placeholder-hint: "§7{response} 会被替换为实际的 AI 回复内容"
+  
   # 无效 UUID 格式
   invalid-uuid: "§c无效的玩家 UUID 格式："
   

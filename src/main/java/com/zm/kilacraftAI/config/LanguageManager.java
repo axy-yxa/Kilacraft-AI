@@ -97,9 +97,11 @@ public class LanguageManager {
     @Getter
     private String pluginCommandUsageExample;
     @Getter
-    private String pluginCommandUsageRequest;
+    private String pluginCommandCallbackHint;
     @Getter
-    private String pluginCommandUsageGet;
+    private String pluginCommandCallbackExample;
+    @Getter
+    private String pluginCommandCallbackPlaceholderHint;
     @Getter
     private String pluginCommandInvalidUuid;
     @Getter
@@ -207,10 +209,11 @@ public class LanguageManager {
 
         // 插件命令专用消息
         this.pluginCommandPlayerBlocked = config.getString("plugins-command.player-blocked", "§c请使用 /kilacraft <消息>");
-        this.pluginCommandInsufficientArgs = config.getString("plugins-command.insufficient-args", "§c参数不足！");
-        this.pluginCommandUsageExample = config.getString("plugins-command.usage-example", "§e用法：");
-        this.pluginCommandUsageRequest = config.getString("plugins-command.usage-request", "§7  /kilacraft plugins <人格> <内容> <玩家UUID> - 生成AI回复");
-        this.pluginCommandUsageGet = config.getString("plugins-command.usage-get", "§7  /kilacraft plugins get <人格> <玩家UUID> - 获取最新AI回复");
+        this.pluginCommandInsufficientArgs = config.getString("plugins-command.insufficient-args", "§c参数不足！使用方法：/kilacraft plugins <人格> <内容> <玩家 UUID> [回调命令...]");
+        this.pluginCommandUsageExample = config.getString("plugins-command.usage-example", "§e示例：/kilacraft plugins 严厉教师 你好 069a79f4-44e9-4726-a5be-fca90e38aaf5");
+        this.pluginCommandCallbackHint = config.getString("plugins-command.callback-hint", "§7可选：在末尾添加回调命令，AI 完成后自动执行");
+        this.pluginCommandCallbackExample = config.getString("plugins-command.callback-example", "§e带回调：/kilacraft plugins mm_ai 你好 UUID testai handleAI {response} mm_ai");
+        this.pluginCommandCallbackPlaceholderHint = config.getString("plugins-command.callback-placeholder-hint", "§7{response} 会被替换为实际的 AI 回复内容");
         this.pluginCommandInvalidUuid = config.getString("plugins-command.invalid-uuid", "§c无效的玩家 UUID 格式：");
         this.pluginCommandUuidFormatHint = config.getString("plugins-command.uuid-format-hint", "§e请确保 UUID 格式正确，例如：069a79f4-44e9-4726-a5be-fca90e38aaf5");
         this.pluginCommandPersonalityNotFound = config.getString("plugins-command.personality-not-found", "§c未找到人格配置：");

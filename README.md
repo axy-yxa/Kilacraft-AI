@@ -664,23 +664,22 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
   - 更清晰的接口设计
 
 - ✅ **插件命令模式通用化**（新增）：
-  - **Bukkit Event 事件通知机制**（✅ 推荐）：AI 回复完成自动触发 `AIResponseReadyEvent`
-    - 第三方插件通过反射监听事件，**完全零耦合**
-    - 实时通知，性能最优
-    - 事件包含：playerId, playerName, personality, response
-  - **控制台命令 + 回调命令机制**（✅ 强烈推荐）：适配配置驱动型插件（如 MythicMobs）
-    - `/kilacraft plugins <人格> <内容> <玩家UUID> "回调命令"` - 请求 AI 回复并指定回调
-    - `/kilacraft plugins get <人格> <玩家UUID>` - 轮询获取最新回复
+  - **控制台命令 + 回调命令机制**（✅ 唯一推荐）：适配配置驱动型插件（如 MythicMobs）
+    - `/kilacraft plugins <人格> <内容> <玩家UUID> [回调命令...]` - 请求 AI 回复并指定回调
+    - **回调命令支持空格**：第 5 个及之后的所有参数自动合并为回调命令
     - 回调命令支持 `{response}` 占位符，AI 完成后自动执行
-    - 返回 `UNDEFINED` 表示 AI 还在思考，返回实际内容表示回复完成
+    - **执行角色**：回调命令以**控制台身份**执行，不是玩家角色
     - **一次性消费**：回调执行后立即删除缓存，避免数据污染
+    - **设计理念**：插件命令模式是给第三方插件使用的，不是给玩家直接使用的
   - **上下文隔离**：不同人格和玩家的对话历史完全独立（格式：UUID_人格）
   - **解耦 MythicMobs**：任何第三方插件都能方便地使用 AI 人格系统
-  - **两种方案互斥与优先级**：
-    - **优先级 1（最高）**：指定回调命令 → 执行回调 → 删除缓存
-    - **优先级 2**：无回调命令 → 触发 Bukkit Event → 删除缓存
-    - **优先级 3（最低）**：手动轮询 `plugins get` → 获取并删除缓存
-    - ⚠️ **重要**：高优先级方式执行后，低优先级方式将无法获取缓存
+  - **回调命令机制**：
+    - **优先级（唯一方式）**：指定回调命令 → 执行回调 → 删除缓存
+    - ⚠️ **重要原则**：
+      - 遵循**“使用一次，立即删除”**原则
+      - **人格命名唯一性**：每个插件/模块必须使用独立的人格名称，避免缓存冲突
+      - 缓存隔离机制：`UUID_人格` 作为缓存 key，不同人格天然隔离
+      - **禁止重名**：多个插件使用同一个人格会导致缓存被意外删除
   - **DEBUG 日志增强**：关键步骤添加调试日志，便于问题排查
 
 #### 📦 新增文件
@@ -748,28 +747,33 @@ public void onAIResponse(org.bukkit.event.Event event) {
 # 返回 UNDEFINED 表示未完成，返回实际内容表示完成
 ```
 
-**📌 完整优先级示例**：
+**📌 完整使用示例**：
 ```bash
-# 场景 1：指定了回调命令（优先级 1）
-/kilacraft plugins 严厉教师 你好 UUID "myplugin handleAI {response}"
-# → AI 完成后执行回调命令 myplugin handleAI <回复>
+# 场景：第三方插件请求 AI 回复并指定回调
+/kilacraft plugins mm_ai 你好 UUID testai handleAI {response} mm_ai
+# → AI 完成后执行回调命令（以控制台身份）
 # → 缓存已删除
-# → 此时调用 plugins get 将返回 UNDEFINED
-# → 不会触发 Bukkit Event
+```
 
-# 场景 2：未指定回调命令（优先级 2）
-/kilacraft plugins 严厉教师 你好 UUID
-# → AI 完成后触发 Bukkit Event
-# → 缓存已删除
-# → 此时调用 plugins get 将返回 UNDEFINED
+**⚠️ 重要说明**：
+- **回调命令执行角色**：所有回调命令均以**控制台身份**执行，而非玩家角色
+- **回调命令格式**：支持包含空格，第 5 个及之后的所有参数自动合并
+- **占位符替换**：`{response}` 会被替换为实际的 AI 回复内容
+- **设计理念**：插件命令模式是给第三方插件使用的，不是给玩家直接使用的
+- **唯一集成方式**：只支持回调命令方式，不支持轮询
 
-# 场景 3：仅使用轮询（优先级 3）
-/kilacraft plugins 严厉教师 你好 UUID
-# → AI 完成后不执行回调，不触发 Event
-# → 等待一段时间后调用
-/kilacraft plugins get 严厉教师 UUID
-# → 返回实际回复内容并删除缓存
-# → 再次调用将返回 UNDEFINED
+**⚠️ 人格命名唯一性原则**：
+```bash
+# ✅ 正确：不同插件使用不同人格
+MythicMobs 使用: mm_ai
+第三方插件 A 使用: shop_assistant
+第三方插件 B 使用: quest_guide
+# → 缓存完全隔离，互不干扰
+
+# ❌ 错误：多个插件使用同一个人格
+MythicMobs 使用: default
+第三方插件 A 也使用: default
+# → 会导致缓存冲突，先执行的删除后执行的拿不到数据
 ```
 
 **方式 C：MythicMobs 占位符**
