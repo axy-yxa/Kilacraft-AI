@@ -4,12 +4,10 @@ target/
 !**/src/test/**/target/
 dependency-reduced-pom.xml
 test/
-*.md
 .qoder
 .qoderignore
 .shelf
 lib/
-knowledge
 
 ### IntelliJ IDEA ###
 .idea

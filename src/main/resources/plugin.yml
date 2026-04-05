@@ -10,14 +10,28 @@ api-version: '1.21'
 author: Zm_Mmm
 # 插件描述（多行文本，使用 | 保持格式）
 description: |
-  一款强大的 Minecraft AI Agent 插件，主要特性：
-  - 基于 LLM 的意图识别与技能执行框架
-  - GlobalMarketPlus 经济系统集成（余额查询、价格查询、多物品支持）
-  - MythicMobs 占位符支持自定义 AI 回复
-  - 自然语言理解与数量识别
-  - 智能库存管理与最优价格计算
-  - 知识库增强功能，让 AI 更了解服务器
-  - 多种交互模式：命令对话、连续聊天、关键词触发
+  A powerful Minecraft AI Agent plugin with natural language interaction.
+  一款强大的 Minecraft AI Agent 插件，支持自然语言交互。
+  
+  Core Features / 核心功能：
+  - LLM-based intent recognition & skill execution framework
+    基于 LLM 的意图识别与技能执行框架
+  - Bukkit API integration (query player status, world info, server data)
+    Bukkit API 集成（查询玩家状态、世界信息、服务器数据）
+  - GlobalMarketPlus economy system integration
+    GlobalMarketPlus 经济系统集成
+  - MythicMobs placeholder support for custom AI responses
+    MythicMobs 占位符支持自定义 AI 回复
+  - Knowledge base enhancement for server-aware AI
+    知识库增强功能，让 AI 更了解服务器
+  - Multiple interaction modes: command chat, continuous conversation, keyword trigger
+    多种交互模式：命令对话、连续聊天、关键词触发
+  - Multi-step task planning for complex queries
+    多步骤任务规划，处理复杂查询
+  - Configurable personality system
+    可配置的人格系统
+  - Permission-controlled API access
+    权限控制的 API 访问
 # 插件加载时机（POSTWORLD 表示在世界加载后加载，确保依赖插件已加载）
 load: POSTWORLD
 # 软依赖列表（如果这些插件存在则会集成其功能）

@@ -1,0 +1,265 @@
+# Kilacraft-AI 更新日志
+
+## 📝 版本说明
+
+本文件记录 Kilacraft-AI 插件的所有重要变更。
+
+---
+
+## v1.4.0 - Third-party Skill SPI Extension & Plugin Command Mode Generalization
+### v1.4.0 - 第三方技能 SPI 扩展与插件命令模式通用化
+
+### ✨ 新增功能
+- 支持第三方插件通过 SPI 机制注册自定义 Skills（SkillProvider 接口）
+- SkillRegistry 自动发现机制，通过 Bukkit ServicesManager 扫描和注册
+- 插件命令模式通用化：控制台命令 + 回调命令机制
+- 回调命令超时保护（默认 3 秒），防止主线程阻塞
+- AIResponseReadyEvent 事件通知机制
+
+### 🔧 优化改进
+- 错误隔离机制：第三方 Skill 执行异常不影响核心流程
+- 简化 SkillContext，移除冗余的 rawInput 字段
+- 分离 TimeoutException、CancellationException 等异常处理
+- 优化 ConversationManager 缓存管理（一次性消费机制）
+- 增强 DEBUG 日志，关键步骤添加调试信息
+
+### 📦 打包变更
+- 新增 Kilacraft-Skill-API-1.4.0.jar（5KB，包含 5 个 SPI 接口）
+- Assembly 打包配置，独立 API JAR 供第三方开发者使用
+
+### ⚠️ 兼容性
+- 现有功能完全兼容，无需更改配置
+- 第三方 Skills 应在 plugin.yml 中声明 softdepend: [Kilacraft-AI]
+- 内置 Skills 优先级更高（同名第三方 Skills 会被跳过）
+
+---
+
+## v1.3.6 - Generic LLM Provider Architecture
+### v1.3.6 - 通用 LLM 提供商架构
+
+### ✨ 新增功能
+- LLMProvider 统一接口，支持配置化切换不同 LLM 厂商
+- GenericLLMProvider 通用实现，支持所有 OpenAI 标准 API 格式的厂商
+- LLMManager 管理器，统一管理 LLM Provider 生命周期
+
+### 🔧 优化改进
+- HTTP 连接池优化（最大空闲连接数=10，保持活跃时间=5分钟）
+- 流式响应支持，降低首字延迟
+- 配置缓存机制，减少重复获取配置的开销
+- 自动重试机制，增强稳定性
+- 职责清晰分离，提升可维护性和可扩展性
+
+### 🗑️ 移除内容
+- 删除旧的 DeepSeekAPI.java 和 DeepSeekAPINew.java
+- 删除废弃的 /llm 命令及权限
+
+### ⚠️ 兼容性
+- config.yml 中的 api.* 配置项现在由 GenericLLMProvider 管理
+- 现有功能完全兼容，仅需修改配置即可切换 LLM 提供商
+
+---
+
+## v1.3.5 - Enhanced Historical Conversation Context
+### v1.3.5 - 增强的历史对话上下文
+
+### ✨ 新增功能
+- intent_history_count：意图识别阶段的历史对话轮数（默认 5 轮）
+- analysis_history_count：结果分析阶段的历史对话轮数（默认 2 轮）
+- HistoryUtil 工具类，统一的历史记录格式化逻辑
+
+### 🔧 优化改进
+- LLMAnalysisService 集成历史对话到分析提示词
+- SkillIntentRecognizer 隐藏动态构建系统提示词的调试日志
+- ConfigManager 新增 getAgentIntentHistoryCount() 和 getAgentAnalysisHistoryCount() 方法
+- 提示词模板优化，整合历史对话和当前输入
+
+### ⚠️ 兼容性
+- 配置文件新增 intent_history_count 和 analysis_history_count 项
+- 建议备份后重新生成配置文件
+
+---
+
+## v1.3.4 - MarketQuerySkill Expansion & Multi-Step Task Optimization
+### v1.3.4 - 市场查询技能扩展与多步骤任务优化
+
+### ✨ 新增功能
+- MarketQuerySkill 新增 4 个只读动作：query_availability、query_my_items、query_mailbox、query_market_stats
+- GlobalMarketPlusAPI 扩展：MailItem、MarketStats、MarketItem 等数据模型类
+- Bukkit API 能力扩展：新增 44 个 API（Player/World/Server）
+- 多步骤任务占位符解析机制：支持 {step_xxx.field} 数据传递
+
+### 🔧 优化改进
+- 多步骤任务提示词优化，添加单意图格式示例
+- BukkitAPIExecutor findMethod() 优先选择无参方法，修复重载方法调用失败
+- 物品名称净化：移除 :1 后缀，自动翻译为中文
+- 经验进度百分比显示、游戏时间格式化（HH:MM）、在线玩家精简
+- 占位符解析容错增强，实现「快速失败」策略
+- 代码架构重构，提取内部类为独立文件
+
+### ⚠️ 兼容性
+- 配置文件 apis.yml 扩展 44 个 API + 权限配置
+- plugin.yml 权限描述优化
+
+---
+
+## v1.3.3 - Bukkit API Capabilities & Automated System Prompt
+### v1.3.3 - Bukkit API 能力与自动化系统提示词
+
+### ✨ 新增功能
+- Bukkit API 技能系统（GenericBukkitAPI）：数据驱动的原版 API 调用框架
+- 全自动系统提示词：零硬编码的动态提示词构建，自动遍历所有技能生成动作列表
+- 控制台 AI 能力增强：支持与玩家相同的完整功能（意图识别、技能调用、多步骤任务）
+- 人格配置优化：YAML 多行文本支持、JSON 格式容错、空配置检测、错误恢复机制
+
+### 🔧 优化改进
+- 动态元数据驱动：从 apis.yml 加载 API 定义，支持热重载
+- 反射执行引擎：通过反射动态调用 Bukkit API（Player/World/Server）
+- 双模式支持：method_chain（链式调用）和 additional_methods（并行独立方法调用）
+- 智能格式化：模板占位符替换，特殊类型处理（Location/GameMode/ItemStack）
+- SkillConfig.java 移动到 skills.framework.config 包
+- TaskExecutor.java 和 TaskPlan.java 移动到 skills.framework.task 包
+- 新增 5 个 Bukkit API 权限节点和通配符权限 kilacraft.api.*
+
+### ⚠️ 兼容性
+- 新增 apis.yml 配置文件，首次启动时自动创建
+- 新增权限节点，建议更新权限配置
+
+---
+
+## v1.3.2 - Agent Configuration & Multi-Step Task Executor
+### v1.3.2 - Agent 配置与多步骤任务执行器
+
+### ✨ 新增功能
+- 细粒度 Agent 配置：总控开关、独立入口控制（chat_listener/command）
+- 多步骤任务执行器（TaskExecutor）：拓扑排序算法、步骤依赖管理、结果汇总分析
+- 增强的 LLM 意图识别：单意图快速路径、多步骤任务规划、JSON Schema 验证
+- 提示词配置化：system_prompt 和 analysis_prompt 完全可定制
+
+### 🔧 优化改进
+- 统一 AI 请求处理器（AIRequestHandler）：消除约 130 行重复逻辑
+- 基于配置的状态传递设计，无内部状态缓存
+- 所有 AI 响应自动添加 MessageUtil.getAIPrefix() 前缀
+- 优化调试模式日志，使用 logger.info 替代 System.out.println
+- 移除 TaskExecutor 中冗余的单步处理逻辑
+- ChatListener 现在完全支持多步骤任务处理
+
+### ⚠️ 兼容性
+- Agent 配置结构变更，建议备份后重新生成配置文件
+- TaskExecutor 提示词配置化，原有硬编码提示词迁移到 config.yml
+
+---
+
+## v1.3.1 - RAG Retrieval Optimization & Response Speed Improvement
+### v1.3.1 - RAG 检索优化与响应速度提升
+
+### ✨ 新增功能
+- 标准 RAG 知识检索架构：支持多种格式的知识文件
+- 智能分段策略：Markdown 标题 → 段落 → 固定大小（三级策略）
+- 中文关键词提取：n-gram 分词 + 智能停用词过滤 + 自动标点去除
+- 多级评分机制：完整问句匹配（+50）+ 关键词匹配（+5）+ 标题匹配（+25）+ 覆盖率倍数
+
+### 🔧 优化改进
+- 即时思考消息：从技能执行移至命令入口点，消除“插件慢”的错觉
+- 统一冷却管理：在 handlePlayerMessageCommand() 中统一处理
+- HTTP 连接池优化：复用连接，最大空闲=10，保持活跃=5min
+- 流式响应支持：使用 BufferedReader 逐行读取，降低首字延迟
+- 配置缓存机制：缓存 model/temperature/maxTokens 值
+- 预分配缓冲区：StringBuilder 预分配大小（512/256），减少扩容开销
+- 自动重试机制：启用 retryOnConnectionFailure(true)
+
+### ⚠️ 兼容性
+- 知识库分段配置结构变更，建议备份后重新生成
+
+---
+
+## v1.3.0 - AI Agent Evolution
+### v1.3.0 - AI Agent 进化
+
+### ✨ 新增功能
+- Skills 技能系统框架：基于 LLM 意图的自动技能路由，异步执行模型
+- LLM 意图识别引擎：动态技能提示词构建，多实体提取支持，置信度评估
+- GlobalMarketPlus 深度集成：玩家余额查询、市场价格查询、商品列表查询
+- 多物品联合查询：一次性查询多个物品价格，数量识别，最优价格计算
+
+### 🔧 优化改进
+- 核心架构重构：新增 SkillContext、SkillResult、SkillManager、Skill 基础接口
+- 防重复机制：修复技能回退时重复发送思考消息和重复冷却的问题
+- 智能物品名称匹配：优先精确匹配，降级模糊匹配，中英文翻译映射支持
+- 配置系统增强：独立的技能配置管理（skills/ 目录），物品翻译配置
+
+### ⚠️ 兼容性
+- 配置结构变更，建议备份后重新生成配置文件
+- 技能系统为实验性功能，API 可能在后续版本中调整
+- GlobalMarketPlus 集成需要插件版本 1.3.8.0+
+
+---
+
+## v1.2.3
+
+### ✨ 新增功能
+- 语言配置系统：将所有系统提示文本提取到 language.yml 配置文件
+- 动态帮助消息：help 命令根据玩家权限动态显示提示
+- 权限管理优化：创建 PluginPermission 枚举类统一管理权限节点
+
+### 🔧 优化改进
+- 架构优化：新增 LanguageManager 统一管理所有语言配置
+- 移除所有硬编码的权限字符串，所有权限检查使用枚举类
+- Tab 补全也根据权限枚举动态显示
+- 整合重复的提示文本，提高复用性
+- 验证逻辑重构：AIRequestValidator 只负责验证，不再直接发送通知
+
+---
+
+## v1.2.2
+
+### 🔧 优化改进
+- 移除 kilacraft.use 权限要求，默认对所有玩家开放
+- 优化 Tab 补全，根据权限动态显示命令
+- 分离清除历史提示，根据权限显示不同命令
+- 改进权限系统和命令处理
+
+---
+
+## v1.2.1
+
+### 🔧 优化改进
+- 新增 AI 最新响应缓存机制，优化自定义占位符解析性能
+- 增强命令帮助消息、权限检查和日志记录
+- 移除知识库增强的来源声明，使回复更流畅
+
+---
+
+## v1.2.0
+
+### ✨ 新增功能
+- 插件命令系统：支持控制台命令调用 AI，供第三方插件集成
+- 独立的冷却控制（plugins_cooldown_seconds）
+- 扩展清除命令：支持通过玩家名称清除特定玩家的上下文
+- MythicMobs 集成：实现自定义 %kilacraft_ai_answer% 占位符
+
+### 🔧 优化改进
+- 架构重构：新增 ConversationManager 统一管理聊天状态、历史和插件命令记录
+- 重构 ChatListener，职责分离，专注于事件监听
+
+---
+
+## v1.1.0
+
+### 🔧 优化改进
+- 架构重构，配置驱动封装
+- 策略模式和抽象基类封装
+- 本地 RAG 索引增强和提示工程优化
+
+---
+
+## v1.0.0
+
+### ✨ 新增功能
+- 基础对话能力
+- 连续聊天、聊天监听
+- 历史对话上下文记录
+- 频率限制、世界限制检查
+
+---
+
+**最后更新时间**：2026-04-05

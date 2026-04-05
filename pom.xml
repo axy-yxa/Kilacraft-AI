@@ -63,7 +63,6 @@
             </plugin>
 
             <!-- Kilacraft-Skill-API.jar 生成插件 -->
-            <!-- 在 package 阶段额外生成一个仅包含 SPI 接口的精简 JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
