@@ -28,6 +28,8 @@ public class ConfigManager {
     @Getter
     private int pluginsCooldownSeconds;
     @Getter
+    private int callbackTimeoutSeconds;  // 回调命令超时时间（秒）
+    @Getter
     private boolean debugMode;
     @Getter
     private int maxHistory;
@@ -107,6 +109,7 @@ public class ConfigManager {
         this.enableStreamOutput = config.getBoolean("settings.enable_stream_output", false);
         this.cooldownSeconds = config.getInt("settings.cooldown_seconds", 5);
         this.pluginsCooldownSeconds = config.getInt("settings.plugins_cooldown_seconds", 5);
+        this.callbackTimeoutSeconds = config.getInt("plugin_command.callback_timeout_seconds", 3);
         this.maxHistory = config.getInt("settings.max_history", 10);
         this.allowedWorlds = config.getStringList("settings.allowed_worlds");
         if (this.allowedWorlds.isEmpty()) {

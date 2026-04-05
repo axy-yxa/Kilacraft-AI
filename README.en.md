@@ -27,6 +27,16 @@ A powerful Minecraft AI chat plugin integrating DeepSeek AI, providing intellige
   - Previous step results automatically passed as context to subsequent steps
   - LLM comprehensively analyzes all step results and generates friendly responses
 
+### ⚠️ Streaming Output Notice
+
+Streaming output is not supported in the current version. The `enable_stream_output` configuration is reserved for future use.
+
+**Tip for Third-party Plugin Developers**: If you need streaming effects, you can implement "pseudo-streaming output" in your own plugin by receiving the complete AI response and displaying it in batches using `BukkitRunnable` (e.g., show 10 characters every 500ms to simulate a typewriter effect).
+
+**Note**: Callback commands execute on the main thread (required by Bukkit API), but third-party plugins should **return immediately** and process complex logic in async threads to avoid blocking.
+
+---
+
 ### 💰 Economy Integration (Experimental)
 - **GlobalMarketPlus Deep Integration**: Player balance inquiry, market price inquiry, product list inquiry
 - **Item Availability Query (v1.3.4+)**: Check if item is available, stock quantity, seller info
@@ -603,6 +613,300 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 
 If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to get the latest AI response.
 
+## 🎯 Best Practices for Third-party Developers
+
+> **Target Audience**: Third-party plugin developers integrating with Kilacraft-AI  
+> **Core Principles**: Async execution, fast return, resource management, timeout protection
+
+### 1. Async Processing (Required)
+
+Kilacraft-AI invokes third-party plugin callbacks via `Bukkit.dispatchCommand()`, which **must execute on the main thread**. If your plugin performs time-consuming operations (database queries, network requests) in the callback, it will severely block server TPS.
+
+**Correct Approach:**
+```java
+@Override
+public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+    if (cmd.getName().equalsIgnoreCase("myplugin_handle_ai")) {
+        // Start async task immediately
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // Execute time-consuming operations in async thread
+                // Return to main thread to send message when done
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        player.sendMessage(response);
+                    }
+                }.runTask(plugin);
+            }
+        }.runTaskAsynchronously(plugin);
+        
+        return true; // Main thread returns immediately
+    }
+    return false;
+}
+```
+
+### 2. Pseudo-streaming Output (Optional)
+
+For streaming effects, use `BukkitRunnable` scheduled tasks to display in batches:
+
+```java
+// Display 10 characters every 500ms, simulate typewriter effect
+new BukkitRunnable() {
+    int index = 0;
+    StringBuilder accumulated = new StringBuilder();
+    
+    @Override
+    public void run() {
+        if (index >= message.length()) {
+            this.cancel();
+            return;
+        }
+        int end = Math.min(index + 10, message.length());
+        accumulated.append(message.substring(index, end));
+        player.sendMessage("§e[AI] §f" + accumulated.toString());
+        index = end;
+    }
+}.runTaskTimer(plugin, 0L, 10L); // 10 ticks = 500ms
+```
+
+### 3. Understanding Timeout Protection
+
+Kilacraft-AI's timeout protection mechanism only monitors **main thread command execution time**, and will NOT interrupt async tasks within third-party plugins.
+
+- ✅ Timeout only monitors `dispatchCommand()` main thread execution time
+- ✅ If your plugin uses async processing, `onCommand()` returns immediately (< 10ms)
+- ✅ Async tasks continue running in background,不受 timeout restrictions
+- ❌ Only when your plugin **synchronously blocks** main thread beyond threshold will it be interrupted
+
+### 4. Resource Management
+
+Plugin must clean up all tasks and resources when disabled:
+
+```java
+private final List<BukkitTask> activeTasks = new ArrayList<>();
+
+@Override
+public void onDisable() {
+    activeTasks.forEach(task -> {
+        if (!task.isCancelled()) task.cancel();
+    });
+    activeTasks.clear();
+}
+```
+
+### 5. Performance Metrics Reference
+
+| Metric | Recommended Value |
+|--------|-------------------|
+| `onCommand()` Execution Time | < 10ms |
+| Async Task Timeout Setting | 5-10s |
+| Thread Pool Size | 2-4 |
+| Pseudo-streaming Output Interval | 300-500ms |
+| Pseudo-streaming Output Chunk Size | 8-12 characters |
+
+For complete examples and detailed explanations, please refer to [Skill-SPI Integration Guide](./knowledge/Skill-SPI-Integration-Guide.md).
+
+---
+
+## 🎯 Best Practices for Third-party Developers
+
+> **Target Audience**: Third-party plugin developers integrating with Kilacraft-AI  
+> **Core Principles**: Async execution, fast return, resource management, timeout protection
+
+### 1. Async Processing (Required)
+
+Kilacraft-AI invokes third-party plugin callbacks via `Bukkit.dispatchCommand()`, which **must execute on the main thread**. If your plugin performs time-consuming operations (database queries, network requests) in the callback, it will severely block server TPS.
+
+**Correct Approach:**
+```java
+@Override
+public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+    if (cmd.getName().equalsIgnoreCase("myplugin_handle_ai")) {
+        // Start async task immediately
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // Execute time-consuming operations in async thread
+                // Return to main thread to send message when done
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        player.sendMessage(response);
+                    }
+                }.runTask(plugin);
+            }
+        }.runTaskAsynchronously(plugin);
+        
+        return true; // Main thread returns immediately
+    }
+    return false;
+}
+```
+
+### 2. Pseudo-streaming Output (Optional)
+
+For streaming effects, use `BukkitRunnable` scheduled tasks to display in batches:
+
+```java
+// Display 10 characters every 500ms, simulate typewriter effect
+new BukkitRunnable() {
+    int index = 0;
+    StringBuilder accumulated = new StringBuilder();
+    
+    @Override
+    public void run() {
+        if (index >= message.length()) {
+            this.cancel();
+            return;
+        }
+        int end = Math.min(index + 10, message.length());
+        accumulated.append(message.substring(index, end));
+        player.sendMessage("§e[AI] §f" + accumulated.toString());
+        index = end;
+    }
+}.runTaskTimer(plugin, 0L, 10L); // 10 ticks = 500ms
+```
+
+### 3. Understanding Timeout Protection
+
+Kilacraft-AI's timeout protection mechanism only monitors **main thread command execution time**, and will NOT interrupt async tasks within third-party plugins.
+
+- ✅ Timeout only monitors `dispatchCommand()` main thread execution time
+- ✅ If your plugin uses async processing, `onCommand()` returns immediately (< 10ms)
+- ✅ Async tasks continue running in background,不受 timeout restrictions
+- ❌ Only when your plugin **synchronously blocks** main thread beyond threshold will it be interrupted
+
+### 4. Resource Management
+
+Plugin must clean up all tasks and resources when disabled:
+
+```java
+private final List<BukkitTask> activeTasks = new ArrayList<>();
+
+@Override
+public void onDisable() {
+    activeTasks.forEach(task -> {
+        if (!task.isCancelled()) task.cancel();
+    });
+    activeTasks.clear();
+}
+```
+
+### 5. Performance Metrics Reference
+
+| Metric | Recommended Value |
+|--------|-------------------|
+| `onCommand()` Execution Time | < 10ms |
+| Async Task Timeout Setting | 5-10s |
+| Thread Pool Size | 2-4 |
+| Pseudo-streaming Output Interval | 300-500ms |
+| Pseudo-streaming Output Chunk Size | 8-12 characters |
+
+For complete examples and detailed explanations, please refer to [Skill-SPI Integration Guide](./knowledge/Skill-SPI-Integration-Guide.md).
+
+---
+
+## 🎯 Best Practices for Third-party Developers
+
+> **Target Audience**: Third-party plugin developers integrating with Kilacraft-AI  
+> **Core Principles**: Async execution, fast return, resource management, timeout protection
+
+### 1. Async Processing (Required)
+
+Kilacraft-AI invokes third-party plugin callbacks via `Bukkit.dispatchCommand()`, which **must execute on the main thread**. If your plugin performs time-consuming operations (database queries, network requests) in the callback, it will severely block server TPS.
+
+**Correct Approach:**
+```java
+@Override
+public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+    if (cmd.getName().equalsIgnoreCase("myplugin_handle_ai")) {
+        // Start async task immediately
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // Execute time-consuming operations in async thread
+                // Return to main thread to send message when done
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        player.sendMessage(response);
+                    }
+                }.runTask(plugin);
+            }
+        }.runTaskAsynchronously(plugin);
+        
+        return true; // Main thread returns immediately
+    }
+    return false;
+}
+```
+
+### 2. Pseudo-streaming Output (Optional)
+
+For streaming effects, use `BukkitRunnable` scheduled tasks to display in batches:
+
+```java
+// Display 10 characters every 500ms, simulate typewriter effect
+new BukkitRunnable() {
+    int index = 0;
+    StringBuilder accumulated = new StringBuilder();
+    
+    @Override
+    public void run() {
+        if (index >= message.length()) {
+            this.cancel();
+            return;
+        }
+        int end = Math.min(index + 10, message.length());
+        accumulated.append(message.substring(index, end));
+        player.sendMessage("§e[AI] §f" + accumulated.toString());
+        index = end;
+    }
+}.runTaskTimer(plugin, 0L, 10L); // 10 ticks = 500ms
+```
+
+### 3. Understanding Timeout Protection
+
+Kilacraft-AI's timeout protection mechanism only monitors **main thread command execution time**, and will NOT interrupt async tasks within third-party plugins.
+
+- ✅ Timeout only monitors `dispatchCommand()` main thread execution time
+- ✅ If your plugin uses async processing, `onCommand()` returns immediately (< 10ms)
+- ✅ Async tasks continue running in background,不受 timeout restrictions
+- ❌ Only when your plugin **synchronously blocks** main thread beyond threshold will it be interrupted
+
+### 4. Resource Management
+
+Plugin must clean up all tasks and resources when disabled:
+
+```java
+private final List<BukkitTask> activeTasks = new ArrayList<>();
+
+@Override
+public void onDisable() {
+    activeTasks.forEach(task -> {
+        if (!task.isCancelled()) task.cancel();
+    });
+    activeTasks.clear();
+}
+```
+
+### 5. Performance Metrics Reference
+
+| Metric | Recommended Value |
+|--------|-------------------|
+| `onCommand()` Execution Time | < 10ms |
+| Async Task Timeout Setting | 5-10s |
+| Thread Pool Size | 2-4 |
+| Pseudo-streaming Output Interval | 300-500ms |
+| Pseudo-streaming Output Chunk Size | 8-12 characters |
+
+For complete examples and detailed explanations, please refer to [Skill-SPI Integration Guide](./knowledge/Skill-SPI-Integration-Guide.md).
+
+---
+
 ## ⚠️ Important Notes
 
 1. **API Costs**: DeepSeek API is a paid service, please monitor call frequency
@@ -672,6 +976,28 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
       - Cache isolation mechanism: `UUID_personality` as cache key, different personalities are naturally isolated
       - **No Duplicate Names**: Multiple plugins using same personality will cause cache being accidentally deleted
   - **DEBUG Log Enhancement**: Debug logs added at key steps for troubleshooting
+
+- ✅ **Callback Command Timeout Protection** (NEW):
+  - New `callback_timeout_seconds` configuration (default 3 seconds)
+  - Uses FutureTask to wrap callback command execution for timeout control
+  - Automatically interrupts and logs warning when threshold exceeded, preventing main thread long-term blocking
+  - Forces interruption regardless of whether third-party plugin uses sync or async processing
+
+- ✅ **Exception Handling Optimization**:
+  - Separated handling for TimeoutException, CancellationException, ExecutionException, InterruptedException
+  - Avoids duplicate log printing (no duplicate logging on timeout cancellation)
+  - Outputs raw command in debug mode for easier troubleshooting
+  - Restores thread interrupt status on InterruptedException
+
+- ✅ **Code Architecture Optimization**:
+  - Simplified `executeCallback()` method, removed redundant try-catch
+  - Separated placeholder replacement and command execution for better readability
+  - Debug logging moved earlier, replace before execute
+
+- ✅ **Stream Output Documentation Update**:
+  - Clarified that current version doesn't support true stream output
+  - Provided pseudo-streaming output alternative for third-party plugin developers
+  - Reserved Premium version stream support expansion space
 
 #### 📦 New Files
 
@@ -813,6 +1139,7 @@ public class MyPlugin extends JavaPlugin implements SkillProvider {
 - Third-party Skills should declare `softdepend: [Kilacraft-AI]` in plugin.yml
 - Built-in Skills have higher priority (third-party Skills with same name are skipped)
 - AI response cache changed to one-time consumption mechanism (deleted on get), consistent with MythicMobs placeholder behavior
+- New `callback_timeout_seconds` configuration (default 3 seconds), recommended to adjust based on third-party plugin response time
 
 ---
 

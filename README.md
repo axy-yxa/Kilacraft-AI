@@ -30,6 +30,14 @@
   - 前置步骤结果自动传递给后续步骤
   - LLM 综合分析所有步骤结果并生成友好回复
 
+### ⚠️ 流式输出说明
+
+当前版本暂不支持真正的流式输出功能，`enable_stream_output` 配置项为预留项。
+
+**第三方插件开发者提示**：如需流式效果，可在自己的插件中实现"伪流式输出"——接收完整 AI 回复后，使用 `BukkitRunnable` 定时任务分批显示（例如每 500ms 显示 10 个字符），模拟打字机效果。
+
+**注意**：回调命令在主线程执行（Bukkit API 要求），但第三方插件应**立即返回**，将复杂逻辑放到异步线程处理，避免阻塞主线程。详见文档末尾的[第三方开发者最佳实践](#-第三方开发者最佳实践)章节。
+
 ### 💰 经济系统集成（实验性）
 - **GlobalMarketPlus 深度集成**：玩家余额查询、市场价格查询、商品列表查询
 - **商品在售查询（v1.3.4+）**：查询指定物品是否在售、库存数量、卖家信息
@@ -612,6 +620,104 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 
 如果安装了 MythicMobs，可以使用 `%kilacraft_ai_answer%` 占位符获取 AI 最新回复。
 
+## 🎯 第三方开发者最佳实践
+
+> **适用对象**：需要与 Kilacraft-AI 集成的第三方插件开发者  
+> **核心原则**：异步执行、快速返回、资源管理、超时保护
+
+### 1. 异步处理（必须）
+
+Kilacraft-AI 通过 `Bukkit.dispatchCommand()` 调用第三方插件的回调命令，该 API **必须在主线程执行**。如果你的插件在回调中执行耗时操作（如数据库查询、网络请求），会严重阻塞服务器 TPS。
+
+**正确做法：**
+```java
+@Override
+public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+    if (cmd.getName().equalsIgnoreCase("myplugin_handle_ai")) {
+        // 立即启动异步任务
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // 在异步线程中执行耗时操作
+                // 完成后回到主线程发送消息
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        player.sendMessage(response);
+                    }
+                }.runTask(plugin);
+            }
+        }.runTaskAsynchronously(plugin);
+        
+        return true; // 主线程立即返回
+    }
+    return false;
+}
+```
+
+### 2. 伪流式输出（可选）
+
+如需流式效果，可使用 `BukkitRunnable` 定时任务分批显示：
+
+```java
+// 每 500ms 显示 10 个字符，模拟打字机效果
+new BukkitRunnable() {
+    int index = 0;
+    StringBuilder accumulated = new StringBuilder();
+    
+    @Override
+    public void run() {
+        if (index >= message.length()) {
+            this.cancel();
+            return;
+        }
+        int end = Math.min(index + 10, message.length());
+        accumulated.append(message.substring(index, end));
+        player.sendMessage("§e[AI] §f" + accumulated.toString());
+        index = end;
+    }
+}.runTaskTimer(plugin, 0L, 10L); // 10 ticks = 500ms
+```
+
+### 3. 超时保护理解
+
+Kilacraft-AI 的超时保护机制只监控**主线程的命令执行时间**，不会中断第三方插件内部的异步任务。
+
+- ✅ 超时只监控 `dispatchCommand()` 的主线程执行时间
+- ✅ 如果你的插件使用异步处理，`onCommand()` 会立即返回（< 10ms）
+- ✅ 异步任务在后台继续运行，不受超时限制
+- ❌ 只有当你的插件**同步阻塞**主线程超过阈值时才会被中断
+
+### 4. 资源管理
+
+插件禁用时必须清理所有任务和资源：
+
+```java
+private final List<BukkitTask> activeTasks = new ArrayList<>();
+
+@Override
+public void onDisable() {
+    activeTasks.forEach(task -> {
+        if (!task.isCancelled()) task.cancel();
+    });
+    activeTasks.clear();
+}
+```
+
+### 5. 性能指标参考
+
+| 指标 | 推荐值 |
+|------|--------|
+| `onCommand()` 执行时间 | < 10ms |
+| 异步任务超时设置 | 5-10s |
+| 线程池大小 | 2-4 |
+| 伪流式输出间隔 | 300-500ms |
+| 伪流式输出块大小 | 8-12 字符 |
+
+完整示例和详细说明请参考 [Skill-SPI-接入文档](./knowledge/Skill-SPI-接入文档.md)。
+
+---
+
 ## ⚠️ 注意事项
 
 1. **API 费用**：DeepSeek API 是付费服务，请注意控制调用频率
@@ -639,263 +745,50 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 
 ### v1.4.0 - 第三方 Skill SPI 扩展机制 & 插件命令模式通用化 🚀
 
-**核心升级**：支持第三方插件通过 SPI 机制注册自定义 Skill，同时解耦 AI 人格系统与 MythicMobs 的绑定关系，实现真正的通用化！
+**核心升级**：支持第三方插件通过 SPI 机制注册自定义 Skill，解耦 AI 人格系统与 MythicMobs 的绑定关系。
 
 #### 🎯 核心特性
 
-- ✅ **Skill SPI 接口**（新增）：
-  - `SkillProvider` 接口：第三方插件实现此接口提供 Skill 列表
-  - `SkillRegistry` 自动发现：基于 Bukkit ServicesManager 自动扫描注册
-  - 零耦合接入：只需引入 `Kilacraft-Skill-API.jar` 作为 compileOnly 依赖
-
-- ✅ **错误隔离机制**：
-  - 第三方 Skill 执行异常不会影响核心流程
-  - 自动捕获异常并返回友好错误信息
-  - 详细的日志记录便于问题排查
-
-- ✅ **API JAR 打包**：
-  - 新增 `Kilacraft-Skill-API-1.4.0.jar`（仅 5KB）
-  - 包含 5 个 SPI 接口：Skill, SkillContext, SkillResult, SkillIntent, SkillProvider
-  - 第三方开发者无需依赖完整插件
-
-- ✅ **SkillContext 简化**：
-  - 移除冗余的 `rawInput` 字段
-  - 保留核心字段：player, action, entities
-  - 更清晰的接口设计
-
-- ✅ **插件命令模式通用化**（新增）：
-  - **控制台命令 + 回调命令机制**（✅ 唯一推荐）：适配配置驱动型插件（如 MythicMobs）
-    - `/kilacraft plugins <人格> <内容> <玩家UUID> [回调命令...]` - 请求 AI 回复并指定回调
-    - **回调命令支持空格**：第 5 个及之后的所有参数自动合并为回调命令
-    - 回调命令支持 `{response}` 占位符，AI 完成后自动执行
-    - **执行角色**：回调命令以**控制台身份**执行，不是玩家角色
-    - **一次性消费**：回调执行后立即删除缓存，避免数据污染
-    - **设计理念**：插件命令模式是给第三方插件使用的，不是给玩家直接使用的
-  - **上下文隔离**：不同人格和玩家的对话历史完全独立（格式：UUID_人格）
-  - **解耦 MythicMobs**：任何第三方插件都能方便地使用 AI 人格系统
-  - **回调命令机制**：
-    - **优先级（唯一方式）**：指定回调命令 → 执行回调 → 删除缓存
-    - ⚠️ **重要原则**：
-      - 遵循**“使用一次，立即删除”**原则
-      - **人格命名唯一性**：每个插件/模块必须使用独立的人格名称，避免缓存冲突
-      - 缓存隔离机制：`UUID_人格` 作为缓存 key，不同人格天然隔离
-      - **禁止重名**：多个插件使用同一个人格会导致缓存被意外删除
-  - **DEBUG 日志增强**：关键步骤添加调试日志，便于问题排查
-
-#### 📦 新增文件
-
-- `src/main/java/com/zm/kilacraftAI/skills/framework/spi/SkillProvider.java` - SPI 接口
-- `src/main/java/com/zm/kilacraftAI/skills/framework/spi/SkillRegistry.java` - 自动发现机制
-- `src/main/java/com/zm/kilacraftAI/api/event/AIResponseReadyEvent.java` - AI 回复就绪事件
-- `src/assembly/skill-api.xml` - Assembly 打包配置
-- `knowledge/Skill-SPI-接入文档.md` - 完整的 SPI 接入文档
-
-#### 📦 修改文件
-
-- `src/main/java/com/zm/kilacraftAI/KilacraftAI.java` - 集成 SkillRegistry + 注册 Plugin Message 通道
-- `src/main/java/com/zm/kilacraftAI/core/KilacraftCommand.java` - 移除 Bukkit Event + 新增回调命令支持 + Plugin Message 发送 + DEBUG 日志增强
-- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillManager.java` - 增强错误隔离
-- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillContext.java` - 简化字段
-- `src/main/java/com/zm/kilacraftAI/skills/framework/SkillResult.java` - 新增 getDataMap() 方法
-- `src/main/java/com/zm/kilacraftAI/manager/ConversationManager.java` - 优化缓存管理（一次性消费）
-- `pom.xml` - 版本号更新 + Assembly 插件配置
-
-#### ⚙️ 接入示例
-
-**⚠️ 两种方案互斥与优先级说明**：
-- **优先级 1（最高）**：指定回调命令 → 执行回调 → 删除缓存
-- **优先级 2**：无回调命令 → 触发 Bukkit Event → 删除缓存
-- **优先级 3（最低）**：手动轮询 `plugins get` → 获取并删除缓存
-- **重要**：高优先级方式执行后，低优先级方式将无法获取缓存
-
-**方式 A：Bukkit Event 事件通知（✅ 推荐）**
-```java
-// 在你的插件中监听事件（完全零耦合，通过反射）
-@EventHandler
-public void onAIResponse(org.bukkit.event.Event event) {
-    try {
-        Class<?> eventClass = event.getClass();
-        if (!eventClass.getName().equals("com.zm.kilacraftAI.api.event.AIResponseReadyEvent")) {
-            return;
-        }
-        
-        String playerName = (String) eventClass.getMethod("getPlayerName").invoke(event);
-        String response = (String) eventClass.getMethod("getResponse").invoke(event);
-        String personality = (String) eventClass.getMethod("getPersonality").invoke(event);
-        UUID playerId = (UUID) eventClass.getMethod("getPlayerId").invoke(event);
-        
-        // 处理 AI 回复
-        getLogger().info("收到 AI 回复 - 玩家: " + playerName + ", 人格: " + personality);
-        getLogger().info("回复内容: " + response);
-        
-        // 执行你的逻辑...
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-}
-```
-
-**方式 B：控制台命令 + 回调命令（✅ 强烈推荐）**
-```bash
-# 1. 请求 AI 回复并指定回调命令
-/kilacraft plugins 严厉教师 你好 00000000-0000-0000-0000-000000000000 "myplugin handleAI {response}"
-
-# 2. AI 完成后自动执行：myplugin handleAI <实际回复内容>
-
-# 3. 或者使用轮询方式
-/kilacraft plugins get 严厉教师 00000000-0000-0000-0000-000000000000
-# 返回 UNDEFINED 表示未完成，返回实际内容表示完成
-```
-
-**📌 完整使用示例**：
-```bash
-# 场景：第三方插件请求 AI 回复并指定回调
-/kilacraft plugins mm_ai 你好 UUID testai handleAI {response} mm_ai
-# → AI 完成后执行回调命令（以控制台身份）
-# → 缓存已删除
-```
-
-**⚠️ 重要说明**：
-- **回调命令执行角色**：所有回调命令均以**控制台身份**执行，而非玩家角色
-- **回调命令格式**：支持包含空格，第 5 个及之后的所有参数自动合并
-- **占位符替换**：`{response}` 会被替换为实际的 AI 回复内容
-- **设计理念**：插件命令模式是给第三方插件使用的，不是给玩家直接使用的
-- **唯一集成方式**：只支持回调命令方式，不支持轮询
-
-**⚠️ 人格命名唯一性原则**：
-```bash
-# ✅ 正确：不同插件使用不同人格
-MythicMobs 使用: mm_ai
-第三方插件 A 使用: shop_assistant
-第三方插件 B 使用: quest_guide
-# → 缓存完全隔离，互不干扰
-
-# ❌ 错误：多个插件使用同一个人格
-MythicMobs 使用: default
-第三方插件 A 也使用: default
-# → 会导致缓存冲突，先执行的删除后执行的拿不到数据
-```
-
-**方式 C：MythicMobs 占位符**
-```yaml
-# MythicMobs 技能配置
-- command{c="kilacraft plugins 严厉教师 {player.name} {player.uuid}"} @PIR{r=5}
-- placeholder{p=ai.answer} @PIR{r=5}
-```
-
-**方式 D：Skill SPI 注册**
-```java
-// 1. 添加依赖
-<dependency>
-    <groupId>com.zm</groupId>
-    <artifactId>Kilacraft-Skill-API</artifactId>
-    <version>1.4.0</version>
-    <scope>system</scope>
-    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API.jar</systemPath>
-</dependency>
-
-// 2. 实现 Skill 接口
-public class MyCustomSkill implements Skill {
-    @Override
-    public String getName() { return "my_skill"; }
-    
-    @Override
-    public String getDescription() { return "我的自定义技能"; }
-    
-    @Override
-    public CompletableFuture<SkillResult> execute(SkillContext context) {
-        return CompletableFuture.completedFuture(SkillResult.success("执行成功！"));
-    }
-}
-
-// 3. 在插件主类中注册
-public class MyPlugin extends JavaPlugin implements SkillProvider {
-    @Override
-    public void onEnable() {
-        getServer().getServicesManager().register(SkillProvider.class, this, this, ServicePriority.Normal);
-    }
-    
-    @Override
-    public List<Skill> getSkills() {
-        return List.of(new MyCustomSkill());
-    }
-}
-```
+- ✅ **Skill SPI 接口**：新增 `SkillProvider` 接口与自动发现机制
+- ✅ **错误隔离机制**：第三方 Skill 异常不影响核心流程
+- ✅ **API JAR 打包**：新增 `Kilacraft-Skill-API-1.4.0.jar`（5KB），包含 5 个 SPI 接口
+- ✅ **SkillContext 简化**：移除冗余字段，保留 player、action、entities
+- ✅ **插件命令模式通用化**：控制台命令 + 回调命令机制，支持空格和 `{response}` 占位符
+- ✅ **上下文隔离**：不同人格和玩家的对话历史完全独立（格式：UUID_人格）
+- ✅ **一次性消费缓存**：回调执行后立即删除缓存
+- ✅ **DEBUG 日志增强**：关键步骤添加调试日志
+- ✅ **回调命令超时保护**（NEW）：新增 `callback_timeout_seconds` 配置项，使用 FutureTask 实现超时控制
+- ✅ **异常处理优化**：分离 Timeout/Cancellation/Execution/InterruptedException 处理，避免重复日志
+- ✅ **代码架构优化**：`executeCallback()` 方法简化，占位符替换和命令执行分离
+- ✅ **流式输出说明更新**：明确当前版本不支持真正的流式输出，提供伪流式替代方案
 
 #### ⚠️ 兼容性说明
 
 - 现有功能完全兼容，无需修改配置
 - 第三方 Skill 需要在 plugin.yml 中声明 `softdepend: [Kilacraft-AI]`
 - 内置 Skill 优先级高于第三方 Skill（同名时第三方 Skill 被跳过）
-- AI 回复缓存改为一次性消费机制（获取即删除），与 MythicMobs 占位符行为一致
+- AI 回复缓存改为一次性消费机制（获取即删除）
+- 新增 `callback_timeout_seconds` 配置项（默认 3 秒），建议根据第三方插件响应时间调整
 
 ---
 
 ### v1.3.6 - 通用 LLM Provider 架构 🚀
 
-**核心升级**：引入通用 LLM Provider 架构，支持通过配置切换不同 LLM 厂商（DeepSeek、智谱 AI 等）！
+**核心升级**：引入通用 LLM Provider 架构，支持通过配置切换不同 LLM 厂商。
 
 #### 🎯 核心特性
 
-- ✅ **LLMProvider 接口**（新增）：
-  - 统一的 LLM 提供商标准接口
-  - 定义核心方法：`processRequest`、`refreshConfigCache`、`shutdown`
-  - 支持异步非阻塞请求处理
-  - 为未来扩展更多 LLM 厂商奠定基础
-
-- ✅ **GenericLLMProvider 实现**（新增）：
-  - 通用 LLM 提供商实现，支持所有遵循 OpenAI 标准 API 格式的厂商
-  - 配置驱动，通过 config.yml 即可切换不同 LLM 服务
-  - HTTP 连接池优化，复用连接提升性能
-  - 流式响应支持，降低首字延迟
-  - 自动重试机制，增强稳定性
-
-- ✅ **LLMManager 管理器**（新增）：
-  - 统一管理 LLM Provider 的生命周期
-  - 支持配置热重载，无需重启插件
-  - 简洁的 API 封装，便于其他模块调用
-
-- ✅ **架构优势**：
-  - **解耦设计**：LLM 实现与业务逻辑完全分离
-  - **可扩展性**：未来可轻松添加新的 Provider 实现（如 ClaudeProvider、GeminiProvider）
-  - **配置灵活**：只需修改配置即可切换 LLM 服务商
-  - **向后兼容**：现有功能完全兼容，不影响已有配置
-
-#### 🔧 技术实现
-
-- ✅ **代码架构重构**：
-  - 从硬编码的 DeepSeekAPI 迁移到通用 Provider 架构
-  - 删除旧的 `DeepSeekAPI.java` 和 `DeepSeekAPINew.java`
-  - 新增 `api/LLMProvider.java` 接口
-  - 新增 `api/provider/GenericLLMProvider.java` 实现
-  - 新增 `manager/LLMManager.java` 管理器
-
-- ✅ **HTTP 客户端优化**：
-  - 预分配连接池（最大空闲连接数=10，保持时间=5 分钟）
-  - 超时配置优化（连接=30s, 读取=60s, 写入=30s）
-  - 自动重试失败连接
-  - 流式读取使用 BufferedReader 逐行处理
-
-- ✅ **配置缓存机制**：
-  - 缓存 API Key、URL、Model 等配置值
-  - 减少重复获取配置的开销
-  - 支持动态刷新配置缓存
-
-#### 📦 修改文件
-
-- `src/main/java/com/zm/kilacraftAI/api/LLMProvider.java` - 新增通用接口
-- `src/main/java/com/zm/kilacraftAI/api/provider/GenericLLMProvider.java` - 新增通用实现
-- `src/main/java/com/zm/kilacraftAI/manager/LLMManager.java` - 新增管理器
-- ~~`src/main/java/com/zm/kilacraftAI/api/DeepSeekAPI.java`~~ - 删除旧实现
-- ~~`src/main/java/com/zm/kilacraftAI/api/DeepSeekAPINew.java`~~ - 删除旧实现
-- `src/main/resources/plugin.yml` - 移除废弃的 `/llm` 命令及权限
+- ✅ **LLMProvider 接口**：统一的 LLM 提供商标准接口
+- ✅ **GenericLLMProvider 实现**：支持所有遵循 OpenAI 标准 API 格式的厂商
+- ✅ **LLMManager 管理器**：统一管理 LLM Provider 的生命周期
+- ✅ **HTTP 连接池优化**：预分配连接池，自动重试机制
+- ✅ **配置缓存机制**：减少重复获取配置的开销
 
 #### ⚙️ 影响范围
 
-- **配置变更**：config.yml 中的 `api.*` 配置项现在由 GenericLLMProvider 统一管理
-- **性能提升**：HTTP 连接池优化减少连接建立开销
-- **维护性提升**：清晰的职责划分，代码更易维护和扩展
-- **兼容性**：现有功能完全兼容，无需修改配置
+- 配置变更：config.yml 中的 `api.*` 配置项现在由 GenericLLMProvider 统一管理
+- 性能提升：HTTP 连接池优化减少连接建立开销
+- 兼容性：现有功能完全兼容，无需修改配置
 
 ---
 

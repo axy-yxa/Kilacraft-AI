@@ -37,10 +37,14 @@ public abstract class BaseResponseHandler implements AIResponseHandler {
     
     @Override
     public boolean isStreamOutputEnabled() {
+        // TODO 现阶段不支持流式输出，未来会在付费版本中扩展
+        return false;
+        /*
         if (plugin == null) {
             return false; // 默认关闭流式输出
         }
         return plugin.getConfigManager().isEnableStreamOutput();
+        */
     }
     
     /**

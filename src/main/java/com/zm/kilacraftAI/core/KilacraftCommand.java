@@ -19,6 +19,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * 命令处理
@@ -403,7 +404,6 @@ public class KilacraftCommand implements CommandExecutor {
 
         // 获取人格提示词并替换玩家名称占位符
         final String finalPersonality = personality;
-        final String finalTargetPlayerName = targetPlayerName;
         String personalityPrompt = personalitiesConfig.getPersonalityPrompt(personality).replace("{player}", targetPlayerName);
 
         // 调试模式日志
@@ -418,18 +418,57 @@ public class KilacraftCommand implements CommandExecutor {
             // 保存对话到历史记录（隔离的），并保存到最新回复缓存
             validator.saveToHistory(pluginHistory, message, fullResponse, targetPlayerId, finalPersonality);
 
-            // 优先执行回调命令（如果指定了）- 配置驱动型插件集成
+            // 执行回调命令（如果指定了）- 配置驱动型插件集成
             if (finalCallbackCommand != null && !finalCallbackCommand.isEmpty()) {
-                // 调度到主线程执行回调命令（避免异步命令错误）
-                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                int timeoutSeconds = plugin.getConfigManager().getCallbackTimeoutSeconds();
+                long startTime = System.currentTimeMillis();
+
+                // 使用 FutureTask 包装命令执行，实现超时控制
+                FutureTask<Void> task = new FutureTask<>(() -> {
                     executeCallback(finalCallbackCommand, fullResponse);
+                    return null;
+                });
+
+                // 提交到主线程执行
+                plugin.getServer().getScheduler().runTask(plugin, task);
+
+                // 等待完成或超时
+                try {
+                    task.get(timeoutSeconds, TimeUnit.SECONDS);
+
+                    long elapsed = System.currentTimeMillis() - startTime;
+                    if (plugin.getConfigManager().isDebugMode()) {
+                        plugin.getLogger().info(String.format("[DEBUG] 回调执行耗时: %dms", elapsed));
+                    }
+
+                    // 如果执行时间超过 80% 的阈值，记录警告
+                    if (elapsed > timeoutSeconds * 800L) {
+                        plugin.getLogger().warning(String.format("回调命令执行较慢 (%dms)，接近超时阈值 (%ds)", elapsed, timeoutSeconds));
+                    }
+
+                } catch (TimeoutException e) {
+                    task.cancel(true);
+                    plugin.getLogger().warning(String.format("回调命令执行超时 (%ds)，已强制中断。命令: %s", timeoutSeconds, finalCallbackCommand.length() > 100 ? finalCallbackCommand.substring(0, 100) + "..." : finalCallbackCommand));
+                } catch (CancellationException e) {
+                    // 任务被取消（超时），已在上面记录日志，这里不重复打印
+                } catch (ExecutionException e) {
+                    plugin.getLogger().warning("回调命令执行失败: " + e.getCause().getMessage());
+                    if (plugin.getConfigManager().isDebugMode()) {
+                        plugin.getLogger().warning("原始命令: " + finalCallbackCommand);
+                    }
+                } catch (InterruptedException e) {
+                    plugin.getLogger().warning("回调命令执行被中断: " + e.getMessage());
+                    Thread.currentThread().interrupt(); // 恢复中断状态
+                } catch (Exception e) {
+                    plugin.getLogger().warning("回调命令执行异常: " + e.getMessage());
+                } finally {
                     // 立即删除缓存
                     plugin.getConversationManager().pollLatestAIResponse(targetPlayerId, finalPersonality);
-                    
+
                     if (plugin.getConfigManager().isDebugMode()) {
                         plugin.getLogger().info("[DEBUG] 回调命令执行完毕，缓存已删除");
                     }
-                });
+                }
             } else {
                 // 保留缓存供轮询获取
                 if (plugin.getConfigManager().isDebugMode()) {
@@ -467,20 +506,15 @@ public class KilacraftCommand implements CommandExecutor {
      * @param response        AI 回复内容
      */
     private void executeCallback(String callbackCommand, String response) {
-        try {
-            // 替换占位符
-            String finalCommand = callbackCommand.replace("{response}", response.replace("\"", "\\\""));
+        // 替换占位符
+        String finalCommand = callbackCommand.replace("{response}", response.replace("\"", "\\\""));
 
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 执行回调命令: " + finalCommand);
-            }
-
-            // 以控制台身份执行回调命令
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
-        } catch (Exception e) {
-            plugin.getLogger().warning("执行回调命令失败: " + e.getMessage());
-            plugin.getLogger().warning("原始命令: " + callbackCommand);
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("[DEBUG] 执行回调命令: " + finalCommand);
         }
+
+        // 以控制台身份执行回调命令（主线程）
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
     }
 
     /**
