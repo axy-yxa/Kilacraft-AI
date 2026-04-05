@@ -8,7 +8,7 @@ llm:
   api_url: "https://api.deepseek.com/v1/chat/completions"
   
   # API 密钥（从对应厂商获取）
-  api_key: "sk-afbe212f24ca4014bcb8f6a152904677"
+  api_key: "your-api-key"
   
   # 模型名称（根据厂商配置）
   # DeepSeek 示例：deepseek-chat, deepseek-coder
