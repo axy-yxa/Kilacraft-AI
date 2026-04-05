@@ -81,16 +81,16 @@ Kilacraft-AI 为你的 Minecraft 服务器带来智能 AI 助手，理解自然�
 ## 📖 文档导航
 
 ### 服主文档
-- **[服主指南](doc/服主指南)** - 完整配置、故障排除
-- **[更新日志](doc/Kilacraft-AI-%20更新日志.md)** - 版本历史和更新
+- **[服主指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9C%8D%E4%B8%BB%E6%8C%87%E5%8D%97)** - 完整配置、故障排除
+- **[更新日志](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)** - 版本历史和更新
 
 ### 技术参考文档
-- **[Bukkit API 参考手册](doc/Bukkit-API参考手册)** - 44+ API 详细说明
-- **[人格系统配置指南](doc/人格系统配置指南)** - 多个人格的管理和定制
-- **[知识库增强指南](doc/知识库增强指南)** - RAG 知识库使用详解
+- **[Bukkit API 参考手册](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Bukkit-API%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C)** - 44+ API 详细说明
+- **[人格系统配置指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E4%BA%BA%E6%A0%BC%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97)** - 多个人格的管理和定制
+- **[知识库增强指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E7%9F%A5%E8%AF%86%E5%BA%93%E5%A2%9E%E5%BC%BA%E6%8C%87%E5%8D%97)** - RAG 知识库使用详解
 
 ### 开发者文档
-- **[Skill SPI 接入文档](doc/Skill-SPI-接入文档)** - 如何扩展 Kilacraft-AI（包含异步处理、错误隔离等最佳实践）
+- **[Skill SPI 接入文档](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Skill-SPI-%E6%8E%A5%E5%85%A5%E6%96%87%E6%A1%A3)** - 如何扩展 Kilacraft-AI（包含异步处理、错误隔离等最佳实践）
 
 ---
 
