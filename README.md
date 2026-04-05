@@ -6,7 +6,7 @@
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/Zm-Mmm/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.4.0-orange)](doc/Kilacraft-AI-%20更新日志.md)
+[![Version](https://img.shields.io/badge/Version-1.4.0-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 
 ---
 
@@ -174,7 +174,7 @@ agent:
 5. 提交 Pull Request
 
 **贡献方式：**
-- 🐛 通过 [Issues](https://github.com/Zm-Mmm/Kilacraft-AI/issues) 报告 Bug
+- 🐛 通过 [Issues](https://gitee.com/zm_mmm/kilacraft-ai/issues) 报告 Bug
 - 💡 提出功能建议或改进意见
 - 📝 改进文档
 - 🔌 为你的插件开发自定义 Skills
