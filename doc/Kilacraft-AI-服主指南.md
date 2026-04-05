@@ -1,7 +1,17 @@
 # Kilacraft-AI - 专为 Minecraft 服务器打造的轻量级 AI Agent
 
-> **🚀 v1.4.0 正式发布** | 零依赖 · 低内存 · 高性能 · 易扩展  
+> **🚀 v1.4.0 正式发布** | 零依赖 · 低内存 · 高性能 · 易扩展 · 完全开源  
 > 让每个 Minecraft 服务器都能拥有智能 AI 助手
+
+---
+
+## 🌐 项目地址
+
+- **GitHub**: https://github.com/Zm-Mmm/Kilacraft-AI
+- **Gitee**: https://gitee.com/zm_mmm/kilacraft-ai
+- **许可证**: [MIT License](../LICENSE)
+
+> 💡 **欢迎 Star ⭐、Fork 🔀 和提交 Issue/Pull Request！**
 
 ---
 
@@ -29,7 +39,7 @@
 
 ## 🌟 核心功能展示
 
-### 1️⃣ 智能对话系统（基础功能）
+### 1️⃣ 智能对话系统
 
 #### 三种交互模式，满足所有场景
 
@@ -65,7 +75,7 @@ AI: [Kilacraft-AI] 请问具体是指什么呢？我可以帮你解答游戏机�
 
 ---
 
-### 2️⃣ 知识库增强（RAG 检索）（核心功能）
+### 2️⃣ 知识库增强（RAG 检索）
 
 让 AI 了解你的服务器规则、玩法、FAQ！
 
@@ -111,7 +121,7 @@ AI: [Kilacraft-AI] 你可以使用 /claim 命令来圈定你的领地。需要�
 
 ---
 
-### 3️⃣ LLM 智能意图识别 + 多步骤任务编排（核心亮点）
+### 3️⃣ LLM 智能意图识别 + 多步骤任务编排
 
 #### 🧠 什么是智能意图识别？
 
@@ -852,7 +862,7 @@ max_history: 10（默认）
 
 ---
 
-### ⚠️ 回调执行与超时保护（重要）
+### ⚠️ 回调执行与超时保护
 
 **回调命令在主线程执行**：Kilacraft-AI 使用 `Bukkit.dispatchCommand()` 执行回调，该 API 必须在主线程调用（Leaf/Paper 等现代服务端的 AsyncCatcher 机制要求）。
 
@@ -1037,10 +1047,6 @@ Kilacraft-AI 通过开放的 **Skill SPI 接口**，让第三方插件开发者�
 3. **提供反馈**，帮助我们改进 Kilacraft-AI
 4. **在社区分享**，帮助更多服主了解 AI Agent 的价值
 
-**联系方式：**
-- 社区论坛: [MCBBS / MineBBS / 其他社区](请添加链接)
-- Discord/QQ 群: [请添加链接]
-
 ### 🏆 已集成的插件
 
 - ✅ **GlobalMarketPlus**：经济系统深度集成（余额、价格、商品查询）
@@ -1214,9 +1220,33 @@ settings:
 
 ---
 
+## 🤝 贡献与反馈
+
+我们欢迎社区贡献！如果你有任何建议或发现问题：
+
+1. **提交 Issue**：在 GitHub 或 Gitee 上报告问题或提出建议
+2. **提交 PR**：修复 Bug 或添加新功能
+3. **分享经验**：在社区分享你的使用心得和配置技巧
+4. **开发 Skill**：为你的插件开发自定义 Skill，丰富生态
+
+**联系方式：**
+- GitHub Issues: https://github.com/Zm-Mmm/Kilacraft-AI/issues
+- Gitee Issues: https://gitee.com/zm_mmm/kilacraft-ai/issues
+- Email: 1456133139@qq.com
+
+---
+
 ## 📄 许可证
 
-本项目采用 [MIT 许可证](./LICENSE)
+本项目采用 **MIT 许可证** - 详见 [LICENSE](../LICENSE) 文件
+
+**你可以：**
+- ✅ 自由使用、复制、修改、合并、发布、分发
+- ✅ 用于商业项目
+- ✅ 创建衍生作品
+
+**你需要：**
+- 📝 在副本中包含原始版权声明和许可证
 
 ---
 
@@ -1224,13 +1254,16 @@ settings:
 
 **Zm_Mmm**
 
-- 邮箱: [请添加邮箱]
+- GitHub: https://github.com/Zm-Mmm
+- Gitee: https://gitee.com/zm_mmm
+- Email: 1456133139@qq.com
 
 ---
 
 ## 🔗 相关链接
 
 - **SPI 接入文档**: [Kilacraft-AI-Skill-SPI-接入文档.md](Kilacraft-AI-Skill-SPI-接入文档.md)
+- **更新日志**: [Kilacraft-AI- 更新日志.md](Kilacraft-AI-\ 更新日志.md)
 - **DeepSeek API 文档**: https://platform.deepseek.com/api-docs/
 - **智谱 AI 文档**: https://open.bigmodel.cn/dev/api
 - **Moonshot 文档**: https://platform.moonshot.cn/docs
@@ -1241,9 +1274,11 @@ settings:
 
 如果你觉得 Kilacraft-AI 对你有帮助，欢迎：
 
+- ⭐ **Star 项目**：在 GitHub 或 Gitee 上给我们一个 Star
 - 📢 **分享给朋友**：推荐给其他服主和开发者
 - 💬 **提供反馈**：告诉我们你的使用体验和改进建议
 - 🤝 **开发第三方 Skill**：为你的插件集成 AI 能力
+- 🐛 **报告问题**：发现 Bug 及时提交 Issue
 
 **你的支持是我们持续优化的动力！** ❤️
 
@@ -1251,4 +1286,5 @@ settings:
 
 > **最后更新**: 2026-04-05  
 > **文档版本**: 1.0  
-> **适用插件版本**: Kilacraft-AI 1.4.0+
+> **适用插件版本**: Kilacraft-AI 1.4.0+  
+> **开源协议**: MIT License
