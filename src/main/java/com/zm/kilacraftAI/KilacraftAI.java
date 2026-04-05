@@ -92,9 +92,6 @@ public final class KilacraftAI extends JavaPlugin {
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(chatListener, this);
 
-        // 注册 Plugin Message 通道（用于第三方插件解耦通信）
-        getServer().getMessenger().registerOutgoingPluginChannel(this, "kilacraft:ai_response");
-
         // 注册 MythicMobs 占位符
         placeholderManager = new MythicMobsPlaceholderManager(this);
         placeholderManager.registerPlaceholders();

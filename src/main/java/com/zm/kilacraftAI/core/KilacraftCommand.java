@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.core;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.api.event.AIResponseReadyEvent;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
@@ -18,9 +19,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -427,16 +425,21 @@ public class KilacraftCommand implements CommandExecutor {
             // 保存对话到历史记录（隔离的），并保存到最新回复缓存
             validator.saveToHistory(pluginHistory, message, fullResponse, targetPlayerId, finalPersonality);
 
-            // 优先执行回调命令（如果指定了）
+            // 优先执行回调命令（如果指定了）- 配置驱动型插件集成
             if (callbackCommand != null && !callbackCommand.isEmpty()) {
                 executeCallback(callbackCommand, fullResponse);
                 // 立即删除缓存
                 plugin.getConversationManager().pollLatestAIResponse(targetPlayerId, finalPersonality);
             } else {
-                // 没有回调命令，发送 Plugin Message
-                sendPluginMessage(targetPlayerId, finalTargetPlayerName, finalPersonality, fullResponse);
+                // 没有回调命令，触发 Bukkit Event - 事件通知
+                AIResponseReadyEvent event = new AIResponseReadyEvent(targetPlayerId, finalTargetPlayerName, finalPersonality, fullResponse);
+                Bukkit.getPluginManager().callEvent(event);
                 // 立即删除缓存
                 plugin.getConversationManager().pollLatestAIResponse(targetPlayerId, finalPersonality);
+
+                if (plugin.getConfigManager().isDebugMode()) {
+                    plugin.getLogger().info("[DEBUG] Bukkit Event 已触发");
+                }
             }
 
             // 调试模式日志
@@ -519,44 +522,6 @@ public class KilacraftCommand implements CommandExecutor {
      */
     private Deque<ConversationManager.Message> getOrCreatePluginHistory(String historyKey) {
         return plugin.getConversationManager().getOrCreatePluginHistory(historyKey);
-    }
-
-    /**
-     * 通过 Plugin Message 发送 AI 回复（供第三方插件监听，完全解耦）
-     *
-     * @param playerId   玩家 UUID
-     * @param playerName 玩家名称
-     * @param personality 人格类型
-     * @param response   AI 回复内容
-     */
-    private void sendPluginMessage(UUID playerId, String playerName, String personality, String response) {
-        try {
-            // 构建消息数据
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            DataOutputStream out = new DataOutputStream(stream);
-
-            out.writeUTF("AI_RESPONSE");           // 消息类型
-            out.writeUTF(playerId.toString());      // 玩家 UUID
-            out.writeUTF(playerName);               // 玩家名称
-            out.writeUTF(personality);              // 人格类型
-            out.writeUTF(response);                 // AI 回复内容
-
-            // 发送给所有在线玩家（第三方插件可以拦截）
-            Player onlinePlayer = plugin.getServer().getOnlinePlayers().stream().findFirst().orElse(null);
-            if (onlinePlayer != null) {
-                onlinePlayer.sendPluginMessage(plugin, "kilacraft:ai_response", stream.toByteArray());
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] Plugin Message 已发送 - 玩家: " + playerName + ", 人格: " + personality + ", 回复长度: " + response.length());
-                }
-            } else {
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().warning("[DEBUG] 无在线玩家，跳过 Plugin Message 发送");
-                }
-            }
-
-        } catch (IOException e) {
-            plugin.getLogger().warning("发送 Plugin Message 失败: " + e.getMessage());
-        }
     }
 
     /**
@@ -662,10 +627,10 @@ public class KilacraftCommand implements CommandExecutor {
     private boolean handleConsoleMessageCommand(CommandSender sender, String[] args) {
         // 构建消息
         String message = String.join(" ", args);
-        
+
         // 发送"正在思考"消息
         MessageUtil.sendThinkingMessage(sender);
-        
+
         // 使用统一的 AI 请求处理器（传入 null 表示控制台）
         boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableCommand();
         aiRequestHandler.handleAIRequestForConsole(sender, message, enableAgent);

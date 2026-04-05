@@ -655,23 +655,21 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
   - Cleaner interface design
 
 - ✅ **Plugin Command Mode Generalization** (NEW):
-  - **Plugin Message Fully Decoupled Communication** (✅ Highly Recommended): Send AI responses via Bukkit message channel
-    - Third-party plugins **completely no dependency** on Kilacraft-AI, just register message listener
-    - Message channel: `kilacraft:ai_response` (follows Bukkit naming convention)
-    - Message format: `AI_RESPONSE | playerId | playerName | personality | response`
-    - Real-time notification, zero coupling, suitable for all Java plugins
-    - **One-time consumption**: Cache deleted immediately after sending, avoid duplicate consumption
-  - **Console Command + Callback Command Mechanism**: Adapted for configuration-driven plugins (e.g., MythicMobs)
-    - `/kilacraft plugins <personality> <content> <playerUUID> [callback_command]` - Request AI response with callback
+  - **Bukkit Event Notification Mechanism** (✅ Recommended): Automatically triggers `AIResponseReadyEvent` when AI response completes
+    - Third-party plugins listen to events via reflection, **completely zero-coupling**
+    - Real-time notification with optimal performance
+    - Event includes: playerId, playerName, personality, response
+  - **Console Command + Callback Command Mechanism** (✅ Highly Recommended): Adapted for configuration-driven plugins (e.g., MythicMobs)
+    - `/kilacraft plugins <personality> <content> <playerUUID> "callback_command"` - Request AI response with callback
     - `/kilacraft plugins get <personality> <playerUUID>` - Poll for latest response
     - Callback command supports `{response}` placeholder, auto-executes after AI completion
     - Returns `UNDEFINED` if AI is still thinking, returns actual content when complete
     - **One-time consumption**: Cache deleted immediately after callback execution, avoid data pollution
   - **Context Isolation**: Conversation history completely isolated per personality and player (format: UUID_personality)
   - **Decoupled from MythicMobs**: Any third-party plugin can easily use AI personality system
-  - **Three Mutually Exclusive Methods with Priority**:
+  - **Two Mutually Exclusive Methods with Priority**:
     - **Priority 1 (Highest)**: Specify callback command → Execute callback → Delete cache
-    - **Priority 2**: No callback command → Send Plugin Message → Delete cache
+    - **Priority 2**: No callback command → Trigger Bukkit Event → Delete cache
     - **Priority 3 (Lowest)**: Manual polling `plugins get` → Get and delete cache
     - ⚠️ **Important**: After high-priority method executes, low-priority methods cannot get cache
   - **DEBUG Log Enhancement**: Debug logs added at key steps for troubleshooting
@@ -686,8 +684,8 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 
 #### 📦 Modified Files
 
-- `src/main/java/com/zm/kilacraftAI/KilacraftAI.java` - Integrated SkillRegistry + Registered Plugin Message channel
-- `src/main/java/com/zm/kilacraftAI/core/KilacraftCommand.java` - Removed Bukkit Event + Added callback command support + Plugin Message sending + DEBUG log enhancement
+- `src/main/java/com/zm/kilacraftAI/KilacraftAI.java` - Integrated SkillRegistry
+- `src/main/java/com/zm/kilacraftAI/core/KilacraftCommand.java` - Removed Plugin Message + Added callback command support + Bukkit Event trigger + DEBUG log enhancement
 - `src/main/java/com/zm/kilacraftAI/skills/framework/SkillManager.java` - Enhanced error isolation
 - `src/main/java/com/zm/kilacraftAI/skills/framework/SkillContext.java` - Simplified fields
 - `src/main/java/com/zm/kilacraftAI/skills/framework/SkillResult.java` - Added getDataMap() method
@@ -696,53 +694,42 @@ If MythicMobs is installed, you can use `%kilacraft_ai_answer%` placeholder to g
 
 #### ⚙️ Integration Examples
 
-**⚠️ Three Mutually Exclusive Methods with Priority**:
+**⚠️ Two Mutually Exclusive Methods with Priority**:
 - **Priority 1 (Highest)**: Specify callback command → Execute callback → Delete cache
-- **Priority 2**: No callback command → Send Plugin Message → Delete cache
+- **Priority 2**: No callback command → Trigger Bukkit Event → Delete cache
 - **Priority 3 (Lowest)**: Manual polling `plugins get` → Get and delete cache
 - **Important**: After high-priority method executes, low-priority methods cannot get cache
 
-**Method A: Plugin Message Fully Decoupled (✅ Highly Recommended)**
+**Method A: Bukkit Event Notification (✅ Recommended)**
 ```java
-// Register listener in your plugin main class
-@Override
-public void onEnable() {
-    getServer().getMessenger().registerIncomingPluginChannel(
-        this, 
-        "kilacraft:ai_response", 
-        new DecoupledAIListener()
-    );
-}
-
-// Listener implementation
-public class DecoupledAIListener implements PluginMessageListener {
-    @Override
-    public void onPluginMessageReceived(String channel, Player player, byte[] message) {
-        try {
-            DataInputStream in = new DataInputStream(new ByteArrayInputStream(message));
-            String type = in.readUTF(); // "AI_RESPONSE"
-            
-            if ("AI_RESPONSE".equals(type)) {
-                String playerId = in.readUTF();
-                String playerName = in.readUTF();
-                String personality = in.readUTF();
-                String response = in.readUTF(); // AI response content
-                
-                // Handle AI response
-                handleAIResponse(playerId, playerName, personality, response);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+// Listen to events in your plugin (completely zero-coupling via reflection)
+@EventHandler
+public void onAIResponse(org.bukkit.event.Event event) {
+    try {
+        Class<?> eventClass = event.getClass();
+        if (!eventClass.getName().equals("com.zm.kilacraftAI.api.event.AIResponseReadyEvent")) {
+            return;
         }
+        
+        String playerName = (String) eventClass.getMethod("getPlayerName").invoke(event);
+        String response = (String) eventClass.getMethod("getResponse").invoke(event);
+        String personality = (String) eventClass.getMethod("getPersonality").invoke(event);
+        UUID playerId = (UUID) eventClass.getMethod("getPlayerId").invoke(event);
+        
+        // Process AI response
+        getLogger().info("Received AI response - Player: " + playerName + ", Personality: " + personality);
+        getLogger().info("Response content: " + response);
+        
+        // Execute your logic...
+    } catch (Exception e) {
+        e.printStackTrace();
     }
 }
 ```
 
-**⚠️ Note**: Cache is deleted immediately after Plugin Message is sent, subsequent `plugins get` calls will return UNDEFINED.
-
-**Method B: Console Command + Callback Command**
+**Method B: Console Command + Callback Command (✅ Highly Recommended)**
 ```bash
-# 1. Request AI response with callback command
+# 1. Request AI response and specify callback command
 /kilacraft plugins StrictTeacher Hello 00000000-0000-0000-0000-000000000000 "myplugin handleAI {response}"
 
 # 2. Auto-executes after AI completion: myplugin handleAI <actual response>
@@ -752,8 +739,6 @@ public class DecoupledAIListener implements PluginMessageListener {
 # Returns UNDEFINED if incomplete, returns actual content when complete
 ```
 
-**⚠️ Note**: Cache is deleted immediately after callback command execution, subsequent `plugins get` calls will return UNDEFINED.
-
 **📌 Complete Priority Examples**:
 ```bash
 # Scenario 1: Specified callback command (Priority 1)
@@ -761,16 +746,17 @@ public class DecoupledAIListener implements PluginMessageListener {
 # → Executes callback command myplugin handleAI <response> after AI completion
 # → Cache deleted
 # → Calling plugins get now will return UNDEFINED
+# → Will NOT trigger Bukkit Event
 
 # Scenario 2: No callback command (Priority 2)
 /kilacraft plugins StrictTeacher Hello UUID
-# → Sends Plugin Message after AI completion
+# → Triggers Bukkit Event after AI completion
 # → Cache deleted
 # → Calling plugins get now will return UNDEFINED
 
 # Scenario 3: Polling only (Priority 3)
 /kilacraft plugins StrictTeacher Hello UUID
-# → No callback executed, no Plugin Message sent after AI completion
+# → No callback executed, no Event triggered after AI completion
 # → Wait for a while then call
 /kilacraft plugins get StrictTeacher UUID
 # → Returns actual response content and deletes cache

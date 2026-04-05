@@ -52,33 +52,39 @@
   - 自动发现：基于 Bukkit ServicesManager 启动时自动扫描
   - 错误隔离：第三方 Skill 异常不影响核心流程
   - 提供完整的 SPI 接入文档与示例
-- **插件命令模式通用化（v1.4.0+）**：解耦 AI 人格系统与 MythicMobs 的绑定关系，提供两种集成方式
-  - **方式 A：Plugin Message 完全解耦**（✅ 强烈推荐，无需任何依赖）
+- **插件命令模式通用化（v1.4.0+）**：解耦 AI 人格系统与 MythicMobs 的绑定关系，提供两种零耦合集成方式
+  - **方式 A：Bukkit Event 事件通知**（✅ 推荐，实时性最好）
     ```java
-    // 在你的插件主类中注册监听器
-    getServer().getMessenger().registerIncomingPluginChannel(
-        this, "kilacraft:ai_response", 
-        (channel, player, message) -> {
-            DataInputStream in = new DataInputStream(new ByteArrayInputStream(message));
-            String type = in.readUTF(); // "AI_RESPONSE"
-            String playerId = in.readUTF();
-            String playerName = in.readUTF();
-            String personality = in.readUTF();
-            String response = in.readUTF(); // AI 回复内容
-            // 处理回复...
+    // 在你的插件中监听事件（完全零耦合，通过反射）
+    @EventHandler
+    public void onAIResponse(org.bukkit.event.Event event) {
+        try {
+            Class<?> eventClass = event.getClass();
+            if (!eventClass.getName().equals("com.zm.kilacraftAI.api.event.AIResponseReadyEvent")) {
+                return;
+            }
+            
+            String playerName = (String) eventClass.getMethod("getPlayerName").invoke(event);
+            String response = (String) eventClass.getMethod("getResponse").invoke(event);
+            String personality = (String) eventClass.getMethod("getPersonality").invoke(event);
+            
+            // 处理 AI 回复
+            getLogger().info("收到 AI 回复: " + response);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-    );
+    }
     ```
-  - **方式 B：控制台命令 + 回调命令**（适合配置驱动型插件，如 MythicMobs）
+  - **方式 B：控制台命令 + 回调命令**（✅ 强烈推荐，配置驱动）
     ```bash
-    # 请求 AI 回复（可选第 5 个参数：回调命令）
-    /kilacraft plugins <人格> <内容> <玩家UUID> [回调命令]
+    # 请求 AI 回复并指定回调命令
+    /kilacraft plugins <人格> <内容> <玩家UUID> "myplugin handleAI {response}"
     
-    # 示例：AI 完成后自动执行 myplugin 命令
-    /kilacraft plugins 严厉教师 你好 00000000-0000-0000-0000-000000000000 "myplugin handleAI {response}"
+    # AI 完成后自动执行：myplugin handleAI <实际回复内容>
     
-    # 轮询获取最新回复（返回 UNDEFINED 表示未完成）
+    # 或者使用轮询方式
     /kilacraft plugins get <人格> <玩家UUID>
+    # 返回 UNDEFINED 表示未完成，返回实际内容表示完成
     ```
   - **一次性消费缓存**：获取即删除，避免数据污染
   - **上下文隔离**：不同人格和玩家的对话历史完全独立
@@ -658,23 +664,21 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
   - 更清晰的接口设计
 
 - ✅ **插件命令模式通用化**（新增）：
-  - **Plugin Message 完全解耦通信**（✅ 强烈推荐）：通过 Bukkit 消息通道发送 AI 回复
-    - 第三方插件**完全无需依赖** Kilacraft-AI，只需注册消息监听器
-    - 消息通道：`kilacraft:ai_response`（符合 Bukkit 命名规范）
-    - 消息格式：`AI_RESPONSE | playerId | playerName | personality | response`
-    - 实时通知，零耦合，适合所有 Java 插件
-    - **一次性消费**：发送后立即删除缓存，避免重复消费
-  - **控制台命令 + 回调命令机制**：适配配置驱动型插件（如 MythicMobs）
-    - `/kilacraft plugins <人格> <内容> <玩家UUID> [回调命令]` - 请求 AI 回复并指定回调
+  - **Bukkit Event 事件通知机制**（✅ 推荐）：AI 回复完成自动触发 `AIResponseReadyEvent`
+    - 第三方插件通过反射监听事件，**完全零耦合**
+    - 实时通知，性能最优
+    - 事件包含：playerId, playerName, personality, response
+  - **控制台命令 + 回调命令机制**（✅ 强烈推荐）：适配配置驱动型插件（如 MythicMobs）
+    - `/kilacraft plugins <人格> <内容> <玩家UUID> "回调命令"` - 请求 AI 回复并指定回调
     - `/kilacraft plugins get <人格> <玩家UUID>` - 轮询获取最新回复
     - 回调命令支持 `{response}` 占位符，AI 完成后自动执行
     - 返回 `UNDEFINED` 表示 AI 还在思考，返回实际内容表示回复完成
     - **一次性消费**：回调执行后立即删除缓存，避免数据污染
   - **上下文隔离**：不同人格和玩家的对话历史完全独立（格式：UUID_人格）
   - **解耦 MythicMobs**：任何第三方插件都能方便地使用 AI 人格系统
-  - **三种方式互斥与优先级**：
+  - **两种方案互斥与优先级**：
     - **优先级 1（最高）**：指定回调命令 → 执行回调 → 删除缓存
-    - **优先级 2**：无回调命令 → 发送 Plugin Message → 删除缓存
+    - **优先级 2**：无回调命令 → 触发 Bukkit Event → 删除缓存
     - **优先级 3（最低）**：手动轮询 `plugins get` → 获取并删除缓存
     - ⚠️ **重要**：高优先级方式执行后，低优先级方式将无法获取缓存
   - **DEBUG 日志增强**：关键步骤添加调试日志，便于问题排查
@@ -699,51 +703,40 @@ Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
 
 #### ⚙️ 接入示例
 
-**⚠️ 三种方式互斥与优先级说明**：
+**⚠️ 两种方案互斥与优先级说明**：
 - **优先级 1（最高）**：指定回调命令 → 执行回调 → 删除缓存
-- **优先级 2**：无回调命令 → 发送 Plugin Message → 删除缓存
+- **优先级 2**：无回调命令 → 触发 Bukkit Event → 删除缓存
 - **优先级 3（最低）**：手动轮询 `plugins get` → 获取并删除缓存
 - **重要**：高优先级方式执行后，低优先级方式将无法获取缓存
 
-**方式 A：Plugin Message 完全解耦（✅ 强烈推荐）**
+**方式 A：Bukkit Event 事件通知（✅ 推荐）**
 ```java
-// 在你的插件主类中注册监听器
-@Override
-public void onEnable() {
-    getServer().getMessenger().registerIncomingPluginChannel(
-        this, 
-        "kilacraft:ai_response", 
-        new DecoupledAIListener()
-    );
-}
-
-// 监听器实现
-public class DecoupledAIListener implements PluginMessageListener {
-    @Override
-    public void onPluginMessageReceived(String channel, Player player, byte[] message) {
-        try {
-            DataInputStream in = new DataInputStream(new ByteArrayInputStream(message));
-            String type = in.readUTF(); // "AI_RESPONSE"
-            
-            if ("AI_RESPONSE".equals(type)) {
-                String playerId = in.readUTF();
-                String playerName = in.readUTF();
-                String personality = in.readUTF();
-                String response = in.readUTF(); // AI 回复内容
-                
-                // 处理 AI 回复
-                handleAIResponse(playerId, playerName, personality, response);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+// 在你的插件中监听事件（完全零耦合，通过反射）
+@EventHandler
+public void onAIResponse(org.bukkit.event.Event event) {
+    try {
+        Class<?> eventClass = event.getClass();
+        if (!eventClass.getName().equals("com.zm.kilacraftAI.api.event.AIResponseReadyEvent")) {
+            return;
         }
+        
+        String playerName = (String) eventClass.getMethod("getPlayerName").invoke(event);
+        String response = (String) eventClass.getMethod("getResponse").invoke(event);
+        String personality = (String) eventClass.getMethod("getPersonality").invoke(event);
+        UUID playerId = (UUID) eventClass.getMethod("getPlayerId").invoke(event);
+        
+        // 处理 AI 回复
+        getLogger().info("收到 AI 回复 - 玩家: " + playerName + ", 人格: " + personality);
+        getLogger().info("回复内容: " + response);
+        
+        // 执行你的逻辑...
+    } catch (Exception e) {
+        e.printStackTrace();
     }
 }
 ```
 
-**⚠️ 注意**：Plugin Message 发送后缓存会立即删除，后续无法再通过 `plugins get` 获取。
-
-**方式 B：控制台命令 + 回调命令**
+**方式 B：控制台命令 + 回调命令（✅ 强烈推荐）**
 ```bash
 # 1. 请求 AI 回复并指定回调命令
 /kilacraft plugins 严厉教师 你好 00000000-0000-0000-0000-000000000000 "myplugin handleAI {response}"
@@ -755,8 +748,6 @@ public class DecoupledAIListener implements PluginMessageListener {
 # 返回 UNDEFINED 表示未完成，返回实际内容表示完成
 ```
 
-**⚠️ 注意**：回调命令执行后缓存会立即删除，后续无法再通过 `plugins get` 获取。
-
 **📌 完整优先级示例**：
 ```bash
 # 场景 1：指定了回调命令（优先级 1）
@@ -764,16 +755,17 @@ public class DecoupledAIListener implements PluginMessageListener {
 # → AI 完成后执行回调命令 myplugin handleAI <回复>
 # → 缓存已删除
 # → 此时调用 plugins get 将返回 UNDEFINED
+# → 不会触发 Bukkit Event
 
 # 场景 2：未指定回调命令（优先级 2）
 /kilacraft plugins 严厉教师 你好 UUID
-# → AI 完成后发送 Plugin Message
+# → AI 完成后触发 Bukkit Event
 # → 缓存已删除
 # → 此时调用 plugins get 将返回 UNDEFINED
 
 # 场景 3：仅使用轮询（优先级 3）
 /kilacraft plugins 严厉教师 你好 UUID
-# → AI 完成后不执行回调，不发送 Plugin Message
+# → AI 完成后不执行回调，不触发 Event
 # → 等待一段时间后调用
 /kilacraft plugins get 严厉教师 UUID
 # → 返回实际回复内容并删除缓存
