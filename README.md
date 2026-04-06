@@ -1,12 +1,12 @@
 # Kilacraft-AI
 
-> **🚀 v1.4.0** | 零依赖 · 低内存 · 高性能 · 完全开源  
+> **🚀 v1.4.1** | 零依赖 · 低内存 · 高性能 · 完全开源  
 > 专为 Minecraft 服务器打造的轻量级 AI Agent 插件，支持自然语言交互。
 
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/Zm-Mmm/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.4.0-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
+[![Version](https://img.shields.io/badge/Version-1.4.1-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 
 ---
 
@@ -28,7 +28,10 @@ Kilacraft-AI 为你的 Minecraft 服务器带来智能 AI 助手，理解自然�
 - **LLM 意图识别**：理解玩家意图并路由到对应技能
 - **多步骤任务规划**：自动将复杂查询分解为可执行步骤
 - **历史对话上下文**：保持对话连贯性
-- **通用 LLM Provider**：支持 DeepSeek、智谱 AI、Moonshot 及所有 OpenAI 兼容 API
+- **RAG 增强架构**：HanLP TF-IDF + BM25 算法
+- **智能分段策略**：Markdown 标题→段落、固定大小三级策略
+- **中文优化**：TF-IDF 自动过滤停用词
+- **性能优化**：分段缓存，二次检索速度提升约70%
 
 ### 💰 经济系统集成
 - **GlobalMarketPlus 支持**：余额查询、价格查询、商品在售检查
@@ -62,7 +65,7 @@ Kilacraft-AI 为你的 Minecraft 服务器带来智能 AI 助手，理解自然�
 
 ### 安装步骤（5 分钟）
 
-1. **下载** `Kilacraft-AI-1.4.0.jar` 放入 `plugins/` 目录
+1. **下载** `Kilacraft-AI-1.4.1.jar` 放入 `plugins/` 目录
 2. **启动** 服务器生成配置文件
 3. **编辑** `plugins/Kilacraft-AI/config.yml`：
    ```yaml
@@ -150,6 +153,28 @@ agent:
 ```
 然后执行：`/kilacraft knowledge reload`
 
+**高级配置**：
+```yaml
+knowledge:
+  enabled: true                    # 是否启用知识库
+  max_relevant_chunks: 3           # 每次检索返回的最大片段数
+  segment:
+    max_size: 500                  # 每个片段最大字符数
+    min_size: 25                   # 最小字符数
+    overlap: 30                    # 片段重叠字符数
+  keywords:
+    top_k: 10                      # 每次提取的关键词数量
+  bm25:
+    k1: 1.5                        # 词频饱和参数
+    b: 0.75                        # 文档长度归一化参数
+```
+
+**知识库特性**：
+- ✅ **HanLP TF-IDF 算法**：智能提取关键词，自动过滤停用词
+- ✅ **BM25 评分算法**：精确计算文档相关性
+- ✅ **智能分段**：Markdown 标题 → 段落 → 固定大小三级策略
+- ✅ **性能优化**：分段缓存，二次检索速度提升约70%
+
 ---
 
 ## 📊 性能指标
@@ -195,6 +220,23 @@ agent:
 
 ---
 
+## ❤️ 支持开发
+
+如果 Kilacraft-AI 帮助到了你，可以考虑支持项目的持续发展：
+
+- **[爱发电](https://afdian.net/@yourname)** - 支持微信/支付宝
+- **GitHub Sponsors** - 国际用户
+
+你的支持将用于：
+- 🚀 持续的功能更新与性能优化
+- 🐛 Bug 修复与稳定性提升
+- 📚 文档完善与教程制作
+- 💬 社区支持与问题解答
+
+感谢每一位支持者！🙏
+
+---
+
 ## 👨‍💻 作者
 
 **Zm_Mmm**
@@ -224,6 +266,6 @@ agent:
 
 ---
 
-> **最后更新**: 2026-04-05  
-> **插件版本**: 1.4.0+  
+> **最后更新**: 2026-04-06  
+> **插件版本**: 1.4.1+  
 > **开源协议**: MIT

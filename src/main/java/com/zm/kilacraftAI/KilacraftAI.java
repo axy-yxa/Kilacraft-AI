@@ -3,6 +3,7 @@ package com.zm.kilacraftAI;
 import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
 import com.zm.kilacraftAI.config.SkillConfigManager;
@@ -18,6 +19,7 @@ import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
 import com.zm.kilacraftAI.skills.framework.spi.SkillRegistry;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
 import com.zm.kilacraftAI.translate.ItemTranslator;
+import com.zm.kilacraftAI.util.ChineseTextUtil;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -39,6 +41,8 @@ public final class KilacraftAI extends JavaPlugin {
     private PersonalitiesConfigManager personalitiesConfigManager;
     @Getter
     private SkillConfigManager skillConfigManager;
+    @Getter
+    private IntentPromptConfigManager intentPromptConfigManager; // 意图识别提示词配置管理器
     private ChatListener chatListener;
     private ConversationManager conversationManager;
     private KnowledgeBaseManager knowledgeBase;
@@ -75,7 +79,16 @@ public final class KilacraftAI extends JavaPlugin {
         int maxChunkSize = configManager.getKnowledgeMaxChunkSize();
         int minChunkSize = configManager.getKnowledgeMinChunkSize();
         int chunkOverlap = configManager.getKnowledgeChunkOverlap();
-        knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, maxChunks, maxChunkSize, minChunkSize, chunkOverlap);
+        int keywordTopK = configManager.getKeywordTopK();
+        double bm25K1 = configManager.getBm25K1();
+        double bm25B = configManager.getBm25B();
+        knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, maxChunks, maxChunkSize, minChunkSize, chunkOverlap, keywordTopK, bm25K1, bm25B);
+        
+        // 初始化自定义词典
+        if (configManager.isCustomDictionaryEnabled()) {
+            ChineseTextUtil.initCustomDictionary(configManager.getCustomDictionaryWords());
+            getLogger().info("已加载 " + configManager.getCustomDictionaryWords().size() + " 个自定义词汇");
+        }
 
         // 初始化聊天监听器（需要在 LLM 管理器之后）
         chatListener = new ChatListener(this);
@@ -106,12 +119,15 @@ public final class KilacraftAI extends JavaPlugin {
         // 加载所有技能配置
         skillConfigManager.loadAllSkillConfigs();
         
+        // 初始化意图识别提示词配置管理器
+        intentPromptConfigManager = new IntentPromptConfigManager(this);
+        
         // 初始化 Skills 系统
         skillManager = new SkillManager();
         registerDefaultSkills();
         
         // 初始化意图识别器
-        intentRecognizer = new SkillIntentRecognizer(llmManager.getCurrentProvider(), configManager, skillManager);
+        intentRecognizer = new SkillIntentRecognizer(configManager, intentPromptConfigManager, skillManager);
 
         // 延迟发现并注册第三方 SkillProvider 提供的 Skill
         getServer().getScheduler().runTaskLater(this, () -> new SkillRegistry(this, skillManager).discoverAndRegister(), 20L);

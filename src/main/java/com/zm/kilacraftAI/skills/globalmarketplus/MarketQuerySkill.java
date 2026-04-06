@@ -171,7 +171,11 @@ public class MarketQuerySkill implements Skill {
         Map<String, String> vars = new LinkedHashMap<>();
         vars.put("balance", String.format("%.2f", balance));
 
-        return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("balance_success", "§f你的余额为：§a$%.2f", vars)));
+        // 构建 data Map，供多步骤任务引用
+        Map<String, Object> dataMap = new LinkedHashMap<>();
+        dataMap.put("balance", balance);
+
+        return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("balance_success", "§f你的余额为：§a$%.2f", vars), dataMap));
     }
 
     /**
@@ -324,7 +328,24 @@ public class MarketQuerySkill implements Skill {
         // 显示总价
         sb.append(String.format("\n§f总计：§a$%.2f", totalPrice));
         
-        return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
+        // 构建 data Map，供多步骤任务引用
+        Map<String, Object> dataMap = new LinkedHashMap<>();
+        dataMap.put("total_price", totalPrice);
+        dataMap.put("item_count", successCount);
+        // 如果是单个物品查询，添加详细信息
+        if (successCount == 1 && priceResults.size() == 1) {
+            // 解析物品名称和价格
+            String[] parts = itemName.split(",\\s*");
+            if (parts.length == 1) {
+                String singleItem = parts[0].trim();
+                int colonIdx = singleItem.lastIndexOf(':');
+                String itemNameOnly = colonIdx > 0 ? singleItem.substring(0, colonIdx).trim() : singleItem;
+                dataMap.put("item_name", translator.translateToChinese(itemNameOnly));
+                dataMap.put("price", totalPrice);
+            }
+        }
+        
+        return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
     }
     
     /**

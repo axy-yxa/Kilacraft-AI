@@ -6,6 +6,43 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
+## v1.4.1 - Intent Recognition Prompt Configuration System Optimization & Documentation Enhancement
+
+### ✨ New Features
+- IntentPromptConfigManager: Independent intent recognition prompt configuration system
+- intent_prompts.yml configuration file: Structured configuration with 6 major modules + output format rules
+- Multi-step task planning rules (multi_step_mandatory): Semantic matching principle, degradation strategy
+- Skill name strict restriction (skill_name_restriction): Whitelist mechanism, anti-hallucination protection
+- Output format mandatory requirements (output_format_rules): Pure JSON output specification
+
+### 🔧 Improvements
+- Prompt construction flow optimization: Dynamic skill list insertion, output format follows response format
+- Critical constraint rules refactoring: Removed non-existent vague_instruction_handling, reference_resolution
+- Special scenario handling optimization: Removed skill_unavailable_fallback, strengthened skill_name_restriction
+- Continuous conversation handling enhancement: continuous_conversation uniformly handles pronoun resolution and vague instructions
+- Documentation completeness fix: Added missing testing/debugging, best practices, FAQ sections
+
+### 🔄 Knowledge Base Refactoring
+- KnowledgeRetriever retrieval algorithm refactoring: Introduced BM25 scoring algorithm to replace simple keyword matching
+- HanLP TF-IDF keyword extraction: Intelligently filters stop words, automatically extracts core semantic keywords
+- Multi-level scoring mechanism: Complete question match (+50) + BM25 keyword scoring + Title position weighting (+15) + Exact match reward (+10)
+- Chunk caching optimization: Caches chunk results after first retrieval, second retrieval speed improved by ~70%
+- Configurable BM25 parameters: Supports adjusting k1 (term frequency saturation point) and b (document length normalization) parameters
+- Custom dictionary support: Can add server-specific vocabulary to improve Chinese word segmentation accuracy
+
+### 📚 Documentation Updates
+- Added "Intent Recognition Prompt Configuration Guide" in both Chinese and English
+- Fixed "Personality System Guide" inconsistencies with actual code implementation
+- Fixed "Bukkit API Reference Manual" configuration structure description errors
+- Unified all documentation version numbers to v1.4.1
+
+### ⚠️ Compatibility
+- Added intent_prompts.yml configuration file, automatically created on first startup
+- Existing features fully compatible, no other configuration changes required
+- Supports hot reloading of intent recognition prompt configuration via `/kilacraft reload`
+
+---
+
 ## v1.4.0 - Third-party Skill SPI Extension & Plugin Command Mode Generalization
 
 ### ✨ New Features

@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.api.LLMProvider;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.IntentRecognitionResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
@@ -25,149 +26,46 @@ import java.util.concurrent.CompletableFuture;
 public class SkillIntentRecognizer {
 
     private final KilacraftAI plugin = KilacraftAI.getInstance();
-    private final LLMProvider llmProvider;
     private final ConfigManager configManager;
+    private final IntentPromptConfigManager promptConfigManager; // 提示词配置管理器
     private final Gson gson;
     private final SkillManager skillManager; // 用于获取所有技能的描述
 
     /**
-     * 构建系统提示词（完全自动化，无需硬编码）
+     * 构建系统提示词
      */
     private String buildSystemPrompt() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("你是一个技能意图识别助手。你的任务是分析用户的输入，识别他们想要使用的技能。\n");
-        sb.append("\n可用技能列表：\n");
-
-        // 自动遍历所有技能，无需硬编码判断
+        // 动态生成技能描述部分
+        StringBuilder skillsDescription = new StringBuilder();
         int index = 1;
         for (Skill skill : skillManager.getAllSkills()) {
-            sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
+            skillsDescription.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
 
             // 如果技能有多个动作，自动列出
             if (!skill.getActions().isEmpty()) {
-                sb.append("  可用动作：\n");
+                skillsDescription.append("  可用动作：\n");
                 for (Map.Entry<String, String> entry : skill.getActions().entrySet()) {
-                    sb.append("    - ").append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
+                    skillsDescription.append("    - ").append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
                 }
             }
 
             // 如果有额外提示，也加上
             if (!skill.getHints().isEmpty()) {
-                sb.append("  提示：\n");
+                skillsDescription.append("  提示：\n");
                 for (String hint : skill.getHints()) {
-                    sb.append("    - ").append(hint).append("\n");
+                    skillsDescription.append("    - ").append(hint).append("\n");
                 }
             }
         }
 
-        // ============================================
-        // 通用响应格式（所有技能都需要遵循）
-        // ============================================
-        sb.append("\n请按照以下 JSON 格式返回识别结果：\n");
-        sb.append("{\n");
-        sb.append("  \"skill_name\": \"技能名称\",\n");
-        sb.append("  \"action\": \"具体动作\",\n");
-        sb.append("  \"entities\": { \"item\": \"物品 1:数量 1，物品 2:数量 2\" },\n");
-        sb.append("  \"confidence\": 0.9,\n");
-        sb.append("  \"reasoning\": \"识别理由\"\n");
-        sb.append("}\n");
-
-        // 无效意图的返回格式
-        sb.append("\n如果用户输入与任何技能都不相关，返回：\n");
-        sb.append("{\n");
-        sb.append("  \"skill_name\": null,\n");
-        sb.append("  \"action\": null,\n");
-        sb.append("  \"entities\": {},\n");
-        sb.append("  \"confidence\": 0.0,\n");
-        sb.append("  \"reasoning\": \"无法识别到相关技能\"\n");
-        sb.append("}\n");
-
-        // 多步骤任务支持
-        sb.append("\n【多步骤任务】复杂任务可以分解为多个有序步骤：\n");
-        sb.append("{\n");
-        sb.append("  \"goal\": \"总体目标\",\n");
-        sb.append("  \"steps\": [\n");
-        sb.append("    {\n");
-        sb.append("      \"id\": \"step_1\",\n");
-        sb.append("      \"skill_name\": \"技能名称\",\n");
-        sb.append("      \"action\": \"具体动作\",\n");
-        sb.append("      \"entities\": {},\n");
-        sb.append("      \"depends_on\": []  // 依赖的步骤 ID 列表，空表示第一步\n");
-        sb.append("    }\n");
-        sb.append("  ]\n");
-        sb.append("}\n");
-
-        sb.append("\n何时使用多步骤任务：\n");
-        sb.append("- 当用户的问题需要多个独立操作才能完成时\n");
-        sb.append("- 当后续步骤依赖于前一步骤的结果时\n");
-        sb.append("- 当某些步骤可能失败，需要条件判断时\n");
-        sb.append("- 当用户询问多个相关信息，需要调用不同技能时\n");
-        sb.append("- 当用户的问题包含'同时'、'并且'、'另外'等连接词时\n");
-        sb.append("- 当用户的问题涵盖多个维度（如：既有商品列表，又有统计信息）时\n");
-
-        sb.append("\n多步骤任务示例（必须输出完整的 JSON 格式）：\n");
-        sb.append("示例 1 - 用户问：'我手上的东西市场上有卖吗？'\n");
-        sb.append("{\n");
-        sb.append("  \"goal\": \"查询玩家手持物品是否在市场有售\",\n");
-        sb.append("  \"steps\": [\n");
-        sb.append("    {\n");
-        sb.append("      \"id\": \"step_1\",\n");
-        sb.append("      \"skill_name\": \"GenericBukkitAPI\",\n");
-        sb.append("      \"action\": \"get_player_hand_item\",\n");
-        sb.append("      \"entities\": {},\n");
-        sb.append("      \"depends_on\": []\n");
-        sb.append("    },\n");
-        sb.append("    {\n");
-        sb.append("      \"id\": \"step_2\",\n");
-        sb.append("      \"skill_name\": \"market_query\",\n");
-        sb.append("      \"action\": \"query_availability\",\n");
-        sb.append("      \"entities\": { \"item\": \"{step_1.item_name}\" },\n");
-        sb.append("      \"depends_on\": [\"step_1\"]\n");
-        sb.append("    }\n");
-        sb.append("  ]\n");
-        sb.append("}\n");
-        sb.append("注意：只有当后续步骤需要依赖前一步骤的结果时，才使用多步骤任务格式。\n");
-        
-        sb.append("\n示例 2 - 用户问：'我手上拿的是什么？'（单意图示例）\n");
-        sb.append("{\n");
-        sb.append("  \"skill_name\": \"GenericBukkitAPI\",\n");
-        sb.append("  \"action\": \"get_player_hand_item\",\n");
-        sb.append("  \"entities\": {},\n");
-        sb.append("  \"confidence\": 0.95,\n");
-        sb.append("  \"reasoning\": \"用户只想知道手持物品，不需要后续操作\"\n");
-        sb.append("}\n");
-
-        sb.append("\n示例 3 - 用户问：'钻石和绿宝石哪个更贵？'\n");
-        sb.append("{\n");
-        sb.append("  \"goal\": \"比较钻石和绿宝石的价格\",\n");
-        sb.append("  \"steps\": [\n");
-        sb.append("    { \"id\": \"step_1\", \"skill_name\": \"market_query\", \"action\": \"query_price\", \"entities\": { \"item\": \"钻石:1\" }, \"depends_on\": [] },\n");
-        sb.append("    { \"id\": \"step_2\", \"skill_name\": \"market_query\", \"action\": \"query_price\", \"entities\": { \"item\": \"绿宝石:1\" }, \"depends_on\": [] }\n");
-        sb.append("  ]\n");
-        sb.append("}\n");
-
-        sb.append("\n示例 4 - 用户问：'我现在在哪里？这个世界现在是什么时间？天气如何？'\n");
-        sb.append("{\n");
-        sb.append("  \"goal\": \"获取玩家位置、世界时间和天气\",\n");
-        sb.append("  \"steps\": [\n");
-        sb.append("    { \"id\": \"step_1\", \"skill_name\": \"GenericBukkitAPI\", \"action\": \"get_player_location\", \"entities\": {}, \"depends_on\": [] },\n");
-        sb.append("    { \"id\": \"step_2\", \"skill_name\": \"GenericBukkitAPI\", \"action\": \"get_world_time\", \"entities\": {}, \"depends_on\": [] },\n");
-        sb.append("    { \"id\": \"step_3\", \"skill_name\": \"GenericBukkitAPI\", \"action\": \"get_weather\", \"entities\": {}, \"depends_on\": [] }\n");
-        sb.append("  ]\n");
-        sb.append("}\n");
-
-        sb.append("\n重要说明：\n");
-        sb.append("- 只需列出需要调用技能的步骤，不需要添加'分析结果'之类的虚拟步骤\n");
-        sb.append("- 所有步骤执行完毕后，系统会自动整合结果并生成最终回复\n");
-        sb.append("- depends_on 字段用于指定步骤间的依赖关系，确保正确的执行顺序\n");
-        sb.append("- 如果某个步骤失败或返回空结果，后续依赖它的步骤将不会执行\n");
-
-        return sb.toString();
+        // 使用配置管理器构建完整提示词
+        return promptConfigManager.buildSystemPrompt(skillsDescription.toString());
     }
 
-    public SkillIntentRecognizer(LLMProvider llmProvider, ConfigManager configManager, SkillManager skillManager) {
-        this.llmProvider = llmProvider;
+    public SkillIntentRecognizer(ConfigManager configManager, 
+                                 IntentPromptConfigManager promptConfigManager, SkillManager skillManager) {
         this.configManager = configManager;
+        this.promptConfigManager = promptConfigManager;
         this.gson = new Gson();
         this.skillManager = skillManager;
     }
@@ -180,7 +78,13 @@ public class SkillIntentRecognizer {
      * @return 识别结果（可能是 SkillIntent 或 TaskPlan，异步）
      */
     public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history) {
-        if (configManager == null || llmProvider == null) {
+        if (configManager == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        // 每次都获取最新的实例
+        LLMProvider llmProvider = plugin.getLlmManager().getCurrentProvider();
+        if (llmProvider == null) {
             return CompletableFuture.completedFuture(null);
         }
 
@@ -217,7 +121,8 @@ public class SkillIntentRecognizer {
         prompt.append("用户说：").append(userInput).append("\n\n");
 
         // 添加指令
-        prompt.append("请分析用户想要使用什么技能，并返回 JSON 格式的识别结果。");
+        prompt.append("请分析用户想要使用什么技能，并返回 JSON 格式的识别结果。\n");
+        prompt.append("**重要：只返回纯 JSON 对象，不要包含任何 Markdown 标记、注释或额外说明文本。**");
         return prompt.toString();
     }
 

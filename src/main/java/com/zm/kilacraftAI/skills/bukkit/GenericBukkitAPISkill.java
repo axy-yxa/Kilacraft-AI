@@ -118,25 +118,71 @@ public class GenericBukkitAPISkill implements Skill {
             dataMap.put("raw_result", result);
             dataMap.put("api_id", api.getId());
 
-            // 对于 ItemStack 类型，额外添加 item_name 和 item_amount 字段
-            // 供后续步骤通过 {step_x.item_name} 引用
-            if (result instanceof org.bukkit.inventory.ItemStack itemStack) {
-                if (itemStack.getType() != org.bukkit.Material.AIR) {
-                    String itemName;
-                    if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-                        itemName = itemStack.getItemMeta().getDisplayName();
-                    } else {
-                        itemName = itemStack.getType().name();
+            // 根据 API 配置自动提取 data 字段
+            // 对于 additional_methods 模式：自动提取所有方法返回值
+            if (result instanceof java.util.Map<?, ?> resultMap) {
+                for (Map.Entry<?, ?> entry : resultMap.entrySet()) {
+                    String key = entry.getKey().toString();
+                    Object value = entry.getValue();
+                    // 只添加基本类型，避免复杂对象序列化问题
+                    if (value instanceof Number || value instanceof Boolean || value instanceof String) {
+                        dataMap.put(key, value);
                     }
-                    dataMap.put("item_name", itemName);
-                    dataMap.put("item_amount", itemStack.getAmount());
                 }
+            }
+            // 对于 method_chain 模式：根据返回类型自动提取常用字段
+            else if (result != null) {
+                extractDataFromResult(result, dataMap);
             }
 
             return CompletableFuture.completedFuture(SkillResult.success(formatted, dataMap));
         } catch (Exception e) {
             KilacraftAI.getInstance().getLogger().log(Level.SEVERE, "执行 Bukkit API 失败：" + api.getId(), e);
             return CompletableFuture.completedFuture(SkillResult.failure("执行失败：" + e.getMessage()));
+        }
+    }
+
+    /**
+     * 从复杂对象中自动提取常用字段到 dataMap
+     */
+    private void extractDataFromResult(Object result, Map<String, Object> dataMap) {
+        switch (result) {
+            // ItemStack：提取物品信息
+            case org.bukkit.inventory.ItemStack itemStack when itemStack.getType() != org.bukkit.Material.AIR -> {
+                String itemName;
+                if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
+                    itemName = itemStack.getItemMeta().getDisplayName();
+                } else {
+                    itemName = itemStack.getType().name();
+                }
+                dataMap.put("item_name", itemName);
+                dataMap.put("item_amount", itemStack.getAmount());
+                dataMap.put("item_type", itemStack.getType().name());
+            }
+            
+            // Location：提取坐标信息
+            case org.bukkit.Location location -> {
+                dataMap.put("x", location.getX());
+                dataMap.put("y", location.getY());
+                dataMap.put("z", location.getZ());
+                dataMap.put("yaw", location.getYaw());
+                dataMap.put("pitch", location.getPitch());
+                if (location.getWorld() != null) {
+                    dataMap.put("world", location.getWorld().getName());
+                }
+            }
+            
+            // Vector：提取向量分量
+            case org.bukkit.util.Vector vector -> {
+                dataMap.put("x", vector.getX());
+                dataMap.put("y", vector.getY());
+                dataMap.put("z", vector.getZ());
+            }
+            
+            // 其他类型不提取额外字段，只保留 raw_result
+            default -> {
+                // 不做任何操作
+            }
         }
     }
 

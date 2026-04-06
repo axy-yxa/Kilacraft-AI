@@ -1,6 +1,6 @@
 # Kilacraft-AI - Knowledge Base Enhancement Guide
 
-> **Version**: v1.4.0  
+> **Version**: v1.4.1  
 > **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation
 
 ---
@@ -75,7 +75,7 @@ AI: You can use the /claim command to define your territory. Requires at least 1
 
 #### 1. Use Clear Heading Structure
 
-```markdown
+````
 # Level 1 Heading (Document Topic)
 
 ## Level 2 Heading (Main Category)
@@ -86,7 +86,7 @@ AI: You can use the /claim command to define your territory. Requires at least 1
 ```
 
 **Example**:
-```markdown
+```
 # Server Rules
 
 ## Basic Rules
@@ -121,7 +121,7 @@ AI: You can use the /claim command to define your territory. Requires at least 1
 #### 2. Use Lists and Structured Content
 
 ✅ **Recommended**:
-```markdown
+```
 ## How to Get Diamonds?
 
 You can obtain diamonds through the following methods:
@@ -135,7 +135,7 @@ You can obtain diamonds through the following methods:
 ```
 
 ❌ **Avoid**:
-```markdown
+```
 ## How to get diamonds
 
 You can mine or go to caves to find or trade with others or do quests, oh and using fortune enchantment is better.
@@ -145,7 +145,7 @@ You can mine or go to caves to find or trade with others or do quests, oh and us
 
 #### 3. Include Keywords and Synonyms
 
-```markdown
+```
 ## Claim Land/Territory/Protected Area
 
 **Claiming land** (also known as territory, protected area) is a method to protect your builds from being destroyed by other players.
@@ -162,13 +162,13 @@ You can mine or go to caves to find or trade with others or do quests, oh and us
 - `/trustlist` - View trust list
 ```
 
-**Benefit**: Whether players say "claim", "territory" or "protect", relevant content can be retrieved.
+**Benefits**: Whether players say "claim", "territory" or "protect", relevant content can be retrieved.
 
 ---
 
 #### 4. Provide Specific Examples
 
-```markdown
+```
 ## Economy System Details
 
 ### Currency Unit
@@ -177,7 +177,7 @@ The server's currency unit is "Gold Coin".
 ### Common Item Price Reference
 
 | Item | Price Range | Description |
-|------|------------|-------------|
+|-------|--------------|-------------|
 | Diamond | $80-120 | Fluctuates with market |
 | Netherite Ingot | $500-800 | Rare material |
 | Enchanted Book (Mending) | $2000-3000 | Top-tier enchantment |
@@ -268,7 +268,7 @@ knowledge/
 
 Kilacraft-AI uses **Markdown heading-based intelligent segmentation**:
 
-```markdown
+```
 # Server Rules                    ← Segmentation point 1
 
 ## Basic Rules                      ← Segmentation point 2
@@ -288,17 +288,17 @@ Kilacraft-AI uses **Markdown heading-based intelligent segmentation**:
 **Each segment contains**:
 - Complete content text
 - Heading hierarchy information (for weight calculation)
-- Filename and path (for溯源)
+- Filename and path (for traceability)
 
 ---
 
-### Three-Level Scoring Mechanism
+### Comprehensive Scoring Algorithm
 
-When user asks a question, the system scores all segments:
+When a user asks a question, the system scores all segments:
 
 #### Level 1: Complete Question Match (Highest Priority)
 
-If segment content directly contains user's question:
+If segment content directly contains the user's question:
 
 ```
 User Question: "How do I claim land?"
@@ -315,9 +315,9 @@ Score: 100 points (exact match)
 
 ---
 
-#### Level 2: Keyword Match (Medium Priority)
+#### Level 2: BM25 Keyword Scoring
 
-Extract keywords from user question, calculate match degree:
+Extract keywords from user's question using HanLP TF-IDF algorithm, then calculate match degree using BM25 formula:
 
 ```
 User Question: "I want to build a farm, what do I need?"
@@ -333,13 +333,12 @@ Building a farm requires preparation:
 2. Water
 3. Tools
 """
-
-Score: 75 points (keyword match)
 ```
 
 **Chinese Word Segmentation Optimization**:
-- Uses n-gram algorithm for Chinese
+- Uses **HanLP TF-IDF algorithm** for Chinese
 - Intelligently filters stop words ("的", "了", "吗", etc.)
+- TF-IDF automatically extracts most important keywords, filters meaningless words
 - Supports synonym expansion
 
 ---
@@ -358,21 +357,100 @@ Matched Segment Titles:
 
 ---
 
+**Scoring Formula**:
+
+#### Level 1: Complete Question Match
+- If segment content contains complete user question: +50.0 points
+
+#### Level 2: BM25 Keyword Scoring
+```
+Base Score = TF × (k1 + 1) / (TF + k1 × lengthNorm)
+```
+
+**BM25 Formula Components**:
+- **TF (Term Frequency)**: Number of times keyword appears in document
+- **IDF (Inverse Document Frequency)**: Automatically calculated by HanLP TF-IDF
+- **lengthNorm (Document Length Normalization)**: `1 - b + b × (docLength / avgDocLength)`
+- **k1 (Term Frequency Saturation Parameter)**: Default 1.5 (recommended 1.2-2.0)
+- **b (Document Length Normalization Parameter)**: Default 0.75 (recommended 0.5-0.8)
+
+**Calculation Formula**:
+```
+Keyword Score = TF × (k1 + 1) / (TF + k1 × lengthNorm)
+```
+
+**Keyword Weight**:
+- Length ≥ 4: weight 3
+- Length = 3: weight 2
+- Length < 3: weight 1
+
+#### Level 3: Position Weighting
+If keyword appears in heading (line starting with `#`):
+```
+Keyword Score += 15.0 × Keyword Weight
+```
+
+#### Level 4: Exact Match Bonus
+If any keyword appears in document:
+```
+Total Score += 10.0
+```
+
+#### Final Score
+```
+Total Score = 50.0 (complete match, if present) 
+    + Sum of all keywords' BM25 scores
+    + Sum of all heading-weighted BM25 scores
+    + 10.0 (exact match bonus, if present)
+```
+
+---
+
+**Example Calculation**:
+
+User Question: "Claim land method"
+Extracted Keywords: ["claim", "land", "method"]
+Document Segment:
+```
+## How to Claim Land?
+
+1. Prepare 10 gold coins
+2. Stand at the location you want to claim
+3. Execute `/claim`
+```
+
+Scoring Process:
+1. Complete Question Match: × (doesn't contain complete question)
+2. Keyword "claim" (length=5, weight=3):
+   - TF=2, Score = 2 × 2.5 / (2 + 1.5 × 0.8) = 2.08 × 3 = 6.24
+3. Keyword "land" (length=4, weight=3):
+   - TF=4, Score = 4 × 2.5 / (4 + 1.5 × 0.8) = 1.85 × 3 = 5.55
+4. Keyword "method" (length=6, weight=3):
+   - TF=0, Score = 0
+5. Position Weighting: Check "## How to Claim Land?" for keywords
+   - Contains "claim" and "land": +15.0 × 3 + 15.0 × 3 = +90.0
+6. Exact Match: √ (any keyword present in document)
+   
+Final Score ≈ 6.24 + 5.55 + 0 + 90.0 + 10.0 = 111.79
+```
+
+---
+
 ### Cache Optimization
 
 **First Retrieval**:
 1. Traverse all knowledge files
-2. Parse and segment
+2. Parse and segment (intelligent segmentation strategy)
 3. Calculate similarity scores
-4. Return Top-K results
+4. Cache segment results
+5. Return Top-K results
 
-**Second Retrieval (Same Question)**:
-- Read results directly from cache
+**Second Retrieval (Same File)**:
+- Read segments directly from cache
 - Speed improved by approximately **70%**
 
 **Cache Invalidation Conditions**:
 - Execute `/kilacraft knowledge reload`
-- Knowledge files modified
 - Server restart
 
 ---
@@ -388,19 +466,33 @@ plugins/Kilacraft-AI/config.yml
 ### Related Configuration Items
 
 ```yaml
-knowledge_base:
-  enabled: true                  # Whether to enable knowledge base
-  directory: "knowledge"         # Knowledge base directory path
-  max_chunks_per_query: 3        # Maximum segments returned per query
-  similarity_threshold: 0.3      # Similarity threshold (0.0-1.0)
-  cache_enabled: true            # Whether to enable cache
-  cache_ttl_seconds: 3600        # Cache expiration time (seconds)
-  debug_mode: false              # Debug mode (output detailed logs)
+knowledge:
+  enabled: true                    # Whether to enable knowledge base
+  max_relevant_chunks: 3           # Maximum segments returned per query
+  
+  segment:
+    max_size: 500                  # Maximum characters per chunk
+    min_size: 25                   # Minimum characters per chunk
+    overlap: 30                    # Chunk overlap characters (context retention)
+  
+  keywords:
+    top_k: 10                      # Number of keywords extracted per query
+  
+  bm25:
+    k1: 1.5                        # Term frequency saturation parameter (1.2-2.0)
+    b: 0.75                        # Document length normalization parameter (0.5-0.8)
+  
+  custom_dictionary:
+    enabled: true                    # Whether to enable custom dictionary
+    words:
+      - "圈地"
+      - "领地"
+      - "红石"
 ```
 
 ### Configuration Explanation
 
-#### `max_chunks_per_query`
+#### `max_relevant_chunks`
 
 Controls the number of knowledge segments returned per retrieval:
 
@@ -414,160 +506,61 @@ Controls the number of knowledge segments returned per retrieval:
 
 ---
 
-#### `similarity_threshold`
+#### `segment.max_size` / `min_size` / `overlap`
 
-Set minimum similarity threshold to filter irrelevant results:
+Controls knowledge base segmentation strategy:
+
+| Config Item | Effect | Default Value |
+|-------------|--------|--------------|
+| max_size | Maximum characters per chunk | 500 |
+| min_size | Minimum characters per chunk | 25 |
+| overlap | Chunk overlap characters (context retention) | 30 |
+
+**Segmentation Strategy**:
+1. Priority: Markdown heading segmentation
+2. Secondary: Paragraph (empty line) segmentation
+3. Fallback: Fixed-size segmentation
+
+---
+
+#### `keywords.top_k`
+
+Controls the number of keywords extracted per query:
 
 | Value | Effect |
 |-------|--------|
-| 0.1-0.3 | Lenient, returns more results |
-| 0.3-0.5 | Balanced (recommended) |
-| 0.5-0.8 | Strict, only returns highly relevant results |
-| 0.8+ | Very strict, may return no results |
+| 5-10 | Balanced (recommended) |
+| 10-15 | More recall, but may introduce noise |
+| 15+ | High recall, but lower precision |
 
 ---
 
-#### `cache_ttl_seconds`
+#### `bm25.k1` / `b`
 
-Cache expiration time:
+BM25 algorithm parameters:
+
+| Parameter | Effect | Recommended Value |
+|-----------|--------|------------------|
+| k1 | Term frequency saturation point (higher values value frequency more) | 1.2-2.0 |
+| b | Document length normalization (higher values penalize long documents more) | 0.5-0.8 |
+
+---
+
+#### `custom_dictionary.enabled` / `words`
+
+Custom dictionary for adding professional terminology and server-specific vocabulary:
 
 ```yaml
-cache_ttl_seconds: 3600   # 1 hour
-# or
-cache_ttl_seconds: 86400  # 24 hours
-# or
-cache_ttl_seconds: 0      # Never expires (not recommended)
+custom_dictionary:
+  enabled: true
+  words:
+    - "圈地"
+    - "领地"
+    - "红石"
+    - "刷怪塔"
 ```
 
----
-
-#### `debug_mode`
-
-After enabling debug mode, console outputs detailed retrieval information:
-
-```yaml
-debug_mode: true
-```
-
-**Output Example**:
-```
-[KnowledgeRetriever] Starting knowledge retrieval...
-[KnowledgeRetriever] Retrieval time: 45ms
-[KnowledgeRetriever] Total files: 5, Total segments: 128
-[KnowledgeRetriever] Matched segments: 12, Returning top 3
-
-[KnowledgeRetriever] === Matched Segment Details ===
-[KnowledgeRetriever] [1] File: server_rules.md, Score: 95.2, Length: 256 characters
-  Preview: "## How to Claim Land? You can use /claim command..."
-[KnowledgeRetriever] [2] File: commands.md, Score: 78.5, Length: 180 characters
-  Preview: "### /claim - Claim territory..."
-[KnowledgeRetriever] [3] File: faq.md, Score: 65.3, Length: 120 characters
-  Preview: "Q: How to protect my build? A: Use claim system..."
-```
-
-**When to Enable**:
-- Debugging retrieval效果
-- Optimizing knowledge base content
-- Troubleshooting related issues
-
-**Production Environment Recommendation**: Disable to save log space.
-
----
-
-## 🎯 Advanced Usage
-
-### 1. Multilingual Knowledge Base
-
-Provide exclusive knowledge bases for players of different languages:
-
-```
-knowledge/
-├── zh_CN/              # Simplified Chinese
-│   ├── rules.md
-│   └── guide.md
-├── en_US/              # English
-│   ├── rules.md
-│   └── guide.md
-└── ja_JP/              # Japanese
-    ├── rules.md
-    └── guide.md
-```
-
-Dynamically load based on player language in code:
-
-```java
-String lang = player.getLocale(); // "zh_CN", "en_US", etc.
-String knowledgeDir = "knowledge/" + lang;
-```
-
----
-
-### 2. Permission-Controlled Knowledge Base
-
-Provide different knowledge content for different player groups:
-
-```
-knowledge/
-├── public/             # Visible to everyone
-│   ├── rules.md
-│   └── faq.md
-├── vip/                # VIP exclusive
-│   ├── vip_benefits.md
-│   └── exclusive_items.md
-└── staff/              # Administrator exclusive
-    ├── admin_commands.md
-    └── moderation_guide.md
-```
-
-Implementation:
-```java
-if (player.hasPermission("group.vip")) {
-    loadKnowledge("knowledge/vip/");
-}
-```
-
----
-
-### 3. Time-Sensitive Knowledge
-
-Create temporary knowledge bases for limited-time events:
-
-```
-knowledge/
-├── permanent/          # Permanent knowledge
-│   └── rules.md
-└── seasonal/           # Seasonal knowledge
-    ├── christmas_2026.md
-    └── halloween_2026.md
-```
-
-Delete or archive after event ends:
-```bash
-mv knowledge/seasonal/christmas_2026.md knowledge/archive/
-/kilacraft knowledge reload
-```
-
----
-
-### 4. Versioned Knowledge Base
-
-Track knowledge base change history:
-
-```
-knowledge/
-├── current/            # Current version
-│   └── rules.md
-├── v1.0/               # Historical versions
-│   └── rules.md
-└── v2.0/
-    └── rules.md
-```
-
-Rollback to old version:
-```bash
-cp knowledge/v1.0/rules.md knowledge/current/rules.md
-/kilacraft knowledge reload
-```
+**Benefits**: Improves Chinese word segmentation accuracy, enhances retrieval effectiveness.
 
 ---
 
@@ -594,7 +587,7 @@ Get-ChildItem plugins\Kilacraft-AI\knowledge\ | Select-Object Name, Length
 ### 2. Reduce Redundant Content
 
 ❌ **Avoid Duplication**:
-```markdown
+```
 # file1.md
 ## How to Claim Land
 Use /claim command to claim land.
@@ -605,7 +598,7 @@ Execute /claim to claim land.
 ```
 
 ✅ **Merge Content**:
-```markdown
+```
 # rules.md
 ## How to Claim Land
 Use /claim command to claim land. Requires 10 gold coins.
@@ -619,12 +612,12 @@ Claiming land can protect your builds...
 ### 3. Use Concise Language
 
 ❌ **Verbose**:
-```markdown
+```
 Regarding the question of how to claim a piece of land belonging to yourself on our server through specific commands and protect it from being destroyed by other players, you need to first ensure that you have enough gold coins (specifically you need 10 gold coins), then stand at the center position of the territory you want to claim, and finally input the /claim command in the chat box.
 ```
 
 ✅ **Concise**:
-```markdown
+```
 ## How to Claim Land
 
 **Requirements**: Have 10 gold coins
@@ -638,24 +631,6 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 
 ---
 
-### 4. Index Hot Content
-
-For frequently queried content, extract as independent files:
-
-```
-knowledge/
-├── hot_topics/         # Hot content (priority retrieval)
-│   ├── how_to_claim.md
-│   ├── how_to_make_money.md
-│   └── server_rules.md
-└── others/             # Other content
-    └── ...
-```
-
-Prioritize searching `hot_topics/` directory during retrieval.
-
----
-
 ## 🐛 Troubleshooting
 
 ### Q1: AI Not Using Knowledge Base Content?
@@ -664,7 +639,7 @@ Prioritize searching `hot_topics/` directory during retrieval.
 
 1. **Confirm Knowledge Base Enabled**
    ```yaml
-   knowledge_base:
+   knowledge:
      enabled: true
    ```
 
@@ -681,15 +656,13 @@ Prioritize searching `hot_topics/` directory during retrieval.
    - File extension must be `.md` or `.txt`
    - File encoding must be UTF-8
 
-4. **Adjust Similarity Threshold**
+4. **Adjust Returned Segment Count**
    ```yaml
-   similarity_threshold: 0.2  # Lower threshold
+   max_relevant_chunks: 5  # Increase return count
    ```
 
 5. **Enable Debug Mode**
-   ```yaml
-   debug_mode: true
-   ```
+   Set `settings.debug_mode: true` in config.yml
    View retrieval logs to confirm if there are matching results.
 
 ---
@@ -704,7 +677,7 @@ Prioritize searching `hot_topics/` directory during retrieval.
    - Provide specific examples
 
 2. **Increase Related Content Density**
-   ```markdown
+   ````
    ## Claim Land/Territory/Protection
    
    Claiming land (territory, protected area) is...
@@ -716,11 +689,11 @@ Prioritize searching `hot_topics/` directory during retrieval.
 
 3. **Adjust Returned Segment Count**
    ```yaml
-   max_chunks_per_query: 5  # Increase return count
+   max_relevant_chunks: 5  # Increase return count
    ```
 
 4. **Check Segmentation Quality**
-   Enable debug mode to view actual segment content合理性.
+   Enable debug mode to view actual segment content for reasonableness.
 
 ---
 
@@ -728,22 +701,13 @@ Prioritize searching `hot_topics/` directory during retrieval.
 
 **Optimization Methods**:
 
-1. **Enable Cache**
-   ```yaml
-   cache_enabled: true
-   cache_ttl_seconds: 3600
-   ```
-
-2. **Reduce Knowledge Base Scale**
+1. **Reduce Knowledge Base Scale**
    - Delete outdated content
    - Merge similar documents
    - Control single file size
 
-3. **Use SSD Storage**
+2. **Use SSD Storage**
    Storing knowledge base files on SSD can significantly improve read speed.
-
-4. **Preload Common Knowledge**
-   Preload hot content to memory when plugin starts.
 
 ---
 
@@ -756,22 +720,22 @@ Prioritize searching `hot_topics/` directory during retrieval.
 **Solutions**:
 
 1. **Add Synonyms in Documents**
-   ```markdown
+   ````
    ## Claim Land/Territory/Protected Area/Claim
    
    Claiming land (also known as territory, protected area, Claim) is...
    ```
 
-2. **Use Lower Similarity Threshold**
+2. **Adjust Returned Segment Count**
    ```yaml
-   similarity_threshold: 0.2
+   max_relevant_chunks: 5  # Increase return count
    ```
 
 3. **Increase Keyword Density**
    Mention different expressions of core concepts multiple times in documents.
 
 4. **Provide FAQ List**
-   ```markdown
+   ````
    ## Frequently Asked Questions
    
    Q: How do I claim land?
@@ -793,33 +757,16 @@ Prioritize searching `hot_topics/` directory during retrieval.
 - [ ] Whether retrieval accuracy meets requirements
 - [ ] Whether new knowledge documents need to be added
 
-### Statistics
-
-View knowledge base statistics:
-```
-/kilacraft knowledge stats
-```
-
-**Output Example**:
-```
-=== Knowledge Base Statistics ===
-Total Files: 5
-Total Segments: 128
-Cache Hits: 342
-Cache Misses: 58
-Average Retrieval Time: 45ms
-```
-
 ---
 
 ## 📚 Related Documentation
 
-- [Server Owner Guide](./服主指南) - Complete configuration and usage instructions
-- [Personality System Configuration Guide](./人格系统配置指南) - How to make AI better utilize knowledge base
-- [Bukkit API Reference Manual](./Bukkit-API参考手册) - Advanced usage combining API and knowledge base
+- [Server Owner Guide](./Server Owner Guide) - Complete configuration, troubleshooting
+- [Personality System Configuration Guide](./Personality System Configuration Guide) - How to make AI better utilize knowledge base
+- [Bukkit API Reference Manual](./Bukkit API Reference Manual) - Advanced usage combining API and knowledge base
 
 ---
 
 > **Last Updated**: 2026-04-05  
-> **Plugin Version**: 1.4.0+  
+> **Plugin Version**: 1.4.1+  
 > **Tip**: Regularly update knowledge base to keep content synchronized with server

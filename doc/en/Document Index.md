@@ -1,5 +1,5 @@
 # Kilacraft-AI Document Index
-> **Version**: v1.4.0  
+> **Version**: v1.4.1  
 > **Language**: English  
 > **Last Updated**: 2026-04-05
 ---
@@ -22,6 +22,7 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 | [Bukkit API Reference Manual](sslocal://flow/file_open?url=.%2FKilacraft-AI-Bukkit-API-Reference-Manual.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Detailed descriptions and examples of 44+ built-in APIs | Server Owners, Developers |
 | [Personality System Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Personality-System-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Management and customization methods for multiple personalities | Server Owners, Advanced Users |
 | [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Usage and optimization techniques for RAG knowledge base | Server Owners, Content Creators |
+| [Intent Recognition Prompt Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Intent-Recognition-Prompt-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Configuration and optimization of LLM intent recognition system | Server Owners, Developers |
 ---
 ## 📋 Detailed Document Descriptions
 ### 1. Server Owner's Guide
@@ -113,24 +114,40 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 - Chapter 5: Frequently Asked Questions
 ---
 ### 6. Knowledge Base Enhancement Guide
+
 **File**: `Kilacraft-AI-Knowledge-Base-Enhancement-Guide.md`  
 **Size**: ~16 KB  
 **Content**:
 - ✅ RAG technology principles and workflow
 - ✅ Document writing specifications (Markdown best practices)
-- ✅ Detailed explanation of intelligent segmentation algorithm and three-level scoring mechanism
-- ✅ Configuration option descriptions (max_chunks, similarity_threshold, etc.)
-- ✅ Advanced usage:
-    - Multilingual knowledge base
-    - Permission-controlled knowledge base
-    - Time-sensitive knowledge
-    - Versioned knowledge base
+- ✅ Detailed explanation of intelligent segmentation algorithm and comprehensive scoring mechanism (HanLP TF-IDF + BM25)
+- ✅ Configuration option descriptions (max_relevant_chunks, segment, keywords, bm25, custom_dictionary)
+- ✅ Custom dictionary support (improves Chinese word segmentation accuracy)
 - ✅ Performance optimization suggestions
 - ✅ Troubleshooting guide
   **Recommended Chapters**:
 - Chapter 2: Document Writing Specifications (Key to improving retrieval accuracy)
 - Chapter 3: Detailed Explanation of Retrieval Mechanism (Understand working principles)
 - Chapter 5: Performance Optimization
+---
+### 7. Intent Recognition Prompt Configuration Guide
+**File**: `Kilacraft-AI-Intent-Recognition-Prompt-Configuration-Guide.md`  
+**Size**: ~23 KB  
+**Content**:
+- ✅ Intent recognition system architecture and configuration file structure
+- ✅ Response format specification (single intent, invalid intent, multi-step task)
+- ✅ Decision rules details (when to use single/multi-step/return invalid)
+- ✅ Critical constraint rules (placeholder usage, reference resolution, vague instruction handling)
+- ✅ Example library (single intent examples, multi-step examples, invalid intent examples)
+- ✅ Special scenario handling (continuous conversation, conflicting intents, missing parameters)
+- ✅ Output quality requirements and JSON format specification
+- ✅ Difference from personality system explanation
+- ✅ Optimization strategies and common problem troubleshooting
+  **Recommended Chapters**:
+- Chapter 2: Response Format Specification (Understand three response types)
+- Chapter 4: Critical Constraint Rules (Avoid common errors)
+- Chapter 6: Difference from Personality System (Important concept distinction)
+- Chapter 8: Optimization Strategies (Improve recognition accuracy)
 ---
 ## 🔍 Find Documents by Topic
 ### Installation and Configuration
@@ -140,6 +157,7 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 - [Server Owner's Guide - Core Feature Showcase](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-core-feature-showcase&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 - [Bukkit API Reference Manual](sslocal://flow/file_open?url=.%2FKilacraft-AI-Bukkit-API-Reference-Manual.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 - [Personality System Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Personality-System-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
+- [Intent Recognition Prompt Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Intent-Recognition-Prompt-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 ### Knowledge Base Management
 - [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 - [Server Owner's Guide - Knowledge Base Enhancement](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23%EF%B8%8F-knowledge-base-enhancementrag-retrieval&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
@@ -160,8 +178,8 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 |----------|--------------------|------------|
 | Server Owner Documents | 2 | ~55 KB |
 | Developer Documents | 1 | ~33 KB |
-| Technical Reference | 3 | ~57 KB |
-| **Total** | **6** | **~145 KB** |
+| Technical Reference | 4 | ~80 KB |
+| **Total** | **7** | **~168 KB** |
 ---
 ## 💡 Usage Suggestions
 ### New Users

@@ -1,7 +1,7 @@
 # Kilacraft-AI Skill SPI 接入文档
 
 > 版本：1.0 | 最后更新：2026-04-04  
-> 适用插件版本：Kilacraft-AI 1.4.0+
+> 适用插件版本：Kilacraft-AI 1.4.1+
 
 ---
 
@@ -1004,6 +1004,77 @@ A: 不建议。请使用小写英文 + 下划线格式，确保兼容性和可�
 | `getDataMap()` | `Map<String, Object>` | 便捷获取 data Map |
 | `getData(Class<T>)` | `T` | 泛型获取 data |
 | `toFuture()` | `CompletableFuture<SkillResult>` | 转为 Future |
+
+---
+
+## 16. 分享你的 Skill
+
+当你开发完成一个 Skill 后，可以通过以下方式分享给社区：
+
+### 方式一：集成到你的插件中（推荐）
+
+如果你的插件已经有用户基础，直接将 Skill 集成到插件中是最简单的方式：
+
+```java
+// 在你的插件主类中实现 SkillProvider
+public class MyPlugin extends JavaPlugin implements SkillProvider {
+    @Override
+    public void onEnable() {
+        getServer().getServicesManager().register(
+            SkillProvider.class, this, this, ServicePriority.Normal
+        );
+    }
+    
+    @Override
+    public List<Skill> getSkills() {
+        return List.of(new MyCustomSkill());
+    }
+}
+```
+
+**优点：**
+- ✅ 用户无需额外安装
+- ✅ 自动通过 SPI 注册
+- ✅ 维护成本低
+
+### 方式二：创建独立 Skill 插件
+
+如果你想让 Skill 独立于其他插件分发：
+
+1. 创建一个独立的 Bukkit 插件项目
+2. 实现 `SkillProvider` 接口
+3. 发布到 MineBBS/SpigotMC/GitHub
+4. 在 README 中标注 "Requires Kilacraft-AI 1.4.1+"
+
+**示例 plugin.yml：**
+```yaml
+name: MyAwesomeSkill
+version: 1.0.0
+main: com.example.MySkillPlugin
+api-version: 1.21
+softdepend: [Kilacraft-AI]  # 软依赖
+authors: [YourName]
+description: A custom skill for Kilacraft-AI
+```
+
+### 方式三：提交到社区索引（未来）
+
+当 Kilacraft-AI 用户基数增长后，我们将建立社区 Skill 索引平台，届时你可以：
+
+1. 将 Skill 发布到 GitHub/Gitee
+2. 提交 PR 到社区索引仓库
+3. 通过审核后获得 "Verified" 徽章
+4. 在官方文档中被推荐
+
+> **注意**：社区索引平台尚在规划中，预计 3-6 个月后上线。当前阶段建议采用方式一或方式二。
+
+### 最佳实践
+
+- 📝 **完善文档**：提供清晰的使用说明和配置示例
+- 🧪 **充分测试**：确保在不同场景下都能正常工作
+- 🔒 **注意安全**：不要执行危险操作，做好权限检查
+- 🎯 **聚焦单一功能**：一个 Skill 只做一件事，并做好
+- 💬 **收集反馈**：关注用户 Issues，持续优化
 
 ---
 

@@ -62,6 +62,22 @@ public class ConfigManager {
     @Getter
     private int knowledgeChunkOverlap;      // 片段重叠字符数
     
+    // 关键词提取配置
+    @Getter
+    private int keywordTopK;                 // 每次提取的关键词数量
+    
+    // BM25 评分算法配置
+    @Getter
+    private double bm25K1;                   // k1 参数：控制词频饱和点
+    @Getter
+    private double bm25B;                    // b 参数：控制文档长度归一化
+    
+    // 自定义词典配置
+    @Getter
+    private boolean customDictionaryEnabled; // 是否启用自定义词典
+    @Getter
+    private List<String> customDictionaryWords; // 自定义词汇列表
+    
     // Agent 能力配置
     @Getter
     private boolean agentEnabled;           // Agent 总开关
@@ -76,7 +92,7 @@ public class ConfigManager {
     @Getter
     private String agentSystemPrompt;         // LLM 意图识别系统提示词
     @Getter
-    private String agentAnalysisPrompt;       // LLM 分析执行结果提示词
+    private String agentAnalysisPromptSuffix; // LLM 分析提示词后缀（用于识别边界）
     
     // LLM 提供商配置（通用）
     @Getter
@@ -134,7 +150,18 @@ public class ConfigManager {
         this.knowledgeMaxChunkSize = config.getInt("knowledge.segment.max_size", 500);
         this.knowledgeMinChunkSize = config.getInt("knowledge.segment.min_size", 25);
         this.knowledgeChunkOverlap = config.getInt("knowledge.segment.overlap", 30);
-            
+        
+        // 关键词提取配置
+        this.keywordTopK = config.getInt("knowledge.keywords.top_k", 10);
+        
+        // BM25 评分算法配置
+        this.bm25K1 = config.getDouble("knowledge.bm25.k1", 1.5);
+        this.bm25B = config.getDouble("knowledge.bm25.b", 0.75);
+        
+        // 自定义词典配置
+        this.customDictionaryEnabled = config.getBoolean("knowledge.custom_dictionary.enabled", true);
+        this.customDictionaryWords = config.getStringList("knowledge.custom_dictionary.words");
+
         // Agent 能力配置
         this.agentEnabled = config.getBoolean("agent.enabled", true);
         this.agentEnableChatListener = config.getBoolean("agent.enable_chat_listener", true);
@@ -142,7 +169,9 @@ public class ConfigManager {
         this.agentIntentHistoryCount = config.getInt("agent.intent_history_count", 5);
         this.agentAnalysisHistoryCount = config.getInt("agent.analysis_history_count", 2);
         this.agentSystemPrompt = config.getString("agent.prompts.system_prompt", "");
-        this.agentAnalysisPrompt = config.getString("agent.prompts.analysis_prompt", "");
+        
+        // 分析提示词后缀（用于识别业务内容边界）
+        this.agentAnalysisPromptSuffix = config.getString("agent.prompts.analysis_prompt_suffix", "");
             
         // LLM 提供商配置（通用）
         this.llmApiKey = config.getString("llm.api_key", "");

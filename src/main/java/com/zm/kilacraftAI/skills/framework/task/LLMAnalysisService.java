@@ -24,12 +24,10 @@ import java.util.concurrent.CompletableFuture;
 public class LLMAnalysisService {
 
     private final KilacraftAI plugin;
-    private final LLMProvider llmProvider;
     private final ConfigManager configManager;
 
     public LLMAnalysisService() {
         this.plugin = KilacraftAI.getInstance();
-        this.llmProvider = plugin.getLlmManager().getCurrentProvider();
         this.configManager = plugin.getConfigManager();
     }
 
@@ -51,35 +49,27 @@ public class LLMAnalysisService {
         String playerName = context.getPlayer() != null ? context.getPlayer().getName() : "Console";
         CompletableFuture<String> responseFuture = new CompletableFuture<>();
 
-        // 构建分析提示词
-        String baseAnalysisPrompt = configManager.getAgentAnalysisPrompt();
+        // 构建分析提示词：执行结果 + 后缀
+        String suffix = configManager.getAgentAnalysisPromptSuffix();
         String systemPrompt = configManager.getAgentSystemPrompt();
+        
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append(resultsSummary);
+        if (suffix != null && !suffix.isEmpty()) {
+            promptBuilder.append(suffix);
+        }
+        
+        String analysisPrompt = promptBuilder.toString();
 
-        // 替换占位符 {results}
-        String analysisPrompt = baseAnalysisPrompt.replace("{results}", resultsSummary);
+        // 每次都获取最新的实例
+        LLMProvider llmProvider = plugin.getLlmManager().getCurrentProvider();
+        if (llmProvider == null) {
+            return CompletableFuture.completedFuture(SkillResult.failure("LLM Provider 未初始化"));
+        }
 
-        // 添加历史对话上下文
-        String enhancedPrompt = buildAnalysisPromptWithHistory(analysisPrompt, history);
-
-        // 调用 LLM
-        llmProvider.processRequestWithCustomSystemPrompt(enhancedPrompt, playerName, null, createAnalysisHandler(playerName, responseFuture), systemPrompt, false, false);
+        // 调用 LLM，传入历史对话，由 GenericLLMProvider 内部处理知识库检索和历史注入
+        llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, createAnalysisHandler(playerName, responseFuture), systemPrompt, true, false);
         return responseFuture.thenApply(SkillResult::success);
-    }
-
-    /**
-     * 构建带历史上下文的分析提示词
-     */
-    private String buildAnalysisPromptWithHistory(String analysisPrompt, Deque<ConversationManager.Message> history) {
-        String prefix = "[当前输入]\n";
-        if (history == null || history.isEmpty()) {
-            return prefix + analysisPrompt;
-        }
-
-        int historyCount = configManager.getAgentAnalysisHistoryCount();
-        if (historyCount <= 0) {
-            return prefix + analysisPrompt;
-        }
-        return HistoryUtil.buildHistoryDisplay(history, configManager, historyCount) + prefix + analysisPrompt;
     }
 
     /**

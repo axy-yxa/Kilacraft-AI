@@ -107,6 +107,12 @@ public class KilacraftCommand implements CommandExecutor {
                 sender.sendMessage("§a已重新加载技能配置文件");
             }
 
+            // 热重载意图识别提示词配置
+            if (plugin.getIntentPromptConfigManager() != null) {
+                plugin.getIntentPromptConfigManager().reload();
+                sender.sendMessage("§a已重新加载意图识别提示词配置");
+            }
+
             // LLM 提供商配置的刷新已经在 ConfigManager.loadConfig() 中通过 refreshLLMConfigCache() 自动执行
             // 此处不再重复调用，避免连接池被重复关闭和重建
 

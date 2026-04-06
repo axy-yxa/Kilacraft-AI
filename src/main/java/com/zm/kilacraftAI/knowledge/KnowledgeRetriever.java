@@ -1,5 +1,7 @@
 package com.zm.kilacraftAI.knowledge;
 
+import com.zm.kilacraftAI.util.ChineseTextUtil;
+
 import java.util.*;
 import java.util.regex.*;
 
@@ -15,6 +17,13 @@ public class KnowledgeRetriever {
 
     private final KnowledgeBaseManager knowledgeBase;
     private final int maxRelevantChunks;
+    
+    // 关键词提取配置
+    private final int keywordTopK;
+    
+    // BM25 评分算法参数
+    private final double bm25K1;  // 词频饱和参数
+    private final double bm25B;   // 文档长度归一化参数
 
     // 分段配置
     private final int MAX_CHUNK_SIZE;
@@ -22,9 +31,13 @@ public class KnowledgeRetriever {
     private final int CHUNK_OVERLAP;
 
     public KnowledgeRetriever(KnowledgeBaseManager knowledgeBase, int maxRelevantChunks,
-                              int maxChunkSize, int minChunkSize, int chunkOverlap) {
+                              int maxChunkSize, int minChunkSize, int chunkOverlap,
+                              int keywordTopK, double bm25K1, double bm25B) {
         this.knowledgeBase = knowledgeBase;
         this.maxRelevantChunks = maxRelevantChunks;
+        this.keywordTopK = keywordTopK;
+        this.bm25K1 = bm25K1;
+        this.bm25B = bm25B;
         this.MAX_CHUNK_SIZE = maxChunkSize;
         this.MIN_CHUNK_SIZE = minChunkSize;
         this.CHUNK_OVERLAP = chunkOverlap;
@@ -121,70 +134,22 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * 【标准 RAG】从问题中提取关键词（去除常见虚词和标点）
+     * 从问题中提取关键词（使用 HanLP TF-IDF 算法）
      * 
      * @param question 用户问题
      * @return 关键词列表
      */
     private List<String> extractKeywords(String question) {
-        List<String> keywords = new ArrayList<>();
-        
         if (question == null || question.trim().isEmpty()) {
-            return keywords;
+            return Collections.emptyList();
         }
-        
-        // 移除标点符号（包括中英文标点）
-        String cleanQuestion = question.replaceAll("[\\p{Punct}\\s，。？！,.!?]+", "");
-        
-        // 停用词表（常见的无意义词汇）
-        Set<String> stopWords = Set.of(
-            "的", "了", "吗", "呢", "啊", "呀", "吧", "嘛",
-            "怎么", "如何", "怎样", "为啥", "为什么", "哪", "哪里", "哪儿",
-            "什么", "哪些", "哪个", "何", "咋",
-            "做", "作", "搞", "弄", "弄法", "制作", "合成", "配方",
-            "怎么做", "如何做", "怎样做", "咋做", "咋弄", "做法", "制作方法",
-            "是什么", "有哪些", "在哪", "怎么弄", "怎么搞"
-        );
-        
-        // 【关键修复】先移除停用词，再提取 n-gram
-        String noStopText = cleanQuestion;
-        for (String stop : stopWords) {
-            noStopText = noStopText.replace(stop, " "); // 替换为空格而不是直接删除
-        }
-        // 移除多余空格
-        noStopText = noStopText.replaceAll("\\s+", "").trim();
-        
-        if (noStopText.isEmpty()) {
-            return keywords;
-        }
-        
-        // 从清理后的文本中提取 n-gram
-        for (int len = Math.min(4, noStopText.length()); len >= 2; len--) {
-            for (int i = 0; i <= noStopText.length() - len; i++) {
-                String nGram = noStopText.substring(i, i + len);
-                
-                // 避免添加重复或包含关系的词
-                boolean shouldAdd = true;
-                for (String existing : keywords) {
-                    if (existing.contains(nGram)) {
-                        shouldAdd = false;
-                        break;
-                    }
-                    if (nGram.contains(existing) && nGram.length() > existing.length()) {
-                        keywords.remove(existing);
-                    }
-                }
-                
-                if (shouldAdd) {
-                    keywords.add(nGram);
-                }
-            }
-        }
-        return keywords;
+
+        // TF-IDF 会自动过滤无意义词（如“执行”、“输入”），保留核心语义词
+        return ChineseTextUtil.extractKeywords(question, keywordTopK);
     }
 
     /**
-     * 【标准 RAG】计算问题与内容的相关性得分
+     * 【BM25 算法】计算问题与内容的相关性得分
      * 
      * @param question 用户问题
      * @param content  知识内容
@@ -195,89 +160,55 @@ public class KnowledgeRetriever {
         if (question == null || question.trim().isEmpty() || content == null || content.trim().isEmpty()) {
             return 0.0;
         }
-
+    
         // 转换为小写进行比较
         String lowerQuestion = question.toLowerCase();
         String lowerContent = content.toLowerCase();
-
+    
         double score = 0.0;
-
+    
         // 1. 完整问题匹配（最高优先级）
         if (lowerContent.contains(lowerQuestion)) {
             score += 50.0;
         }
-
-        // 2. 关键词匹配
-        int matchedKeywords = 0;
-        int totalWeight = 0;
-        boolean hasExactMatch = false;
-        
+    
+        // 2. BM25 评分算法
+        // 计算文档长度归一化因子
+        int docLength = lowerContent.length();
+        int avgDocLength = 500; // 假设平均文档长度为 500 字符
+        double lengthNorm = 1 - bm25B + bm25B * ((double) docLength / avgDocLength);
+            
         for (String keyword : keywords) {
-            int weight = getKeywordWeight(keyword);
-            totalWeight += weight;
-
-            // 精确匹配整个词
-            if (lowerContent.contains(keyword)) {
-                matchedKeywords += weight;
-                score += 5.0;
-                hasExactMatch = true;
-            }
-            // 模糊匹配：子串匹配
-            else {
-                for (int len = keyword.length() - 1; len >= 2; len--) {
-                    String subKeyword = keyword.substring(0, len);
-                    if (lowerContent.contains(subKeyword)) {
-                        matchedKeywords += (int) (weight * 0.5);
-                        score += 1.0;
+            // 计算词频
+            int termFreq = countOccurrences(lowerContent, keyword);
+                
+            if (termFreq > 0) {
+                // BM25 公式: IDF * (TF * (k1 + 1)) / (TF + k1 * lengthNorm)
+                // 简化版: 我们只用 TF 部分，IDF 由 HanLP 的 TF-IDF 已经处理过了
+                double tfScore = (termFreq * (bm25K1 + 1)) / (termFreq + bm25K1 * lengthNorm);
+                    
+                // 根据关键词长度加权
+                int weight = getKeywordWeight(keyword);
+                score += tfScore * weight * 5.0; // 乘以 5.0 放大分数
+                    
+                // 位置加权：标题中的关键词权重更高
+                String[] lines = lowerContent.split("\n");
+                for (String line : lines) {
+                    line = line.trim();
+                    if (line.startsWith("#") && line.contains(keyword)) {
+                        score += 15.0 * weight; // 标题中的关键词额外加分
                         break;
                     }
                 }
             }
         }
-
-        // 3. 计算关键词覆盖率
-        if (!keywords.isEmpty() && totalWeight > 0) {
-            double coverageRate = (double) matchedKeywords / totalWeight;
-            score *= (1.0 + coverageRate * 2);
-        }
-
-        // 4. 位置加权 - 如果关键词出现在开头或标题中
-        for (String keyword : keywords) {
-            // 开头匹配
-            if (lowerContent.startsWith(keyword)) {
-                score += 5.0;
-                break;
-            }
-
-            // 标题匹配（# 开头的行）
-            String[] lines = lowerContent.split("\\n");
-            for (String line : lines) {
-                line = line.trim();
-                if (line.startsWith("#") && line.contains(keyword)) {
-                    score += 15.0; // 标题中的关键词权重更高
-                    
-                    // 额外奖励：如果标题包含完整的多词关键词
-                    if (keyword.length() >= 3) {
-                        score += 10.0;
-                    }
-                    break;
-                }
-            }
-        }
-
-        // 5. 频率加分 - 但有上限
-        for (String keyword : keywords) {
-            int frequency = countOccurrences(lowerContent, keyword);
-            if (frequency > 1) {
-                score += Math.sqrt(frequency) * 0.5;
-            }
-        }
-
-        // 6. 精确匹配额外奖励
+    
+        // 3. 精确匹配额外奖励
+        boolean hasExactMatch = keywords.stream().anyMatch(lowerContent::contains);
         if (hasExactMatch) {
             score += 10.0;
         }
-
+    
         return score;
     }
 

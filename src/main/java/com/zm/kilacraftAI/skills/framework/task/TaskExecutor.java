@@ -262,7 +262,7 @@ public class TaskExecutor {
         // 构建结果摘要
         StringBuilder summary = new StringBuilder();
         summary.append("任务目标：").append(plan.getGoal()).append("\n\n");
-        summary.append("执行结果：\n");
+        summary.append("[执行结果]\n");
 
         for (Map.Entry<String, Object> entry : plan.getContext().entrySet()) {
             String stepId = entry.getKey();

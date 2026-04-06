@@ -148,8 +148,6 @@ hints:
   - "API 调用失败时会自动回退到普通 AI 回答"
   - "可以组合多个 API 完成复杂查询，例如：先获取玩家位置，再查询世界信息"
   - "多步骤任务中可使用 {step_xxx.field} 引用前置步骤的结果数据"
-  - "**多步骤任务识别**：当用户同时询问多个独立信息（如'血量和饥饿值'、'位置和时间'），应识别为多步骤任务，返回 steps 数组"
-  - "**多步骤任务格式**：当需要调用多个 API 时，返回 JSON 格式应为 {\"goal\": \"...\", \"steps\": [{\"id\": \"step_1\", \"skill_name\": \"GenericBukkitAPI\", \"action\": \"xxx\"}, ...]}"
 
 # 玩家相关 API (Bukkit 原生)
 # ============================================
@@ -192,11 +190,12 @@ player:
   get_player_health:
     id: "get_player_health"
     display_name: "获取玩家生命值"
-    description: "获取玩家当前的生命值和最大生命值"
+    description: "获取玩家当前的生命值和最大生命值。返回的 data 中包含 health 和 max_health 字段，可供后续步骤引用。"
     usage_scenarios:
       - "我还有多少血"
       - "我的生命值"
       - "我还剩多少 HP"
+      - "我的血量是多少"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
     additional_methods:
@@ -207,11 +206,12 @@ player:
   get_player_food:
     id: "get_player_food"
     display_name: "获取玩家饥饿值"
-    description: "获取玩家当前的饥饿值（饱食度）和饱和度"
+    description: "获取玩家当前的饥饿值（饱食度）和饱和度。返回的 data 中包含 food_level 和 saturation 字段，可供后续步骤引用。"
     usage_scenarios:
       - "我饿了"
       - "我还有多少饱食度"
       - "我的饥饿值"
+      - "我的饱食度是多少"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
     additional_methods:
@@ -240,7 +240,7 @@ player:
   get_player_location:
     id: "get_player_location"
     display_name: "获取玩家位置"
-    description: "获取玩家在游戏中的坐标位置（X, Y, Z）和所在世界。返回的 data 中包含 x、y、z、world 字段。"
+    description: "获取玩家在游戏中的坐标位置（X, Y, Z）和所在世界。返回的 data 中包含 x、y、z、yaw、pitch、world 字段，可供后续步骤引用。"
     usage_scenarios:
       - "我在哪里"
       - "我的坐标是多少"
@@ -337,7 +337,7 @@ player:
   get_player_exp:
     id: "get_player_exp"
     display_name: "获取玩家经验值"
-    description: "获取玩家当前的经验值和等级"
+    description: "获取玩家当前的经验值和等级。返回的 data 中包含 level 和 exp_progress 字段，可供后续步骤引用。"
     usage_scenarios:
       - "我有多少经验"
       - "我的等级是多少"

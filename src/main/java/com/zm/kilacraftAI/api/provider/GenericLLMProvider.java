@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.util.ChineseTextUtil;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -89,6 +90,33 @@ public class GenericLLMProvider implements LLMProvider {
     }
 
     /**
+     * 提取搜索查询关键词
+     * <p>策略：以 analysis_prompt_suffix 为边界，只从业务内容中提取关键词，排除提示词干扰</p>
+     * 
+     * @param userMessage 完整的提示词（包含历史、当前输入、执行结果）
+     * @return 优化后的搜索查询（空格分隔的关键词）
+     */
+    private String extractSearchQuery(String userMessage) {
+        if (userMessage == null || userMessage.isEmpty()) {
+            return userMessage;
+        }
+
+        // analysis_prompt_suffix 作为边界，只提取业务内容
+        String suffix = plugin.getConfigManager().getAgentAnalysisPromptSuffix();
+        String businessContent = userMessage;
+        
+        if (suffix != null && !suffix.isEmpty()) {
+            int suffixIndex = userMessage.indexOf(suffix);
+            if (suffixIndex > 0) {
+                // 只取 suffix 之前的业务内容
+                businessContent = userMessage.substring(0, suffixIndex);
+            }
+        }
+
+        return ChineseTextUtil.toSearchQuery(businessContent);
+    }
+
+    /**
      * 打印调试日志（优化：减少字符串拼接）
      */
     private void printDebugLog(String playerName, String userMessage, Deque<ConversationManager.Message> history) {
@@ -145,8 +173,11 @@ public class GenericLLMProvider implements LLMProvider {
                     var knowledgeRetriever = plugin.getKnowledgeRetriever();
 
                     if (knowledgeRetriever != null) {
+                        // 提取搜索查询关键词
+                        String searchQuery = extractSearchQuery(userMessage);
+                        
                         // 检索相关知识
-                        var relevantKnowledge = knowledgeRetriever.retrieveKnowledge(userMessage);
+                        var relevantKnowledge = knowledgeRetriever.retrieveKnowledge(searchQuery);
 
                         // 如果有相关知识，添加到上下文中
                         if (!relevantKnowledge.isEmpty()) {
