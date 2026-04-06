@@ -224,8 +224,7 @@ knowledge:
 
 如果 Kilacraft-AI 帮助到了你，可以考虑支持项目的持续发展：
 
-- **[爱发电](https://afdian.net/@yourname)** - 支持微信/支付宝
-- **GitHub Sponsors** - 国际用户
+- **[爱发电](https://afdian.com/a/Zm_Mmm)** - 支持微信/支付宝
 
 你的支持将用于：
 - 🚀 持续的功能更新与性能优化

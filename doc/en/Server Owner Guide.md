@@ -970,7 +970,7 @@ AI: [Kilacraft-AI] Current products for sale list:
 
 ---
 
-### 6️⃣ Bukkit API Dynamic Invocation (44+ Built-in APIs) (Extended Feature)
+### 6️⃣ Bukkit API Dynamic Invocation (50+ Built-in APIs) (Extended Feature)
 
 No coding required, AI directly calls vanilla APIs to query player status, world info, server info!
 
@@ -2145,7 +2145,6 @@ If you find Kilacraft-AI helpful, welcome to:
 
 ---
 
-> **Last Updated**: 2026-04-05  
-> **Document Version**: 1.0  
+> **Last Updated**: 2026-04-06  
 > **Applicable Plugin Version**: Kilacraft-AI 1.4.1+  
 > **Open Source License**: MIT License

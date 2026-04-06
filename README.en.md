@@ -142,35 +142,35 @@ agent:
 ```
 
 ### Add Knowledge Base
-   Create `.md` files in `plugins/Kilacraft-AI/knowledge/`:
-   ````
-   # Server Rules
-   1. No cheating
-   2. Be friendly
-   ```
-   Then run: `/kilacraft knowledge reload`
+Create `.md` files in `plugins/Kilacraft-AI/knowledge/`:
+```markdown
+# Server Rules
+1. No cheating
+2. Be friendly
+```
+Then run: `/kilacraft knowledge reload`
 
-   **Advanced Configuration**:
-   ```yaml
-   knowledge:
-     enabled: true                    # Enable knowledge base
-     max_relevant_chunks: 3           # Max chunks returned per query
-     segment:
-       max_size: 500                  # Max characters per chunk
-       min_size: 25                   # Minimum characters
-       overlap: 30                    # Chunk overlap characters
-     keywords:
-       top_k: 10                      # Keywords extracted per query
-     bm25:
-       k1: 1.5                        # Term frequency saturation parameter
-       b: 0.75                        # Document length normalization parameter
-   ```
+**Advanced Configuration**:
+```yaml
+knowledge:
+  enabled: true                    # Enable knowledge base
+  max_relevant_chunks: 3           # Max chunks returned per query
+  segment:
+    max_size: 500                  # Max characters per chunk
+    min_size: 25                   # Minimum characters
+    overlap: 30                    # Chunk overlap characters
+  keywords:
+    top_k: 10                      # Keywords extracted per query
+  bm25:
+    k1: 1.5                        # Term frequency saturation parameter
+    b: 0.75                        # Document length normalization parameter
+```
 
-   **Knowledge Base Features**:
-   - ✅ **HanLP TF-IDF Algorithm**: Intelligent keyword extraction with automatic stopword filtering
-   - ✅ **BM25 Scoring Algorithm**: Precise document relevance calculation
-   - ✅ **Smart Segmentation**: Markdown headers → Paragraphs → Fixed size (3-level strategy)
-   - ✅ **Performance Optimization**: Chunk caching, 70% faster retrieval on second access
+**Knowledge Base Features**:
+- ✅ **HanLP TF-IDF Algorithm**: Intelligent keyword extraction with automatic stopword filtering
+- ✅ **BM25 Scoring Algorithm**: Precise document relevance calculation
+- ✅ **Smart Segmentation**: Markdown headers → Paragraphs → Fixed size (3-level strategy)
+- ✅ **Performance Optimization**: Chunk caching, 70% faster retrieval on second access
 
 ---
 
@@ -214,6 +214,22 @@ This project is licensed under the [MIT License](LICENSE).
 
 **You must:**
 - 📝 Include the original copyright notice and license
+
+---
+
+## ❤️ Support Development
+
+If Kilacraft-AI has been helpful to you, consider supporting the project's continued development:
+
+- **[Afdian (爱发电)](https://afdian.com/a/Zm_Mmm)** - Support via WeChat Pay/Alipay
+
+Your support will be used for:
+- 🚀 Continuous feature updates and performance optimization
+- 🐛 Bug fixes and stability improvements
+- 📚 Documentation enhancement and tutorial creation
+- 💬 Community support and Q&A
+
+Thank you to every supporter! 🙏
 
 ---
 
