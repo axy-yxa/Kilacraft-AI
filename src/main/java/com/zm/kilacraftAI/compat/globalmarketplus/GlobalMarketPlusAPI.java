@@ -33,9 +33,9 @@ import java.util.stream.Collectors;
 public class GlobalMarketPlusAPI {
 
     /**
-     * 检查 GlobalMarketPlus 是否已安装
+     * 检查 GlobalMarketPlus 是否未安装
      *
-     * @return true=已安装，false=未安装
+     * @return true=未安装，false=已安装
      */
     public static boolean isAvailable() {
         return Bukkit.getPluginManager().getPlugin("GlobalMarketPlus") == null;

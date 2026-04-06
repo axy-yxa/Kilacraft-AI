@@ -5,10 +5,12 @@
 
 ---
 
-## 🌐 Project Links
+## 🌐 Project Links & Contact
 
 - **GitHub**: https://github.com/Zm-Mmm/Kilacraft-AI
 - **Gitee**: https://gitee.com/zm_mmm/kilacraft-ai
+- **QQ Group**: 1094391147
+- **Email**: 1456133139@qq.com
 - **License**: [MIT License](../LICENSE)
 
 > 💡 **Welcome to Star ⭐, Fork 🔀 and submit Issues/Pull Requests!**
@@ -31,7 +33,7 @@
 | **Zero Middleware Dependencies** | Just one JAR file, no database, cache or other extra services needed |
 | **Extremely Low Memory Usage** | Small servers only need 8-12 MB, large servers about 30-50 MB |
 | **Out of the Box** | Complete configuration in 5 minutes, ready to use immediately |
-| **Performance Optimized** | HTTP connection pool reuse, asynchronous non-blocking execution, streaming response support |
+| **Performance Optimized** | HTTP connection pool reuse, asynchronous non-blocking execution, Knowledge Base Segmented Caching |
 | **Highly Customizable** | Personality system, knowledge base, language configuration all customizable |
 | **Ecosystem Friendly** | Open SPI interface, third-party plugins can seamlessly integrate |
 
@@ -2036,51 +2038,6 @@ settings:
 
 ---
 
-## 📝 Changelog
-
-### v1.4.0 (2026-04-05) - Third-party Skill SPI + Plugin Command Callback Mechanism 🚀
-
-**Core Upgrade 1**: Support third-party plugins to register custom Skills via SPI mechanism!
-
-- ✅ **Skill SPI Interface**: `SkillProvider` + auto-discovery mechanism
-- ✅ **Error Isolation**: Third-party Skill exceptions don't affect core processes
-- ✅ **API JAR Packaging**: `Kilacraft-Skill-API-1.4.0.jar` (only 5 KB)
-- ✅ **Complete Documentation**: SPI integration guide + example code
-
-**Core Upgrade 2**: Plugin command mode supports callback commands!
-
-- ✅ **Callback Command Mechanism**: Automatically execute specified commands after AI completes, `{response}` placeholder replaced with actual reply
-- ✅ **One-Time Consumption**: Delete cache immediately after callback execution, avoid data accumulation
-- ✅ **Flexible Integration**: Applicable to MythicMobs, custom plugins and all scenarios
-- ✅ **Removed Polling Method**: No longer support `plugins get` subcommand and placeholder polling
-- ✅ **Security Hardening**: Don't provide API to directly read cache, prevent malicious plugins from stealing data
-
-### v1.3.6 - Generic LLM Provider Architecture
-
-- ✅ Support all LLM vendors following OpenAI standard format
-- ✅ HTTP connection pool optimization, performance improved 30%
-- ✅ Streaming response support, reduce first-byte latency
-
-### v1.3.5 - Historical Conversation Context Enhancement
-
-- ✅ Intent recognition supports 5 rounds of historical conversation
-- ✅ Result analysis supports 2 rounds of historical conversation
-- ✅ Continuous conversation understanding ability improved
-
-### v1.3.4 - MarketQuerySkill Capability Expansion
-
-- ✅ Added 4 read-only actions: Product availability query, my products, mailbox, market statistics
-- ✅ Multi-item joint query support
-- ✅ 44 Bukkit API dynamic invocations
-
-### v1.3.0 - AI Agent Evolution Edition
-
-- ✅ Skills skill system framework
-- ✅ LLM intent recognition engine
-- ✅ GlobalMarketPlus deep integration
-
----
-
 ## 🤝 Contribution and Feedback
 
 We welcome community contributions! If you have any suggestions or discover problems:
@@ -2089,11 +2046,6 @@ We welcome community contributions! If you have any suggestions or discover prob
 2. **Submit PR**: Fix bugs or add new features
 3. **Share Experience**: Share your usage experiences and configuration tips in community
 4. **Develop Skills**: Develop custom Skills for your plugins, enrich ecosystem
-
-**Contact Information:**
-- GitHub Issues: https://github.com/Zm-Mmm/Kilacraft-AI/issues
-- Gitee Issues: https://gitee.com/zm_mmm/kilacraft-ai/issues
-- Email: 1456133139@qq.com
 
 ---
 
@@ -2108,16 +2060,6 @@ This project uses **MIT License** - See [LICENSE](../LICENSE) file for details
 
 **You Need To:**
 - 📝 Include original copyright notice and license in copies
-
----
-
-## 👨‍💻 Author
-
-**Zm_Mmm**
-
-- GitHub: https://github.com/Zm-Mmm
-- Gitee: https://gitee.com/zm_mmm
-- Email: 1456133139@qq.com
 
 ---
 
