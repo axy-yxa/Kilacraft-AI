@@ -1,7 +1,7 @@
 # Kilacraft-AI Document Index
 > **Version**: v1.4.1  
 > **Language**: English  
-> **Last Updated**: 2026-04-05
+> **Last Updated**: 2026-04-07
 ---
 ## 📚 Document Overview
 This document index lists all Chinese technical documents of the Kilacraft-AI project to help you quickly find the required information.
@@ -264,7 +264,7 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 4. Check the [Bukkit API Reference Manual](./Bukkit-API-Reference-Manual) to learn about available APIs
 ---
 ## 📝 Document Maintenance
-- **Last Updated**: 2026-04-05
+- **Last Updated**: 2026-04-07
 - **Maintainer**: Zm_Mmm
 - **Feedback Channels**: [GitHub Issues](sslocal://flow/file_open?url=https%3A%2F%2Fgithub.com%2FZm-Mmm%2FKilacraft-AI%2Fissues&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | [Gitee Issues](sslocal://flow/file_open?url=https%3A%2F%2Fgitee.com%2Fzm_mmm%2Fkilacraft-ai%2Fissues&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
   If you find document errors or need to add content, please submit an Issue or Pull Request!
