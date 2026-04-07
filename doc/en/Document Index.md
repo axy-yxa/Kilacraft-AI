@@ -231,7 +231,6 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 - [Skill SPI Integration Document](./Skill-SPI-Integration-Document)
 - [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) (Complete guide for third-party plugin integration)
 - [System Architecture Details](./System-Architecture-Details) (Deep understanding of three interaction modes)
-- [Server Owner's Guide - Plugin Command Mode Introduction](./Server%20Owner%20Guide#4-plugin-command-mode--personality-system-advanced-features)
 ### Performance Optimization
 - [Server Owner's Guide - Performance and Resource Usage](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-performance-and-resource-usage&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 - [Knowledge Base Enhancement Guide - Performance Optimization](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md%23-performance-optimization&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
