@@ -540,7 +540,7 @@ Suggest adding change records at the top of configuration file:
 
 ```yaml
 # ==================== Intent Recognition Prompt Configuration ====================
-# Last Modified: 2026-04-06
+# Last Modified: 2026-04-07
 # Modified By: XXX
 # Change Log:
 # - 2026-04-06: Initial version
@@ -759,5 +759,5 @@ If you encounter problems during use or have improvement suggestions:
 
 ---
 
-**Last Updated**: 2026-04-06  
-**Applicable Version**: Kilacraft-AI v1.4.1+
+**Last Updated**: 2026-04-07  
+**Applicable Version**: Kilacraft-AI v1.4.2+

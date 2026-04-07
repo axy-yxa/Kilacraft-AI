@@ -1,5 +1,5 @@
 # Kilacraft-AI Document Index
-> **Version**: v1.4.1  
+> **Version**: v1.4.2  
 > **Language**: English  
 > **Last Updated**: 2026-04-07
 ---
@@ -48,7 +48,7 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 **File**: `Kilacraft-AI-Changelog.md`  
 **Size**: ~10 KB  
 **Content**:
-- ✅ Change records for all versions from v1.0.0 to v1.4.0
+- ✅ Change records for all versions from v1.0.0 to v1.4.2
 - ✅ New features, optimizations, and compatibility notes for each version
 - ✅ Packaging changes and breaking update warnings
   **Recommended Usage Scenarios**:

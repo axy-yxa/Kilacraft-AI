@@ -1,7 +1,7 @@
 # 插件名称
 name: Kilacraft-AI
 # 插件版本号
-version: '1.4.1'
+version: '1.4.2'
 # 主类路径（插件入口）
 main: com.zm.kilacraftAI.KilacraftAI
 # Bukkit API 版本（支持的最低服务端版本）

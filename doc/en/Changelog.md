@@ -6,6 +6,34 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
+## v1.4.2 - Paper API Dependency Removal & Java 17 Compatibility Optimization
+
+### ✨ New Features
+- Fully compatible with Spigot 1.16.5+ standard API, removed all Paper-specific interface dependencies
+- Support for more server cores: Leaf, Folia and other Bukkit/Spigot API-based cores run perfectly
+- Reduced environment requirements: downgraded from Java 21 to Java 17, expanding server applicability
+
+### 🔧 Improvements
+- BukkitAPIExecutor refactoring: removed Paper-specific method calls like `getHealth()`, `getMaxHealth()`
+- Player status query optimization: use standard Bukkit API's `getHealthScale()` instead of Paper proprietary interfaces
+- Inventory operation optimization: use standard `getItemInMainHand()` / `getItemInOffHand()` instead of Paper extension methods
+- Java syntax downgrade: removed Java 21 features (such as record, switch pattern matching) to ensure Java 17 compatibility
+- Documentation synchronization: both Chinese and English server owner guides mark full support status for Leaf, Folia and other cores
+
+### 📚 Documentation Updates
+- "Server Owner Guide" Chinese version: added complete Minecraft version support table (1.16.x - 1.22+)
+- "Server Owner Guide" English version: synchronized structure optimization and content adjustments with Chinese version
+- Server core compatibility classification: clearly marked in three levels - 🟢Fully Supported / 🟡Experimental Support / 🔴Not Supported
+- Core advantages module moved to document beginning, highlighting zero dependencies, low memory, out-of-box features
+
+### ⚠️ Compatibility
+- **Minimum Java Version**: Downgraded from Java 21 to Java 17 (Java 8/11 still not supported)
+- **Server Cores**: Fully compatible with Spigot 1.16.5+ and all derivative cores (Paper/Purpur/Leaf/Folia)
+- **Existing Features**: Fully backward compatible, no configuration changes required
+- **Performance Impact**: No performance loss, pure Spigot API implementation actually improves compatibility in some scenarios
+
+---
+
 ## v1.4.1 - Intent Recognition Prompt Configuration System Optimization & Documentation Enhancement
 
 ### ✨ New Features

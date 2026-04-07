@@ -1,7 +1,7 @@
 # Kilacraft-AI Skill SPI 接入文档
 
-> 版本：1.0 | 最后更新：2026-04-04  
-> 适用插件版本：Kilacraft-AI 1.4.1+
+> 版本：1.0 | 最后更新：2026-04-07  
+> 适用插件版本：Kilacraft-AI 1.4.2+
 
 ---
 
@@ -101,15 +101,15 @@ Kilacraft-AI 通过 **SPI（Service Provider Interface）** 机制，允许第�
 <dependency>
     <groupId>com.zm</groupId>
     <artifactId>Kilacraft-Skill-API</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.2</version>
     <scope>system</scope>
-    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-1.4.0.jar</systemPath>
+    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-1.4.2.jar</systemPath>
 </dependency>
 ```
 
 > **注意**：
 > 1. 此依赖为 `compileOnly`，不会打包进你的插件 JAR
-> 2. **JAR 文件名包含版本号**，请根据实际下载的文件名调整 `<systemPath>` 中的文件名（如 `Kilacraft-Skill-API-1.4.0.jar`）
+> 2. **JAR 文件名包含版本号**，请根据实际下载的文件名调整 `<systemPath>` 中的文件名（如 `Kilacraft-Skill-API-1.4.2.jar`）
 
 ### 第二步：实现 Skill 接口
 
@@ -1044,7 +1044,7 @@ public class MyPlugin extends JavaPlugin implements SkillProvider {
 1. 创建一个独立的 Bukkit 插件项目
 2. 实现 `SkillProvider` 接口
 3. 发布到 MineBBS/SpigotMC/GitHub
-4. 在 README 中标注 "Requires Kilacraft-AI 1.4.1+"
+4. 在 README 中标注 "Requires Kilacraft-AI 1.4.2+"
 
 **示例 plugin.yml：**
 ```yaml

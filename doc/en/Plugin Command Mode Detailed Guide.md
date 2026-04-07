@@ -622,4 +622,4 @@ if (player != null && player.isOnline()) {
 ---
 
 > **Last Updated**: 2026-04-07  
-> **Applicable Plugin Version**: Kilacraft-AI 1.4.1+
+> **Applicable Plugin Version**: Kilacraft-AI 1.4.2+

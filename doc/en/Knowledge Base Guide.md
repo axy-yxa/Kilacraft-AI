@@ -1,6 +1,6 @@
 # Kilacraft-AI - Knowledge Base Enhancement Guide
 
-> **Version**: v1.4.1  
+> **Version**: v1.4.2  
 > **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation
 
 ---
@@ -767,6 +767,6 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 
 ---
 
-> **Last Updated**: 2026-04-05  
-> **Plugin Version**: 1.4.1+  
+> **Last Updated**: 2026-04-07  
+> **Plugin Version**: 1.4.2+  
 > **Tip**: Regularly update knowledge base to keep content synchronized with server

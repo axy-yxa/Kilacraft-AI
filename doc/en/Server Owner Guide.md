@@ -1,6 +1,6 @@
 # Kilacraft-AI - Lightweight AI Agent Built for Minecraft Servers
 
-> **🚀 v1.4.1 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
+> **🚀 v1.4.2 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
 > Enable every Minecraft server to have an intelligent AI assistant
 
 ---
@@ -94,7 +94,7 @@ Kilacraft-AI is compatible with all server cores that follow the **Bukkit/Spigot
 ### 🔧 Required Environment
 
 - **Java Version**: Java 17+
-- **Plugin File**: `Kilacraft-AI-1.4.1.jar` (only this one file needed)
+- **Plugin File**: `Kilacraft-AI-1.4.2.jar` (only this one file needed)
 
 > ⚠️ **Important Notes**: 
 > - Java 17 is the minimum requirement, Java 8/11 are NOT supported
@@ -514,7 +514,7 @@ For more technical details, please check [Bukkit API Reference Manual](./Bukkit%
 
 ### Step 1: Install Plugin
 
-1. Download `Kilacraft-AI-1.4.1.jar`
+1. Download `Kilacraft-AI-1.4.2.jar`
 2. Put into server `plugins/` directory
 3. Start server, wait for configuration files to generate
 
@@ -799,7 +799,7 @@ Kilacraft-AI through open **Skill SPI interface**, allows third-party plugin dev
 ### 📚 Developer Resources
 
 - **SPI Integration Guide**: [Kilacraft-AI-Skill-SPI-Integration-Guide.md](Skill-SPI-Integration-Guide)
-- **API JAR**: `Kilacraft-Skill-API-1.4.1.jar` (only 5 KB, compileOnly dependency)
+- **API JAR**: `Kilacraft-Skill-API-1.4.2.jar` (only 5 KB, compileOnly dependency)
 - **Example Code**: Documentation includes complete Hello World and PlayerStats examples
 
 ### 🎯 Plugin Types Suitable for Integration
@@ -1008,5 +1008,5 @@ This project uses **MIT License** - See [LICENSE](../LICENSE) file for details
 ---
 
 > **Last Updated**: 2026-04-07  
-> **Applicable Plugin Version**: Kilacraft-AI 1.4.1+  
+> **Applicable Plugin Version**: Kilacraft-AI 1.4.2+  
 > **Open Source License**: MIT License

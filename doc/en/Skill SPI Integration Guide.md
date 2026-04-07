@@ -1,7 +1,7 @@
 # Kilacraft-AI Skill SPI Integration Guide
 
-> Version: 1.0 | Last Updated: 2026-04-04  
-> Applicable Plugin Version: Kilacraft-AI 1.4.1+
+> Version: 1.0 | Last Updated: 2026-04-07  
+> Applicable Plugin Version: Kilacraft-AI 1.4.2+
 
 ---
 
@@ -101,15 +101,15 @@ Add to your plugin project's `pom.xml`:
 <dependency>
     <groupId>com.zm</groupId>
     <artifactId>Kilacraft-Skill-API</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.2</version>
     <scope>system</scope>
-    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-1.4.0.jar</systemPath>
+    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-1.4.2.jar</systemPath>
 </dependency>
 ```
 
 > **Note**:
 > 1. This dependency is `compileOnly`, will not be packaged into your plugin JAR
-> 2. **JAR filename includes version number**, adjust the filename in `<systemPath>` according to the actual downloaded file (e.g., `Kilacraft-Skill-API-1.4.0.jar`)
+> 2. **JAR filename includes version number**, adjust the filename in `<systemPath>` according to the actual downloaded file (e.g., `Kilacraft-Skill-API-1.4.2.jar`)
 
 ### Step 2: Implement Skill Interface
 
@@ -821,7 +821,7 @@ AI: Your level is 15, total XP: 3200. Hunger: 18/20.
     <dependency>
         <groupId>com.zm.kilacraftAI</groupId>
         <artifactId>kilacraft-skill-api</artifactId>
-        <version>1.4.0</version>
+        <version>1.4.2</version>
         <scope>system</scope>
         <systemPath>${project.basedir}/libs/kilacraft-skill-api.jar</systemPath>
     </dependency>

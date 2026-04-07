@@ -1,12 +1,12 @@
 # Kilacraft-AI
 
-> **🚀 v1.4.1** | Zero Dependencies · Low Memory · High Performance · Fully Open Source  
+> **🚀 v1.4.2** | Zero Dependencies · Low Memory · High Performance · Fully Open Source  
 > A lightweight AI Agent plugin for Minecraft servers with natural language interaction.
 
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/Zm-Mmm/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.4.1-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
+[![Version](https://img.shields.io/badge/Version-1.4.2-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 
 ---
 
@@ -62,7 +62,7 @@ Kilacraft-AI transforms your Minecraft server with an intelligent AI assistant t
 
 ### Installation (5 Minutes)
 
-1. **Download** `Kilacraft-AI-1.4.1.jar` and place it in `plugins/`
+1. **Download** `Kilacraft-AI-1.4.2.jar` and place it in `plugins/`
 2. **Start** the server to generate configuration files
 3. **Edit** `plugins/Kilacraft-AI/config.yml`:
    ```yaml
@@ -264,6 +264,6 @@ If Kilacraft-AI helps you, please consider:
 
 ---
 
-> **Last Updated**: 2026-04-06  
-> **Plugin Version**: 1.4.1+  
+> **Last Updated**: 2026-04-07  
+> **Plugin Version**: 1.4.2+  
 > **License**: MIT
