@@ -305,5 +305,5 @@ AI: "Today's events:
 > **Last Updated**: 2026-04-07  
 > **Applicable Plugin Version**: Kilacraft-AI 1.4.1+  
 > **Related Documents**: 
-> - [Server Owner Guide](./Server Owner Guide.md)
-> - [Skill SPI Integration Guide](./Skill SPI Integration Guide.md)
+> - [Server Owner Guide](./Server Owner Guide)
+> - [Skill SPI Integration Guide](./Skill SPI Integration Guide)
