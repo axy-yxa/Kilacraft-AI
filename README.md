@@ -59,9 +59,22 @@ Kilacraft-AI 为你的 Minecraft 服务器带来智能 AI 助手，理解自然�
 ## 🚀 快速开始
 
 ### 环境要求
+
+#### 运行环境
 - Minecraft Server 1.16.5+
 - Java 17+
 - 可选：GlobalMarketPlus 1.3.8.0+, MythicMobs 5.12.0+
+
+#### 源码编译环境（仅开发者需要）
+- **JDK 21+**（必需，因为集成了 MythicMobs 5.12+ 占位符功能）
+- Maven 3.6+
+
+> **💡 为什么编译需要 JDK 21？**  
+> 本项目集成了 MythicMobs 5.12+ 的占位符系统，该版本的 MythicMobs 使用 Java 21 编译。为了能够读取其类文件，编译时必须使用 Java 21+ 的编译器。
+> 
+> 但通过 `<release>17</release>` 配置，生成的 JAR 包字节码仍然兼容 **Java 17+** 的运行环境，因此服务器只需 Java 17 即可运行。
+> 
+> **大多数用户无需编译**,直接从 [Releases](https://gitee.com/zm_mmm/kilacraft-ai/releases) 下载预编译的 JAR 包即可。
 
 ### 安装步骤（5 分钟）
 

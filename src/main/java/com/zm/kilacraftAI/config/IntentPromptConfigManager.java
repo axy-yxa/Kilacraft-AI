@@ -162,7 +162,6 @@ public class IntentPromptConfigManager {
      * 重新加载配置（用于 /kilacraft reload 命令）
      */
     public void reload() {
-        plugin.getLogger().info("正在重新加载意图识别提示词配置...");
         loadConfig();
         plugin.getLogger().info("意图识别提示词配置重载完成！");
     }

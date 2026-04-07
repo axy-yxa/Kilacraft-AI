@@ -5,7 +5,7 @@ version: '1.4.2'
 # 主类路径（插件入口）
 main: com.zm.kilacraftAI.KilacraftAI
 # Bukkit API 版本（支持的最低服务端版本）
-api-version: '1.21'
+api-version: '1.16'
 # 作者信息
 author: Zm_Mmm
 # 插件描述（多行文本，使用 | 保持格式）

@@ -12,7 +12,7 @@ import com.zm.kilacraftAI.knowledge.KnowledgeBaseManager;
 import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.manager.LLMManager;
-import com.zm.kilacraftAI.compat.mythicmobs.MythicMobsPlaceholderManager;
+
 import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
@@ -47,7 +47,6 @@ public final class KilacraftAI extends JavaPlugin {
     private ConversationManager conversationManager;
     private KnowledgeBaseManager knowledgeBase;
     private KnowledgeRetriever knowledgeRetriever;
-    private MythicMobsPlaceholderManager placeholderManager;
     private SkillManager skillManager;
     private SkillIntentRecognizer intentRecognizer;
     @Getter
@@ -105,9 +104,30 @@ public final class KilacraftAI extends JavaPlugin {
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(chatListener, this);
 
-        // 注册 MythicMobs 占位符
-        placeholderManager = new MythicMobsPlaceholderManager(this);
-        placeholderManager.registerPlaceholders();
+        // 注册 MythicMobs 占位符（反射调用，运行时检测 JDK 版本）
+        try {
+            // 检测当前运行环境的 JDK 版本
+            String javaVersion = System.getProperty("java.version");
+            int majorVersion = Integer.parseInt(javaVersion.split("\\.")[0]);
+            
+            if (majorVersion >= 21) {
+                Class<?> managerClass = Class.forName("com.zm.kilacraftAI.compat.mythicmobs.MythicMobsPlaceholderManager");
+                var constructor = managerClass.getConstructor(KilacraftAI.class);
+                var instance = constructor.newInstance(this);
+                var method = managerClass.getMethod("registerPlaceholders");
+                method.invoke(instance);
+                getLogger().info("MythicMobs 占位符注册成功");
+            } else {
+                getLogger().warning("当前 JDK 版本为 " + javaVersion + "，MythicMobs 需要 Java 21+，跳过占位符注册");
+            }
+        } catch (ClassNotFoundException e) {
+            getLogger().severe("MythicMobs 兼容模块缺失，请检查 JAR 包完整性");
+        } catch (Exception e) {
+            getLogger().severe("MythicMobs 占位符注册失败：" + e.getMessage());
+            if (configManager != null && configManager.isDebugMode()) {
+                e.printStackTrace();
+            }
+        }
 
         // 初始化物品翻译器
         itemTranslator = new ItemTranslator();

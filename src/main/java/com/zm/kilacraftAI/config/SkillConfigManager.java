@@ -313,14 +313,12 @@ public class SkillConfigManager {
      * 热重载所有技能配置
      */
     public void reloadAllConfigs() {
-        plugin.getLogger().info("§e开始热重载所有技能配置...§r");
-            
         skillConfigs.clear();
         bukkitApiMap.clear();
         bukkitApiGlobalHints.clear();
             
         loadAllSkillConfigs();
             
-        plugin.getLogger().info("§a技能配置重载完成！§r");
+        plugin.getLogger().info("技能配置重载完成！");
     }
 }

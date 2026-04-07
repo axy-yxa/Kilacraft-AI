@@ -56,9 +56,22 @@ Kilacraft-AI transforms your Minecraft server with an intelligent AI assistant t
 ## 🚀 Quick Start
 
 ### Requirements
-- Minecraft Server 1.21+
-- Java 21+
+
+#### Runtime Requirements
+- Minecraft Server 1.16.5+
+- Java 17+
 - Optional: GlobalMarketPlus 1.3.8.0+, MythicMobs 5.12.0+
+
+#### Build Requirements (Developers Only)
+- **JDK 21+** (Required, because of MythicMobs 5.12+ placeholder integration)
+- Maven 3.6+
+
+> **💡 Why JDK 21 for building?**  
+> This project integrates MythicMobs 5.12+ placeholder system, which is compiled with Java 21. To read its class files, compilation requires a Java 21+ compiler.
+> 
+> However, with `<release>17</release>` configuration, the generated JAR bytecode remains compatible with **Java 17+** runtime environments, so servers only need Java 17 to run.
+> 
+> **Most users don't need to compile**, simply download the pre-built JAR from [Releases](https://github.com/Zm-Mmm/Kilacraft-AI/releases).
 
 ### Installation (5 Minutes)
 

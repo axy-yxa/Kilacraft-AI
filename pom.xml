@@ -13,6 +13,7 @@
     <description>一款强大的 Minecraft AI Agent 插件。</description>
 
     <properties>
+        <!-- 主版本：Java 17 -->
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -28,8 +29,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <!-- 使用当前 JDK 编译，但生成 Java 17 兼容的字节码 -->
+                    <release>17</release>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -45,6 +46,22 @@
                 <version>3.5.3</version>
                 <configuration>
                     <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <relocations>
+                        <!-- 重定位 Gson，避免与服务器内置版本冲突 -->
+                        <relocation>
+                            <pattern>com.google.gson</pattern>
+                            <shadedPattern>com.zm.kilacraftAI.shaded.gson</shadedPattern>
+                        </relocation>
+                        <!-- 重定位 OkHttp，避免冲突 -->
+                        <relocation>
+                            <pattern>okhttp3</pattern>
+                            <shadedPattern>com.zm.kilacraftAI.shaded.okhttp3</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>okio</pattern>
+                            <shadedPattern>com.zm.kilacraftAI.shaded.okio</shadedPattern>
+                        </relocation>
+                    </relocations>
                 </configuration>
                 <executions>
                     <execution>

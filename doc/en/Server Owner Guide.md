@@ -30,88 +30,28 @@
 
 ## 📦 Dependency Requirements & Compatibility
 
-### ✅ Supported Minecraft Versions
+### ✅ Version Compatibility
 
-**Minimum Requirement: Minecraft 1.16.5+**
+**Minimum Compatible Version: Minecraft 1.16.5 + Java 17**
 
-Kilacraft-AI has been extensively tested and is compatible with the following Minecraft versions:
+Kilacraft-AI is developed based on Spigot 1.16.5 API. One JAR package compatible with all subsequent versions.
 
-| Minecraft Version | Support Status | Description |
-|------------------|----------------|-------------|
-| **1.16.x** | ✅ Fully Supported | Official testing baseline version (1.16.5) |
-| **1.17.x** | ✅ Fully Supported | Backward compatible |
-| **1.18.x** | ✅ Fully Supported | Backward compatible |
-| **1.19.x** | ✅ Fully Supported | Backward compatible |
-| **1.20.x** | ✅ Fully Supported | Backward compatible |
-| **1.21.x** | ✅ Fully Supported | Backward compatible |
-| **1.22+** | ⚠️ Theoretical Support | Based on Bukkit API standard, theoretically compatible with future versions |
+| Minecraft Version | Java Required | Server Core Support | Description |
+|------------------|--------------|---------------------|-------------|
+| **1.16.x (1.16.1-1.16.4)** | - | ❌ Not Supported | Official cores don't support this range |
+| **1.16.5** | Java 17+ | ⚠️ Paper/Purpur/Leaf/Folia require `-DPaper.IgnoreJavaVersion=true` | CraftBukkit/Spigot don't support Java 17+ |
+| **1.17.x - 1.19.x** | Java 17+ | ✅ Fully Supported | Spigot/Paper/Purpur/Leaf/Folia/CraftBukkit |
+| **1.20.x - 1.21.x** | Java 21+ | ✅ Fully Supported | Server cores require Java 21 to start |
 
-> 💡 **Tip**: Since Kilacraft-AI only depends on standard Bukkit/Spigot API and doesn't involve NMS (net.minecraft.server)底层 code, it has good cross-version compatibility.
-
----
-
-### ✅ Supported Server Cores
-
-Kilacraft-AI is compatible with all server cores that follow the **Bukkit/Spigot API standard**. Here's the support status for mainstream community cores:
-
-#### 🟢 Fully Supported (Tested and Verified)
-
-| Server Core | Type | Support Status | Description |
-|------------|------|----------------|-------------|
-| **Spigot** | Enhanced Vanilla | ✅ Fully Supported | Official recommended basic server, all features work normally |
-| **Paper** | Performance Optimized | ✅ Fully Supported | High-performance fork of Spigot, recommended |
-| **Purpur** | Feature Enhanced | ✅ Fully Supported | Enhanced version of Paper, fully compatible |
-| **Leaf** | Extreme Performance | ✅ Fully Supported | Extreme optimization fork based on Paper, tested and works perfectly |
-| **Folia** | Regional Multi-threading | ✅ Fully Supported | Multi-threaded fork of Paper, async design naturally compatible |
-| **CraftBukkit** | Official Implementation | ✅ Fully Supported | Official Bukkit reference implementation |
-
-#### 🟡 Experimental Support (May Have Compatibility Issues)
-
-| Server Core | Type | Support Status | Description |
-|------------|------|----------------|-------------|
-| **Mohist** | Forge+Bukkit | ⚠️ Experimental Support | Hybrid core, may have issues due to Forge mod conflicts |
-| **Arclight** | Forge+Bukkit | ⚠️ Experimental Support | Alternative to Mohist, similar compatibility |
-| **CatServer** | Forge+Bukkit | ⚠️ Experimental Support | Popular hybrid core in China, recommend testing before use |
-| **Magma** | Forge+Bukkit | ⚠️ Experimental Support | Discontinued, not recommended |
-
-#### 🔴 Not Supported
-
-| Server Core | Type | Support Status | Description |
-|------------|------|----------------|-------------|
-| **Fabric** | Mod Loader | ❌ Not Supported | Non-Bukkit API system |
-| **Forge** | Mod Platform | ❌ Not Supported | Non-Bukkit API system |
-| **NeoForge** | Mod Platform | ❌ Not Supported | Non-Bukkit API system |
-| **Geyser** | Cross-platform Proxy | ❌ Not Directly Supported | Requires backend Bukkit server |
-
-> 💡 **Recommendations**:
-> - **For Stability**: Spigot 1.16.5+ or Paper 1.16.5+
-> - **For Performance**: Paper, Purpur, or Leaf
-> - **For High Concurrency**: Folia (note plugin thread safety)
-> - **For Mods**: Mohist/Arclight (but test compatibility yourself)
-
----
-
-### 🔧 Required Environment
-
-- **Java Version**: Java 17+
-- **Plugin File**: `Kilacraft-AI-1.4.2.jar` (only this one file needed)
-
-> ⚠️ **Important Notes**: 
-> - Java 17 is the minimum requirement, Java 8/11 are NOT supported
-> - Recommended to use Java 17 LTS or Java 21 LTS for best performance and stability
-> - Ensure the server starts with the correct Java version
-
-### 🎁 Optional Dependencies (For Extended Features)
+### 🎁 Optional Dependencies
 
 When these plugins are not installed, corresponding features are automatically disabled, **core dialogue functionality remains unaffected**:
 
-| Plugin Name | Minimum Version | Enabled Features |
-|------------|----------------|------------------|
-| **MythicMobs** | 5.12.0+ | NPC placeholder integration (let NPCs display AI replies) |
-| **GlobalMarketPlus** | 1.3.8.0+ | Economy system skills (query balance, prices, product lists) |
-| **Vault** | Latest | Multi-currency system support (works with other economy plugins) |
-
-> 💡 **Tip**: Even without installing any optional dependencies, Kilacraft-AI's core AI dialogue functionality remains fully operational!
+| Plugin | Minimum Version | Features |
+|--------|----------------|----------|
+| **MythicMobs** | 5.12.0+ | NPC placeholders (let NPCs display AI replies) |
+| **GlobalMarketPlus** | 1.3.8.0+ | Economy system (balance, price, product queries) |
+| **Vault** | Latest | Multi-currency system support |
 
 ---
 
