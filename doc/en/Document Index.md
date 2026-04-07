@@ -15,14 +15,16 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 ### 🔌 Developer Documents
 | Document Name | Description | Target Audience |
 |--------------|-------------|----------------|
-| [Skill SPI Integration Document](sslocal://flow/file_open?url=.%2FKilacraft-AI-Skill-SPI-Integration-Document.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | How to develop custom skills for Kilacraft-AI | Plugin Developers |
+| [Skill SPI Integration Document](./Skill-SPI-Integration-Document) | How to develop custom skills for Kilacraft-AI | Plugin Developers |
+| [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) | Complete guide for third-party plugin integration (callback mechanism, async optimization, etc.) | Plugin Developers |
 ### 📖 Technical Reference Documents
 | Document Name | Description | Target Audience |
 |--------------|-------------|----------------|
 | [Bukkit API Reference Manual](sslocal://flow/file_open?url=.%2FKilacraft-AI-Bukkit-API-Reference-Manual.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Detailed descriptions and examples of 44+ built-in APIs | Server Owners, Developers |
 | [Personality System Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Personality-System-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Management and customization methods for multiple personalities | Server Owners, Advanced Users |
 | [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Usage and optimization techniques for RAG knowledge base | Server Owners, Content Creators |
-| [Intent Recognition Prompt Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Intent-Recognition-Prompt-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Configuration and optimization of LLM intent recognition system | Server Owners, Developers |
+| [Intent Recognition Prompt Configuration Guide](./Intent-Recognition-Prompt-Configuration-Guide) | Configuration and optimization of LLM intent recognition system | Server Owners, Developers |
+| [System Architecture Details](./System-Architecture-Details) | Complete call chains and design philosophy of three interaction modes | Developers, Technical Personnel |
 ---
 ## 📋 Detailed Document Descriptions
 ### 1. Server Owner's Guide
@@ -130,7 +132,39 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 - Chapter 3: Detailed Explanation of Retrieval Mechanism (Understand working principles)
 - Chapter 5: Performance Optimization
 ---
-### 7. Intent Recognition Prompt Configuration Guide
+
+### 7. System Architecture Details
+
+**File**: `Kilacraft-AI-System-Architecture-Details.md`  
+**Size**: ~15 KB  
+**Content**:
+
+- ✅ Overview of three interaction modes (ChatListener / KilacraftCommand / Plugin Command)
+- ✅ Complete call chain for Mode 1 & 2 (Agent Enabled)
+  - Entry Layer → Intent Recognition Layer → Skill Execution Layer → Secondary Analysis Layer → Response Layer
+  - Intelligent intent recognition, multi-step orchestration, knowledge enhancement, failure fallback
+- ✅ Complete call chain for Mode 3 (Agent Disabled)
+  - Why plugin command mode doesn't enable Agent capabilities
+  - Entry Layer → Personality Configuration → Normal AI Dialogue → Callback Layer
+  - Pure text output, personality, isolated history, callback mechanism
+- ✅ Core differences comparison table (detailed comparison across 12 dimensions)
+- ✅ Design philosophy summary (responsibility separation, performance optimization, reliability, flexibility)
+- ✅ How to choose which mode to use (decision guide)
+
+**Recommended Chapters**:
+- Chapter 2: Mode 1 & 2 Call Chains (Understand Agent workflow)
+- Chapter 3: Mode 3 Call Chain (Understand plugin integration principles)
+- Chapter 4: Core Differences Comparison Table (Quickly understand the differences between two modes)
+
+**Applicable Scenarios**:
+- Need in-depth understanding of internal system mechanisms
+- Developing third-party plugin integration features
+- Troubleshooting complex interaction issues
+- Optimizing performance and response speed
+
+---
+
+### 8. Intent Recognition Prompt Configuration Guide
 **File**: `Kilacraft-AI-Intent-Recognition-Prompt-Configuration-Guide.md`  
 **Size**: ~23 KB  
 **Content**:
@@ -149,6 +183,38 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 - Chapter 6: Difference from Personality System (Important concept distinction)
 - Chapter 8: Optimization Strategies (Improve recognition accuracy)
 ---
+
+### 9. Plugin Command Mode Detailed Guide
+
+**File**: `Kilacraft-AI-Plugin-Command-Mode-Detailed-Guide.md`  
+**Size**: ~25 KB  
+**Content**:
+
+- ✅ Three interaction modes comparison analysis
+- ✅ Why plugin command mode doesn't enable Agent capabilities
+- ✅ Command format and parameter details
+- ✅ Callback mechanism deep dive
+- ✅ **Callback method optimization best practices** (key techniques to avoid blocking main thread)
+- ✅ Complete Java code integration examples
+- ✅ MythicMobs configuration-driven plugin integration examples
+- ✅ Personality system configuration details
+- ✅ History isolation mechanism
+- ✅ FAQ and debugging tips
+
+**Recommended Chapters**:
+- Chapter 3: Callback Mechanism Details (Understand working principles)
+- Chapter 4: Callback Method Optimization Best Practices (Must-read! Avoid server lag)
+- Chapter 5: Complete Integration Examples (Can be referenced directly)
+- Chapter 8: FAQ (Quick problem solving)
+
+**Applicable Scenarios**:
+- Developing third-party plugin integration features
+- Implementing NPC intelligent dialogue
+- Need to process AI responses asynchronously
+- Troubleshooting callback execution issues
+
+---
+
 ## 🔍 Find Documents by Topic
 ### Installation and Configuration
 - [Server Owner's Guide - Quick Start](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-quick-start5-minute-getting-started&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
@@ -162,8 +228,10 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 - [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 - [Server Owner's Guide - Knowledge Base Enhancement](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23%EF%B8%8F-knowledge-base-enhancementrag-retrieval&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 ### Developer Integration
-- [Skill SPI Integration Document](sslocal://flow/file_open?url=.%2FKilacraft-AI-Skill-SPI-Integration-Document.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-- [Server Owner's Guide - Plugin Command Mode](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-plugin-command-mode-complete-example-advanced-feature&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
+- [Skill SPI Integration Document](./Skill-SPI-Integration-Document)
+- [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) (Complete guide for third-party plugin integration)
+- [System Architecture Details](./System-Architecture-Details) (Deep understanding of three interaction modes)
+- [Server Owner's Guide - Plugin Command Mode Introduction](./Server%20Owner%20Guide#4-plugin-command-mode--personality-system-advanced-features)
 ### Performance Optimization
 - [Server Owner's Guide - Performance and Resource Usage](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-performance-and-resource-usage&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 - [Knowledge Base Enhancement Guide - Performance Optimization](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md%23-performance-optimization&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
@@ -177,9 +245,9 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 | Category | Number of Documents | Total Size |
 |----------|--------------------|------------|
 | Server Owner Documents | 2 | ~55 KB |
-| Developer Documents | 1 | ~33 KB |
-| Technical Reference | 4 | ~80 KB |
-| **Total** | **7** | **~168 KB** |
+| Developer Documents | 2 | ~58 KB |
+| Technical Reference | 5 | ~95 KB |
+| **Total** | **9** | **~208 KB** |
 ---
 ## 💡 Usage Suggestions
 ### New Users
@@ -191,9 +259,10 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 2. Learn the [Personality System Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Personality-System-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) to customize AI behavior
 3. Use the [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) to optimize retrieval results
 ### Plugin Developers
-1. Must read the [Skill SPI Integration Document](sslocal://flow/file_open?url=.%2FKilacraft-AI-Skill-SPI-Integration-Document.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-2. Refer to [Server Owner's Guide - Plugin Command Mode](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-plugin-command-mode-complete-example-advanced-feature&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-3. Check the [Bukkit API Reference Manual](sslocal://flow/file_open?url=.%2FKilacraft-AI-Bukkit-API-Reference-Manual.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) to learn about available APIs
+1. Must read the [Skill SPI Integration Document](./Skill-SPI-Integration-Document)
+2. Must read the [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) (Third-party plugin integration guide)
+3. Read [System Architecture Details](./System-Architecture-Details) to understand three interaction modes
+4. Check the [Bukkit API Reference Manual](./Bukkit-API-Reference-Manual) to learn about available APIs
 ---
 ## 📝 Document Maintenance
 - **Last Updated**: 2026-04-05

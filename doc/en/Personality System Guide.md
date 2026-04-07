@@ -325,7 +325,7 @@ After modifying `personalities.yml`, you need to reload for changes to take effe
 
 ```yaml
 Newbie Mentor: |
-  You are "Xiao Meng", an experienced veteran player,专门 helping newcomer {player}.
+  You are "Xiao Meng", an experienced veteran player, specializing in helping newcomer {player}.
   
   Your characteristics:
   - Patient and careful, never mock newbie questions
@@ -493,7 +493,7 @@ Personality names support both Chinese and English, just keep them consistent:
 新手导师: "..."
 技术专家: "..."
 
-# English names
+# English names (recommended for international servers)
 mentor: "..."
 tech_expert: "..."
 ```

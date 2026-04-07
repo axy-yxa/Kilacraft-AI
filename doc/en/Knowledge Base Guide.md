@@ -337,7 +337,7 @@ Building a farm requires preparation:
 
 **Chinese Word Segmentation Optimization**:
 - Uses **HanLP TF-IDF algorithm** for Chinese
-- Intelligently filters stop words ("的", "了", "吗", etc.)
+- Intelligently filters stop words ("的", "了", "吗", etc. - Chinese particles)
 - TF-IDF automatically extracts most important keywords, filters meaningless words
 - Supports synonym expansion
 
@@ -485,9 +485,9 @@ knowledge:
   custom_dictionary:
     enabled: true                    # Whether to enable custom dictionary
     words:
-      - "圈地"
-      - "领地"
-      - "红石"
+      - "圈地"  # claim land
+      - "领地"  # territory
+      - "红石"  # redstone
 ```
 
 ### Configuration Explanation
@@ -554,10 +554,10 @@ Custom dictionary for adding professional terminology and server-specific vocabu
 custom_dictionary:
   enabled: true
   words:
-    - "圈地"
-    - "领地"
-    - "红石"
-    - "刷怪塔"
+    - "圈地"  # claim land
+    - "领地"  # territory
+    - "红石"  # redstone
+    - "刷怪塔"  # mob farm
 ```
 
 **Benefits**: Improves Chinese word segmentation accuracy, enhances retrieval effectiveness.

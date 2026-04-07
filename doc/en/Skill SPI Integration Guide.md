@@ -954,7 +954,7 @@ The key is that your **description** and **action descriptions** must clearly ex
 1. Whether multi-steps are needed
 2. How to reference previous steps' data in subsequent steps
 
-For example,写明 in description: `"Returned data contains item_name, price fields"`, LLM knows it can use `{step_1.item_name}` and `{step_1.price}` in subsequent steps.
+For example, clearly state in description: `"Returned data contains item_name, price fields"`, LLM knows it can use `{step_1.item_name}` and `{step_1.price}` in subsequent steps.
 
 ---
 

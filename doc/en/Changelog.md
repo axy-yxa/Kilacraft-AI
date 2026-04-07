@@ -75,7 +75,7 @@ This file records all important changes to the Kilacraft-AI plugin.
 ### ✨ New Features
 - LLMProvider unified interface, supports configurable switching between different LLM vendors
 - GenericLLMProvider generic implementation, supports all OpenAI standard API format vendors
-- LLMManager manager,统一管理 LLM Provider lifecycle
+- LLMManager manager, unified management of LLM Provider lifecycle
 
 ### 🔧 Improvements
 - HTTP connection pool optimization (max idle connections=10, keep-alive time=5 minutes)
@@ -228,10 +228,10 @@ This file records all important changes to the Kilacraft-AI plugin.
 ### ✨ New Features
 - Language configuration system: extracted all system prompt texts to language.yml configuration file
 - Dynamic help messages: help command dynamically displays tips based on player permissions
-- Permission management optimization: created PluginPermission enum class to统一管理 permission nodes
+- Permission management optimization: created PluginPermission enum class to unified management of permission nodes
 
 ### 🔧 Improvements
-- Architecture optimization: added LanguageManager to统一管理 all language configurations
+- Architecture optimization: added LanguageManager to unified management of all language configurations
 - Removed all hard-coded permission strings, all permission checks use enum class
 - Tab completion also dynamically displays based on permission enum
 - Consolidated duplicate prompt texts, improved reusability
@@ -267,7 +267,7 @@ This file records all important changes to the Kilacraft-AI plugin.
 - MythicMobs integration: implemented custom %kilacraft_ai_answer% placeholder
 
 ### 🔧 Improvements
-- Architecture refactoring: added ConversationManager to统一管理 chat state, history, and plugin command records
+- Architecture refactoring: added ConversationManager to unified management of chat state, history, and plugin command records
 - Refactored ChatListener, separation of concerns, focused on event listening
 
 ---

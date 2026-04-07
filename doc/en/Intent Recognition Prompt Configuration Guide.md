@@ -7,7 +7,7 @@ The intent recognition prompt system defines how the LLM understands user input 
 **Important Notes**: 
 - **Intent Recognition System** focuses on task step orchestration and Agent capability Skill selection
 - **Personality System** is an independent feature used in plugin command mode, configured via `personalities.yml` with different personality prompts
-- Intent recognition prompts do **NOT** include multi-personality configurations; they only负责 identify what operations users want to execute
+- Intent recognition prompts do **NOT** include multi-personality configurations; they only are responsible for identify what operations users want to execute
 
 ## 📁 File Location
 

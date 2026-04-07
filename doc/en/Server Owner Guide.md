@@ -1,6 +1,6 @@
 # Kilacraft-AI - Lightweight AI Agent Built for Minecraft Servers
 
-> **🚀 v1.4.0 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
+> **🚀 v1.4.1 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
 > Enable every Minecraft server to have an intelligent AI assistant
 
 ---
@@ -9,37 +9,61 @@
 
 - **GitHub**: https://github.com/Zm-Mmm/Kilacraft-AI
 - **Gitee**: https://gitee.com/zm_mmm/kilacraft-ai
+- **Official Chinese Wiki**: [Click Here](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3%E7%B4%A2%E5%BC%95)
+- **Official English Wiki**: [Click Here](https://github.com/Zm-Mmm/Kilacraft-AI/wiki)
 - **QQ Group**: 1094391147
 - **Email**: 1456133139@qq.com
-- **License**: [MIT License](../LICENSE)
 
 > 💡 **Welcome to Star ⭐, Fork 🔀 and submit Issues/Pull Requests!**
 
 ---
 
-## 🎯 Why Choose Kilacraft-AI?
+## 📦 Dependency Requirements & Compatibility
 
-### ❌ Pain Points of Traditional AI Solutions
+### ✅ Supported Minecraft Server Cores
 
-- **Complex Configuration**: Requires deploying vector databases, Redis, middleware services
-- **High Resource Usage**: Often several GB of memory, small servers can't run it
-- **High Maintenance Cost**: Requires dedicated technical personnel for operations
-- **Bloated Features**: 90% of features are unused, but you pay for them
+Kilacraft-AI is compatible with all server cores based on **Bukkit/Spigot API**:
 
-### ✅ Advantages of Kilacraft-AI
+| Server Core | Support Status | Description |
+|------------|---------------|-------------|
+| **Paper** | ✅ Fully Supported | Recommended, best performance |
+| **Purpur** | ✅ Fully Supported | Enhanced version of Paper, fully compatible |
+| **Spigot** | ✅ Fully Supported | Official recommended base server |
+| **CraftBukkit** | ✅ Fully Supported | Official Bukkit implementation |
+| **Folia** | ⚠️ Partial Support | Needs testing for regional thread safety |
+| **Mohist/Arclight** | ⚠️ Experimental Support | Forge + Bukkit hybrid, may have compatibility issues |
 
-| Feature | Description |
-|---------|-------------|
-| **Zero Middleware Dependencies** | Just one JAR file, no database, cache or other extra services needed |
-| **Extremely Low Memory Usage** | Small servers only need 8-12 MB, large servers about 30-50 MB |
-| **Out of the Box** | Complete configuration in 5 minutes, ready to use immediately |
-| **Performance Optimized** | HTTP connection pool reuse, asynchronous non-blocking execution, Knowledge Base Segmented Caching |
-| **Highly Customizable** | Personality system, knowledge base, language configuration all customizable |
-| **Ecosystem Friendly** | Open SPI interface, third-party plugins can seamlessly integrate |
+> 💡 **Recommendation**: Use **Paper 1.21+** for best performance and stability.
+
+### 🔧 Required Environment
+
+- **Minecraft Version**: 1.21+
+- **Java Version**: Java 17+
+- **Plugin File**: `Kilacraft-AI-1.4.1.jar` (only this one file needed)
+
+### 🎁 Optional Dependencies (For Extended Features)
+
+When these plugins are not installed, corresponding features are automatically disabled, **core dialogue functionality remains unaffected**:
+
+| Plugin | Minimum Version | Enabled Features |
+|--------|----------------|------------------|
+| **MythicMobs** | 5.12.0+ | NPC placeholder integration (let NPCs display AI replies) |
+| **GlobalMarketPlus** | 1.3.8.0+ | Economy system skills (query balance, prices, product lists) |
+| **Vault** | Latest | Multi-currency system support |
+
+### 💎 Core Advantages
+
+Reasons to choose Kilacraft-AI:
+
+- **🚀 Zero Middleware Dependencies**: Only one JAR file, no database, Redis or other extra services needed
+- **💾 Extremely Low Memory Usage**: Small servers only need 8-12 MB, large servers about 30-50 MB (traditional solutions need 2-5 GB)
+- **⚡ Out of the Box**: Complete configuration in 5 minutes, ready to use immediately
+- **🔧 Highly Customizable**: Personality system, knowledge base, language configuration all customizable
+- **🌐 Ecosystem Friendly**: Open SPI interface, third-party plugins can seamlessly integrate
 
 ---
 
-## 🌟 Core Feature Showcase
+## 🌟 Feature Showcase
 
 ### 1️⃣ Intelligent Dialogue System
 
@@ -120,6 +144,31 @@ AI: [Kilacraft-AI] You can use the /claim command to define your territory. Requ
 - 🔍 Comprehensive scoring algorithm: complete question matching + BM25 keyword scoring + position weighting + exact match bonus
 - 💾 Cache optimization: secondary retrieval speed improved by ~70%
 - 🇨🇳 Chinese word segmentation optimized: HanLP TF-IDF + intelligent stop word filtering
+- 📚 **Custom Dictionary Support**: Configure server-specific terminology (e.g., "claim land", "redstone", "villager trading") to significantly improve word segmentation accuracy and retrieval effectiveness
+
+**Custom Dictionary Configuration (`config.yml`):**
+```yaml
+knowledge:
+  custom_dictionary:
+    enabled: true  # Enable custom dictionary
+    words:
+      - "圈地"  # claim land
+      - "领地"  # territory
+      - "红石"  # redstone
+      - "附魔"  # enchantment
+      - "村民交易"  # villager trading
+      - "刷怪塔"  # mob farm
+      - "末影龙"  # Ender Dragon
+      # Add your server-specific terms...
+```
+
+> 💡 **Tip**: Adding server-specific game terms and gameplay names to the custom dictionary can significantly improve AI's understanding accuracy of player questions.
+
+---
+
+#### 📚 Detailed Documentation
+
+For more technical details, please check [Knowledge Base Enhancement Guide](./en/Knowledge%20Base%20Guide.md).
 
 ---
 
@@ -160,20 +209,7 @@ Execute: Query price API
 Response: Diamond current price: $100.00
 ```
 
-**Other Single-Intent Examples:**
-```
-Player: What am I holding?
-→ AI Recognizes: bukkit_api.get_player_hand_item
-→ Response: You are holding in main hand: Diamond Sword x1
-
-Player: What time is it now?
-→ AI Recognizes: bukkit_api.get_world_time
-→ Response: World time: 06:00 (Morning)
-
-Player: Do I have any mail?
-→ AI Recognizes: market_query.query_mailbox
-→ Response: Your mailbox has 2 pending mails...
-```
+Other common single-intent scenarios: query items, check status, get time, etc.
 
 ---
 
@@ -189,91 +225,15 @@ AI Recognizes: Multi-step task
 ├─ Step 2: market_query.query_balance (Query player balance)
 └─ Step 3: LLM Comprehensive Analysis (Compare price and balance, give suggestions)
     ↓
-Execution Process:
-✅ Step 1 Complete: Diamond price $80.00 each
-✅ Step 2 Complete: Your balance $12,580
-💡 Step 3 Analysis: Buying 10 diamonds requires $800, your balance is sufficient, you can purchase!
-    ↓
 Final Response:
 [Kilacraft-AI] 
     Queried for you:
     • Diamond price: $80.00 each
     • Your balance: $12,580
     
-    💡 Analysis: Buying 10 diamonds requires $800, your balance is sufficient,完全可以购买!
+    💡 Analysis: Buying 10 diamonds requires $800, your balance is sufficient, you can purchase!
     Would you like me to place the order for you?
 ```
-
-**More Complex Multi-Step Example:**
-
-```
-Player: I want to build an automated farm, first check if I have hoe and water bucket in my inventory, then tell me if it's daytime
-    ↓
-AI Recognizes: Multi-step task
-├─ Step 1: bukkit_api.get_player_hand_item (Check main hand item)
-├─ Step 2: bukkit_api.get_player_offhand_item (Check offhand item)
-├─ Step 3: bukkit_api.get_world_time (Query world time)
-└─ Step 4: LLM Comprehensive Analysis (Give suggestions based on materials and time)
-    ↓
-LLM Comprehensive Analysis Response:
-[Kilacraft-AI]
-    I see you already have some basic materials:
-    • Main hand: Diamond Hoe x1 ✓
-    • Offhand: Water Bucket x1 ✓
-    
-    Current time is 14:00 (Afternoon), plenty of light, suitable for building!
-    
-    💡 Suggestions:
-    1. First find a flat piece of land
-    2. Use hoe to turn dirt into farmland
-    3. Use water bucket to irrigate surrounding land
-    4. Plant seeds, wait for growth
-    
-    Would you like me to tell you specific redstone automation plans?
-```
-
----
-
-#### 🎯 LLM Result Analysis and Summary
-
-After all steps complete, LLM performs **secondary analysis**, synthesizing all results to generate friendly responses:
-
-```
-# config.yml Configuration
-agent:
-  prompts:
-    # System prompt: Define LLM's role in analysis phase
-    system_prompt: "You are a professional Minecraft game assistant..."
-    
-    # Analysis prompt: Guide LLM how to analyze execution results
-    analysis_prompt: |
-      {results}  # ← All step execution results
-      Please provide comprehensive analysis and suggestions based on the above conversation history, current input, and execution results. Reply to players in concise and friendly language.
-```
-
-**Why Need Secondary Analysis?**
-
-Raw skill execution results are usually **structured data**, not suitable for direct display to players:
-
-```
-Raw Results:
-• step_1: {"item_name": "diamond", "price": 80.0, "stock": 15}
-• step_2: {"balance": 12580.0}
-
-LLM Analyzed Response:
-"Queried for you:
- • Diamond price: $80.00 each (Stock 15)
- • Your balance: $12,580
- 
- 💡 Analysis: Buying 10 diamonds requires $800, your balance is sufficient,完全可以购买!
- Would you like me to place the order for you?"
-```
-
-**Advantages of LLM Analysis:**
-- 💬 **Natural Language Conversion**: Convert structured data to friendly dialogue
-- 🎭 **Personality Expression**: Adjust tone according to configured personality style
-- 📝 **Context Correlation**: Combine conversation history for more coherent responses
-- 💡 **Intelligent Suggestions**: Provide valuable suggestions based on data
 
 ---
 
@@ -337,6 +297,12 @@ AI: Sorry, I don't quite understand what you mean. You can ask me:
 | 💡 **Intelligent Result Analysis** | LLM comprehensively analyzes all step results, generates friendly responses |
 | 🎭 **Personality Expression** | Adjust response tone according to configured personality style |
 | 🌐 **Universality** | Applicable to all Skills (economy system, Bukkit API, third-party plugins) |
+
+---
+
+#### 📚 Detailed Documentation
+
+For more technical details, please check [Intent Recognition Prompt Configuration Guide](./en/Intent%20Recognition%20Prompt%20Configuration%20Guide.md).
 
 ---
 
@@ -587,7 +553,7 @@ AI: "Today's events:
 **ChatListener / KilacraftCommand Mode:**
 > "Let players interact with the server in the most natural way, AI understands intent and executes tasks"
 
--面向终端玩家
+- Target end users (players)
 - Emphasize intelligence and automation
 - Support complex task orchestration
 - Flexible and diverse output
@@ -595,7 +561,7 @@ AI: "Today's events:
 **Plugin Command Mode:**
 > "Provide stable and reliable AI text generation interface for third-party plugins"
 
--面向开发者
+- Target developers
 - Emphasize stability and predictability
 - Output must be pure text
 - Support callback mechanism
@@ -633,27 +599,68 @@ Plugin command mode is a dedicated interface designed by Kilacraft-AI for **thir
 **Core Design Philosophy:**
 > Plugin command mode is not a command for server owners to execute manually, but an **API interface for third-party plugins to call in code or configuration**.
 
-#### 📋 Command Format
+#### 📋 Basic Usage
 
-```
+```bash
 /kilacraft plugins <personality_name> <message_content> <player_uuid> [callback_commands...]
 ```
 
 **Parameter Explanation:**
-- `<personality_name>`: Personality defined in `personalities.yml`
+- `<personality_name>`: Personality defined in `personalities.yml` (e.g., `Fox`, `StrictTeacher`)
 - `<message_content>`: Message to send to AI
 - `<player_uuid>`: Target player's UUID
-- `[callback_commands...]`: **Optional**, commands automatically executed after AI completes (supports `{response}` placeholder)
+- `[callback_commands...]`: **Optional but strongly recommended**, commands automatically executed after AI completes (supports `{response}` placeholder)
 
 **Important Features:**
-- 🔒 **Console Only**
+- 🔒 **Console Only**: Players cannot use this command directly
 - 🌐 **Independent History Records**: Each `UUID_personality` combination is independent
-- ⏱️ **Dedicated Cooldown**: Uses `plugins_cooldown_seconds` configuration
+- ⏱️ **Dedicated Cooldown**: Uses `plugins_cooldown_seconds` configuration (default 3 seconds)
 - 💬 **Callback Command Support**: Automatically execute after AI completes, `{response}` replaced with actual reply
 
-Complete examples in Chapter 7.
+---
+
+#### 💡 Typical Application Scenario
+
+**NPC Intelligent Dialogue** (most common use): Give MythicMobs NPCs different personalities for natural player interaction.
+
+```yaml
+# MythicMobs skill configuration example
+fox_npc_skill:
+  Skills:
+  - cmd{c="kilacraft plugins Fox What are the server rules <caster.uuid> myplugin handle_ai {response} <caster.name>"} @self
+```
+
+**Workflow:**
+```
+Player right-clicks "Fox NPC"
+    ↓
+Plugin executes console command
+    ↓
+AI generates reply (async, about 2-5 seconds)
+    ↓
+Automatically executes callback: /myplugin handle_ai "Heehee~ Server rules are simple! ✨..." playerName
+    ↓
+Your plugin receives and displays:
+[NPC Fox] Heehee~ Server rules are simple! ✨
+```
 
 ---
+
+#### 📚 Detailed Documentation
+
+For more technical details, please check [Plugin Command Mode Detailed Guide](./en/Plugin%20Command%20Mode%20Detailed%20Guide.md).
+
+---
+
+#### ⚠️ Quick Precautions
+
+1. **Strongly recommend using callback commands**: This is the only officially supported integration method
+2. **Callback handler should return immediately**: Put time-consuming operations in async thread to avoid blocking main thread
+3. **Personality must exist**: Used personality must be defined in `personalities.yml`
+4. **Player must exist**: Player corresponding to UUID must have records on server
+5. **Parameter parsing**: If your callback command parameters contain spaces, need proper parsing (see detailed guide)
+
+> 💡 **Tip**: If you're a third-party plugin developer, we recommend reading the [Plugin Command Mode Detailed Guide](./en/Plugin%20Command%20Mode%20Detailed%20Guide.md) first to understand complete integration flow and best practices.
 
 ### 4.5️⃣ AI Call Chain and Mode Comparison (Architecture Details)
 
@@ -902,7 +909,7 @@ AI: "Today's events:
 **ChatListener / KilacraftCommand Mode:**
 > "Let players interact with the server in the most natural way, AI understands intent and executes tasks"
 
--面向终端玩家
+- Target end users (players)
 - Emphasize intelligence and automation
 - Support complex task orchestration
 - Flexible and diverse output
@@ -910,7 +917,7 @@ AI: "Today's events:
 **Plugin Command Mode:**
 > "Provide stable and reliable AI text generation interface for third-party plugins"
 
--面向开发者
+- Target developers
 - Emphasize stability and predictability
 - Output must be pure text
 - Support callback mechanism
@@ -963,7 +970,7 @@ AI: [Kilacraft-AI] Current products for sale list:
 - ✅ Natural language understanding: "buy 5 sticks" automatically recognizes item and quantity
 - ✅ Multi-item joint query: "diamond:2,stick:1" query multiple at once
 - ✅ Optimal price calculation: Smart combination from cheap to expensive
-- ✅ Insufficient stock提示: Display all sale details
+- ✅ Insufficient stock notification: Display all sale details
 
 **Security Notes:**
 - 📖 **Read-Only Operations**: MarketQuerySkill only queries information, won't consume items or money
@@ -1017,312 +1024,9 @@ kilacraft.api.server.info       # Server info query
 
 ---
 
-### 7️⃣ Plugin Command Mode Complete Example (Advanced Feature)
+#### 📚 Detailed Documentation
 
-Plugin command mode is a dedicated interface designed by Kilacraft-AI for **third-party plugin integration**, allowing other plugins to call AI from console with specified personalities, enabling:
-- 🤖 **NPC Intelligent Dialogue**: Give MythicMobs NPCs different personalities, communicate naturally with players
-- 🎮 **Custom Interactions**: Dynamically generate AI replies matching character settings based on your plugin logic
-- 🔗 **Callback Command Integration**: Automatically execute specified commands after AI completes, seamlessly embed into third-party plugins
-
-**Core Design Philosophy:**
-> Plugin command mode is not a command for server owners to execute manually, but an **API interface for third-party plugins to call in code or configuration**.
-
-#### 📋 Command Format
-
-```
-/kilacraft plugins <personality_name> <message_content> <player_uuid> [callback_commands...]
-```
-
-**Parameter Explanation:**
-- `<personality_name>`: Personality defined in `personalities.yml` (e.g., `Fox`, `StrictTeacher`, `AdventurePartner`)
-- `<message_content>`: Message to send to AI (can be static text or contain dynamic placeholders)
-- `<player_uuid>`: Target player's UUID (used to replace `{player}` placeholder and save history)
-- `[callback_commands...]`: **Optional**, commands automatically executed after AI completes (supports `{response}` placeholder)
-
-**Important Features:**
-- 🔒 **Console Only**: Players cannot use this command directly (prevent abuse)
-- 🌐 **Independent History Records**: Each `UUID_personality` combination has independent history, no interference
-- ⏱️ **Dedicated Cooldown**: Uses `plugins_cooldown_seconds` configuration (default 3 seconds)
-- 🌍 **World Restriction Check**: If target player is online, checks if in banned worlds
-- 💬 **Callback Command Support**: Automatically execute specified commands after AI completes, `{response}` replaced with actual reply
-
----
-
-#### 💡 Core Application Scenarios: Third-Party Plugin Integration
-
-Plugin command mode applies to **any third-party plugin needing AI capabilities**, including but not limited to:
-- 🤖 **NPC Dialogue Systems** (like MythicMobs): Give NPCs intelligent dialogue capabilities
-- 🎮 **Quest Systems**: Dynamically generate quest descriptions and rewards based on player behavior
-- 📊 **Data Analysis**: Analyze player behavior and generate personalized suggestions
-- 🔧 **Management Tools**: Automatically generate server reports, log summaries, etc.
-
-##### Working Principle
-
-```
-Third-party plugin triggers event
-    ↓
-Execute console command: /kilacraft plugins <personality> <question> <playerUUID> [callback_commands]
-    ↓
-Kilacraft-AI generates reply with specified personality (async, 2-5 seconds)
-    ↓
-Automatically execute callback commands after AI completes (as console)
-    ↓
-Your plugin receives callback command, processes AI reply
-    ↓
-Cache immediately deleted (one-time consumption)
-```
-
-##### Complete Configuration Example
-
-Suppose you want to develop a plugin that lets players ask about server rules through NPCs.
-
-**Step 1: Define Personality (`personalities.yml`)**
-
-```yaml
-# Fox personality
-Fox: |
-  You are a clever fox NPC, currently dialoguing with player {player}.
-  You speak playfully and cutely, like to end with "~", frequently use emojis.
-  You know server rules inside out, will answer player questions in interesting ways.
-```
-
-**Step 2: Call Kilacraft-AI in Your Plugin**
-
-Two ways to initiate requests:
-
-**Method A: Direct call in code (recommended for Java plugins)**
-
-```java
-// When player interacts with NPC
-@EventHandler
-public void onNPCInteract(PlayerInteractEntityEvent event) {
-    Player player = event.getPlayer();
-    Entity npc = event.getRightClicked();
-    
-    // Check if it's a specific NPC
-    if (npc.getCustomName() != null && npc.getCustomName().equals("Fox NPC")) {
-        // Build callback command
-        String callbackCommand = String.format(
-            "myplugin handle_ai %s %s", 
-            "{response}",  // Placeholder, will be replaced with actual reply
-            player.getName()
-        );
-        
-        // Call Kilacraft-AI plugin command
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), String.format(
-            "kilacraft plugins Fox What are the server rules %s %s",
-            player.getUniqueId().toString(),
-            callbackCommand
-        ));
-        
-        player.sendMessage("§eFox is thinking...");
-    }
-}
-```
-
-**Method B: Call in configuration file (recommended for configuration-driven plugins like MythicMobs)**
-
-```yaml
-# MythicMobs skill configuration example
-fox_npc_skill:
-  Skills:
-  - cmd{c="kilacraft plugins Fox What are the server rules <caster.uuid> myplugin handle_ai {response} <caster.name>"} @self
-```
-
-> 💡 **Tip**: Method B suits plugins that support executing commands in configuration (like MythicMobs, Skript, etc.), no Java coding required.
-
-**Step 3: Implement Callback Command Handler**
-
-```java
-// Register command in your plugin main class
-@Override
-public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-    if (!command.getName().equalsIgnoreCase("myplugin")) {
-        return false;
-    }
-    
-    if (args.length == 0) {
-        return false;
-    }
-    
-    String subCommand = args[0];
-    
-    // Handle AI reply callback
-    if (subCommand.equals("handle_ai")) {
-        // args format: ["handle_ai", "reply content...", "player name"]
-        // Note: Reply content may contain spaces, need proper parsing
-        
-        // Last parameter is player name
-        String playerName = args[args.length - 1];
-        
-        // All middle parameters are AI reply (merged)
-        StringBuilder responseBuilder = new StringBuilder();
-        for (int i = 1; i < args.length - 1; i++) {
-            if (i > 1) responseBuilder.append(" ");
-            responseBuilder.append(args[i]);
-        }
-        String aiResponse = responseBuilder.toString();
-        
-        // Get player and display message
-        Player player = Bukkit.getPlayer(playerName);
-        if (player != null && player.isOnline()) {
-            player.sendMessage("§e[NPC Fox] §f" + aiResponse);
-        }
-        
-        return true;
-    }
-    
-    return false;
-}
-```
-
-**Step 4: Register Command in plugin.yml**
-
-```yaml
-commands:
-  myplugin:
-    description: MyPlugin main command
-    usage: /<command>
-```
-
-##### Actual Effect
-
-```
-Player right-clicks "Fox NPC"
-    ↓
-Console executes: /kilacraft plugins Fox What are the server rules xxx-uuid myplugin handle_ai {response} playername
-    ↓
-AI generates reply (async, about 2-5 seconds)
-    ↓
-After AI completes, automatically executes: /myplugin handle_ai "Heehee~ Server rules are simple! ✨..." playername
-    ↓
-Your plugin receives command and displays:
-[NPC Fox] Heehee~ Server rules are simple! ✨
-    1. No cheating or hacking, fox will catch you! 🦊
-    2. Be friendly, no cursing~
-    ...
-```
-
----
-
-#### ⚙️ Configuration Explanation
-
-**1. Define Personalities (`personalities.yml`)**
-
-```yaml
-# Common prompt (shared by all personalities)
-common_prompt: "You are a Minecraft server NPC, currently dialoguing with player {player}."
-
-# Fox personality
-Fox: |
-  You are a clever fox NPC, speaking playfully and cutely.
-  Like to end with "~", frequently use emojis.
-  Know server rules inside out, will answer player questions in interesting ways.
-
-# Strict Teacher personality
-StrictTeacher: |
-  You are a strict Minecraft teacher, with high standards for students.
-  Speak concisely and directly, but patiently answer questions.
-  Focus on teaching game mechanics, redstone circuits and building techniques.
-
-# Adventure Partner personality
-AdventurePartner: |
-  You are player {player}'s loyal adventure partner, cheerful and humorous.
-  Like to share adventure stories, provide combat advice, always encourage players to explore bravely.
-```
-
-**2. Adjust Cooldown Time (`config.yml`)**
-
-```yaml
-settings:
-  plugins_cooldown_seconds: 3  # Plugin command dedicated cooldown (default 3 seconds)
-```
-
-**3. Reload Personality Configuration**
-
-```
-/kilacraft personalities reload
-```
-
----
-
-#### 📊 Complete Workflow Example
-
-```bash
-# Scenario 1: With callback command (✅ Recommended)
-/kilacraft plugins Fox What are the server rules 069a79f4-44e9-4726-a5be-fca90e38aaf5 myplugin handle_ai {response} playername
-
-# After AI generates reply, automatically executes callback:
-/myplugin handle_ai "Heehee~ Server rules are simple! ✨..." playername
-
-# Cache deleted, cannot retrieve again
-
-# Scenario 2: Without callback command (❌ Not recommended)
-/kilacraft plugins Fox Hello 069a79f4-44e9-4726-a5be-fca90e38aaf5
-
-# AI generates reply and keeps in cache
-# ⚠️ Note: No standard method to retrieve reply this way, not recommended
-# If you need custom retrieval methods, please refer to MythicMobs placeholder implementation and develop yourself
-```
-
----
-
-#### ⚠️ Precautions
-
-1. **Player Must Exist**: Player corresponding to UUID must have records on server (online or offline)
-2. **Personality Must Exist**: Used personality must be defined in `personalities.yml`
-3. **Console Only**: Players attempting to execute will be blocked and warning logged
-4. **Parameter Format**: UUID must be standard format (like `069a79f4-44e9-4726-a5be-fca90e38aaf5`)
-5. **Callback Commands Recommended**: Strongly recommend using callback command method, this is the only officially supported integration method
-6. **Placeholder Escaping**: If AI reply contains double quotes, automatically escaped as `\"`
-7. **Personality Matching**: Ensure personality name exactly matches definition in `personalities.yml`
-8. **History Record Isolation**: Same player's different personalities have independent history records, no interference
-9. **Callback Command Parsing**: If your callback command parameters contain spaces, need proper parsing (refer to example code above)
-
----
-
-## ⚠️ Security and Permission Management
-
-### Built-in Skill Security
-
-All Skills built into Kilacraft-AI follow **security first** principle:
-
-| Skill Name | Function | Security |
-|-----------|----------|----------|
-| **MarketQuerySkill** | Query market info (balance, prices, product lists, etc.) | ✅ Read-only, won't consume items or money |
-| **GenericBukkitAPISkill** | Query player status, world info, server info | ✅ Read-only, only calls getter methods |
-
-**Why Secure?**
-- 📖 **Read-Only Operations**: All built-in Skills only query information, don't modify any game data
-- 🔒 **Permission Control**: Each API has independent permission nodes, can be finely controlled through permission plugins
-- 🛡️ **Error Isolation**: Even if a Skill execution fails, won't affect other features
-- 📝 **Transparent and Visible**: All Skill definitions are in YAML files under `skills/` directory, can be reviewed anytime
-
-### Third-Party Skill Risk Warnings
-
-If you install Skills developed by third-party plugins, please note:
-
-**Security Risk Sources:**
-- Third-party developers may implement **write operations** (like transfers, teleportation, giving items, etc.)
-- May have **logic vulnerabilities** causing unintended consequences
-- May **bypass permission checks** to execute sensitive operations
-
-**Protection Measures:**
-1. **Review Skill Sources**: Only install plugins from trusted developers
-2. **Read Skill Descriptions**: Carefully read Skill function descriptions and return values
-3. **Test Environment Verification**: First verify functionality is normal and safe on test server
-4. **Minimize Permissions**: Limit who can use which Skills through permission plugins
-5. **Monitor Logs**: Regularly check console logs, handle anomalies promptly
-
-**Advice for Developers:**
-If you're a plugin developer creating Skills, please follow these principles:
-- ✅ Prioritize implementing **read-only query** functions
-- ⚠️ If implementing **write operations**, must clearly标注 risks in documentation
-- 🔒 Perform **strict permission checks** in `execute()` method
-- 📝 Provide clear **usage instructions** and **precautions**
-- 🛡️ Do proper **exception handling**, avoid crashes or data corruption
-
-See [SPI Integration Guide](Skill-SPI-接入文档) Chapter 7 "Error Isolation and Exception Handling".
+For more technical details, please check [Bukkit API Reference Manual](./en/Bukkit%20API%20Reference.md).
 
 ---
 
@@ -1330,7 +1034,7 @@ See [SPI Integration Guide](Skill-SPI-接入文档) Chapter 7 "Error Isolation a
 
 ### Step 1: Install Plugin
 
-1. Download `Kilacraft-AI-1.4.0.jar`
+1. Download `Kilacraft-AI-1.4.1.jar`
 2. Put into server `plugins/` directory
 3. Start server, wait for configuration files to generate
 
@@ -1354,11 +1058,21 @@ llm:
 
 > 💡 **Tip**: Just modify `api_url` and `model` to switch between different vendors, no code changes needed!
 
-### Step 3: Restart Server
+### Step 3: Reload Configuration
 
+After modifying configuration, there are two ways to apply changes:
+
+**Method 1: Use reload command (Recommended)**
 ```
-/reload  # or restart server
+/kilacraft reload  # Reload main configuration and language configuration
 ```
+
+**Method 2: Restart server**
+```
+/restart  # or fully restart server
+```
+
+> 💡 **Tip**: If you only modified `config.yml` or `language.yml`, use `/kilacraft reload`, no server restart needed. If you modified knowledge base or personality configuration, need to use corresponding dedicated reload commands (see command list below).
 
 ### Step 4: Test Dialogue
 
@@ -1400,7 +1114,7 @@ Each message includes role + content fields, actually about 0.3-0.4 KB
 - ✅ Use `/kilacraft clear` to manually clear history records
 
 **Memory Usage Explanation:**
-- 📦 **Plugin本体**: Only occupies about 3 MB (JAR file size)
+- 📦 **Plugin Core**: Only occupies about 3 MB (JAR file size)
 - 💾 **Total Memory Usage ~50 MB**: Includes runtime cache
   - **Knowledge Base Cache** (depends on knowledge base size)
     * Raw content cache: Complete text of each file, small servers typically 2-5 files, about 2-5 KB/file
@@ -1431,53 +1145,6 @@ Each message includes role + content fields, actually about 0.3-0.4 KB
 - ✅ **Asynchronous Non-Blocking**: API requests don't block main thread
 - ✅ **Configuration Caching**: Reduce repeated configuration reading overhead
 - ✅ **Smart Retry**: Automatic retry on network fluctuations, improve stability
-- ⚠️ **Streaming Output**: Currently not supported in this version, may be provided as Premium feature in future
-
----
-
-### ⚠️ Callback Execution and Timeout Protection
-
-**Callback commands execute on main thread**: Kilacraft-AI uses `Bukkit.dispatchCommand()` to execute callbacks, this API must be called on main thread (required by AsyncCatcher mechanism in modern servers like Leaf/Paper).
-
-**Timeout Protection Mechanism:**
-```yaml
-plugin_command:
-  callback_timeout_seconds: 3  # Monitor main thread command execution time
-```
-
-**Scope of Action:**
-- ✅ Monitor `Bukkit.dispatchCommand()` execution time
-- ✅ Force interrupt main thread command execution after set time exceeded
-- ❌ **Will not** interrupt async tasks inside third-party plugins
-
-**Why?**
-
-When third-party plugins use async processing, `onCommand()` returns immediately, but async tasks still run in background. Kilacraft-AI's timeout protection only monitors main thread command execution time, cannot control third-party plugins' async tasks.
-
-**Advice for Server Owners:**
-
-1. **Set Reasonable Timeout**
-   ```yaml
-   plugin_command:
-     # Should be ≥ third-party plugin's expected processing time
-     callback_timeout_seconds: 5
-   ```
-
-2. **Understand Timeout Logs**
-   ```
-   [WARN] Callback command execution timeout (3s), forcibly interrupted. Command: myplugin handle_ai ...
-   ```
-   - This indicates main thread command execution was interrupted
-   - But if third-party plugin uses async processing, its async tasks still running
-   - This is **normal behavior**, not an error
-
-**Requirements for Third-Party Plugin Developers:**
-
-If your plugin uses async processing, you must:
-1. Manage timeouts yourself
-2. Check player online status
-3. Set reasonable expected time and inform server owners
-
 
 ---
 
@@ -1496,25 +1163,6 @@ If your plugin uses async processing, you must:
 | `/kilacraft knowledge reload` | `kilacraft.knowledge` | Reload knowledge base |
 | `/kilacraft personalities reload` | `kilacraft.personalities` | Reload personality configuration |
 | `/kilacraft plugins <personality> <content> <UUID> [callback]` | Console only | Third-party plugin call (supports callback commands) |
-
----
-
-## 📦 Dependency Requirements
-
-### Required
-
-- Minecraft Server 1.21+
-- Java 17+
-
-### Optional (For Extended Features)
-
-| Plugin | Version Requirement | Function |
-|--------|--------------------|----------|
-| MythicMobs | 5.12.0+ | Placeholder functionality |
-| GlobalMarketPlus | 1.3.8.0+ | Economy system skills |
-| Vault | Latest | Multi-currency support |
-
-> 💡 **Note**: When optional plugins are not installed, corresponding features automatically disabled, doesn't affect core dialogue functionality.
 
 ---
 
@@ -1557,7 +1205,7 @@ knowledge:
 **Best Practices:**
 - ✅ FAQ Q&A Style (Most Recommended): Each question one `##` heading
 - ✅ Rule List Style: Each rule one paragraph
-- ❌ Avoid超大段落: Entire paragraph exceeding 2000 characters
+- ❌ Avoid large paragraphs: Entire paragraph exceeding 2000 characters
 
 ### 3. Language Customization
 
@@ -1579,6 +1227,81 @@ commands:
 
 Supports color codes (`§`) and variable placeholders (`{player}`, `{seconds}`).
 
+### 4. Personality System Configuration
+
+Personality system allows you to customize AI's speaking style and behavioral characteristics, making AI better fit your server atmosphere.
+
+**Basic Usage:**
+```yaml
+# personalities.yml
+Fox: |
+  You are a clever fox NPC who speaks playfully and cutely.
+  Like to end sentences with "~", often use emojis.
+  Well-versed in server rules, answer player questions in interesting ways.
+```
+
+**Reload Personality Configuration:**
+```
+/kilacraft personalities reload
+```
+
+---
+
+#### 📚 Detailed Documentation
+
+For more technical details, please check [Personality System Configuration Guide](./en/Personality%20System%20Guide.md).
+
+---
+
+## ⚠️ Security and Permission Management
+
+### Built-in Skill Security
+
+All Skills built into Kilacraft-AI follow **security first** principle:
+
+| Skill Name | Function | Security |
+|-----------|----------|----------|
+| **MarketQuerySkill** | Query market info (balance, prices, product lists, etc.) | ✅ Read-only, won't consume items or money |
+| **GenericBukkitAPISkill** | Query player status, world info, server info | ✅ Read-only, only calls getter methods |
+
+**Why Secure?**
+- 📖 **Read-Only Operations**: All built-in Skills only query information, don't modify any game data
+- 🔒 **Permission Control**: Each API has independent permission nodes, can be finely controlled through permission plugins
+- 🛡️ **Error Isolation**: Even if a Skill execution fails, it won't affect other functions
+- 📝 **Transparent**: All Skill definitions are in YAML files under `skills/` directory, can be reviewed anytime
+
+### Third-Party Skill Risk Warning
+
+If you install Skills developed by third-party plugins, please note:
+
+**Security Risk Sources:**
+- Third-party developers may implement **write operations** (such as transfers, teleports, giving items, etc.)
+- May have **logic vulnerabilities** leading to unexpected consequences
+- May **bypass permission checks** to execute sensitive operations
+
+**Protection Measures:**
+1. **Review Skill Source**: Only install plugins from trusted developers
+2. **Check Skill Description**: Carefully read Skill's function description and return values
+3. **Test Environment Verification**: First verify functionality is normal and safe on test server
+4. **Minimum Permissions**: Limit who can use which Skills through permission plugins
+5. **Monitor Logs**: Regularly check console logs, handle anomalies promptly
+
+**Advice for Developers:**
+If you're a plugin developer, please follow these principles when developing Skills:
+- ✅ Prioritize implementing **read-only query** functions
+- ⚠️ If implementing **write operations**, must clearly mark risks in documentation
+- 🔒 Perform **strict permission checks** in `execute()` method
+- 📝 Provide clear **usage instructions** and **precautions**
+- 🛡️ Implement proper **exception handling** to avoid crashes or data corruption
+
+See [SPI Integration Guide](Skill-SPI-Integration-Guide) Chapter 7 "Error Isolation and Exception Handling".
+
+---
+
+#### 📚 Related Technical Documentation
+
+For in-depth understanding of internal mechanisms, please check [System Architecture Details](./en/System%20Architecture%20Details.md).
+
 ---
 
 ## 🚀 Ecosystem Expansion: Invite Developers to Build AI Agent Ecosystem Together
@@ -1591,12 +1314,12 @@ Kilacraft-AI through open **Skill SPI interface**, allows third-party plugin dev
 
 - 💬 **Natural Language Interaction**: Players don't need to remember complex commands, just describe needs in language
 - 🤖 **Intelligent Intent Recognition**: AI automatically understands player intent and calls corresponding functions
-- 🔗 **Multi-Step Task Orchestration**: Cross-plugin function combination,实现 complex workflows
+- 🔗 **Multi-Step Task Orchestration**: Cross-plugin function combination, achieve complex workflows
 
 ### 📚 Developer Resources
 
-- **SPI Integration Guide**: [Kilacraft-AI-Skill-SPI-Integration-Guide.md](Skill-SPI-接入文档)
-- **API JAR**: `Kilacraft-Skill-API-1.4.0.jar` (only 5 KB, compileOnly dependency)
+- **SPI Integration Guide**: [Kilacraft-AI-Skill-SPI-Integration-Guide.md](Skill-SPI-Integration-Guide)
+- **API JAR**: `Kilacraft-Skill-API-1.4.1.jar` (only 5 KB, compileOnly dependency)
 - **Example Code**: Documentation includes complete Hello World and PlayerStats examples
 
 ### 🎯 Plugin Types Suitable for Integration
@@ -1627,296 +1350,6 @@ If you're a plugin developer, welcome to:
 - ✅ **MythicMobs**: Placeholder support (NPC displays AI replies)
 
 **Looking forward to your plugin being next!** 🎉
-
----
-
-## 🏗️ System Architecture Details
-
-This section provides an in-depth analysis of Kilacraft-AI's core architecture design, helping you fully understand the working principles, call chains, and design philosophy of the three interaction modes.
-
-### 🔄 Overview of Three Interaction Modes
-
-| Mode | Trigger Method | Agent Capability | Knowledge Base Retrieval | Callback Mechanism | Typical Scenarios |
-|------|---------------|------------------|-------------------------|-------------------|------------------|
-| **ChatListener** | `@ai` keyword / continuous chat | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Player active interaction |
-| **KilacraftCommand** | `/kilacraft <message>` | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Server owner/admin queries |
-| **Plugin Command** | `/kilacraft plugins ...` | ❌ Disabled | ✅ Normal retrieval | ✅ Required | Third-party plugin integration |
-
----
-
-### 📊 Mode 1 & 2: ChatListener / KilacraftCommand (Agent Enabled)
-
-These two modes share the same Agent processing flow, differing only in trigger method.
-
-#### Complete Call Chain
-
-```
-User Input: "@ai What am I holding? How much can this sell for?"
-  ↓
-【1. Entry Layer】ChatListener / KilacraftCommand
-  ├─ Check permissions and cooldown
-  ├─ Send "Thinking..." message
-  └─ Get conversation history
-  ↓
-【2. Intent Recognition Layer】SkillIntentRecognizer
-  ├─ Build system prompt (including all available Skill descriptions)
-  ├─ Call LLM for intent analysis
-  ├─ Parse JSON response
-  └─ Determine task type
-       ├─ Single intent → SkillIntent
-       ├─ Multi-step → TaskPlan
-       └─ Invalid intent → Fallback to normal AI
-  ↓
-【3a. Skill Execution Layer】(If valid intent exists)
-  ├─ Single Intent Path:
-  │   ├─ SkillManager.executeSkillByIntent()
-  │   ├─ Execute specific Skill (e.g., get_player_hand_item)
-  │   └─ Return SkillResult { message, data }
-  │
-  └─ Multi-Step Path:
-      ├─ TaskExecutor.executeTask()
-      ├─ Execute multiple Skills in dependency order
-      ├─ Data auto-flow ({step_1.xxx} → step_2)
-      └─ Return comprehensive result
-  ↓
-【3b. Secondary Analysis Layer】LLMAnalysisService ✨ Knowledge Enhancement
-  ├─ Build analysis prompt:
-  │   ├─ [History] (Last N rounds of conversation)
-  │   ├─ [Execution Results] (Data returned by Skills)
-  │   └─ [Knowledge Context] ← New!
-  │        └─ Retrieve relevant knowledge snippets
-  │           (server rules, item descriptions, etc.)
-  ├─ Call LLM for comprehensive analysis
-  ├─ Generate natural language response
-  └─ Return SkillResult
-  ↓
-【4. Response Layer】
-  ├─ Save conversation to history
-  ├─ Display to player
-  └─ Complete
-```
-
-#### Key Features
-
-1. **Intelligent Intent Recognition**: LLM understands user's true intent, automatically selects Skills
-2. **Multi-Step Orchestration**: Complex tasks decomposed into ordered steps, data auto-flows
-3. **Knowledge Enhancement**: Inject relevant knowledge during secondary analysis, improve accuracy
-4. **Failure Fallback**: Auto-convert to normal AI dialogue when intent recognition fails or Skill execution errors
-
-#### Example Flow
-
-```
-User: "What am I holding? How much can this sell for?"
-  ↓
-【Intent Recognition】→ Multi-step task
-  ├─ step_1: bukkit_api.get_player_hand_item
-  └─ step_2: market_query.query_price (depends on step_1)
-  ↓
-【Execute Skills】
-  ├─ step_1 → "Diamond Sword"
-  └─ step_2 → Price $500
-  ↓
-【Secondary Analysis + Knowledge Enhancement】
-  Retrieved knowledge:
-  - Server rule: Rare weapon price cap $1000
-  - Diamond sword is medium-value item
-  
-  LLM comprehensive analysis:
-  "You're holding a diamond sword, market price $500.
-   According to server economic policy, this price is reasonable,
-   recommend selling it in the market."
-  ↓
-【Return Result】
-```
-
----
-
-### 📊 Mode 3: Plugin Command Mode (Agent Disabled)
-
-Plugin command mode is an interface designed specifically for **third-party plugin integration**, with a completely different design philosophy from normal modes.
-
-#### Why doesn't plugin command mode enable Agent capabilities?
-
-1. **Callback mechanism requires pure text output**
-   ```java
-   executeCallback(callbackCommand, fullResponse);
-   //                          ^^^^^^^^^^^^
-   //                          Must be String type!
-   ```
-   - Agent path may return structured data (Map, List, etc.)
-   - Cannot guarantee final result is serializable pure text
-   - Callback commands need clear text content as parameters
-
-2. **Different responsibility positioning**
-   - ChatListener/KilacraftCommand: "Help me do something" (task execution)
-   - Plugin command: "Give me a piece of AI-generated text" (content creation)
-
-3. **Performance considerations**
-   - Plugin commands may be called frequently (e.g., MythicMobs placeholders)
-   - Avoid unnecessary intent recognition overhead (~2-5 seconds)
-   - Direct normal AI call is faster (~1-3 seconds)
-
-4. **Semantic clarity**
-   - `/kilacraft plugins default Hello UUID` = "Answer 'Hello' with default personality"
-   - Not "Help me execute some task"
-
-#### Complete Call Chain
-
-```
-Console: "/kilacraft plugins default Hello UUID callback_cmd"
-  ↓
-【1. Entry Layer】KilacraftCommand.handlePluginsCommand()
-  ├─ Validate parameters (personality, UUID, callback command)
-  ├─ Check world restrictions and cooldown
-  ├─ Get isolated history records (UUID_personality)
-  └─ Create PluginCommandResponseHandler
-  ↓
-【2. Personality Configuration】
-  ├─ Load personality prompt from personalities.yml
-  ├─ Replace {player} placeholder
-  └─ Build complete system prompt
-  ↓
-【3. Normal AI Dialogue】LLMProvider.processRequestWithCustomSystemPrompt()
-  ├─ 【Knowledge Retrieval】(Inside GenericLLMProvider)
-  │   ├─ Retrieve relevant knowledge snippets
-  │   └─ Inject into user message
-  ├─ Build request:
-  │   ├─ system: Personality prompt
-  │   ├─ history: Isolated history records
-  │   └─ user: User message + knowledge context
-  ├─ Call LLM API (streaming response)
-  └─ Return pure text response
-  ↓
-【4. Callback Layer】
-  ├─ Save conversation to isolated history
-  ├─ Cache latest response (for polling retrieval)
-  ├─ Execute callback command:
-  │   ├─ Replace {response} placeholder
-  │   ├─ Execute command on main thread
-  │   └─ Timeout protection (default 3 seconds)
-  └─ Clean up cache
-  ↓
-【5. Complete】
-```
-
-#### Key Features
-
-1. **Pure Text Output**: Ensure callback commands can correctly receive and process
-2. **Personality**: Use specified personality prompts, controllable style
-3. **Knowledge Support**: Still can retrieve knowledge base, enhance answer quality
-4. **Isolated History**: Independent history for each `UUID_personality` combination
-5. **Callback Mechanism**: Automatically execute specified commands after AI completes
-
-#### Typical Application Scenarios
-
-**Scenario 1: MythicMobs Placeholder Integration**
-```yaml
-# MythicMobs configuration
-Skills:
-  BossSkill:
-    Skills:
-      - message{msg=%kilacraft_ai_answer(How to defeat me?)%}
-```
-
-Expected output:
-```
-AI: "Attack my weak point on the head, use bows for ranged attacks,
-     watch out for my fire skills!"
-```
-
-**Scenario 2: Other Plugin Code Integration**
-```java
-// Some plugin code
-String aiAdvice = plugin.callAI(playerUUID, "How to defeat this boss?");
-player.sendMessage(aiAdvice); // Display text advice
-```
-
-Expected output:
-```
-AI: "This boss has 3 phases, first phase...
-     Recommend using fire resistance potions..."
-```
-
-**Scenario 3: Automated Scripts**
-```bash
-# Scheduled task
-/kilacraft plugins daily_tips What events today? UUID save_to_file
-```
-
-Expected output:
-```
-AI: "Today's events:
-     1. 14:00 PVP Tournament
-     2. 20:00 Building Competition
-     Welcome to participate!"
-```
-
----
-
-### 🔍 Core Differences Comparison Table
-
-| Dimension | ChatListener / Command | Plugin Command Mode |
-|-----------|----------------------|--------------------|
-| **Trigger Method** | Player chat / console command | Console command (for plugin calls only) |
-| **Agent Capability** | ✅ Enabled (intent recognition + skill execution) | ❌ Disabled (direct normal AI) |
-| **Intent Recognition** | ✅ LLM automatic recognition | ❌ Skipped |
-| **Skill Execution** | ✅ Supports single/multi-step | ❌ Not supported |
-| **Knowledge Retrieval** | ✅ Injected during secondary analysis | ✅ Injected during normal dialogue |
-| **Personality System** | ❌ Not supported (only default system prompt) | ✅ Required (can specify any personality) |
-| **Output Form** | Diverse (skill results + AI summary) | Pure text (must be serializable) |
-| **Callback Mechanism** | ❌ Not needed | ✅ Required (pass to caller) |
-| **History Records** | Isolated by player UUID | Isolated by `UUID_personality` combination |
-| **Cooldown** | General cooldown_seconds | Dedicated plugins_cooldown_seconds |
-| **Response Speed** | ~3-8 seconds (includes intent + skills) | ~1-3 seconds (direct AI) |
-| **Applicable Scenarios** | Player interaction, task execution | Content generation, plugin integration |
-
----
-
-### 💡 Design Philosophy Summary
-
-#### ChatListener / KilacraftCommand Mode
-
-> "Let players interact with the server in the most natural way, AI understands intent and executes tasks"
-
--面向终端玩家
-- Emphasize intelligence and automation
-- Support complex task orchestration
-- Flexible and diverse output
-
-#### Plugin Command Mode
-
-> "Provide stable and reliable AI text generation interface for third-party plugins"
-
--面向开发者
-- Emphasize stability and predictability
-- Output must be pure text
-- Support callback mechanism
-
-#### Why design this way?
-
-1. **Responsibility Separation**: Two modes serve different target groups
-2. **Performance Optimization**: Plugin integration doesn't need intent recognition overhead
-3. **Reliability**: Pure text output ensures callback mechanism stability
-4. **Flexibility**: Keep both modes to meet different needs
-
----
-
-### 🎯 How to Choose Which Mode to Use?
-
-#### Use ChatListener / KilacraftCommand if:
-
-- ✅ Players need intelligent interaction with AI
-- ✅ Need to execute server operations (query, purchase, management, etc.)
-- ✅ Want AI to understand complex multi-step tasks
-- ✅ Output can be diverse (data + suggestions)
-
-#### Use Plugin Command Mode if:
-
-- ✅ You are a plugin developer needing to call AI in code
-- ✅ Only need AI-generated text content
-- ✅ Need to pass AI replies to other systems
-- ✅ Need personality-based reply styles
-- ✅ Need callback mechanism for automated workflows
 
 ---
 
@@ -1983,7 +1416,7 @@ Just modify `api_url` and `model` in `config.yml` to switch, no code changes nee
 **A:** 
 1. Enable debug mode: `settings.debug_mode: true`
 2. Check console logs, look for error messages
-3. Verify API Key is correct, network is通畅
+3. Verify API Key is correct, network connection is stable
 4. Consult "Troubleshooting" chapter in this document
 5. Ask questions in community forums or contact author
 
@@ -2038,14 +1471,45 @@ settings:
 
 ---
 
-## 🤝 Contribution and Feedback
+## 🤝 Support and Contribution
+
+### 💖 Support Project Development
+
+If Kilacraft-AI has helped you, consider supporting the project's continued development:
+
+- **[Afdian](https://afdian.com/a/Zm_Mmm)** - Supports WeChat/Alipay
+
+Your support will be used for:
+- 🚀 Continuous feature updates and performance optimization
+- 🐛 Bug fixes and stability improvements
+- 📚 Documentation improvement and tutorial creation
+- 💬 Community support and problem solving
+
+Thank you to every supporter! 🙏
+
+---
+
+### 🌟 Participate in Community Contributions
 
 We welcome community contributions! If you have any suggestions or discover problems:
 
-1. **Submit Issue**: Report problems or suggest improvements on GitHub or Gitee
-2. **Submit PR**: Fix bugs or add new features
-3. **Share Experience**: Share your usage experiences and configuration tips in community
-4. **Develop Skills**: Develop custom Skills for your plugins, enrich ecosystem
+1. **⭐ Star the Project**: Give us a Star on [GitHub](https://github.com/Zm-Mmm/Kilacraft-AI) or [Gitee](https://gitee.com/zm_mmm/kilacraft-ai)
+2. **📢 Share with Friends**: Recommend to other server owners and developers
+3. **🐛 Submit Issues**: Report problems or suggest improvements
+4. **💻 Submit PRs**: Fix bugs or add new features
+5. **📝 Share Experience**: Share your usage experiences and configuration tips in community
+6. **🔧 Develop Skills**: Develop custom Skills for your plugins, enrich ecosystem
+
+**Your support is our motivation for continuous optimization!** ❤️
+
+---
+
+## 🔗 Related Links
+
+- **📚 Complete Document Index**: [View all technical documents](./en/Document%20Index.md)
+- **DeepSeek API Documentation**: https://platform.deepseek.com/api-docs/
+- **Zhipu AI Documentation**: https://open.bigmodel.cn/dev/api
+- **Moonshot Documentation**: https://platform.moonshot.cn/docs
 
 ---
 
@@ -2063,30 +1527,6 @@ This project uses **MIT License** - See [LICENSE](../LICENSE) file for details
 
 ---
 
-## 🔗 Related Links
-
-- **SPI Integration Guide**: [Kilacraft-AI-Skill-SPI-Integration-Guide.md](Skill-SPI-接入文档)
-- **Changelog**: [Kilacraft-AI-Changelog.md](Kilacraft-AI-\ Changelog.md)
-- **DeepSeek API Documentation**: https://platform.deepseek.com/api-docs/
-- **Zhipu AI Documentation**: https://open.bigmodel.cn/dev/api
-- **Moonshot Documentation**: https://platform.moonshot.cn/docs
-
----
-
-## 🌟 Support the Project
-
-If you find Kilacraft-AI helpful, welcome to:
-
-- ⭐ **Star the Project**: Give us a Star on GitHub or Gitee
-- 📢 **Share with Friends**: Recommend to other server owners and developers
-- 💬 **Provide Feedback**: Tell us your usage experience and improvement suggestions
-- 🤝 **Develop Third-Party Skills**: Integrate AI capabilities for your plugins
-- 🐛 **Report Issues**: Submit Issues promptly when discovering bugs
-
-**Your support is our motivation for continuous optimization!** ❤️
-
----
-
-> **Last Updated**: 2026-04-06  
+> **Last Updated**: 2026-04-07  
 > **Applicable Plugin Version**: Kilacraft-AI 1.4.1+  
 > **Open Source License**: MIT License

@@ -221,7 +221,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 If Kilacraft-AI has been helpful to you, consider supporting the project's continued development:
 
-- **[Afdian (爱发电)](https://afdian.com/a/Zm_Mmm)** - Support via WeChat Pay/Alipay
+- **[Afdian](https://afdian.com/a/Zm_Mmm)** - Support via WeChat Pay/Alipay
 
 Your support will be used for:
 - 🚀 Continuous feature updates and performance optimization
@@ -257,6 +257,7 @@ If Kilacraft-AI helps you, please consider:
 
 ## 🔗 Related Links
 
+- **📚 Complete Document Index**: [View all technical documents](https://github.com/Zm-Mmm/Kilacraft-AI/wiki)
 - [DeepSeek API Docs](https://platform.deepseek.com/api-docs/)
 - [Zhipu AI Docs](https://open.bigmodel.cn/dev/api)
 - [Moonshot Docs](https://platform.moonshot.cn/docs)
