@@ -1262,8 +1262,8 @@ BukkitAPIExecutor uses reflection to call methods, and JVM automatically optimiz
 
 ## 📚 Related Documentation
 
-- [Server Owner Guide](./Server Owner Guide) - Complete configuration and usage instructions
-- [Skill SPI Integration Guide](./Skill SPI Integration Guide) - How to extend custom skills
+- [Server Owner Guide](./Server%20Owner%20Guide) - Complete configuration and usage instructions
+- [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide) - How to extend custom skills
 - [Changelog](./Changelog) - Version history and changes
 
 ---

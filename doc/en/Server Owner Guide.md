@@ -168,7 +168,7 @@ knowledge:
 
 #### 📚 Detailed Documentation
 
-For more technical details, please check [Knowledge Base Enhancement Guide](./en/Knowledge%20Base%20Guide.md).
+For more technical details, please check [Knowledge Base Enhancement Guide](./Knowledge%20Base%20Guide).
 
 ---
 
@@ -302,7 +302,7 @@ AI: Sorry, I don't quite understand what you mean. You can ask me:
 
 #### 📚 Detailed Documentation
 
-For more technical details, please check [Intent Recognition Prompt Configuration Guide](./en/Intent%20Recognition%20Prompt%20Configuration%20Guide.md).
+For more technical details, please check [Intent Recognition Prompt Configuration Guide](./Intent%20Recognition%20Prompt%20Configuration%20Guide).
 
 ---
 
@@ -648,7 +648,7 @@ Your plugin receives and displays:
 
 #### 📚 Detailed Documentation
 
-For more technical details, please check [Plugin Command Mode Detailed Guide](./en/Plugin%20Command%20Mode%20Detailed%20Guide.md).
+For more technical details, please check [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide).
 
 ---
 
@@ -660,7 +660,7 @@ For more technical details, please check [Plugin Command Mode Detailed Guide](./
 4. **Player must exist**: Player corresponding to UUID must have records on server
 5. **Parameter parsing**: If your callback command parameters contain spaces, need proper parsing (see detailed guide)
 
-> 💡 **Tip**: If you're a third-party plugin developer, we recommend reading the [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide.md) first to understand complete integration flow and best practices.
+> 💡 **Tip**: If you're a third-party plugin developer, we recommend reading the [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) first to understand complete integration flow and best practices.
 
 ### 4.5️⃣ AI Call Chain and Mode Comparison (Architecture Details)
 
@@ -1026,7 +1026,7 @@ kilacraft.api.server.info       # Server info query
 
 #### 📚 Detailed Documentation
 
-For more technical details, please check [Bukkit API Reference Manual](./en/Bukkit%20API%20Reference.md).
+For more technical details, please check [Bukkit API Reference Manual](./Bukkit%20API%20Reference).
 
 ---
 
@@ -1249,7 +1249,7 @@ Fox: |
 
 #### 📚 Detailed Documentation
 
-For more technical details, please check [Personality System Configuration Guide](./en/Personality%20System%20Guide.md).
+For more technical details, please check [Personality System Configuration Guide](./Personality%20System%20Guide).
 
 ---
 

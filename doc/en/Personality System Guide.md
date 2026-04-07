@@ -518,9 +518,9 @@ Use correspondingly:
 
 ## 📚 Related Documentation
 
-- [Server Owner Guide](./Server Owner Guide) - Complete configuration and usage instructions
-- [Knowledge Base Enhancement Guide](./Knowledge Base Guide) - How to make AI more knowledgeable about your server
-- [Intent Recognition Prompt Configuration Guide](./Intent Recognition Prompt Configuration Guide) - Skill intent recognition system configuration
+- [Server Owner Guide](./Server%20Owner%20Guide) - Complete configuration and usage instructions
+- [Knowledge Base Enhancement Guide](./Knowledge%20Base%20Guide) - How to make AI more knowledgeable about your server
+- [Intent Recognition Prompt Configuration Guide](./Intent%20Recognition%20Prompt%20Configuration%20Guide) - Skill intent recognition system configuration
 
 ---
 
