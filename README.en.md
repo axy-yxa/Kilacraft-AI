@@ -22,6 +22,33 @@ Kilacraft-AI transforms your Minecraft server with an intelligent AI assistant t
 
 ---
 
+## 📦 Requirements & Compatibility
+
+### ✅ Version Compatibility
+
+**Minimum Compatible Version: Minecraft 1.16.5 + Java 17**
+
+Kilacraft-AI is developed based on Spigot 1.16.5 API. One JAR package compatible with all subsequent versions.
+
+| Minecraft Version | Java Required | Server Core Support | Description |
+|------------------|--------------|---------------------|-------------|
+| **1.16.x (1.16.1-1.16.4)** | - | ❌ Not Supported | Official cores don't support this range |
+| **1.16.5** | Java 17+ | ⚠️ Paper/Purpur/Leaf/Folia require `-DPaper.IgnoreJavaVersion=true` | CraftBukkit/Spigot don't support Java 17+ |
+| **1.17.x - 1.19.x** | Java 17+ | ✅ Fully Supported | Spigot/Paper/Purpur/Leaf/Folia/CraftBukkit |
+| **1.20.x - 1.21.x** | Java 21+ | ✅ Fully Supported | Server cores require Java 21 to start |
+
+### 🎁 Optional Dependencies
+
+When these plugins are not installed, corresponding features are automatically disabled, **core dialogue functionality remains unaffected**:
+
+| Plugin | Minimum Version | Features |
+|--------|----------------|----------|
+| **MythicMobs** | 5.12.0+ | NPC placeholders (let NPCs display AI replies) |
+| **GlobalMarketPlus** | 1.3.8.0+ | Economy system (balance, price, product queries) |
+| **Vault** | Latest | Multi-currency system support |
+
+---
+
 ## ✨ Core Features
 
 ### 🤖 AI-Powered Intelligence

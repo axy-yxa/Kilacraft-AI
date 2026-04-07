@@ -22,6 +22,33 @@ Kilacraft-AI 为你的 Minecraft 服务器带来智能 AI 助手，理解自然�
 
 ---
 
+## 📦 依赖要求与兼容性
+
+### ✅ 版本兼容性
+
+**最低兼容版本：Minecraft 1.16.5 + Java 17**
+
+Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续版本。
+
+| Minecraft 版本 | Java 要求 | 服务端核心支持 | 说明 |
+|---------------|----------|--------------|------|
+| **1.16.x (1.16.1-1.16.4)** | - | ❌ 不支持 | 官方核心均不支持此范围 |
+| **1.16.5** | Java 17+ | ⚠️ Paper/Purpur/Leaf/Folia 需 `-DPaper.IgnoreJavaVersion=true` | CraftBukkit/Spigot 不支持 Java 17+ |
+| **1.17.x - 1.19.x** | Java 17+ | ✅ 完全支持 | Spigot/Paper/Purpur/Leaf/Folia/CraftBukkit |
+| **1.20.x - 1.21.x** | Java 21+ | ✅ 完全支持 | 服务端核心要求 Java 21 启动 |
+
+### 🎁 可选依赖
+
+以下插件未安装时对应功能自动禁用，**不影响核心对话功能**：
+
+| 插件 | 最低版本 | 功能 |
+|------|---------|------|
+| **MythicMobs** | 5.12.0+ | NPC 占位符（让 NPC 显示 AI 回复） |
+| **GlobalMarketPlus** | 1.3.8.0+ | 经济系统（余额、价格、商品查询） |
+| **Vault** | 最新版 | 多货币系统支持 |
+
+---
+
 ## ✨ 核心功能
 
 ### 🤖 AI 智能引擎
