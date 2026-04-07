@@ -36,7 +36,7 @@ Kilacraft-AI transforms your Minecraft server with an intelligent AI assistant t
 - **Multi-Item Search**: Query multiple items simultaneously
 
 ### 🔍 Bukkit API Access
-- **44+ Built-in APIs**: Query player status, world info, server stats
+- **37 Built-in APIs**: Query player status, world info, server stats
 - **Data-Driven Configuration**: Define APIs in YAML, no coding required
 - **Permission Control**: Fine-grained access control for each API
 
@@ -57,7 +57,7 @@ Kilacraft-AI transforms your Minecraft server with an intelligent AI assistant t
 
 ### Requirements
 - Minecraft Server 1.21+
-- Java 17+
+- Java 21+
 - Optional: GlobalMarketPlus 1.3.8.0+, MythicMobs 5.12.0+
 
 ### Installation (5 Minutes)
@@ -85,7 +85,7 @@ That's it! 🎉
 - **[Changelog](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)** - Version history and updates
 
 ### Technical References
-- **[Bukkit API Reference](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Bukkit-API-Reference)** - Detailed documentation for 44+ APIs
+- **[Bukkit API Reference](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Bukkit-API-Reference)** - Detailed documentation for 37 APIs
 - **[Personality System Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Personality-System-Guide)** - Managing and customizing multiple AI personalities
 - **[Knowledge Base Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Knowledge-Base-Guide)** - RAG knowledge base usage guide
 

@@ -7,7 +7,7 @@
 
 ## 📖 Overview
 
-Kilacraft-AI includes **50+ built-in Bukkit APIs**, allowing AI to access various data from the Minecraft server. These APIs are defined through YAML configuration and can be used without writing code.
+Kilacraft-AI includes **37 built-in Bukkit APIs**, allowing AI to access various data from the Minecraft server. These APIs are defined through YAML configuration and can be used without writing code.
 
 ### Core Features
 
@@ -642,90 +642,6 @@ get_player_pose:
 
 ---
 
-## 📄 Paper-specific APIs - Player
-
-> **Note**: The following APIs are only available on Paper-based servers
-
-#### get_player_client_brand
-
-**Function**: Get player client brand
-
-```yaml
-get_player_client_brand:
-  id: "get_player_client_brand"
-  display_name: "Get Player Client Brand"
-  description: "Get the client type player is using (vanilla/fabric/forge/neoforge, etc.)"
-  usage_scenarios:
-    - "What client are you using"
-    - "What launcher"
-  target_type: "Player"
-  required_permission: "kilacraft.api.player.info"
-  method_chain:
-    - "getClientBrandName"
-```
-
----
-
-#### get_player_client_view_distance
-
-**Function**: Get player client view distance
-
-```yaml
-get_player_client_view_distance:
-  id: "get_player_client_view_distance"
-  display_name: "Get Player Client View Distance"
-  description: "Get the view distance setting in player's client (in chunks)"
-  usage_scenarios:
-    - "What is my view distance"
-    - "How far can I see"
-  target_type: "Player"
-  required_permission: "kilacraft.api.player.info"
-  method_chain:
-    - "getClientViewDistance"
-```
-
----
-
-#### get_player_idle_duration
-
-**Function**: Get player idle duration
-
-```yaml
-get_player_idle_duration:
-  id: "get_player_idle_duration"
-  display_name: "Get Player Idle Duration"
-  description: "Get player's idle/AFK time, used to determine AFK status"
-  usage_scenarios:
-    - "How long have I been AFK"
-    - "Am I AFK"
-  target_type: "Player"
-  required_permission: "kilacraft.api.player.status"
-  method_chain:
-    - "getIdleDuration"
-```
-
----
-
-#### get_player_total_exp
-
-**Function**: Get player total experience
-
-```yaml
-get_player_total_exp:
-  id: "get_player_total_exp"
-  display_name: "Get Player Total Experience"
-  description: "Get total experience points player has accumulated since starting the game"
-  usage_scenarios:
-    - "How much total experience have I gained"
-    - "My total experience"
-  target_type: "Player"
-  required_permission: "kilacraft.api.player.status"
-  method_chain:
-    - "calculateTotalExperiencePoints"
-```
-
----
-
 ## 🌍 World-related APIs
 
 ### Time & Weather
@@ -907,28 +823,6 @@ get_world_pvp:
 
 ---
 
-## 📄 Paper-specific APIs - World
-
-#### get_world_view_distance
-
-**Function**: Get world view distance
-
-```yaml
-get_world_view_distance:
-  id: "get_world_view_distance"
-  display_name: "Get World View Distance"
-  description: "Get server-configured world view distance (in chunks)"
-  usage_scenarios:
-    - "What is this world's view distance"
-    - "Server view distance"
-  target_type: "World"
-  required_permission: "kilacraft.api.world.info"
-  method_chain:
-    - "getViewDistance"
-```
-
----
-
 ## 🖥️ Server-related APIs
 
 ### Player Information
@@ -1067,34 +961,6 @@ get_server_settings:
     allow_nether: "getAllowNether"
     allow_end: "getAllowEnd"
   result_template: "Allow flight: {allow_flight}, Allow nether: {allow_nether}, Allow end: {allow_end}"
-```
-
----
-
-## 📄 Paper-specific APIs - Server
-
-#### get_server_average_tick_time
-
-**Function**: Get server average tick time
-
-```yaml
-get_server_average_tick_time:
-  id: "get_server_average_tick_time"
-  display_name: "Get Server Average Tick Time"
-  description: "Get server's average tick processing time (milliseconds), used to judge server performance. Below 50ms indicates smooth operation."
-  usage_scenarios:
-    - "Is server lagging"
-    - "How is server performance"
-  target_type: "Server"
-  required_permission: "kilacraft.api.server.info"
-  method_chain:
-    - "getAverageTickTime"
-```
-
-**Usage Example**:
-```
-Player: Is server lagging?
-AI: Average tick time: 45.23ms (Smooth)
 ```
 
 ---
@@ -1268,6 +1134,6 @@ BukkitAPIExecutor uses reflection to call methods, and JVM automatically optimiz
 
 ---
 
-> **Last Updated**: 2026-04-06  
+> **Last Updated**: 2026-04-07  
 > **Plugin Version**: 1.4.1+  
-> **Total APIs**: 50+
+> **Total APIs**: 37 (Player 23 + World 7 + Server 7)

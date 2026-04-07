@@ -1,13 +1,13 @@
 # Kilacraft-AI - Bukkit API 参考手册
 
-> **版本**: v1.4.0  
+> **版本**: v1.4.1  
 > **说明**: 本文档提供所有内置 Bukkit API 的详细说明、配置示例和使用场景
 
 ---
 
 ## 📖 概述
 
-Kilacraft-AI 内置了 **50+ 个 Bukkit API**，让 AI 能够访问 Minecraft 服务器的各种数据。这些 API 通过 YAML 配置定义，无需编写代码即可使用。
+Kilacraft-AI 内置了 **37 个 Bukkit API**，让 AI 能够访问 Minecraft 服务器的各种数据。这些 API 通过 YAML 配置定义，无需编写代码即可使用。
 
 ### 核心特性
 
@@ -642,90 +642,6 @@ get_player_pose:
 
 ---
 
-## 📄 Paper 特有 API - 玩家相关
-
-> **注意**：以下 API 仅在 Paper 系服务端可用
-
-#### get_player_client_brand
-
-**功能**：获取玩家客户端品牌
-
-```yaml
-get_player_client_brand:
-  id: "get_player_client_brand"
-  display_name: "获取玩家客户端品牌"
-  description: "获取玩家使用的客户端类型（vanilla/fabric/forge/neoforge 等）"
-  usage_scenarios:
-    - "你用什么客户端"
-    - "是什么启动器"
-  target_type: "Player"
-  required_permission: "kilacraft.api.player.info"
-  method_chain:
-    - "getClientBrandName"
-```
-
----
-
-#### get_player_client_view_distance
-
-**功能**：获取玩家客户端视距
-
-```yaml
-get_player_client_view_distance:
-  id: "get_player_client_view_distance"
-  display_name: "获取玩家客户端视距"
-  description: "获取玩家客户端设置的视距距离（区块数）"
-  usage_scenarios:
-    - "我的视距是多少"
-    - "我能看多远"
-  target_type: "Player"
-  required_permission: "kilacraft.api.player.info"
-  method_chain:
-    - "getClientViewDistance"
-```
-
----
-
-#### get_player_idle_duration
-
-**功能**：获取玩家挂机时间
-
-```yaml
-get_player_idle_duration:
-  id: "get_player_idle_duration"
-  display_name: "获取玩家挂机时间"
-  description: "获取玩家的空闲/挂机时间，用于判断 AFK 状态"
-  usage_scenarios:
-    - "我挂机多久了"
-    - "我 AFK 了吗"
-  target_type: "Player"
-  required_permission: "kilacraft.api.player.status"
-  method_chain:
-    - "getIdleDuration"
-```
-
----
-
-#### get_player_total_exp
-
-**功能**：获取玩家累计总经验
-
-```yaml
-get_player_total_exp:
-  id: "get_player_total_exp"
-  display_name: "获取玩家累计总经验"
-  description: "获取玩家从游戏开始累计获得的总经验值点数"
-  usage_scenarios:
-    - "我总共获得了多少经验"
-    - "我的总经验值"
-  target_type: "Player"
-  required_permission: "kilacraft.api.player.status"
-  method_chain:
-    - "calculateTotalExperiencePoints"
-```
-
----
-
 ## 🌍 世界相关 API
 
 ### 时间与天气
@@ -907,28 +823,6 @@ get_world_pvp:
 
 ---
 
-## 📄 Paper 特有 API - 世界相关
-
-#### get_world_view_distance
-
-**功能**：获取世界视距
-
-```yaml
-get_world_view_distance:
-  id: "get_world_view_distance"
-  display_name: "获取世界视距"
-  description: "获取服务器设置的世界视距（区块数）"
-  usage_scenarios:
-    - "这个世界的视距是多少"
-    - "服务器视距"
-  target_type: "World"
-  required_permission: "kilacraft.api.world.info"
-  method_chain:
-    - "getViewDistance"
-```
-
----
-
 ## 🖥️ 服务器相关 API
 
 ### 玩家信息
@@ -1067,34 +961,6 @@ get_server_settings:
     allow_nether: "getAllowNether"
     allow_end: "getAllowEnd"
   result_template: "允许飞行：{allow_flight}, 允许下界：{allow_nether}, 允许末地：{allow_end}"
-```
-
----
-
-## 📄 Paper 特有 API - 服务器相关
-
-#### get_server_average_tick_time
-
-**功能**：获取服务器平均 Tick 时间
-
-```yaml
-get_server_average_tick_time:
-  id: "get_server_average_tick_time"
-  display_name: "获取服务器平均 Tick 时间"
-  description: "获取服务器的平均 tick 处理时间（毫秒），用于判断服务器性能。低于 50ms 表示服务器运行流畅。"
-  usage_scenarios:
-    - "服务器卡不卡"
-    - "服务器性能怎么样"
-  target_type: "Server"
-  required_permission: "kilacraft.api.server.info"
-  method_chain:
-    - "getAverageTickTime"
-```
-
-**使用示例**：
-```
-玩家: 服务器卡不卡？
-AI: 平均 Tick 时间：45.23ms (流畅)
 ```
 
 ---
@@ -1268,6 +1134,6 @@ BukkitAPIExecutor 使用反射调用方法，JVM 会自动优化频繁调用的�
 
 ---
 
-> **最后更新**: 2026-04-06  
-> **插件版本**: 1.4.0+  
-> **API 总数**: 50+
+> **最后更新**: 2026-04-07  
+> **插件版本**: 1.4.1+  
+> **API 总数**: 37（玩家 23 + 世界 7 + 服务器 7）

@@ -1,15 +1,15 @@
 package com.zm.kilacraftAI.compat.mythicmobs.placeholders.all;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import io.lumine.mythic.api.adapters.AbstractEntity;
+import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import io.lumine.mythic.core.skills.placeholders.PlaceholderContext;
 import io.lumine.mythic.core.skills.placeholders.segments.types.ResolvedPlaceholderSegment;
 import io.lumine.mythic.core.skills.placeholders.types.EntityScopedPlaceholder;
 import io.lumine.mythic.core.skills.placeholders.types.GenericPlaceholderTypes.StringPlaceholder;
 import io.lumine.mythic.core.utils.annotations.MythicPlaceholder;
-import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import org.bukkit.entity.Player;
 
-import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -34,23 +34,22 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
         initializeMetaKeywords();
     }
 
-    @Nullable
     @Override
     public String applyToScope(PlaceholderContext placeholderContext) {
         try {
             // 获取实体
-            var entity = getEntity.get(placeholderContext);
+            AbstractEntity entity = getEntity.get(placeholderContext);
             if (entity == null) {
                 return "[错误：无法获取实体]";
             }
 
             // 获取 UUID
             UUID casterId = null;
-            var bukkitEntity = entity.getBukkitEntity();
-            if (bukkitEntity instanceof Player player) {
-                casterId = player.getUniqueId();
-            } else if (bukkitEntity instanceof org.bukkit.entity.Entity bukkitEntity2) {
-                casterId = bukkitEntity2.getUniqueId();
+            org.bukkit.entity.Entity bukkitEntity = entity.getBukkitEntity();
+            if (bukkitEntity instanceof Player) {
+                casterId = bukkitEntity.getUniqueId();
+            } else if (bukkitEntity != null) {
+                casterId = bukkitEntity.getUniqueId();
             }
 
             if (casterId == null) {
@@ -60,7 +59,7 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
             // 使用 placeholderContext 解析 typeSegment，支持动态占位符
             String type = null;
             if (typeSegment != null) {
-                var resolvedPlaceholderString = typeSegment.value();
+                PlaceholderString resolvedPlaceholderString = typeSegment.value();
                 if (resolvedPlaceholderString != null) {
                     // 使用 PlaceholderContext 解析占位符
                     type = resolvedPlaceholderString.get(placeholderContext);
@@ -80,7 +79,7 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
         } catch (Exception e) {
             // 尝试获取插件实例记录错误
             try {
-                var plugin = KilacraftAI.getInstance();
+                KilacraftAI plugin = KilacraftAI.getInstance();
                 if (plugin != null && plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().severe("AI 占位符解析失败：" + e.getMessage());
                     e.printStackTrace();

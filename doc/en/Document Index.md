@@ -20,7 +20,7 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 ### 📖 Technical Reference Documents
 | Document Name | Description | Target Audience |
 |--------------|-------------|----------------|
-| [Bukkit API Reference Manual](sslocal://flow/file_open?url=.%2FKilacraft-AI-Bukkit-API-Reference-Manual.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Detailed descriptions and examples of 44+ built-in APIs | Server Owners, Developers |
+| [Bukkit API Reference Manual](./Bukkit%20API%20Reference) | Detailed descriptions and examples of 37 built-in APIs (Player 23 + World 7 + Server 7) | Server Owners, Developers |
 | [Personality System Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Personality-System-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Management and customization methods for multiple personalities | Server Owners, Advanced Users |
 | [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Usage and optimization techniques for RAG knowledge base | Server Owners, Content Creators |
 | [Intent Recognition Prompt Configuration Guide](./Intent-Recognition-Prompt-Configuration-Guide) | Configuration and optimization of LLM intent recognition system | Server Owners, Developers |
@@ -79,17 +79,16 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 **File**: `Kilacraft-AI-Bukkit-API-Reference-Manual.md`  
 **Size**: ~23 KB  
 **Content**:
-- ✅ Complete list of 44+ built-in APIs
+- ✅ Complete list of 37 built-in APIs (Player 23 + World 7 + Server 7)
 - ✅ Configuration examples and usage scenarios for each API
 - ✅ Parameter type and return type descriptions
 - ✅ Detailed permission management
 - ✅ Performance optimization suggestions
 - ✅ Troubleshooting guide
   **API Categories**:
-- 👤 Player-related APIs (16): Health, Hunger, Inventory, Location, etc.
-- 🌍 World-related APIs (6): Time, Weather, Difficulty, Seed, etc.
-- 🖥️ Server-related APIs (8): Online Players, TPS, Version, etc.
-- 🐾 Entity-related APIs (3): Nearby entity count statistics
+- 👤 Player-related APIs (23): Health, Hunger, Inventory, Location, etc.
+- 🌍 World-related APIs (7): Time, Weather, Difficulty, Seed, etc.
+- 🖥️ Server-related APIs (7): Online Players, Version, World List, etc.
   **Recommended Usage Scenarios**:
 - Need to know which game data the AI can query
 - Configure custom Bukkit API calls

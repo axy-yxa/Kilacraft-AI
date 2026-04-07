@@ -39,7 +39,7 @@ Kilacraft-AI 为你的 Minecraft 服务器带来智能 AI 助手，理解自然�
 - **多物品搜索**：同时查询多个物品
 
 ### 🔍 Bukkit API 访问
-- **44+ 内置 API**：查询玩家状态、世界信息、服务器统计
+- **37 个内置 API**：查询玩家状态、世界信息、服务器统计
 - **数据驱动配置**：YAML 定义 API，无需编码
 - **权限控制**：每个 API 的细粒度访问控制
 
@@ -59,7 +59,7 @@ Kilacraft-AI 为你的 Minecraft 服务器带来智能 AI 助手，理解自然�
 ## 🚀 快速开始
 
 ### 环境要求
-- Minecraft Server 1.21+
+- Minecraft Server 1.16.5+
 - Java 17+
 - 可选：GlobalMarketPlus 1.3.8.0+, MythicMobs 5.12.0+
 
@@ -88,7 +88,7 @@ Kilacraft-AI 为你的 Minecraft 服务器带来智能 AI 助手，理解自然�
 - **[更新日志](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)** - 版本历史和更新
 
 ### 技术参考文档
-- **[Bukkit API 参考手册](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Bukkit-API%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C)** - 44+ API 详细说明
+- **[Bukkit API 参考手册](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Bukkit-API%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C)** - 37 个 API 详细说明
 - **[人格系统配置指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E4%BA%BA%E6%A0%BC%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97)** - 多个人格的管理和定制
 - **[知识库增强指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E7%9F%A5%E8%AF%86%E5%BA%93%E5%A2%9E%E5%BC%BA%E6%8C%87%E5%8D%97)** - RAG 知识库使用详解
 

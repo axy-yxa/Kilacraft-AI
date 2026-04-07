@@ -146,9 +146,9 @@ public class GenericBukkitAPISkill implements Skill {
      * 从复杂对象中自动提取常用字段到 dataMap
      */
     private void extractDataFromResult(Object result, Map<String, Object> dataMap) {
-        switch (result) {
-            // ItemStack：提取物品信息
-            case org.bukkit.inventory.ItemStack itemStack when itemStack.getType() != org.bukkit.Material.AIR -> {
+        // ItemStack：提取物品信息
+        if (result instanceof org.bukkit.inventory.ItemStack itemStack) {
+            if (itemStack.getType() != org.bukkit.Material.AIR) {
                 String itemName;
                 if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
                     itemName = itemStack.getItemMeta().getDisplayName();
@@ -159,133 +159,108 @@ public class GenericBukkitAPISkill implements Skill {
                 dataMap.put("item_amount", itemStack.getAmount());
                 dataMap.put("item_type", itemStack.getType().name());
             }
-            
-            // Location：提取坐标信息
-            case org.bukkit.Location location -> {
-                dataMap.put("x", location.getX());
-                dataMap.put("y", location.getY());
-                dataMap.put("z", location.getZ());
-                dataMap.put("yaw", location.getYaw());
-                dataMap.put("pitch", location.getPitch());
-                if (location.getWorld() != null) {
-                    dataMap.put("world", location.getWorld().getName());
-                }
-            }
-            
-            // Vector：提取向量分量
-            case org.bukkit.util.Vector vector -> {
-                dataMap.put("x", vector.getX());
-                dataMap.put("y", vector.getY());
-                dataMap.put("z", vector.getZ());
-            }
-            
-            // 其他类型不提取额外字段，只保留 raw_result
-            default -> {
-                // 不做任何操作
+        }
+        // Location：提取坐标信息
+        else if (result instanceof org.bukkit.Location location) {
+            dataMap.put("x", location.getX());
+            dataMap.put("y", location.getY());
+            dataMap.put("z", location.getZ());
+            dataMap.put("yaw", location.getYaw());
+            dataMap.put("pitch", location.getPitch());
+            if (location.getWorld() != null) {
+                dataMap.put("world", location.getWorld().getName());
             }
         }
+        // Vector：提取向量分量
+        else if (result instanceof org.bukkit.util.Vector vector) {
+            dataMap.put("x", vector.getX());
+            dataMap.put("y", vector.getY());
+            dataMap.put("z", vector.getZ());
+        }
+        // 其他类型不提取额外字段，只保留 raw_result
     }
 
     /**
      * 格式化执行结果
      */
     private String formatResult(BukkitAPIMetadata api, Object result, org.bukkit.entity.Player player) {
-        switch (result) {
-            case null -> {
-                return "无结果";
-            }
-
-            // 特殊类型处理（method_chain 模式返回的复杂对象）
-            case org.bukkit.Location location -> {
-                return formatLocation(location);
-            }
-            case org.bukkit.inventory.ItemStack itemStack -> {
-                return formatItemStack(itemStack);
-            }
-            case org.bukkit.GameMode gameMode -> {
-                return formatGameMode(gameMode);
-            }
-            case org.bukkit.World.Environment environment -> {
-                return formatEnvironment(environment);
-            }
-            case org.bukkit.Difficulty difficulty -> {
-                return formatDifficulty(difficulty);
-            }
-            case org.bukkit.entity.Pose pose -> {
-                return formatPose(pose);
-            }
-            case org.bukkit.inventory.MainHand mainHand -> {
-                return formatMainHand(mainHand);
-            }
-            case org.bukkit.util.Vector vector -> {
-                return formatVector(vector);
-            }
-            // Duration 类型（Paper 特有，用于 AFK 时间）
-            case java.time.Duration duration -> {
-                return formatDuration(duration);
-            }
-            // 在线玩家列表或世界列表
-            case java.util.Collection<?> collection -> {
-                return formatCollection(collection, api);
-            }
-            // 世界时间（刻数）
-            case Long ticks when api.getId().equals("get_world_time") -> {
-                return formatGameTime(ticks);
-            }
-            case Integer ticks when api.getId().equals("get_world_time") -> {
-                return formatGameTime(ticks.longValue());
-            }
-            // 世界种子
-            case Long seed when api.getId().equals("get_world_seed") -> {
-                return "世界种子：" + seed;
-            }
-            // 飞行速度/行走速度（Float 类型）
-            case Float speed when api.getId().contains("speed") -> {
-                return String.format("速度：%.2f", speed);
-            }
-            // 攻击冷却（Float 类型，0-1）
-            case Float cooldown when api.getId().equals("get_player_attack_cooldown") -> {
-                int percentage = Math.round(cooldown * 100);
-                return "攻击冷却进度：" + percentage + "%";
-            }
-            // 客户端视距
-            case Integer viewDistance when api.getId().contains("view_distance") -> {
-                return "视距：" + viewDistance + " 区块";
-            }
-            // Ping 延迟
-            case Integer ping when api.getId().equals("get_player_ping") -> {
-                String quality = ping < 100 ? "极好" : (ping < 200 ? "良好" : (ping < 300 ? "一般" : "较差"));
-                return "延迟：" + ping + "ms (" + quality + ")";
-            }
-            // 累计总经验
-            case Integer totalExp when api.getId().equals("get_player_total_exp") -> {
-                return "累计总经验：" + totalExp + " 点";
-            }
-            // 升到下一级所需经验（Bukkit 原生方法）
-            case Integer expNeeded when api.getId().equals("get_player_exp_to_level") -> {
-                return "升到下一级需要：" + expNeeded + " 点经验";
-            }
-            // 服务器平均 tick 时间（Paper 特有）
-            case Double tickTime when api.getId().equals("get_server_average_tick_time") -> {
-                String status = tickTime < 50 ? "流畅" : (tickTime < 100 ? "轻微延迟" : "严重延迟");
-                return String.format("平均 Tick 时间：%.2fms (%s)", tickTime, status);
-            }
-
-            // additional_methods 模式返回的 Map
-            case java.util.Map<?, ?> resultMap -> {
-                return formatWithAdditionalMethods(api, resultMap);
-            }
-
-            // Boolean 类型（如 isInsideVehicle、getAllowFlight 等）
-            case Boolean bool -> {
-                return bool ? "是" : "否";
-            }
-
-            // 其他类型默认返回 toString
-            default -> {
-                return result.toString();
-            }
+        if (result == null) {
+            return "无结果";
         }
+
+        // 特殊类型处理（method_chain 模式返回的复杂对象）
+        if (result instanceof org.bukkit.Location location) {
+            return formatLocation(location);
+        }
+        if (result instanceof org.bukkit.inventory.ItemStack itemStack) {
+            return formatItemStack(itemStack);
+        }
+        if (result instanceof org.bukkit.GameMode gameMode) {
+            return formatGameMode(gameMode);
+        }
+        if (result instanceof org.bukkit.World.Environment environment) {
+            return formatEnvironment(environment);
+        }
+        if (result instanceof org.bukkit.Difficulty difficulty) {
+            return formatDifficulty(difficulty);
+        }
+        if (result instanceof org.bukkit.entity.Pose pose) {
+            return formatPose(pose);
+        }
+        if (result instanceof org.bukkit.inventory.MainHand mainHand) {
+            return formatMainHand(mainHand);
+        }
+        if (result instanceof org.bukkit.util.Vector vector) {
+            return formatVector(vector);
+        }
+        // Duration 类型（Paper 特有，用于 AFK 时间）
+        if (result instanceof java.time.Duration duration) {
+            return formatDuration(duration);
+        }
+        // 在线玩家列表或世界列表
+        if (result instanceof java.util.Collection<?> collection) {
+            return formatCollection(collection, api);
+        }
+        // 世界时间（刻数）
+        if ((result instanceof Long || result instanceof Integer) && api.getId().equals("get_world_time")) {
+            long ticks = result instanceof Long ? (Long) result : ((Integer) result).longValue();
+            return formatGameTime(ticks);
+        }
+        // 世界种子
+        if (result instanceof Long seed && api.getId().equals("get_world_seed")) {
+            return "世界种子：" + seed;
+        }
+        // 飞行速度/行走速度（Float 类型）
+        if (result instanceof Float speed && api.getId().contains("speed")) {
+            return String.format("速度：%.2f", speed);
+        }
+        // 攻击冷却（Float 类型，0-1）
+        if (result instanceof Float cooldown && api.getId().equals("get_player_attack_cooldown")) {
+            int percentage = Math.round(cooldown * 100);
+            return "攻击冷却进度：" + percentage + "%";
+        }
+        // Ping 延迟
+        if (result instanceof Integer ping && api.getId().equals("get_player_ping")) {
+            String quality = ping < 100 ? "极好" : (ping < 200 ? "良好" : (ping < 300 ? "一般" : "较差"));
+            return "延迟：" + ping + "ms (" + quality + ")";
+        }
+        // 升到下一级所需经验（Bukkit 原生方法）
+        if (result instanceof Integer exp && api.getId().equals("get_player_exp_to_level")) {
+            return "升到下一级需要：" + exp + " 点经验";
+        }
+
+        // additional_methods 模式返回的 Map
+        if (result instanceof java.util.Map<?, ?> mapResult) {
+            return formatWithAdditionalMethods(api, mapResult);
+        }
+
+        // Boolean 类型（如 isInsideVehicle、getAllowFlight 等）
+        if (result instanceof Boolean bool) {
+            return bool ? "是" : "否";
+        }
+
+        // 其他类型默认返回 toString
+        return result.toString();
     }
 
     /**
