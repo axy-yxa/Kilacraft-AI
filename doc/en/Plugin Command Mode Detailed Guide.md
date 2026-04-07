@@ -614,10 +614,10 @@ if (player != null && player.isOnline()) {
 
 ## Related Documentation
 
-- [Server Owner Guide - Plugin Command Mode Introduction](./en/Server%20Owner%20Guide.md#4-plugin-command-mode--personality-system-advanced-features)
-- [Personality System Configuration Guide](./en/Personality%20System%20Guide.md)
-- [Skill SPI Integration Guide](./en/Skill%20SPI%20Integration%20Guide.md)
-- [System Architecture Details](./en/System%20Architecture%20Details.md)
+- [Server Owner Guide - Plugin Command Mode Introduction](./Server%20Owner%20Guide.md#4-plugin-command-mode--personality-system-advanced-features)
+- [Personality System Configuration Guide](./Personality%20System%20Guide.md)
+- [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md)
+- [System Architecture Details](./System%20Architecture%20Details.md)
 
 ---
 

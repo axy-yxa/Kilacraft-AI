@@ -762,8 +762,8 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 ## 📚 Related Documentation
 
 - [Server Owner Guide](./Server Owner Guide) - Complete configuration, troubleshooting
-- [Personality System Configuration Guide](./Personality System Configuration Guide) - How to make AI better utilize knowledge base
-- [Bukkit API Reference Manual](./Bukkit API Reference Manual) - Advanced usage combining API and knowledge base
+- [Personality System Configuration Guide](./Personality System Guide) - How to make AI better utilize knowledge base
+- [Bukkit API Reference Manual](./Bukkit API Reference) - Advanced usage combining API and knowledge base
 
 ---
 

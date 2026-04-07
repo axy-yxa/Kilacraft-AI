@@ -660,7 +660,7 @@ For more technical details, please check [Plugin Command Mode Detailed Guide](./
 4. **Player must exist**: Player corresponding to UUID must have records on server
 5. **Parameter parsing**: If your callback command parameters contain spaces, need proper parsing (see detailed guide)
 
-> 💡 **Tip**: If you're a third-party plugin developer, we recommend reading the [Plugin Command Mode Detailed Guide](./en/Plugin%20Command%20Mode%20Detailed%20Guide.md) first to understand complete integration flow and best practices.
+> 💡 **Tip**: If you're a third-party plugin developer, we recommend reading the [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide.md) first to understand complete integration flow and best practices.
 
 ### 4.5️⃣ AI Call Chain and Mode Comparison (Architecture Details)
 
@@ -1294,13 +1294,13 @@ If you're a plugin developer, please follow these principles when developing Ski
 - 📝 Provide clear **usage instructions** and **precautions**
 - 🛡️ Implement proper **exception handling** to avoid crashes or data corruption
 
-See [SPI Integration Guide](Skill-SPI-Integration-Guide) Chapter 7 "Error Isolation and Exception Handling".
+See [SPI Integration Guide](./Skill SPI Integration Guide) Chapter 7 "Error Isolation and Exception Handling".
 
 ---
 
 #### 📚 Related Technical Documentation
 
-For in-depth understanding of internal mechanisms, please check [System Architecture Details](./en/System%20Architecture%20Details.md).
+For in-depth understanding of internal mechanisms, please check [System Architecture Details](./System%20Architecture%20Details.md).
 
 ---
 
@@ -1506,7 +1506,7 @@ We welcome community contributions! If you have any suggestions or discover prob
 
 ## 🔗 Related Links
 
-- **📚 Complete Document Index**: [View all technical documents](./en/Document%20Index.md)
+- **📚 Complete Document Index**: [View all technical documents](./Document%20Index.md)
 - **DeepSeek API Documentation**: https://platform.deepseek.com/api-docs/
 - **Zhipu AI Documentation**: https://open.bigmodel.cn/dev/api
 - **Moonshot Documentation**: https://platform.moonshot.cn/docs
