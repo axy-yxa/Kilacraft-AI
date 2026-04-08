@@ -46,16 +46,17 @@ public class ItemTranslator {
      * 加载物品翻译表
      */
     public void loadTranslationTable() {
+        // 确保内置翻译表不重复加载
         if (loaded) {
             return;
         }
         
         try {
             // 从 resources/translate/items_CN.yml 加载
-            InputStream inputStream = KilacraftAI.getInstance().getResource("translate/items_CN.yml");
+            InputStream inputStream = KilacraftAI.getInstance().getResource("internal/translate/items_CN.yml");
             
             if (inputStream == null) {
-                KilacraftAI.getInstance().getLogger().severe("无法找到 translate/items_CN.yml 文件！");
+                KilacraftAI.getInstance().getLogger().severe("无法找到 internal/translate/items_CN.yml 文件！");
                 return;
             }
             

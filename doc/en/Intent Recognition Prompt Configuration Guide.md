@@ -759,5 +759,5 @@ If you encounter problems during use or have improvement suggestions:
 
 ---
 
-**Last Updated**: 2026-04-07  
-**Applicable Version**: Kilacraft-AI v1.4.2+
+**Last Updated**: 2026-04-08  
+**Applicable Version**: Kilacraft-AI v1.4.3+

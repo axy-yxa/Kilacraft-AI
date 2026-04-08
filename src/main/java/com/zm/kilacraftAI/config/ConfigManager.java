@@ -4,9 +4,15 @@ import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 配置管理
@@ -61,23 +67,32 @@ public class ConfigManager {
     private int knowledgeMinChunkSize;      // 每个片段最小字符数
     @Getter
     private int knowledgeChunkOverlap;      // 片段重叠字符数
-    
+
     // 关键词提取配置
     @Getter
     private int keywordTopK;                 // 每次提取的关键词数量
-    
+
     // BM25 评分算法配置
     @Getter
     private double bm25K1;                   // k1 参数：控制词频饱和点
     @Getter
     private double bm25B;                    // b 参数：控制文档长度归一化
-    
+
     // 自定义词典配置
     @Getter
     private boolean customDictionaryEnabled; // 是否启用自定义词典
     @Getter
     private List<String> customDictionaryWords; // 自定义词汇列表
-    
+
+    @Getter
+    private List<String> internalDictionaryWords; // 内置词汇表
+
+    @Getter
+    private List<String> allDictionaryWords; // 所有词汇（内置+自定义，去重后）
+
+    // 内置词汇表加载状态标记
+    private boolean vocabularyLoaded = false;
+
     // Agent 能力配置
     @Getter
     private boolean agentEnabled;           // Agent 总开关
@@ -93,7 +108,7 @@ public class ConfigManager {
     private String agentSystemPrompt;         // LLM 意图识别系统提示词
     @Getter
     private String agentAnalysisPromptSuffix; // LLM 分析提示词后缀（用于识别边界）
-    
+
     // LLM 提供商配置（通用）
     @Getter
     private String llmApiKey;                  // LLM API 密钥
@@ -111,11 +126,11 @@ public class ConfigManager {
         // 加载配置文件，配置项不存在时使用默认配置
         plugin.reloadConfig();
         FileConfiguration config = plugin.getConfig();
-    
+
         // 通用配置
         this.temperature = config.getDouble("llm.temperature", 0.7);
         this.maxTokens = config.getInt("llm.max_tokens", 1000);
-    
+
         // 插件设置
         this.debugMode = config.getBoolean("settings.debug_mode", false);
         this.enableChatCommand = config.getBoolean("settings.enable_chat_command", true);
@@ -136,31 +151,48 @@ public class ConfigManager {
             this.bannedWorlds = new ArrayList<>();
         }
         this.systemPrompt = config.getString("settings.system_prompt", "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。");
-            
+
         // 消息格式配置
         this.aiName = config.getString("messages.ai_name", "Kilacraft-AI");
         this.aiPrefix = config.getString("messages.ai_prefix", "§7[Kilacraft-AI] §f");
         this.thinkingMessage = config.getString("messages.thinking_message", "正在思考中...");
-            
+
         // 知识库配置
         this.knowledgeEnabled = config.getBoolean("knowledge.enabled", true);
         this.maxRelevantChunks = config.getInt("knowledge.max_relevant_chunks", 3);
-        
+
         // 知识库分段配置
         this.knowledgeMaxChunkSize = config.getInt("knowledge.segment.max_size", 500);
         this.knowledgeMinChunkSize = config.getInt("knowledge.segment.min_size", 25);
         this.knowledgeChunkOverlap = config.getInt("knowledge.segment.overlap", 30);
-        
+
         // 关键词提取配置
         this.keywordTopK = config.getInt("knowledge.keywords.top_k", 10);
-        
+
         // BM25 评分算法配置
         this.bm25K1 = config.getDouble("knowledge.bm25.k1", 1.5);
         this.bm25B = config.getDouble("knowledge.bm25.b", 0.75);
-        
+
         // 自定义词典配置
         this.customDictionaryEnabled = config.getBoolean("knowledge.custom_dictionary.enabled", true);
         this.customDictionaryWords = config.getStringList("knowledge.custom_dictionary.words");
+
+        // 加载内置词汇表（防止重复加载）
+        if (!vocabularyLoaded) {
+            this.internalDictionaryWords = loadInternalVocabulary();
+            vocabularyLoaded = true;
+        }
+
+        if (this.internalDictionaryWords == null) {
+            this.internalDictionaryWords = new ArrayList<>();
+        }
+
+        // 合并所有词汇（内置+自定义），自动去重
+        Set<String> allWords = new LinkedHashSet<>(internalDictionaryWords);
+        if (customDictionaryWords != null) {
+            allWords.addAll(customDictionaryWords);
+        }
+        this.allDictionaryWords = new ArrayList<>(allWords);
 
         // Agent 能力配置
         this.agentEnabled = config.getBoolean("agent.enabled", true);
@@ -169,19 +201,19 @@ public class ConfigManager {
         this.agentIntentHistoryCount = config.getInt("agent.intent_history_count", 5);
         this.agentAnalysisHistoryCount = config.getInt("agent.analysis_history_count", 2);
         this.agentSystemPrompt = config.getString("agent.prompts.system_prompt", "");
-        
+
         // 分析提示词后缀（用于识别业务内容边界）
         this.agentAnalysisPromptSuffix = config.getString("agent.prompts.analysis_prompt_suffix", "");
-            
+
         // LLM 提供商配置（通用）
         this.llmApiKey = config.getString("llm.api_key", "");
         this.llmApiUrl = config.getString("llm.api_url", "https://api.deepseek.com/v1/chat/completions");
         this.llmModel = config.getString("llm.model", "deepseek-chat");
-            
+
         // 通知 LLM 管理器刷新配置缓存
         refreshLLMConfigCache();
     }
-        
+
     /**
      * 刷新 LLM 配置缓存
      */
@@ -199,10 +231,80 @@ public class ConfigManager {
 
     /**
      * 将配置的轮数转换为实际的消息数量（1轮=2条消息）
+     *
      * @param rounds 轮数
      * @return 实际消息数量
      */
     public int getHistoryMessageCount(int rounds) {
         return Math.max(0, rounds * 2);
+    }
+
+    /**
+     * 加载内置词汇表
+     * 从 internal/vocabulary/ 目录加载所有 .txt 文件
+     *
+     * @return 内置词汇列表
+     */
+    private List<String> loadInternalVocabulary() {
+        List<String> words = new ArrayList<>();
+
+        try {
+            // 直接从 JAR 包中加载所有内置词汇文件
+            loadVocabularyFromJar(words);
+
+        } catch (Exception e) {
+            plugin.getLogger().warning("[ConfigManager] 加载内置词汇表时发生异常: " + e.getMessage());
+        }
+
+        return words;
+    }
+
+    /**
+     * 从 JAR 包中加载内置词汇表
+     * 扫描 internal/vocabulary/ 目录下的所有 .txt 文件
+     *
+     * @param words 词汇列表（会被填充）
+     */
+    private void loadVocabularyFromJar(List<String> words) {
+        try {
+            // 获取插件的 JAR 文件路径
+            java.io.File jarFile = new java.io.File(plugin.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
+
+            if (!jarFile.exists()) {
+                plugin.getLogger().warning("[ConfigManager] 无法找到插件 JAR 文件，跳过加载词汇表");
+                return;
+            }
+
+            // 读取 JAR 文件中 vocabulary 目录下的所有 .txt 文件
+            try (java.util.jar.JarFile jar = new java.util.jar.JarFile(jarFile)) {
+                String prefix = "internal/vocabulary/";
+                java.util.Enumeration<java.util.jar.JarEntry> entries = jar.entries();
+
+                while (entries.hasMoreElements()) {
+                    java.util.jar.JarEntry entry = entries.nextElement();
+                    String name = entry.getName();
+
+                    // 只处理 vocabulary 目录下的 .txt 文件
+                    if (name.startsWith(prefix) && name.endsWith(".txt") && !entry.isDirectory()) {
+                        try (InputStream is = plugin.getResource(name); BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                String trimmedLine = line.trim();
+                                if (!trimmedLine.isEmpty()) {
+                                    words.add(trimmedLine);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (java.net.URISyntaxException e) {
+            plugin.getLogger().warning("[ConfigManager] 无法解析 JAR 文件路径: " + e.getMessage() + "，跳过加载");
+        } catch (Exception e) {
+            plugin.getLogger().warning("[ConfigManager] 加载内置词汇表失败: " + e.getMessage());
+            if (debugMode) {
+                e.printStackTrace();
+            }
+        }
     }
 }

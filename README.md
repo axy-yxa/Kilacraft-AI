@@ -1,12 +1,12 @@
 # Kilacraft-AI
 
-> **🚀 v1.4.2** | 零依赖 · 低内存 · 高性能 · 完全开源  
+> **🚀 v1.4.3** | 零依赖 · 低内存 · 高性能 · 完全开源  
 > 专为 Minecraft 服务器打造的轻量级 AI Agent 插件，支持自然语言交互。
 
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/Zm-Mmm/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.4.2-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
+[![Version](https://img.shields.io/badge/Version-1.4.3-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 
 ---
 
@@ -105,7 +105,7 @@ Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续�
 
 ### 安装步骤（5 分钟）
 
-1. **下载** `Kilacraft-AI-1.4.2.jar` 放入 `plugins/` 目录
+1. **下载** `Kilacraft-AI-1.4.3.jar` 放入 `plugins/` 目录
 2. **启动** 服务器生成配置文件
 3. **编辑** `plugins/Kilacraft-AI/config.yml`：
    ```yaml
@@ -306,6 +306,6 @@ knowledge:
 
 ---
 
-> **最后更新**: 2026-04-07  
-> **插件版本**: 1.4.2+  
+> **最后更新**: 2026-04-08  
+> **插件版本**: 1.4.3+
 > **开源协议**: MIT

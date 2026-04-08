@@ -6,6 +6,29 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
+## v1.4.3 - Multi-Step Task Error Resilience & Keyword Optimization
+
+### ✨ New Features
+- Multi-step task error resilience: process continues even if some steps fail
+- Built-in vocabulary loading: loads vocabulary files from internal/vocabulary/ directory in JAR package
+- Three-layer keyword extraction strategy: original query + segmentation result + TF-IDF keywords, compatible with both short text and long documents
+- Single-character query optimization: supports queries like "弓"、"剑" through custom dictionary and stop word checks
+- Structured result output: step execution status marked as [SUCCESS]/[FAILURE]/[SKIPPED], facilitating LLM secondary analysis
+
+### 🔧 Improvements
+- Enhanced dependency checking: not only checks if dependency step exists, but also whether it executed successfully
+- Placeholder parsing fault tolerance: skip failed steps and continue executing subsequent steps
+- Vocabulary merging and deduplication: uses LinkedHashSet to automatically deduplicate, merging built-in and custom vocabulary
+- Enhanced LLM prompt: added partial failure handling guidance, answer user questions based on successful steps
+- Configuration comment optimization: clarified actual usage scenarios of analysis_prompt_suffix
+
+### ⚠️ Compatibility
+- Added internal/vocabulary/ directory for built-in vocabulary files
+- Added partial failure handling guidance to analysis_prompt_suffix in config file
+- Existing features fully compatible, no configuration changes required
+
+---
+
 ## v1.4.2 - Paper API Dependency Removal & Java 17 Compatibility Optimization
 
 ### ✨ New Features
@@ -319,4 +342,4 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-**Last Updated**: 2026-04-05
+**Last Updated**: 2026-04-27

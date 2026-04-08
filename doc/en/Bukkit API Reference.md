@@ -1,6 +1,6 @@
 # Kilacraft-AI - Bukkit API Reference Manual
 
-> **Version**: v1.4.2  
+> **Version**: v1.4.3  
 > **Description**: This document provides detailed explanations, configuration examples, and usage scenarios for all built-in Bukkit APIs
 
 ---
@@ -1134,6 +1134,6 @@ BukkitAPIExecutor uses reflection to call methods, and JVM automatically optimiz
 
 ---
 
-> **Last Updated**: 2026-04-07  
-> **Plugin Version**: 1.4.2+  
+> **Last Updated**: 2026-04-08  
+> **Plugin Version**: 1.4.3+  
 > **Total APIs**: 37 (Player 23 + World 7 + Server 7)

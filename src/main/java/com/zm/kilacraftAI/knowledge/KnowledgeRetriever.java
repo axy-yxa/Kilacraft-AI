@@ -6,7 +6,7 @@ import java.util.*;
 import java.util.regex.*;
 
 /**
- * 知识检索器（标准 RAG 方案）
+ * 知识检索器
  *
  * <p>从知识库中检索与问题相关的知识片段</p>
  *
@@ -44,7 +44,7 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * 检索与问题相关的知识（标准 RAG 方案 + 缓存优化）
+     * 检索与问题相关的知识
      *
      * @param question 用户问题
      * @return 相关知识片段列表
@@ -57,7 +57,7 @@ public class KnowledgeRetriever {
             return Collections.emptyList();
         }
             
-        // 【标准 RAG】提取有意义的关键词
+        // HanLP TF-IDF 提取有意义的关键词
         List<String> keywords = extractKeywords(question);
             
         if (knowledgeBase.isDebugMode()) {
@@ -93,7 +93,7 @@ public class KnowledgeRetriever {
                 
             totalChunks += chunks.size();
                 
-            // 【标准 RAG】计算每个片段与问题的相关性得分
+            // 计算每个片段与问题的相关性得分
             for (String chunk : chunks) {
                 double score = calculateRelevance(question, chunk, keywords);
                 if (score > 0) {

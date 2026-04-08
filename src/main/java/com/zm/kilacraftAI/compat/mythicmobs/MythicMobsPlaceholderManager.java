@@ -49,7 +49,6 @@ public class MythicMobsPlaceholderManager {
             MythicPlaceholder annotation = AIAnswerPlaceholder.class.getAnnotation(MythicPlaceholder.class);
             placeholderManager.register(AIAnswerPlaceholder.class, annotation);
 
-            plugin.getLogger().info("MythicMobs 占位符已成功注册");
             registered = true;
 
         } catch (Exception e) {

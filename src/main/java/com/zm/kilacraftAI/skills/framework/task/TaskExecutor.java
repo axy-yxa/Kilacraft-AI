@@ -57,6 +57,12 @@ public class TaskExecutor {
 
     /**
      * 递归执行步骤列表
+     * <p>
+     * 错误保障机制：即使部分步骤失败，也不会中断整个流程
+     * - 依赖未满足：记录失败原因，跳过该步骤，继续执行
+     * - 占位符解析失败：记录失败原因，跳过该步骤，继续执行
+     * - 技能执行失败：记录失败原因，继续执行下一步
+     * - 最终汇总时，LLM 会基于所有成功步骤的结果尽可能回答用户问题
      *
      * @param plan        任务计划
      * @param sortedSteps 已排序的步骤列表
@@ -74,9 +80,15 @@ public class TaskExecutor {
 
         TaskStep currentStep = sortedSteps.get(stepIndex);
 
-        // 检查依赖是否已满足
-        if (!checkDependencies(plan, currentStep)) {
-            return CompletableFuture.completedFuture(SkillResult.failure("步骤依赖未满足：" + currentStep.getId()));
+        // 检查依赖是否已满足（包括依赖步骤是否执行成功）
+        String dependencyError = checkDependencies(plan, currentStep);
+        if (dependencyError != null) {
+            // 依赖未满足，记录失败原因，跳过该步骤，继续执行
+            plan.getContext().put(currentStep.getId(), SkillResult.failure("[依赖未满足] " + dependencyError));
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().warning("[DEBUG] 步骤 " + currentStep.getId() + " 因依赖未满足被跳过: " + dependencyError);
+            }
+            return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history);
         }
 
         if (plugin.getConfigManager().isDebugMode()) {
@@ -89,14 +101,18 @@ public class TaskExecutor {
         // 构建步骤上下文（可能失败，如占位符解析失败）
         BuildContextResult buildResult = buildStepContext(currentStep, plan, baseContext);
         if (buildResult.isFailed()) {
-            // 占位符解析失败，终止执行
-            return CompletableFuture.completedFuture(SkillResult.failure(buildResult.errorMessage));
+            // 占位符解析失败，记录失败原因，跳过该步骤，继续执行
+            plan.getContext().put(currentStep.getId(), SkillResult.failure("[参数解析失败] " + buildResult.errorMessage));
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().warning("[DEBUG] 步骤 " + currentStep.getId() + " 因参数解析失败被跳过: " + buildResult.errorMessage);
+            }
+            return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history);
         }
         SkillContext stepContext = buildResult.context;
 
         // 执行技能
         return skillManager.executeSkillByIntent(intent, stepContext).thenCompose(result -> {
-            // 保存结果到上下文
+            // 保存结果到上下文（无论成功失败）
             plan.getContext().put(currentStep.getId(), result);
 
             // 继续执行下一步
@@ -175,17 +191,34 @@ public class TaskExecutor {
 
     /**
      * 检查步骤依赖是否已满足
+     * <p>
+     * 不仅检查依赖步骤是否存在，还检查依赖步骤是否执行成功
+     *
+     * @return null 表示依赖满足，否则返回失败原因
      */
-    private boolean checkDependencies(TaskPlan plan, TaskStep step) {
+    private String checkDependencies(TaskPlan plan, TaskStep step) {
         for (String dependencyId : step.getDependsOn()) {
-            if (!plan.getContext().containsKey(dependencyId)) {
+            Object result = plan.getContext().get(dependencyId);
+
+            // 依赖步骤不存在
+            if (result == null) {
+                String error = "依赖步骤 " + dependencyId + " 尚未执行";
                 if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().warning("[DEBUG] 依赖未满足：" + dependencyId);
+                    plugin.getLogger().warning("[DEBUG] " + error);
                 }
-                return false;
+                return error;
+            }
+
+            // 依赖步骤执行失败
+            if (result instanceof SkillResult skillResult && !skillResult.isSuccess()) {
+                String error = "依赖步骤 " + dependencyId + " 执行失败";
+                if (plugin.getConfigManager().isDebugMode()) {
+                    plugin.getLogger().warning("[DEBUG] " + error);
+                }
+                return error;
             }
         }
-        return true;
+        return null;
     }
 
     /**
@@ -198,8 +231,7 @@ public class TaskExecutor {
             PlaceholderResolveResult result = resolvePlaceholders(entry.getValue(), plan);
             if (result.isFailed()) {
                 // 占位符解析失败，终止执行
-                String errorMsg = String.format("步骤 %s 的参数 '%s' 解析失败：找不到 %s",
-                        step.getId(), entry.getKey(), result.failedPlaceholder);
+                String errorMsg = String.format("步骤 %s 的参数 '%s' 解析失败：找不到 %s", step.getId(), entry.getKey(), result.failedPlaceholder);
                 if (plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().warning("[DEBUG] " + errorMsg);
                 }
@@ -242,8 +274,7 @@ public class TaskExecutor {
             }
             // 占位符解析失败，返回失败信息
             if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().warning("[DEBUG] 占位符解析失败：" + placeholder +
-                        " (步骤 " + stepId + " 不存在或没有字段 " + fieldName + ")");
+                plugin.getLogger().warning("[DEBUG] 占位符解析失败：" + placeholder + " (步骤 " + stepId + " 不存在或没有字段 " + fieldName + ")");
             }
             return new PlaceholderResolveResult(null, placeholder);
         }
@@ -253,16 +284,22 @@ public class TaskExecutor {
 
     /**
      * 汇总所有步骤的结果，使用 LLMAnalysisService 进行最终分析
+     * <p>
+     * 结果格式结构化，明确标记每个步骤的执行状态（SUCCESS/FAILURE/SKIPPED）
      */
     private CompletableFuture<SkillResult> synthesizeResults(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history) {
         if (plugin.getConfigManager().isDebugMode()) {
             plugin.getLogger().info("[DEBUG] 所有步骤执行完成，开始分析结果...");
         }
 
-        // 构建结果摘要
+        // 构建结构化的结果摘要
         StringBuilder summary = new StringBuilder();
         summary.append("任务目标：").append(plan.getGoal()).append("\n\n");
         summary.append("[执行结果]\n");
+
+        int successCount = 0;
+        int failureCount = 0;
+        int skippedCount = 0;
 
         for (Map.Entry<String, Object> entry : plan.getContext().entrySet()) {
             String stepId = entry.getKey();
@@ -270,12 +307,29 @@ public class TaskExecutor {
 
             summary.append("- ").append(stepId).append(": ");
             if (result instanceof SkillResult skillResult) {
+                if (skillResult.isSuccess()) {
+                    summary.append("[SUCCESS] ");
+                    successCount++;
+                } else {
+                    // 通过消息前缀识别跳过状态
+                    String message = skillResult.getMessage();
+                    if (message != null && (message.startsWith("[依赖未满足]") || message.startsWith("[参数解析失败]"))) {
+                        summary.append("[SKIPPED] ");
+                        skippedCount++;
+                    } else {
+                        summary.append("[FAILURE] ");
+                        failureCount++;
+                    }
+                }
                 summary.append(skillResult.getMessage());
             } else {
-                summary.append(result);
+                summary.append("[UNKNOWN] ").append(result);
             }
             summary.append("\n");
         }
+
+        // 添加统计摘要
+        summary.append("\n[统计] 成功: ").append(successCount).append(", 失败: ").append(failureCount).append(", 跳过: ").append(skippedCount);
 
         return analysisService.analyzeResult(summary.toString(), baseContext, history);
     }

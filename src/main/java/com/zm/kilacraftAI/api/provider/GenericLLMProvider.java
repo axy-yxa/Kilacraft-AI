@@ -113,7 +113,9 @@ public class GenericLLMProvider implements LLMProvider {
             }
         }
 
-        return ChineseTextUtil.toSearchQuery(businessContent);
+        // 使用配置的 topK 参数
+        int keywordTopK = configManager.getKeywordTopK();
+        return ChineseTextUtil.toSearchQuery(businessContent, keywordTopK);
     }
 
     /**

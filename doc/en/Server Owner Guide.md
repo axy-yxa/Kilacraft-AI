@@ -1,6 +1,6 @@
 # Kilacraft-AI - Lightweight AI Agent Built for Minecraft Servers
 
-> **🚀 v1.4.2 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
+> **🚀 v1.4.3 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
 > Enable every Minecraft server to have an intelligent AI assistant
 
 ---

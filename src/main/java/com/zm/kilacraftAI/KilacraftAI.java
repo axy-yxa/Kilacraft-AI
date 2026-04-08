@@ -23,6 +23,8 @@ import com.zm.kilacraftAI.util.ChineseTextUtil;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
+
 /**
  * 插件入口
  *
@@ -85,8 +87,10 @@ public final class KilacraftAI extends JavaPlugin {
         
         // 初始化自定义词典
         if (configManager.isCustomDictionaryEnabled()) {
-            ChineseTextUtil.initCustomDictionary(configManager.getCustomDictionaryWords());
-            getLogger().info("已加载 " + configManager.getCustomDictionaryWords().size() + " 个自定义词汇");
+            ChineseTextUtil.initCustomDictionary(configManager.getAllDictionaryWords());
+            getLogger().info("已加载 " + configManager.getInternalDictionaryWords().size() + " 个内置词汇");
+            List<String> customWords = configManager.getCustomDictionaryWords();
+            getLogger().info("已加载 " + (customWords != null ? customWords.size() : 0) + " 个自定义词汇");
         }
 
         // 初始化聊天监听器（需要在 LLM 管理器之后）

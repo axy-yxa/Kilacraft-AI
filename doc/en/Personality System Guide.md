@@ -1,6 +1,6 @@
 # Kilacraft-AI - Personality System Configuration Guide
 
-> **Version**: v1.4.2  
+> **Version**: v1.4.3  
 > **Description**: This document details how to configure and manage multiple AI personalities, giving each AI assistant a unique character and style
 
 ---
@@ -537,6 +537,6 @@ Use correspondingly:
 
 ---
 
-> **Last Updated**: 2026-04-07  
-> **Plugin Version**: 1.4.2+  
+> **Last Updated**: 2026-04-08  
+> **Plugin Version**: 1.4.3+  
 > **Tip**: Regularly update personality prompts to stay synchronized with server versions

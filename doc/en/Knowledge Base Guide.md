@@ -1,7 +1,8 @@
 # Kilacraft-AI - Knowledge Base Enhancement Guide
 
-> **Version**: v1.4.2  
+> **Version**: v1.4.3  
 > **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation
+> **Plugin Version**: 1.4.3+
 
 ---
 
@@ -335,11 +336,12 @@ Building a farm requires preparation:
 """
 ```
 
-**Chinese Word Segmentation Optimization**:
-- Uses **HanLP TF-IDF algorithm** for Chinese
-- Intelligently filters stop words ("的", "了", "吗", etc. - Chinese particles)
-- TF-IDF automatically extracts most important keywords, filters meaningless words
-- Supports synonym expansion
+**Chinese Word Segmentation Optimization (v1.4.3 update)**：
+- **Three-layer keyword extraction strategy**: Original query + segmentation result + TF-IDF keywords, compatible with both short text and long documents
+- **Single-character query optimization**: Supports queries like "弓", "剑" through custom dictionary and stop word checks
+- **Intelligent stop word filtering**: Filters meaningless words like "的", "了", "吗", etc.
+- **TF-IDF automatic important keyword extraction**: Based on HanLP TF-IDF algorithm to calculate keyword weights
+- **Built-in vocabulary support**: Loads built-in vocabulary from internal/vocabulary/ directory in JAR package, merges with custom vocabulary and automatically deduplicates
 
 ---
 
@@ -767,6 +769,6 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 
 ---
 
-> **Last Updated**: 2026-04-07  
-> **Plugin Version**: 1.4.2+  
+> **Last Updated**: 2026-04-08  
+> **Plugin Version**: 1.4.3+  
 > **Tip**: Regularly update knowledge base to keep content synchronized with server
