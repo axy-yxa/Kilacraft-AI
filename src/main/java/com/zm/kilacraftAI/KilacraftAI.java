@@ -44,7 +44,7 @@ public final class KilacraftAI extends JavaPlugin {
     @Getter
     private SkillConfigManager skillConfigManager;
     @Getter
-    private IntentPromptConfigManager intentPromptConfigManager; // 意图识别提示词配置管理器
+    private IntentPromptConfigManager intentPromptConfigManager;
     private ChatListener chatListener;
     private ConversationManager conversationManager;
     private KnowledgeBaseManager knowledgeBase;
@@ -58,34 +58,49 @@ public final class KilacraftAI extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
-
-        // 保存默认配置
         saveDefaultConfig();
 
-        // 初始化管理器
+        initializeManagers();
+        initializeKnowledgeSystem();
+        initializeChatAndCommands();
+        registerMythicMobsPlaceholders();
+        initializeSkillsSystem();
+        printStartupBanner();
+    }
+
+    /**
+     * 初始化基础管理器
+     */
+    private void initializeManagers() {
         configManager = new ConfigManager(this);
         languageManager = new LanguageManager(this);
         personalitiesConfigManager = new PersonalitiesConfigManager(this);
         conversationManager = new ConversationManager();
+    }
 
-        // 初始化知识库管理器
+    /**
+     * 初始化知识库系统
+     */
+    private void initializeKnowledgeSystem() {
+        // 知识库管理器（依赖 configManager）
         knowledgeBase = new KnowledgeBaseManager(this, getDataFolder().getAbsolutePath());
         knowledgeBase.loadAllKnowledge();
-        
-        // 初始化 LLM 管理器（优先级高，其他组件依赖它）
+
+        // LLM 管理器（优先级高，其他组件运行时依赖它）
         llmManager = new LLMManager();
 
-        // 初始化知识检索器（从配置读取参数）
-        int maxChunks = configManager.getMaxRelevantChunks();
-        int maxChunkSize = configManager.getKnowledgeMaxChunkSize();
-        int minChunkSize = configManager.getKnowledgeMinChunkSize();
-        int chunkOverlap = configManager.getKnowledgeChunkOverlap();
-        int keywordTopK = configManager.getKeywordTopK();
-        double bm25K1 = configManager.getBm25K1();
-        double bm25B = configManager.getBm25B();
-        knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, maxChunks, maxChunkSize, minChunkSize, chunkOverlap, keywordTopK, bm25K1, bm25B);
-        
-        // 初始化自定义词典
+        // 知识检索器（依赖 configManager + knowledgeBase）
+        knowledgeRetriever = new KnowledgeRetriever(
+                knowledgeBase,
+                configManager.getMaxRelevantChunks(),
+                configManager.getKnowledgeMaxChunkSize(),
+                configManager.getKnowledgeMinChunkSize(),
+                configManager.getKnowledgeChunkOverlap(),
+                configManager.getKeywordTopK(),
+                configManager.getBm25K1(),
+                configManager.getBm25B());
+
+        // 自定义词典（依赖 configManager）
         if (configManager.isCustomDictionaryEnabled()) {
             ChineseTextUtil.initCustomDictionary(configManager.getAllDictionaryWords());
             getLogger().info("已加载 " + configManager.getInternalDictionaryWords().size() + " 个内置词汇");
@@ -93,7 +108,15 @@ public final class KilacraftAI extends JavaPlugin {
             getLogger().info("已加载 " + (customWords != null ? customWords.size() : 0) + " 个自定义词汇");
         }
 
-        // 初始化聊天监听器（需要在 LLM 管理器之后）
+        // 物品翻译器（无外部依赖）
+        itemTranslator = new ItemTranslator();
+        itemTranslator.loadTranslationTable();
+    }
+
+    /**
+     * 初始化聊天监听器和命令注册
+     */
+    private void initializeChatAndCommands() {
         chatListener = new ChatListener(this);
 
         // 注册命令
@@ -104,22 +127,26 @@ public final class KilacraftAI extends JavaPlugin {
         } else {
             getLogger().severe("无法注册命令：kilacraft，请检查 plugin.yml 配置");
         }
-    
+
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(chatListener, this);
+    }
 
-        // 注册 MythicMobs 占位符（反射调用，运行时检测 JDK 版本）
+    /**
+     * 注册 MythicMobs 占位符（反射调用，运行时检测 JDK 版本）
+     * <p>使用反射避免编译时对 Java 21 的硬依赖</p>
+     */
+    private void registerMythicMobsPlaceholders() {
         try {
-            // 检测当前运行环境的 JDK 版本
             String javaVersion = System.getProperty("java.version");
             int majorVersion = Integer.parseInt(javaVersion.split("\\.")[0]);
-            
+
             if (majorVersion >= 21) {
                 Class<?> managerClass = Class.forName("com.zm.kilacraftAI.compat.mythicmobs.MythicMobsPlaceholderManager");
                 var constructor = managerClass.getConstructor(KilacraftAI.class);
-                var instance = constructor.newInstance(this);
+                var managerInstance = constructor.newInstance(this);
                 var method = managerClass.getMethod("registerPlaceholders");
-                method.invoke(instance);
+                method.invoke(managerInstance);
                 getLogger().info("MythicMobs 占位符注册成功");
             } else {
                 getLogger().warning("当前 JDK 版本为 " + javaVersion + "，MythicMobs 需要 Java 21+，跳过占位符注册");
@@ -132,37 +159,39 @@ public final class KilacraftAI extends JavaPlugin {
                 e.printStackTrace();
             }
         }
+    }
 
-        // 初始化物品翻译器
-        itemTranslator = new ItemTranslator();
-        itemTranslator.loadTranslationTable();
-        
-        // 初始化技能配置管理器
+    /**
+     * 初始化 Skills 系统
+     */
+    private void initializeSkillsSystem() {
+        // 技能配置管理器（依赖 plugin）
         skillConfigManager = new SkillConfigManager(this);
-        
-        // 加载所有技能配置
         skillConfigManager.loadAllSkillConfigs();
-        
-        // 初始化意图识别提示词配置管理器
+
+        // 意图识别提示词配置管理器（依赖 plugin）
         intentPromptConfigManager = new IntentPromptConfigManager(this);
-        
-        // 初始化 Skills 系统
+
+        // Skills 系统（依赖 skillConfigManager）
         skillManager = new SkillManager();
         registerDefaultSkills();
-        
-        // 初始化意图识别器
+
+        // 意图识别器（依赖 configManager + intentPromptConfigManager + skillManager）
         intentRecognizer = new SkillIntentRecognizer(configManager, intentPromptConfigManager, skillManager);
 
         // 延迟发现并注册第三方 SkillProvider 提供的 Skill
         getServer().getScheduler().runTaskLater(this, () -> new SkillRegistry(this, skillManager).discoverAndRegister(), 20L);
+    }
 
-        // ASCII Art 启动标志
+    /**
+     * 打印启动标志
+     */
+    private void printStartupBanner() {
         getLogger().info("╻┏ ╻╻  ┏━┓┏━╸┏━┓┏━┓┏━╸╺┳╸   ┏━┓╻");
         getLogger().info("┣┻┓┃┃  ┣━┫┃  ┣┳┛┣━┫┣╸  ┃ ╺━╸┣━┫┃");
         getLogger().info("╹ ╹╹┗━╸╹ ╹┗━╸╹┗╸╹ ╹╹   ╹    ╹ ╹╹");
         getLogger().info("版本：v" + getDescription().getVersion());
         getLogger().info("作者：Zm_Mmm");
-
     }
     
     /**
