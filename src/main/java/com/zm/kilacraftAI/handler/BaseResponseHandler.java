@@ -21,13 +21,13 @@ public abstract class BaseResponseHandler implements AIResponseHandler {
     
     @Override
     public void showResponse(String response) {
-        sendMessage(MessageUtil.getAIPrefix() + response);
+        sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response));
     }
     
     @Override
     public void showStreamChunk(String chunk, String currentMessage) {
         // 流式模式下每收到一个片段就显示
-        sendMessage(MessageUtil.getAIPrefix() + currentMessage);
+        sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(currentMessage));
     }
     
     @Override

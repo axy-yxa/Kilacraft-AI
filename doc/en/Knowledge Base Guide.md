@@ -769,6 +769,6 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 
 ---
 
-> **Last Updated**: 2026-04-08  
+> **Last Updated**: 2026-04-09  
 > **Plugin Version**: 1.4.3+  
 > **Tip**: Regularly update knowledge base to keep content synchronized with server

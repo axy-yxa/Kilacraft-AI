@@ -34,9 +34,10 @@ public class TaskExecutor {
      * @param plan        任务计划
      * @param baseContext 基础上下文
      * @param history     对话历史（用于二次分析时的上下文关联）
+     * @param userMessage 用户的原始输入（用于构建统一的分析摘要）
      * @return 最终执行结果
      */
-    public CompletableFuture<SkillResult> executeTask(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history) {
+    public CompletableFuture<SkillResult> executeTask(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history, String userMessage) {
         if (plugin.getConfigManager().isDebugMode()) {
             plugin.getLogger().info("[DEBUG] 共 " + plan.getStepCount() + " 个步骤");
         }
@@ -52,7 +53,7 @@ public class TaskExecutor {
         }
 
         // 递归执行所有步骤
-        return executeSteps(plan, sortedSteps, 0, baseContext, history);
+        return executeSteps(plan, sortedSteps, 0, baseContext, history, userMessage);
     }
 
     /**
@@ -71,11 +72,11 @@ public class TaskExecutor {
      * @param history     对话历史
      * @return 最终结果
      */
-    private CompletableFuture<SkillResult> executeSteps(TaskPlan plan, List<TaskStep> sortedSteps, int stepIndex, SkillContext baseContext, Deque<ConversationManager.Message> history) {
+    private CompletableFuture<SkillResult> executeSteps(TaskPlan plan, List<TaskStep> sortedSteps, int stepIndex, SkillContext baseContext, Deque<ConversationManager.Message> history, String userMessage) {
 
         if (stepIndex >= sortedSteps.size()) {
             // 所有步骤执行完成，进行最终分析
-            return synthesizeResults(plan, baseContext, history);
+            return synthesizeResults(plan, baseContext, history, userMessage);
         }
 
         TaskStep currentStep = sortedSteps.get(stepIndex);
@@ -88,7 +89,7 @@ public class TaskExecutor {
             if (plugin.getConfigManager().isDebugMode()) {
                 plugin.getLogger().warning("[DEBUG] 步骤 " + currentStep.getId() + " 因依赖未满足被跳过: " + dependencyError);
             }
-            return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history);
+            return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history, userMessage);
         }
 
         if (plugin.getConfigManager().isDebugMode()) {
@@ -106,7 +107,7 @@ public class TaskExecutor {
             if (plugin.getConfigManager().isDebugMode()) {
                 plugin.getLogger().warning("[DEBUG] 步骤 " + currentStep.getId() + " 因参数解析失败被跳过: " + buildResult.errorMessage);
             }
-            return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history);
+            return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history, userMessage);
         }
         SkillContext stepContext = buildResult.context;
 
@@ -116,7 +117,7 @@ public class TaskExecutor {
             plan.getContext().put(currentStep.getId(), result);
 
             // 继续执行下一步
-            return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history);
+            return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history, userMessage);
         });
     }
 
@@ -287,50 +288,45 @@ public class TaskExecutor {
      * <p>
      * 结果格式结构化，明确标记每个步骤的执行状态（SUCCESS/FAILURE/SKIPPED）
      */
-    private CompletableFuture<SkillResult> synthesizeResults(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history) {
+    private CompletableFuture<SkillResult> synthesizeResults(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history, String userMessage) {
         if (plugin.getConfigManager().isDebugMode()) {
             plugin.getLogger().info("[DEBUG] 所有步骤执行完成，开始分析结果...");
         }
 
-        // 构建结构化的结果摘要
-        StringBuilder summary = new StringBuilder();
-        summary.append("任务目标：").append(plan.getGoal()).append("\n\n");
-        summary.append("[执行结果]\n");
-
-        int successCount = 0;
-        int failureCount = 0;
-        int skippedCount = 0;
+        // 构建统一的分析摘要
+        AnalysisSummary summary = new AnalysisSummary().userMessage(userMessage).taskGoal(plan.getGoal());
 
         for (Map.Entry<String, Object> entry : plan.getContext().entrySet()) {
             String stepId = entry.getKey();
             Object result = entry.getValue();
 
-            summary.append("- ").append(stepId).append(": ");
             if (result instanceof SkillResult skillResult) {
                 if (skillResult.isSuccess()) {
-                    summary.append("[SUCCESS] ");
-                    successCount++;
+                    summary.addResult(stepId, "SUCCESS", skillResult.getMessage());
                 } else {
-                    // 通过消息前缀识别跳过状态
-                    String message = skillResult.getMessage();
-                    if (message != null && (message.startsWith("[依赖未满足]") || message.startsWith("[参数解析失败]"))) {
-                        summary.append("[SKIPPED] ");
-                        skippedCount++;
+                    String msg = skillResult.getMessage();
+                    if (msg != null && (msg.startsWith("[依赖未满足]") || msg.startsWith("[参数解析失败]"))) {
+                        summary.addResult(stepId, "SKIPPED", msg);
                     } else {
-                        summary.append("[FAILURE] ");
-                        failureCount++;
+                        summary.addResult(stepId, "FAILURE", msg);
                     }
                 }
-                summary.append(skillResult.getMessage());
             } else {
-                summary.append("[UNKNOWN] ").append(result);
+                summary.addResult(stepId, "UNKNOWN", String.valueOf(result));
             }
-            summary.append("\n");
         }
 
-        // 添加统计摘要
-        summary.append("\n[统计] 成功: ").append(successCount).append(", 失败: ").append(failureCount).append(", 跳过: ").append(skippedCount);
+        // 统计
+        int success = 0, failure = 0, skipped = 0;
+        for (var r : summary.getResults()) {
+            switch (r.status()) {
+                case "SUCCESS" -> success++;
+                case "SKIPPED" -> skipped++;
+                default -> failure++;
+            }
+        }
+        summary.statistics(success, failure, skipped);
 
-        return analysisService.analyzeResult(summary.toString(), baseContext, history);
+        return analysisService.analyzeResult(summary, baseContext, history);
     }
 }

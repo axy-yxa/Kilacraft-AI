@@ -91,8 +91,13 @@ public class GenericLLMProvider implements LLMProvider {
 
     /**
      * 提取搜索查询关键词
-     * <p>策略：以 analysis_prompt_suffix 为边界，只从业务内容中提取关键词，排除提示词干扰</p>
-     * 
+     *
+     * <p>策略：
+     * 1. 以 analysis_prompt_suffix 为边界，排除提示词干扰
+     * 2. 检测统一格式标记（[用户输入]、[执行结果]）→ 提取用户原始输入 + 执行结果的实际数据
+     * 3. 排除结构化标记（step_id、状态标签、颜色代码、统计信息）
+     * 4. 无标记时（普通对话）直接使用原始内容</p>
+     *
      * @param userMessage 完整的提示词（包含历史、当前输入、执行结果）
      * @return 优化后的搜索查询（空格分隔的关键词）
      */
@@ -101,21 +106,89 @@ public class GenericLLMProvider implements LLMProvider {
             return userMessage;
         }
 
+        String contentForExtraction = userMessage;
+
         // analysis_prompt_suffix 作为边界，只提取业务内容
         String suffix = plugin.getConfigManager().getAgentAnalysisPromptSuffix();
-        String businessContent = userMessage;
-        
         if (suffix != null && !suffix.isEmpty()) {
             int suffixIndex = userMessage.indexOf(suffix);
             if (suffixIndex > 0) {
-                // 只取 suffix 之前的业务内容
-                businessContent = userMessage.substring(0, suffixIndex);
+                contentForExtraction = userMessage.substring(0, suffixIndex);
             }
         }
 
+        // 检测统一格式标记（AnalysisSummary 产生的格式）
+        contentForExtraction = extractCleanContent(contentForExtraction);
+
         // 使用配置的 topK 参数
         int keywordTopK = configManager.getKeywordTopK();
-        return ChineseTextUtil.toSearchQuery(businessContent, keywordTopK);
+        return ChineseTextUtil.toSearchQuery(contentForExtraction, keywordTopK);
+    }
+
+    /**
+     * 从统一格式的摘要中提取干净的内容用于关键词提取
+     *
+     * <p>保留用户输入 + 执行结果的实际数据，去除结构化标记和颜色代码</p>
+     *
+     * @param content 截取后的业务内容
+     * @return 干净的文本内容
+     */
+    private String extractCleanContent(String content) {
+        // 检测统一格式标记
+        if (!content.contains("[执行结果]")) {
+            return content;
+        }
+
+        // 提取 [用户输入] 部分的内容
+        StringBuilder cleanContent = new StringBuilder();
+        int userInputStart = content.indexOf("[用户输入]");
+        if (userInputStart >= 0) {
+            int textStart = userInputStart + "[用户输入]".length();
+            int textEnd = findNextMarker(content, textStart);
+            String userInput = content.substring(textStart, textEnd).trim();
+            if (!userInput.isEmpty()) {
+                cleanContent.append(userInput).append(" ");
+            }
+        }
+
+        // 提取 [执行结果] 部分的实际数据（去除结构标记和颜色代码）
+        int resultsStart = content.indexOf("[执行结果]");
+        if (resultsStart >= 0) {
+            int textStart = resultsStart + "[执行结果]".length();
+            int textEnd = content.indexOf("[统计]");
+            if (textEnd < 0) textEnd = content.length();
+
+            String resultsSection = content.substring(textStart, textEnd);
+            // 去除 step_id、状态标签、颜色代码、行首标记
+            String cleaned = resultsSection
+                    .replaceAll("-\\s*step_\\w+:\\s*", "")  // 去除 "- step_1: "
+                    .replaceAll("-\\s*(?=\\[)", "")            // 去除行首 "- "（在状态标签前）
+                    .replaceAll("\\[(SUCCESS|FAILURE|SKIPPED|UNKNOWN)]\\s*", "") // 去除状态标签
+                    .replaceAll("§[0-9a-fk-orA-FK-OR]", "") // 去除颜色代码
+                    .replaceAll("^[\\s\\-]+", "")            // 去除开头的空白和连字符
+                    .replaceAll("\\n\\s*-\\s*", " ")       // 后续行的 "- " 替换为空格
+                    .trim();
+            if (!cleaned.isEmpty()) {
+                cleanContent.append(cleaned);
+            }
+        }
+
+        return cleanContent.toString().trim();
+    }
+
+    /**
+     * 查找下一个格式标记的位置
+     */
+    private int findNextMarker(String content, int fromIndex) {
+        String[] markers = {"[任务目标]", "[执行结果]", "[统计]"};
+        int nearest = content.length();
+        for (String marker : markers) {
+            int idx = content.indexOf(marker, fromIndex);
+            if (idx >= fromIndex && idx < nearest) {
+                nearest = idx;
+            }
+        }
+        return nearest;
     }
 
     /**

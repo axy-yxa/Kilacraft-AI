@@ -8,6 +8,7 @@ import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillIntent;
 import com.zm.kilacraftAI.skills.framework.task.LLMAnalysisService;
+import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import com.zm.kilacraftAI.util.AIRequestValidator;
@@ -47,7 +48,7 @@ public class AIRequestHandler {
      * 处理玩家 AI 请求
      */
     public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent) {
-        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, response -> player.sendMessage(MessageUtil.getAIPrefix() + response), error -> player.sendMessage(languageManager.getPluginCommandError() + error));
+        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, response -> player.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> player.sendMessage(languageManager.getPluginCommandError() + error));
         handleAIRequestInternal(message, ctx, enableAgent);
     }
 
@@ -58,7 +59,7 @@ public class AIRequestHandler {
         UUID consoleUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
         Deque<ConversationManager.Message> consoleHistory = getOrCreateHistory(consoleUUID);
 
-        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + response), error -> sender.sendMessage(languageManager.getPluginCommandError() + error));
+        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error));
         handleAIRequestInternal(message, ctx, enableAgent);
     }
 
@@ -112,7 +113,7 @@ public class AIRequestHandler {
         TaskExecutor taskExecutor = new TaskExecutor(plugin.getSkillManager(), analysisService);
         SkillContext context = new SkillContext(ctx.player(), null, new HashMap<>());
 
-        taskExecutor.executeTask(taskPlan, context, ctx.history()).thenAccept(execResult -> {
+        taskExecutor.executeTask(taskPlan, context, ctx.history(), message).thenAccept(execResult -> {
             if (plugin.getConfigManager().isDebugMode()) {
                 plugin.getLogger().info("[DEBUG] 任务计划执行完成：" + execResult.getMessage());
             }
@@ -136,7 +137,7 @@ public class AIRequestHandler {
                 if (plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().info("[DEBUG] 技能执行成功");
                 }
-                String summary = "用户说：" + message + "\n\n[执行结果]\n- " + execResult.getMessage();
+                AnalysisSummary summary = new AnalysisSummary().userMessage(message).addResult("SUCCESS", execResult.getMessage()).statistics(1, 0, 0);
                 return analysisService.analyzeResult(summary, context, ctx.history());
             } else {
                 return CompletableFuture.completedFuture(execResult);

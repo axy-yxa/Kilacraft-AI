@@ -6,26 +6,35 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-## v1.4.3 - Multi-Step Task Error Resilience & Keyword Optimization
+## v1.4.3 - Multi-Step Task Error Resilience, Analysis Architecture Upgrade & Response Experience Optimization
 
 ### ✨ New Features
 - Multi-step task error resilience: process continues even if some steps fail
+- AnalysisSummary unified object: single-intent and multi-step tasks share the same structured format for LLM comprehension and keyword extraction
+- Unified LLM secondary analysis: all skill execution results (including single-intent) go through LLM secondary analysis for more natural responses with context awareness
 - Built-in vocabulary loading: loads vocabulary files from internal/vocabulary/ directory in JAR package
 - Three-layer keyword extraction strategy: original query + segmentation result + TF-IDF keywords, compatible with both short text and long documents
 - Single-character query optimization: supports queries like "弓"、"剑" through custom dictionary and stop word checks
 - Structured result output: step execution status marked as [SUCCESS]/[FAILURE]/[SKIPPED], facilitating LLM secondary analysis
+- AI response Markdown auto-conversion: LLM output in Markdown format (**bold**, *italic*, `code`) is automatically converted to Minecraft color codes
+- Enhanced continuous conversation rules: added [Real-time Data Re-fetch Rule] and [Multi-step Task Repetition Rule] to resolve pronoun reference and multi-step truncation issues
 
 ### 🔧 Improvements
+- Plugin entry class refactoring: extracted onEnable() flat code into 6 clearly-named private methods, strictly preserving initialization order
+- Knowledge base keyword extraction noise reduction: precisely extracts user input + execution result data, removing structural noise like step_id, status tags, color codes, and leading hyphens
 - Enhanced dependency checking: not only checks if dependency step exists, but also whether it executed successfully
 - Placeholder parsing fault tolerance: skip failed steps and continue executing subsequent steps
 - Vocabulary merging and deduplication: uses LinkedHashSet to automatically deduplicate, merging built-in and custom vocabulary
-- Enhanced LLM prompt: added partial failure handling guidance, answer user questions based on successful steps
-- Configuration comment optimization: clarified actual usage scenarios of analysis_prompt_suffix
+- LLM secondary analysis prompt optimization: layered strategy (execution results = core facts, knowledge base = supplement, fabrication = prohibited), fixed title templates prohibited
+- system_prompt style positioning: warm and fun player-friend style for more lively and natural responses
+- Response length control: max_tokens adjusted to 500, normal AI conversation limited to 200 Chinese characters
+- Configuration comment optimization: clarified analysis_prompt_suffix dual usage for prompting and keyword extraction boundary
 
 ### ⚠️ Compatibility
 - Added internal/vocabulary/ directory for built-in vocabulary files
-- Added partial failure handling guidance to analysis_prompt_suffix in config file
-- Existing features fully compatible, no configuration changes required
+- Updated analysis_prompt_suffix and system_prompt configuration in config.yml
+- Added continuous conversation processing rules in intent_prompts.yml (real-time data re-fetch + multi-step task repetition)
+- Existing features fully compatible, recommended to use /kilacraft reload to reload configuration
 
 ---
 
@@ -342,4 +351,4 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-**Last Updated**: 2026-04-27
+**Last Updated**: 2026-04-09

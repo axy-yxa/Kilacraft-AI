@@ -34,16 +34,20 @@ public class LLMAnalysisService {
     /**
      * 分析执行结果并生成最终回复
      *
-     * <p>调用方负责构建结果摘要，服务只负责调用 LLM 进行分析</p>
+     * <p>基于 AnalysisSummary 统一格式构建提示词，支持历史对话上下文</p>
      *
-     * @param resultsSummary 结果摘要（由调用方构建）
-     * @param context        执行上下文
-     * @param history        对话历史（用于上下文关联，可为 null）
+     * @param summary 统一的分析摘要
+     * @param context 执行上下文
+     * @param history 对话历史（用于上下文关联，可为 null）
      * @return 分析后的最终回复
      */
-    public CompletableFuture<SkillResult> analyzeResult(String resultsSummary, SkillContext context, Deque<ConversationManager.Message> history) {
+    public CompletableFuture<SkillResult> analyzeResult(AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history) {
+        String promptContent = summary.buildPrompt();
+        String keywordContent = summary.buildKeywordContent();
+
         if (configManager.isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] LLM 二次分析 - 结果摘要:\n" + resultsSummary);
+            plugin.getLogger().info("[DEBUG] LLM 二次分析 - 结果摘要:\n" + promptContent);
+            plugin.getLogger().info("[DEBUG] [知识库] 提取的内容: " + keywordContent);
         }
 
         String playerName = context.getPlayer() != null ? context.getPlayer().getName() : "Console";
@@ -52,13 +56,13 @@ public class LLMAnalysisService {
         // 构建分析提示词：执行结果 + 后缀
         String suffix = configManager.getAgentAnalysisPromptSuffix();
         String systemPrompt = configManager.getAgentSystemPrompt();
-        
+
         StringBuilder promptBuilder = new StringBuilder();
-        promptBuilder.append(resultsSummary);
+        promptBuilder.append(promptContent);
         if (suffix != null && !suffix.isEmpty()) {
             promptBuilder.append(suffix);
         }
-        
+
         String analysisPrompt = promptBuilder.toString();
 
         // 每次都获取最新的实例

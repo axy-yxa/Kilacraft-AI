@@ -1,6 +1,8 @@
 package com.zm.kilacraftAI.util;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import java.util.regex.Pattern;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -77,5 +79,40 @@ public class MessageUtil {
         if (sender != null) {
             sender.sendMessage(getFullThinkingMessage());
         }
+    }
+
+    // Markdown 加粗匹配模式：**text**
+    private static final Pattern MARKDOWN_BOLD = Pattern.compile("\\*\\*(.+?)\\*\\*");
+    // Markdown 斜体匹配模式：*text*
+    private static final Pattern MARKDOWN_ITALIC = Pattern.compile("(?<!\\*)\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)");
+    // Markdown 行内代码匹配模式：`text`
+    private static final Pattern MARKDOWN_CODE = Pattern.compile("`(.+?)`");
+
+    /**
+     * 将 Markdown 格式转换为 Minecraft 颜色代码
+     *
+     * <p>转换规则：
+     * <ul>
+     *   <li>**text** → §ltext§r（加粗）
+     *   <li>*text* → §otext§r（斜体，避免与加粗冲突）
+     *   <li>`text` → §7text§r（灰色，模拟代码样式）
+     * </ul>
+     *
+     * @param message 包含 Markdown 格式的原始消息
+     * @return 转换后的 Minecraft 颜色代码消息
+     */
+    public static String convertMarkdownToMinecraft(String message) {
+        if (message == null || message.isEmpty()) {
+            return message;
+        }
+
+        // 先处理行内代码（避免内部 ** 被错误处理）
+        message = MARKDOWN_CODE.matcher(message).replaceAll("§7$1§r");
+        // 处理加粗 **text**
+        message = MARKDOWN_BOLD.matcher(message).replaceAll("§l$1§r");
+        // 处理斜体 *text*
+        message = MARKDOWN_ITALIC.matcher(message).replaceAll("§o$1§r");
+
+        return message;
     }
 }
