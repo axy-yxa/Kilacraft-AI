@@ -6,18 +6,35 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-## v1.4.3 - Multi-Step Task Error Resilience, Analysis Architecture Upgrade & Response Experience Optimization
+## v1.4.3 - Multi-Step Task Error Resilience, Analysis Architecture Upgrade, Bukkit API Expansion, Response Experience Optimization & AFK Task System
 
 ### ✨ New Features
 - Multi-step task error resilience: process continues even if some steps fail
 - AnalysisSummary unified object: single-intent and multi-step tasks share the same structured format for LLM comprehension and keyword extraction
 - Unified LLM secondary analysis: all skill execution results (including single-intent) go through LLM secondary analysis for more natural responses with context awareness
+- **AFK Task System**: background monitoring task system supporting 11 event listeners
+  - Player dynamics: online/offline/death/teleport/level change/world switch
+  - Life behaviors: bed entry/bed leave/respawn/item break
+  - Environment: weather change
+  - Dual mode: notification (direct alert) + callback (auto-execute multi-step tasks)
+  - Auto management: auto-cancel on player offline, auto-cleanup on task completion
+  - Command integration: `/kilacraft afk` (query), `/kilacraft afk cancel` (cancel)
 - Built-in vocabulary loading: loads vocabulary files from internal/vocabulary/ directory in JAR package
 - Three-layer keyword extraction strategy: original query + segmentation result + TF-IDF keywords, compatible with both short text and long documents
 - Single-character query optimization: supports queries like "弓"、"剑" through custom dictionary and stop word checks
 - Structured result output: step execution status marked as [SUCCESS]/[FAILURE]/[SKIPPED], facilitating LLM secondary analysis
 - AI response Markdown auto-conversion: LLM output in Markdown format (**bold**, *italic*, `code`) is automatically converted to Minecraft color codes
 - Enhanced continuous conversation rules: added [Real-time Data Re-fetch Rule] and [Multi-step Task Repetition Rule] to resolve pronoun reference and multi-step truncation issues
+- **Bukkit API Expansion**: added 21 new APIs, total reaches 58 APIs (Player 31, World 20, Server 6)
+- **Multi-Step Data Passing Enhancement**: API return values automatically extracted to dataMap, subsequent steps can reference via `{step_x.field}`
+- Armor equipment query: get full armor set (helmet, chestplate, leggings, boots) with multi-step data passing support
+- Potion effects query: query all current potion effects (type, level, duration)
+- Target block query: get block player is looking at
+- Movement status detection: sneak/sprint status real-time query
+- Client info query: player locale, display name
+- Respawn point query: bed/respawn anchor respawn location
+- Total experience query: cumulative experience query
+- World details query: biome, temperature, humidity, sea level, entity statistics, raids, weather duration, world time details
 
 ### 🔧 Improvements
 - Plugin entry class refactoring: extracted onEnable() flat code into 6 clearly-named private methods, strictly preserving initialization order
@@ -29,12 +46,31 @@ This file records all important changes to the Kilacraft-AI plugin.
 - system_prompt style positioning: warm and fun player-friend style for more lively and natural responses
 - Response length control: max_tokens adjusted to 500, normal AI conversation limited to 200 Chinese characters
 - Configuration comment optimization: clarified analysis_prompt_suffix dual usage for prompting and keyword extraction boundary
+- GenericBukkitAPISkill enhancement: added 6 formatting methods (formatArmorContents, formatPotionEffects, formatBlock, formatBiome, formatRaids, formatWorldTime)
+- extractDataFromResult expansion: supports automatic extraction for 5 return value types: ItemStack[], Set<PotionEffect>, Block, Biome, Collection<Raid>
+- Multi-step compatibility: all API descriptions explicitly declare referenceable data fields
+- Security review: removed server network info APIs (port, IP, view_distance, idle_timeout) to prevent sensitive information leakage
+- Spigot 1.16.5 compatibility verification: all APIs validated against official documentation
+- AFK Task System optimization: factory pattern decoupling, context consistency optimization, delayed feedback without history injection
+
+### 📚 Documentation Updates
+- **Server Owner Guide / 服主指南.md**: Added AFK Task System section (feature showcase, usage examples, command list)
+- **README.md / README.en.md**: Added AFK Task System to core features, added callback mode to usage examples
+- **AFK Task System Guide.md**: 658 lines system architecture documentation
+- **Bukkit Event Listener Reference Manual.md**: 642 lines detailed documentation
 
 ### ⚠️ Compatibility
 - Added internal/vocabulary/ directory for built-in vocabulary files
 - Updated analysis_prompt_suffix and system_prompt configuration in config.yml
 - Added continuous conversation processing rules in intent_prompts.yml (real-time data re-fetch + multi-step task repetition)
+- Added 21 new Bukkit API configurations, automatically created on first startup
+- Existing 37 APIs fully compatible, no configuration changes required
+- Total APIs expanded from 37 to 58
+- Supports hot reloading of API configuration via `/kilacraft reload`
+- New permission nodes: kilacraft.api.player.status (armor, potion effects, etc.)
+- New permission nodes: kilacraft.afk (default: all players)
 - Existing features fully compatible, recommended to use /kilacraft reload to reload configuration
+- Fully backward compatible, no configuration changes required
 
 ---
 
@@ -351,4 +387,4 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-**Last Updated**: 2026-04-09
+**Last Updated**: 2026-04-10

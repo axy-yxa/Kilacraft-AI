@@ -34,6 +34,10 @@ public class LanguageManager {
     private String helpPersonalities;
     @Getter
     private String helpPersonalitiesSubcommands;
+    @Getter
+    private String helpAfk;
+    @Getter
+    private String helpAfkSubcommands;
 
     // ==================== 权限相关消息 ====================
     @Getter
@@ -176,6 +180,8 @@ public class LanguageManager {
         this.helpKnowledge = config.getString("help.knowledge", "§e使用方法：/kilacraft knowledge reload");
         this.helpPersonalities = config.getString("help.personalities", "§e使用方法：/kilacraft personalities reload");
         this.helpPersonalitiesSubcommands = config.getString("help.personalities-subcommands", "§e可用子命令：reload - 重新加载人格配置");
+        this.helpAfk = config.getString("help.afk", "§e查询挂机任务：/kilacraft afk");
+        this.helpAfkSubcommands = config.getString("help.afk-subcommands", "§e可用子命令：query(查询), cancel(取消)");
 
         // 权限相关消息
         this.permissionReload = config.getString("permissions.reload", "§c你没有权限重载配置！");

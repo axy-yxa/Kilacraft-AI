@@ -154,7 +154,10 @@ public class AIRequestHandler {
                     plugin.getLogger().warning("[DEBUG] 技能执行失败：" + finalResult.getMessage());
                     plugin.getLogger().warning("[DEBUG] 已回退到普通 AI 处理");
                 }
-                handleNormalAIRequest(message, ctx);
+                // 将技能失败信息注入消息上下文，回退到普通AI兜底
+                // LLM看到失败信息后可以理解原因并引导玩家（如提示取消旧的挂机任务）
+                String enrichedMessage = message + "\n[系统提示：技能执行失败 - " + finalResult.getMessage() + "]";
+                handleNormalAIRequest(enrichedMessage, ctx);
             }
         }).exceptionally(throwable -> {
             ctx.sendError.accept(throwable.getMessage());

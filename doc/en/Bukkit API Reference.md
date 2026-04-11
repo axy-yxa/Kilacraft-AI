@@ -5,16 +5,95 @@
 
 ---
 
+## 📊 Bukkit API Quick Reference
+
+### 👤 Player APIs (31)
+
+| API ID | Display Name | Function | Call Mode | Permission |
+|--------|-------------|----------|-----------|------------|
+| `get_player_hand_item` | Get Player Main Hand Item | Get main hand item info | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_offhand_item` | Get Player Off Hand Item | Get off hand item info | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_armor_contents` | Get Player Armor | Get 4 armor slot items | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_inventory` | Get Player Inventory | Get all inventory items | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_health` | Get Player Health | Get current/max health | method_chain | `kilacraft.api.player.status` |
+| `get_player_hunger` | Get Player Hunger | Get current/max hunger | method_chain | `kilacraft.api.player.status` |
+| `get_player_level` | Get Player Level | Get current level/exp | method_chain | `kilacraft.api.player.status` |
+| `get_player_gamemode` | Get Player Gamemode | Get current gamemode | method_chain | `kilacraft.api.player.status` |
+| `get_player_location` | Get Player Location | Get coordinates/world/direction | method_chain | `kilacraft.api.player.location` |
+| `get_player_velocity` | Get Player Velocity | Get movement speed/direction | method_chain | `kilacraft.api.player.location` |
+| `get_player_fly_status` | Get Player Fly Status | Get fly mode/allow fly/speed | method_chain | `kilacraft.api.player.status` |
+| `get_player_game_time` | Get Player Game Time | Get player-specific game time | method_chain | `kilacraft.api.player.info` |
+| `get_player_statistics` | Get Player Statistics | Get custom statistics | method_chain | `kilacraft.api.player.stats` |
+| `get_player_max_health` | Get Player Max Health | Get maximum health value | method_chain | `kilacraft.api.player.status` |
+| `get_player_absorption` | Get Player Absorption | Get absorption hearts | method_chain | `kilacraft.api.player.status` |
+| `get_player_saturation` | Get Player Saturation | Get saturation value | method_chain | `kilacraft.api.player.status` |
+| `get_player_exhaustion` | Get Player Exhaustion | Get exhaustion value | method_chain | `kilacraft.api.player.status` |
+| `get_player_food_level` | Get Player Food Level | Get food level | method_chain | `kilacraft.api.player.status` |
+| `get_player_total_experience` | Get Player Total Exp | Get total experience | method_chain | `kilacraft.api.player.status` |
+| `get_player_exp` | Get Player Exp Progress | Get exp bar progress | method_chain | `kilacraft.api.player.status` |
+| `get_player_exp_to_level` | Get Exp to Next Level | Get exp needed for next level | method_chain | `kilacraft.api.player.status` |
+| `get_player_display_name` | Get Player Display Name | Get display name | method_chain | `kilacraft.api.player.info` |
+| `get_player_ip` | Get Player IP | Get IP address | method_chain | `kilacraft.api.player.info` |
+| `get_player_port` | Get Player Port | Get port number | method_chain | `kilacraft.api.player.info` |
+| `get_player_address` | Get Player Address | Get full address | method_chain | `kilacraft.api.player.info` |
+| `get_player_unique_id` | Get Player UUID | Get unique identifier | method_chain | `kilacraft.api.player.info` |
+| `get_player_first_played` | Get Player First Join | Get first join time | method_chain | `kilacraft.api.player.info` |
+| `get_player_last_played` | Get Player Last Seen | Get last seen time | method_chain | `kilacraft.api.player.info` |
+| `get_player_is_banned` | Get Player Ban Status | Check if banned | method_chain | `kilacraft.api.player.info` |
+| `get_player_is_op` | Get Player OP Status | Check if OP | method_chain | `kilacraft.api.player.info` |
+| `get_player_is_online` | Get Player Online Status | Check if online | method_chain | `kilacraft.api.player.info` |
+
+### 🌍 World APIs (21)
+
+| API ID | Display Name | Function | Call Mode | Permission |
+|--------|-------------|----------|-----------|------------|
+| `get_world_time` | Get World Time | Get game time (HH:MM) | method_chain | `kilacraft.api.world.info` |
+| `get_world_full_time` | Get World Full Time | Get total ticks | method_chain | `kilacraft.api.world.info` |
+| `get_world_day` | Get World Day | Get day count | method_chain | `kilacraft.api.world.info` |
+| `get_world_difficulty` | Get World Difficulty | Get difficulty level | method_chain | `kilacraft.api.world.info` |
+| `get_world_environment` | Get World Environment | Get environment type | method_chain | `kilacraft.api.world.info` |
+| `get_world_weather` | Get World Weather | Get weather status | method_chain | `kilacraft.api.world.info` |
+| `get_world_storm_duration` | Get Storm Duration | Get rain remaining time | method_chain | `kilacraft.api.world.info` |
+| `get_world_thunder_duration` | Get Thunder Duration | Get thunder remaining time | method_chain | `kilacraft.api.world.info` |
+| `get_world_spawn_location` | Get World Spawn | Get spawn point coordinates | method_chain | `kilacraft.api.world.info` |
+| `get_world_max_height` | Get World Max Height | Get maximum height | method_chain | `kilacraft.api.world.info` |
+| `get_world_min_height` | Get World Min Height | Get minimum height | method_chain | `kilacraft.api.world.info` |
+| `get_world_chunk_count` | Get Loaded Chunks | Get loaded chunk count | method_chain | `kilacraft.api.world.info` |
+| `get_world_entity_count` | Get World Entities | Get entity count | method_chain | `kilacraft.api.world.info` |
+| `get_world_living_entity_count` | Get Living Entities | Get living entity count | method_chain | `kilacraft.api.world.info` |
+| `get_world_player_count` | Get World Players | Get player count in world | method_chain | `kilacraft.api.world.info` |
+| `get_world_name` | Get World Name | Get world name | method_chain | `kilacraft.api.world.info` |
+| `get_world_seed` | Get World Seed | Get world seed | method_chain | `kilacraft.api.world.info` |
+| `get_world_is_pvp_allowed` | Get PvP Status | Check if PvP allowed | method_chain | `kilacraft.api.world.info` |
+| `get_world_is_hardcore` | Get Hardcore Status | Check if hardcore mode | method_chain | `kilacraft.api.world.info` |
+| `get_world_is_natural_regeneration` | Get Natural Regen | Check natural regeneration | method_chain | `kilacraft.api.world.info` |
+| `get_world_ultra_warm` | Get Ultra Warm | Check if ultra warm | method_chain | `kilacraft.api.world.info` |
+
+### 🖥️ Server APIs (6)
+
+| API ID | Display Name | Function | Call Mode | Permission |
+|--------|-------------|----------|-----------|------------|
+| `get_online_players` | Get Online Players | Get online player count and list | method_chain | `kilacraft.api.server.info` |
+| `get_max_players` | Get Max Players | Get max player limit | method_chain | `kilacraft.api.server.info` |
+| `get_server_version` | Get Server Version | Get server version | method_chain | `kilacraft.api.server.info` |
+| `get_server_motd` | Get Server MOTD | Get server description | method_chain | `kilacraft.api.server.info` |
+| `get_server_worlds` | Get All Worlds | Get all world names | method_chain | `kilacraft.api.server.info` |
+| `get_server_name` | Get Server Name | Get server name | method_chain | `kilacraft.api.server.info` |
+
+**Statistics**: Total **58 APIs** (Player 31 + World 21 + Server 6)
+
+---
+
 ## 📖 Overview
 
-Kilacraft-AI includes **37 built-in Bukkit APIs**, allowing AI to access various data from the Minecraft server. These APIs are defined through YAML configuration and can be used without writing code.
+Kilacraft-AI includes **58 built-in Bukkit APIs**, allowing AI to access various data from the Minecraft server. These APIs are defined through YAML configuration and can be used without writing code.
 
 ### Core Features
 
 - ✅ **Data-driven configuration**: Define APIs in `apis.yml`, supports hot reload
 - ✅ **Permission control**: Each API can have independent access permissions
 - ✅ **Dual-mode execution**: Supports method_chain (chained calls) and additional_methods (parallel calls)
-- ✅ **Smart formatting**: Automatically handles complex types (Location, ItemStack, GameMode, etc.)
+- ✅ **Smart formatting**: Automatically handles complex types (Location, ItemStack, GameMode, ItemStack[], Set<PotionEffect>, etc.)
 - ✅ **Error isolation**: API execution failures don't affect other features
 
 ### Configuration File Location
@@ -642,6 +721,267 @@ get_player_pose:
 
 ---
 
+#### get_player_armor
+
+**Function**: Get player armor equipment
+
+```yaml
+get_player_armor:
+  id: "get_player_armor"
+  display_name: "Get Player Armor"
+  description: "Get all armor currently worn by the player (helmet, chestplate, leggings, boots). The returned data contains helmet, chestplate, leggings, boots fields for subsequent steps to reference."
+  usage_scenarios:
+    - "What armor am I wearing"
+    - "Check my armor"
+    - "My armor"
+  target_type: "Player"
+  required_permission: "kilacraft.api.player.inventory"
+  method_chain:
+    - "getInventory"
+    - "getArmorContents"
+```
+
+**Usage Example**:
+```
+Player: What armor am I wearing?
+AI: Your armor equipment:
+• Helmet: Diamond Helmet
+• Chestplate: Diamond Chestplate
+• Leggings: Diamond Leggings
+• Boots: Iron Boots
+```
+
+**Multi-step Data Passing**:
+The returned data contains `helmet`, `chestplate`, `leggings`, `boots` fields. Subsequent steps can reference them via `{step_xxx.helmet}`, etc.
+
+---
+
+#### get_player_potion_effects
+
+**Function**: Get player potion effects
+
+```yaml
+get_player_potion_effects:
+  id: "get_player_potion_effects"
+  display_name: "Get Player Potion Effects"
+  description: "Get all active potion effects (including effect name, level, remaining time). The returned data contains effects field (effect list) for subsequent steps to reference."
+  usage_scenarios:
+    - "What potion effects do I have"
+    - "My buffs"
+    - "Am I poisoned"
+  target_type: "Player"
+  required_permission: "kilacraft.api.player.status"
+  method_chain:
+    - "getActivePotionEffects"
+```
+
+**Usage Example**:
+```
+Player: What potion effects do I have?
+AI: Current potion effects:
+• Speed II (remaining 2:30)
+• Regeneration I (remaining 0:45)
+```
+
+**Multi-step Data Passing**:
+The returned data contains `effects` field (effect list). Subsequent steps can reference it via `{step_xxx.effects}`.
+
+---
+
+#### get_player_target_block
+
+**Function**: Get player target block
+
+```yaml
+get_player_target_block:
+  id: "get_player_target_block"
+  display_name: "Get Player Target Block"
+  description: "Get the block the player is currently aiming at (max distance 100 blocks). The returned data contains block_type, x, y, z fields for subsequent steps to reference."
+  usage_scenarios:
+    - "What block am I looking at"
+    - "The block I'm staring at"
+    - "My aim position"
+  target_type: "Player"
+  required_permission: "kilacraft.api.player.info"
+  method_chain:
+    - "getTargetBlock"
+```
+
+**Usage Example**:
+```
+Player: What block am I looking at?
+AI: You're aiming at: Diamond Ore (X=128, Y=16, Z=-256)
+```
+
+**Multi-step Data Passing**:
+The returned data contains `block_type`, `x`, `y`, `z` fields. Subsequent steps can reference them via `{step_xxx.block_type}`, etc.
+
+---
+
+#### get_player_sneak_status
+
+**Function**: Get player sneak status
+
+```yaml
+get_player_sneak_status:
+  id: "get_player_sneak_status"
+  display_name: "Get Player Sneak Status"
+  description: "Check if the player is currently sneaking (Shift key)"
+  usage_scenarios:
+    - "Am I sneaking"
+    - "Am I crouching"
+  target_type: "Player"
+  required_permission: "kilacraft.api.player.status"
+  method_chain:
+    - "isSneaking"
+```
+
+**Usage Example**:
+```
+Player: Am I crouching?
+AI: Yes, you are sneaking
+```
+
+---
+
+#### get_player_sprint_status
+
+**Function**: Get player sprint status
+
+```yaml
+get_player_sprint_status:
+  id: "get_player_sprint_status"
+  display_name: "Get Player Sprint Status"
+  description: "Check if the player is currently sprinting (double-tap W)"
+  usage_scenarios:
+    - "Am I running"
+    - "Am I sprinting"
+  target_type: "Player"
+  required_permission: "kilacraft.api.player.status"
+  method_chain:
+    - "isSprinting"
+```
+
+**Usage Example**:
+```
+Player: Am I running?
+AI: No, you are not currently sprinting
+```
+
+---
+
+#### get_player_locale
+
+**Function**: Get player client language
+
+```yaml
+get_player_locale:
+  id: "get_player_locale"
+  display_name: "Get Player Client Language"
+  description: "Get the player's client language setting (e.g., zh_CN, en_US)"
+  usage_scenarios:
+    - "What is my game language"
+    - "My client language"
+  target_type: "Player"
+  required_permission: "kilacraft.api.player.info"
+  method_chain:
+    - "getLocale"
+```
+
+**Usage Example**:
+```
+Player: What is my game language?
+AI: Your client language: zh_CN (Simplified Chinese)
+```
+
+---
+
+#### get_player_display_name
+
+**Function**: Get player display name
+
+```yaml
+get_player_display_name:
+  id: "get_player_display_name"
+  display_name: "Get Player Display Name"
+  description: "Get the player's display name (may include prefix/suffix, different from getName)"
+  usage_scenarios:
+    - "What is my display name"
+    - "What do others see me as"
+  target_type: "Player"
+  required_permission: "kilacraft.api.player.info"
+  method_chain:
+    - "getDisplayName"
+```
+
+**Usage Example**:
+```
+Player: What do others see me as?
+AI: Your display name: [VIP] Player123
+```
+
+---
+
+#### get_player_bed_spawn
+
+**Function**: Get player bed spawn location
+
+```yaml
+get_player_bed_spawn:
+  id: "get_player_bed_spawn"
+  display_name: "Get Player Bed Spawn"
+  description: "Get the player's bed spawn location (returns null if not set). The returned data contains x, y, z, world fields for subsequent steps to reference."
+  usage_scenarios:
+    - "Where is my bed"
+    - "My respawn point"
+    - "My bed location"
+  target_type: "Player"
+  required_permission: "kilacraft.api.player.info"
+  method_chain:
+    - "getBedSpawnLocation"
+```
+
+**Usage Example**:
+```
+Player: Where is my bed?
+AI: Your bed spawn location: X=256, Y=64, Z=128, World=world
+```
+
+**Multi-step Data Passing**:
+The returned data contains `x`, `y`, `z`, `world` fields. Subsequent steps can reference them via `{step_xxx.x}`, etc.
+
+---
+
+#### get_player_total_exp
+
+**Function**: Get player total experience
+
+```yaml
+get_player_total_exp:
+  id: "get_player_total_exp"
+  display_name: "Get Player Total Experience"
+  description: "Get the total accumulated experience from the start of the game (different from current level progress). The returned data contains total_exp field for subsequent steps to reference."
+  usage_scenarios:
+    - "How much total experience do I have"
+    - "My total experience"
+    - "How much experience have I accumulated since server start"
+  target_type: "Player"
+  required_permission: "kilacraft.api.player.status"
+  method_chain:
+    - "getTotalExperience"
+```
+
+**Usage Example**:
+```
+Player: How much total experience do I have?
+AI: Your total experience: 125,680
+```
+
+**Multi-step Data Passing**:
+The returned data contains `total_exp` field. Subsequent steps can reference it via `{step_xxx.total_exp}`.
+
+---
+
 ## 🌍 World-related APIs
 
 ### Time & Weather
@@ -820,6 +1160,341 @@ get_world_pvp:
   method_chain:
     - "getPVP"
 ```
+
+---
+
+#### get_world_biome
+
+**Function**: Get world biome
+
+```yaml
+get_world_biome:
+  id: "get_world_biome"
+  display_name: "Get World Biome"
+  description: "Get biome type at specified coordinates (e.g., plains, desert, forest). Defaults to player's current location. The returned data contains biome field for subsequent steps to reference."
+  usage_scenarios:
+    - "What biome am I in"
+    - "Is this a desert"
+    - "Current biome"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  method_chain:
+    - "getBiome"
+```
+
+**Usage Example**:
+```
+Player: What biome am I in?
+AI: Current biome: Plains
+```
+
+**Multi-step Data Passing**:
+The returned data contains `biome` field. Subsequent steps can reference it via `{step_xxx.biome}`.
+
+---
+
+#### get_world_temperature
+
+**Function**: Get world temperature
+
+```yaml
+get_world_temperature:
+  id: "get_world_temperature"
+  display_name: "Get World Temperature"
+  description: "Get temperature value at specified coordinates (affects mob spawning, snowfall, etc.). Defaults to player's current location. The returned data contains temperature field for subsequent steps to reference."
+  usage_scenarios:
+    - "What's the temperature here"
+    - "Will it snow here"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  method_chain:
+    - "getTemperature"
+```
+
+**Usage Example**:
+```
+Player: What's the temperature here?
+AI: Current temperature: 0.8 (no snow)
+```
+
+**Multi-step Data Passing**:
+The returned data contains `temperature` field. Subsequent steps can reference it via `{step_xxx.temperature}`.
+
+---
+
+#### get_world_humidity
+
+**Function**: Get world humidity
+
+```yaml
+get_world_humidity:
+  id: "get_world_humidity"
+  display_name: "Get World Humidity"
+  description: "Get humidity value at specified coordinates (affects rainfall probability). Defaults to player's current location. The returned data contains humidity field for subsequent steps to reference."
+  usage_scenarios:
+    - "What's the humidity here"
+    - "Does it rain often here"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  method_chain:
+    - "getHumidity"
+```
+
+**Usage Example**:
+```
+Player: Does it rain often here?
+AI: Current humidity: 0.3 (low rainfall probability)
+```
+
+**Multi-step Data Passing**:
+The returned data contains `humidity` field. Subsequent steps can reference it via `{step_xxx.humidity}`.
+
+---
+
+#### get_world_sea_level
+
+**Function**: Get world sea level
+
+```yaml
+get_world_sea_level:
+  id: "get_world_sea_level"
+  display_name: "Get World Sea Level"
+  description: "Get sea level height (Y coordinate) of current world"
+  usage_scenarios:
+    - "How high is the sea level"
+    - "Sea level of this world"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  method_chain:
+    - "getSeaLevel"
+```
+
+**Usage Example**:
+```
+Player: How high is the sea level?
+AI: Current world sea level: Y=63
+```
+
+---
+
+#### get_world_player_count
+
+**Function**: Get world player count
+
+```yaml
+get_world_player_count:
+  id: "get_world_player_count"
+  display_name: "Get World Player Count"
+  description: "Get number of players in current world"
+  usage_scenarios:
+    - "How many people in this world"
+    - "How many players in overworld"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  additional_methods:
+    player_count: "getPlayers.size"
+  result_template: "Current world player count: {player_count}"
+```
+
+**Usage Example**:
+```
+Player: How many players in overworld?
+AI: Current world player count: 5
+```
+
+---
+
+#### get_world_living_entities
+
+**Function**: Get world living entities count
+
+```yaml
+get_world_living_entities:
+  id: "get_world_living_entities"
+  display_name: "Get World Living Entities"
+  description: "Get number of all living entities (including players, monsters, animals, etc.) in current world"
+  usage_scenarios:
+    - "How many creatures in this world"
+    - "How many living things here"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  additional_methods:
+    living_entities: "getLivingEntities.size"
+  result_template: "Current world living entities count: {living_entities}"
+```
+
+**Usage Example**:
+```
+Player: How many creatures in this world?
+AI: Current world living entities count: 128
+```
+
+---
+
+#### get_world_entity_count
+
+**Function**: Get world entity count
+
+```yaml
+get_world_entity_count:
+  id: "get_world_entity_count"
+  display_name: "Get World Entity Count"
+  description: "Get total number of all entities (including creatures, items, minecarts, paintings, etc.) in current world"
+  usage_scenarios:
+    - "How many entities in this world"
+    - "Total entities here"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  additional_methods:
+    entity_count: "getEntities.size"
+  result_template: "Current world entity count: {entity_count}"
+```
+
+**Usage Example**:
+```
+Player: Total entities here?
+AI: Current world entity count: 456
+```
+
+---
+
+#### get_world_clear_weather_duration
+
+**Function**: Get clear weather duration
+
+```yaml
+get_world_clear_weather_duration:
+  id: "get_world_clear_weather_duration"
+  display_name: "Get Clear Weather Duration"
+  description: "Get remaining duration of current clear weather (ticks)"
+  usage_scenarios:
+    - "How long will clear weather last"
+    - "When will it rain"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  method_chain:
+    - "getClearWeatherDuration"
+```
+
+**Usage Example**:
+```
+Player: How long will clear weather last?
+AI: Clear weather remaining: 12000 ticks (about 10 minutes)
+```
+
+---
+
+#### get_world_thunder_duration
+
+**Function**: Get thunder duration
+
+```yaml
+get_world_thunder_duration:
+  id: "get_world_thunder_duration"
+  display_name: "Get Thunder Duration"
+  description: "Get remaining duration of current thunder weather (ticks)"
+  usage_scenarios:
+    - "How long will thunder last"
+    - "When will thunder end"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  method_chain:
+    - "getThunderDuration"
+```
+
+**Usage Example**:
+```
+Player: How long will thunder last?
+AI: Thunder remaining: 6000 ticks (about 5 minutes)
+```
+
+---
+
+#### get_world_full_time
+
+**Function**: Get world full time
+
+```yaml
+get_world_full_time:
+  id: "get_world_full_time"
+  display_name: "Get World Full Time"
+  description: "Get total running time of the world (ticks), unaffected by sleeping, continuously accumulates. The returned data contains full_time field for subsequent steps to reference."
+  usage_scenarios:
+    - "How long has this world been running"
+    - "World full time"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  method_chain:
+    - "getFullTime"
+```
+
+**Usage Example**:
+```
+Player: How long has this world been running?
+AI: World total running time: 2,400,000 ticks (about 33 hours 20 minutes)
+```
+
+**Multi-step Data Passing**:
+The returned data contains `full_time` field. Subsequent steps can reference it via `{step_xxx.full_time}`.
+
+---
+
+#### get_world_game_time
+
+**Function**: Get world game time
+
+```yaml
+get_world_game_time:
+  id: "get_world_game_time"
+  display_name: "Get World Game Time"
+  description: "Get total game time since world creation (ticks), unaffected by /time set. The returned data contains game_time field for subsequent steps to reference."
+  usage_scenarios:
+    - "How long has this world existed"
+    - "World game time"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  method_chain:
+    - "getGameTime"
+```
+
+**Usage Example**:
+```
+Player: How long has this world existed?
+AI: World game time: 5,000,000 ticks (about 69 hours 26 minutes)
+```
+
+**Multi-step Data Passing**:
+The returned data contains `game_time` field. Subsequent steps can reference it via `{step_xxx.game_time}`.
+
+---
+
+#### get_world_raids
+
+**Function**: Get world raids
+
+```yaml
+get_world_raids:
+  id: "get_world_raids"
+  display_name: "Get World Raids"
+  description: "Get all ongoing raids in current world. The returned data contains raids field (raid count) for subsequent steps to reference."
+  usage_scenarios:
+    - "Are there any raids now"
+    - "Is the village under attack"
+    - "Current raid events"
+  target_type: "World"
+  required_permission: "kilacraft.api.world.info"
+  method_chain:
+    - "getRaids"
+```
+
+**Usage Example**:
+```
+Player: Are there any raids now?
+AI: Currently 2 raid events in progress
+```
+
+**Multi-step Data Passing**:
+The returned data contains `raids` field (raid list). Subsequent steps can reference it via `{step_xxx.raids}`.
 
 ---
 
@@ -1136,4 +1811,4 @@ BukkitAPIExecutor uses reflection to call methods, and JVM automatically optimiz
 
 > **Last Updated**: 2026-04-08  
 > **Plugin Version**: 1.4.3+  
-> **Total APIs**: 37 (Player 23 + World 7 + Server 7)
+> **Total APIs**: 58 (Player 31 + World 21 + Server 6)

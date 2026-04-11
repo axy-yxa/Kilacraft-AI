@@ -7,6 +7,13 @@
 
 ## 💎 Core Advantages
 
+- 🚀 **Modern Agent Architecture (Plan-and-Execute + Function Calling)**
+  - **Harness Engineering** design pattern
+  - **Plan Phase**: LLM intelligently plans tasks (single intent or multi-step)
+  - **Execute Phase**: Topological sorting + recursive serial execution
+  - **Function Calling**: Dynamic Skill registration and invocation mechanism
+  - **Error Tolerance**: Step failures don't interrupt entire flow, intelligent degradation
+  - **RAG-Enhanced Architecture**: HanLP TF-IDF + BM25 algorithm
 - **🚀 Zero Middleware Dependencies**: Only one JAR file, no database, Redis or other extra services needed
 - **💾 Extremely Low Memory Usage**: Small servers only need 8-12 MB, large servers about 30-50 MB (traditional solutions need 2-5 GB)
 - **⚡ Out of the Box**: Complete configuration in 5 minutes, ready to use immediately
@@ -229,6 +236,30 @@ Final Response:
 
 ---
 
+#### 📐 Unified Structured Format
+
+**AnalysisSummary Unified Format:**
+
+Whether single-intent or multi-step tasks, LLM secondary analysis uses a unified structured output format:
+
+```
+[User Input]
+Is there anyone on the global market selling the item in my hand? How much is it?
+
+[Execution Results]
+- step_1: [SUCCESS] Item: Diamond
+- step_2: [SUCCESS] Diamond is for sale, stock: 2
+
+[Statistics] Success: 2, Failed: 0, Skipped: 0
+```
+
+**Advantages:**
+- Unified format, easy for debugging and troubleshooting
+- Clearly displays execution status of each step
+- Statistics at a glance
+
+---
+
 #### ⚙️ Flexible and Controllable Configuration
 
 ```
@@ -255,7 +286,16 @@ agent:
 
 #### 🛡️ Failure Fallback Mechanism
 
-If intent recognition fails or skill execution errors, system automatically falls back to normal AI dialogue:
+The system implements a comprehensive error guarantee mechanism, so even if some steps fail, the entire flow won't be interrupted:
+
+**Fault Tolerance for Multi-Step Tasks:**
+- ✅ **Dependency Check**: When a preceding step fails, automatically skip tasks dependent on that step, continue executing other steps
+- ✅ **Placeholder Resolution Failure**: Record failure reason, skip this step, continue executing subsequent steps
+- ✅ **Skill Execution Failure**: Record failure reason, don't interrupt flow, continue to next step
+- ✅ **Intelligent Result Synthesis**: LLM answers user questions to the best of its ability based on all successful step results
+
+**Global Failure Fallback:**
+- When intent recognition fails, automatically convert to normal AI dialogue
 
 ```
 Player: Help me check xxx (unrecognizable intent)
@@ -270,25 +310,11 @@ AI: Sorry, I don't quite understand what you mean. You can ask me:
     • "What products are on the market?"
 ```
 
-**Protection Measures:**
+**Technical Advantages:**
 - ✅ **Error Isolation**: Third-party Skill exceptions don't affect core processes
 - ✅ **Friendly Prompts**: Return meaningful error messages, not technical errors
 - ✅ **Detailed Logs**: Console records complete error information for troubleshooting
-
----
-
-#### 📈 Technical Advantages Summary
-
-| Feature | Description |
-|---------|-------------|
-| 🧠 **LLM Intelligent Planning** | Automatically determine whether single-intent or multi-step task |
-| 🔗 **Automatic Data Flow** | Previous step results injected into subsequent steps' entities |
-| 🛡️ **Failure Fallback** | When intent recognition or skill execution fails, automatically convert to normal AI dialogue |
-| ⚡ **Asynchronous Parallel Execution** | Non-dependent steps can execute in parallel, improving response speed |
-| 📊 **Topological Sorting Algorithm** | DFS-based circular dependency detection, ensuring correct execution order |
-| 💡 **Intelligent Result Analysis** | LLM comprehensively analyzes all step results, generates friendly responses |
-| 🎭 **Personality Expression** | Adjust response tone according to configured personality style |
-| 🌐 **Universality** | Applicable to all Skills (economy system, Bukkit API, third-party plugins) |
+- ✅ **Flow Resilience**: Step failures don't interrupt the entire flow, maximizing task success rate
 
 ---
 
@@ -399,9 +425,15 @@ AI: [Kilacraft-AI] Current products for sale list:
 
 ---
 
-### 6️⃣ Bukkit API Dynamic Invocation (37 Built-in APIs) (Extended Feature)
+### 6️⃣ Bukkit API Dynamic Invocation (58 Built-in APIs) (Extended Feature)
 
 No coding required, AI directly calls vanilla APIs to query player status, world info, server info!
+
+**Core Features:**
+- ✅ **Data-driven configuration**: Define APIs in YAML, supports hot reload
+- ✅ **Multi-step data passing**: API return values automatically extracted to dataMap, subsequent steps can reference via `{step_x.field}`
+- ✅ **Permission control**: Independent permission nodes for each API
+- ✅ **Error isolation**: API execution failures don't affect other features
 
 ```
 Player: What am I holding?
@@ -421,10 +453,10 @@ AI: [Kilacraft-AI] Online players: 15/100
 ```
 
 **Supported API Categories:**
-- 📦 **Player Inventory**: Main hand/offhand item queries
-- ❤️ **Player Status**: Health, hunger, oxygen, experience, sleep, attack cooldown, on fire, frozen, AFK
-- 📍 **Player Info**: Location coordinates, game mode, fly status, ping, vehicle, death point
-- 🌍 **World Info**: Time, weather, world type, seed, spawn point, height limit, mob spawning rules, PVP settings
+- 📦 **Player Inventory**: Main hand/offhand items, full armor set
+- ❤️ **Player Status**: Health, hunger, oxygen, experience, sleep, attack cooldown, on fire, frozen, pose, sneak/sprint, potion effects
+- 📍 **Player Info**: Location coordinates, game mode, fly status, ping, vehicle, death point, target block, locale, display name, respawn point
+- 🌍 **World Info**: Time, weather, world type, seed, spawn point, height limit, mob spawning rules, PVP settings, biome, temperature, humidity, sea level, entity statistics, raids, weather duration
 - 🖥️ **Server Info**: Online players, max players, version, MOTD, world list
 
 **Fine-Grained Permission Control:**
@@ -447,6 +479,58 @@ kilacraft.api.server.info       # Server info query
 #### 📚 Detailed Documentation
 
 For more technical details, please check [Bukkit API Reference Manual](./Bukkit%20API%20Reference).
+
+---
+
+### 7️⃣ AFK Task System (11 Event Listeners) (Extended Feature)
+
+Let AI "keep an eye out" for you! Create background monitoring tasks through natural language, with automatic notification or action execution when conditions are met.
+
+**Core Features:**
+- ✅ **Natural Language Creation**: Just tell AI "help me watch for xxx to come online"
+- ✅ **Notification / Callback Dual Mode**: Simple reminder or automatic multi-step task execution
+- ✅ **11 Event Listeners**: Covering player online/offline, death, teleport, level change, world switch, weather, sleeping, respawn, item break
+- ✅ **Automatic Resource Management**: Tasks auto-cancel when player goes offline, auto-cleanup on completion
+
+#### Usage Examples
+
+**Notification Mode** (direct reminder when event triggers):
+```
+Player: Help me watch for Steve to come online
+AI: OK! Monitoring task created. You'll be notified as soon as Steve comes online.
+
+(After Steve comes online...)
+🔔 AFK Task Alert: Steve has come online!
+```
+
+**Callback Mode** (automatically execute actions when event triggers):
+```
+Player: Watch for Steve to come online, then check what he's holding
+AI: OK! Monitoring task created. When Steve comes online, his held item will be automatically checked.
+
+(After Steve comes online...)
+🔔 AFK Task Alert:
+Steve is online! Detected him holding Diamond Sword x1 in main hand.
+```
+
+**Supported Monitoring Events:**
+- 👤 **Player Activity**: Online, offline, death, teleport, level change, world switch
+- 🌙 **Life Events**: Enter bed, leave bed, respawn, item break
+- 🌦️ **Environment**: Weather change
+
+**Manual Task Management:**
+```
+/kilacraft afk          # Query current AFK task
+/kilacraft afk cancel   # Cancel current AFK task
+```
+
+> 💡 **Tip**: Each player can only have one AFK task at a time. Tasks can be created and managed through AI conversation or commands.
+
+---
+
+#### 📚 Detailed Documentation
+
+For more technical details, please check [AFK Task System Guide](./AFK%20Task%20System%20Guide) and [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference).
 
 ---
 
@@ -583,6 +667,8 @@ Each message includes role + content fields, actually about 0.3-0.4 KB
 | `/kilacraft knowledge reload` | `kilacraft.knowledge` | Reload knowledge base |
 | `/kilacraft personalities reload` | `kilacraft.personalities` | Reload personality configuration |
 | `/kilacraft plugins <personality> <content> <UUID> [callback]` | Console only | Third-party plugin call (supports callback commands) |
+| `/kilacraft afk` | `kilacraft.afk` (default: all players) | Query current AFK task |
+| `/kilacraft afk cancel` | `kilacraft.afk` (default: all players) | Cancel current AFK task |
 
 ---
 
@@ -683,6 +769,7 @@ All Skills built into Kilacraft-AI follow **security first** principle:
 |-----------|----------|----------|
 | **MarketQuerySkill** | Query market info (balance, prices, product lists, etc.) | ✅ Read-only, won't consume items or money |
 | **GenericBukkitAPISkill** | Query player status, world info, server info | ✅ Read-only, only calls getter methods |
+| **AFKTaskSkill** | Create background monitoring tasks (online, offline, death, etc.) | ✅ Only registers event listeners, doesn't modify game state |
 
 **Why Secure?**
 - 📖 **Read-Only Operations**: All built-in Skills only query information, don't modify any game data
@@ -766,7 +853,8 @@ If you're a plugin developer, welcome to:
 ### 🏆 Integrated Plugins
 
 - ✅ **GlobalMarketPlus**: Deep economy system integration (balance, price, product queries)
-- ✅ **Bukkit API**: 37 vanilla API dynamic invocation (player status, world info, server info)
+- ✅ **Bukkit API**: 58 vanilla API dynamic invocation (player status, world info, server info) with multi-step data passing
+- ✅ **AFK Task System**: 11 event listeners, natural language background monitoring tasks, supports notification and callback dual mode
 - ✅ **MythicMobs**: Placeholder support (NPC displays AI replies)
 
 **Looking forward to your plugin being next!** 🎉
@@ -947,6 +1035,6 @@ This project uses **MIT License** - See [LICENSE](../LICENSE) file for details
 
 ---
 
-> **Last Updated**: 2026-04-07  
-> **Applicable Plugin Version**: Kilacraft-AI 1.4.2+  
+> **Last Updated**: 2026-04-10  
+> **Applicable Plugin Version**: Kilacraft-AI 1.4.3+  
 > **Open Source License**: MIT License

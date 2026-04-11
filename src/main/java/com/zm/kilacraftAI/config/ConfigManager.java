@@ -109,6 +109,14 @@ public class ConfigManager {
     @Getter
     private String agentAnalysisPromptSuffix; // LLM 分析提示词后缀（用于识别边界）
 
+    // 挂机任务配置
+    @Getter
+    private boolean afkTaskEnabled;            // 挂机任务总开关
+    @Getter
+    private int afkTaskMaxTasks;               // 最大并发任务数
+    @Getter
+    private int afkTaskCheckIntervalTicks;     // 定时轮询间隔（ticks）
+
     // LLM 提供商配置（通用）
     @Getter
     private String llmApiKey;                  // LLM API 密钥
@@ -209,6 +217,11 @@ public class ConfigManager {
         this.llmApiKey = config.getString("llm.api_key", "");
         this.llmApiUrl = config.getString("llm.api_url", "https://api.deepseek.com/v1/chat/completions");
         this.llmModel = config.getString("llm.model", "deepseek-chat");
+
+        // 挂机任务配置
+        this.afkTaskEnabled = config.getBoolean("afk_task.enabled", true);
+        this.afkTaskMaxTasks = config.getInt("afk_task.max_tasks", 10);
+        this.afkTaskCheckIntervalTicks = config.getInt("afk_task.check_interval_ticks", 20);
 
         // 通知 LLM 管理器刷新配置缓存
         refreshLLMConfigCache();

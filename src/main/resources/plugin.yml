@@ -64,6 +64,9 @@ permissions:
   kilacraft.personalities:
     description: 允许管理人格配置
     default: op                # 默认仅 OP 拥有此权限
+  kilacraft.afk:
+    description: 允许查询和取消挂机任务
+    default: true              # 默认所有玩家可用
 
   # Bukkit API 技能权限（按功能类别分组）
   # 玩家相关 API 分为三类：inventory(物品栏)、status(实时状态)、info(基础信息)

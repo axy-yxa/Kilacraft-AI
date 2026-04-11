@@ -177,6 +177,52 @@ public class GenericBukkitAPISkill implements Skill {
             dataMap.put("y", vector.getY());
             dataMap.put("z", vector.getZ());
         }
+        // ItemStack[]：盔甲装备数组
+        else if (result instanceof org.bukkit.inventory.ItemStack[] armorContents) {
+            // Bukkit 盔甲数组顺序：[靴子, 护腿, 胸甲, 头盔]
+            String[] slotNames = {"boots", "leggings", "chestplate", "helmet"};
+            for (int i = 0; i < armorContents.length; i++) {
+                org.bukkit.inventory.ItemStack item = armorContents[i];
+                if (item != null && item.getType() != org.bukkit.Material.AIR) {
+                    String itemName = (item.hasItemMeta() && item.getItemMeta().hasDisplayName())
+                            ? item.getItemMeta().getDisplayName()
+                            : item.getType().name();
+                    dataMap.put(slotNames[i] + "_name", itemName);
+                    dataMap.put(slotNames[i] + "_type", item.getType().name());
+                    dataMap.put(slotNames[i] + "_amount", item.getAmount());
+                }
+            }
+        }
+        // Set<PotionEffect>：药水效果集合
+        else if (result instanceof java.util.Set<?> potionEffects) {
+            java.util.List<Map<String, Object>> effectsList = new java.util.ArrayList<>();
+            for (Object obj : potionEffects) {
+                if (obj instanceof org.bukkit.potion.PotionEffect effect) {
+                    Map<String, Object> effectData = new java.util.HashMap<>();
+                    effectData.put("type", effect.getType().getName());
+                    effectData.put("amplifier", effect.getAmplifier() + 1); // 0 = I, 1 = II
+                    effectData.put("duration_seconds", effect.getDuration() / 20);
+                    effectsList.add(effectData);
+                }
+            }
+            dataMap.put("effects", effectsList);
+            dataMap.put("effect_count", effectsList.size());
+        }
+        // Block：方块信息
+        else if (result instanceof org.bukkit.block.Block block) {
+            dataMap.put("block_type", block.getType().name());
+            dataMap.put("x", block.getX());
+            dataMap.put("y", block.getY());
+            dataMap.put("z", block.getZ());
+        }
+        // Biome：生物群系
+        else if (result instanceof org.bukkit.block.Biome biome) {
+            dataMap.put("biome", biome.name());
+        }
+        // Collection<Raid>：袭击列表
+        else if (result instanceof java.util.Collection<?> raids) {
+            dataMap.put("raids", raids.size());
+        }
         // 其他类型不提取额外字段，只保留 raw_result
     }
 
@@ -239,6 +285,34 @@ public class GenericBukkitAPISkill implements Skill {
             int percentage = Math.round(cooldown * 100);
             return "攻击冷却进度：" + percentage + "%";
         }
+        // 盔甲装备（ItemStack 数组）
+        if (result instanceof org.bukkit.inventory.ItemStack[] armorContents && api.getId().equals("get_player_armor")) {
+            return formatArmorContents(armorContents);
+        }
+        // 药水效果集合
+        if (result instanceof java.util.Collection<?> potionEffects && api.getId().equals("get_player_potion_effects")) {
+            return formatPotionEffects(potionEffects);
+        }
+        // 瞄准的方块
+        if (result instanceof org.bukkit.block.Block block && api.getId().equals("get_player_target_block")) {
+            return formatBlock(block);
+        }
+        // 生物群系
+        if (result instanceof org.bukkit.block.Biome biome && api.getId().equals("get_world_biome")) {
+            return formatBiome(biome);
+        }
+        // 温度/湿度（Double 类型）
+        if (result instanceof Double temp && (api.getId().equals("get_world_temperature") || api.getId().equals("get_world_humidity"))) {
+            return String.format("%.2f", temp);
+        }
+        // 袭击列表
+        if (result instanceof java.util.Collection<?> raids && api.getId().equals("get_world_raids")) {
+            return formatRaids(raids);
+        }
+        // 世界总时间/游戏时间（Long 类型）
+        if (result instanceof Long timeTicks && (api.getId().equals("get_world_full_time") || api.getId().equals("get_world_game_time"))) {
+            return formatWorldTime(timeTicks, api.getId());
+        }
         // Ping 延迟
         if (result instanceof Integer ping && api.getId().equals("get_player_ping")) {
             String quality = ping < 100 ? "极好" : (ping < 200 ? "良好" : (ping < 300 ? "一般" : "较差"));
@@ -254,9 +328,9 @@ public class GenericBukkitAPISkill implements Skill {
             return formatWithAdditionalMethods(api, mapResult);
         }
 
-        // Boolean 类型（如 isInsideVehicle、getAllowFlight 等）
+        // Boolean 类型（如 isInsideVehicle、getAllowFlight 等）— 附加上下文描述
         if (result instanceof Boolean bool) {
-            return bool ? "是" : "否";
+            return formatBooleanResult(api, bool);
         }
 
         // 其他类型默认返回 toString
@@ -624,6 +698,162 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
+     * 格式化盔甲装备（ItemStack 数组）
+     */
+    private String formatArmorContents(org.bukkit.inventory.ItemStack[] armor) {
+        if (armor == null || armor.length == 0) {
+            return "盔甲：无";
+        }
+
+        // Bukkit 盔甲数组顺序：[靴子, 护腿, 胸甲, 头盔]
+        String[] slotNames = {"靴子", "护腿", "胸甲", "头盔"};
+        StringBuilder sb = new StringBuilder();
+        boolean hasArmor = false;
+
+        for (int i = 0; i < armor.length; i++) {
+            org.bukkit.inventory.ItemStack item = armor[i];
+            if (item != null && item.getType() != org.bukkit.Material.AIR) {
+                if (hasArmor) sb.append("; ");
+                sb.append(slotNames[i]).append("：");
+                if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+                    sb.append(item.getItemMeta().getDisplayName());
+                } else {
+                    String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(item.getType().name());
+                    sb.append(chineseName);
+                }
+                if (item.getAmount() > 1) {
+                    sb.append(" x").append(item.getAmount());
+                }
+                hasArmor = true;
+            }
+        }
+
+        return hasArmor ? "盔甲：" + sb.toString() : "盔甲：无";
+    }
+
+    /**
+     * 格式化药水效果集合
+     */
+    private String formatPotionEffects(java.util.Collection<?> effects) {
+        if (effects == null || effects.isEmpty()) {
+            return "药水效果：无";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("药水效果：");
+        int count = 0;
+
+        for (Object obj : effects) {
+            if (obj instanceof org.bukkit.potion.PotionEffect effect) {
+                if (count > 0) sb.append("; ");
+
+                // 效果名称（中文）
+                String typeName = effect.getType().getName();
+                sb.append(typeName);
+
+                // 等级（放大器 + 1，因为 0 = I）
+                int amplifier = effect.getAmplifier() + 1;
+                sb.append(" ").append(amplifier).append("级");
+
+                // 剩余时间（tick 转秒）
+                int seconds = effect.getDuration() / 20;
+                if (seconds >= 60) {
+                    int minutes = seconds / 60;
+                    int remainingSeconds = seconds % 60;
+                    sb.append(" (").append(minutes).append("分").append(remainingSeconds).append("秒)");
+                } else {
+                    sb.append(" (").append(seconds).append("秒)");
+                }
+
+                count++;
+                // 最多显示 5 个效果
+                if (count >= 5) {
+                    int remaining = effects.size() - count;
+                    if (remaining > 0) {
+                        sb.append(" ... 等 ").append(remaining).append(" 个效果");
+                    }
+                    break;
+                }
+            }
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * 格式化方块
+     */
+    private String formatBlock(org.bukkit.block.Block block) {
+        if (block == null) {
+            return "瞄准方块：无（距离太远或没有方块）";
+        }
+
+        String materialName = block.getType().name();
+        String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(materialName);
+
+        return String.format("瞄准方块：%s（位置：X=%d, Y=%d, Z=%d）",
+                chineseName,
+                block.getX(),
+                block.getY(),
+                block.getZ());
+    }
+
+    /**
+     * 格式化生物群系
+     */
+    private String formatBiome(org.bukkit.block.Biome biome) {
+        // Biome 枚举名称直接显示（Bukkit 已经是可读名称，如 PLAINS、DESERT）
+        String name = biome.name();
+        // 转换为更友好的显示格式
+        String displayName = name.replace('_', ' ').toLowerCase();
+        // 首字母大写
+        if (!displayName.isEmpty()) {
+            displayName = Character.toUpperCase(displayName.charAt(0)) + displayName.substring(1);
+        }
+        return "生物群系：" + displayName;
+    }
+
+    /**
+     * 格式化袭击列表
+     */
+    private String formatRaids(java.util.Collection<?> raids) {
+        if (raids == null || raids.isEmpty()) {
+            return "袭击事件：无";
+        }
+
+        int raidCount = raids.size();
+        return "当前正在进行 " + raidCount + " 个袭击";
+    }
+
+    /**
+     * 格式化世界时间（tick 转可读格式）
+     */
+    private String formatWorldTime(long ticks, String apiId) {
+        long seconds = ticks / 20;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+
+        if (apiId.equals("get_world_full_time")) {
+            if (days > 0) {
+                return String.format("世界总时间：%d 天 %d 小时", days, hours % 24);
+            } else if (hours > 0) {
+                return String.format("世界总时间：%d 小时 %d 分钟", hours, minutes % 60);
+            } else {
+                return String.format("世界总时间：%d 分钟", minutes);
+            }
+        } else { // get_world_game_time
+            if (days > 0) {
+                return String.format("世界游戏时间：%d 天 %d 小时", days, hours % 24);
+            } else if (hours > 0) {
+                return String.format("世界游戏时间：%d 小时 %d 分钟", hours, minutes % 60);
+            } else {
+                return String.format("世界游戏时间：%d 分钟", minutes);
+            }
+        }
+    }
+
+    /**
      * 格式化时长（用于 AFK 时间）
      */
     private String formatDuration(java.time.Duration duration) {
@@ -640,4 +870,55 @@ public class GenericBukkitAPISkill implements Skill {
             return "挂机时间：" + hours + " 小时 " + minutes + " 分";
         }
     }
+
+    /**
+     * 格式化 Boolean 类型结果，附加上下文描述
+     */
+    private String formatBooleanResult(BukkitAPIMetadata api, boolean value) {
+        String apiId = api.getId();
+
+        // 根据 API ID 提供语义化的描述
+        if (apiId.contains("pvp")) {
+            return value ? "PVP 已开启：这个世界允许玩家互相攻击" : "PVP 已关闭：这个世界禁止玩家互相攻击";
+        }
+        if (apiId.contains("flight") || apiId.contains("fly")) {
+            return value ? "允许飞行" : "禁止飞行";
+        }
+        if (apiId.contains("whitelist")) {
+            return value ? "白名单已开启" : "白名单已关闭";
+        }
+        if (apiId.contains("hardcore")) {
+            return value ? "硬核模式已开启" : "硬核模式未开启";
+        }
+        if (apiId.contains("generate")) {
+            return value ? "已启用" : "未启用";
+        }
+        if (apiId.contains("autosave")) {
+            return value ? "自动保存已开启" : "自动保存已关闭";
+        }
+        if (apiId.contains("sneak") || apiId.contains("sprinting")) {
+            return value ? "是" : "否";
+        }
+        if (apiId.contains("vehicle")) {
+            return value ? "玩家正在骑乘中" : "玩家未骑乘";
+        }
+        if (apiId.contains("op")) {
+            return value ? "是管理员（OP）" : "不是管理员";
+        }
+        if (apiId.contains("sleep") || apiId.contains("sleeping")) {
+            return value ? "玩家正在睡觉" : "玩家未在睡觉";
+        }
+        if (apiId.contains("dead") || apiId.contains("dead")) {
+            return value ? "玩家已死亡" : "玩家存活";
+        }
+
+        // 兜底：使用 API 的 displayName
+        String displayName = api.getDisplayName();
+        if (displayName != null && !displayName.isEmpty()) {
+            return displayName + "：" + (value ? "是" : "否");
+        }
+
+        return value ? "是" : "否";
+    }
+
 }

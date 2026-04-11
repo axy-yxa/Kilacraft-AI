@@ -141,6 +141,31 @@ public class SkillIntentRecognizer {
 
             // 检查是否是多步骤任务（包含 goal 和 steps 字段）
             if (json.has("goal") && json.has("steps")) {
+                // 防护：LLM可能错误地把单意图包装成只有1个step的TaskPlan
+                // 当只有一个step且skill_name不是多步骤场景时，降级为单意图处理
+                if (json.getAsJsonArray("steps").size() == 1) {
+                    try {
+                        var stepObj = json.getAsJsonArray("steps").get(0).getAsJsonObject();
+                        if (stepObj.has("skill_name") && stepObj.get("skill_name").isJsonPrimitive()) {
+                            // 单步骤TaskPlan → 降级为单意图，避免isMultiStep()=false导致回退普通AI
+                            String skillName = stepObj.get("skill_name").getAsString();
+                            String action = stepObj.has("action") && stepObj.get("action").isJsonPrimitive() ? stepObj.get("action").getAsString() : null;
+                            Map<String, String> entities = new HashMap<>();
+                            if (stepObj.has("entities") && stepObj.get("entities").isJsonObject()) {
+                                JsonObject entitiesObj = stepObj.getAsJsonObject("entities");
+                                for (String key : entitiesObj.keySet()) {
+                                    var value = entitiesObj.get(key);
+                                    if (!value.isJsonNull()) {
+                                        entities.put(key, valueToString(value));
+                                    }
+                                }
+                            }
+                            return new SkillIntent(skillName, action, entities, 0.95, "");
+                        }
+                    } catch (Exception ignored) {
+                        // 降级失败，继续走正常TaskPlan解析
+                    }
+                }
                 return parseTaskPlanFromResponse(json);
             }
 
@@ -174,14 +199,14 @@ public class SkillIntentRecognizer {
             confidence = json.get("confidence").getAsDouble();
         }
 
-        // 解析实体
+        // 解析实体（支持嵌套 JSON 对象/数组，自动序列化为字符串）
         Map<String, String> entities = new HashMap<>();
         if (json.has("entities") && json.get("entities").isJsonObject()) {
             JsonObject entitiesObj = json.getAsJsonObject("entities");
             for (String key : entitiesObj.keySet()) {
                 var value = entitiesObj.get(key);
                 if (!value.isJsonNull()) {
-                    entities.put(key, value.getAsString());
+                    entities.put(key, valueToString(value));
                 }
             }
         }
@@ -214,14 +239,14 @@ public class SkillIntentRecognizer {
                         action = stepObj.get("action").getAsString();
                     }
 
-                    // 解析实体
+                    // 解析实体（支持嵌套 JSON 对象/数组，自动序列化为字符串）
                     Map<String, String> entities = new HashMap<>();
                     if (stepObj.has("entities") && stepObj.get("entities").isJsonObject()) {
                         JsonObject entitiesObj = stepObj.getAsJsonObject("entities");
                         for (String key : entitiesObj.keySet()) {
                             var value = entitiesObj.get(key);
                             if (!value.isJsonNull()) {
-                                entities.put(key, value.getAsString());
+                                entities.put(key, valueToString(value));
                             }
                         }
                     }
@@ -276,4 +301,17 @@ public class SkillIntentRecognizer {
         }
         return new SkillIntent(null, null, new HashMap<>(), 0.0, reason);
     }
+
+    /**
+     * 将 JsonElement 转换为字符串
+     * 简单值直接返回字符串，嵌套对象/数组序列化为 JSON 字符串
+     */
+    private String valueToString(com.google.gson.JsonElement value) {
+        if (value.isJsonPrimitive()) {
+            return value.getAsString();
+        }
+        // JsonObject 或 JsonArray，序列化为 JSON 字符串
+        return gson.toJson(value);
+    }
 }
+

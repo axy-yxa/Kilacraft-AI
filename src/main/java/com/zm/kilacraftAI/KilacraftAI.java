@@ -18,6 +18,9 @@ import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
 import com.zm.kilacraftAI.skills.framework.spi.SkillRegistry;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
+import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
+import com.zm.kilacraftAI.skills.afktask.AFKTaskListener;
+import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import com.zm.kilacraftAI.util.ChineseTextUtil;
 import lombok.Getter;
@@ -54,6 +57,8 @@ public final class KilacraftAI extends JavaPlugin {
     @Getter
     private LLMManager llmManager;
     private ItemTranslator itemTranslator;
+    @Getter
+    private AFKTaskManager afkTaskManager;
 
     @Override
     public void onEnable() {
@@ -65,6 +70,7 @@ public final class KilacraftAI extends JavaPlugin {
         initializeChatAndCommands();
         registerMythicMobsPlaceholders();
         initializeSkillsSystem();
+        initializeAFKTaskSystem();
         printStartupBanner();
     }
 
@@ -203,10 +209,38 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 注册通用 Bukkit API 执行器（数据驱动的原版功能调用)
         skillManager.registerSkill(new GenericBukkitAPISkill());
+
+        // 注册挂机任务技能
+        if (configManager.isAfkTaskEnabled()) {
+            skillManager.registerSkill(new AFKTaskSkill());
+        }
+    }
+
+    /**
+     * 初始化挂机任务系统
+     */
+    private void initializeAFKTaskSystem() {
+        if (!configManager.isAfkTaskEnabled()) {
+            getLogger().info("挂机任务功能已禁用");
+            return;
+        }
+
+        // 创建任务管理器
+        afkTaskManager = new AFKTaskManager(this);
+
+        // 注册事件监听器（玩家下线自动清理）
+        getServer().getPluginManager().registerEvents(new AFKTaskListener(this), this);
+
+        getLogger().info("挂机任务系统已初始化（最大并发任务数：" + configManager.getAfkTaskMaxTasks() + "）");
     }
 
     @Override
     public void onDisable() {
+        // 关闭挂机任务系统
+        if (afkTaskManager != null) {
+            afkTaskManager.shutdown();
+        }
+
         // 关闭 LLM 管理器（包含所有提供商的连接池）
         if (llmManager != null) {
             llmManager.shutdownAll();

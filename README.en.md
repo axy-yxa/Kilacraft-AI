@@ -15,6 +15,12 @@
 Kilacraft-AI transforms your Minecraft server with an intelligent AI assistant that understands natural language. Players can chat with AI, query game data, check market prices, and execute complex multi-step tasks — all through simple conversation.
 
 **Key Advantages:**
+- 🚀 **Modern Agent Architecture (Plan-and-Execute + Function Calling)**
+  - **Harness Engineering** design pattern
+  - **Plan Phase**: LLM intelligently plans tasks (single intent or multi-step)
+  - **Execute Phase**: Topological sorting + recursive serial execution
+  - **Function Calling**: Dynamic Skill registration and invocation mechanism
+  - **Error Tolerance**: Step failures don't interrupt entire flow, intelligent degradation
 - ⚡ **Zero Middleware**: Single JAR file, no database or cache required
 - 💾 **Ultra-Low Memory**: 8-50 MB dynamic usage (vs 2-5 GB for traditional solutions)
 - 🔌 **Extensible**: Open SPI interface for third-party plugin integration
@@ -63,9 +69,16 @@ When these plugins are not installed, corresponding features are automatically d
 - **Multi-Item Search**: Query multiple items simultaneously
 
 ### 🔍 Bukkit API Access
-- **37 Built-in APIs**: Query player status, world info, server stats
+- **58 Built-in APIs**: Query player status, world info, server stats
 - **Data-Driven Configuration**: Define APIs in YAML, no coding required
+- **Multi-Step Data Passing**: API return values automatically extracted for subsequent step references
 - **Permission Control**: Fine-grained access control for each API
+
+### 🔔 AFK Task System
+- **11 Event Listeners**: Monitor player online/offline, death, teleport, level change, world switch, weather, sleeping, respawn, item break
+- **Natural Language Creation**: Just tell AI "help me watch for xxx to come online"
+- **Notification / Callback Dual Mode**: Simple reminder or automatic multi-step task execution
+- **Automatic Resource Management**: Tasks auto-cancel when player goes offline, auto-cleanup on completion
 
 ### 🎭 Personalization
 - **Personality System**: Multiple AI personas with unique styles
@@ -125,7 +138,8 @@ That's it! 🎉
 - **[Changelog](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)** - Version history and updates
 
 ### Technical References
-- **[Bukkit API Reference](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Bukkit-API-Reference)** - Detailed documentation for 37 APIs
+- **[Bukkit API Reference](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Bukkit-API-Reference)** - Detailed documentation for 58 APIs with multi-step data passing
+- **[AFK Task System Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/AFK-Task-System-Guide)** - AFK task system architecture and usage details
 - **[Personality System Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Personality-System-Guide)** - Managing and customizing multiple AI personalities
 - **[Knowledge Base Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Knowledge-Base-Guide)** - RAG knowledge base usage guide
 
@@ -159,6 +173,15 @@ AI: Your health: 18.5/20.0
 Player: Check diamond price and see if I can afford 10
 AI: Diamond: $80.00/item, Your balance: $12,580
     💡 Analysis: Buying 10 diamonds costs $800, you have sufficient funds!
+```
+
+### AFK Task
+```
+Player: Help me watch for Steve to come online, then check what he's holding
+AI: OK! Monitoring task created. When Steve comes online, his held item will be automatically checked.
+
+(After Steve comes online...)
+🔔 AFK Task Alert: Steve is online! Detected him holding Diamond Sword x1 in main hand.
 ```
 
 ---
@@ -304,6 +327,6 @@ If Kilacraft-AI helps you, please consider:
 
 ---
 
-> **Last Updated**: 2026-04-07  
+> **Last Updated**: 2026-04-10  
 > **Plugin Version**: 1.4.3+  
 > **License**: MIT

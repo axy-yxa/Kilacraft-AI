@@ -45,6 +45,11 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
                 completions.add("personalities");
             }
 
+            // afk 命令（需要权限）
+            if (PluginPermissionEnum.AFK.hasPermission(sender)) {
+                completions.add("afk");
+            }
+
             return getCompletions(args[0], completions);
         }
 
@@ -65,6 +70,18 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
 
             if (PluginPermissionEnum.PERSONALITIES.hasPermission(sender)) {
                 completions.add("reload");
+            }
+
+            return getCompletions(args[1], completions);
+        }
+
+        if (args.length == 2 && "afk".equals(args[0])) {
+            // afk 的子命令
+            List<String> completions = new ArrayList<>();
+
+            if (PluginPermissionEnum.AFK.hasPermission(sender)) {
+                completions.add("query");
+                completions.add("cancel");
             }
 
             return getCompletions(args[1], completions);

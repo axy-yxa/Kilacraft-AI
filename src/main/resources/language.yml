@@ -24,6 +24,10 @@ help:
   # 人格管理帮助
   personalities: "§e使用方法：/kilacraft personalities reload"
   personalities-subcommands: "§e可用子命令：reload - 重新加载人格配置"
+  
+  # 挂机任务帮助
+  afk: "§e查询挂机任务：/kilacraft afk"
+  afk-subcommands: "§e可用子命令：query(查询), cancel(取消)"
 
 # ==================== 权限相关消息 ====================
 permissions:

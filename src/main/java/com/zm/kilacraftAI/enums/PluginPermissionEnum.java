@@ -35,7 +35,12 @@ public enum PluginPermissionEnum {
     /**
      * 管理人格配置
      */
-    PERSONALITIES("kilacraft.personalities");
+    PERSONALITIES("kilacraft.personalities"),
+
+    /**
+     * 查询和取消挂机任务
+     */
+    AFK("kilacraft.afk");
 
     /**
      * 权限节点

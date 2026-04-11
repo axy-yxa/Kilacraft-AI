@@ -1,7 +1,7 @@
 # Kilacraft-AI
 
 > **🚀 v1.4.3** | 零依赖 · 低内存 · 高性能 · 完全开源  
-> 专为 Minecraft 服务器打造的轻量级 AI Agent 插件，支持自然语言交互。
+> 专为 Minecraft 服务器打造的轻量级 AI Agent 插件,支持自然语言交互。
 
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/Zm-Mmm/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
@@ -15,6 +15,12 @@
 Kilacraft-AI 为你的 Minecraft 服务器带来智能 AI 助手，理解自然语言。玩家可以通过简单对话与 AI 聊天、查询游戏数据、检查市场价格，甚至执行复杂的多步骤任务。
 
 **核心优势：**
+- 🚀 **现代 Agent 架构（Plan-and-Execute + Function Calling）**
+  - 采用 **Harness Engineering** 设计模式
+  - Plan 阶段：LLM 智能规划任务（单意图或多步骤）
+  - Execute 阶段：拓扑排序 + 递归串行执行
+  - Function Calling：动态 Skill 注册与调用机制
+  - 错误容错：步骤失败不中断整个流程，智能降级
 - ⚡ **零中间件依赖**：单个 JAR 文件，无需数据库或缓存
 - 💾 **超低内存占用**：8-50 MB 动态使用（传统方案需 2-5 GB）
 - 🔌 **高度可扩展**：开放 SPI 接口供第三方插件集成
@@ -55,10 +61,8 @@ Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续�
 - **LLM 意图识别**：理解玩家意图并路由到对应技能
 - **多步骤任务规划**：自动将复杂查询分解为可执行步骤
 - **历史对话上下文**：保持对话连贯性
+- **LLM 二次分析**：基于执行结果生成友好回复
 - **RAG 增强架构**：HanLP TF-IDF + BM25 算法
-- **智能分段策略**：Markdown 标题→段落、固定大小三级策略
-- **中文优化**：TF-IDF 自动过滤停用词
-- **性能优化**：分段缓存，二次检索速度提升约70%
 
 ### 💰 经济系统集成
 - **GlobalMarketPlus 支持**：余额查询、价格查询、商品在售检查
@@ -66,9 +70,16 @@ Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续�
 - **多物品搜索**：同时查询多个物品
 
 ### 🔍 Bukkit API 访问
-- **37 个内置 API**：查询玩家状态、世界信息、服务器统计
+- **58 个内置 API**：查询玩家状态、世界信息、服务器统计
 - **数据驱动配置**：YAML 定义 API，无需编码
+- **多步骤数据传递**：API 返回值自动提取，支持后续步骤引用
 - **权限控制**：每个 API 的细粒度访问控制
+
+### 🔔 挂机任务系统
+- **11 个事件监听器**：监视玩家上下线、死亡、传送、等级变化、世界切换、天气、睡觉、重生、物品损坏
+- **自然语言创建**：直接跟 AI 说"帮我盯着xxx上线"即可
+- **纯通知 / 回调双模式**：简单提醒或自动执行多步骤任务
+- **自动资源管理**：玩家下线自动取消，任务完成自动清理
 
 ### 🎭 个性化定制
 - **人格系统**：多个 AI 人设，独特风格
@@ -128,7 +139,8 @@ Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续�
 - **[更新日志](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)** - 版本历史和更新
 
 ### 技术参考文档
-- **[Bukkit API 参考手册](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Bukkit-API%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C)** - 37 个 API 详细说明
+- **[Bukkit API 参考手册](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Bukkit-API%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C)** - 58 个 API 详细说明
+- **[AFK 挂机任务系统详解](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/AFK%E6%8C%82%E6%9C%BA%E4%BB%BB%E5%8A%A1%E7%B3%BB%E7%BB%9F%E8%AF%A6%E8%A7%A3)** - 挂机任务系统架构与使用详解
 - **[人格系统配置指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E4%BA%BA%E6%A0%BC%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97)** - 多个人格的管理和定制
 - **[知识库增强指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E7%9F%A5%E8%AF%86%E5%BA%93%E5%A2%9E%E5%BC%BA%E6%8C%87%E5%8D%97)** - RAG 知识库使用详解
 
@@ -162,6 +174,15 @@ AI: 你的生命值：18.5/20.0
 玩家：查一下钻石价格，看看我能不能买 10 个
 AI: 钻石：$80.00/个，你的余额：$12,580
     💡 分析：购买 10 个钻石需要 $800，你的余额充足！
+```
+
+### 挂机任务
+```
+玩家：帮我盯着 Steve 上线，上线后查一下他手里拿的什么
+AI: 好的！已创建监控任务。Steve 上线后会自动查询他手中的物品。
+
+（Steve 上线后...）
+🔔 挂机任务提醒：Steve 已上线！查询到他主手拿着钻石剑 x1。
 ```
 
 ---
@@ -306,6 +327,6 @@ knowledge:
 
 ---
 
-> **最后更新**: 2026-04-08  
+> **最后更新**: 2026-04-10  
 > **插件版本**: 1.4.3+
 > **开源协议**: MIT

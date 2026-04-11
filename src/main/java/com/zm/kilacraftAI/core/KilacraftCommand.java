@@ -16,8 +16,11 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import com.zm.kilacraftAI.skills.afktask.AFKTask;
+import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
 import org.jetbrains.annotations.NotNull;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -60,6 +63,7 @@ public class KilacraftCommand implements CommandExecutor {
             case "knowledge" -> handleKnowledgeCommand(sender, args);
             case "plugins" -> handlePluginsCommand(sender, args);
             case "personalities" -> handlePersonalitiesCommand(sender, args);
+            case "afk" -> handleAfkCommand(sender, args);
             default ->
                 // 普通消息发送命令（无需权限检查）
                     handleNormalMessageCommand(sender, args);
@@ -85,6 +89,12 @@ public class KilacraftCommand implements CommandExecutor {
         }
         if (PluginPermissionEnum.CLEAR_OTHER.hasPermission(sender)) {
             sender.sendMessage(languageManager.getHelpClearOther());
+        }
+        
+        // 根据权限显示挂机任务提示
+        if (PluginPermissionEnum.AFK.hasPermission(sender)) {
+            sender.sendMessage(languageManager.getHelpAfk());
+            sender.sendMessage(languageManager.getHelpAfkSubcommands());
         }
     }
 
@@ -613,6 +623,68 @@ public class KilacraftCommand implements CommandExecutor {
      */
     private String getSenderName(CommandSender sender) {
         return sender instanceof Player player ? player.getName() : "Console";
+    }
+
+    /**
+     * 处理 afk 子命令
+     *
+     * <p>命令格式：</p>
+     * <ul>
+     *   <li>/kilacraft afk 或 /kilacraft afk query - 查询当前挂机任务</li>
+     *   <li>/kilacraft afk cancel - 取消当前挂机任务</li>
+     * </ul>
+     *
+     * @param sender 命令发送者
+     * @param args   命令参数
+     * @return 执行结果
+     */
+    private boolean handleAfkCommand(CommandSender sender, String[] args) {
+        // 仅限玩家使用
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§c挂机任务命令仅限玩家使用。");
+            return true;
+        }
+
+        AFKTaskManager manager = plugin.getAfkTaskManager();
+        if (manager == null) {
+            player.sendMessage("§c挂机任务系统未启用。");
+            return true;
+        }
+
+        // 解析子命令
+        String subAction = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "query";
+
+        switch (subAction) {
+            case "cancel" -> {
+                if (!manager.hasTask(player.getUniqueId())) {
+                    player.sendMessage("§7你当前没有正在运行的挂机任务。");
+                    return true;
+                }
+                AFKTask task = manager.getTask(player.getUniqueId());
+                manager.cancelTask(player.getUniqueId());
+                player.sendMessage("§a已取消挂机任务：§f" + task.getTaskDescription());
+            }
+            case "query", "" -> {
+                if (!manager.hasTask(player.getUniqueId())) {
+                    player.sendMessage("§7你当前没有正在运行的挂机任务。");
+                    return true;
+                }
+                AFKTask task = manager.getTask(player.getUniqueId());
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                player.sendMessage("§f当前挂机任务：");
+                player.sendMessage("§f  任务ID：§e" + task.getTaskId());
+                player.sendMessage("§f  类型：§e" + task.getTaskType().getDescription());
+                player.sendMessage("§f  描述：§e" + task.getTaskDescription());
+                player.sendMessage("§f  状态：§e" + task.getStatusText());
+                player.sendMessage("§f  创建时间：§e" + sdf.format(new Date(task.getCreatedAt())));
+                player.sendMessage("§7使用 /kilacraft afk cancel 可取消此任务");
+            }
+            default -> {
+                player.sendMessage("§c未知的挂机任务子命令：" + subAction);
+                player.sendMessage("§7用法：/kilacraft afk [query|cancel]");
+            }
+        }
+        return true;
     }
 
 }

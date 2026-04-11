@@ -143,11 +143,12 @@
 skill_description: "通用 Bukkit API 执行器，可根据用户意图调用各种原版功能，包括查询玩家状态、世界信息、服务器数据等。支持单意图查询和多步骤任务组合。"
 
 hints:
-  - "这些 API 都是只读操作，不会改变游戏状态"
+  - "这些 API 都是只读的数据查询操作，不会改变游戏状态"
   - "当用户提到'我手上'、'我的位置'、'我的血量'等关键词，直接调用对应的 API"
-  - "API 调用失败时会自动回退到普通 AI 回答"
-  - "可以组合多个 API 完成复杂查询，例如：先获取玩家位置，再查询世界信息"
-  - "多步骤任务中可使用 {step_xxx.field} 引用前置步骤的结果数据"
+  - "当用户使用综合类词语（如'安全吗'、'怎么样'、'什么情况'、'评估'、'全面'、'详细'）时，应该将问题拆解为多个维度的数据查询，每个维度调用对应API"
+  - "不要因为没有'综合评估'或'安全分析'等一次性技能就放弃——只需为每个可查询的子维度调用对应API，系统会自动综合分析结果"
+  - "可以自由组合多个 API 完成复杂查询，多步骤任务中可使用 {step_xxx.field} 引用前置步骤的结果数据"
+  - "当用户说'全面一点'、'详细说说'、'更多信息'等扩展性表述时，应该增加步骤数量，覆盖更多相关维度，而不是只选一个核心API"
 
 # 玩家相关 API (Bukkit 原生)
 # ============================================
@@ -482,6 +483,135 @@ player:
     method_chain:
       - "getPose"
 
+  # ========================
+  # 装备与效果
+  # ========================
+  get_player_armor:
+    id: "get_player_armor"
+    display_name: "获取玩家盔甲装备"
+    description: "获取玩家当前穿戴的全套盔甲（头盔、胸甲、护腿、靴子）。返回的 data 中包含 helmet、chestplate、leggings、boots 字段，可供后续步骤引用。"
+    usage_scenarios:
+      - "我穿了什么装备"
+      - "看看我的盔甲"
+      - "我的护甲"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.inventory"
+    method_chain:
+      - "getInventory"
+      - "getArmorContents"
+
+  get_player_potion_effects:
+    id: "get_player_potion_effects"
+    display_name: "获取玩家药水效果"
+    description: "获取玩家当前所有活跃的药水效果列表（包括效果名称、等级、剩余时间）。返回的 data 中包含 effects 字段（效果列表），可供后续步骤引用。"
+    usage_scenarios:
+      - "我有什么药水效果"
+      - "我的 BUFF"
+      - "我中毒了吗"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.status"
+    method_chain:
+      - "getActivePotionEffects"
+
+  get_player_target_block:
+    id: "get_player_target_block"
+    display_name: "获取玩家瞄准方块"
+    description: "获取玩家准星当前瞄准的方块（最大距离 100 格）。返回的 data 中包含 block_type、x、y、z 字段，可供后续步骤引用。"
+    usage_scenarios:
+      - "我面前是什么方块"
+      - "我盯着的方块"
+      - "我瞄准的位置"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.info"
+    method_chain:
+      - "getTargetBlock"
+
+  # ========================
+  # 动作状态
+  # ========================
+  get_player_sneak_status:
+    id: "get_player_sneak_status"
+    display_name: "获取玩家潜行状态"
+    description: "获取玩家当前是否在潜行（Shift 键）"
+    usage_scenarios:
+      - "我在潜行吗"
+      - "我蹲下了吗"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.status"
+    method_chain:
+      - "isSneaking"
+
+  get_player_sprint_status:
+    id: "get_player_sprint_status"
+    display_name: "获取玩家冲刺状态"
+    description: "获取玩家当前是否在冲刺（双击 W）"
+    usage_scenarios:
+      - "我在跑步吗"
+      - "我在冲刺吗"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.status"
+    method_chain:
+      - "isSprinting"
+
+  # ========================
+  # 客户端信息
+  # ========================
+  get_player_locale:
+    id: "get_player_locale"
+    display_name: "获取玩家客户端语言"
+    description: "获取玩家客户端的语言设置（如 zh_CN、en_US）"
+    usage_scenarios:
+      - "我的游戏语言是什么"
+      - "我的客户端语言"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.info"
+    method_chain:
+      - "getLocale"
+
+  get_player_display_name:
+    id: "get_player_display_name"
+    display_name: "获取玩家显示名称"
+    description: "获取玩家的显示名称（可能包含前缀/后缀，不同于 getName）"
+    usage_scenarios:
+      - "我的显示名字是什么"
+      - "别人看到我叫什么"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.info"
+    method_chain:
+      - "getDisplayName"
+
+  # ========================
+  # 重生点
+  # ========================
+  get_player_bed_spawn:
+    id: "get_player_bed_spawn"
+    display_name: "获取玩家床重生点"
+    description: "获取玩家设置的床重生点位置（如果未设置返回 null）。返回的 data 中包含 x、y、z、world 字段，可供后续步骤引用。"
+    usage_scenarios:
+      - "我的床在哪"
+      - "我的重生点"
+      - "我设置的床位置"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.info"
+    method_chain:
+      - "getBedSpawnLocation"
+
+  # ========================
+  # 经验详细
+  # ========================
+  get_player_total_exp:
+    id: "get_player_total_exp"
+    display_name: "获取玩家总经验值"
+    description: "获取玩家从开始游戏至今累积的总经验值（区别于当前等级的经验进度）。返回的 data 中包含 total_exp 字段，可供后续步骤引用。"
+    usage_scenarios:
+      - "我总共获得了多少经验"
+      - "我的总经验值"
+      - "我从开服到现在攒了多少经验"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.status"
+    method_chain:
+      - "getTotalExperience"
+
 # ============================================
 # 世界相关 API (Bukkit 原生)
 # ============================================
@@ -605,6 +735,173 @@ world:
     method_chain:
       - "getPVP"
 
+  # ========================
+  # 生物群系与环境
+  # ========================
+  get_world_biome:
+    id: "get_world_biome"
+    display_name: "获取世界生物群系"
+    description: "获取指定坐标的生物群系类型（如平原、沙漠、森林等）。默认查询玩家当前位置。返回的 data 中包含 biome 字段，可供后续步骤引用。"
+    usage_scenarios:
+      - "我所在的是什么群系"
+      - "这里是沙漠吗"
+      - "当前生物群系"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    method_chain:
+      - "getBiome"
+
+  get_world_temperature:
+    id: "get_world_temperature"
+    display_name: "获取世界温度"
+    description: "获取指定坐标的温度值（影响生物生成、降雪等）。默认查询玩家当前位置。返回的 data 中包含 temperature 字段，可供后续步骤引用。"
+    usage_scenarios:
+      - "这里的温度是多少"
+      - "这里会下雪吗"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    method_chain:
+      - "getTemperature"
+
+  get_world_humidity:
+    id: "get_world_humidity"
+    display_name: "获取世界湿度"
+    description: "获取指定坐标的湿度值（影响降雨概率）。默认查询玩家当前位置。返回的 data 中包含 humidity 字段，可供后续步骤引用。"
+    usage_scenarios:
+      - "这里的湿度是多少"
+      - "这里容易下雨吗"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    method_chain:
+      - "getHumidity"
+
+  # ========================
+  # 实体统计
+  # ========================
+  get_world_player_count:
+    id: "get_world_player_count"
+    display_name: "获取世界玩家数量"
+    description: "获取当前世界中的玩家数量"
+    usage_scenarios:
+      - "这个世界有几个人"
+      - "主世界有多少玩家"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    additional_methods:
+      player_count: "getPlayers.size"
+    result_template: "当前世界玩家数量：{player_count}"
+
+  get_world_living_entities:
+    id: "get_world_living_entities"
+    display_name: "获取世界生物数量"
+    description: "获取当前世界中所有存活生物（包括玩家、怪物、动物等）的数量"
+    usage_scenarios:
+      - "这个世界有多少生物"
+      - "这里有多少活物"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    additional_methods:
+      living_entities: "getLivingEntities.size"
+    result_template: "当前世界生物数量：{living_entities}"
+
+  get_world_entity_count:
+    id: "get_world_entity_count"
+    display_name: "获取世界实体总数"
+    description: "获取当前世界中所有实体（包括生物、物品、矿车、画等）的总数"
+    usage_scenarios:
+      - "这个世界有多少实体"
+      - "这里的实体总数"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    additional_methods:
+      entity_count: "getEntities.size"
+    result_template: "当前世界实体总数：{entity_count}"
+
+  # ========================
+  # 世界属性
+  # ========================
+  get_world_sea_level:
+    id: "get_world_sea_level"
+    display_name: "获取世界海平面高度"
+    description: "获取当前世界的海平面高度（Y 坐标）"
+    usage_scenarios:
+      - "海平面有多高"
+      - "这个世界的海平面"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    method_chain:
+      - "getSeaLevel"
+
+  # ========================
+  # 天气持续时间
+  # ========================
+  get_world_clear_weather_duration:
+    id: "get_world_clear_weather_duration"
+    display_name: "获取晴天剩余时间"
+    description: "获取当前晴天天气剩余的持续时间（tick）"
+    usage_scenarios:
+      - "晴天还能持续多久"
+      - "多久后会下雨"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    method_chain:
+      - "getClearWeatherDuration"
+
+  get_world_thunder_duration:
+    id: "get_world_thunder_duration"
+    display_name: "获取雷暴剩余时间"
+    description: "获取当前雷暴天气剩余的持续时间（tick）"
+    usage_scenarios:
+      - "雷暴还要持续多久"
+      - "雷暴什么时候结束"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    method_chain:
+      - "getThunderDuration"
+
+  # ========================
+  # 世界时间详细
+  # ========================
+  get_world_full_time:
+    id: "get_world_full_time"
+    display_name: "获取世界总时间"
+    description: "获取世界的总运行时间（tick），不受睡眠影响，持续累加。返回的 data 中包含 full_time 字段，可供后续步骤引用。"
+    usage_scenarios:
+      - "这个世界运行了多久"
+      - "世界总时间"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    method_chain:
+      - "getFullTime"
+
+  get_world_game_time:
+    id: "get_world_game_time"
+    display_name: "获取世界游戏时间"
+    description: "获取世界自创建以来的总游戏时间（tick），不受 /time set 影响。返回的 data 中包含 game_time 字段，可供后续步骤引用。"
+    usage_scenarios:
+      - "这个世界创建多久了"
+      - "世界游戏时间"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    method_chain:
+      - "getGameTime"
+
+  # ========================
+  # 袭击事件
+  # ========================
+  get_world_raids:
+    id: "get_world_raids"
+    display_name: "获取世界袭击事件"
+    description: "获取当前世界中正在进行的所有袭击（Raid）列表。返回的 data 中包含 raids 字段（袭击数量），可供后续步骤引用。"
+    usage_scenarios:
+      - "现在有袭击吗"
+      - "村庄在被攻击吗"
+      - "当前的袭击事件"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    method_chain:
+      - "getRaids"
+
 # ============================================
 # 服务器相关 API (Bukkit 原生)
 # ============================================
@@ -658,7 +955,7 @@ server:
   get_server_motd:
     id: "get_server_motd"
     display_name: "获取服务器 MOTD"
-    description: "获取服务器的 MOTD（每日消息/服务器介绍）"
+    description: "获取服务器的 MOTD（每日消息/服务器介绍）。注意：此 API 返回包含格式化代码的展示文本，仅适用于用户直接询问服务器介绍时使用，不适合作为多步骤任务的数据来源。"
     usage_scenarios:
       - "服务器的介绍是什么"
       - "服务器 MOTD"

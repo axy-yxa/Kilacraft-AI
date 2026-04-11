@@ -20,7 +20,7 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 ### 📖 Technical Reference Documents
 | Document Name | Description | Target Audience |
 |--------------|-------------|----------------|
-| [Bukkit API Reference Manual](./Bukkit%20API%20Reference) | Detailed descriptions and examples of 37 built-in APIs (Player 23 + World 7 + Server 7) | Server Owners, Developers |
+| [Bukkit API Reference Manual](./Bukkit%20API%20Reference) | Detailed descriptions and examples of 58 built-in APIs (Player 31 + World 20 + Server 6) with multi-step data passing | Server Owners, Developers |
 | [Personality System Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Personality-System-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Management and customization methods for multiple personalities | Server Owners, Advanced Users |
 | [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Usage and optimization techniques for RAG knowledge base | Server Owners, Content Creators |
 | [Intent Recognition Prompt Configuration Guide](./Intent-Recognition-Prompt-Configuration-Guide) | Configuration and optimization of LLM intent recognition system | Server Owners, Developers |
