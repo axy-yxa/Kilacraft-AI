@@ -3,7 +3,7 @@
 > **🚀 v1.4.3** | Zero Dependencies · Low Memory · High Performance · Fully Open Source  
 > A lightweight AI Agent plugin for Minecraft servers with natural language interaction.
 
-[![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/Zm-Mmm/Kilacraft-AI)
+[![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.4.3-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
@@ -299,7 +299,7 @@ Thank you to every supporter! 🙏
 ## 👨‍💻 Author
 
 **Zm_Mmm**
-- GitHub: [@Zm-Mmm](https://github.com/Zm-Mmm)
+- GitHub: [@Zm-Mmm](https://github.com/axy-yxa)
 - Gitee: [@zm_mmm](https://gitee.com/zm_mmm)
 - QQ Group: 1094391147
 
@@ -320,13 +320,13 @@ If Kilacraft-AI helps you, please consider:
 
 ## 🔗 Related Links
 
-- **📚 Complete Document Index**: [View all technical documents](https://github.com/Zm-Mmm/Kilacraft-AI/wiki)
+- **📚 Complete Document Index**: [View all technical documents](https://github.com/axy-yxa/Kilacraft-AI/wiki)
 - [DeepSeek API Docs](https://platform.deepseek.com/api-docs/)
 - [Zhipu AI Docs](https://open.bigmodel.cn/dev/api)
 - [Moonshot Docs](https://platform.moonshot.cn/docs)
 
 ---
 
-> **Last Updated**: 2026-04-10  
+> **Last Updated**: 2026-04-12  
 > **Plugin Version**: 1.4.3+  
 > **License**: MIT

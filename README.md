@@ -3,7 +3,7 @@
 > **🚀 v1.4.3** | 零依赖 · 低内存 · 高性能 · 完全开源  
 > 专为 Minecraft 服务器打造的轻量级 AI Agent 插件,支持自然语言交互。
 
-[![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/Zm-Mmm/Kilacraft-AI)
+[![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.4.3-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
@@ -300,7 +300,7 @@ knowledge:
 ## 👨‍💻 作者
 
 **Zm_Mmm**
-- GitHub: [@Zm-Mmm](https://github.com/Zm-Mmm)
+- GitHub: [@Zm-Mmm](https://github.com/axy-yxa)
 - Gitee: [@zm_mmm](https://gitee.com/zm_mmm)
 - QQ群: 1094391147
 
@@ -327,6 +327,6 @@ knowledge:
 
 ---
 
-> **最后更新**: 2026-04-10  
+> **最后更新**: 2026-04-12  
 > **插件版本**: 1.4.3+
 > **开源协议**: MIT

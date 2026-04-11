@@ -1,7 +1,7 @@
 # Kilacraft-AI Document Index
 > **Version**: v1.4.3  
 > **Language**: English  
-> **Last Updated**: 2026-04-08
+> **Last Updated**: 2026-04-12
 ---
 ## 📚 Document Overview
 This document index lists all Chinese technical documents of the Kilacraft-AI project to help you quickly find the required information.
@@ -357,9 +357,9 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 6. If developing AFK tasks, read the [AFK Task System Guide](./AFK%20Task%20System%20Guide)
 ---
 ## 📝 Document Maintenance
-- **Last Updated**: 2026-04-07
+- **Last Updated**: 2026-04-12
 - **Maintainer**: Zm_Mmm
-- **Feedback Channels**: [GitHub Issues](sslocal://flow/file_open?url=https%3A%2F%2Fgithub.com%2FZm-Mmm%2FKilacraft-AI%2Fissues&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | [Gitee Issues](sslocal://flow/file_open?url=https%3A%2F%2Fgitee.com%2Fzm_mmm%2Fkilacraft-ai%2Fissues&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
+- **Feedback Channels**: [GitHub Issues](sslocal://flow/file_open?url=https%3A%2F%2Fgithub.com%2Faxy-yxa%2FKilacraft-AI%2Fissues&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | [Gitee Issues](sslocal://flow/file_open?url=https%3A%2F%2Fgitee.com%2Fzm_mmm%2Fkilacraft-ai%2Fissues&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
   If you find document errors or need to add content, please submit an Issue or Pull Request!
 ---
 > **Note**: This document will be continuously maintained with project updates. It is recommended to check for the latest version regularly.

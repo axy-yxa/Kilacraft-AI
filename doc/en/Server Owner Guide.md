@@ -24,10 +24,10 @@
 
 ## 🌐 Project Links & Contact
 
-- **GitHub**: https://github.com/Zm-Mmm/Kilacraft-AI
+- **GitHub**: https://github.com/axy-yxa/Kilacraft-AI
 - **Gitee**: https://gitee.com/zm_mmm/kilacraft-ai
 - **Official Chinese Wiki**: [Click Here](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3%E7%B4%A2%E5%BC%95)
-- **Official English Wiki**: [Click Here](https://github.com/Zm-Mmm/Kilacraft-AI/wiki)
+- **Official English Wiki**: [Click Here](https://github.com/axy-yxa/Kilacraft-AI/wiki)
 - **QQ Group**: 1094391147
 - **Email**: 1456133139@qq.com
 
@@ -1001,7 +1001,7 @@ Thank you to every supporter! 🙏
 
 We welcome community contributions! If you have any suggestions or discover problems:
 
-1. **⭐ Star the Project**: Give us a Star on [GitHub](https://github.com/Zm-Mmm/Kilacraft-AI) or [Gitee](https://gitee.com/zm_mmm/kilacraft-ai)
+1. **⭐ Star the Project**: Give us a Star on [GitHub](https://github.com/axy-yxa/Kilacraft-AI) or [Gitee](https://gitee.com/zm_mmm/kilacraft-ai)
 2. **📢 Share with Friends**: Recommend to other server owners and developers
 3. **🐛 Submit Issues**: Report problems or suggest improvements
 4. **💻 Submit PRs**: Fix bugs or add new features
@@ -1035,6 +1035,6 @@ This project uses **MIT License** - See [LICENSE](../LICENSE) file for details
 
 ---
 
-> **Last Updated**: 2026-04-10  
+> **Last Updated**: 2026-04-12  
 > **Applicable Plugin Version**: Kilacraft-AI 1.4.3+  
 > **Open Source License**: MIT License
