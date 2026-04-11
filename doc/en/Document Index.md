@@ -21,10 +21,13 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 | Document Name | Description | Target Audience |
 |--------------|-------------|----------------|
 | [Bukkit API Reference Manual](./Bukkit%20API%20Reference) | Detailed descriptions and examples of 58 built-in APIs (Player 31 + World 20 + Server 6) with multi-step data passing | Server Owners, Developers |
+| [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference) | Complete reference and integration guide for Bukkit event listeners | Developers |
 | [Personality System Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Personality-System-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Management and customization methods for multiple personalities | Server Owners, Advanced Users |
 | [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Usage and optimization techniques for RAG knowledge base | Server Owners, Content Creators |
 | [Intent Recognition Prompt Configuration Guide](./Intent-Recognition-Prompt-Configuration-Guide) | Configuration and optimization of LLM intent recognition system | Server Owners, Developers |
 | [System Architecture Details](./System-Architecture-Details) | Complete call chains and design philosophy of three interaction modes | Developers, Technical Personnel |
+| [AFK Task System Guide](./AFK%20Task%20System%20Guide) | Complete usage guide and configuration instructions for AFK task system | Server Owners, Developers |
+| [Known Bugs](./Known%20Bugs) | List of known issues, impact scope, and temporary solutions | Everyone |
 ---
 ## 📋 Detailed Document Descriptions
 ### 1. Server Owner's Guide
@@ -214,6 +217,88 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 
 ---
 
+### 10. Bukkit Event Listener Reference
+
+**File**: `Kilacraft-AI-Bukkit-Event-Listener-Reference.md`  
+**Size**: ~12 KB  
+**Content**:
+
+- ✅ Bukkit event listener architecture and registration mechanism
+- ✅ AIResponseReadyEvent detailed explanation
+- ✅ Event parameter descriptions and usage examples
+- ✅ Asynchronous processing best practices
+- ✅ Event integration solutions with other plugins
+- ✅ Common issues and debugging tips
+
+**Recommended Chapters**:
+- Chapter 2: Event Listener Registration (Must-read for developers)
+- Chapter 3: AIResponseReadyEvent Details (Core event)
+- Chapter 5: Asynchronous Processing Best Practices (Avoid blocking main thread)
+
+**Applicable Scenarios**:
+- Need to listen for AI response completion events
+- Implement custom AI response handling logic
+- Event-driven integration with other plugins
+
+---
+
+### 11. AFK Task System Guide
+
+**File**: `Kilacraft-AI-AFK-Task-System-Guide.md`  
+**Size**: ~20 KB  
+**Content**:
+
+- ✅ AFK task system architecture design
+- ✅ Detailed task types (mining, fishing, mob grinding, etc. - 11 built-in tasks)
+- ✅ Task configuration methods and parameter descriptions
+- ✅ Callback mechanism and task status management
+- ✅ Permission control and availability checks
+- ✅ Complete usage examples and best practices
+- ✅ Troubleshooting and performance optimization
+
+**Task Types**:
+- ⛏️ Mining Task: Automatically mine specified blocks
+- 🎣 Fishing Task: Automatically fish and collect items
+- ⚔️ Mob Grinding Task: Automatically attack nearby monsters
+- 🌾 Farming Task: Automatically plant and harvest
+- Plus 7 other task types
+
+**Recommended Chapters**:
+- Chapter 2: Task Type Details (Learn all available tasks)
+- Chapter 3: Configuration Methods (Quick start)
+- Chapter 6: Best Practices (Improve task efficiency)
+
+**Applicable Scenarios**:
+- Provide AFK挂机 functionality for players
+- Automated resource collection
+- Server economy system assistance
+
+---
+
+### 12. Known Bugs
+
+**File**: `Kilacraft-AI-Known-Bugs.md`  
+**Size**: ~5 KB  
+**Content**:
+
+- ✅ Current list of known issues
+- ✅ Impact scope and severity for each bug
+- ✅ Temporary solutions and workarounds
+- ✅ Fix plans and estimated timelines
+- ✅ How to report newly discovered bugs
+
+**Bug Categories**:
+- 🔴 Critical: Affects core functionality, needs immediate fix
+- 🟡 Medium: Affects partial functionality, planned for fix
+- 🟢 Minor: Does not affect usage, low priority
+
+**Recommended Reading Scenarios**:
+- Check this document first when encountering abnormal behavior
+- Understand known limitations of the current version
+- Confirm whether to submit a new Issue
+
+---
+
 ## 🔍 Find Documents by Topic
 ### Installation and Configuration
 - [Server Owner's Guide - Quick Start](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-quick-start5-minute-getting-started&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
@@ -230,11 +315,18 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 - [Skill SPI Integration Document](./Skill-SPI-Integration-Document)
 - [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) (Complete guide for third-party plugin integration)
 - [System Architecture Details](./System-Architecture-Details) (Deep understanding of three interaction modes)
+- [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference) (Event-driven integration)
+
+### AFK Task System
+- [AFK Task System Guide](./AFK%20Task%20System%20Guide)
+
 ### Performance Optimization
 - [Server Owner's Guide - Performance and Resource Usage](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-performance-and-resource-usage&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 - [Knowledge Base Enhancement Guide - Performance Optimization](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md%23-performance-optimization&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 - [Bukkit API Reference Manual - Performance Optimization Suggestions](sslocal://flow/file_open?url=.%2FKilacraft-AI-Bukkit-API-Reference-Manual.md%23%EF%B8%8F-performance-optimization-suggestions&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
+
 ### Troubleshooting
+- [Known Bugs](./Known%20Bugs) (Check first)
 - [Server Owner's Guide - Troubleshooting](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-troubleshooting&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 - [Bukkit API Reference Manual - Troubleshooting](sslocal://flow/file_open?url=.%2FKilacraft-AI-Bukkit-API-Reference-Manual.md%23-troubleshooting&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
 - [Knowledge Base Enhancement Guide - Troubleshooting](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md%23-troubleshooting&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
@@ -244,8 +336,8 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 |----------|--------------------|------------|
 | Server Owner Documents | 2 | ~55 KB |
 | Developer Documents | 2 | ~58 KB |
-| Technical Reference | 5 | ~95 KB |
-| **Total** | **9** | **~208 KB** |
+| Technical Reference | 8 | ~140 KB |
+| **Total** | **12** | **~253 KB** |
 ---
 ## 💡 Usage Suggestions
 ### New Users
@@ -261,6 +353,8 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 2. Must read the [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) (Third-party plugin integration guide)
 3. Read [System Architecture Details](./System-Architecture-Details) to understand three interaction modes
 4. Check the [Bukkit API Reference Manual](./Bukkit-API-Reference-Manual) to learn about available APIs
+5. Check the [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference) to learn about event integration
+6. If developing AFK tasks, read the [AFK Task System Guide](./AFK%20Task%20System%20Guide)
 ---
 ## 📝 Document Maintenance
 - **Last Updated**: 2026-04-07
