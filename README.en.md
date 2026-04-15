@@ -58,7 +58,6 @@ When these plugins are not installed, corresponding features are automatically d
 ## ✨ Core Features
 
 ### 🤖 AI-Powered Intelligence
-- **BM25 Semantic Scoring Intent Classifier**: Zero maintenance Skill index + LLM intent recognition two-stage architecture, zero LLM calls for normal conversations
 - **LLM Intent Recognition**: Understands player intentions and routes to appropriate skills
 - **Multi-Step Task Planning**: Automatically decomposes complex queries into executable steps
 - **Historical Context**: Maintains conversation history for coherent dialogues

@@ -40,21 +40,6 @@ User Input: "@ai What am I holding? How much can this sell for?"
   ├─ Send "Thinking..." message
   └─ Get conversation history
   ↓
-【1.5. BM25 Semantic Scoring Intent Classifier】IntentClassifier ← Zero Maintenance Skill Index
-  ├─ Load intent_keywords.yml with normal_chat keywords and chat patterns
-  ├─ Fast short-circuit: match keywords/patterns → NORMAL_CHAT (zero LLM calls)
-  ├─ Not matched → Rebuild Skill Index (auto-detect Skill count changes)
-  ├─ BM25 Semantic Scoring:
-  │   ├─ Build Skill documents from description + action_descriptions
-  │   ├─ Extract Top-K keywords from user input (HanLP TF-IDF)
-  │   ├─ Calculate relevance score between user input and each Skill document
-  │   └─ Imperative sentence bonus ("help me", "give me", etc.)
-  └─ Threshold Judgment:
-       ├─ Above threshold (skill_match_threshold) → SKILL_INTENT
-       │   → Enter【2. Intent Recognition Layer】, inject all Skill info
-       └─ Below threshold → NORMAL_CHAT
-           → Directly jump to【Normal AI Dialogue】, zero LLM calls
-  ↓
 【2. Intent Recognition Layer】SkillIntentRecognizer
   ├─ Build system prompt (including all available Skill descriptions)
   ├─ Call LLM for intent analysis
@@ -97,8 +82,7 @@ User Input: "@ai What am I holding? How much can this sell for?"
 ### Key Features
 
 1. **Intelligent Intent Recognition**: LLM understands user's true intent, automatically selects Skills
-2. **BM25 Semantic Scoring Intent Classifier**: Intelligent pre-classification before LLM calls, zero LLM calls for normal chat
-3. **Multi-Step Orchestration**: Complex tasks decomposed into ordered steps, data auto-flows
+2. **Multi-Step Orchestration**: Complex tasks decomposed into ordered steps, data auto-flows
 3. **Knowledge Enhancement**: Inject relevant knowledge during secondary analysis, improve accuracy
 4. **Failure Fallback**: Auto-convert to normal AI dialogue when intent recognition fails or Skill execution errors
 5. **Command Execution Fallback**: CommandSkill supports execution-type commands (e.g., /back, /spawn), covering Skill gaps

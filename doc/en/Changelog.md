@@ -6,7 +6,7 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-## v1.4.5 - Folia/lophine Thread Safety, Bukkit API Field Standardization, Stream Output Feature, AI Response Pipeline Refactor
+## v1.4.5 - Folia/lophine Thread Safety, Bukkit API Field Standardization, Stream Output Feature, AI Response Pipeline Refactor, Intent Classifier Removal
 
 ### ✨ New Features
 - **Folia/lophine Thread Safety Compatibility**: Full support for Folia and its branches (lophine) region-based thread scheduling
@@ -50,6 +50,11 @@ This file records all important changes to the Kilacraft-AI plugin.
   - `getBalance()` method first attempts `GlobalMarketEconomy.VAULT`
   - Catches `NoClassDefFoundError` gracefully degrades to `getDefaultBalance()`
   - No longer errors without Vault plugin, stronger compatibility
+- **Intent Classifier Removal**: Completely removed BM25 intent classifier functionality
+  - Deleted files: `IntentClassifier.java`, `IntentKeywordConfigManager.java`, `intent_keywords.yml`
+  - Reason: Too low fault tolerance, easily misclassified as normal chat during continuous conversation, and misclassifying as normal chat is unacceptable
+  - Impact: All user requests go directly to LLM intent recognition, no longer pre-classification short-circuit
+  - Simplified call chain: Reduced one layer of judgment logic, improved intent recognition accuracy
 - **Handler Architecture Deep Refactor**:
   - Removed `BaseResponseHandler` abstract base class, each Handler directly implements `AIResponseHandler` interface
   - Removed `IntentRecognitionResponseHandler` standalone class, changed to anonymous Handler inlined in `SkillIntentRecognizer`

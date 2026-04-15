@@ -30,7 +30,6 @@ public class SkillIntentRecognizer {
     private final IntentPromptConfigManager promptConfigManager; // 提示词配置管理器
     private final Gson gson;
     private final SkillManager skillManager; // 用于获取所有技能的描述
-    private final IntentClassifier intentClassifier; // 意图分类器
 
     /**
      * 构建系统提示词
@@ -68,14 +67,6 @@ public class SkillIntentRecognizer {
         this.promptConfigManager = promptConfigManager;
         this.gson = new Gson();
         this.skillManager = skillManager;
-        this.intentClassifier = new IntentClassifier();
-    }
-
-    /**
-     * 强制重建意图分类器的 Skill 索引（用于热重载后刷新 Skill 描述变更）
-     */
-    public void forceRebuildIndex() {
-        intentClassifier.forceRebuildIndex();
     }
 
     /**
@@ -137,18 +128,6 @@ public class SkillIntentRecognizer {
                 return false;
             }
         };
-
-        // 意图分类
-        IntentClassifier.IntentType intentType = intentClassifier.classify(userInput);
-
-        if (configManager.isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 意图分类结果: " + intentType.getDescription());
-        }
-
-        // NORMAL_CHAT 短路：直接跳过LLM调用，回退到普通AI对话
-        if (intentType == IntentClassifier.IntentType.NORMAL_CHAT) {
-            return CompletableFuture.completedFuture(null);
-        }
 
         // 构建系统提示词（全量注入）
         String systemPrompt = buildSystemPrompt();

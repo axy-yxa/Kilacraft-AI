@@ -3,7 +3,6 @@ package com.zm.kilacraftAI;
 import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
 import com.zm.kilacraftAI.config.ConfigManager;
-import com.zm.kilacraftAI.config.IntentKeywordConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
@@ -54,23 +53,12 @@ public final class KilacraftAI extends JavaPlugin {
     private SkillConfigManager skillConfigManager;
     @Getter
     private IntentPromptConfigManager intentPromptConfigManager;
-    @Getter
-    private IntentKeywordConfigManager intentKeywordConfigManager;
     private ChatListener chatListener;
     private ConversationManager conversationManager;
     private KnowledgeBaseManager knowledgeBase;
     private KnowledgeRetriever knowledgeRetriever;
     private SkillManager skillManager;
     private SkillIntentRecognizer intentRecognizer;
-
-    /**
-     * 强制重建意图分类器的 Skill 索引（用于热重载）
-     */
-    public void forceRebuildIntentIndex() {
-        if (intentRecognizer != null) {
-            intentRecognizer.forceRebuildIndex();
-        }
-    }
 
     @Getter
     private LLMManager llmManager;
@@ -218,9 +206,6 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 意图识别提示词配置管理器（依赖 plugin）
         intentPromptConfigManager = new IntentPromptConfigManager(this);
-
-        // 意图关键词配置管理器（依赖 plugin）
-        intentKeywordConfigManager = IntentKeywordConfigManager.getInstance(this);
 
         // Skills 系统（依赖 skillConfigManager）
         skillManager = new SkillManager();

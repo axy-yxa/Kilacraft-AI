@@ -332,58 +332,24 @@ output_quality_requirements: |
 
 ## 🔄 Prompt Building Flow
 
-### Two-Stage Intent Recognition Architecture
+### Intent Recognition Flow
 
-The system adopts a two-stage architecture for intent recognition:
+The system adopts LLM-based intent recognition mechanism:
 
-**Stage One: BM25 Semantic Scoring Intent Classifier**（Zero LLM Call）
 ```
 User Input
   ↓
-IntentClassifier（Intelligent Pre-Classification）
-  ├─ 1. Normal Chat Keyword Fast Short-Circuit
-  │   └─ Match to normal_chat keywords → NORMAL_CHAT
-  ├─ 2. Chat Pattern Forced NORMAL_CHAT
-  │   └─ Match to chat_patterns ("you think", "why" etc.) → NORMAL_CHAT
-  ├─ 3. Rebuild Skill Index (on-demand, detect Skill count changes)
-  │   └─ Build Skill documents from description + action_descriptions
-  ├─ 4. BM25 Semantic Scoring
-  │   ├─ Extract Top-K keywords from user input (HanLP TF-IDF, default K=8)
-  │   ├─ Calculate relevance score between user input and each Skill document (BM25 formula)
-  │   └─ Select the Skill with highest score
-  ├─ 5. Imperative Sentence Bonus
-  │   └─ Match to imperative_patterns ("help me", "give me", etc.) → Add bonus
-  ├─ 6. Threshold Judgment
-  │   ├─ Above threshold (skill_match_threshold) → SKILL_INTENT
-  │   │   → Enter Stage Two (LLM Intent Recognition), inject all Skill info
-  │   └─ Below threshold → NORMAL_CHAT
-  │       → Directly jump to【Normal AI Dialogue】, zero LLM calls
-  └─ 7. DEBUG Log Output
-     └─ [DEBUG] [Intent Classification] Result | Score | Threshold | Best Match | Keywords
+SkillIntentRecognizer (LLM Intent Recognition)
+  ├─ 1. Build system prompt (including all available Skill descriptions)
+  ├─ 2. Call LLM for intent analysis
+  ├─ 3. Parse JSON response
+  └─ 4. Determine task type
+       ├─ Single intent → SkillIntent
+       ├─ Multi-step → TaskPlan
+       └─ Invalid intent → Fallback to normal AI dialogue
 ```
 
-Keyword configuration file `intent_keywords.yml`:
-```yaml
-skill_match_threshold: 20.0
-imperative_bonus: 10.0
-imperative_patterns:
-  - "帮我"
-  - "给我"
-  - "查一下"
-  - "看一下"
-chat_patterns:
-  - "你觉得"
-  - "为什么"
-  - "介绍一下"
-normal_chat:
-  keywords:
-    - "你好"
-    - "在吗"
-    - "hello"
-    - "hi"
-```
-
-**Stage Two: LLM Intent Recognition**（Full Injection of All Skills）
+**LLM Intent Recognition** (Full Injection of All Skills)
 
 The system builds the complete system prompt in a fixed order during each intent recognition (see `IntentPromptConfigManager.buildSystemPrompt()` method):
 

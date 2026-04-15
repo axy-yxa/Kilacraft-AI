@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * BM25 评分工具类
  *
- * <p>提供可复用的 BM25 相关性评分算法，供知识库检索和意图分类器共同使用。</p>
+ * <p>提供可复用的 BM25 相关性评分算法，供知识库检索使用。</p>
  * <p>核心公式：TF-Score = (tf * (k1 + 1)) / (tf + k1 * lengthNorm)</p>
  *
  * @author Zm_Mmm
