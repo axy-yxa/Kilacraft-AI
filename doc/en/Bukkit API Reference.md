@@ -784,7 +784,7 @@ AI: Current potion effects:
 ```
 
 **Multi-step Data Passing**:
-The returned data contains `effects` field (effect list). Subsequent steps can reference it via `{step_xxx.effects}`.
+The returned data contains `effects` field (potion effect list, each effect contains type, duration, amplifier fields). Subsequent steps can reference specific elements in the list via `{step_xxx.effects[0].type}`, etc.
 
 ---
 
@@ -994,7 +994,7 @@ The returned data contains `total_exp` field. Subsequent steps can reference it 
 get_world_time:
   id: "get_world_time"
   display_name: "Get World Time"
-  description: "Get current game time (in ticks) of the world, automatically formatted as HH:MM"
+  description: "Get current game time (in ticks) of the world, automatically formatted as HH:MM. The returned data contains time_ticks field for subsequent steps to reference or AFK task condition comparison"
   usage_scenarios:
     - "What time is it"
     - "World time"
@@ -1009,6 +1009,9 @@ get_world_time:
 Player: What time is it?
 AI: World time: 06:00
 ```
+
+**Multi-step Data Passing**:
+The returned data contains `time_ticks` field (Long type, world ticks). Subsequent steps can reference it via `{step_xxx.time_ticks}`. AFK task condition evaluation can also use this field for numeric comparison.
 
 ---
 
@@ -1494,7 +1497,7 @@ AI: Currently 2 raid events in progress
 ```
 
 **Multi-step Data Passing**:
-The returned data contains `raids` field (raid list). Subsequent steps can reference it via `{step_xxx.raids}`.
+The returned data contains `raids` field (raid event list). Subsequent steps can reference specific raids in the list via `{step_xxx.raids[0]}`, etc.
 
 ---
 

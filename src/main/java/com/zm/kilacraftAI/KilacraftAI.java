@@ -3,6 +3,7 @@ package com.zm.kilacraftAI;
 import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.config.IntentKeywordConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
@@ -18,11 +19,14 @@ import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
 import com.zm.kilacraftAI.skills.framework.spi.SkillRegistry;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
+import com.zm.kilacraftAI.skills.cmi.CMISkill;
+import com.zm.kilacraftAI.skills.command.CommandSkill;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskListener;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import com.zm.kilacraftAI.util.ChineseTextUtil;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -48,17 +52,30 @@ public final class KilacraftAI extends JavaPlugin {
     private SkillConfigManager skillConfigManager;
     @Getter
     private IntentPromptConfigManager intentPromptConfigManager;
+    @Getter
+    private IntentKeywordConfigManager intentKeywordConfigManager;
     private ChatListener chatListener;
     private ConversationManager conversationManager;
     private KnowledgeBaseManager knowledgeBase;
     private KnowledgeRetriever knowledgeRetriever;
     private SkillManager skillManager;
     private SkillIntentRecognizer intentRecognizer;
+
+    /**
+     * 强制重建意图分类器的 Skill 索引（用于热重载）
+     */
+    public void forceRebuildIntentIndex() {
+        if (intentRecognizer != null) {
+            intentRecognizer.forceRebuildIndex();
+        }
+    }
+
     @Getter
     private LLMManager llmManager;
     private ItemTranslator itemTranslator;
     @Getter
     private AFKTaskManager afkTaskManager;
+    private AFKTaskListener afkTaskListener;
 
     @Override
     public void onEnable() {
@@ -96,15 +113,7 @@ public final class KilacraftAI extends JavaPlugin {
         llmManager = new LLMManager();
 
         // 知识检索器（依赖 configManager + knowledgeBase）
-        knowledgeRetriever = new KnowledgeRetriever(
-                knowledgeBase,
-                configManager.getMaxRelevantChunks(),
-                configManager.getKnowledgeMaxChunkSize(),
-                configManager.getKnowledgeMinChunkSize(),
-                configManager.getKnowledgeChunkOverlap(),
-                configManager.getKeywordTopK(),
-                configManager.getBm25K1(),
-                configManager.getBm25B());
+        knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, configManager.getMaxRelevantChunks(), configManager.getKnowledgeMaxChunkSize(), configManager.getKnowledgeMinChunkSize(), configManager.getKnowledgeChunkOverlap(), configManager.getKeywordTopK(), configManager.getBm25K1(), configManager.getBm25B());
 
         // 自定义词典（依赖 configManager）
         if (configManager.isCustomDictionaryEnabled()) {
@@ -153,7 +162,6 @@ public final class KilacraftAI extends JavaPlugin {
                 var managerInstance = constructor.newInstance(this);
                 var method = managerClass.getMethod("registerPlaceholders");
                 method.invoke(managerInstance);
-                getLogger().info("MythicMobs 占位符注册成功");
             } else {
                 getLogger().warning("当前 JDK 版本为 " + javaVersion + "，MythicMobs 需要 Java 21+，跳过占位符注册");
             }
@@ -178,6 +186,9 @@ public final class KilacraftAI extends JavaPlugin {
         // 意图识别提示词配置管理器（依赖 plugin）
         intentPromptConfigManager = new IntentPromptConfigManager(this);
 
+        // 意图关键词配置管理器（依赖 plugin）
+        intentKeywordConfigManager = IntentKeywordConfigManager.getInstance(this);
+
         // Skills 系统（依赖 skillConfigManager）
         skillManager = new SkillManager();
         registerDefaultSkills();
@@ -186,7 +197,7 @@ public final class KilacraftAI extends JavaPlugin {
         intentRecognizer = new SkillIntentRecognizer(configManager, intentPromptConfigManager, skillManager);
 
         // 延迟发现并注册第三方 SkillProvider 提供的 Skill
-        getServer().getScheduler().runTaskLater(this, () -> new SkillRegistry(this, skillManager).discoverAndRegister(), 20L);
+        FoliaCompat.runTaskLater(this, () -> new SkillRegistry(this, skillManager).discoverAndRegister(), 20L);
     }
 
     /**
@@ -199,20 +210,32 @@ public final class KilacraftAI extends JavaPlugin {
         getLogger().info("版本：v" + getDescription().getVersion());
         getLogger().info("作者：Zm_Mmm");
     }
-    
+
     /**
      * 注册默认技能
      */
     private void registerDefaultSkills() {
-        // 注册市场查询技能
-        skillManager.registerSkill(new MarketQuerySkill());
-
         // 注册通用 Bukkit API 执行器（数据驱动的原版功能调用)
         skillManager.registerSkill(new GenericBukkitAPISkill());
 
         // 注册挂机任务技能
         if (configManager.isAfkTaskEnabled()) {
             skillManager.registerSkill(new AFKTaskSkill());
+        }
+
+        // 注册命令执行技能（条件注册：需 config.yml 中 command_skill.enabled=true）
+        if (configManager.isCommandSkillEnabled()) {
+            skillManager.registerSkill(new CommandSkill());
+        }
+
+        // 注册市场查询技能（条件注册：仅当 GlobalMarketPlus 插件存在时）
+        if (getServer().getPluginManager().getPlugin("GlobalMarketPlus") != null) {
+            skillManager.registerSkill(new MarketQuerySkill());
+        }
+
+        // 注册 CMI 技能（条件注册：仅当 CMI 插件存在时）
+        if (getServer().getPluginManager().getPlugin("CMI") != null) {
+            skillManager.registerSkill(new CMISkill());
         }
     }
 
@@ -229,9 +252,74 @@ public final class KilacraftAI extends JavaPlugin {
         afkTaskManager = new AFKTaskManager(this);
 
         // 注册事件监听器（玩家下线自动清理）
-        getServer().getPluginManager().registerEvents(new AFKTaskListener(this), this);
+        afkTaskListener = new AFKTaskListener(this);
+        getServer().getPluginManager().registerEvents(afkTaskListener, this);
 
-        getLogger().info("挂机任务系统已初始化（最大并发任务数：" + configManager.getAfkTaskMaxTasks() + "）");
+        getLogger().info("初始化挂机任务系统（最大并发任务数：" + configManager.getAfkTaskMaxTasks() + "）");
+    }
+
+    /**
+     * 同步条件技能的注册状态（支持热重载）
+     *
+     * <p>根据当前配置动态注册或注销条件技能，使 reload 命令能够即时生效。</p>
+     */
+    public void syncConditionalSkills() {
+        // 同步命令执行技能（条件：config.yml command_skill.enabled）
+        syncSkill("command", configManager.isCommandSkillEnabled(), () -> skillManager.registerSkill(new CommandSkill()));
+
+        // 同步挂机任务技能（条件：config.yml afk_task.enabled）
+        syncSkill("AFKTask", configManager.isAfkTaskEnabled(), () -> skillManager.registerSkill(new AFKTaskSkill()));
+
+        // 注意：第三方插件技能（CMI、GlobalMarketPlus）无需热重载同步
+        // 插件在运行时不会被动态装卸，注册时已经通过 isAvailable() 检查
+
+        // 同步挂机任务系统（管理器和监听器）
+        syncAFKTaskSystem();
+    }
+
+    /**
+     * 同步单个技能的注册状态
+     *
+     * @param skillName          技能名称
+     * @param shouldBeRegistered 当前是否应该注册
+     * @param registerAction     注册动作（仅在需要注册时执行）
+     */
+    private void syncSkill(String skillName, boolean shouldBeRegistered, Runnable registerAction) {
+        boolean isRegistered = skillManager.getSkill(skillName) != null;
+
+        if (shouldBeRegistered && !isRegistered) {
+            registerAction.run();
+            getLogger().info("热重载：已注册技能 " + skillName);
+        } else if (!shouldBeRegistered && isRegistered) {
+            skillManager.unregisterSkill(skillName);
+            getLogger().info("热重载：已注销技能 " + skillName);
+        }
+    }
+
+    /**
+     * 同步挂机任务系统状态
+     */
+    private void syncAFKTaskSystem() {
+        boolean shouldBeEnabled = configManager.isAfkTaskEnabled();
+
+        if (shouldBeEnabled && afkTaskManager == null) {
+            afkTaskManager = new AFKTaskManager(this);
+            // 仅在 listener 未注册时注册，避免热重载时重复注册
+            if (afkTaskListener == null) {
+                afkTaskListener = new AFKTaskListener(this);
+                getServer().getPluginManager().registerEvents(afkTaskListener, this);
+            }
+            getLogger().info("热重载：挂机任务系统已初始化");
+        } else if (!shouldBeEnabled && afkTaskManager != null) {
+            afkTaskManager.shutdown();
+            // 注销监听器，防止内存泄漏
+            if (afkTaskListener != null) {
+                org.bukkit.event.HandlerList.unregisterAll(afkTaskListener);
+                afkTaskListener = null;
+            }
+            afkTaskManager = null;
+            getLogger().info("热重载：挂机任务系统已关闭");
+        }
     }
 
     @Override

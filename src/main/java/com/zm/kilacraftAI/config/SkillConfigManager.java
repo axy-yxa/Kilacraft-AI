@@ -35,12 +35,12 @@ public class SkillConfigManager {
     
     /**
      * 传统技能配置缓存
-     * key = packageName.skillName (如 "globalmarketplus.MarketQuerySkill")
+     * key = packageName.skillName
      */
     private final Map<String, SkillConfig> skillConfigs;
 
     /**
-     * Bukkit API 元数据列表 (支持热重载)
+     * Bukkit API 元数据列表
      */
     @Getter
     private final Map<String, BukkitAPIMetadata> bukkitApiMap;
@@ -89,7 +89,7 @@ public class SkillConfigManager {
     }
 
     /**
-     * 加载传统技能配置（如 MarketQuerySkill）
+     * 加载传统技能配置
      */
     private void loadTraditionalSkillConfigs() {
         File[] packageFolders = skillsFolder.listFiles(File::isDirectory);
@@ -106,9 +106,8 @@ public class SkillConfigManager {
             String packageName = packageFolder.getName();
 
             File[] configFiles = packageFolder.listFiles((dir, name) -> name.endsWith(".yml"));
-            if (configFiles == null || configFiles.length == 0) {
-                // 如果目录下没有配置文件，说明是第一次启动，需要创建默认配置
-                plugin.getLogger().info("§e 检测到新技能包：" + packageName + "，将按需创建默认配置§r");
+            if (configFiles == null) {
+                // 目录存在但无配置文件，配置文件将由具体 Skill 实例在构造时从 JAR 模板创建
                 continue;
             }
 

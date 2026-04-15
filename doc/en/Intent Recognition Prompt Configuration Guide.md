@@ -2,11 +2,11 @@
 
 ## 📋 Overview
 
-The intent recognition prompt system defines how the LLM understands user input and identifies skill intents through the `intent_prompts.yml` configuration file.
+The intent recognition prompt system defines how LLM understands user input and identifies skill intents through the `intent_prompts.yml` configuration file.
 
 **Important Notes**: 
 - **Intent Recognition System** focuses on task step orchestration and Agent capability Skill selection
-- **Personality System** is an independent feature used in plugin command mode, configured via `personalities.yml` with different personality prompts
+- **Personality System** is an independent feature, used in plugin command mode, configured via `personalities.yml` with different personality prompts
 - Intent recognition prompts do **NOT** include multi-personality configurations; they only are responsible for identify what operations users want to execute
 
 ## 📁 File Location
@@ -17,7 +17,7 @@ plugins/Kilacraft-AI/
 └── config.yml                  # Main configuration file
 ```
 
-The default `intent_prompts.yml` will be automatically copied from the jar package to the plugin directory on first startup.
+On first startup, the default `intent_prompts.yml` will be automatically copied from jar package to plugin directory.
 
 ## 🔧 Configuration Structure
 
@@ -32,9 +32,9 @@ role_definition: |
   You are an intelligent skill intent recognition assistant, specializing in analyzing natural language input from users in Minecraft games...
 ```
 
-**Purpose**: Helps the LLM clarify its task boundaries and work objectives (intent recognition, parameter extraction, task decomposition).
+**Purpose**: Helps LLM clarify its task boundaries and work objectives (intent recognition, parameter extraction, task decomposition).
 
-**Note**: This defines the role of the **intent recognition assistant**, not the personality of a game NPC. The personality system is independently configured through `personalities.yml`.
+**Note**: This defines the role of **intent recognition assistant**, not a game NPC's personality. The personality system is independently configured through `personalities.yml`.
 
 **Optimization Tips**: 
 - Keep it concise and clear
@@ -47,7 +47,7 @@ role_definition: |
 
 Defines format specifications for AI JSON output.
 
-```
+```yaml
 output_format_rules: |
   【Output Format Mandatory Requirements】
   1. **Return only pure JSON objects**, do not include any Markdown markers (such as ```json, ```)
@@ -114,14 +114,14 @@ multi_step_task: |
 ```
 
 **Key Field Descriptions**:
-- `depends_on`: List of dependent step IDs; empty array means no dependencies on other steps
+- `depends_on`: List of dependent step IDs, empty array means no dependencies on other steps
 - `goal`: Overall task goal, helping subsequent analysis understand task intent
 
 ---
 
 ### 4. Decision Rules (decision_rules)
 
-Guides the AI on how to choose response types in different scenarios.
+Guides AI on how to choose response types in different scenarios.
 
 #### When to Use Single Intent (when_use_single_intent)
 
@@ -151,125 +151,125 @@ when_use_multi_step: |
 ```yaml
 when_return_invalid: |
   - User input is unrelated to any available skills
-  - User is just chatting or greeting (e.g., "Hello", "Thanks")
+  - User is just chatting or greeting (e.g., "Hello", "Thank you")
   - User input is too vague to determine specific intent
-  - Note: If there is clear context from previous conversation, should combine history to understand intent rather than directly returning invalid
+  - Note: If there is clear context in previous conversation, should understand intent by combining with history, not directly return invalid
 ```
 
 **Optimization Tips**:
 - Add more trigger conditions based on actual usage
 - Provide clear positive/negative comparison examples
-- Regularly adjust rules based on test data
+- Regularly adjust configuration based on test data
 
 ---
 
-### 5. Critical Constraint Rules (critical_rules)
+### 5. Critical Rules (critical_rules)
 
-Hard rules to avoid common errors, with highest priority.
+Avoid common errors as hard constraints, highest priority.
 
 #### Multi-Step Task Planning Rules (multi_step_mandatory)
 
-```
+```yaml
 multi_step_mandatory: |
-  【Multi-Step Task Planning Rules - Core Decision Process】
+  【Multi-Step Task Planning Rules - Core Decision Flow】
     
-  When users ask multiple independent questions simultaneously, handle according to the following decision process:
+  When user asks multiple independent questions simultaneously, process according to the following decision flow:
     
-  **Step 1: Identify Parallel Structures**
-  - Identify parallel structures in user questions (e.g., "A and B", "A with B", "A, B, C")
-  - Check if each part can be answered independently
+  **Step 1: Identify Parallel Structure**
+  - Identify parallel structures in user's question (e.g., "A and B", "A & B", "A, B, C")
+  - Check if each part can be independently answered
     
-  **Step 2: Match Skills One by One (Semantic Matching Principle)**
-  - For each sub-question, check if there is a corresponding skill in the 【Available Skills List】
-  - **Semantic Matching**: The skill's purpose must completely match the user's intent
-  - Judgment method: Ask yourself "What is this skill designed for? Is the user's question exactly what this skill solves?"
-  - Counter-example: User asks "crafting recipe", market_query's design purpose is "query market prices", not "query recipes", so it doesn't match
-  - Can only use skill names explicitly listed, strictly prohibited to fabricate
+  **Step 2: Match Skills Individually (Semantic Matching Principle)**
+  - For each sub-question, check if there is a corresponding skill in the【Available Skill List】
+  - **Semantic Matching**: The skill's purpose must completely correspond to user's intent
+  - Judgment method: Ask yourself "What is this skill's design purpose? Does the user's question exactly match what this skill is supposed to solve?"
+  - Counter-example: User asks "crafting recipe", market_query's design purpose is "query market prices", not "query recipes", so no match
+  - Only use skill names explicitly listed,严禁编造
     
   **Step 3: Choose Output Format Based on Matching Results**
     
   - **All sub-questions have corresponding skills** → Return multi-step format
-  - **Some sub-questions have corresponding skills**:
-    - Exactly 1 sub-question has a skill → Return single intent format (execute only that one)
-    - 2 or more sub-questions have skills → Return multi-step format (only include steps with skills)
-  - **No sub-questions have corresponding skills** → Return invalid intent
+  - **Partial sub-questions have corresponding skills**:
+    - Only 1 sub-question has corresponding skills → Return single intent format (only execute that one)
+    - 2 or more sub-questions have corresponding skills → Return multi-step format (only include steps with skills)
+  - **All sub-questions have no corresponding skills** → Return invalid intent
   
-  **Strictly Prohibited to Substitute with Unrelated Skills**:
+  **Strictly Prohibit Using Unrelated Skills as Substitutes**:
   - **This is a common cause of task failure!**
-  - Each skill has clear purposes and semantic scope
-  - **Semantic Matching** requires skill purpose to completely match user intent, cannot substitute based solely on functional similarity
-  - Judgment criteria: If skill name or description doesn't contain core keywords from user's question, it's not semantic matching
-  - Counter-example: User asks "crafting recipe", even though market_query can "query", it doesn't match because market_query's semantics is "market commodity prices", not "recipes"
-  - If a sub-question cannot find a semantically matching skill in the 【Available Skills List】, that sub-question has no corresponding skill, do not force a match
+  - Each skill has a clear purpose and semantic scope
+  - **Semantic Matching** requires the skill's purpose to completely correspond to user's intent, cannot substitute based only on functional similarity
+  - Judgment standard: If the skill name or description does not contain the core keywords of the user's question, it is not semantic matching
+  - Counter-example: User asks "crafting recipe", even if market_query can "query", it doesn't match because market_query's semantic is "market commodity prices", not "recipes"
+  - If a certain sub-question cannot find a skill with completely semantic match in the【Available Skill List】, that sub-question has no corresponding skill, do not force match
     
-  **About Degradation Explanation**:
-  - Your responsibility is to identify intents and match existing skills, not to completely answer every user question
-  - When some sub-questions have no corresponding skills, return single intent or multi-step format to execute the parts with skills
-  - The system will execute corresponding skills based on your recognition results, then use LLM secondary analysis combined with execution results to answer user's questions as completely as possible
-  - Therefore, even if only partial steps are executed, user's complete question can still be answered
-  - Do not return invalid intent just because skills don't cover all questions; as long as one sub-question has a corresponding skill, you should return the corresponding intent format
+  **About Downgrading Explanation**:
+  - Your responsibility is to identify intent and match existing skills, not fully answer every question of the user
+  - When part of sub-questions have no corresponding skills, return single intent or multi-step format to execute the parts with skills
+  - The system will execute corresponding skills based on your recognition results, then through LLM secondary analysis combine execution results to fully answer the user's question
+  - Therefore, even if only part of the steps are executed, the user's complete question can still get an answer
+  - Do not return invalid intent just because skills don't cover all questions, as long as one sub-question has a corresponding skill, you should return the corresponding intent format (single intent or multi-step)
     
   **Core Principles**:
   - As long as one sub-question has a corresponding skill, must return the corresponding intent format (single intent or multi-step)
-  - Better to execute partial steps than to give up completely
-  - Strictly prohibited to have skill_name: null in steps array
-  - Strictly prohibited to fabricate non-existent skill names
+  - Prefer executing part of steps rather than completely giving up
+  - Strictly prohibit skill_name: null in steps array
+  - Strictly prohibit inventing non-existent skill names
 ```
 
 #### Continuous Conversation Handling (continuous_conversation)
 
-```
+```yaml
 continuous_conversation: |
   【Continuous Conversation Handling Principles】
   1. Always combine conversation history to understand current input
-  2. If user uses pronouns ("this", "it", "that") or vague instructions ("check again", "what about now"), search for referent objects in history
-  3. If user says "check once more", "same question", repeat previous intent
-  4. If user is asking about attributes of "currently held item" and doesn't know specific item name, use multi-step task: first retrieve item information then execute query
+  2. If user uses pronouns ("this", "it", "that") or ambiguous commands ("check again", "now?"), look for referent objects from history
+  3. If user says "check again", "same question", repeat the previous round's intent
+  4. If user is asking about "current hand item" related properties and doesn't know specific item name, use multi-step task: first get item info then execute query
 ```
 
 #### Entity Parameter Format (entity_format)
 
-```
+```yaml
 entity_format: |
   【Entity Parameter Format Specification】
-  1. Item format: Use "item_name:quantity" format, e.g., "diamond:64", "iron_ingot:1"
-  2. If quantity is 1, can omit quantity, e.g., "diamond" equals "diamond:1"
-  3. Multiple items separated by commas, e.g., "diamond:10, gold_ingot:5"
+  1. Item format: Use "ItemName:Quantity" format, such as "Diamond:64", "Iron Ingot:1"
+  2. If quantity is 1, can omit quantity, such as "Diamond" is equivalent to "Diamond:1"
+  3. Multiple items separated by commas, such as "Diamond:10, Gold Ingot:5"
   4. If parameter is not applicable, use null or omit the field
 ```
 
-**Importance**: These rules directly affect intent recognition accuracy; modify with extra caution.
+**Importance**: These rules directly affect intent recognition accuracy, modify with extreme caution.
 
 **Note**: Actual configuration contains 4 critical constraint rules:
 - `placeholder_usage`: Placeholder usage restrictions
 - `continuous_conversation`: Continuous conversation handling principles
-- `entity_format`: Entity parameter format specification
-- `multi_step_mandatory`: Multi-step task planning rules (core decision process)
+- `entity_format`: Entity parameter format specifications
+- `multi_step_mandatory`: Multi-step task planning rules (core decision flow)
 
 ---
 
-### 6. Special Scenario Handling Guidelines (special_scenarios)
+### 6. Special Scenarios Handling Guidelines (special_scenarios)
 
-Guiding principles for handling complex situations.
+Handling guidance principles for complex situations.
 
-#### Conflicting Intents Handling (conflicting_intents)
+#### Conflict Intent Handling (conflicting_intents)
 
 ```yaml
 conflicting_intents: |
-  【Conflicting Intents Handling】
+  【Conflict Intent Handling】
   1. If user input may correspond to multiple skills, choose the one with highest confidence
-  2. If multiple skills are reasonable, prefer the more specific and better-matching skill
-  3. Explain selection reasoning in the reasoning field
+  2. If multiple skills are all reasonable, prioritize the more specific, more matching one
+  3. Explain the choice reason in the reasoning field
 ```
 
-#### Missing Parameters Handling (missing_parameters)
+#### Missing Parameter Handling (missing_parameters)
 
 ```yaml
 missing_parameters: |
-  【Missing Parameters Handling】
+  【Missing Parameter Handling】
   1. If required parameters are missing but have default values, return intent normally
-  2. If required parameters are missing and cannot be inferred, consider using multi-step task to first retrieve parameters
-  3. Do not fabricate non-existent parameter values
+  2. If required parameters are missing and cannot be inferred, consider using multi-step task to first obtain parameters
+  3. Do not invent non-existent parameter values
   4. If parameters are completely undeterminable, return invalid intent and explain in reasoning
 ```
 
@@ -279,29 +279,29 @@ missing_parameters: |
 skill_name_restriction: |
   【Skill Name Strict Restriction - Highest Priority Rule】
   
-  **This is the most important rule; violation will cause task failure!**
+  **This is the most important rule, violation will cause task failure!**
   
-  1. **Absolutely Prohibited to Fabricate Skill Names**
-     - Can only use skill names explicitly listed in the system-dynamically-provided 【Available Skills List】
-     - Strictly prohibited to use any names not in the list, even if you think they "should exist"
-     - Strictly prohibited to infer skill names based on functionality (e.g., seeing "query recipe" and fabricating "knowledge_base", "recipe_query", etc.)
+  1. **Absolutely prohibit inventing skill names**
+     - Only use skill names explicitly listed in the system-dynamic-provided【Available Skill List】
+     - Strictly prohibit using any names not in the list, even if you think it "should exist"
+     - Strictly prohibit inferring skill names based on functionality (e.g., seeing "query recipes" and inventing "knowledge_base", "recipe_query", etc.)
   
   2. **Strict Whitelist Mechanism**
-     - Treat the 【Available Skills List】 as the only whitelist
-     - If user's needed functionality is not in the whitelist, treat that functionality as unavailable
-     - **Strictly prohibited to substitute with functionally mismatched skills** (e.g., using market query skill to check crafting recipes)
+     - Treat the【Available Skill List】as the unique whitelist
+     - If user needs functionality is not in the whitelist, consider that function unavailable
+     - **Strictly prohibit using function-mismatched skills as substitutes** (such as using market query skill to check crafting recipes)
   
-  3. **Strictly Prohibited to Use skill_name: null in Steps Array**
+  3. **Strictly prohibit using skill_name: null in steps array**
      - Each step in steps must have a valid skill_name
-     - If a sub-question has no corresponding skill, refer to the degradation strategy in 【Multi-Step Task Planning Rules】
+     - If a certain sub-question has no corresponding skill, refer to the downgrade strategy in【Multi-Step Task Planning Rules】
   
-  4. **Common Error Examples (Strictly Prohibited)**
-     - Error: User asks for functionality not in skill list, fabricate a "seemingly reasonable" skill name
-     - Error: User asks for functionality not in skill list, substitute with a functionally similar skill
-     - Error: Multi-step task contains {"skill_name": null} step
-     - Correct: Check 【Available Skills List】, if no semantically matching skill exists, treat that sub-question as having no corresponding skill
+  4. **Common Error Examples (Strictly prohibit this type of error)**
+     - Error: User asks functionality not in skill list, invent a "looks reasonable" skill name
+     - Error: User asks functionality not in skill list, use a functionally similar skill as substitute
+     - Error: Multi-step task appears {"skill_name": null} step
+     - Correct: Check【Available Skill List】, if there is no skill with completely semantic match, that sub-question is considered as no corresponding skill
   
-  5. **LLM Responsibility Boundaries**
+  5. **LLM's Responsibility Boundary**
      - Your responsibility: Identify intent → Match existing skills
      - Not your responsibility: Create new skills, infer skill names, assume functionality exists
      - If user needs exceed current skill scope, honestly explain limitations
@@ -311,90 +311,143 @@ skill_name_restriction: |
 
 ### 7. Output Quality Requirements (output_quality_requirements)
 
-Ensures output format standardization.
+Ensure output format standardization.
 
 ```yaml
 output_quality_requirements: |
   【Output Quality Requirements】
-  1. JSON format must be strictly correct and parseable
-  2. All string values use double quotes, not single quotes
-  3. Boolean values use true/false, not strings
-  4. Numeric types use numbers directly, without quotes
+  1. JSON format must be strictly correct, can be parsed by parsers
+  2. All string values use double quotes, do not use single quotes
+  3. Boolean values use true/false, do not use strings
+  4. Numeric types directly use numbers, without quotes
   5. confidence value range: 0.0 - 1.0
   6. reasoning should be concise and clear, explaining recognition basis
-  7. If uncertain, better to return invalid intent than guess wrong skill
+  7. If uncertain, prefer returning invalid intent rather than guessing wrong skill
   8. In multi-step tasks, ensure depends_on references existing step ids
   9. Avoid circular dependencies (step_a depends on step_b, step_b depends on step_a)
-  10. Step order should follow logical execution order
+  10. Step order should conform to logical execution order
 ```
 
 ---
 
-## 🔄 Prompt Construction Flow
+## 🔄 Prompt Building Flow
 
-The system constructs the complete system prompt in the following fixed order during each intent recognition (see `IntentPromptConfigManager.buildSystemPrompt()` method):
+### Two-Stage Intent Recognition Architecture
+
+The system adopts a two-stage architecture for intent recognition:
+
+**Stage One: BM25 Semantic Scoring Intent Classifier**（Zero LLM Call）
+```
+User Input
+  ↓
+IntentClassifier（Intelligent Pre-Classification）
+  ├─ 1. Normal Chat Keyword Fast Short-Circuit
+  │   └─ Match to normal_chat keywords → NORMAL_CHAT
+  ├─ 2. Chat Pattern Forced NORMAL_CHAT
+  │   └─ Match to chat_patterns ("you think", "why" etc.) → NORMAL_CHAT
+  ├─ 3. Rebuild Skill Index (on-demand, detect Skill count changes)
+  │   └─ Build Skill documents from description + action_descriptions
+  ├─ 4. BM25 Semantic Scoring
+  │   ├─ Extract Top-K keywords from user input (HanLP TF-IDF, default K=8)
+  │   ├─ Calculate relevance score between user input and each Skill document (BM25 formula)
+  │   └─ Select the Skill with highest score
+  ├─ 5. Imperative Sentence Bonus
+  │   └─ Match to imperative_patterns ("help me", "give me", etc.) → Add bonus
+  ├─ 6. Threshold Judgment
+  │   ├─ Above threshold (skill_match_threshold) → SKILL_INTENT
+  │   │   → Enter Stage Two (LLM Intent Recognition), inject all Skill info
+  │   └─ Below threshold → NORMAL_CHAT
+  │       → Directly jump to【Normal AI Dialogue】, zero LLM calls
+  └─ 7. DEBUG Log Output
+     └─ [DEBUG] [Intent Classification] Result | Score | Threshold | Best Match | Keywords
+```
+
+Keyword configuration file `intent_keywords.yml`:
+```yaml
+skill_match_threshold: 20.0
+imperative_bonus: 10.0
+imperative_patterns:
+  - "帮我"
+  - "给我"
+  - "查一下"
+  - "看一下"
+chat_patterns:
+  - "你觉得"
+  - "为什么"
+  - "介绍一下"
+normal_chat:
+  keywords:
+    - "你好"
+    - "在吗"
+    - "hello"
+    - "hi"
+```
+
+**Stage Two: LLM Intent Recognition**（Full Injection of All Skills）
+
+The system builds the complete system prompt in a fixed order during each intent recognition (see `IntentPromptConfigManager.buildSystemPrompt()` method):
 
 ```
 1. 【Role Definition】
    ↓
-2. 【Available Skills List】(Dynamically generated, extracted from registered Skills, passed as parameter)
+2. 【Available Skill List】(Dynamic generation, extracted from registered Skills, passed in as parameters)
    ↓
 3. 【Response Format Specification】
-   ├─ Single Intent Format
-   ├─ Invalid Intent Format
-   └─ Multi-Step Task Format
-   ├─ Output Format Rules (output_format_rules)
+   ├─ Single intent format
+   ├─ Invalid intent format
+   └─ Multi-step task format
+   ├─ Output format mandatory rules (output_format_rules)
    ↓
 4. 【Decision Rules】
-   ├─ When to Use Single Intent
-   ├─ When to Use Multi-Step Tasks
-   └─ When to Return Invalid Intent
+   ├─ When to use single intent
+   ├─ When to use multi-step task
+   └─ When to return invalid intent
    ↓
-5. 【Critical Constraint Rules】
-   ├─ Placeholder Usage Restrictions
-   ├─ Continuous Conversation Handling Principles
-   ├─ Entity Parameter Format Specification
-   └─ Multi-Step Task Planning Rules
+5. 【Critical Rules】
+   ├─ Placeholder usage restrictions
+   ├─ Continuous conversation handling principles
+   ├─ Entity parameter format specifications
+   └─ Multi-step task planning rules
    ↓
-6. 【Special Scenario Handling Guidelines】
-   ├─ Conflicting Intents Handling
-   ├─ Missing Parameters Handling
-   └─ Skill Name Strict Restriction
+6. 【Special Scenarios Handling Guidelines】
+   ├─ Conflict intent handling
+   ├─ Missing parameter handling
+   └─ Skill name strict restriction
    ↓
 7. 【Output Quality Requirements】
 ```
 
 This structured design ensures:
-- ✅ Clear hierarchy of information received by LLM
-- ✅ Important rules placed first with high priority
-- ✅ Dynamic parts (skill list) inserted at appropriate positions
-- ✅ Output format requirements follow response format to reinforce constraints
+- ✅ LLM receives information in a clear hierarchy
+- ✅ Important rules are placed at the beginning, with high priority
+- ✅ Dynamic parts (Skill list) are inserted at appropriate locations
+- ✅ Output format requirements follow response format, reinforcing constraints
 
 ---
 
-## 🛠️ Usage Instructions
+## 🛠️ Usage Methods
 
-### Editing Configuration File
+### Edit Configuration File
 
 1. Open `plugins/Kilacraft-AI/intent_prompts.yml`
-2. Modify prompt content in corresponding sections as needed
+2. Modify the corresponding section's prompt content according to your needs
 3. Save the file
 
-### Reloading Configuration
+### Reload Configuration
 
-Execute the following command to apply changes:
+Execute the following command to make changes effective:
 
-```
+```bash
 /kilacraft reload
 ```
 
-This command will reload all configurations at once:
+This command will one-time reload:
 - Main configuration (config.yml)
 - Language configuration (language.yml)
-- Skill configuration (skills/)
+- Skills configuration (skills/)
 - **Intent recognition prompt configuration (intent_prompts.yml)** ✨
 
-Permission requirement: `kilacraft.reload` (default OP only)
+Permission requirements: `kilacraft.reload` (default only OP)
 
 ---
 
@@ -402,78 +455,78 @@ Permission requirement: `kilacraft.reload` (default OP only)
 
 ### 1. Progressive Optimization
 
-Don't make large-scale modifications to configuration at once; instead:
+Do not modify configuration massively at once, instead:
 
-1. First run with default configuration for a period
+1. First use default configuration to run for a while
 2. Observe intent recognition logs, record error cases
-3. Adjust related rules targetedly
-4. Change only a small part each time for easier problem localization
-5. Test and verify before proceeding to next optimization step
+3. Make targeted adjustments to related rules
+4. Only change a small part each time, making it easy to locate problems
+5. Test and verify before proceeding to the next optimization
 
 ### 2. Common Problem Troubleshooting
 
-#### Problem 1: AI Always Returns Single Intent, Never Uses Multi-Step Tasks
+#### Problem 1: AI always returns single intent, does not use multi-step tasks
 
-**Symptoms**: Even when user's question obviously requires multiple steps, AI only returns single skill invocation.
+**Symptoms**: Even when the user's question obviously needs multiple steps, AI only returns a single skill call.
 
 **Solution**:
 ```yaml
 decision_rules:
   when_use_multi_step: |
     # Strengthen trigger conditions, add more specific scenarios
-    - When user's question requires multiple independent operations to complete
-    - When subsequent steps depend on results from previous steps
-    - When user asks questions like "is the thing in my hand for sale" that require retrieval then query
-    - When user uses pronouns like "this", "it" but no clear referent in context
+    - When user's question needs multiple independent operations to complete
+    - When subsequent steps depend on previous step's results
+    - When user asks "does the item I'm holding have for sale", this type of situation requires first getting then querying
+    - When user uses "this", "it" etc. pronouns but no explicit referent object in context
 ```
 
-#### Problem 2: AI Mishandles Continuous Conversation
+#### Problem 2: AI handles continuous conversations improperly
 
-**Symptoms**: User says "what about now?", "check again", AI returns `skill_name: null` or fails to understand context.
+**Symptoms**: User says "now?", "check again", AI returns `skill_name: null` or cannot understand context.
 
 **Solution**:
 ```yaml
 critical_rules:
   continuous_conversation: |
     【Continuous Conversation Handling Principles】
-    1. **STRICTLY PROHIBITED** to directly return skill_name: null
-    2. Must analyze core intent of previous conversation
-    3. If previous was querying status, re-execute same query step
-    4. Example: User previously asked "what's in my hand", then says "can this be sold"
-       → Should use multi-step: first get_player_hand_item, then query_availability
+    1. **Strictly prohibit** directly returning skill_name: null
+    2. Must analyze the core intent of the previous round's conversation
+    3. If the previous round is querying status, then execute the same query again
+    4. Example: User previously asked "what am I holding", then says "can this sell?"
+         → Should use multi-step: first get hand item, then query market
 ```
 
-#### Problem 3: Incorrect Placeholder Usage
+#### Problem 3: Placeholder Usage Errors
 
-**Symptoms**: Single intent contains `{step_1.xxx}` placeholder, causing execution failure.
+**Symptoms**: Single intent appears `{step_1.xxx}` placeholder, causing execution failure.
 
 **Solution**:
-```
+```yaml
 critical_rules:
   placeholder_usage: |
-    【Critical Rule】
-    1. {step_x.xxx} placeholders are used **ONLY** in multi-step tasks
-    2. Single intent entities must be specific values or null
-    3. Wrong example: { "entities": { "item": "{step_1.name}" } } ❌
-    4. Correct example: { "entities": { "item": "diamond:1" } } ✅
+    【Critical Rules】
+    1. {step_x.xxx} placeholder **ONLY** used in multi-step tasks
+    2. Entities of single intent must be specific values or null
+    3. Error example: { "entities": { "item": "{step_1.name}" } } ❌
+    4. Correct example: { "entities": { "item": "Diamond:1" } } ✅
 ```
 
-#### Problem 4: Inaccurate Reference Resolution
+#### Problem 4: Anaphora Resolution Inaccuracy
 
-**Symptoms**: User says "how much is this", AI cannot correctly identify what "this" refers to.
+**Symptoms**: User says "how much is this", AI cannot correctly identify "this" refers to which item.
 
 **Solution**:
 ```yaml
 critical_rules:
   continuous_conversation: |
     【Continuous Conversation Handling Principles】
-    1. Prioritize searching for explicit item names from previous conversation
-    2. If referring to "currently held item" and don't know specific name, MUST use multi-step task
-    3. Do not guess or fabricate item names
-    4. Examples:
-       - Previous: "How much is diamond?" → AI: "100 gold" → User: "What about this?"
-         → Should recognize as querying price of emerald or other items (based on context)
-       - User: "Can this be sold?" (no context)
+    1. Prioritize finding explicit item names from previous round's conversation
+    2. If referring to "current hand item" and unknown specific name, must use multi-step task
+    3. Do not guess or invent item names
+    4. Example:
+       - Previous: "How much is the diamond?" → AI: "100 gold coins" → User: "What about this one?"
+         → Should identify as querying emerald or other item price (based on context)
+       - User: "Can this sell?" (no context)
          → Should use multi-step: first get_player_hand_item, then query_availability
 ```
 
@@ -481,41 +534,26 @@ critical_rules:
 
 ## 🧪 Testing and Debugging
 
-If you have special requirements for JSON format:
+### Enable Debug Mode
 
-```
-output_quality_requirements: |
-  【Output Quality Requirements】
-  1. Must use double quotes
-  2. Trailing commas not allowed
-  3. Arrays cannot be empty (must contain at least one element or use null)
-  4. ... More custom requirements
-```
-
----
-
-## 🧪 Testing and Debugging
-
-### Enabling Debug Mode
-
-Set in `config.yml`:
+In `config.yml`, set:
 
 ```yaml
 settings:
   debug_mode: true
 ```
 
-### Observing Intent Recognition Results
+### Observe Intent Recognition Results
 
 View through console logs:
-- Raw JSON returned by LLM
-- Parsed intent objects
-- Executed task plans
-- Execution results of each step
+- LLM returned original JSON
+- Parsed intent object
+- Executed task plan
+- Each step's execution result
 
-### Collecting Error Cases
+### Collect Error Cases
 
-Establish an error case library, recording:
+Build error case library, recording:
 1. User input
 2. Expected recognition result
 3. Actual recognition result
@@ -531,16 +569,16 @@ Regularly optimize configuration based on these cases.
 ### 1. Maintain Rule Consistency
 
 - Avoid contradictory rules in different sections
-- If updating a rule, check other sections for conflicts
+- If updating a certain rule, check if other sections have conflicts
 - Use unified terminology and expression methods
 
 ### 2. Document Changes
 
-Suggest adding change records at the top of configuration file:
+It's recommended to add change records at the top of the configuration file:
 
 ```yaml
 # ==================== Intent Recognition Prompt Configuration ====================
-# Last Modified: 2026-04-07
+# Last Modified: 2026-04-06
 # Modified By: XXX
 # Change Log:
 # - 2026-04-06: Initial version
@@ -548,39 +586,39 @@ Suggest adding change records at the top of configuration file:
 # - ...
 ```
 
-### 3. Backup Configuration Files
+### 3. Backup Configuration File
 
-Backup before making large-scale modifications:
+Before making large-scale modifications, backup first:
 
 ```bash
 cp plugins/Kilacraft-AI/intent_prompts.yml plugins/Kilacraft-AI/intent_prompts.yml.backup
 ```
 
-Facilitates quick recovery when problems occur.
+Convenient for quick recovery when problems occur.
 
 ---
 
-## ⚠️ Precautions
+## ⚠️ Important Notes
 
 1. **YAML Format Must Be Strict**: 
-   - Use `|` symbol for multi-line text
-   - Pay attention to indentation (usually 2 spaces)
+   - Multi-line text uses `|` symbol
+   - Note indentation (usually use 2 spaces)
    - Avoid using Tab characters
 
 2. **Do Not Delete Required Configuration Items**: 
-   - If a configuration item doesn't exist, default value will be used
-   - But may result in incomplete prompts
-   - Suggest commenting out rather than deleting
+   - If a certain configuration item does not exist, will use default values
+   - But may cause incomplete prompts
+   - It's recommended to comment out instead of deleting
 
-3. **Test Immediately After Reloading**: 
-   - Must test effects after modifying configuration
+3. **Test Immediately After Reload**: 
+   - After modifying configuration, must test effect
    - Ensure changes meet expectations
-   - Observe whether there are side effects
+   - Observe if there are side effects
 
 4. **Performance Considerations**: 
-   - Longer prompts increase token consumption
-   - Streamline redundant descriptions
-   - Maintain clarity of core rules
+   - Too long prompts will increase token consumption
+   - Simplify redundant descriptions
+   - Keep core rules clear
 
 ---
 
@@ -596,15 +634,15 @@ Facilitates quick recovery when problems occur.
 
 ## 📌 Difference from Personality System
 
-### Intent Recognition System vs Personality System
+### Intent Recognition System vs. Personality System
 
 | Feature | Intent Recognition System | Personality System |
-|---------|--------------------------|-------------------|
+|---------|-------------------------|-------------------|
 | **Configuration File** | `intent_prompts.yml` | `personalities.yml` |
-| **Activation Timing** | Entry point for all AI interactions (keyword trigger, continuous conversation, plugin commands) | Used only in plugin command mode (`/kilacraft plugins`) |
-| **Core Function** | Identify user intent, select Skills, plan task steps | Define AI's response style and tone |
-| **Configuration Content** | Intent recognition rules, response formats, decision logic | Different personality prompts (Strict Teacher, Adventure Partner, etc.) |
-| **Multiple Instances** | No, globally unique set of rules | Yes, can configure multiple personalities |
+| **Usage Timing** | All AI interaction entrances (keyword trigger, continuous conversation, plugin command) | Only used in plugin command mode (`/kilacraft plugins`) |
+| **Core Function** | Identify user intent, select Skill, plan task steps | Define AI's answering style and tone |
+| **Configuration Content** | Intent recognition rules, response formats, decision logic | Different personality prompts (strict teacher, adventure partner, etc.) |
+| **Multi-Instance** | No, globally unique set of rules | Yes, can configure multiple personalities |
 | **Reload Command** | `/kilacraft reload` | `/kilacraft personalities reload` |
 
 ### Workflow Examples
@@ -617,7 +655,7 @@ Player: @ai What am I holding?
   → Identified as: GenericBukkitAPI.get_player_hand_item
   ↓
 【Execute Skill】
-  → Retrieve player's held item
+  → Get player hand item
   ↓
 【Generate Response】(using default system_prompt or current personality)
   → "You are holding a diamond sword"
@@ -628,40 +666,40 @@ Player: @ai What am I holding?
 Console: /kilacraft plugins strict_teacher Hello UUID xxx
   ↓
 【Intent Recognition】(intent_prompts.yml)
-  → Identify intent of user input "Hello" (may be chat, return invalid intent)
+  → Identify user input "Hello" intent (may be chatting, return invalid intent)
   ↓
-【Fallback to Normal Conversation】
-  → Use "strict_teacher" personality prompt (personalities.yml)
+【Fallback to Normal Dialogue】
+  → Use "strict_teacher" personality's prompt (personalities.yml)
   ↓
 【Generate Response】
-  → "Student, no chatting during class time! Ask specific questions if you have any."
+  → "Classmate, don't chat during class! Ask if you have questions."
 ```
 
 ### Key Differences
 
-1. **Intent Recognition is Universal**: Regardless of which personality is used, intent recognition rules remain the same
-2. **Personality Affects Response Style**: Personality only affects how to answer finally, not recognizing what user wants to do
-3. **Independently Configured**: Modifying personality won't affect intent recognition, and vice versa
+1. **Intent recognition is universal**: Regardless of which personality is used, intent recognition rules are the same
+2. **Personality affects response style**: Personality only affects final how to answer, does not affect identifying what user wants to do
+3. **Two are independently configured**: Modifying personality will not affect intent recognition, and vice versa
 
 ### Configuration Recommendations
 
-- **intent_prompts.yml**: Focus on how to make AI more accurately understand what operations users want to perform
-- **personalities.yml**: Focus on how to make AI answer questions with different styles and tones
+- **intent_prompts.yml**: Focus on how to make AI more accurately understand what operations users want to execute
+- **personalities.yml**: Focus on how to make AI answer in different styles and tones
 
-**DO NOT** mix personality-related descriptions into `intent_prompts.yml`, as this will confuse intent recognition logic.
+**DO NOT** mix personality-related descriptions in `intent_prompts.yml`, this will confuse intent recognition logic.
 
 ---
 
-## 🚀 Advanced Techniques
+## 🚀 Advanced Tips
 
 ### 1. Optimize for Specific Skills
 
-If your server has special Skills, emphasize in configuration:
+If your server has special Skills, you can emphasize them in the configuration:
 
 ```yaml
 critical_rules:
   your_skill_specific_rule: |
-    【Your Skill Name Specific Rules】
+    【Your Skill Name Dedicated Rules】
     1. When user mentions keyword X, prioritize using Y Skill
     2. Parameter Z must be provided in W format
     3. ...
@@ -669,30 +707,30 @@ critical_rules:
 
 ### 2. Seasonal Adjustments
 
-Adjust prompts according to activities in different periods:
+Adjust prompts according to different periods' activities:
 
 ```yaml
-# During festivals
+# During holidays
 decision_rules:
   when_use_multi_step: |
-    - When user asks about festival activities
+    - When user asks about holiday event content
     - When user wants to participate in limited-time events
     - ...
 ```
 
-### 3. Newcomer Guidance Optimization
+### 3. Newbie-Friendly Optimization
 
 Provide more friendly intent recognition for new players:
 
 ```yaml
 role_definition: |
-  You are a patient Minecraft game assistant, especially good at helping new players...
+  You are a patient Minecraft game assistant, especially good at helping novice players...
   
 critical_rules:
   newbie_friendly: |
-    【Newcomer Friendly Principles】
-    1. For vague newcomer questions, prioritize recommending basic skills
-    2. Don't assume players already understand advanced features
+    【Newbie-Friendly Principles】
+    1. For vague novice questions, prioritize recommending basic skills
+    2. Do not assume players already understand advanced features
     3. ...
 ```
 
@@ -700,47 +738,46 @@ critical_rules:
 
 ## 📊 Monitoring and Evaluation
 
-### Key Metrics
+### Key Indicators
 
 Regularly monitor the following metrics:
 
-1. **Intent Recognition Accuracy**: Correctly identified intents / Total requests
-2. **Multi-Step Task Ratio**: Multi-step tasks / Total tasks
-3. **Invalid Intent Ratio**: Invalid intents / Total requests
+1. **Intent Recognition Accuracy**: Correctly recognized intents count / Total requests
+2. **Multi-Step Task Ratio**: Multi-step tasks count / Total tasks
+3. **Invalid Intent Ratio**: Invalid intent count / Total requests
 4. **Average Confidence**: Average confidence value of all recognition results
 
 ### Optimization Cycle
 
-Suggested optimization cycle:
-
-- **Daily**: Review error logs, record typical cases
+Recommended optimization cycle:
+- **Daily**: View error logs, record typical cases
 - **Weekly**: Analyze statistical data, adjust configuration
-- **Monthly**: Comprehensively review configuration, clean up outdated rules
+- **Monthly**: Comprehensive review of configuration, clean outdated rules
 - **Quarterly**: Re-evaluate overall architecture, consider major improvements
 
 ---
 
-## ❓ Frequently Asked Questions
+## ❓ Common Questions
 
-### Q: Configuration changes not taking effect after modification?
+### Q: No effect after modifying configuration?
 
-A: Ensure you executed `/kilacraft reload` command and check console for error messages.
+A: Ensure you executed `/kilacraft reload` command and check if there are error messages in console.
 
 ### Q: How to determine if configuration is reasonable?
 
-A: Observe intent recognition accuracy; if below 80%, optimization is needed. Focus on multi-step task recognition.
+A: Observe intent recognition accuracy, if below 80%, indicates need for optimization. Focus on multi-step task recognition situations.
 
-### Q: Can different personalities use different prompts?
+### Q: Can I use different prompts for different personalities?
 
-A: Current version does not support this; all personalities share the same set of intent recognition prompts. Future versions may support personalized configurations.
+A: Current version does not support, all personalities share the same set of intent recognition prompts. Future versions may support personalized configuration.
 
-### Q: Will long prompts affect performance?
+### Q: Will too long prompts affect performance?
 
-A: It will increase token consumption and response time, but the impact is minor. Recommended to keep within 2000-3000 tokens.
+A: Will increase token consumption and response time, but impact is small. Recommended to keep within 2000-3000 tokens.
 
-### Q: How to rollback to previous configuration?
+### Q: How to roll back to previous configuration?
 
-A: If you have backup files, simply replace:
+A: If there is a backup file, directly replace it:
 ```bash
 cp plugins/Kilacraft-AI/intent_prompts.yml.backup plugins/Kilacraft-AI/intent_prompts.yml
 /kilacraft reload
@@ -750,14 +787,14 @@ cp plugins/Kilacraft-AI/intent_prompts.yml.backup plugins/Kilacraft-AI/intent_pr
 
 ## 📞 Support and Feedback
 
-If you encounter problems during use or have improvement suggestions:
+If you encounter problems or have improvement suggestions during usage:
 
 1. Check console logs to confirm if there are error messages
-2. Verify configuration file format is correct
-3. Try restoring to default configuration to confirm if it's a configuration issue
+2. Check if configuration file format is correct
+3. Try restoring to default configuration, confirm if it's a configuration problem
 4. Collect relevant logs and configuration snippets, provide feedback to developers
 
 ---
 
-**Last Updated**: 2026-04-08  
-**Applicable Version**: Kilacraft-AI v1.4.3+
+**Last Updated**: 2026-04-14
+**Compatible Version**: Kilacraft-AI v1.4.4+

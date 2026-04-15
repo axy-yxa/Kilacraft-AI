@@ -1,12 +1,12 @@
 # Kilacraft-AI
 
-> **🚀 v1.4.3** | Zero Dependencies · Low Memory · High Performance · Fully Open Source  
+> **🚀 v1.4.4** | Zero Dependencies · Low Memory · High Performance · Fully Open Source  
 > A lightweight AI Agent plugin for Minecraft servers with natural language interaction.
 
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.4.3-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
+[![Version](https://img.shields.io/badge/Version-1.4.4-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 
 ---
 
@@ -58,6 +58,7 @@ When these plugins are not installed, corresponding features are automatically d
 ## ✨ Core Features
 
 ### 🤖 AI-Powered Intelligence
+- **BM25 Semantic Scoring Intent Classifier**: Zero maintenance Skill index + LLM intent recognition two-stage architecture, zero LLM calls for normal conversations
 - **LLM Intent Recognition**: Understands player intentions and routes to appropriate skills
 - **Multi-Step Task Planning**: Automatically decomposes complex queries into executable steps
 - **Historical Context**: Maintains conversation history for coherent dialogues
@@ -71,12 +72,19 @@ When these plugins are not installed, corresponding features are automatically d
 ### 🔍 Bukkit API Access
 - **58 Built-in APIs**: Query player status, world info, server stats
 - **Data-Driven Configuration**: Define APIs in YAML, no coding required
-- **Multi-Step Data Passing**: API return values automatically extracted for subsequent step references
+- **Multi-Step Data Passing**: API return values automatically extracted, supports subsequent step references (including array index access)
 - **Permission Control**: Fine-grained access control for each API
 
+### 🔧 Command Execution Skill
+- **Universal Command Execution**: AI executes server commands on player's behalf (e.g., /back, /spawn, /home)
+- **Permission Inheritance**: Commands executed as player, constrained by server permission system
+- **Dual Protection**: config.yml toggle (disabled by default) + permission node (default OP)
+- **Capability Boundary**: Only execution-type commands (no need to read command output), query needs use dedicated Skills
+- **Security Mechanism**: If player doesn't have permission, AI can't bypass it
+
 ### 🔔 AFK Task System
-- **11 Event Listeners**: Monitor player online/offline, death, teleport, level change, world switch, weather, sleeping, respawn, item break
-- **Natural Language Creation**: Just tell AI "help me watch for xxx to come online"
+- **12 Task Types**: 11 event listeners + CUSTOM generic condition polling (monitor any Skill's numeric return values)
+- **Natural Language Creation**: Just tell AI "help me watch for xxx to come online" or "alert me when health drops below 5"
 - **Notification / Callback Dual Mode**: Simple reminder or automatic multi-step task execution
 - **Automatic Resource Management**: Tasks auto-cancel when player goes offline, auto-cleanup on completion
 
@@ -115,15 +123,17 @@ When these plugins are not installed, corresponding features are automatically d
 
 ### Installation (5 Minutes)
 
-1. **Download** `Kilacraft-AI-1.4.3.jar` and place it in `plugins/`
+1. **Download** `Kilacraft-AI-1.4.4.jar` and place it in `plugins/`
 2. **Start** the server to generate configuration files
 3. **Edit** `plugins/Kilacraft-AI/config.yml`:
-   ```yaml
-   api:
-     key: "your-api-key-here"  # Get from DeepSeek/Zhipu/Moonshot
-     url: "https://api.deepseek.com/v1/chat/completions"
-     model: "deepseek-chat"
-   ```
+  ```yaml
+  llm:
+    api_url: "https://api.deepseek.com/v1/chat/completions"
+    api_key: "your-api-key"  # ← Enter your API Key here
+    model: "deepseek-chat"
+    temperature: 0.7
+    max_tokens: 1000
+  ```
 4. **Restart** the server
 5. **Test**: `/kila Hello!`
 
@@ -327,6 +337,6 @@ If Kilacraft-AI helps you, please consider:
 
 ---
 
-> **Last Updated**: 2026-04-12  
-> **Plugin Version**: 1.4.3+  
+> **Last Updated**: 2026-04-13  
+> **Plugin Version**: 1.4.4  
 > **License**: MIT

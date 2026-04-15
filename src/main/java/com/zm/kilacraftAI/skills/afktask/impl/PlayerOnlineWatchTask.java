@@ -1,8 +1,7 @@
 package com.zm.kilacraftAI.skills.afktask.impl;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTask;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskCallback;
@@ -10,7 +9,6 @@ import com.zm.kilacraftAI.skills.afktask.AFKTaskStatus;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskType;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.LLMAnalysisService;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
@@ -29,7 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * 玩家上线监视任务
+ * 玩家上线挂机任务
  *
  * <p>监听指定玩家加入服务器的事件，当目标玩家上线时触发多步骤回调任务。</p>
  *
@@ -90,7 +88,7 @@ public class PlayerOnlineWatchTask extends AFKTask implements Listener {
     private boolean listenerRegistered = false;
 
     /**
-     * 构造玩家上线监视任务
+     * 构造玩家上线挂机任务
      *
      * @param taskId      任务唯一ID
      * @param playerUUID  玩家UUID（谁创建的此任务）
@@ -123,8 +121,7 @@ public class PlayerOnlineWatchTask extends AFKTask implements Listener {
     @Override
     public void start() {
         if (targetPlayerName == null || targetPlayerName.isEmpty()) {
-            notifyPlayer("§c任务创建失败：缺少目标玩家名称参数。");
-            complete("任务参数不完整，已自动取消。");
+            failStart("缺少目标玩家名称参数");
             return;
         }
 
@@ -146,8 +143,7 @@ public class PlayerOnlineWatchTask extends AFKTask implements Listener {
                 plugin.getLogger().info("[DEBUG] [挂机任务] 已启动: " + getTaskId() + ", 目标: " + targetPlayerName + ", 模式: " + (hasCallback ? "回调(" + callback.getCallbackTask().getSteps().size() + "步)" : "纯通知"));
             }
         } catch (Exception e) {
-            notifyPlayer("§c任务启动失败：" + e.getMessage());
-            complete("任务启动异常，已自动取消。");
+            failStart("监听器注册失败: " + e.getMessage());
         }
     }
 
@@ -183,16 +179,33 @@ public class PlayerOnlineWatchTask extends AFKTask implements Listener {
             return;
         }
 
-        // 目标玩家上线
+        // 延迟执行：PlayerJoinEvent 触发时玩家尚未完全进入游戏世界，
+        // 立即执行回调/通知可能导致操作失败（如传送、发送消息给目标玩家）
+        // 40 ticks ≈ 2 秒，是 Minecraft 中玩家完全进入游戏的安全延迟
+        FoliaCompat.runTaskLater(plugin, () -> handleTargetPlayerOnline(joinedPlayerName), 40L);
+    }
+
+    /**
+     * 处理目标玩家上线（延迟执行，确保玩家已完全进入游戏）
+     */
+    private void handleTargetPlayerOnline(String joinedPlayerName) {
+        // 再次检查状态：延迟期间任务可能已被取消
+        if (getStatus() != AFKTaskStatus.RUNNING) {
+            return;
+        }
+
         boolean hasCallback = callback != null && callback.getCallbackTask() != null && callback.getCallbackTask().getSteps() != null && !callback.getCallbackTask().getSteps().isEmpty();
 
         if (hasCallback) {
-            // 有回调步骤：执行多步骤回调任务
+            // 先完成任务：立即注销事件监听器，防止异步回调期间新事件触发重复回调
+            // complete() → onStop() → HandlerList.unregisterAll()，之后不会再有事件进入
+            // 异步回调持有 this 引用，不会被 GC 回收，回调完成后仅做通知，不再调用 complete()
+            complete("目标玩家 " + joinedPlayerName + " 已上线，开始执行回调。");
             executeCallback(joinedPlayerName);
         } else {
             // 纯通知模式：直接通知上线
-            notifyPlayer("§a§l🔔 监视任务完成\n\n" + "§f• 目标玩家：§e" + joinedPlayerName + "\n" + "§f• 状态：§a已加入服务器\n\n" + "§f" + joinedPlayerName + " 上线了，你可以去找 TA 了！");
-            complete("目标玩家 " + joinedPlayerName + " 已上线，监视任务完成。");
+            notifyPlayer("§a§l🔔 挂机任务完成\n\n" + "§f• 目标玩家：§e" + joinedPlayerName + "\n" + "§f• 状态：§a已加入服务器\n\n" + "§f" + joinedPlayerName + " 上线了，你可以去找 TA 了！");
+            complete("目标玩家 " + joinedPlayerName + " 已上线，挂机任务完成。");
         }
     }
 
@@ -219,7 +232,7 @@ public class PlayerOnlineWatchTask extends AFKTask implements Listener {
             Player creatorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (creatorPlayer == null || !creatorPlayer.isOnline()) {
                 plugin.getLogger().warning("[挂机任务] 任务创建者不在线，无法执行回调: " + getTaskId());
-                complete("任务创建者不在线，回调任务已取消。");
+                notifyPlayer("§c任务创建者不在线，回调任务已取消。");
                 return;
             }
 
@@ -235,27 +248,20 @@ public class PlayerOnlineWatchTask extends AFKTask implements Listener {
             // AnalysisSummary 本身已经包含：用户原始输入 + 任务目标 + 各步骤执行结果
             // 这些信息完全自包含，足以让 LLM 生成高质量的分析结果
             Deque<ConversationManager.Message> history = new java.util.ArrayDeque<>();
-            // 注意：TaskExecutor.executeTask() 接收 history，最终传给 LLMAnalysisService
-            // LLMAnalysisService.analyzeResult() 会将 history 传给 LLM Provider
-            // 传入空队列 = 不注入历史上下文
 
             // 5. 执行多步骤任务
             TaskExecutor executor = new TaskExecutor(plugin.getSkillManager(), new LLMAnalysisService());
 
             CompletableFuture<SkillResult> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
 
-            // 6. 处理执行结果
+            // 6. 处理执行结果（注意：任务已在调用方通过 complete() 完成，此处仅做通知）
             future.thenAccept(result -> {
                 // 7. 通知玩家
                 notifyCallbackResult(triggeredPlayerName, result);
-
-                // 8. 完成任务
-                complete("目标玩家 " + triggeredPlayerName + " 已上线，回调任务已执行。");
             }).exceptionally(ex -> {
                 plugin.getLogger().severe("[挂机任务] 回调任务执行异常: " + ex.getMessage());
                 ex.printStackTrace();
                 notifyPlayer("§c回调任务执行失败：" + ex.getMessage());
-                complete("回调任务执行异常。");
                 return null;
             });
 
@@ -263,7 +269,6 @@ public class PlayerOnlineWatchTask extends AFKTask implements Listener {
             notifyPlayer("§c回调任务启动失败：" + e.getMessage());
             plugin.getLogger().severe("[挂机任务] 回调任务启动异常: " + e.getMessage());
             e.printStackTrace();
-            complete("回调任务启动异常。");
         }
     }
 

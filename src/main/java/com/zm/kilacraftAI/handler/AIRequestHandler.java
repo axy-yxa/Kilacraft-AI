@@ -45,10 +45,32 @@ public class AIRequestHandler {
     }
 
     /**
-     * 处理玩家 AI 请求
+     * 处理玩家 AI 请求（默认私信回复）
      */
     public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent) {
-        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, response -> player.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> player.sendMessage(languageManager.getPluginCommandError() + error));
+        handleAIRequest(player, message, playerHistory, enableAgent, false);
+    }
+
+    /**
+     * 处理玩家 AI 请求
+     *
+     * @param publicReply 是否将AI回复广播给所有在线玩家（公屏回复）
+     */
+    public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply) {
+        java.util.function.Consumer<String> sendResponse;
+        if (publicReply) {
+            // 公屏模式：广播给所有在线玩家
+            sendResponse = response -> {
+                String formatted = MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response);
+                for (Player onlinePlayer : plugin.getServer().getOnlinePlayers()) {
+                    onlinePlayer.sendMessage(formatted);
+                }
+            };
+        } else {
+            // 私信模式：只发给触发者
+            sendResponse = response -> player.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response));
+        }
+        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, error -> player.sendMessage(languageManager.getPluginCommandError() + error));
         handleAIRequestInternal(message, ctx, enableAgent);
     }
 
@@ -67,6 +89,14 @@ public class AIRequestHandler {
      * 处理 AI 请求（内部统一逻辑）
      */
     private void handleAIRequestInternal(String message, RequestContext ctx, boolean enableAgent) {
+        // 校验 API Key 是否已配置
+        if (!plugin.getConfigManager().isApiKeyConfigured()) {
+            String hint = "§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/config.yml 中的 llm.api_key 后重启服务器或执行 /kilacraft reload";
+            ctx.sendError.accept(hint);
+            plugin.getLogger().warning("[AI请求] 拒绝请求：API Key 未配置");
+            return;
+        }
+
         if (!enableAgent) {
             if (plugin.getConfigManager().isDebugMode()) {
                 plugin.getLogger().info("[DEBUG] Agent 能力已禁用，进入普通 AI 处理");
@@ -85,7 +115,7 @@ public class AIRequestHandler {
             return;
         }
 
-        intentRecognizer.recognizeIntent(message, ctx.history()).thenAccept(result -> {
+        intentRecognizer.recognizeIntent(message, ctx.history(), ctx.name()).thenAccept(result -> {
             if (result instanceof TaskPlan taskPlan && taskPlan.isMultiStep()) {
                 handleTaskPlan(taskPlan, message, ctx);
             } else if (result instanceof SkillIntent intent && intent.isValid()) {

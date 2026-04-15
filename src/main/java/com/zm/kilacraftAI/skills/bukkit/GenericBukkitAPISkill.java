@@ -42,34 +42,20 @@ public class GenericBukkitAPISkill implements Skill {
 
     @Override
     public Map<String, String> getActions() {
-        // 返回所有可用的 Bukkit API 及其描述
         SkillConfigManager configManager = SkillConfigManager.getInstance();
         if (configManager != null) {
             Map<String, String> actions = new java.util.HashMap<>();
             for (BukkitAPIMetadata api : configManager.getBukkitApiMap().values()) {
-                // 构建描述，同时包含displayName和description
-                StringBuilder desc = new StringBuilder();
-
-                // 优先使用displayName作为标题，然后添加description作为详细说明
-                if (api.getDisplayName() != null && !api.getDisplayName().isEmpty()) {
-                    desc.append(api.getDisplayName());
-                    // 如果description不为空且与displayName不同，则添加详细说明
-                    if (api.getDescription() != null && !api.getDescription().isEmpty() && !api.getDescription().equals(api.getDisplayName())) {
-                        desc.append("：").append(api.getDescription());
-                    }
+                // displayName + description
+                String displayName = api.getDisplayName();
+                String desc = api.getDescription();
+                String value;
+                if (displayName != null && !displayName.isEmpty()) {
+                    value = desc != null && !desc.isEmpty() && !desc.equals(displayName) ? displayName + "：" + desc : displayName;
                 } else {
-                    desc.append(api.getDescription());
+                    value = desc != null ? desc : "";
                 }
-
-                // 添加使用场景
-                if (api.getUsageScenarios() != null && !api.getUsageScenarios().isEmpty()) {
-                    desc.append(" 使用场景：");
-                    for (String scenario : api.getUsageScenarios()) {
-                        desc.append(" - ").append(scenario);
-                    }
-                }
-
-                actions.put(api.getId(), desc.toString());
+                actions.put(api.getId(), value);
             }
             return actions;
         }
@@ -135,6 +121,11 @@ public class GenericBukkitAPISkill implements Skill {
                 extractDataFromResult(result, dataMap);
             }
 
+            // 特殊处理：get_world_time 需要注入 time_ticks 以便 CUSTOM 挂机任务做数值比较
+            if ("get_world_time".equals(api.getId()) && result instanceof Number) {
+                dataMap.put("time_ticks", ((Number) result).longValue());
+            }
+
             return CompletableFuture.completedFuture(SkillResult.success(formatted, dataMap));
         } catch (Exception e) {
             KilacraftAI.getInstance().getLogger().log(Level.SEVERE, "执行 Bukkit API 失败：" + api.getId(), e);
@@ -184,9 +175,7 @@ public class GenericBukkitAPISkill implements Skill {
             for (int i = 0; i < armorContents.length; i++) {
                 org.bukkit.inventory.ItemStack item = armorContents[i];
                 if (item != null && item.getType() != org.bukkit.Material.AIR) {
-                    String itemName = (item.hasItemMeta() && item.getItemMeta().hasDisplayName())
-                            ? item.getItemMeta().getDisplayName()
-                            : item.getType().name();
+                    String itemName = (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) ? item.getItemMeta().getDisplayName() : item.getType().name();
                     dataMap.put(slotNames[i] + "_name", itemName);
                     dataMap.put(slotNames[i] + "_type", item.getType().name());
                     dataMap.put(slotNames[i] + "_amount", item.getAmount());
@@ -498,13 +487,13 @@ public class GenericBukkitAPISkill implements Skill {
 
         // 判断集合元素类型
         Object first = collection.iterator().next();
-        
+
         if (first instanceof org.bukkit.entity.Player) {
             return formatPlayerCollection(collection);
         } else if (first instanceof org.bukkit.World) {
             return formatWorldCollection(collection);
         }
-        
+
         // 未知类型，默认输出
         return collection.toString();
     }
@@ -665,20 +654,20 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatVector(org.bukkit.util.Vector vector) {
         double speed = vector.length();
-        
+
         // 判断是否静止（阈值设为 0.1，因为 MC 中站立时也有微小的重力影响）
         if (speed < 0.1) {
             return "移动状态：静止";
         }
-        
+
         // 获取各方向的速度分量
         double vx = vector.getX();
         double vy = vector.getY();
         double vz = vector.getZ();
-        
+
         // 构建移动方向描述
         java.util.List<String> directions = new java.util.ArrayList<>();
-        
+
         // 水平方向（阈值设为 0.05）
         if (Math.abs(vx) > 0.05) {
             directions.add(vx > 0 ? "东" : "西");
@@ -686,14 +675,14 @@ public class GenericBukkitAPISkill implements Skill {
         if (Math.abs(vz) > 0.05) {
             directions.add(vz > 0 ? "南" : "北");
         }
-        
+
         // 垂直方向（阈值设为 0.05，区分明显的上升/下降）
         if (Math.abs(vy) > 0.05) {
             directions.add(vy > 0 ? "上升" : "下降");
         }
-        
+
         String directionStr = directions.isEmpty() ? "静止" : String.join("、", directions);
-        
+
         return String.format("移动状态：%s，速度：%.2f", directionStr, speed);
     }
 
@@ -791,11 +780,7 @@ public class GenericBukkitAPISkill implements Skill {
         String materialName = block.getType().name();
         String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(materialName);
 
-        return String.format("瞄准方块：%s（位置：X=%d, Y=%d, Z=%d）",
-                chineseName,
-                block.getX(),
-                block.getY(),
-                block.getZ());
+        return String.format("瞄准方块：%s（位置：X=%d, Y=%d, Z=%d）", chineseName, block.getX(), block.getY(), block.getZ());
     }
 
     /**

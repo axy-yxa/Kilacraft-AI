@@ -2,35 +2,23 @@
 # 此文件由插件自动生成，可根据需要修改
 #
 # 此描述会发送给LLM，帮助其理解何时调用此技能
-description: '挂机任务系统：在后台持续监控某个事件条件，条件满足时自动执行一个完整的多步骤回调任务。当用户涉及"后台监控"、"盯着"、"一旦...就..."、"帮我看着"、"当...的时候..."等持续监控类需求时使用此技能。本技能专注于事件监视，回调任务由多步骤任务链完成（可包含任意Skill组合），执行结果经过LLM二次分析后通知玩家。'
+description: '挂机任务系统：在后台持续监控某个事件条件，条件满足时自动执行一个完整的多步骤回调任务。当用户涉及"后台监控"、"盯着"、"一旦...就..."、"帮我看着"、"当...的时候..."等持续监控类需求时使用此技能。典型场景：玩家上线/下线提醒、死亡通知、传送/等级变化监控、天气变化、物品损坏、自定义条件轮询（如血量/余额/世界时间）。关键词：上线、下线、掉线、死了、死亡、掉血、余额不足、时间到了、帮我看着、盯着、一旦、当。本技能专注于事件监视，回调任务由多步骤任务链完成（可包含任意Skill组合），执行结果经过LLM二次分析后通知玩家。'
 
 # 动作描述（Map 格式，key=动作名称，value=动作描述）
 # 每个动作的描述会发送给LLM，帮助其选择正确的action并提取参数
 action_descriptions:
-  create_task: '创建新的挂机任务。必填参数：task_type(监控类型)、target_player(监视目标玩家)。可选参数：callback(回调任务配置，仅当用户明确要求事件触发后执行额外操作时才提供)。如果用户只是要求"帮我盯着xxx上线"、"告诉我xxx上线了"等纯通知需求，不要提供callback参数。**只接受一次性任务（触发一次就结束），不接受"每隔"、"定期"、"定时"、"每天"等长期循环任务**'
+  create_task: '创建新的挂机任务。必填参数：task_type(监控类型)、target_player(监视目标玩家名称，**绝不允许为空**)。target_player语义规则：①用户说"我死了告诉我"、"帮我盯着我自己"等指向自身时，应填入当前玩家的名称；②用户明确提到其他玩家名时，直接填入该名称；③用户说"帮我盯着他"但上下文无法确定具体指谁时，应先询问用户。可选参数：callback(回调任务配置，仅当用户明确要求事件触发后执行额外操作时才提供)。如果用户只是要求"帮我盯着xxx上线"、"告诉我xxx上线了"等纯通知需求，不要提供callback参数。**只接受一次性任务（触发一次就结束），不接受"每隔"、"定期"、"定时"、"每天"等长期循环任务**'
   cancel_task: '取消玩家当前正在运行的挂机任务。当玩家已有挂机任务且想创建新任务时，应主动帮玩家取消旧任务后再创建新的。也可以先调用query_task查看当前任务信息，再决定是否取消。'
   query_task: "查询玩家当前的挂机任务状态，包括任务ID、类型、状态等信息"
 
 # 额外提示信息（用于指导 LLM 正确使用技能）
 hints:
-  - '**重要：输出格式必须是单意图（single_intent）**：AFKTask的所有动作（create_task、cancel_task、query_task）都必须以单意图JSON格式返回，即{"skill_name":"AFKTask","action":"create_task","entities":{...},"confidence":0.95,"reasoning":"..."}。绝对不能以多步骤任务格式（{"goal":...,"steps":[...]}）返回。callback是entities的一个参数，不是独立的步骤。'
-  - '**返回格式要求（重要）**：必须以单意图格式返回，即skill_name=AFKTask, action=create_task, entities包含task_type和target_player。callback是entities中一个值为JSON字符串的参数，不是独立的步骤。例如entities为: task_type=PLAYER_ONLINE_WATCH, target_player=Steve, callback=(JSON字符串)'
-  - '**纯通知场景不要加callback**：用户只说帮我盯着xxx上线时，entities中只有task_type和target_player，不要添加callback参数'
-  - "**回调配置格式**：callback 参数是一个 JSON 对象，包含 callback_task（包含 goal 和 steps）和 notify_target（通知目标，默认 {creator}）"
-  - "**callback中steps的skill_name绝对不能是AFKTask**：回调步骤应使用其他Skill（如市场查询、传送、物品操作等），不能在回调中再次创建挂机任务"
-  - "**任务类型说明**：task_type 参数说明：PLAYER_ONLINE_WATCH=监视玩家上线, PLAYER_OFFLINE_WATCH=监视玩家下线, PLAYER_DEATH_WATCH=监视玩家死亡, PLAYER_TELEPORT_WATCH=监视玩家传送, PLAYER_LEVEL_CHANGE_WATCH=监视玩家等级变化, PLAYER_CHANGED_WORLD_WATCH=监视玩家切换世界, WEATHER_CHANGE_WATCH=监视天气变化, PLAYER_BED_ENTER_WATCH=监视玩家进入床, PLAYER_BED_LEAVE_WATCH=监视玩家离开床, PLAYER_RESPAWN_WATCH=监视玩家重生, PLAYER_ITEM_BREAK_WATCH=监视玩家物品损坏。当用户说盯着xxx上线时用PLAYER_ONLINE_WATCH；盯着xxx下线用PLAYER_OFFLINE_WATCH；盯着xxx死了告诉我用PLAYER_DEATH_WATCH；盯着xxx传送用PLAYER_TELEPORT_WATCH；盯着xxx升级用PLAYER_LEVEL_CHANGE_WATCH；盯着xxx去了下界用PLAYER_CHANGED_WORLD_WATCH；下雨了告诉我用WEATHER_CHANGE_WATCH；盯着xxx睡觉用PLAYER_BED_ENTER_WATCH；盯着xxx起床用PLAYER_BED_LEAVE_WATCH；盯着xxx重生用PLAYER_RESPAWN_WATCH；盯着xxx工具坏了用PLAYER_ITEM_BREAK_WATCH。如果用户要监听的目标玩家当前已经在线，应建议改用PLAYER_OFFLINE_WATCH（监视下线），反之亦然。"
-  - '**一次性 vs 长期任务（重要）**：本技能只支持一次性任务，即触发条件满足一次就结束。不接受长期循环任务（如"每隔1小时提醒我"、"每天中午告诉我"），如果用户提出此类需求，应在 reasoning 中说明不支持并解释原因。'
-  - "**PLAYER_ONLINE_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数"
-  - "**PLAYER_OFFLINE_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数"
-  - "**PLAYER_DEATH_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数"
-  - "**PLAYER_TELEPORT_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{from_world}/{to_world}/{from_x}/{from_y}/{from_z}/{to_x}/{to_y}/{to_z}占位符"
-  - "**PLAYER_LEVEL_CHANGE_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{old_level}/{new_level}/{direction}占位符"
-  - "**PLAYER_CHANGED_WORLD_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{from_world}/{to_world}占位符"
-  - "**WEATHER_CHANGE_WATCH 可选参数**：target_world（目标世界名称，为空则监视玩家当前世界）。callback为可选参数，回调中可使用{world_name}/{weather_state}/{weather_type}占位符"
-  - "**PLAYER_BED_ENTER_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{x}/{y}/{z}/{world}占位符"
-  - "**PLAYER_BED_LEAVE_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{x}/{y}/{z}/{world}占位符"
-  - "**PLAYER_RESPAWN_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{x}/{y}/{z}/{world}占位符"
-  - "**PLAYER_ITEM_BREAK_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{item_name}/{item_type}占位符"
-  - '**并发限制与任务替换**：每个玩家同时只能拥有一个挂机任务。如果创建任务时失败提示“已有一个正在运行的挂机任务”，应告知玩家可以使用 /kilacraft afk cancel 命令取消旧任务，然后再尝试创建新任务。也可以先用 /kilacraft afk query 查询当前任务信息后再决定。这些是真实可用的游戏内命令，不要编造其他命令。'
-  - '**玩家可用的手动命令**：玩家可以在游戏中手动输入以下命令管理挂机任务：/kilacraft afk（查询当前任务）、/kilacraft afk query（同上）、/kilacraft afk cancel（取消当前任务）。当创建任务失败时，应引导玩家使用这些命令。'
-  - '**连续对话中的取消操作**：当对话中出现“帮我取消挂机任务”、“不要盯着了”、“换个目标”等意图时，应调用cancel_task动作。如果用户想替换任务，顺序为：cancel_task → create_task'
+  - '**输出格式**：AFKTask 所有动作必须以单意图 JSON 返回（{"skill_name":"AFKTask","action":"xxx","entities":{...}}），绝不以多步骤格式返回。callback 是 entities 的一个参数（JSON字符串），不是独立步骤。'
+  - '**target_player 规则**：绝不允许为空/省略/填占位符。指向自己时填当前玩家名；明确提到其他玩家名时直接填入；指代不明时先询问用户。'
+  - '**纯通知不加callback**：用户只说“帮我盯着xxx上线”时，entities中只有 task_type 和 target_player'
+  - '**callback格式**：JSON对象，包含 callback_task（goal+steps）和 notify_target（默认 {creator}）。callback_task 的 steps 是一个**独立完整的多步骤任务链**，内部步骤之间**可以且应该**使用 {step_X.xxx} 占位符互相引用（如 step_0 查询结果供 step_1 使用）。约束：①skill_name不能是AFKTask（禁止递归）；②callback steps 只能引用自身链内的步骤结果，不能引用 callback 外部的数据——如果需要外部数据，必须在 callback steps 中自行添加获取步骤'
+  - '**task_type类型**：PLAYER_ONLINE_WATCH=上线, PLAYER_OFFLINE_WATCH=下线, PLAYER_DEATH_WATCH=死亡, PLAYER_TELEPORT_WATCH=传送, PLAYER_LEVEL_CHANGE_WATCH=等级变化, PLAYER_CHANGED_WORLD_WATCH=切换世界, WEATHER_CHANGE_WATCH=天气变化, PLAYER_BED_ENTER_WATCH=进床, PLAYER_BED_LEAVE_WATCH=离床, PLAYER_RESPAWN_WATCH=重生, PLAYER_ITEM_BREAK_WATCH=物品损坏, CUSTOM=自定义条件轮询。注意：目标玩家已在线时应建议用PLAYER_OFFLINE_WATCH，反之亦然。'
+  - '**回调占位符**：TELEPORT_WATCH可用{from_world}/{to_world}/{from_x}/{from_y}/{from_z}/{to_x}/{to_y}/{to_z}；LEVEL_CHANGE_WATCH可用{old_level}/{new_level}/{direction}；CHANGED_WORLD_WATCH可用{from_world}/{to_world}；WEATHER_CHANGE_WATCH可用{world_name}/{weather_state}/{weather_type}；BED_ENTER/LEAVE/RESPAWN可用{x}/{y}/{z}/{world}；ITEM_BREAK可用{item_name}/{item_type}'
+  - '**CUSTOM类型**：必填 task_type=CUSTOM, condition_plan={"condition_skill":"技能名","condition_action":"动作名","result_path":"返回字段名","operator":"比较符","threshold":数值}。operator 支持 less_than/less_than_or_equal/greater_than/greater_than_or_equal/equal/not_equal。只支持单条件，不支持多条件组合。'
+  - '**一次性任务**：只支持触发一次就结束，不接受"每隔"、"定期"、"定时"、"每天"等循环任务'
+  - '**并发与命令**：每人同时只能有一个挂机任务。游戏内命令：/kilacraft afk（查询）、/kilacraft afk cancel（取消）。替换任务顺序：cancel_task → create_task'

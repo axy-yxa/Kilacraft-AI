@@ -28,7 +28,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * 天气变化监视任务
+ * 天气变化挂机任务
  *
  * <p>监听世界天气变化事件，当指定世界的天气发生变化时触发多步骤回调任务。</p>
  *
@@ -74,7 +74,7 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
     private boolean listenerRegistered = false;
 
     /**
-     * 构造天气变化监视任务
+     * 构造天气变化挂机任务
      *
      * @param taskId      任务唯一ID
      * @param playerUUID  玩家UUID（谁创建的此任务）
@@ -123,8 +123,7 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
                 plugin.getLogger().info("[DEBUG] [挂机任务] 已启动: " + getTaskId() + ", 目标世界: " + worldDesc + ", 模式: " + (hasCallback ? "回调(" + callback.getCallbackTask().getSteps().size() + "步)" : "纯通知"));
             }
         } catch (Exception e) {
-            notifyPlayer("§c任务启动失败：" + e.getMessage());
-            complete("任务启动异常，已自动取消。");
+            failStart("监听器注册失败: " + e.getMessage());
         }
     }
 
@@ -179,12 +178,13 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
         boolean hasCallback = callback != null && callback.getCallbackTask() != null && callback.getCallbackTask().getSteps() != null && !callback.getCallbackTask().getSteps().isEmpty();
 
         if (hasCallback) {
-            // 有回调步骤：执行多步骤回调任务
+            // 先完成任务：立即注销事件监听器，防止异步回调期间新事件触发重复回调
+            complete("世界 " + eventWorld.getName() + " 天气变化（" + weatherDesc + "），开始执行回调。");
             executeCallback(eventWorld.getName(), toWeatherState, weatherDesc);
         } else {
             // 纯通知模式：直接通知天气变化
             String message = String.format(
-                "§a§l🔔 监视任务完成\n\n" +
+                "§a§l🔔 挂机任务完成\n\n" +
                 "§f• 世界：§e%s\n" +
                 "§f• 状态：§e%s\n" +
                 "§f• 新天气：§f%s\n\n" +
@@ -195,7 +195,7 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
                 eventWorld.getName()
             );
             notifyPlayer(message);
-            complete("世界 " + eventWorld.getName() + " 天气变化（" + weatherDesc + "），监视任务完成。");
+            complete("世界 " + eventWorld.getName() + " 天气变化（" + weatherDesc + "），挂机任务完成。");
         }
     }
 
@@ -216,7 +216,7 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
             Player creatorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (creatorPlayer == null || !creatorPlayer.isOnline()) {
                 plugin.getLogger().warning("[挂机任务] 任务创建者不在线，无法执行回调: " + getTaskId());
-                complete("任务创建者不在线，回调任务已取消。");
+                notifyPlayer("§c任务创建者不在线，回调任务已取消。");
                 return;
             }
 
@@ -231,18 +231,13 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
 
             CompletableFuture<SkillResult> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
 
-            // 6. 处理执行结果
+            // 6. 处理执行结果（注意：任务已在调用方通过 complete() 完成，此处仅做通知）
             future.thenAccept(result -> {
-                // 7. 通知玩家
                 notifyCallbackResult(result);
-
-                // 8. 完成任务
-                complete("世界 " + worldName + " 天气变化，回调任务已执行。");
             }).exceptionally(ex -> {
                 plugin.getLogger().severe("[挂机任务] 回调任务执行异常: " + ex.getMessage());
                 ex.printStackTrace();
                 notifyPlayer("§c回调任务执行失败：" + ex.getMessage());
-                complete("回调任务执行异常。");
                 return null;
             });
 
@@ -250,7 +245,6 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
             notifyPlayer("§c回调任务启动失败：" + e.getMessage());
             plugin.getLogger().severe("[挂机任务] 回调任务启动异常: " + e.getMessage());
             e.printStackTrace();
-            complete("回调任务启动异常。");
         }
     }
 

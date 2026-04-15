@@ -432,6 +432,7 @@ No coding required, AI directly calls vanilla APIs to query player status, world
 **Core Features:**
 - ✅ **Data-driven configuration**: Define APIs in YAML, supports hot reload
 - ✅ **Multi-step data passing**: API return values automatically extracted to dataMap, subsequent steps can reference via `{step_x.field}`
+  - Supports array index access: `{step_x.warps[0].warp_name}` can reference specific elements in lists
 - ✅ **Permission control**: Independent permission nodes for each API
 - ✅ **Error isolation**: API execution failures don't affect other features
 
@@ -480,6 +481,45 @@ kilacraft.api.server.info       # Server info query
 
 For more technical details, please check [Bukkit API Reference Manual](./Bukkit%20API%20Reference).
 
+---
+
+### 6️⃣ Command Execution Skill (Extended Feature)
+Let AI execute server commands on behalf of players (such as `/back`, `/spawn`, `/home`), serving as a universal fallback solution for dedicated Skills.
+
+**Security Mechanisms:**
+- AI executes commands as the player (`Bukkit.dispatchCommand(player, command)`), fully inheriting the server's native security mechanisms
+- If a player doesn't have command permissions, AI execution will also be rejected by the server (no privilege escalation risk)
+- All server security mechanisms (permission checks, cooldowns, safe zones, etc.) function normally
+
+**Capability Boundaries:**
+- Only supports execution-type commands (no need to read command output), for example: `/back`, `/spawn`, `/home` home name
+- Query-type commands (such as `/bal`, `/whois`) should be implemented through dedicated Skills to ensure AI can correctly handle returned data
+
+**Configuration:**
+1. Edit `config.yml`:
+```yaml
+skills:
+  command_skill:
+    enabled: false  # Disabled by default, requires manual enablement
+```
+
+2. Configure permission nodes:
+- Assign `kilacraft.command.execute` permission to trusted players or groups
+- Only OP has this permission by default (security consideration)
+
+**Usage Example:**
+```
+Player: Help me return to my death point
+AI: Executed command for you: /back
+(CMI/Essentials directly sends teleport result to player)
+```
+
+> **💡 Design Philosophy**:
+- CommandSkill is a last resort: Prioritize using dedicated Skills (like CMI's teleport functionality)
+- Don't use this skill for query-type commands: It's more appropriate to integrate corresponding APIs via Skill SPI
+- Security first: If a player can't do something, AI can't do it either
+
+For more technical details, please check [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide).
 ---
 
 ### 7️⃣ AFK Task System (11 Event Listeners) (Extended Feature)
@@ -549,7 +589,7 @@ Edit `plugins/Kilacraft-AI/config.yml`:
 ```
 llm:
   api_url: "https://api.deepseek.com/v1/chat/completions"
-  api_key: "sk-your-api-key-here"  # ← Enter your API Key here
+  api_key: "your-api-key"  # ← Enter your API Key here
   model: "deepseek-chat"
   temperature: 0.7
   max_tokens: 1000
@@ -853,8 +893,7 @@ If you're a plugin developer, welcome to:
 ### 🏆 Integrated Plugins
 
 - ✅ **GlobalMarketPlus**: Deep economy system integration (balance, price, product queries)
-- ✅ **Bukkit API**: 58 vanilla API dynamic invocation (player status, world info, server info) with multi-step data passing
-- ✅ **AFK Task System**: 11 event listeners, natural language background monitoring tasks, supports notification and callback dual mode
+- ✅ **CMI**: Deep teleport system integration (teleport to home, teleport to warp, teleport to player), enhanced player info queries (playtime, AFK status, vanish status, kits list, online players)
 - ✅ **MythicMobs**: Placeholder support (NPC displays AI replies)
 
 **Looking forward to your plugin being next!** 🎉

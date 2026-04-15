@@ -7,19 +7,19 @@
 
 ## 📋 Table of Contents
 
-- [Overview of Three Interaction Modes](#-overview-of-three-interaction-modes)
-- [Mode 1 & 2: ChatListener / KilacraftCommand (Agent Enabled)](#-mode-1--2-chatlistener--kilacraftcommand-agent-enabled)
-- [Mode 3: Plugin Command Mode (Agent Disabled)](#-mode-3-plugin-command-mode-agent-disabled)
-- [Core Differences Comparison Table](#-core-differences-comparison-table)
-- [Design Philosophy Summary](#-design-philosophy-summary)
-- [How to Choose Which Mode to Use?](#-how-to-choose-which-mode-to-use)
+- [Overview of Three Interaction Modes](#overview-of-three-interaction-modes)
+- [Mode 1 & 2: ChatListener / KilacraftCommand (Agent Enabled)](#mode-1--2-chatlistener--kilacraftcommand-agent-enabled)
+- [Mode 3: Plugin Command Mode (Agent Disabled)](#mode-3-plugin-command-mode-agent-disabled)
+- [Core Differences Comparison Table](#core-differences-comparison-table)
+- [Design Philosophy Summary](#design-philosophy-summary)
+- [How to Choose Which Mode to Use?](#how-to-choose-which-mode-to-use)
 
 ---
 
 ## 🔄 Overview of Three Interaction Modes
 
 | Mode | Trigger Method | Agent Capability | Knowledge Base Retrieval | Callback Mechanism | Typical Scenarios |
-|------|---------------|------------------|-------------------------|-------------------|------------------|
+|------|---------------|------------------|------------------------|------------------|-------------------|
 | **ChatListener** | `@ai` keyword / continuous chat | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Player active interaction |
 | **KilacraftCommand** | `/kilacraft <message>` | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Server owner/admin queries |
 | **Plugin Command** | `/kilacraft plugins ...` | ❌ Disabled | ✅ Normal retrieval | ✅ Required | Third-party plugin integration |
@@ -40,6 +40,21 @@ User Input: "@ai What am I holding? How much can this sell for?"
   ├─ Send "Thinking..." message
   └─ Get conversation history
   ↓
+【1.5. BM25 Semantic Scoring Intent Classifier】IntentClassifier ← Zero Maintenance Skill Index
+  ├─ Load intent_keywords.yml with normal_chat keywords and chat patterns
+  ├─ Fast short-circuit: match keywords/patterns → NORMAL_CHAT (zero LLM calls)
+  ├─ Not matched → Rebuild Skill Index (auto-detect Skill count changes)
+  ├─ BM25 Semantic Scoring:
+  │   ├─ Build Skill documents from description + action_descriptions
+  │   ├─ Extract Top-K keywords from user input (HanLP TF-IDF)
+  │   ├─ Calculate relevance score between user input and each Skill document
+  │   └─ Imperative sentence bonus ("help me", "give me", etc.)
+  └─ Threshold Judgment:
+       ├─ Above threshold (skill_match_threshold) → SKILL_INTENT
+       │   → Enter【2. Intent Recognition Layer】, inject all Skill info
+       └─ Below threshold → NORMAL_CHAT
+           → Directly jump to【Normal AI Dialogue】, zero LLM calls
+  ↓
 【2. Intent Recognition Layer】SkillIntentRecognizer
   ├─ Build system prompt (including all available Skill descriptions)
   ├─ Call LLM for intent analysis
@@ -52,13 +67,14 @@ User Input: "@ai What am I holding? How much can this sell for?"
 【3a. Skill Execution Layer】(If valid intent exists)
   ├─ Single Intent Path:
   │   ├─ SkillManager.executeSkillByIntent()
-  │   ├─ Execute specific Skill (e.g., get_player_hand_item)
+  │   ├─ Execute specific Skill (e.g., get_player_hand_item, command.execute_command)
   │   └─ Return SkillResult { message, data }
   │
-  └─ Multi-Step Path:
+  └─ Multi-step path:
       ├─ TaskExecutor.executeTask()
       ├─ Execute multiple Skills in dependency order
       ├─ Data auto-flow ({step_1.xxx} → step_2)
+      │  └─ Supports array index access: {step_1.warps[0].warp_name}
       └─ Return comprehensive result
   ↓
 【3b. Secondary Analysis Layer】LLMAnalysisService ✨ Knowledge Enhancement
@@ -81,9 +97,11 @@ User Input: "@ai What am I holding? How much can this sell for?"
 ### Key Features
 
 1. **Intelligent Intent Recognition**: LLM understands user's true intent, automatically selects Skills
-2. **Multi-Step Orchestration**: Complex tasks decomposed into ordered steps, data auto-flows
+2. **BM25 Semantic Scoring Intent Classifier**: Intelligent pre-classification before LLM calls, zero LLM calls for normal chat
+3. **Multi-Step Orchestration**: Complex tasks decomposed into ordered steps, data auto-flows
 3. **Knowledge Enhancement**: Inject relevant knowledge during secondary analysis, improve accuracy
 4. **Failure Fallback**: Auto-convert to normal AI dialogue when intent recognition fails or Skill execution errors
+5. **Command Execution Fallback**: CommandSkill supports execution-type commands (e.g., /back, /spawn), covering Skill gaps
 
 ### Example Flow
 
@@ -99,48 +117,18 @@ User: "What am I holding? How much can this sell for?"
   └─ step_2 → Price $500
   ↓
 【Secondary Analysis + Knowledge Enhancement】
-  Retrieved knowledge:
-  - Server rule: Rare weapon price cap $1000
-  - Diamond sword is medium-value item
+  Retrieved knowledge from base:
+  - Server rule: Rare weapon price limit $1000
+  - Diamond sword is mid-tier value
   
   LLM comprehensive analysis:
-  "You're holding a diamond sword, market price $500.
-   According to server economic policy, this price is reasonable,
-   recommend selling it in the market."
-  ↓
-【Return Result】
-```
+  "You are holding a diamond sword, market price $500.
 
 ---
 
-## 📊 Mode 3: Plugin Command Mode (Agent Disabled)
+## 📦 Mode 3: Plugin Command Mode (Agent Disabled)
 
-Plugin command mode is an interface designed specifically for **third-party plugin integration**, with a completely different design philosophy from normal modes.
-
-### Why doesn't plugin command mode enable Agent capabilities?
-
-1. **Callback mechanism requires pure text output**
-   ```java
-   executeCallback(callbackCommand, fullResponse);
-   //                          ^^^^^^^^^^^^
-   //                          Must be String type!
-   ```
-   - Agent path may return structured data (Map, List, etc.)
-   - Cannot guarantee final result is serializable pure text
-   - Callback commands need clear text content as parameters
-
-2. **Different responsibility positioning**
-   - ChatListener/KilacraftCommand: "Help me do something" (task execution)
-   - Plugin command: "Give me a piece of AI-generated text" (content creation)
-
-3. **Performance considerations**
-   - Plugin commands may be called frequently (e.g., MythicMobs placeholders)
-   - Avoid unnecessary intent recognition overhead (~2-5 seconds)
-   - Direct normal AI call is faster (~1-3 seconds)
-
-4. **Semantic clarity**
-   - `/kilacraft plugins default Hello UUID` = "Answer 'Hello' with default personality"
-   - Not "Help me execute some task"
+This mode is designed for third-party plugin integration, where AI is called via callback command.
 
 ### Complete Call Chain
 
@@ -158,152 +146,119 @@ Console: "/kilacraft plugins default Hello UUID callback_cmd"
   ├─ Replace {player} placeholder
   └─ Build complete system prompt
   ↓
-【3. Normal AI Dialogue】LLMProvider.processRequestWithCustomSystemPrompt()
-  ├─ 【Knowledge Retrieval】(Inside GenericLLMProvider)
-  │   ├─ Retrieve relevant knowledge snippets
-  │   └─ Inject into user message
-  ├─ Build request:
-  │   ├─ system: Personality prompt
-  │   ├─ history: Isolated history records
-  │   └─ user: User message + knowledge context
-  ├─ Call LLM API (streaming response)
-  └─ Return pure text response
+【3. Knowledge Base Retrieval】
+  ├─ Extract keywords from user input
+  ├─ Query relevant knowledge chunks
+  └─ Build knowledge context
   ↓
-【4. Callback Layer】
-  ├─ Save conversation to isolated history
-  ├─ Cache latest response (for polling retrieval)
-  ├─ Execute callback command:
-  │   ├─ Replace {response} placeholder
-  │   ├─ Execute command on main thread
-  │   └─ Timeout protection (default 3 seconds)
-  └─ Clean up cache
+【4. LLM Call】
+  ├─ Knowledge enhancement prompt injection
+  ├─ Call LLM provider
+  ├─ Receive complete response
+  └─ Parse into callback command string
   ↓
-【5. Complete】
+【5. Callback Command Execution】
+  ├─ Check if callback_cmd parameter exists
+  ├─ Parse callback arguments
+  ├─ Execute callback command (e.g., /myplugin callback result_data)
+  └─ No LLM analysis layer (single call mode)
 ```
 
-### Key Features
+### Key Differences
 
-1. **Pure Text Output**: Ensure callback commands can correctly receive and process
-2. **Personality**: Use specified personality prompts, controllable style
-3. **Knowledge Support**: Still can retrieve knowledge base, enhance answer quality
-4. **Isolated History**: Independent history for each `UUID_personality` combination
-5. **Callback Mechanism**: Automatically execute specified commands after AI completes
+| Feature | ChatListener/KilacraftCommand | Plugin Command |
+|---------|-------------------------------|-----------------|
+| **Agent Capability** | ✅ Enabled | ❌ Disabled |
+| **Knowledge Retrieval** | Smart injection (context-aware) | Normal retrieval (keyword-based) |
+| **Callback Mechanism** | ❌ Not needed | ✅ Required |
+| **Response Mode** | Multi-step tasks supported | Single response only |
+| **History Records** | Player UUID isolation | UUID_personality isolation |
+| **Typical Scenarios** | Player interaction, task execution | Third-party plugin integration |
+| **Prompt Complexity** | Dynamic Skill injection | Fixed personality prompt |
 
-### Typical Application Scenarios
+### Core Advantages
 
-**Scenario 1: MythicMobs Placeholder Integration**
-```yaml
-# MythicMobs configuration
-Skills:
-  BossSkill:
-    Skills:
-      - message{msg=%kilacraft_ai_answer(How to defeat me?)%}
-```
-
-Expected output:
-```
-AI: "Attack my weak point on the head, use bows for ranged attacks,
-     watch out for my fire skills!"
-```
-
-**Scenario 2: Other Plugin Code Integration**
-```java
-// Some plugin code
-String aiAdvice = plugin.callAI(playerUUID, "How to defeat this boss?");
-player.sendMessage(aiAdvice); // Display text advice
-```
-
-Expected output:
-```
-AI: "This boss has 3 phases, first phase...
-     Recommend using fire resistance potions..."
-```
-
-**Scenario 3: Automated Scripts**
-```bash
-# Scheduled task
-/kilacraft plugins daily_tips What events today? UUID save_to_file
-```
-
-Expected output:
-```
-AI: "Today's events:
-     1. 14:00 PVP Tournament
-     2. 20:00 Building Competition
-     Welcome to participate!"
-```
+- ✅ **Isolation**: Independent history records per UUID, no cross-contamination
+- ✅ **Control**: Plugin can specify exact callback command and arguments
+- ✅ **Performance**: No intent recognition overhead, direct knowledge retrieval
+- ✅ **Flexibility**: Support multiple personalities with different styles
 
 ---
 
-## 🔍 Core Differences Comparison Table
+## 📊 Core Differences Comparison Table
 
-| Dimension | ChatListener / Command | Plugin Command Mode |
-|-----------|----------------------|--------------------|
-| **Trigger Method** | Player chat / console command | Console command (for plugin calls only) |
-| **Agent Capability** | ✅ Enabled (intent recognition + skill execution) | ❌ Disabled (direct normal AI) |
-| **Intent Recognition** | ✅ LLM automatic recognition | ❌ Skipped |
-| **Skill Execution** | ✅ Supports single/multi-step | ❌ Not supported |
-| **Knowledge Retrieval** | ✅ Injected during secondary analysis | ✅ Injected during normal dialogue |
-| **Personality System** | ❌ Not supported (only default system prompt) | ✅ Required (can specify any personality) |
-| **Output Form** | Diverse (skill results + AI summary) | Pure text (must be serializable) |
-| **Callback Mechanism** | ❌ Not needed | ✅ Required (pass to caller) |
-| **History Records** | Isolated by player UUID | Isolated by `UUID_personality` combination |
-| **Cooldown** | General cooldown_seconds | Dedicated plugins_cooldown_seconds |
-| **Response Speed** | ~3-8 seconds (includes intent + skills) | ~1-3 seconds (direct AI) |
-| **Applicable Scenarios** | Player interaction, task execution | Content generation, plugin integration |
+| Feature | ChatListener/KilacraftCommand | Plugin Command |
+|---------|-------------------------------|-----------------|
+| **Agent Capability** | ✅ Enabled | ❌ Disabled |
+| **Knowledge Retrieval** | Smart injection (context-aware) | Normal retrieval (keyword-based) |
+| **Prompt Complexity** | Dynamic Skill injection | Fixed personality prompt |
+| **Response Mode** | Supports multi-step tasks | Single response only |
+| **History Records** | Player UUID isolation | UUID_personality isolation |
+| **Callback Mechanism** | ❌ Not needed | ✅ Must provide callback_cmd |
+| **Typical Scenarios** | Player interaction, task execution | Third-party plugin integration |
 
 ---
 
-## 💡 Design Philosophy Summary
+## 🎨 Design Philosophy Summary
 
-### ChatListener / KilacraftCommand Mode
+### 1. Mode Specialization
+- **Mode 1 & 2**: Optimized for player active interaction, supporting complex multi-step tasks
+- **Mode 3**: Designed for third-party plugin integration, simple and reliable callback mechanism
 
-> "Let players interact with the server in the most natural way, AI understands intent and executes tasks"
+### 2. Callback Command Standardization
+**Semantic Clarity**: `/kilacraft plugins default Hello UUID callback_cmd`
+- `default`: Use server's default personality
+- `Hello`: Optional greeting message
+- `UUID`: Unique identifier for history isolation
+- `callback_cmd`: Command to execute with AI response as arguments
 
-- Target end users (players)
-- Emphasize intelligence and automation
-- Support complex task orchestration
-- Flexible and diverse output
+**Callback Execution**:
+```
+/myplugin callback {
+  "from": "kilacraft",
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "result": "AI's complete response content"
+}
+```
 
-### Plugin Command Mode
-
-> "Provide stable and reliable AI text generation interface for third-party plugins"
-
-- Target developers
-- Emphasize stability and predictability
-- Output must be pure text
-- Support callback mechanism
-
-### Why design this way?
-
-1. **Responsibility Separation**: Two modes serve different target groups
-2. **Performance Optimization**: Plugin integration doesn't need intent recognition overhead
-3. **Reliability**: Pure text output ensures callback mechanism stability
-4. **Flexibility**: Keep both modes to meet different needs
+### 3. Isolation Mechanism
+**UUID_personality Key**:
+- Format: `{UUID}_{personality_name}`
+- Example: `550e8400-e29b-41d4-a716-446655440000_default`
+- Purpose: Prevent history pollution between different callback commands
 
 ---
 
 ## 🎯 How to Choose Which Mode to Use?
 
-### Use ChatListener / KilacraftCommand if:
+### When to Use Mode 1 & 2 (ChatListener / KilacraftCommand)
 
-- ✅ Players need intelligent interaction with AI
-- ✅ Need to execute server operations (query, purchase, management, etc.)
-- ✅ Want AI to understand complex multi-step tasks
-- ✅ Output can be diverse (data + suggestions)
+✅ **Scenarios**:
+- Player active interaction (e.g., "@ai", "/kilacraft")
+- Task execution requiring multi-step chains
+- Querying player/world/server information
 
-### Use Plugin Command Mode if:
+✅ **Advantages**:
+- Smart intent recognition
+- Automatic task decomposition
+- Context-aware responses
+- History continuity
 
-- ✅ You are a plugin developer needing to call AI in code
-- ✅ Only need AI-generated text content
-- ✅ Need to pass AI replies to other systems
-- ✅ Need personality-based reply styles
-- ✅ Need callback mechanism for automated workflows
+### When to Use Mode 3 (Plugin Command)
+
+✅ **Scenarios**:
+- Third-party plugin integration
+- Need precise callback command
+- Want history isolation
+- Single-response requirement
+
+✅ **Advantages**:
+- Simple and reliable
+- Predictable execution flow
+- History isolation
+- No complex parsing overhead
 
 ---
 
-> **Last Updated**: 2026-04-08  
-> **Applicable Plugin Version**: Kilacraft-AI 1.4.3+  
-> **Related Documents**: 
-> - [Server Owner Guide](./Server%20Owner%20Guide)
-> - [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide)
+> **Last Updated**: 2026-04-14
+> **Compatible Version**: Kilacraft-AI v1.4.3+

@@ -244,7 +244,7 @@ public class TaskExecutor {
     }
 
     /**
-     * 解析占位符（如 {step_1.item_name}）
+     * 解析占位符（如 {step_1.item_name} 或 {step_1.warps[0].warp_name}）
      * 解析失败时返回失败信息，而不是保留原占位符
      */
     @SuppressWarnings("unchecked")
@@ -253,21 +253,21 @@ public class TaskExecutor {
             return new PlaceholderResolveResult(value, null);
         }
 
-        // 匹配 {step_xxx.field} 格式的占位符
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{(step_\\w+)\\.(\\w+)\\}");
+        // 匹配 {step_xxx.field} 或 {step_xxx.field[0].subfield} 格式的占位符
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{(step_\\w+)\\.([\\w\\[\\].]+)\\}");
         java.util.regex.Matcher matcher = pattern.matcher(value);
 
         StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             String stepId = matcher.group(1);
-            String fieldName = matcher.group(2);
-            String placeholder = matcher.group(0); // 完整的占位符，如 {step_1.item_name}
+            String fieldPath = matcher.group(2); // 可能是 "warp_name" 或 "warps[0].warp_name"
+            String placeholder = matcher.group(0); // 完整的占位符
 
             // 从 plan.context 中获取步骤结果
             Object stepResult = plan.getContext().get(stepId);
             if (stepResult instanceof SkillResult skillResult && skillResult.getData() instanceof Map) {
                 Map<String, Object> data = (Map<String, Object>) skillResult.getData();
-                Object fieldValue = data.get(fieldName);
+                Object fieldValue = resolveFieldPath(data, fieldPath);
                 if (fieldValue != null) {
                     matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(fieldValue.toString()));
                     continue;
@@ -275,12 +275,49 @@ public class TaskExecutor {
             }
             // 占位符解析失败，返回失败信息
             if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().warning("[DEBUG] 占位符解析失败：" + placeholder + " (步骤 " + stepId + " 不存在或没有字段 " + fieldName + ")");
+                plugin.getLogger().warning("[DEBUG] 占位符解析失败：" + placeholder + " (步骤 " + stepId + " 不存在或路径 " + fieldPath + " 无效)");
             }
             return new PlaceholderResolveResult(null, placeholder);
         }
         matcher.appendTail(sb);
         return new PlaceholderResolveResult(sb.toString(), null);
+    }
+
+    /**
+     * 解析字段路径（支持数组访问，如 "warps[0].warp_name"）
+     */
+    @SuppressWarnings("unchecked")
+    private Object resolveFieldPath(Map<String, Object> data, String fieldPath) {
+        // 解析路径：warps[0].warp_name -> ["warps[0]", "warp_name"]
+        String[] parts = fieldPath.split("\\.");
+        Object current = data;
+
+        for (String part : parts) {
+            if (current == null) return null;
+
+            // 检查是否是数组访问：warps[0]
+            java.util.regex.Matcher arrayMatcher = java.util.regex.Pattern.compile("^(\\w+)\\[(\\d+)\\]$").matcher(part);
+            if (arrayMatcher.find()) {
+                String arrayKey = arrayMatcher.group(1);
+                int index = Integer.parseInt(arrayMatcher.group(2));
+
+                if (!(current instanceof Map)) return null;
+                Map<String, Object> map = (Map<String, Object>) current;
+                Object arrayObj = map.get(arrayKey);
+
+                if (!(arrayObj instanceof List<?> list)) return null;
+
+                if (index < 0 || index >= list.size()) return null;
+                current = list.get(index);
+            } else {
+                // 普通字段访问
+                if (!(current instanceof Map)) return null;
+                Map<String, Object> map = (Map<String, Object>) current;
+                current = map.get(part);
+            }
+        }
+
+        return current;
     }
 
     /**

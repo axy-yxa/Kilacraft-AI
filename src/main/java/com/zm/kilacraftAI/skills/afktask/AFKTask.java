@@ -34,8 +34,13 @@ public abstract class AFKTask {
     private final AFKTaskType taskType;
     private final String description;
     private final Map<String, String> params;
-    private AFKTaskStatus status;
+    private volatile AFKTaskStatus status;
     private final long createdAt;
+
+    /**
+     * 启动阶段的错误消息（由子类在 start() 中通过 failStart 设置）
+     */
+    private String startError;
 
     /**
      * 构造挂机任务
@@ -89,20 +94,43 @@ public abstract class AFKTask {
     }
 
     /**
-     * 条件满足时完成任务
+     * 在 start() 阶段因前置条件不满足而终止任务
      *
-     * <p>子类在检测到条件满足时调用此方法，会自动通知玩家并释放资源。</p>
+     * <p>子类在 start() 中检测到参数缺失、注册监听器失败等错误时调用此方法，
+     * 会记录错误消息并完成任务。</p>
      *
-     * @param completionMessage 完成通知消息
+     * @param errorMessage 具体的错误描述（会传递给 AFKTaskManager 作为 SkillResult.failure 的消息）
      */
-    protected void complete(String completionMessage) {
+    protected void failStart(String errorMessage) {
+        this.startError = errorMessage;
+        complete("任务启动失败: " + errorMessage);
+    }
+
+    /**
+     * 终止任务并释放资源
+     *
+     * <p>将任务状态标记为 COMPLETED，调用子类资源清理并从管理器中移除引用。此方法适用场景包括：
+     * <ul>
+     *   <li>正常完成：监视条件满足（如目标玩家上线）</li>
+     *   <li>异常终止：启动阶段前置条件不满足（通过 {@link #failStart} 间接调用）</li>
+     *   <li>回调执行完毕</li>
+     * </ul>
+     * 如果任务已经处于终态（COMPLETED/CANCELLED），则忽略调用。</p>
+     *
+     * <p>注意：此方法会调用 {@link #onStop()} 确保子类资源（事件监听器、定时任务等）被正确释放，
+     * 防止内存泄漏。所有子类的 onStop() 实现必须是幂等的。</p>
+     *
+     * @param message 终止原因描述（用于日志记录）
+     */
+    protected void complete(String message) {
         if (this.status == AFKTaskStatus.COMPLETED || this.status == AFKTaskStatus.CANCELLED) {
             return;
         }
         this.status = AFKTaskStatus.COMPLETED;
+        onStop();    // 释放子类资源（事件监听器、定时任务等）
         cleanup();
         if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] [挂机任务] 任务完成: " + taskId + " - " + completionMessage);
+            plugin.getLogger().info("[DEBUG] [挂机任务] 任务终止: " + taskId + " - " + message);
         }
     }
 

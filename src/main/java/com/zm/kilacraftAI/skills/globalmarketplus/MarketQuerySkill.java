@@ -90,6 +90,11 @@ public class MarketQuerySkill implements Skill {
         return new ArrayList<>();
     }
 
+    @Override
+    public boolean isAvailable(SkillContext context) {
+        return !GlobalMarketPlusAPI.isAvailable();
+    }
+
     /**
      * 获取响应消息（从配置文件）
      *

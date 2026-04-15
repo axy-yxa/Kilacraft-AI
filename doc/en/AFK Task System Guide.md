@@ -14,6 +14,7 @@ The AFK Task System is a core feature of the Kilacraft-AI plugin, providing **as
 - ✅ **Natural Language Creation**: Create tasks through conversation, no need to memorize commands
 - ✅ **Dual Mode Support**: Notification mode (fast response) and callback mode (intelligent analysis)
 - ✅ **Rich Listeners**: 11 event types (S-Tier 7 + A-Tier 4)
+- ✅ **Custom Condition Polling**: CUSTOM type supports monitoring any Skill's numeric return value
 - ✅ **Multi-Step Callbacks**: Support combining multiple APIs for complex operations
 - ✅ **Automatic Resource Management**: Auto-cleanup after task completion/cancellation
 - ✅ **Delayed Feedback Optimization**: Avoid expired context noise
@@ -43,9 +44,11 @@ skills/afktask/
 ├── AFKTaskManager.java             # Task manager (CRUD + concurrency control)
 ├── AFKTaskSkill.java               # Built-in Skill (LLM routing entry)
 ├── AFKTaskCallback.java            # Callback configuration (multi-step task chain)
-├── AFKTaskType.java                # Task type enum (11 types)
+├── AFKTaskType.java                # Task type enum (12 types: 11 event-based + CUSTOM)
 ├── AFKTaskStatus.java              # Status enum
 ├── AFKTaskListener.java            # Global listener (creator offline cleanup)
+├── ConditionPlan.java              # Condition plan data structure (for CUSTOM)
+├── ConditionEvaluator.java         # Condition evaluator (Skill execution + field extraction + comparison)
 ├── AFKTaskSkill.yml                # LLM prompt configuration
 └── impl/                           # Concrete implementations
     ├── PlayerOnlineWatchTask.java          # S-Tier - Monitor login
@@ -58,7 +61,8 @@ skills/afktask/
     ├── PlayerBedEnterWatchTask.java        # A-Tier - Monitor enter bed
     ├── PlayerBedLeaveWatchTask.java        # A-Tier - Monitor leave bed
     ├── PlayerRespawnWatchTask.java         # A-Tier - Monitor respawn
-    └── PlayerItemBreakWatchTask.java       # A-Tier - Monitor item break
+    ├── PlayerItemBreakWatchTask.java       # A-Tier - Monitor item break
+    └── CustomWatchTask.java                # CUSTOM-Tier - Custom condition polling
 ```
 
 ### Class Inheritance
@@ -79,6 +83,10 @@ AFKTask (Abstract Base Class)
 
 AFKTaskSkill (implements Skill interface)
   └── Creates concrete tasks via AFKTaskManager.AFKTaskFactory
+
+CustomWatchTask (extends AFKTask, BukkitRunnable polling)
+  ├── ConditionPlan (condition data structure)
+  └── ConditionEvaluator (condition evaluator, static methods)
 
 AFKTaskManager (Manager)
   ├── taskMap: UUID → AFKTask (one task per player index)
@@ -650,7 +658,7 @@ CANCELLED (Cancelled)
 
 ---
 
-> **Last Updated**: 2026-04-10  
-> **Plugin Version**: 1.4.3+  
-> **Implemented Listeners**: 11 (S-Tier 7 + A-Tier 4)  
-> **Document Version**: v1.0
+> **Last Updated**: 2026-04-13  
+> **Plugin Version**: 1.4.5+  
+> **Implemented Listeners**: 11 (S-Tier 7 + A-Tier 4) + CUSTOM generic condition polling  
+> **Document Version**: v2.0

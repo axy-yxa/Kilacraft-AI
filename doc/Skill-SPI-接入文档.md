@@ -462,13 +462,67 @@ TaskExecutor 会自动将 `{step_1.item_name}` 替换为步骤 1 返回的 `data
 
 ### 6.4 占位符格式
 
+#### 基础格式（单层字段）
+
 ```
 {step_<步骤ID>.<字段名>}
 ```
 
 - 步骤 ID 由 LLM 生成（如 `step_1`, `step_2`）
 - 字段名对应 `SkillResult.data` Map 中的 key
-- 只支持单层引用（不支持嵌套如 `{step_1.data.xxx}`）
+
+**示例**：
+```json
+{"item": "{step_1.item_name}", "quantity": "{step_1.stock}"}
+```
+
+#### 高级格式（数组索引访问）
+
+当 Skill 返回的数据包含列表（List）时，支持通过索引访问数组元素：
+
+```
+{step_<步骤ID>.<数组字段>[<索引>].<子字段>}
+```
+
+**示例**：
+```json
+{"warp_name": "{step_1.warps[0].warp_name}"}
+{"home_name": "{step_1.homes[2].home_name}"}
+```
+
+**适用场景**：
+- 前序步骤返回列表数据（如家列表、地标列表、商品列表）
+- 后续步骤需要引用列表中特定元素的字段
+- LLM 根据用户意图自主选择索引（如“第一个”、“最后一个”、“随机一个”）
+
+**Skill 开发者注意事项**：
+1. 在 action 描述中明确说明返回的列表结构：
+   ```yaml
+   query_warps: "查询地标列表。返回的 data 中包含 warps 字段（地标列表，每个地标包含 warp_name、world、x、y、z 字段）"
+   ```
+2. 返回的 data 格式示例：
+   ```java
+   Map<String, Object> data = new HashMap<>();
+   List<Map<String, Object>> warps = new ArrayList<>();
+   for (Warp warp : warpList) {
+       Map<String, Object> warpData = new HashMap<>();
+       warpData.put("warp_name", warp.getName());
+       warpData.put("world", warp.getWorld());
+       warpData.put("x", warp.getX());
+       // ...
+       warps.add(warpData);
+   }
+   data.put("warps", warps);
+   ```
+
+#### 路径解析规则
+
+占位符路径解析支持：
+- **普通字段访问**：`{step_1.item_name}` → `data.get("item_name")`
+- **数组元素访问**：`{step_1.warps[0]}` → `((List)data.get("warps")).get(0)`
+- **嵌套访问**：`{step_1.warps[0].warp_name}` → `((Map)((List)data.get("warps")).get(0)).get("warp_name")`
+
+> **注意**：目前支持单层数组索引（如 `list[0].field`），不支持多层嵌套数组（如 `list[0].sublist[1].field`）。
 
 ---
 
@@ -795,6 +849,24 @@ main: com.example.statsplugin.StatsPlugin
 api-version: '1.21'
 softdepend:
   - Kilacraft-AI
+```
+
+### 12. 完整示例：命令执行插件
+
+以下是一个完整的第三方插件示例，通过 CommandSkill 执行服务器命令。
+
+注意：CommandSkill 是 Kilacraft-AI 内置的通用命令执行技能，供所有用户使用。本示例仅供说明其用法，第三方插件通常不需要自己实现类似功能。
+
+**能力边界**：
+- Bukkit.dispatchCommand() 返回 boolean（命令是否被识别执行），无法捕获命令输出
+- 命令的输出直接发送给玩家，AI 只知道"命令已执行"
+- 因此 CommandSkill 只适用于执行型命令（如 /back、/spawn），查询类命令应通过专用 Skill 实现
+
+**用户交互示例**：
+```
+用户：帮我回死亡点
+AI：已为你执行命令: /back
+（CMI/Essentials 直接给玩家发送传送结果）
 ```
 
 ### 用户交互示例

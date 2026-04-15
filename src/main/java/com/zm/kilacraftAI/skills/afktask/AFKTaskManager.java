@@ -90,6 +90,15 @@ public class AFKTaskManager {
         // 启动任务
         task.start();
 
+        // 检查任务是否在start()内部立即完成了（如参数不完整自动取消）
+        if (!task.isActive()) {
+            // 清理注册
+            taskMap.remove(playerUUID);
+            taskIndex.remove(taskId);
+            String errorMsg = task.getStartError() != null ? task.getStartError() : "任务启动失败，未知原因";
+            return SkillResult.failure("挂机任务创建失败：" + errorMsg);
+        }
+
         if (plugin.getConfigManager().isDebugMode()) {
             plugin.getLogger().info("[DEBUG] [挂机任务] 已创建: " + taskId + ", " + taskType + ", " + player.getName() + ", 总数: " + getActiveTaskCount());
         }

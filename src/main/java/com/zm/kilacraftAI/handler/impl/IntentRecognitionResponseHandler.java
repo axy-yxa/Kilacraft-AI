@@ -35,6 +35,6 @@ public class IntentRecognitionResponseHandler extends BaseResponseHandler {
 
     @Override
     public boolean isStreamOutputEnabled() {
-        return false;
+        return super.isStreamOutputEnabled();
     }
 }

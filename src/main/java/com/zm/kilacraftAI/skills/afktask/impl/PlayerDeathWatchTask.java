@@ -27,7 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * 玩家死亡监视任务
+ * 玩家死亡挂机任务
  *
  * <p>监听指定玩家死亡事件，当目标玩家死亡时触发多步骤回调任务。</p>
  *
@@ -72,7 +72,7 @@ public class PlayerDeathWatchTask extends AFKTask implements Listener {
     private boolean listenerRegistered = false;
 
     /**
-     * 构造玩家死亡监视任务
+     * 构造玩家死亡挂机任务
      *
      * @param taskId      任务唯一ID
      * @param playerUUID  玩家UUID（谁创建的此任务）
@@ -106,8 +106,7 @@ public class PlayerDeathWatchTask extends AFKTask implements Listener {
     @Override
     public void start() {
         if (targetPlayerName == null || targetPlayerName.isEmpty()) {
-            notifyPlayer("§c任务创建失败：缺少目标玩家名称参数。");
-            complete("任务参数不完整，已自动取消。");
+            failStart("缺少目标玩家名称参数");
             return;
         }
 
@@ -126,8 +125,7 @@ public class PlayerDeathWatchTask extends AFKTask implements Listener {
                 plugin.getLogger().info("[DEBUG] [挂机任务] 已启动: " + getTaskId() + ", 目标: " + targetPlayerName + ", 模式: " + (hasCallback ? "回调(" + callback.getCallbackTask().getSteps().size() + "步)" : "纯通知"));
             }
         } catch (Exception e) {
-            notifyPlayer("§c任务启动失败：" + e.getMessage());
-            complete("任务启动异常，已自动取消。");
+            failStart("监听器注册失败: " + e.getMessage());
         }
     }
 
@@ -167,12 +165,13 @@ public class PlayerDeathWatchTask extends AFKTask implements Listener {
         boolean hasCallback = callback != null && callback.getCallbackTask() != null && callback.getCallbackTask().getSteps() != null && !callback.getCallbackTask().getSteps().isEmpty();
 
         if (hasCallback) {
-            // 有回调步骤：执行多步骤回调任务
+            // 先完成任务：立即注销事件监听器，防止异步回调期间新事件触发重复回调
+            complete("目标玩家 " + deadPlayerName + " 已死亡，开始执行回调。");
             executeCallback(deadPlayerName);
         } else {
             // 纯通知模式：直接通知死亡
-            notifyPlayer("§a§l🔔 监视任务完成\n\n" + "§f• 目标玩家：§e" + deadPlayerName + "\n" + "§f• 状态：§c已死亡\n\n" + "§f" + deadPlayerName + " 死了！");
-            complete("目标玩家 " + deadPlayerName + " 已死亡，监视任务完成。");
+            notifyPlayer("§a§l🔔 挂机任务完成\n\n" + "§f• 目标玩家：§e" + deadPlayerName + "\n" + "§f• 状态：§c已死亡\n\n" + "§f" + deadPlayerName + " 死了！");
+            complete("目标玩家 " + deadPlayerName + " 已死亡，挂机任务完成。");
         }
     }
 
@@ -191,7 +190,7 @@ public class PlayerDeathWatchTask extends AFKTask implements Listener {
             Player creatorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (creatorPlayer == null || !creatorPlayer.isOnline()) {
                 plugin.getLogger().warning("[挂机任务] 任务创建者不在线，无法执行回调: " + getTaskId());
-                complete("任务创建者不在线，回调任务已取消。");
+                notifyPlayer("§c任务创建者不在线，回调任务已取消。");
                 return;
             }
 
@@ -206,18 +205,13 @@ public class PlayerDeathWatchTask extends AFKTask implements Listener {
 
             CompletableFuture<SkillResult> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
 
-            // 6. 处理执行结果
+            // 6. 处理执行结果（注意：任务已在调用方通过 complete() 完成，此处仅做通知）
             future.thenAccept(result -> {
-                // 7. 通知玩家
                 notifyCallbackResult(triggeredPlayerName, result);
-
-                // 8. 完成任务
-                complete("目标玩家 " + triggeredPlayerName + " 已死亡，回调任务已执行。");
             }).exceptionally(ex -> {
                 plugin.getLogger().severe("[挂机任务] 回调任务执行异常: " + ex.getMessage());
                 ex.printStackTrace();
                 notifyPlayer("§c回调任务执行失败：" + ex.getMessage());
-                complete("回调任务执行异常。");
                 return null;
             });
 
@@ -225,7 +219,6 @@ public class PlayerDeathWatchTask extends AFKTask implements Listener {
             notifyPlayer("§c回调任务启动失败：" + e.getMessage());
             plugin.getLogger().severe("[挂机任务] 回调任务启动异常: " + e.getMessage());
             e.printStackTrace();
-            complete("回调任务启动异常。");
         }
     }
 

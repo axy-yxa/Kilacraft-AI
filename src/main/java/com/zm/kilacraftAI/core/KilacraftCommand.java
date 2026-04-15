@@ -10,6 +10,7 @@ import com.zm.kilacraftAI.handler.AIRequestHandler;
 import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.util.AIRequestValidator;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.util.MessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -117,11 +118,23 @@ public class KilacraftCommand implements CommandExecutor {
                 sender.sendMessage("§a已重新加载技能配置文件");
             }
 
+            // 同步条件技能的注册状态（动态注册/注销）
+            plugin.syncConditionalSkills();
+
             // 热重载意图识别提示词配置
             if (plugin.getIntentPromptConfigManager() != null) {
                 plugin.getIntentPromptConfigManager().reload();
                 sender.sendMessage("§a已重新加载意图识别提示词配置");
             }
+
+            // 热重载意图分类配置管理器
+            if (plugin.getIntentKeywordConfigManager() != null) {
+                plugin.getIntentKeywordConfigManager().reload();
+                sender.sendMessage("§a已重新加载意图分类配置管理器");
+            }
+
+            // 强制重建意图分类器的 Skill 索引（确保 Skill description 变更即时生效）
+            plugin.forceRebuildIntentIndex();
 
             // LLM 提供商配置的刷新已经在 ConfigManager.loadConfig() 中通过 refreshLLMConfigCache() 自动执行
             // 此处不再重复调用，避免连接池被重复关闭和重建
@@ -445,8 +458,8 @@ public class KilacraftCommand implements CommandExecutor {
                     return null;
                 });
 
-                // 提交到主线程执行
-                plugin.getServer().getScheduler().runTask(plugin, task);
+                // 提交到全局区域执行（Folia）/ 主线程执行（Spigot）
+                FoliaCompat.runTask(plugin, task);
 
                 // 等待完成或超时
                 try {
@@ -529,8 +542,8 @@ public class KilacraftCommand implements CommandExecutor {
             plugin.getLogger().info("[DEBUG] 执行回调命令: " + finalCommand);
         }
 
-        // 以控制台身份执行回调命令（主线程）
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
+        // 以控制台身份执行回调命令（通过兼容层确保在正确线程调度）
+        FoliaCompat.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
     }
 
     /**

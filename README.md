@@ -1,12 +1,12 @@
 # Kilacraft-AI
 
-> **🚀 v1.4.3** | 零依赖 · 低内存 · 高性能 · 完全开源  
+> **🚀 v1.4.4** | 零依赖 · 低内存 · 高性能 · 完全开源  
 > 专为 Minecraft 服务器打造的轻量级 AI Agent 插件,支持自然语言交互。
 
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.4.3-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
+[![Version](https://img.shields.io/badge/Version-1.4.4-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 
 ---
 
@@ -58,6 +58,7 @@ Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续�
 ## ✨ 核心功能
 
 ### 🤖 AI 智能引擎
+- **BM25 语义评分意图分类器**：零维护 Skill 索引 + LLM 意图识别两阶段架构，普通对话零 LLM 调用
 - **LLM 意图识别**：理解玩家意图并路由到对应技能
 - **多步骤任务规划**：自动将复杂查询分解为可执行步骤
 - **历史对话上下文**：保持对话连贯性
@@ -72,12 +73,19 @@ Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续�
 ### 🔍 Bukkit API 访问
 - **58 个内置 API**：查询玩家状态、世界信息、服务器统计
 - **数据驱动配置**：YAML 定义 API，无需编码
-- **多步骤数据传递**：API 返回值自动提取，支持后续步骤引用
+- **多步骤数据传递**：API 返回值自动提取，支持后续步骤引用（包括数组索引访问）
 - **权限控制**：每个 API 的细粒度访问控制
 
+### 🔧 命令执行技能
+- **通用命令执行**：AI 帮玩家执行服务器命令（如 /back、/spawn、/home）
+- **权限继承**：以玩家身份执行命令，受服务器权限系统约束
+- **双重保护**：config.yml 开关（默认关闭）+ 权限节点（默认 OP）
+- **能力边界**：仅执行型命令（无需读取命令输出），查询类需求走专用 Skill
+- **安全机制**：玩家没有的权限，AI 也无法越权执行
+
 ### 🔔 挂机任务系统
-- **11 个事件监听器**：监视玩家上下线、死亡、传送、等级变化、世界切换、天气、睡觉、重生、物品损坏
-- **自然语言创建**：直接跟 AI 说"帮我盯着xxx上线"即可
+- **12 种任务类型**：11 个事件监听器 + CUSTOM 通用条件轮询（支持监控任意 Skill 返回的数值条件）
+- **自然语言创建**：直接跟 AI 说"帮我盯着xxx上线"或"帮我盯着血量低于5"即可
 - **纯通知 / 回调双模式**：简单提醒或自动执行多步骤任务
 - **自动资源管理**：玩家下线自动取消，任务完成自动清理
 
@@ -116,15 +124,17 @@ Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续�
 
 ### 安装步骤（5 分钟）
 
-1. **下载** `Kilacraft-AI-1.4.3.jar` 放入 `plugins/` 目录
+1. **下载** `Kilacraft-AI-1.4.4.jar` 放入 `plugins/` 目录
 2. **启动** 服务器生成配置文件
 3. **编辑** `plugins/Kilacraft-AI/config.yml`：
-   ```yaml
-   api:
-     key: "your-api-key-here"  # 从 DeepSeek/智谱/Moonshot 获取
-     url: "https://api.deepseek.com/v1/chat/completions"
-     model: "deepseek-chat"
-   ```
+  ```yaml
+  llm:
+    api_url: "https://api.deepseek.com/v1/chat/completions"
+    api_key: "your-api-key"  # ← 在此处输入您的API密钥
+    model: "deepseek-chat"
+    temperature: 0.7
+    max_tokens: 1000
+  ```
 4. **重启** 服务器
 5. **测试**：`/kila 你好！`
 
@@ -327,6 +337,6 @@ knowledge:
 
 ---
 
-> **最后更新**: 2026-04-12  
-> **插件版本**: 1.4.3+
+> **最后更新**: 2026-04-13  
+> **插件版本**: 1.4.4  
 > **开源协议**: MIT

@@ -6,6 +6,58 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
+## v1.4.4 - Multi-Step Array Index, CUSTOM Generic AFK Task, BM25 Semantic Scoring Intent Classifier, Skill Prompt Optimization
+
+### ✨ New Features
+- **Multi-Step Task Array Index Access**: supports `{step_x.array_field[0].field_name}` format to reference specific elements in list data
+- **CMI Skill Integration**: supports CMI plugin features for homes, warps, teleportation, player info queries (8 Actions)
+- **CUSTOM Generic Condition Polling Task**: AFK task system now supports generic custom task type, monitoring any Skill's numeric return values
+  - Supports 6 comparison operators: less_than / less_than_or_equal / greater_than / greater_than_or_equal / equal / not_equal
+  - Use cases: health monitoring, level monitoring, balance monitoring, any numeric condition monitoring
+- **BM25 Semantic Scoring Intent Classifier**: Zero maintenance Skill index + LLM intent recognition two-stage architecture
+  - Intelligent pre-classifier based on BM25 semantic scoring, automatically builds virtual document index from Skill metadata
+  - 7-step pre-classification: keyword short-circuit → chat sentence recognition → BM25 scoring → imperative sentence bonus → threshold judgment
+  - Response speed optimization: from ~3-8 seconds to ~2-8 seconds
+  - Classification simplified: from 5 types to 2 types (NORMAL_CHAT + SKILL_INTENT)
+
+### 🔧 Improvements
+- **Enhanced placeholder parsing**: supports array index format `{step_1.warps[0].warp_name}`, backward compatible with old format `{step_1.field_name}`
+- **Skill Prompt Compression**: significantly reduced LLM prompt token consumption (approximately 1300-1900 tokens saved per request)
+  - apis.yml: removed 15 usage_scenarios data blocks (-20.8%)
+  - CMISkill.yml: hints reduced from 6 to 3 (-50%)
+  - MarketQuerySkill.yml: hints reduced from 8 to 3 (-62.5%)
+- **Intent Recognition Prompt Optimization**: simplified Skill descriptions, removed redundant data field explanations
+- **LLM Secondary Analysis Word Limit**: added 400 character limit in analysis_prompt_suffix to prevent overly long responses
+- **CUSTOM task re-entry prevention**: stops polling before executing callback to prevent duplicate triggers
+- **CUSTOM task fault tolerance**: Skill execution failure or timeout doesn't interrupt task, continues next polling cycle
+- **CUSTOM task online check**: each polling cycle checks if creator is online, auto-cancels if offline
+- **Display format optimization**: home/warp name display adds clear labels to avoid LLM confusing name with world name
+- **CMI feature trimming**: removed unnecessary economy system features (query_item_worth)
+
+### 🗑️ Removed
+- `HEALTH_WATCH` enum value (replaced by generic CUSTOM type)
+- `BukkitAPIMetadata.usageScenarios` field and loading logic
+
+### 📚 Documentation Updates
+- **Skill-SPI-Integration-Guide.md**: added array index placeholder format description
+- **Bukkit API Reference.md**: updated multi-step data passing description for potion effects API
+- **AFK Task System Guide.md**: added complete CUSTOM condition polling documentation
+- **System Architecture Details.md**: complete description of BM25 semantic scoring intent classifier
+- **Intent Recognition Prompt Configuration Guide.md**: BM25 Stage One detailed process and configuration examples
+- **Built-in Skills and Events Capability List.md**: renamed and added zero maintenance Skill index description
+- **All documentation synchronized**: README, Server Owner Guide, System Architecture, Document Index, Changelog in both Chinese and English
+
+### ⚠️ Compatibility
+- Placeholder parsing is backward compatible, old format `{step_x.field}` continues to work
+- Added CMI plugin optional dependency (features auto-disabled when not installed)
+- New permission node: kilacraft.cmi.teleport
+- New configuration file: intent_keywords.yml (BM25 semantic scoring parameters)
+- New configuration item: `check-interval-ticks` in config.yml (CUSTOM task polling interval)
+- analysis_prompt_suffix in config.yml added 400 character limit
+- Fully backward compatible, recommend using /kilacraft reload to reload configuration
+
+---
+
 ## v1.4.3 - Multi-Step Task Error Resilience, Analysis Architecture Upgrade, Bukkit API Expansion, Response Experience Optimization & AFK Task System
 
 ### ✨ New Features
@@ -74,7 +126,7 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-## v1.4.2 - Paper API Dependency Removal & Java 17 Compatibility Optimization
+## v1.4.2 - Paper API Dependency Removal and Java 17 Compatibility Optimization
 
 ### ✨ New Features
 - Fully compatible with Spigot 1.16.5+ standard API, removed all Paper-specific interface dependencies
@@ -387,4 +439,4 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-**Last Updated**: 2026-04-10
+**Last Updated**: 2026-04-13

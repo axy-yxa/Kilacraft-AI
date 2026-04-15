@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.knowledge;
 
+import com.zm.kilacraftAI.util.BM25Scorer;
 import com.zm.kilacraftAI.util.ChineseTextUtil;
 
 import java.util.*;
@@ -17,10 +18,10 @@ public class KnowledgeRetriever {
 
     private final KnowledgeBaseManager knowledgeBase;
     private final int maxRelevantChunks;
-    
+
     // 关键词提取配置
     private final int keywordTopK;
-    
+
     // BM25 评分算法参数
     private final double bm25K1;  // 词频饱和参数
     private final double bm25B;   // 文档长度归一化参数
@@ -30,9 +31,7 @@ public class KnowledgeRetriever {
     private final int MIN_CHUNK_SIZE;
     private final int CHUNK_OVERLAP;
 
-    public KnowledgeRetriever(KnowledgeBaseManager knowledgeBase, int maxRelevantChunks,
-                              int maxChunkSize, int minChunkSize, int chunkOverlap,
-                              int keywordTopK, double bm25K1, double bm25B) {
+    public KnowledgeRetriever(KnowledgeBaseManager knowledgeBase, int maxRelevantChunks, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
         this.knowledgeBase = knowledgeBase;
         this.maxRelevantChunks = maxRelevantChunks;
         this.keywordTopK = keywordTopK;
@@ -52,35 +51,35 @@ public class KnowledgeRetriever {
     public List<String> retrieveKnowledge(String question) {
         long startTime = System.currentTimeMillis();
         Map<String, String> allKnowledge = knowledgeBase.getAllKnowledge();
-        
+
         if (allKnowledge.isEmpty()) {
             return Collections.emptyList();
         }
-            
+
         // HanLP TF-IDF 提取有意义的关键词
         List<String> keywords = extractKeywords(question);
-            
+
         if (knowledgeBase.isDebugMode()) {
             knowledgeBase.logInfo("[DEBUG] [知识库] 提取关键词：" + keywords);
         }
-            
+
         // 存储所有片段及其得分
         List<KnowledgeChunk> chunkScores = new ArrayList<>();
         int totalChunks = 0;
-            
+
         for (Map.Entry<String, String> entry : allKnowledge.entrySet()) {
             String fileName = entry.getKey();
             String content = entry.getValue();
-                
+
             // 尝试从缓存获取分段
             List<String> chunks = knowledgeBase.getChunkCache(fileName);
-                
+
             // 如果缓存不存在，重新分段并缓存
             if (chunks == null) {
                 long cacheStartTime = System.currentTimeMillis();
                 chunks = splitIntoChunks(content, fileName);
                 knowledgeBase.setChunkCache(fileName, chunks);
-                    
+
                 if (knowledgeBase.isDebugMode()) {
                     long cacheTime = System.currentTimeMillis() - cacheStartTime;
                     knowledgeBase.logInfo("[DEBUG] [知识库缓存] 文件：" + fileName + " - 首次分段并缓存，耗时 " + cacheTime + "ms");
@@ -90,9 +89,9 @@ public class KnowledgeRetriever {
                     knowledgeBase.logInfo("[DEBUG] [知识库缓存] 文件：" + fileName + " - 使用缓存的分段（" + chunks.size() + " 个片段）");
                 }
             }
-                
+
             totalChunks += chunks.size();
-                
+
             // 计算每个片段与问题的相关性得分
             for (String chunk : chunks) {
                 double score = calculateRelevance(question, chunk, keywords);
@@ -101,26 +100,26 @@ public class KnowledgeRetriever {
                 }
             }
         }
-    
+
         // 按得分排序
         chunkScores.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
-    
+
         // 取前 N 个最相关的片段
         List<String> relevantKnowledge = new ArrayList<>();
         int count = Math.min(chunkScores.size(), maxRelevantChunks);
-    
+
         for (int i = 0; i < count; i++) {
             relevantKnowledge.add(chunkScores.get(i).getContent());
         }
-    
+
         long endTime = System.currentTimeMillis();
-    
+
         // 输出分段统计日志
         if (knowledgeBase.isDebugMode()) {
             knowledgeBase.logInfo("[DEBUG] [知识库] 检索耗时：" + (endTime - startTime) + "ms");
             knowledgeBase.logInfo("[DEBUG] [知识库] 文件总数：" + allKnowledge.size() + ", 总片段数：" + totalChunks);
             knowledgeBase.logInfo("[DEBUG] [知识库] 匹配片段：" + chunkScores.size() + ", 返回得分最高的 " + count + " 条");
-    
+
             // 输出匹配的详细信息
             for (int i = 0; i < count; i++) {
                 KnowledgeChunk chunk = chunkScores.get(i);
@@ -129,13 +128,13 @@ public class KnowledgeRetriever {
                 knowledgeBase.logInfo("[DEBUG] [知识库] " + preview.replace("\n", "\\n"));
             }
         }
-            
+
         return relevantKnowledge;
     }
 
     /**
      * 从问题中提取关键词（使用 HanLP TF-IDF 算法）
-     * 
+     *
      * @param question 用户问题
      * @return 关键词列表
      */
@@ -150,7 +149,7 @@ public class KnowledgeRetriever {
 
     /**
      * 【BM25 算法】计算问题与内容的相关性得分
-     * 
+     *
      * @param question 用户问题
      * @param content  知识内容
      * @param keywords 提取的关键词
@@ -160,82 +159,39 @@ public class KnowledgeRetriever {
         if (question == null || question.trim().isEmpty() || content == null || content.trim().isEmpty()) {
             return 0.0;
         }
-    
-        // 转换为小写进行比较
+
         String lowerQuestion = question.toLowerCase();
         String lowerContent = content.toLowerCase();
-    
+
         double score = 0.0;
-    
+
         // 1. 完整问题匹配（最高优先级）
         if (lowerContent.contains(lowerQuestion)) {
             score += 50.0;
         }
-    
-        // 2. BM25 评分算法
-        // 计算文档长度归一化因子
-        int docLength = lowerContent.length();
-        int avgDocLength = 500; // 假设平均文档长度为 500 字符
-        double lengthNorm = 1 - bm25B + bm25B * ((double) docLength / avgDocLength);
-            
+
+        // 2. BM25 评分
+        score += BM25Scorer.score(content, keywords, bm25K1, bm25B, 500);
+
+        // 3. 标题位置加权：标题中的关键词额外加分
         for (String keyword : keywords) {
-            // 计算词频
-            int termFreq = countOccurrences(lowerContent, keyword);
-                
-            if (termFreq > 0) {
-                // BM25 公式: IDF * (TF * (k1 + 1)) / (TF + k1 * lengthNorm)
-                // 简化版: 我们只用 TF 部分，IDF 由 HanLP 的 TF-IDF 已经处理过了
-                double tfScore = (termFreq * (bm25K1 + 1)) / (termFreq + bm25K1 * lengthNorm);
-                    
-                // 根据关键词长度加权
-                int weight = getKeywordWeight(keyword);
-                score += tfScore * weight * 5.0; // 乘以 5.0 放大分数
-                    
-                // 位置加权：标题中的关键词权重更高
-                String[] lines = lowerContent.split("\n");
-                for (String line : lines) {
-                    line = line.trim();
-                    if (line.startsWith("#") && line.contains(keyword)) {
-                        score += 15.0 * weight; // 标题中的关键词额外加分
-                        break;
-                    }
+            String[] lines = lowerContent.split("\n");
+            for (String line : lines) {
+                line = line.trim();
+                if (line.startsWith("#") && line.contains(keyword.toLowerCase())) {
+                    score += 15.0 * BM25Scorer.getKeywordWeight(keyword);
+                    break;
                 }
             }
         }
-    
-        // 3. 精确匹配额外奖励
+
+        // 4. 精确匹配额外奖励
         boolean hasExactMatch = keywords.stream().anyMatch(lowerContent::contains);
         if (hasExactMatch) {
             score += 10.0;
         }
-    
+
         return score;
-    }
-
-    /**
-     * 获取关键词的权重（较长的词权重更高）
-     */
-    private int getKeywordWeight(String keyword) {
-        if (keyword.length() >= 4) {
-            return 3;
-        } else if (keyword.length() == 3) {
-            return 2;
-        } else {
-            return 1;
-        }
-    }
-
-    /**
-     * 统计关键词在文本中出现的次数
-     */
-    private int countOccurrences(String text, String keyword) {
-        int count = 0;
-        int index = 0;
-        while ((index = text.indexOf(keyword, index)) != -1) {
-            count++;
-            index += keyword.length();
-        }
-        return count;
     }
 
     /**
@@ -388,7 +344,7 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * 按固定大小分割（最后的手段）
+     * 按固定大小分割
      */
     private List<String> splitByFixedSize(String content) {
         List<String> chunks = new ArrayList<>();

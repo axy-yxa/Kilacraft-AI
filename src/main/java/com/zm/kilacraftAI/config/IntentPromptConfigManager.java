@@ -73,6 +73,9 @@ public class IntentPromptConfigManager {
     @Getter
     private String outputFormatRules;
     
+    @Getter
+    private String afkTaskRules;
+    
     public IntentPromptConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
         loadConfig();
@@ -156,6 +159,9 @@ public class IntentPromptConfigManager {
         
         // 输出格式强制要求
         this.outputFormatRules = config.getString("output_format_rules", "");
+        
+        // 第七部分：挂机任务专用规则
+        this.afkTaskRules = config.getString("afk_task_rules", "");
     }
     
     /**
@@ -229,8 +235,13 @@ public class IntentPromptConfigManager {
         if (skillNameRestrictionRule != null && !skillNameRestrictionRule.isEmpty()) {
             sb.append(skillNameRestrictionRule).append("\n\n");
         }
-        
-        // 7. 输出质量要求
+
+        // 7. 挂机任务专用规则
+        if (afkTaskRules != null && !afkTaskRules.isEmpty()) {
+            sb.append(afkTaskRules).append("\n\n");
+        }
+
+        // 8. 输出质量要求
         sb.append("【输出质量要求】\n");
         sb.append(outputQualityRequirements).append("\n");
         

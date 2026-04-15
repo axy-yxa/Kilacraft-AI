@@ -17,6 +17,7 @@ import com.zm.kilacraftAI.skills.afktask.impl.PlayerBedEnterWatchTask;
 import com.zm.kilacraftAI.skills.afktask.impl.PlayerBedLeaveWatchTask;
 import com.zm.kilacraftAI.skills.afktask.impl.PlayerRespawnWatchTask;
 import com.zm.kilacraftAI.skills.afktask.impl.PlayerItemBreakWatchTask;
+import com.zm.kilacraftAI.skills.afktask.impl.CustomWatchTask;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -131,7 +132,8 @@ public class AFKTaskSkill implements Skill {
             case "create_task" -> handleCreateTask(context, player, manager);
             case "cancel_task" -> manager.cancelTask(player.getUniqueId());
             case "query_task" -> handleQueryTask(player, manager);
-            default -> SkillResult.failure("未知的挂机任务动作：" + action + "。请用自然语言告知玩家操作无法识别，并询问具体需求");
+            default ->
+                    SkillResult.failure("未知的挂机任务动作：" + action + "。请用自然语言告知玩家操作无法识别，并询问具体需求");
         };
 
         return CompletableFuture.completedFuture(result);
@@ -163,10 +165,18 @@ public class AFKTaskSkill implements Skill {
             boolean isOnline = targetPlayer != null && targetPlayer.isOnline();
 
             if (taskType == AFKTaskType.PLAYER_ONLINE_WATCH && isOnline) {
-                return SkillResult.failure("目标玩家 " + targetPlayerName + " 当前已在线，PLAYER_ONLINE_WATCH 任务无意义。请用自然语言告知玩家目标已在线，并建议：如果需要监视 TA 下线，可以说\"帮我盯着" + targetPlayerName + "下线\"。");
+                return SkillResult.failure("目标玩家 " + targetPlayerName + " 当前已在线，PLAYER_ONLINE_WATCH 任务无意义。请用自然语言告知玩家目标已在线，并建议：如果需要监视 TA 下线，可以说\"帮我盯着" + targetPlayerName + "下线\"");
             }
             if (taskType == AFKTaskType.PLAYER_OFFLINE_WATCH && !isOnline) {
-                return SkillResult.failure("目标玩家 " + targetPlayerName + " 当前不在线，PLAYER_OFFLINE_WATCH 任务无意义。请用自然语言告知玩家目标不在线，并建议：如果需要监视 TA 上线，可以说\"帮我盯着" + targetPlayerName + "上线\"。");
+                return SkillResult.failure("目标玩家 " + targetPlayerName + " 当前不在线，PLAYER_OFFLINE_WATCH 任务无意义。请用自然语言告知玩家目标不在线，并建议：如果需要监视 TA 上线，可以说\"帮我盯着" + targetPlayerName + "上线\"");
+            }
+        }
+
+        // 安全限制：CUSTOM 类型仅允许监控创建者自身（防止隐私侵犯和组合攻击）
+        // 第三方 SPI Skill 的行为不可控，框架层必须硬拦截
+        if (taskType == AFKTaskType.CUSTOM) {
+            if (targetPlayerName != null && !targetPlayerName.isEmpty() && !targetPlayerName.equalsIgnoreCase(player.getName())) {
+                return SkillResult.failure("安全限制：自定义条件监控任务仅支持监控自身数据（如自己的血量、等级等），不支持监控其他玩家。请用自然语言告知玩家此限制，并建议：如果需要监控自己的状态，可以说\"帮我监控我的血量\"等");
             }
         }
 
@@ -174,10 +184,6 @@ public class AFKTaskSkill implements Skill {
         Map<String, String> params = new HashMap<>(context.getEntities());
         // 根据任务类型选择工厂
         AFKTaskManager.AFKTaskFactory factory = getTaskFactory(taskType);
-        if (factory == null) {
-            return SkillResult.failure("不支持的任务类型：" + taskTypeStr + "。当前支持：PLAYER_ONLINE_WATCH(监视上线), PLAYER_OFFLINE_WATCH(监视下线), PLAYER_DEATH_WATCH(监视死亡), PLAYER_TELEPORT_WATCH(监视传送), PLAYER_LEVEL_CHANGE_WATCH(监视等级变化), PLAYER_CHANGED_WORLD_WATCH(监视世界切换), WEATHER_CHANGE_WATCH(监视天气变化), PLAYER_BED_ENTER_WATCH(监视进入床), PLAYER_BED_LEAVE_WATCH(监视离开床), PLAYER_RESPAWN_WATCH(监视重生), PLAYER_ITEM_BREAK_WATCH(监视物品损坏)。请用自然语言告知玩家");
-        }
-
         return manager.createTask(player, taskType, description, params, factory);
     }
 
@@ -210,8 +216,7 @@ public class AFKTaskSkill implements Skill {
                     (id, uuid, name, type, desc, p) -> new PlayerRespawnWatchTask(id, uuid, name, desc, p);
             case PLAYER_ITEM_BREAK_WATCH ->
                     (id, uuid, name, type, desc, p) -> new PlayerItemBreakWatchTask(id, uuid, name, desc, p);
-            // TODO: 后续添加更多任务类型
-            case HEALTH_WATCH, CUSTOM -> null; // 暂不支持
+            case CUSTOM -> (id, uuid, name, type, desc, p) -> new CustomWatchTask(id, uuid, name, desc, p);
         };
     }
 
@@ -225,12 +230,7 @@ public class AFKTaskSkill implements Skill {
         }
 
         AFKTask task = manager.getTask(playerUUID);
-        String taskInfo = "玩家当前挂机任务信息：任务ID=" + task.getTaskId()
-                + ", 类型=" + task.getTaskType().getDescription()
-                + ", 描述=" + task.getTaskDescription()
-                + ", 状态=" + task.getStatusText()
-                + ", 创建时间=" + formatTimestamp(task.getCreatedAt())
-                + "。请基于这些信息用自然语言告知玩家当前任务状态";
+        String taskInfo = "玩家当前挂机任务信息：任务ID=" + task.getTaskId() + ", 类型=" + task.getTaskType().getDescription() + ", 描述=" + task.getTaskDescription() + ", 状态=" + task.getStatusText() + ", 创建时间=" + formatTimestamp(task.getCreatedAt()) + "。请基于这些信息用自然语言告知玩家当前任务状态";
         return SkillResult.success(taskInfo);
     }
 

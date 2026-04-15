@@ -1,11 +1,13 @@
 # 插件名称
 name: Kilacraft-AI
 # 插件版本号
-version: '1.4.3'
+version: '1.4.4'
 # 主类路径（插件入口）
 main: com.zm.kilacraftAI.KilacraftAI
 # Bukkit API 版本（支持的最低服务端版本）
 api-version: '1.16'
+# 声明支持 Folia 区域化线程调度
+folia-supported: true
 # 作者信息
 author: Zm_Mmm
 # 插件描述（多行文本，使用 | 保持格式）
@@ -39,6 +41,7 @@ softdepend:
   - MythicMobs          # MythicMobs 怪物插件，用于占位符功能
   - GlobalMarketPlus    # GlobalMarketPlus 市场插件，用于经济系统功能
   - Vault               # Vault 经济接口，用于多货币支持
+  - CMI                 # CMI 管理插件，用于传送/家/地标等功能
 
 # 命令定义
 commands:
@@ -94,3 +97,22 @@ permissions:
       kilacraft.api.player.info: true
       kilacraft.api.world.info: true
       kilacraft.api.server.info: true
+
+  # CMI 插件技能权限
+  kilacraft.cmi.query:
+    description: 查询 CMI 信息（家、地标、玩家信息、物品价值、套装列表等）
+    default: true
+  kilacraft.cmi.teleport:
+    description: 使用 CMI 传送功能（回家、地标传送、传送请求）
+    default: true
+  kilacraft.cmi.*:
+    description: 允许使用所有 CMI 技能（包含以上全部）
+    default: true
+    children:
+      kilacraft.cmi.query: true
+      kilacraft.cmi.teleport: true
+
+  # 命令执行技能权限
+  kilacraft.command.execute:
+    description: 允许 AI 帮助执行服务器命令（以玩家身份执行，受服务器权限约束）
+    default: op                # 默认仅 OP 拥有此权限，服主可按需开放

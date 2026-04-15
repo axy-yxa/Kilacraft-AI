@@ -40,7 +40,22 @@ public enum PluginPermissionEnum {
     /**
      * 查询和取消挂机任务
      */
-    AFK("kilacraft.afk");
+    AFK("kilacraft.afk"),
+
+    /**
+     * AI 命令执行（以玩家身份执行服务器命令）
+     */
+    COMMAND_EXECUTE("kilacraft.command.execute"),
+
+    /**
+     * CMI 查询功能（家、地标、玩家信息、物品价值等）
+     */
+    CMI_QUERY("kilacraft.cmi.query"),
+
+    /**
+     * CMI 传送功能（回家、地标传送、传送请求等）
+     */
+    CMI_TELEPORT("kilacraft.cmi.teleport");
 
     /**
      * 权限节点

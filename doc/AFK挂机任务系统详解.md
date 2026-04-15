@@ -14,6 +14,7 @@ AFK 挂机任务系统是 Kilacraft-AI 插件的核心功能之一，提供**异
 - ✅ **自然语言创建**：通过对话创建任务，无需记忆命令
 - ✅ **双模式支持**：纯通知模式（快速响应）和回调模式（智能分析）
 - ✅ **丰富的监听器**：11 种事件类型（S级 7 个 + A级 4 个）
+- ✅ **通用自定义任务**：CUSTOM 类型支持监控任意 Skill 返回的数值条件
 - ✅ **多步骤回调**：支持组合多个 API 完成复杂操作
 - ✅ **自动资源管理**：任务完成/取消后自动清理
 - ✅ **延迟反馈优化**：避免过期上下文噪音
@@ -43,9 +44,11 @@ skills/afktask/
 ├── AFKTaskManager.java             # 任务管理器（CRUD + 并发控制）
 ├── AFKTaskSkill.java               # 内置 Skill（LLM 路由入口）
 ├── AFKTaskCallback.java            # 回调配置（多步骤任务链）
-├── AFKTaskType.java                # 任务类型枚举（11 种）
+├── AFKTaskType.java                # 任务类型枚举（12 种：11 事件型 + CUSTOM）
 ├── AFKTaskStatus.java              # 状态枚举
 ├── AFKTaskListener.java            # 全局 Listener（创建者下线清理）
+├── ConditionPlan.java              # 条件计划数据结构（CUSTOM 专用）
+├── ConditionEvaluator.java         # 条件评估器（Skill 执行 + 字段提取 + 数值比较）
 ├── AFKTaskSkill.yml                # LLM 提示词配置
 └── impl/                           # 具体实现
     ├── PlayerOnlineWatchTask.java          # S级 - 监视上线
@@ -58,7 +61,8 @@ skills/afktask/
     ├── PlayerBedEnterWatchTask.java        # A级 - 监视进入床
     ├── PlayerBedLeaveWatchTask.java        # A级 - 监视离开床
     ├── PlayerRespawnWatchTask.java         # A级 - 监视重生
-    └── PlayerItemBreakWatchTask.java       # A级 - 监视物品损坏
+    ├── PlayerItemBreakWatchTask.java       # A级 - 监视物品损坏
+    └── CustomWatchTask.java                # CUSTOM级 - 自定义条件轮询
 ```
 
 ### 类的继承关系
@@ -75,7 +79,10 @@ AFKTask（抽象基类）
   ├── PlayerBedEnterWatchTask（监听 PlayerBedEnterEvent）
   ├── PlayerBedLeaveWatchTask（监听 PlayerBedLeaveEvent）
   ├── PlayerRespawnWatchTask（监听 PlayerRespawnEvent）
-  └── PlayerItemBreakWatchTask（监听 PlayerItemBreakEvent）
+  ├── PlayerItemBreakWatchTask（监听 PlayerItemBreakEvent）
+  └── CustomWatchTask（BukkitRunnable 定时轮询）
+        ├── ConditionPlan（条件计划数据结构）
+        └── ConditionEvaluator（条件评估器，静态方法）
 
 AFKTaskSkill（实现 Skill 接口）
   └── 通过 AFKTaskManager.AFKTaskFactory 工厂创建具体任务
@@ -163,8 +170,8 @@ PlayerOnlineWatchTask.onPlayerJoin(event)
   ③ 判断是否有回调步骤
      
      ├─ [纯通知模式]（无 callback 或 callback.steps 为空）
-     │   → notifyPlayer("🔔 监视任务完成\n\n• 目标玩家：Steve\n• 状态：已上线\n\nSteve 上线了！")
-     │   → complete("目标玩家 Steve 已上线，监视任务完成。")
+     │   → notifyPlayer("🔔 挂机任务完成\n\n• 目标玩家：Steve\n• 状态：已上线\n\nSteve 上线了！")
+     │   → complete("目标玩家 Steve 已上线，挂机任务完成。")
      │
      └─ [回调模式]（有 callback.steps）
          → executeCallback("Steve")
@@ -266,7 +273,7 @@ AI: 好的！已创建挂机任务：监视玩家 Steve 上线。当 Steve 上�
 
 **触发通知**：
 ```
-🔔 监视任务完成
+🔔 挂机任务完成
 
 • 目标玩家：Steve
 • 状态：已上线
@@ -284,8 +291,8 @@ boolean hasCallback = callback != null
 
 if (!hasCallback) {
     // 纯通知模式
-    notifyPlayer("🔔 监视任务完成\n\n• 目标玩家：" + triggeredPlayerName + "\n• 状态：已上线\n\n" + triggeredPlayerName + " 上线了！");
-    complete("目标玩家 " + triggeredPlayerName + " 已上线，监视任务完成。");
+    notifyPlayer("🔔 挂机任务完成\n\n• 目标玩家：" + triggeredPlayerName + "\n• 状态：已上线\n\n" + triggeredPlayerName + " 上线了！");
+    complete("目标玩家 " + triggeredPlayerName + " 已上线，挂机任务完成。");
 }
 ```
 
@@ -400,6 +407,77 @@ private void executeCallback(String triggeredPlayerName) {
 | `PLAYER_RESPAWN_WATCH` | PlayerRespawnEvent | 玩家重生 | `{x}`, `{y}`, `{z}`, `{world}` |
 | `PLAYER_ITEM_BREAK_WATCH` | PlayerItemBreakEvent | 玩家物品损坏 | `{item_name}`, `{item_type}` |
 
+### CUSTOM 级（通用条件轮询）
+
+| 任务类型 | 触发机制 | 监控目标 | 核心参数 |
+|---------|---------|---------|---------|
+| `CUSTOM` | BukkitRunnable 定时轮询 | 任意 Skill 返回的数值字段 | `condition_plan` JSON + 可选 `callback` |
+
+**CUSTOM 类型**不依赖 Bukkit 事件，而是通过定时轮询任意 Skill 的返回值来判断条件是否满足。只要 Skill 的动作返回包含数值型字段的 data，就可以用于条件监控。
+
+#### condition_plan JSON 格式
+
+```json
+{
+  "condition_skill": "bukkit_api",
+  "condition_action": "get_player_health",
+  "result_path": "health",
+  "operator": "less_than",
+  "threshold": 10.0
+}
+```
+
+**字段说明**：
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `condition_skill` | 条件检查用的 Skill 名称 | `"bukkit_api"`, `"market_query"` |
+| `condition_action` | 该 Skill 的动作名 | `"get_player_health"`, `"query_balance"` |
+| `result_path` | SkillResult.data 中的字段名 | `"health"`, `"balance"`, `"level"` |
+| `operator` | 比较操作符 | `"less_than"`, `"greater_than"` 等 |
+| `threshold` | 阈值（double） | `10.0`, `1000.0`, `30.0` |
+
+**支持的 operator**：`less_than`、`less_than_or_equal`、`greater_than`、`greater_than_or_equal`、`equal`、`not_equal`
+
+#### CUSTOM 使用场景示例
+
+```
+玩家: 当我的血量低于10的时候告诉我
+AI: 好的！已创建挂机任务：监视你的血量，低于10时通知你。
+    → condition_plan: {condition_skill:"bukkit_api", condition_action:"get_player_health", 
+                       result_path:"health", operator:"less_than", threshold:10.0}
+
+玩家: 当我的余额低于1000时提醒我
+AI: 好的！已创建挂机任务：监视你的余额，低于1000时通知你。
+    → condition_plan: {condition_skill:"market_query", condition_action:"query_balance",
+                       result_path:"balance", operator:"less_than", threshold:1000.0}
+
+玩家: 帮我盯着，当我达到30级的时候帮我查一下市场钻石价格
+AI: 好的！已创建挂机任务：监视你的等级，达到30级时自动查询钻石价格。
+    → condition_plan: {condition_skill:"bukkit_api", condition_action:"get_player_exp",
+                       result_path:"level", operator:"greater_than_or_equal", threshold:30.0}
+    → callback: 包含查询钻石价格的回调任务
+```
+
+#### CUSTOM 与事件型的区别
+
+| 维度 | 事件型（11种） | CUSTOM 型 |
+|------|---------------|-----------|
+| 触发机制 | Bukkit EventListener | BukkitRunnable 定时轮询 |
+| 条件判断 | 硬编码在 onXxxEvent() 中 | 通用：Skill 执行 + 字段提取 + 数值比较 |
+| 资源消耗 | 事件驱动，零 CPU 开销 | 定时轮询，每隔 N tick 执行一次 Skill |
+| 扩展性 | 需新增 Java 类 | YML 配置即可支持新场景 |
+| 回调占位符 | 事件特定的（如 {from_world}） | 无特殊占位符 |
+
+#### CUSTOM 核心设计约束
+
+1. **单条件限制**：只支持一个数值条件，不支持 AND/OR 多条件组合
+2. **异步防重入**：条件满足时先 stopPolling() 再执行回调，防止异步回调期间重复触发
+3. **超时保护**：ConditionEvaluator 对每次 Skill 执行设 5 秒超时
+4. **创建者在线检查**：每次轮询检查创建者是否在线，不在线则自动取消任务
+5. **轮询间隔可配**：config.yml 中 `check_interval_ticks` 控制，默认 100 tick（5 秒）
+6. **容错性**：Skill 执行失败或超时不中断任务，继续下次轮询
+
 > 📖 **完整事件列表**：查看 [Bukkit Event 监听器参考手册](./Bukkit-Event监听器参考手册.md) 了解所有监听器的详细说明和配置示例。
 
 ---
@@ -414,6 +492,7 @@ afk-task:
   enabled: true                    # 是否启用挂机任务系统
   max-tasks: 100                   # 全局最大任务数（预留扩展点）
   max-tasks-per-player: 1          # 每个玩家最大任务数（当前固定为 1）
+  check-interval-ticks: 100        # CUSTOM 任务轮询间隔（tick，20tick=1秒，默认5秒）
 ```
 
 ### AFKTaskSkill.yml 配置
@@ -449,6 +528,7 @@ hints:
 | 玩家睡觉 | `PLAYER_BED_ENTER_WATCH` / `PLAYER_BED_LEAVE_WATCH` | "监视 Steve 睡觉" |
 | 物品相关 | `PLAYER_ITEM_BREAK_WATCH` | "盯着 Steve 的工具坏了告诉我" |
 | 环境变化 | `WEATHER_CHANGE_WATCH` | "下雨了告诉我" |
+| **数值条件** | **`CUSTOM`** | **"当我的血量低于10时告诉我"、"当余额低于1000时提醒我"** |
 
 ### 2. 纯通知 vs 回调模式选择
 
@@ -521,7 +601,7 @@ entities:
 
 **解决方案**：
 - 如果目标已在线，改用 `PLAYER_OFFLINE_WATCH`（监视下线）
-- 或等待目标玩家下线后再创建上线监视任务
+- 或等待目标玩家下线后再创建上线挂机任务
 
 **示例**：
 ```
@@ -560,7 +640,7 @@ callback_task:
 
 **解决方案**：
 - 这是正常行为，避免向离线玩家发送消息
-- 上线后可以重新创建监视任务
+- 上线后可以重新创建挂机任务
 - 可以使用 `/kilacraft afk query` 查看是否有未完成的任务
 
 ---
@@ -651,7 +731,7 @@ CANCELLED（已取消）
 
 ---
 
-> **最后更新**: 2026-04-10  
-> **插件版本**: 1.4.3+  
-> **已实现监听器**: 11 个（S级 7 个 + A级 4 个）  
-> **文档版本**: v1.0
+> **最后更新**: 2026-04-13  
+> **插件版本**: 1.4.4+  
+> **已实现监听器**: 11 个（S级 7 个 + A级 4 个）+ CUSTOM 通用条件轮询  
+> **文档版本**: v2.0

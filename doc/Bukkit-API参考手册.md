@@ -784,7 +784,7 @@ AI: 当前药水效果：
 ```
 
 **多步骤数据传递**：
-返回的 data 中包含 `effects` 字段（效果列表），后续步骤可通过 `{step_xxx.effects}` 引用。
+返回的 data 中包含 `effects` 字段（药水效果列表，每个效果包含 type、duration、amplifier 字段），后续步骤可通过 `{step_xxx.effects[0].type}` 等引用列表中的特定元素。
 
 ---
 
@@ -994,7 +994,7 @@ AI: 你的总经验值：125,680
 get_world_time:
   id: "get_world_time"
   display_name: "获取世界时间"
-  description: "获取当前世界的游戏时间（刻数），会被自动格式化为 HH:MM 格式"
+  description: "获取当前世界的游戏时间（刻数），会被自动格式化为 HH:MM 格式。返回的 data 中包含 time_ticks 字段（当前世界刻数），可供后续步骤引用或挂机任务条件比较"
   usage_scenarios:
     - "现在几点了"
     - "世界时间"
@@ -1009,6 +1009,9 @@ get_world_time:
 玩家: 现在几点？
 AI: 世界时间：06:00
 ```
+
+**多步骤数据传递**：
+返回的 data 中包含 `time_ticks` 字段（Long 类型，世界刻数），后续步骤可通过 `{step_xxx.time_ticks}` 引用。挂机任务的条件评估也可使用该字段进行数值比较。
 
 ---
 
@@ -1494,7 +1497,7 @@ AI: 当前正在进行 2 个袭击事件
 ```
 
 **多步骤数据传递**：
-返回的 data 中包含 `raids` 字段（袭击列表），后续步骤可通过 `{step_xxx.raids}` 引用。
+返回的 data 中包含 `raids` 字段（袭击事件列表），后续步骤可通过 `{step_xxx.raids[0]}` 等引用列表中的特定袭击事件。
 
 ---
 

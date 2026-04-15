@@ -30,6 +30,7 @@ public class SkillIntentRecognizer {
     private final IntentPromptConfigManager promptConfigManager; // 提示词配置管理器
     private final Gson gson;
     private final SkillManager skillManager; // 用于获取所有技能的描述
+    private final IntentClassifier intentClassifier; // 意图分类器
 
     /**
      * 构建系统提示词
@@ -62,22 +63,30 @@ public class SkillIntentRecognizer {
         return promptConfigManager.buildSystemPrompt(skillsDescription.toString());
     }
 
-    public SkillIntentRecognizer(ConfigManager configManager, 
-                                 IntentPromptConfigManager promptConfigManager, SkillManager skillManager) {
+    public SkillIntentRecognizer(ConfigManager configManager, IntentPromptConfigManager promptConfigManager, SkillManager skillManager) {
         this.configManager = configManager;
         this.promptConfigManager = promptConfigManager;
         this.gson = new Gson();
         this.skillManager = skillManager;
+        this.intentClassifier = new IntentClassifier();
+    }
+
+    /**
+     * 强制重建意图分类器的 Skill 索引（用于热重载后刷新 Skill 描述变更）
+     */
+    public void forceRebuildIndex() {
+        intentClassifier.forceRebuildIndex();
     }
 
     /**
      * 识别用户意图（统一入口，支持单意图和多步骤任务）
      *
-     * @param userInput 用户输入
-     * @param history   对话历史（用于上下文理解，可选）
+     * @param userInput  用户输入
+     * @param history    对话历史（用于上下文理解，可选）
+     * @param playerName 当前玩家名称（用于提示词注入，可为 null 表示控制台）
      * @return 识别结果（可能是 SkillIntent 或 TaskPlan，异步）
      */
-    public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history) {
+    public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history, String playerName) {
         if (configManager == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -89,12 +98,24 @@ public class SkillIntentRecognizer {
         }
 
         // 构建用户提示词
-        String userPrompt = buildUserPrompt(userInput, history);
+        String userPrompt = buildUserPrompt(userInput, history, playerName);
 
         // 使用专用的意图识别 Handler（不显示任何响应给玩家）
         AIResponseHandler handler = new IntentRecognitionResponseHandler();
 
-        // 动态构建系统提示词
+        // 意图分类
+        IntentClassifier.IntentType intentType = intentClassifier.classify(userInput);
+
+        if (configManager.isDebugMode()) {
+            plugin.getLogger().info("[DEBUG] 意图分类结果: " + intentType.getDescription());
+        }
+
+        // NORMAL_CHAT 短路：直接跳过LLM调用，回退到普通AI对话
+        if (intentType == IntentClassifier.IntentType.NORMAL_CHAT) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        // 构建系统提示词（全量注入）
         String systemPrompt = buildSystemPrompt();
 
 //        if (configManager.isDebugMode()) {
@@ -108,8 +129,14 @@ public class SkillIntentRecognizer {
     /**
      * 构建用户提示词
      */
-    private String buildUserPrompt(String userInput, Deque<ConversationManager.Message> history) {
+    private String buildUserPrompt(String userInput, Deque<ConversationManager.Message> history, String playerName) {
         StringBuilder prompt = new StringBuilder();
+
+        // 注入当前玩家上下文（供 LLM 识别"我"、"自己"等指向自身的语义）
+        if (playerName != null && !playerName.isEmpty()) {
+            prompt.append("[当前玩家上下文]\n");
+            prompt.append("当前玩家名称：").append(playerName).append("\n\n");
+        }
 
         // 添加对话历史
         if (history != null && !history.isEmpty()) {

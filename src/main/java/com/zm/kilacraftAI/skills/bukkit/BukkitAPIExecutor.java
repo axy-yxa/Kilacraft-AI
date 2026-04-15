@@ -1,12 +1,11 @@
 package com.zm.kilacraftAI.skills.bukkit;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import org.bukkit.Bukkit;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
 import java.util.Map;
-import java.util.concurrent.*;
 
 /**
  * Bukkit API 执行器
@@ -136,9 +135,12 @@ public class BukkitAPIExecutor {
 
     /**
      * 需要在主线程执行的方法名集合
-     * 这些方法涉及 Chunk/Entity 操作，在异步线程调用会触发 AsyncCatcher 异常
+     * 这些方法涉及 Chunk/Entity/World 操作，在异步线程调用会触发 NPE 或 AsyncCatcher 异常
+     * - getLivingEntities / getEntities：遍历 Chunk 中的实体
+     * - getTargetBlock：射线追踪访问 BlockState（lophine 等端要求主线程，Spigot 端不强制但也不安全）
+     * - getBiome / getTemperature / getHumidity：通过坐标访问 Chunk 中的生物群系/气候数据
      */
-    private static final java.util.Set<String> MAIN_THREAD_METHODS = java.util.Set.of("getLivingEntities", "getEntities");
+    private static final java.util.Set<String> MAIN_THREAD_METHODS = java.util.Set.of("getLivingEntities", "getEntities", "getTargetBlock", "getBiome", "getTemperature", "getHumidity");
 
     /**
      * 反射调用方法
@@ -160,8 +162,8 @@ public class BukkitAPIExecutor {
         // 设置可访问
         method.setAccessible(true);
 
-        // 检查是否需要在主线程执行
-        if (MAIN_THREAD_METHODS.contains(methodName) && !Bukkit.isPrimaryThread()) {
+        // 检查是否需要在主线程执行（Folia 下始终需要调度，因为无全局主线程）
+        if (MAIN_THREAD_METHODS.contains(methodName) && !FoliaCompat.isPrimaryThread()) {
             return invokeOnMainThread(target, method);
         }
 
@@ -170,21 +172,24 @@ public class BukkitAPIExecutor {
     }
 
     /**
-     * 在主线程上同步执行方法调用
+     * 在主线程/全局区域上同步执行方法调用
      * 用于 Chunk/Entity 等必须在主线程访问的 Bukkit API
+     * 委托 FoliaCompat 处理 Folia/Spigot 调度差异
      */
     private Object invokeOnMainThread(Object target, Method method) throws Exception {
         try {
-            Future<Object> future = Bukkit.getScheduler().callSyncMethod(KilacraftAI.getInstance(), () -> invokeMethodWithFallback(target, method));
-            return future.get(5, TimeUnit.SECONDS);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof Exception) {
-                throw (Exception) cause;
+            return FoliaCompat.callSync(KilacraftAI.getInstance(), () -> {
+                try {
+                    return invokeMethodWithFallback(target, method);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }, 5);
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof Exception ex) {
+                throw ex;
             }
-            throw new RuntimeException("主线程方法调用失败: " + method.getName(), cause);
-        } catch (TimeoutException e) {
-            throw new RuntimeException("主线程方法调用超时: " + method.getName(), e);
+            throw e;
         }
     }
 

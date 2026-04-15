@@ -50,7 +50,7 @@ public class MythicMobsPlaceholderManager {
             placeholderManager.register(AIAnswerPlaceholder.class, annotation);
 
             registered = true;
-
+            plugin.getLogger().info("已加载 MythicMobs 占位符");
         } catch (Exception e) {
             plugin.getLogger().severe("MythicMobs 占位符注册失败：" + e.getMessage());
             if (plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode()) {

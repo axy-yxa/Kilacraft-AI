@@ -67,7 +67,7 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 - ✅ Quick Start (5-Minute Integration Tutorial)
 - ✅ Detailed Explanation of Core Interfaces (SkillProvider, Skill, SkillContext, SkillResult)
 - ✅ Skill Development Specifications
-- ✅ Multi-step Task Data Transfer Mechanism
+- ✅ Multi-step Task Data Transfer Mechanism (including array index access)
 - ✅ Error Isolation and Exception Handling
 - ✅ Permission and Availability Control
 - ✅ Naming Conventions and Conflict Resolution

@@ -227,7 +227,10 @@ public class ConversationManager {
         // 退出连续对话模式
         chatMode.remove(playerId);
 
-        // TODO 可选：清理离线玩家的历史记录（如果需要节省内存）
-        // clearAllHistory(playerId);
+        // 清理离线玩家的历史记录，释放内存
+        clearAllHistory(playerId);
+
+        // 清理最新AI回复缓存
+        latestAIResponses.keySet().removeIf(key -> key.startsWith(playerId.toString()));
     }
 }

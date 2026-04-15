@@ -111,9 +111,6 @@ public class BukkitAPIConfigLoader {
             metadata.setDisplayName(apiSection.getString("display_name", key));
             metadata.setDescription(apiSection.getString("description", ""));
 
-            // 使用场景
-            metadata.setUsageScenarios(apiSection.getStringList("usage_scenarios"));
-
             // 调用信息
             metadata.setTargetType(apiSection.getString("target_type", "Player"));
             metadata.setMethodChain(apiSection.getStringList("method_chain"));

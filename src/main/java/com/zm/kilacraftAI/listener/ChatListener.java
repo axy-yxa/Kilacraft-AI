@@ -60,7 +60,7 @@ public class ChatListener implements Listener {
                 return;
             }
 
-            handleAIRequest(player, playerId, event.getMessage());
+            handleAIRequest(player, playerId, event.getMessage(), false);
             return;
         }
 
@@ -77,7 +77,8 @@ public class ChatListener implements Listener {
                             player.sendMessage(languageManager.replacePlaceholders(languageManager.getWorldBannedHint(), "ai_name", MessageUtil.getAIName()));
                             return;
                         }
-                        handleAIRequest(player, playerId, actualMessage);
+                        // 公屏回复：仅关键词触发时根据配置决定是否广播
+                        handleAIRequest(player, playerId, actualMessage, plugin.getConfigManager().isPublicReply());
                     }
                     break;
                 }
@@ -89,8 +90,10 @@ public class ChatListener implements Listener {
      * 处理 AI 请求（带冷却、历史记录等）
      *
      * <p>所有请求统一使用 LLM 意图识别，不再使用关键词匹配</p>
+     *
+     * @param publicReply 是否将AI回复广播给所有在线玩家
      */
-    private void handleAIRequest(Player player, UUID playerId, String message) {
+    private void handleAIRequest(Player player, UUID playerId, String message, boolean publicReply) {
         // 检查冷却时间
         if (!validator.isCooldownReady(playerId)) {
             long remainingSeconds = validator.getRemainingCooldownSeconds(playerId);
@@ -117,7 +120,7 @@ public class ChatListener implements Listener {
 
         // 使用统一的 AI 请求处理器
         boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableChatListener();
-        aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent);
+        aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, publicReply);
     }
 
     /**

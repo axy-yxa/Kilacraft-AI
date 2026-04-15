@@ -35,12 +35,6 @@ public class BukkitAPIMetadata {
     private String description;
 
     /**
-     * 使用场景描述（帮助 LLM 决策）
-     * 例："当用户询问'我手上拿的是什么'、'看看我的物品'时使用"
-     */
-    private List<String> usageScenarios;
-
-    /**
      * 目标对象类型
      * 例："Player", "World", "Server"
      */

@@ -67,14 +67,9 @@ public enum AFKTaskType {
     PLAYER_ITEM_BREAK_WATCH("PLAYER_ITEM_BREAK_WATCH", "监视玩家物品损坏"),
 
     /**
-     * 监视玩家血量
+     * 自定义任务（通过定时轮询检查任意Skill的返回值）
      */
-    HEALTH_WATCH("HEALTH_WATCH", "监视玩家血量"),
-
-    /**
-     * 自定义任务（扩展用）
-     */
-    CUSTOM("custom", "自定义任务");
+    CUSTOM("CUSTOM", "自定义任务");
 
     private final String actionName;
     private final String description;
