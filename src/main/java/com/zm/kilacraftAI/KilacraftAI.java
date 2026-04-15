@@ -27,6 +27,8 @@ import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import com.zm.kilacraftAI.util.ChineseTextUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.output.AIResponsePipeline;
+import com.zm.kilacraftAI.manager.StreamOutputManager;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -76,6 +78,18 @@ public final class KilacraftAI extends JavaPlugin {
     @Getter
     private AFKTaskManager afkTaskManager;
     private AFKTaskListener afkTaskListener;
+    
+    /**
+     * AI 响应输出管线（统一管理所有 AI 回复的输出载体）
+     */
+    @Getter
+    private AIResponsePipeline responsePipeline;
+
+    /**
+     * 流式输出管理器（管理流式状态和占位符窗口期）
+     */
+    @Getter
+    private StreamOutputManager streamOutputManager;
 
     @Override
     public void onEnable() {
@@ -84,6 +98,8 @@ public final class KilacraftAI extends JavaPlugin {
 
         initializeManagers();
         initializeKnowledgeSystem();
+        initializeResponsePipeline();  // 初始化响应输出管线
+        initializeStreamOutput();      // 初始化流式输出管理器
         initializeChatAndCommands();
         registerMythicMobsPlaceholders();
         initializeSkillsSystem();
@@ -126,6 +142,23 @@ public final class KilacraftAI extends JavaPlugin {
         // 物品翻译器（无外部依赖）
         itemTranslator = new ItemTranslator();
         itemTranslator.loadTranslationTable();
+    }
+
+    /**
+     * 初始化 AI 响应输出管线
+     */
+    private void initializeResponsePipeline() {
+        responsePipeline = new AIResponsePipeline(this);
+        getLogger().info("AI 响应输出管线已初始化 [默认载体: " + configManager.getOutputConfigManager().getDefaultChannel() + "]");
+    }
+
+    /**
+     * 初始化流式输出管理器
+     */
+    private void initializeStreamOutput() {
+        streamOutputManager = new StreamOutputManager(this);
+        boolean enabled = configManager.getOutputConfigManager().isStreamEnabled();
+        getLogger().info("流式输出管理器已初始化 [启用: " + enabled + ", 载体: " + configManager.getOutputConfigManager().getStreamChannel() + "]");
     }
 
     /**
@@ -324,6 +357,16 @@ public final class KilacraftAI extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // 清理 AI 响应输出管线（释放 BossBar 等资源）
+        if (responsePipeline != null) {
+            responsePipeline.cleanup();
+        }
+
+        // 清理流式输出管理器（释放状态映射）
+        if (streamOutputManager != null) {
+            streamOutputManager.cleanup();
+        }
+
         // 关闭挂机任务系统
         if (afkTaskManager != null) {
             afkTaskManager.shutdown();

@@ -7,7 +7,6 @@ import com.zm.kilacraftAI.api.LLMProvider;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
-import com.zm.kilacraftAI.handler.impl.IntentRecognitionResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import com.zm.kilacraftAI.skills.framework.task.TaskStep;
@@ -18,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -100,8 +100,43 @@ public class SkillIntentRecognizer {
         // 构建用户提示词
         String userPrompt = buildUserPrompt(userInput, history, playerName);
 
-        // 使用专用的意图识别 Handler（不显示任何响应给玩家）
-        AIResponseHandler handler = new IntentRecognitionResponseHandler();
+        // 使用空的 Handler（意图识别不显示任何响应给玩家）
+        AIResponseHandler handler = new AIResponseHandler() {
+            @Override
+            public UUID getPlayerId() {
+                return null;
+            }
+
+            @Override
+            public String getPlayerName() {
+                return "IntentRecognizer";
+            }
+
+            @Override
+            public void showResponse(String response) {
+                // 意图识别场景：仅 debug 日志
+                if (plugin.getConfigManager().isDebugMode()) {
+                    plugin.getLogger().info("[DEBUG] [意图识别结果] \n" + response);
+                }
+            }
+
+            @Override
+            public void showStreamChunk(String chunk, String currentMessage) {
+                // 不需要流式输出
+            }
+
+            @Override
+            public void handleError(String errorMessage) {
+                if (plugin.getConfigManager().isDebugMode()) {
+                    plugin.getLogger().warning("[DEBUG] [意图识别错误] " + errorMessage);
+                }
+            }
+
+            @Override
+            public boolean isStreamOutputEnabled() {
+                return false;
+            }
+        };
 
         // 意图分类
         IntentClassifier.IntentType intentType = intentClassifier.classify(userInput);

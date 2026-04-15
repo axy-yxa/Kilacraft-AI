@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.skills.afktask.impl;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTask;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskCallback;
@@ -354,7 +355,8 @@ public class CustomWatchTask extends AFKTask {
         } else {
             Player targetPlayer = Bukkit.getPlayerExact(notifyTarget);
             if (targetPlayer != null && targetPlayer.isOnline()) {
-                targetPlayer.sendMessage(MessageUtil.getAIPrefix() + fullMessage);
+                // 使用统一响应管线（挂机任务回调场景）
+                plugin.getResponsePipeline().send(targetPlayer, fullMessage, OutputScenario.AFK_CALLBACK);
             }
         }
     }

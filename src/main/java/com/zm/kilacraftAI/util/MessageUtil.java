@@ -1,6 +1,8 @@
 package com.zm.kilacraftAI.util;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.OutputConfigManager;
+import com.zm.kilacraftAI.enums.OutputChannel;
 import java.util.regex.Pattern;
 
 import org.bukkit.command.CommandSender;
@@ -62,16 +64,42 @@ public class MessageUtil {
     /**
      * 向玩家发送"正在思考"消息
      *
+     * <p>与 AI 输出管线联动，支持配置化的输出载体（CHAT/ACTION_BAR/BOSS_BAR/TITLE）。</p>
+     * <p>如果启用流式输出，则不发送思考消息（由流式占位符替代）。</p>
+     *
      * @param player 玩家对象
      */
     public static void sendThinkingMessage(Player player) {
-        if (player != null) {
-            player.sendMessage(getFullThinkingMessage());
+        if (player == null || !player.isOnline()) {
+            return;
         }
+
+        KilacraftAI plugin = KilacraftAI.getInstance();
+        if (plugin == null) {
+            // 降级处理：直接发送到 CHAT
+            player.sendMessage(getFullThinkingMessage());
+            return;
+        }
+
+        OutputConfigManager outputConfigManager = plugin.getConfigManager().getOutputConfigManager();
+        
+        // 如果启用流式输出，不发送思考消息（由 StreamOutputManager 的占位符替代）
+        if (outputConfigManager.isStreamEnabled()) {
+            return;
+        }
+
+        // 使用配置的输出载体发送思考消息
+        OutputChannel channel = outputConfigManager.getDefaultChannel();
+        String message = getFullThinkingMessage();
+        
+        // 通过 AIResponsePipeline 的 MessageDispatcher 发送
+        plugin.getResponsePipeline().getDispatcher().dispatch(player, message, channel);
     }
 
     /**
      * 向命令发送者发送"正在思考"消息
+     *
+     * <p>控制台发送者始终使用 CHAT 载体（sendMessage）。</p>
      *
      * @param sender 命令发送者
      */

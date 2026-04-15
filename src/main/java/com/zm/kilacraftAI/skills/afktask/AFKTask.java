@@ -1,7 +1,7 @@
 package com.zm.kilacraftAI.skills.afktask;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.util.MessageUtil;
+import com.zm.kilacraftAI.enums.OutputScenario;
 import lombok.Getter;
 
 import java.util.Map;
@@ -167,7 +167,8 @@ public abstract class AFKTask {
         if (playerUUID == null) return;
         var player = plugin.getServer().getPlayer(playerUUID);
         if (player != null && player.isOnline()) {
-            player.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(message));
+            // 使用统一响应管线（挂机任务回调场景）
+            plugin.getResponsePipeline().send(player, message, OutputScenario.AFK_CALLBACK);
         }
     }
 

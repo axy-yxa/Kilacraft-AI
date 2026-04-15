@@ -6,6 +6,66 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
+## v1.4.5 - AI Response Output Pipeline Refactor, Stream Output Feature, Package Structure Optimization
+
+### ✨ New Features
+- **Unified AI Response Output Pipeline**: Refactored AI reply output architecture with configurable carrier selection
+  - `AIResponsePipeline`: Unified routing and dispatching for all AI outputs
+  - `MessageDispatcher`: Intelligent routing to different carriers (CHAT/ACTION_BAR/BOSS_BAR/TITLE)
+  - `OutputChannel` enum: 4 output carriers (chat/actionBar/BossBar/title)
+  - `OutputScenario` enum: 5 output scenarios (normal chat/skill result/task result/AFK callback/error)
+  - `OutputConfigManager` configuration class: Encapsulates all output carrier configurations
+- **Stream Output Functionality**: Real-time display of LLM stream responses, eliminating waiting anxiety
+  - `StreamOutputManager`: Manages stream state machine and placeholder window period
+  - Window period placeholder: Immediately shows "Generating..." when AI request initiates, solving LLM first-character latency
+  - Stream chunk updates: Real-time display of LLM returned content, supports ACTION_BAR/BOSS_BAR carriers
+  - Configurable toggle: `output.stream.enabled` controls enable/disable
+- **Thinking Message Configurability**: Unified AI prompt message management
+  - `MessageUtil.sendThinkingMessage()` integrates with output pipeline, supports configurable carriers
+  - Stream mode automatically disables thinking messages (replaced by placeholders), avoiding duplicate prompts
+  - All AI prompt messages uniformly use `messages.thinking_message` configuration
+
+### 🔧 Improvements
+- **Handler Architecture Deep Refactor**:
+  - Removed `BaseResponseHandler` abstract base class, each Handler directly implements `AIResponseHandler` interface
+  - Removed `IntentRecognitionResponseHandler` standalone class, changed to anonymous Handler inlined in `SkillIntentRecognizer`
+  - `PlayerResponseHandler`/`ConsoleResponseHandler`/`PluginCommandResponseHandler` have clearer responsibilities
+- **Stream State Machine Ensures Concurrent Safety**:
+  - `GenerationState` three-state state machine (IDLE → GENERATING → COMPLETED) prevents race conditions
+  - `updateStreamChunk()` only accepts updates in GENERATING state, preventing residual chunk reception after completion
+  - `completeGeneration()` sets COMPLETED state and immediately rejects subsequent updates
+- **Resource Release and Memory Leak Protection**:
+  - `StreamOutputManager.cleanup()`: Cleans up all stream state mappings when plugin disables
+  - `AIResponsePipeline.cleanup()`: Releases all BossBar instances and active states
+  - `ChatListener.onPlayerQuit()`: Instantly cleans up stream states when player quits
+  - Complete resource release chain: Plugin disable/Player quit/Normal completion/Exception cancellation four-fold protection
+- **Package Structure Optimization**: Reorganized code structure by functionality
+  - `enums/` package: Unified management of all enum classes (OutputChannel/OutputScenario/PluginPermissionEnum)
+  - `manager/` package: Unified management of Manager classes (StreamOutputManager/ConversationManager/LLMManager)
+  - `output/` package: Output pipeline core components (AIResponsePipeline/MessageDispatcher)
+  - `handler/` package: Simplified to Handler-related classes only
+
+### 🗑️ Removed
+- `BaseResponseHandler` abstract base class (Handlers no longer need shared base class)
+- `IntentRecognitionResponseHandler` standalone class (changed to anonymous Handler inlined)
+- `output.broadcast.*` configuration (public broadcast fixed to use CHAT+prefix)
+
+### 📚 Documentation Updates
+- **System Architecture Details.md**: Complete architecture diagram and data flow description for AI response output pipeline
+- **Server Owner Guide.md**: Added stream output configuration instructions and usage examples
+- **Changelog.md**: Detailed v1.4.5 version change records (this document)
+- **All documentation synchronized**: README, System Architecture, Document Index, etc. in both Chinese and English
+
+### ⚠️ Compatibility
+- Added `output/` configuration section (includes default_channel/scenarios/boss_bar/title/stream)
+- Added configuration file references: OutputChannel/OutputScenario enum classes
+- New permission nodes: None (output carrier configuration does not affect permission system)
+- Default configuration maintains CHAT carrier, all original behavior has zero changes
+- Handler interface signatures unchanged, no impact on third-party plugins
+- Fully backward compatible, recommend using `/kilacraft reload` to reload configuration
+
+---
+
 ## v1.4.4 - Multi-Step Array Index, CUSTOM Generic AFK Task, BM25 Semantic Scoring Intent Classifier, Skill Prompt Optimization
 
 ### ✨ New Features
@@ -439,4 +499,4 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-**Last Updated**: 2026-04-13
+**Last Updated**: 2026-04-15

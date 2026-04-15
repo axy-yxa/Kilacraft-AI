@@ -1,12 +1,12 @@
 # Kilacraft-AI
 
-> **🚀 v1.4.4** | 零依赖 · 低内存 · 高性能 · 完全开源  
+> **🚀 v1.4.5** | 零依赖 · 低内存 · 高性能 · 完全开源  
 > 专为 Minecraft 服务器打造的轻量级 AI Agent 插件,支持自然语言交互。
 
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.4.4-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
+[![Version](https://img.shields.io/badge/Version-1.4.5-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 
 ---
 
@@ -64,6 +64,8 @@ Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续�
 - **历史对话上下文**：保持对话连贯性
 - **LLM 二次分析**：基于执行结果生成友好回复
 - **RAG 增强架构**：HanLP TF-IDF + BM25 算法
+- **AI 响应统一输出管线**：支持 CHAT/ACTION_BAR/BOSS_BAR/TITLE 四种载体，按场景智能路由
+- **流式输出功能**：AI 回复逐字实时显示，大幅提升等待体验
 
 ### 💰 经济系统集成
 - **GlobalMarketPlus 支持**：余额查询、价格查询、商品在售检查
@@ -124,7 +126,7 @@ Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续�
 
 ### 安装步骤（5 分钟）
 
-1. **下载** `Kilacraft-AI-1.4.4.jar` 放入 `plugins/` 目录
+1. **下载** `Kilacraft-AI-1.4.5.jar` 放入 `plugins/` 目录
 2. **启动** 服务器生成配置文件
 3. **编辑** `plugins/Kilacraft-AI/config.yml`：
   ```yaml
@@ -337,6 +339,6 @@ knowledge:
 
 ---
 
-> **最后更新**: 2026-04-13  
-> **插件版本**: 1.4.4  
+> **最后更新**: 2026-04-15  
+> **插件版本**: 1.4.5  
 > **开源协议**: MIT

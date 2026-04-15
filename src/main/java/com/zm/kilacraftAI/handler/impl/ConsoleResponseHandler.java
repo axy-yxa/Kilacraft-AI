@@ -1,6 +1,6 @@
 package com.zm.kilacraftAI.handler.impl;
 
-import com.zm.kilacraftAI.handler.BaseResponseHandler;
+import com.zm.kilacraftAI.handler.AIResponseHandler;
 import org.bukkit.command.CommandSender;
 
 import java.util.UUID;
@@ -8,10 +8,12 @@ import java.util.UUID;
 /**
  * 控制台 AI 响应处理器（后台使用）
  *
+ * <p>直接输出到控制台，不使用 Pipeline</p>
+ *
  * @author Zm_Mmm
  * @since 2026-03-25
  */
-public class ConsoleResponseHandler extends BaseResponseHandler {
+public class ConsoleResponseHandler implements AIResponseHandler {
     
     private final CommandSender sender;
 
@@ -31,13 +33,23 @@ public class ConsoleResponseHandler extends BaseResponseHandler {
     }
     
     @Override
-    protected void sendMessage(String message) {
+    public void showResponse(String message) {
         sender.sendMessage(message);
     }
 
     @Override
+    public void showStreamChunk(String chunk, String currentMessage) {
+        // 控制台不支持流式输出
+    }
+
+    @Override
+    public void handleError(String errorMessage) {
+        sender.sendMessage(errorMessage);
+    }
+
+    @Override
     public boolean isStreamOutputEnabled() {
-        // 控制台模式不支持流式输出（可以，但是体验不好，会刷屏）
+        // 控制台不支持流式输出
         return false;
     }
 }

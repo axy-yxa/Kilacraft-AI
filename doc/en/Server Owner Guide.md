@@ -1,6 +1,6 @@
 # Kilacraft-AI - Lightweight AI Agent Built for Minecraft Servers
 
-> **🚀 v1.4.3 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
+> **🚀 v1.4.5 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
 > Enable every Minecraft server to have an intelligent AI assistant
 
 ---
@@ -97,6 +97,41 @@ AI: To plant wheat you need:
 Player: @ai How do I do this?
 AI: [Kilacraft-AI] What specifically are you referring to? I can help you answer questions about game mechanics, crafting recipes, etc.
 ```
+
+#### Stream Output (Real-time AI Generation Display)
+
+When stream output is enabled, AI replies are displayed **character by character in real-time**, rather than waiting for the complete response.
+
+**Effect Comparison:**
+
+**❌ Non-Stream Mode (Default)**
+```
+Player: How do I get diamonds?
+[Waiting 3-5 seconds...]
+AI: You can find diamonds at Y=-58 to Y=-53 by mining...
+```
+
+**✅ Stream Mode**
+```
+Player: How do I get diamonds?
+[Immediately shows] ✍️ AI is generating...
+[Real-time updates] You can find diamonds at Y=-58 to Y=-53 by mining...
+```
+
+**Configuration:**
+```yaml
+output:
+  stream:
+    enabled: true                      # Enable stream output
+    channel: ACTION_BAR                # Recommend ACTION_BAR or BOSS_BAR
+    keep_final_in_default: true        # Show complete reply in default channel after completion
+```
+
+**Channel Recommendations:**
+- ⭐⭐⭐⭐⭐ **ACTION_BAR**: Single line overlay update, no spam (best choice)
+- ⭐⭐⭐⭐ **BOSS_BAR**: Top bar display, suitable for long text
+- ⭐⭐ **CHAT**: Not recommended, will cause spam
+- ⭐ **TITLE**: Not recommended, will flicker
 
 ---
 

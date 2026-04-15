@@ -57,18 +57,6 @@ settings:
   # false: AI的回复只有触发AI的玩家能看到（私信模式）
   public_reply: false
 
-  # 是否启用流式输出
-  # 当前版本暂不支持真正的流式输出，此配置为预留项
-  # 
-  # 替代方案（第三方插件开发者）：
-  # 如需流式效果，可在自己的插件中实现“伪流式输出”：
-  # 1. 接收完整的 AI 回复
-  # 2. 使用 BukkitRunnable 定时任务分批显示
-  # 3. 例如：每 500ms 显示 10 个字符，模拟打字机效果
-  # 
-  # 未来版本可能会通过 Premium 功能提供完善的流式支持
-  enable_stream_output: false
-
   # 冷却时间（秒）
   # 防止玩家频繁调用 API 导致费用过高
   # 设置为 0 可禁用冷却
@@ -180,6 +168,66 @@ messages:
   
   # "正在思考"提示文本
   thinking_message: "正在思考中..."
+
+# ==================== AI 响应输出管线配置 ====================
+# 说明：统一控制所有 AI 回复的输出载体（聊天栏/ActionBar/BossBar/Title）
+# 默认使用 CHAT（与原有行为完全一致），可按场景精细化配置
+output:
+  # 全局默认输出载体
+  # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE
+  default_channel: CHAT
+  
+  # 场景级覆盖配置（可选，留空则使用 default_channel）
+  # 场景说明：
+  # - normal_chat: 普通 AI 对话（无技能调用）
+  # - skill_result: 单意图技能执行结果（含 LLM 二次分析）
+  # - task_result: 多步骤任务执行结果（含 LLM 二次分析）
+  # - afk_callback: 挂机任务回调通知
+  # - error: 错误消息
+  scenarios:
+    normal_chat: ""
+    skill_result: ""
+    task_result: ""
+    afk_callback: ""
+    error: ""
+  
+  # BossBar 专属配置（仅当载体为 BOSS_BAR 时生效）
+  boss_bar:
+    # BossBar 颜色
+    # 可选值: PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
+    color: PURPLE
+    # BossBar 样式
+    # 可选值: SOLID（实心）, SEGMENTED_6/10/12/20（分段）
+    style: SOLID
+    # 显示时长（秒），0=永久显示直到新消息覆盖
+    duration_seconds: 15
+  
+  # Title 专属配置（仅当载体为 TITLE 时生效）
+  title:
+    # 主标题停留时间（ticks，20 ticks = 1秒）
+    stay_ticks: 60
+    # 淡入时间（ticks）
+    fade_in_ticks: 10
+    # 淡出时间（ticks）
+    fade_out_ticks: 10
+  
+  # 流式输出配置（实时显示 AI 生成过程）
+  # 说明：
+  # 1. 启用后，AI 响应会逐字实时显示，而非等待完整响应
+  # 2. 窗口期管理：请求发起后立即显示"生成中..."占位符
+  # 3. 推荐载体：ACTION_BAR（最佳体验）或 BOSS_BAR（适合长文本）
+  # 4. CHAT 载体不推荐（会刷屏），TITLE 载体不适合（会闪烁）
+  # 5. 流式完成后，可选择是否保留最终结果到默认载体
+  stream:
+    # 是否启用流式输出（总开关）
+    enabled: false
+    # 流式输出使用的载体（推荐 ACTION_BAR 或 BOSS_BAR）
+    # 可选值: ACTION_BAR, BOSS_BAR, CHAT（不推荐）, TITLE（不推荐）
+    channel: ACTION_BAR
+    # 流式完成后是否保留最终结果到默认载体
+    # true: 流式结束后，在默认载体（CHAT/ACTION_BAR等）再显示一次完整内容
+    # false: 流式结束后，不重复显示（适合 ACTION_BAR/BOSS_BAR）
+    keep_final_in_default: true
 
 # ==================== 知识库配置 ====================
 # 知识库功能说明：

@@ -2,9 +2,11 @@ package com.zm.kilacraftAI.handler;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.LanguageManager;
+import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
+import com.zm.kilacraftAI.output.AIResponsePipeline;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillIntent;
 import com.zm.kilacraftAI.skills.framework.task.LLMAnalysisService;
@@ -57,20 +59,22 @@ public class AIRequestHandler {
      * @param publicReply 是否将AI回复广播给所有在线玩家（公屏回复）
      */
     public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply) {
+        // 使用统一的响应管线
+        AIResponsePipeline pipeline = plugin.getResponsePipeline();
+        
         java.util.function.Consumer<String> sendResponse;
+        java.util.function.Consumer<String> sendError;
+        
         if (publicReply) {
             // 公屏模式：广播给所有在线玩家
-            sendResponse = response -> {
-                String formatted = MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response);
-                for (Player onlinePlayer : plugin.getServer().getOnlinePlayers()) {
-                    onlinePlayer.sendMessage(formatted);
-                }
-            };
+            sendResponse = response -> pipeline.broadcast(response, OutputScenario.NORMAL_CHAT);
         } else {
             // 私信模式：只发给触发者
-            sendResponse = response -> player.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response));
+            sendResponse = response -> pipeline.send(player, response, OutputScenario.NORMAL_CHAT);
         }
-        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, error -> player.sendMessage(languageManager.getPluginCommandError() + error));
+        sendError = error -> pipeline.sendError(player, languageManager.getPluginCommandError() + error);
+        
+        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, sendError);
         handleAIRequestInternal(message, ctx, enableAgent);
     }
 
@@ -147,7 +151,8 @@ public class AIRequestHandler {
             if (plugin.getConfigManager().isDebugMode()) {
                 plugin.getLogger().info("[DEBUG] 任务计划执行完成：" + execResult.getMessage());
             }
-            ctx.sendResponse.accept(execResult.getMessage());
+            // 使用管线输出（多步骤任务结果）
+            plugin.getResponsePipeline().send(ctx.player(), execResult.getMessage(), OutputScenario.TASK_RESULT);
             validator.saveToHistory(ctx.history(), message, execResult.getMessage());
         });
     }
@@ -177,7 +182,8 @@ public class AIRequestHandler {
                 if (plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().info("[DEBUG] 技能执行完成：" + finalResult.getMessage());
                 }
-                ctx.sendResponse.accept(finalResult.getMessage());
+                // 使用管线输出（单意图技能结果）
+                plugin.getResponsePipeline().send(ctx.player(), finalResult.getMessage(), OutputScenario.SKILL_RESULT);
                 validator.saveToHistory(ctx.history(), message, finalResult.getMessage());
             } else {
                 if (plugin.getConfigManager().isDebugMode()) {
@@ -206,7 +212,7 @@ public class AIRequestHandler {
 
         AIResponseHandler handler;
         if (ctx.player() != null) {
-            handler = new PlayerResponseHandler(ctx.player(), message, ctx.history());
+            handler = new PlayerResponseHandler(ctx.player());
         } else {
             handler = new ConsoleResponseHandler(getSenderFromContext(ctx));
         }

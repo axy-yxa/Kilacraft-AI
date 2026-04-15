@@ -46,8 +46,6 @@ public class ConfigManager {
     @Getter
     private boolean publicReply;                 // 公屏回复开关（关键词触发时AI回复是否对所有玩家可见）
     @Getter
-    private boolean enableStreamOutput;
-    @Getter
     private List<String> allowedWorlds;
     @Getter
     private List<String> bannedWorlds;
@@ -125,6 +123,10 @@ public class ConfigManager {
     @Getter
     private int afkTaskMaxConsecutiveFailures; // 最大连续评估失败次数
 
+    // AI 响应输出管线配置
+    @Getter
+    private final OutputConfigManager outputConfigManager = new OutputConfigManager();  // 输出载体配置
+
     // LLM 提供商配置（通用）
     @Getter
     private String llmApiKey;                  // LLM API 密钥
@@ -164,7 +166,6 @@ public class ConfigManager {
         String keywordsStr = config.getString("settings.trigger_keywords", "@kila,@ai,@zm");
         this.triggerKeywords = Arrays.asList(keywordsStr.split(","));
         this.publicReply = config.getBoolean("settings.public_reply", false);
-        this.enableStreamOutput = config.getBoolean("settings.enable_stream_output", false);
         this.cooldownSeconds = config.getInt("settings.cooldown_seconds", 5);
         this.pluginsCooldownSeconds = config.getInt("settings.plugins_cooldown_seconds", 5);
         this.callbackTimeoutSeconds = config.getInt("plugin_command.callback_timeout_seconds", 3);
@@ -245,6 +246,9 @@ public class ConfigManager {
         this.afkTaskMaxTasks = config.getInt("afk_task.max_tasks", 10);
         this.afkTaskCheckIntervalTicks = config.getInt("afk_task.check_interval_ticks", 20);
         this.afkTaskMaxConsecutiveFailures = config.getInt("afk_task.max_consecutive_failures", 10);
+
+        // AI 响应输出管线配置
+        this.outputConfigManager.load(config);
 
         // 通知 LLM 管理器刷新配置缓存
         refreshLLMConfigCache();

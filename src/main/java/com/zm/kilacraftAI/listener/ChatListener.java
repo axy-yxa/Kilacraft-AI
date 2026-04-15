@@ -131,11 +131,16 @@ public class ChatListener implements Listener {
     }
 
     /**
-     * 玩家退出游戏时自动关闭连续对话模式
+     * 玩家退出游戏时自动关闭连续对话模式并清理流式状态
      */
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         plugin.getConversationManager().onPlayerQuit(player);
+        
+        // 清理玩家的流式生成状态（防止内存泄漏）
+        if (plugin.getStreamOutputManager() != null) {
+            plugin.getStreamOutputManager().cancelGeneration(player);
+        }
     }
 }
