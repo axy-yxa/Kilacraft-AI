@@ -6,7 +6,7 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-## v1.4.5 - Folia/lophine Thread Safety, Bukkit API Field Standardization, Stream Output Feature, AI Response Pipeline Refactor, Intent Classifier Removal
+## v1.4.5 - Folia/lophine Thread Safety, Bukkit API Field Standardization, Stream Output Feature, AI Response Pipeline Refactor, Output Channel Configuration Enhancement
 
 ### ✨ New Features
 - **Folia/lophine Thread Safety Compatibility**: Full support for Folia and its branches (lophine) region-based thread scheduling
@@ -28,6 +28,10 @@ This file records all important changes to the Kilacraft-AI plugin.
 - **Thinking Message Configurability**: Unified AI prompt message management
   - `MessageUtil.sendThinkingMessage()` integrates with output pipeline, supports configurable carriers
   - Stream mode automatically disables thinking messages (replaced by placeholders), avoiding duplicate prompts
+  - **New `output.thinking_channel` configuration**: Independently controls output carrier for "Thinking..." prompt
+    - Defaults to `default_channel`, can be configured separately
+    - Solves carrier inconsistency between thinking message and AI reply when scenario override is applied
+    - Example: `default_channel: BOSS_BAR`, `thinking_channel: CHAT`, `scenarios.normal_chat: CHAT`
   - All AI prompt messages uniformly use `messages.thinking_message` configuration
 
 ### 🔧 Improvements

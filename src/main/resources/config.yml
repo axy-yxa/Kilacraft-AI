@@ -177,6 +177,12 @@ output:
   # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE
   default_channel: CHAT
   
+  # "正在思考"提示消息的输出载体
+  # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE
+  # 说明：默认为 default_channel，可独立配置
+  # 示例：default_channel=BOSS_BAR, thinking_channel=CHAT → 思考提示在聊天框，回复也在聊天框（如果 normal_chat=CHAT）
+  thinking_channel: ""
+  
   # 场景级覆盖配置（可选，留空则使用 default_channel）
   # 场景说明：
   # - normal_chat: 普通 AI 对话（无技能调用）

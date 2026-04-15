@@ -29,6 +29,12 @@ public class OutputConfigManager {
     private OutputChannel defaultChannel;
     
     /**
+     * "正在思考"提示消息的输出载体
+     * <p>默认为 defaultChannel，可独立配置</p>
+     */
+    private OutputChannel thinkingChannel;
+    
+    /**
      * 场景级载体覆盖配置
      * <p>Key: OutputScenario, Value: 自定义载体（为空则使用 defaultChannel）</p>
      */
@@ -93,6 +99,12 @@ public class OutputConfigManager {
     public void load(FileConfiguration config) {
         // 基础配置
         this.defaultChannel = parseChannel(config.getString("output.default_channel", "CHAT"));
+        this.thinkingChannel = parseChannel(config.getString("output.thinking_channel", ""));
+        
+        // 如果 thinking_channel 未配置，使用 default_channel
+        if (this.thinkingChannel == null) {
+            this.thinkingChannel = this.defaultChannel;
+        }
         
         // 场景级配置
         scenarioChannels.clear();

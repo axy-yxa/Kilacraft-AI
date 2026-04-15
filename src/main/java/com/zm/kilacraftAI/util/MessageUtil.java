@@ -88,8 +88,8 @@ public class MessageUtil {
             return;
         }
 
-        // 使用配置的输出载体发送思考消息
-        OutputChannel channel = outputConfigManager.getDefaultChannel();
+        // 使用配置的"正在思考"输出载体发送消息
+        OutputChannel channel = outputConfigManager.getThinkingChannel();
         String message = getFullThinkingMessage();
         
         // 通过 AIResponsePipeline 的 MessageDispatcher 发送
