@@ -107,10 +107,17 @@ public class FoliaCompat {
 
     /**
      * 执行命令（自动适配 Folia/Spigot 调度方式），fire-and-forget
+     * 
+     * <p>lophine/Folia 特殊处理：如果 sender 是 Player，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      */
     public static void dispatchCommand(org.bukkit.command.CommandSender sender, String command) {
         if (FOLIA) {
-            REFLECTION.invokeGlobalExecute(KilacraftAI.getInstance(), () -> Bukkit.dispatchCommand(sender, command));
+            // 如果 sender 是 Player，使用 EntityScheduler
+            if (sender instanceof org.bukkit.entity.Player player) {
+                REFLECTION.invokeEntityRun(player, () -> Bukkit.dispatchCommand(sender, command));
+            } else {
+                REFLECTION.invokeGlobalExecute(KilacraftAI.getInstance(), () -> Bukkit.dispatchCommand(sender, command));
+            }
         } else {
             if (Bukkit.isPrimaryThread()) {
                 Bukkit.dispatchCommand(sender, command);
@@ -122,17 +129,31 @@ public class FoliaCompat {
 
     /**
      * 同步执行命令并等待结果（阻塞）
+     * 
+     * <p>lophine/Folia 特殊处理：如果 sender 是 Player，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      */
     public static boolean dispatchCommandSync(org.bukkit.command.CommandSender sender, String command, long timeoutSeconds) {
         if (FOLIA) {
             CompletableFuture<Boolean> future = new CompletableFuture<>();
-            REFLECTION.invokeGlobalRun(KilacraftAI.getInstance(), () -> {
-                try {
-                    future.complete(Bukkit.dispatchCommand(sender, command));
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
-            });
+            
+            // 如果 sender 是 Player，使用 EntityScheduler
+            if (sender instanceof org.bukkit.entity.Player player) {
+                REFLECTION.invokeEntityRun(player, () -> {
+                    try {
+                        future.complete(Bukkit.dispatchCommand(sender, command));
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
+                });
+            } else {
+                REFLECTION.invokeGlobalRun(KilacraftAI.getInstance(), () -> {
+                    try {
+                        future.complete(Bukkit.dispatchCommand(sender, command));
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
+                });
+            }
             return awaitFuture(future, timeoutSeconds, "命令执行超时: /" + command, "命令执行失败: /" + command);
         } else {
             if (Bukkit.isPrimaryThread()) {
@@ -153,17 +174,32 @@ public class FoliaCompat {
 
     /**
      * 异步执行命令，返回 CompletableFuture
+     * 
+     * <p>lophine/Folia 特殊处理：如果 sender 是 Player，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      */
     public static CompletableFuture<Boolean> dispatchCommandAsync(org.bukkit.command.CommandSender sender, String command) {
         if (FOLIA) {
             CompletableFuture<Boolean> result = new CompletableFuture<>();
-            REFLECTION.invokeGlobalRun(KilacraftAI.getInstance(), () -> {
-                try {
-                    result.complete(Bukkit.dispatchCommand(sender, command));
-                } catch (Exception e) {
-                    result.completeExceptionally(e);
-                }
-            });
+            
+            // 如果 sender 是 Player，使用 EntityScheduler（lophine 要求）
+            if (sender instanceof org.bukkit.entity.Player player) {
+                REFLECTION.invokeEntityRun(player, () -> {
+                    try {
+                        result.complete(Bukkit.dispatchCommand(sender, command));
+                    } catch (Exception e) {
+                        result.completeExceptionally(e);
+                    }
+                });
+            } else {
+                // 其他发送者使用 GlobalRegionScheduler
+                REFLECTION.invokeGlobalRun(KilacraftAI.getInstance(), () -> {
+                    try {
+                        result.complete(Bukkit.dispatchCommand(sender, command));
+                    } catch (Exception e) {
+                        result.completeExceptionally(e);
+                    }
+                });
+            }
             return result;
         } else {
             if (Bukkit.isPrimaryThread()) {
@@ -207,6 +243,43 @@ public class FoliaCompat {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("同步调用被中断", e);
+            }
+        }
+    }
+
+    /**
+     * 在指定玩家实体所属的区域线程同步执行 Supplier 并返回结果
+     * 
+     * <p>lophine/Folia 特殊要求：Player 相关的 API（如 getTargetBlock）必须在玩家所在区域线程执行，
+     * 不能使用 GlobalRegionScheduler，否则会报 getCurrentWorldData() is null</p>
+     * 
+     * @param player 目标玩家
+     * @param supplier 要执行的任务
+     * @param timeoutSeconds 超时时间（秒）
+     * @return 执行结果
+     */
+    public static <T> T callSyncOnEntity(org.bukkit.entity.Player player, java.util.function.Supplier<T> supplier, long timeoutSeconds) {
+        if (FOLIA) {
+            CompletableFuture<T> future = new CompletableFuture<>();
+            REFLECTION.invokeEntityRun(player, () -> {
+                try {
+                    future.complete(supplier.get());
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                }
+            });
+            return awaitFuture(future, timeoutSeconds, "实体同步调用超时", "实体同步调用失败");
+        } else {
+            // Spigot/Paper: 直接调度到主线程
+            try {
+                return Bukkit.getScheduler().callSyncMethod(KilacraftAI.getInstance(), supplier::get).get(timeoutSeconds, TimeUnit.SECONDS);
+            } catch (ExecutionException e) {
+                return unwrapExecutionException(e, "实体同步调用失败");
+            } catch (TimeoutException e) {
+                throw new RuntimeException("实体同步调用超时", e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("实体同步调用被中断", e);
             }
         }
     }

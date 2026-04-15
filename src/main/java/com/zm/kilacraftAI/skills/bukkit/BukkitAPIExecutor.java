@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -52,15 +53,24 @@ public class BukkitAPIExecutor {
         }
 
         // 判断使用哪种模式
+        Object result;
         if (api.getMethodChain() != null && !api.getMethodChain().isEmpty()) {
             // 模式 1：method_chain - 链式调用返回复杂对象
-            return executeMethodChain(target, api.getMethodChain());
+            result = executeMethodChain(target, api.getMethodChain());
         } else if (api.getAdditionalMethods() != null && !api.getAdditionalMethods().isEmpty()) {
             // 模式 2：additional_methods - 并行调用多个独立方法
-            return executeAdditionalMethods(target, api.getAdditionalMethods());
+            result = executeAdditionalMethods(target, api.getAdditionalMethods());
         } else {
             throw new IllegalStateException("API 必须配置 method_chain 或 additional_methods");
         }
+        
+        // Folia 端特殊处理：
+        // - 通过 invokeOnMainThread 调用的方法已经在区域线程内提取为 Map
+        // - 只有未调度到区域线程的方法（不在 MAIN_THREAD_METHODS 中）才需要在此提取
+        if (FoliaCompat.isFolia()) {
+            return extractThreadSafeData(result, api.getId());
+        }
+        return result;
     }
 
     /**
@@ -175,12 +185,37 @@ public class BukkitAPIExecutor {
      * 在主线程/全局区域上同步执行方法调用
      * 用于 Chunk/Entity 等必须在主线程访问的 Bukkit API
      * 委托 FoliaCompat 处理 Folia/Spigot 调度差异
+     * 
+     * <p>lophine/Folia 特殊处理：对于 Player 相关方法，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
+     * <p>重要：必须在区域线程内提取线程敏感对象为纯数据，否则跨线程访问会报 getCurrentWorldData() is null</p>
      */
     private Object invokeOnMainThread(Object target, Method method) throws Exception {
         try {
+            // 如果 target 是 Player，使用 EntityScheduler（lophine 要求）
+            if (target instanceof org.bukkit.entity.Player player) {
+                return FoliaCompat.callSyncOnEntity(player, () -> {
+                    try {
+                        Object result = invokeMethodWithFallback(target, method);
+                        // Folia 端：在区域线程内立即提取为线程安全数据
+                        if (FoliaCompat.isFolia()) {
+                            return extractThreadSafeData(result, method.getName());
+                        }
+                        return result;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }, 5);
+            }
+            
+            // 其他对象使用 GlobalRegionScheduler
             return FoliaCompat.callSync(KilacraftAI.getInstance(), () -> {
                 try {
-                    return invokeMethodWithFallback(target, method);
+                    Object result = invokeMethodWithFallback(target, method);
+                    // Folia 端：在区域线程内立即提取为线程安全数据
+                    if (FoliaCompat.isFolia()) {
+                        return extractThreadSafeData(result, method.getName());
+                    }
+                    return result;
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -191,6 +226,88 @@ public class BukkitAPIExecutor {
             }
             throw e;
         }
+    }
+
+    /**
+     * 将线程敏感对象提取为线程安全的数据结构
+     * 
+     * <p>lophine/Folia 要求：Block、Biome、Location、ItemStack 等对象只能在创建它们的区域线程访问，
+     * 跨线程访问会报 getCurrentWorldData() is null。</p>
+     * <p>此方法在区域线程内调用，将对象转换为 Map/String 等纯数据。</p>
+     * <p>注意：Map 字段名使用标准化命名，与 extractDataFromResult 保持一致，
+     * 确保多步骤任务的占位符引用（如 {step_1.item_name}）能正确解析。</p>
+     */
+    private Object extractThreadSafeData(Object result, String methodName) {
+        if (result == null) {
+            return null;
+        }
+
+        // Block 对象：提取为 Map
+        if (result instanceof org.bukkit.block.Block block) {
+            Map<String, Object> blockData = new HashMap<>();
+            blockData.put("block_type", block.getType().name());
+            blockData.put("x", block.getX());
+            blockData.put("y", block.getY());
+            blockData.put("z", block.getZ());
+            blockData.put("world", block.getWorld().getName());
+            return blockData;
+        }
+
+        // Biome 对象：提取为 String
+        if (result instanceof org.bukkit.block.Biome biome) {
+            return biome.name();
+        }
+
+        // Location 对象：提取为 Map（包含 World 名称）
+        if (result instanceof org.bukkit.Location location) {
+            Map<String, Object> locData = new HashMap<>();
+            locData.put("x", location.getX());
+            locData.put("y", location.getY());
+            locData.put("z", location.getZ());
+            locData.put("yaw", location.getYaw());
+            locData.put("pitch", location.getPitch());
+            locData.put("world", location.getWorld() != null ? location.getWorld().getName() : "unknown");
+            return locData;
+        }
+
+        // ItemStack 对象：提取为 Map
+        if (result instanceof org.bukkit.inventory.ItemStack itemStack) {
+            Map<String, Object> itemData = new HashMap<>();
+            itemData.put("item_type", itemStack.getType().name());
+            itemData.put("item_amount", itemStack.getAmount());
+            
+            // item_name 优先使用自定义名称，否则使用中文翻译
+            if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
+                itemData.put("item_name", itemStack.getItemMeta().getDisplayName());
+            } else {
+                // 使用 ItemTranslator 翻译为中文名
+                String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance()
+                    .translateToChinese(itemStack.getType().name());
+                itemData.put("item_name", chineseName);
+            }
+            return itemData;
+        }
+
+        // Vector 对象：提取为 Map
+        if (result instanceof org.bukkit.util.Vector vector) {
+            Map<String, Object> vecData = new HashMap<>();
+            vecData.put("x", vector.getX());
+            vecData.put("y", vector.getY());
+            vecData.put("z", vector.getZ());
+            return vecData;
+        }
+
+        // PotionEffect 对象：提取为 Map
+        if (result instanceof org.bukkit.potion.PotionEffect effect) {
+            Map<String, Object> effectData = new HashMap<>();
+            effectData.put("type", effect.getType().getName());
+            effectData.put("amplifier", effect.getAmplifier());
+            effectData.put("duration", effect.getDuration());
+            return effectData;
+        }
+
+        // 其他类型直接返回（String、Integer、List、Enum 等已经是线程安全的）
+        return result;
     }
 
     /**

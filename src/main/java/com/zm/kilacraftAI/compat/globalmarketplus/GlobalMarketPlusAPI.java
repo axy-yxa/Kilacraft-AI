@@ -73,12 +73,18 @@ public class GlobalMarketPlusAPI {
             // 使用 Merchant API 获取玩家余额
             Merchant merchant = Merchant.getMerchant(player);
             if (merchant != null) {
-                double balance = merchant.getBalance(GlobalMarketEconomy.VAULT);
-                if (balance == 0.0) {
-                    // 默认货币的余额
-                    balance = merchant.getDefaultBalance();
+                // 优先使用 Vault 经济系统
+                try {
+                    double balance = merchant.getBalance(GlobalMarketEconomy.VAULT);
+                    if (balance > 0.0) {
+                        return balance;
+                    }
+                } catch (NoClassDefFoundError | Exception e) {
+                    // Vault 未安装或不可用，回退到默认货币
                 }
-                return balance;
+                
+                // 使用默认货币
+                return merchant.getDefaultBalance();
             }
             return -1;
         } catch (Exception e) {

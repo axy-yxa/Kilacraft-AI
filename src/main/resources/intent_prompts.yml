@@ -161,13 +161,16 @@ special_scenarios:
   missing_parameters: |
     【参数缺失处理 - 极其重要！】
     1. 如果必需参数缺失但有默认值,正常返回意图
-    2. **【强制规则】如果必需参数需要通过另一个技能获取（如用户说"手上的东西"、"当前持有的"等指代实时数据的表述），必须返回多步骤任务格式：先用获取类技能获取数据，再执行后续操作**
+    2. **【强制规则】如果必需参数需要通过另一个技能获取（如用户说“手上的东西”、“当前持有的”等指代实时数据的表述），必须返回多步骤任务格式：先用获取类技能获取数据，再执行后续操作**
        - 绝对不能返回单意图格式并将参数设为 null！
        - 错误示例：{"skill_name":"market_query","action":"query_availability","entities":{"item":null}} ← item 为 null 会导致执行失败
        - 正确示例：{"goal":"查询手持物品的市场在售情况","steps":[{"id":"step_1","skill_name":"GenericBukkitAPI","action":"get_player_hand_item","entities":{},"depends_on":[]},{"id":"step_2","skill_name":"market_query","action":"query_availability","entities":{"item":"{step_1.item_name}"},"depends_on":["step_1"]}]}
-    3. 不要编造不存在的参数值
-    4. 如果参数完全无法确定且无法通过技能获取,返回无效意图并在 reasoning 中说明
-    5. **总结：宁可多一步获取参数，绝不返回 null 参数！**
+    3. **【强制规则】当用户询问多个实时状态时（如“两只手分别拿着什么”、“我的位置和朝向”等），必须拆解为多步骤任务，每个状态对应一个获取步骤**
+       - 错误示例：{"skill_name":"GenericBukkitAPI","action":"get_player_hand_item"} ← 只获取了主手，遗漏了副手
+       - 正确示例：{"goal":"查询两只手分别拿着什么","steps":[{"id":"step_1","skill_name":"GenericBukkitAPI","action":"get_player_hand_item","entities":{},"depends_on":[]},{"id":"step_2","skill_name":"GenericBukkitAPI","action":"get_player_offhand_item","entities":{},"depends_on":[]}]}
+    4. 不要编造不存在的参数值
+    5. 如果参数完全无法确定且无法通过技能获取,返回无效意图并在 reasoning 中说明
+    6. **总结：宁可多一步获取参数，绝不返回 null 参数！**
   
   skill_name_restriction: |
     【技能名称严格限制 - 最高优先级规则】

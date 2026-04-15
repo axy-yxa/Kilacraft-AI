@@ -197,22 +197,12 @@ public class GenericBukkitAPISkill implements Skill {
             dataMap.put("effects", effectsList);
             dataMap.put("effect_count", effectsList.size());
         }
-        // Block：方块信息
-        else if (result instanceof org.bukkit.block.Block block) {
-            dataMap.put("block_type", block.getType().name());
-            dataMap.put("x", block.getX());
-            dataMap.put("y", block.getY());
-            dataMap.put("z", block.getZ());
-        }
-        // Biome：生物群系
-        else if (result instanceof org.bukkit.block.Biome biome) {
-            dataMap.put("biome", biome.name());
-        }
         // Collection<Raid>：袭击列表
         else if (result instanceof java.util.Collection<?> raids) {
             dataMap.put("raids", raids.size());
         }
         // 其他类型不提取额外字段，只保留 raw_result
+        // 注意：Map 格式的数据由 execute() 方法中的 L109-118 通用逻辑处理，不需要在这里硬编码
     }
 
     /**
@@ -223,13 +213,17 @@ public class GenericBukkitAPISkill implements Skill {
             return "无结果";
         }
 
-        // 特殊类型处理（method_chain 模式返回的复杂对象）
-        if (result instanceof org.bukkit.Location location) {
-            return formatLocation(location);
+        // 特殊类型处理（lophine 优化：已在区域线程内提取为 Map/String）
+        if (result instanceof java.util.Map<?, ?> locationMap && api.getId().contains("location")) {
+            return formatLocationFromMap(locationMap);
         }
-        if (result instanceof org.bukkit.inventory.ItemStack itemStack) {
-            return formatItemStack(itemStack);
+        if (result instanceof java.util.Map<?, ?> itemMap && api.getId().contains("item")) {
+            return formatItemStackFromMap(itemMap);
         }
+        if (result instanceof java.util.Map<?, ?> vectorMap && (api.getId().contains("velocity") || api.getId().contains("direction"))) {
+            return formatVectorFromMap(vectorMap);
+        }
+        // 枚举类型（线程安全）
         if (result instanceof org.bukkit.GameMode gameMode) {
             return formatGameMode(gameMode);
         }
@@ -244,9 +238,6 @@ public class GenericBukkitAPISkill implements Skill {
         }
         if (result instanceof org.bukkit.inventory.MainHand mainHand) {
             return formatMainHand(mainHand);
-        }
-        if (result instanceof org.bukkit.util.Vector vector) {
-            return formatVector(vector);
         }
         // Duration 类型（Paper 特有，用于 AFK 时间）
         if (result instanceof java.time.Duration duration) {
@@ -282,13 +273,13 @@ public class GenericBukkitAPISkill implements Skill {
         if (result instanceof java.util.Collection<?> potionEffects && api.getId().equals("get_player_potion_effects")) {
             return formatPotionEffects(potionEffects);
         }
-        // 瞄准的方块
-        if (result instanceof org.bukkit.block.Block block && api.getId().equals("get_player_target_block")) {
-            return formatBlock(block);
+        // 瞄准的方块（lophine 优化：Block 对象已在区域线程内提取为 Map）
+        if (result instanceof java.util.Map<?, ?> blockMap && api.getId().equals("get_player_target_block")) {
+            return formatBlockFromMap(blockMap);
         }
-        // 生物群系
-        if (result instanceof org.bukkit.block.Biome biome && api.getId().equals("get_world_biome")) {
-            return formatBiome(biome);
+        // 生物群系（lophine 优化：Biome 对象已在区域线程内提取为 String）
+        if (result instanceof String biomeName && api.getId().equals("get_world_biome")) {
+            return formatBiomeByName(biomeName);
         }
         // 温度/湿度（Double 类型）
         if (result instanceof Double temp && (api.getId().equals("get_world_temperature") || api.getId().equals("get_world_humidity"))) {
@@ -555,6 +546,20 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
+     * 格式化 Location（lophine 兼容版本：接收 Map）
+     */
+    private String formatLocationFromMap(java.util.Map<?, ?> locMap) {
+        if (locMap == null || locMap.isEmpty()) {
+            return "位置：未知";
+        }
+        double x = locMap.containsKey("x") ? ((Number) locMap.get("x")).doubleValue() : 0;
+        double y = locMap.containsKey("y") ? ((Number) locMap.get("y")).doubleValue() : 0;
+        double z = locMap.containsKey("z") ? ((Number) locMap.get("z")).doubleValue() : 0;
+        String world = locMap.containsKey("world") ? (String) locMap.get("world") : "未知";
+        return String.format("位置：X=%.2f, Y=%.2f, Z=%.2f, 世界=%s", x, y, z, world);
+    }
+
+    /**
      * 格式化 ItemStack
      */
     private String formatItemStack(org.bukkit.inventory.ItemStack item) {
@@ -580,6 +585,60 @@ public class GenericBukkitAPISkill implements Skill {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * 格式化 ItemStack（lophine 兼容版本：接收 Map）
+     * 
+     * <p>注意：字段名必须与 extractThreadSafeData 和 extractDataFromResult 保持一致，
+     * 使用标准化命名：item_type, item_name, item_amount</p>
+     */
+    private String formatItemStackFromMap(java.util.Map<?, ?> itemMap) {
+        if (itemMap == null || itemMap.isEmpty()) {
+            return "空手";
+        }
+        
+        // 使用标准化字段名（与 extractThreadSafeData 和 extractDataFromResult 一致）
+        String type = (String) itemMap.get("item_type");
+        if (type == null || type.equals("AIR")) {
+            return "空手";
+        }
+        
+        int amount = itemMap.containsKey("item_amount") ? ((Number) itemMap.get("item_amount")).intValue() : 1;
+        
+        // 优先使用 item_name（自定义名称或类型名）
+        String displayName = (String) itemMap.get("item_name");
+        
+        StringBuilder sb = new StringBuilder();
+        if (displayName != null) {
+            sb.append("物品：").append(displayName);
+        } else {
+            String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(type);
+            sb.append("物品：").append(chineseName);
+        }
+        if (amount > 1) {
+            sb.append(" x").append(amount);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 格式化 Vector（lophine 兼容版本：接收 Map）
+     */
+    private String formatVectorFromMap(java.util.Map<?, ?> vecMap) {
+        if (vecMap == null || vecMap.isEmpty()) {
+            return "移动状态：未知";
+        }
+        double x = vecMap.containsKey("x") ? ((Number) vecMap.get("x")).doubleValue() : 0;
+        double y = vecMap.containsKey("y") ? ((Number) vecMap.get("y")).doubleValue() : 0;
+        double z = vecMap.containsKey("z") ? ((Number) vecMap.get("z")).doubleValue() : 0;
+        double speed = Math.sqrt(x * x + y * y + z * z);
+
+        if (speed < 0.1) {
+            return "移动状态：静止";
+        }
+
+        return String.format("移动状态：速度=%.2f (X=%.2f, Y=%.2f, Z=%.2f)", speed, x, y, z);
     }
 
     /**
@@ -770,27 +829,43 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
-     * 格式化方块
+     * 格式化方块（lophine 兼容版本：接收 Map）
      */
-    private String formatBlock(org.bukkit.block.Block block) {
-        if (block == null) {
+    /**
+     * 格式化 Block（lophine 兼容版本：接收 Map）
+     * 
+     * <p>注意：字段名必须与 extractThreadSafeData 保持一致，
+     * 使用标准化命名：block_type, x, y, z, world</p>
+     */
+    private String formatBlockFromMap(java.util.Map<?, ?> blockMap) {
+        if (blockMap == null || blockMap.isEmpty()) {
             return "瞄准方块：无（距离太远或没有方块）";
         }
 
-        String materialName = block.getType().name();
-        String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(materialName);
+        // 使用标准化字段名（与 extractThreadSafeData 一致）
+        String materialName = (String) blockMap.get("block_type");
+        if (materialName == null) {
+            return "瞄准方块：未知";
+        }
 
-        return String.format("瞄准方块：%s（位置：X=%d, Y=%d, Z=%d）", chineseName, block.getX(), block.getY(), block.getZ());
+        String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(materialName);
+        int x = blockMap.containsKey("x") ? ((Number) blockMap.get("x")).intValue() : 0;
+        int y = blockMap.containsKey("y") ? ((Number) blockMap.get("y")).intValue() : 0;
+        int z = blockMap.containsKey("z") ? ((Number) blockMap.get("z")).intValue() : 0;
+
+        return String.format("瞄准方块：%s（位置：X=%d, Y=%d, Z=%d）", chineseName, x, y, z);
     }
 
     /**
-     * 格式化生物群系
+     * 格式化生物群系（lophine 兼容版本：接收 String）
      */
-    private String formatBiome(org.bukkit.block.Biome biome) {
-        // Biome 枚举名称直接显示（Bukkit 已经是可读名称，如 PLAINS、DESERT）
-        String name = biome.name();
+    private String formatBiomeByName(String biomeName) {
+        if (biomeName == null) {
+            return "未知群系";
+        }
+
         // 转换为更友好的显示格式
-        String displayName = name.replace('_', ' ').toLowerCase();
+        String displayName = biomeName.replace('_', ' ').toLowerCase();
         // 首字母大写
         if (!displayName.isEmpty()) {
             displayName = Character.toUpperCase(displayName.charAt(0)) + displayName.substring(1);

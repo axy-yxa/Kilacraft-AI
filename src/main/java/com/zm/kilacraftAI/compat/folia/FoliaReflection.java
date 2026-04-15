@@ -27,20 +27,24 @@ class FoliaReflection {
 
     // ---- Folia 内部类全限定名 ----
     private static final String CLASS_GLOBAL_SCHEDULER = "io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler";
+    private static final String CLASS_ENTITY_SCHEDULER = "io.papermc.paper.threadedregions.scheduler.EntityScheduler";
     private static final String CLASS_ASYNC_SCHEDULER = "io.papermc.paper.threadedregions.scheduler.AsyncScheduler";
     private static final String CLASS_SCHEDULED_TASK = "io.papermc.paper.threadedregions.scheduler.ScheduledTask";
 
     // ---- 缓存的 Folia Class 对象 ----
     private final Class<?> globalSchedulerClass;
+    private final Class<?> entitySchedulerClass;
     private final Class<?> asyncSchedulerClass;
     private final Class<?> scheduledTaskClass;
 
     // ---- 缓存的 MethodHandle ----
     private final MethodHandle mhGetGlobalScheduler;
+    private final MethodHandle mhGetEntityScheduler;
     private final MethodHandle mhGetAsyncScheduler;
     private final MethodHandle mhGlobalRun;
     private final MethodHandle mhGlobalExecute;
     private final MethodHandle mhGlobalRunDelayed;
+    private final MethodHandle mhEntityRun;
     private final MethodHandle mhAsyncRunAtFixedRate;
     private final MethodHandle mhTaskCancel;
     private final MethodHandle mhTaskIsCancelled;
@@ -52,6 +56,7 @@ class FoliaReflection {
 
     FoliaReflection() throws ReflectiveOperationException {
         globalSchedulerClass = Class.forName(CLASS_GLOBAL_SCHEDULER);
+        entitySchedulerClass = Class.forName(CLASS_ENTITY_SCHEDULER);
         asyncSchedulerClass = Class.forName(CLASS_ASYNC_SCHEDULER);
         scheduledTaskClass = Class.forName(CLASS_SCHEDULED_TASK);
 
@@ -73,6 +78,11 @@ class FoliaReflection {
             globalExecute = null;
         }
         mhGlobalExecute = globalExecute;
+
+        // EntityScheduler 方法：Entity.getScheduler()
+        mhGetEntityScheduler = lookup.findVirtual(org.bukkit.entity.Entity.class, "getScheduler", MethodType.methodType(entitySchedulerClass));
+        // EntityScheduler.run(Plugin, Consumer<ScheduledTask>, Runnable) — 第二个参数是 task，第三个是 retired
+        mhEntityRun = lookup.findVirtual(entitySchedulerClass, "run", MethodType.methodType(scheduledTaskClass, Plugin.class, Consumer.class, Runnable.class));
 
         // AsyncScheduler.runAtFixedRate(Plugin, Consumer, long, long, TimeUnit)
         mhAsyncRunAtFixedRate = lookup.findVirtual(asyncSchedulerClass, "runAtFixedRate", MethodType.methodType(scheduledTaskClass, Plugin.class, Consumer.class, long.class, long.class, TimeUnit.class));
@@ -148,6 +158,26 @@ class FoliaReflection {
             return mhAsyncRunAtFixedRate.invoke(scheduler, plugin, consumer, delayTicks * TICK_TO_MS, intervalTicks * TICK_TO_MS, TimeUnit.MILLISECONDS);
         } catch (Throwable e) {
             throw new RuntimeException("[FoliaCompat] AsyncScheduler.runAtFixedRate 调用失败", e);
+        }
+    }
+
+    // ---- EntityScheduler 调用 ----
+
+    /**
+     * 在玩家实体所属的区域线程执行任务
+     * 
+     * @param entity 目标实体（通常是 Player）
+     * @param task 要执行的任务
+     */
+    void invokeEntityRun(org.bukkit.entity.Entity entity, Runnable task) {
+        try {
+            // entity.getScheduler()
+            Object entityScheduler = mhGetEntityScheduler.invoke(entity);
+            // scheduler.run(plugin, consumer, null) — Consumer<ScheduledTask>, retired 传 null
+            Consumer<Object> consumer = t -> task.run();
+            mhEntityRun.invoke(entityScheduler, KilacraftAI.getInstance(), consumer, (Runnable) null);
+        } catch (Throwable e) {
+            throw new RuntimeException("[FoliaCompat] EntityScheduler.run 调用失败", e);
         }
     }
 

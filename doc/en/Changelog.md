@@ -6,9 +6,14 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-## v1.4.5 - AI Response Output Pipeline Refactor, Stream Output Feature, Package Structure Optimization
+## v1.4.5 - Folia/lophine Thread Safety, Bukkit API Field Standardization, Stream Output Feature, AI Response Pipeline Refactor
 
 ### ✨ New Features
+- **Folia/lophine Thread Safety Compatibility**: Full support for Folia and its branches (lophine) region-based thread scheduling
+  - `EntityScheduler` reflection support: Player-related APIs must execute in player's region thread
+  - `FoliaCompat.callSyncOnEntity()` new method: Dedicated sync scheduling for Player entities
+  - `dispatchCommandSync/Async` enhanced: Use EntityScheduler for Player senders, avoiding cross-thread command dispatch
+  - `FoliaReflection` complete implementation: EntityScheduler.run reflection, adapting lophine's CancelledState return value
 - **Unified AI Response Output Pipeline**: Refactored AI reply output architecture with configurable carrier selection
   - `AIResponsePipeline`: Unified routing and dispatching for all AI outputs
   - `MessageDispatcher`: Intelligent routing to different carriers (CHAT/ACTION_BAR/BOSS_BAR/TITLE)
@@ -26,6 +31,25 @@ This file records all important changes to the Kilacraft-AI plugin.
   - All AI prompt messages uniformly use `messages.thinking_message` configuration
 
 ### 🔧 Improvements
+- **Bukkit API Data Return Standardization**: Unified field naming for all API returned Maps
+  - `extractThreadSafeData` method: Folia extracts Bukkit objects to pure data Maps within region threads
+  - ItemStack standardized fields: `item_type` (type), `item_name` (Chinese translation/custom name), `item_amount` (quantity)
+  - Block standardized fields: `block_type` (type), `x/y/z` (coordinates), `world` (world name)
+  - Location standardized fields: `x/y/z`, `yaw/pitch`, `world`
+  - Vector standardized fields: `x/y/z`
+  - Chinese display: `item_name` automatically translated to Chinese via ItemTranslator, no longer shows Material English names
+- **Folia Dual-End Compatibility Guarantee**: All modifications strictly separate Folia and Spigot ends, no mutual impact
+  - `BukkitAPIExecutor.execute()` adds `if (FoliaCompat.isFolia())` check at end
+  - Spigot end maintains original object return logic, zero impact
+  - Folia extracts data within region threads, avoiding cross-thread access `getCurrentWorldData() is null`
+- **Multi-Step Task Prompt Enhancement**: intent_prompts.yml adds mandatory rules
+  - Multiple real-time states must decompose: "what am I holding in both hands" → main hand + off hand two steps
+  - Error vs correct example comparison, preventing LLM from lazily returning single intent
+  - Global universal rule, applicable to all Skills, not limited to Bukkit API
+- **GlobalMarketPlus Vault Fallback Strategy**: Prioritize Vault economy system, fallback to default currency when unavailable
+  - `getBalance()` method first attempts `GlobalMarketEconomy.VAULT`
+  - Catches `NoClassDefFoundError` gracefully degrades to `getDefaultBalance()`
+  - No longer errors without Vault plugin, stronger compatibility
 - **Handler Architecture Deep Refactor**:
   - Removed `BaseResponseHandler` abstract base class, each Handler directly implements `AIResponseHandler` interface
   - Removed `IntentRecognitionResponseHandler` standalone class, changed to anonymous Handler inlined in `SkillIntentRecognizer`
