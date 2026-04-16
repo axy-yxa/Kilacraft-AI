@@ -1,6 +1,6 @@
 # Kilacraft-AI - Bukkit Event Listener Reference
 
-> **Version**: v1.4.3  
+> **Version**: v1.4.5  
 > **Description**: This document provides detailed information about all implemented Bukkit Event listeners (AFK Task System), including configuration examples and usage scenarios
 
 ---
@@ -637,5 +637,5 @@ entities:
 ---
 
 > **Last Updated**: 2026-04-10  
-> **Plugin Version**: 1.4.3+  
+> **Plugin Version**: 1.4.5+  
 > **Implemented Listeners**: 11 (S-Tier 7 + A-Tier 4)

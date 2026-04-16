@@ -763,4 +763,4 @@ If you encounter problems or have improvement suggestions during usage:
 ---
 
 **Last Updated**: 2026-04-14
-**Compatible Version**: Kilacraft-AI v1.4.4+
+**Compatible Version**: Kilacraft-AI v1.4.5+

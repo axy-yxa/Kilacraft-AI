@@ -6,22 +6,31 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-## v1.4.5 - Folia/lophine Thread Safety, Stream Output Feature, Scoreboard Sidebar Carrier, AI Response Pipeline Refactor
+## v1.4.5 - Folia/lophine Thread Safety, Stream Output Feature, AI Response Pipeline Refactor, SIDEBAR Carrier
 
 ### ✨ New Features
 - **Stream Output Functionality**: LLM responses display character-by-character in real-time, eliminating waiting anxiety
   - Immediately shows "Generating..." placeholder when request initiates, solving first-character latency
-  - Real-time display of LLM returned content, supports ACTION_BAR/BOSS_BAR/SIDEBAR carriers
+  - Real-time display of LLM returned content, supports 5 configurable carriers (CHAT/ACTION_BAR/BOSS_BAR/TITLE/SIDEBAR)
+  - Optional keep final result in default carrier after stream completion
   - Configurable toggle: `output.stream.enabled` controls enable/disable
-  - Optional keep final result in default carrier after stream completion (`keep_final_in_default`)
+- **Unified AI Response Output Pipeline**: Refactored AI reply output architecture with scenario-level carrier configuration
+  - 5 output carriers: CHAT (chat box), ACTION_BAR (above hotbar), BOSS_BAR (top bar), TITLE (screen center), SIDEBAR (right sidebar)
+  - Normal chat/skill result/task result/AFK callback/error messages can independently configure carriers
+  - Configuration is contract: uses exactly what you configure, no implicit degradation
+  - Public broadcast carrier configuration: when `public_reply=true`, follows `default_channel` configuration
+- **LLM Secondary Analysis Coordinator**: Brand new intermediate layer uniformly dispatches all LLM analysis outputs
+  - Encapsulates complete analysis + output flow, callers don't need to handle stream/non-stream details
+  - Supports AFK task callbacks without placeholder, active requests with placeholder
+  - Eliminates duplicate output logic, all modules call through coordinator
+- **Knowledge Base Retrieval in Intent Recognition**: Enables knowledge base enhancement during intent recognition for better skill identification accuracy
+  - Intelligently extracts real user input, excludes prompt template interference
+  - Combines server documentation (command guides/rules/gameplay) to assist intent judgment
 - **Scoreboard Sidebar Output Carrier**: Brand new right sidebar output method, perfect for long AI responses
   - Supports up to 15 lines with 128 characters per line (Minecraft 1.13+)
   - Auto-pagination: automatically splits into multiple pages when exceeding 15 lines
   - Doesn't block game view, ideal for long AI responses (200-1500 characters)
-- **Unified AI Response Output Pipeline**: Refactored AI reply output architecture with 5 configurable carriers
-  - CHAT (chat box), ACTION_BAR (above hotbar), BOSS_BAR (top bar), TITLE (screen center), SIDEBAR (right sidebar)
-  - Scenario-level carrier configuration: normal chat/skill result/task result/AFK callback/error messages can be configured independently
-  - Configuration is contract: uses exactly what you configure, no implicit degradation
+  - Title auto-sync: directly uses `ai_prefix` configuration
 - **Folia/lophine Thread Safety Compatibility**: Full support for Folia and its branches region-based thread scheduling
   - Player-related APIs automatically execute in player's region thread
   - Zero impact on Spigot end, fully backward compatible
@@ -30,12 +39,15 @@ This file records all important changes to the Kilacraft-AI plugin.
 ### 🔧 Improvements
 - **Bukkit API Data Return Standardization**: Unified field naming for all API returned data, item names auto-translated to Chinese
 - **Intent Classifier Removal**: Completely removed BM25 intent classifier, all requests go directly to LLM intent recognition for better accuracy
-- **Handler Architecture Refactor**: Removed abstract base class, each Handler directly implements interface with clearer responsibilities
+- **Handler Architecture Refactor**: Each Handler directly implements AIResponseHandler interface with clearer responsibilities
 - **Package Structure Optimization**: Reorganized code by functionality (enums/manager/output/handler)
+- **Configuration Streamlining**: Unified stream output configuration to `output.stream.*`, removed redundant `output.broadcast.*` and `settings.enable_stream_output`
 
 ### ⚠️ Compatibility
-- Added `output/` configuration section (includes default_channel/scenarios/boss_bar/title/sidebar/stream)
+- Added `output/` configuration section (includes stream/default_channel/scenarios/boss_bar/title/sidebar/thinking_channel)
 - New SIDEBAR output carrier
+- Removed `output.broadcast.*` configuration section (public broadcast now uses default_channel)
+- Removed `settings.enable_stream_output` configuration item (unified to output.stream.enabled)
 - Fully backward compatible, default configuration maintains CHAT carrier
 
 ---

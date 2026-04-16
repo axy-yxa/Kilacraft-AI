@@ -1109,6 +1109,6 @@ This project uses **MIT License** - See [LICENSE](../LICENSE) file for details
 
 ---
 
-> **Last Updated**: 2026-04-12  
-> **Applicable Plugin Version**: Kilacraft-AI 1.4.3+  
+> **Last Updated**: 2026-04-16
+> **Applicable Plugin Version**: Kilacraft-AI 1.4.5+
 > **Open Source License**: MIT License

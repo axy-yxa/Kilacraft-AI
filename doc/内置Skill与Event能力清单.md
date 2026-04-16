@@ -1,6 +1,6 @@
 # Kilacraft-AI - 内置 Skill 与 Event 能力清单
 
-> **版本**: v1.4.3  
+> **版本**: v1.4.5  
 > **说明**: 本文档汇总了 Kilacraft-AI 内置的所有 Skill 动作和支持的 Bukkit Event 监听器，帮助服主和插件开发者快速了解插件的能力边界、集成的第三方插件以及安全风险。
 
 ---
@@ -374,8 +374,8 @@
 
 ---
 
-> **最后更新**: 2026-04-14
-> **插件版本**: 1.4.3+  
+> **最后更新**: 2026-04-16
+> **插件版本**: 1.4.5+  
 > **Skill 总数**: 5 个（AFKTaskSkill、GenericBukkitAPI、CMISkill、CommandSkill、MarketQuerySkill）  
 > **API 动作总数**: 60+ 个（GenericBukkitAPI）+ 8 个（CMISkill）+ 7 个（MarketQuerySkill）  
 > **Event 监听器总数**: 11 个（S 级 7 个 + A 级 4 个）

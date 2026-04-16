@@ -62,8 +62,10 @@ When these plugins are not installed, corresponding features are automatically d
 - **Multi-Step Task Planning**: Automatically decomposes complex queries into executable steps
 - **Historical Context**: Maintains conversation history for coherent dialogues
 - **Generic LLM Provider**: Supports DeepSeek, Zhipu AI, Moonshot, and any OpenAI-compatible API
-- **AI Response Unified Output Pipeline**: Supports CHAT/ACTION_BAR/BOSS_BAR/TITLE channels with scenario-based intelligent routing
-- **Stream Output Feature**: AI replies displayed character by character in real-time for better UX
+- **AI Response Unified Output Pipeline**: Supports CHAT/ACTION_BAR/BOSS_BAR/TITLE/SIDEBAR carriers with scenario-based intelligent routing
+- **Stream Output Feature**: AI replies displayed character-by-character in real-time, supports all 5 carriers, state machine prevents race conditions
+- **LLM Secondary Analysis Coordinator**: Uniformly dispatches analysis + output flow, supports automatic stream/non-stream switching
+- **Public Broadcast Mechanism**: Trigger player uses configured carrier, others receive CHAT broadcast, no interference
 
 ### 💰 Economy Integration
 - **GlobalMarketPlus Support**: Balance checks, price queries, item availability

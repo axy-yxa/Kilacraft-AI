@@ -1,6 +1,6 @@
 # Kilacraft-AI - AFK Task System Guide
 
-> **Version**: v1.4.3  
+> **Version**: v1.4.5  
 > **Description**: This document provides a comprehensive guide to the AFK Task System, including architecture, usage, call chains, and best practices
 
 ---

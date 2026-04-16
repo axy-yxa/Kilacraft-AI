@@ -1,6 +1,6 @@
 # Kilacraft-AI - Built-in Skills and Events Capability List
 
-> **Version**: v1.4.3
+> **Version**: v1.4.5
 > **Description**: This document summarizes all built-in Skill actions and supported Bukkit Event listeners of Kilacraft-AI, helping server administrators and plugin developers quickly understand the plugin's capabilities, integrated third-party plugins, and security risks.
 
 ---
@@ -375,7 +375,7 @@ Player: Help me go home
 ---
 
 > **Last Updated**: 2026-04-14
-> **Plugin Version**: 1.4.3+
+> **Plugin Version**: 1.4.5+
 > **Total Skills**: 5 (AFKTaskSkill, GenericBukkitAPI, CMISkill, CommandSkill, MarketQuerySkill)
 > **Total API Actions**: 60+ (GenericBukkitAPI) + 8 (CMISkill) + 7 (MarketQuerySkill)
 > **Total Event Listeners**: 11 (S-level 7 + A-level 4)
