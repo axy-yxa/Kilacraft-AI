@@ -270,7 +270,7 @@ public class BukkitAPIExecutor {
             return locData;
         }
 
-        // ItemStack 对象：提取为 Map
+        // ItemStack 对象：提取为 Map（包含详细信息）
         if (result instanceof org.bukkit.inventory.ItemStack itemStack) {
             Map<String, Object> itemData = new HashMap<>();
             itemData.put("item_type", itemStack.getType().name());
@@ -285,6 +285,68 @@ public class BukkitAPIExecutor {
                     .translateToChinese(itemStack.getType().name());
                 itemData.put("item_name", chineseName);
             }
+            
+            // 提取 ItemMeta 详细信息
+            if (itemStack.hasItemMeta()) {
+                org.bukkit.inventory.meta.ItemMeta meta = itemStack.getItemMeta();
+                
+                // 1. 附魔列表
+                if (meta.hasEnchants()) {
+                    Map<String, Integer> enchantments = new HashMap<>();
+                    meta.getEnchants().forEach((ench, level) -> 
+                        enchantments.put(ench.getName(), level)
+                    );
+                    itemData.put("enchantments", enchantments);
+                }
+                
+                // 2. 耐久度（损伤值）
+                if (meta instanceof org.bukkit.inventory.meta.Damageable damageable) {
+                    if (damageable.hasDamage()) {
+                        itemData.put("damage", damageable.getDamage());
+                        // 计算剩余耐久度
+                        int maxDurability = itemStack.getType().getMaxDurability();
+                        if (maxDurability > 0) {
+                            itemData.put("max_durability", maxDurability);
+                            itemData.put("remaining_durability", maxDurability - damageable.getDamage());
+                        }
+                    }
+                    // 是否不可破坏
+                    if (meta.isUnbreakable()) {
+                        itemData.put("unbreakable", true);
+                    }
+                }
+                
+                // 3. Lore（物品描述）
+                if (meta.hasLore()) {
+                    itemData.put("lore", meta.getLore());
+                }
+                
+                // 4. 属性修饰词（如 +攻击伤害）
+                if (meta.hasAttributeModifiers()) {
+                    Map<String, Object> attributes = new HashMap<>();
+                    meta.getAttributeModifiers().entries().forEach(entry -> {
+                        org.bukkit.attribute.Attribute attr = entry.getKey();
+                        org.bukkit.attribute.AttributeModifier modifier = entry.getValue();
+                        attributes.put(attr.name(), modifier.getAmount());
+                    });
+                    if (!attributes.isEmpty()) {
+                        itemData.put("attributes", attributes);
+                    }
+                }
+                
+                // 5. 自定义模型数据
+                if (meta.hasCustomModelData()) {
+                    itemData.put("custom_model_data", meta.getCustomModelData());
+                }
+                
+                // 6. ItemFlags（隐藏的附魔等信息）
+                if (!meta.getItemFlags().isEmpty()) {
+                    itemData.put("item_flags", meta.getItemFlags().stream()
+                        .map(Enum::name)
+                        .toList());
+                }
+            }
+            
             return itemData;
         }
 
