@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.output;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.enums.OutputChannel;
+import com.zm.kilacraftAI.manager.ScoreboardManager;
 import lombok.Getter;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -45,10 +46,17 @@ public class MessageDispatcher {
      */
     @Getter
     private final BossBarManager bossBarManager;
+    
+    /**
+     * Scoreboard Sidebar 管理器（用于清理资源）
+     */
+    @Getter
+    private final ScoreboardManager scoreboardManager;
 
     public MessageDispatcher(KilacraftAI plugin) {
         this.config = plugin.getConfigManager().getOutputConfigManager();
         this.bossBarManager = new BossBarManager(plugin, config);
+        this.scoreboardManager = new ScoreboardManager(plugin, config);
     }
 
     /**
@@ -76,6 +84,9 @@ public class MessageDispatcher {
             case TITLE:
                 sendTitle(player, message);
                 break;
+            case SIDEBAR:
+                scoreboardManager.sendSidebar(player, message);
+                break;
             default:
                 // 未知载体，回退到 CHAT
                 sendChat(player, message);
@@ -96,7 +107,7 @@ public class MessageDispatcher {
      * <p>兼容 Spigot 1.16.5+ 和 Paper 的方式</p>
      */
     public void sendActionBar(Player player, String message) {
-        // Spigot 1.16.5+ 兼容方式（Paper 也支持）
+        // 使用 Spigot API（Paper/Folia 完全兼容）
         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
     }
 

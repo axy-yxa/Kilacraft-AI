@@ -153,5 +153,6 @@ public class AIResponsePipeline {
      */
     public void cleanup() {
         dispatcher.getBossBarManager().cleanup();
+        dispatcher.getScoreboardManager().cleanup();
     }
 }

@@ -62,10 +62,10 @@ public class MessageUtil {
     }
 
     /**
-     * 向玩家发送"正在思考"消息
+     * 向玩家发送“正在思考”消息
      *
      * <p>与 AI 输出管线联动，支持配置化的输出载体（CHAT/ACTION_BAR/BOSS_BAR/TITLE）。</p>
-     * <p>如果启用流式输出，则不发送思考消息（由流式占位符替代）。</p>
+     * <p>如果启用流式输出，则显示流式占位符（由 StreamOutputManager 管理）。</p>
      *
      * @param player 玩家对象
      */
@@ -73,25 +73,26 @@ public class MessageUtil {
         if (player == null || !player.isOnline()) {
             return;
         }
-
+    
         KilacraftAI plugin = KilacraftAI.getInstance();
         if (plugin == null) {
             // 降级处理：直接发送到 CHAT
             player.sendMessage(getFullThinkingMessage());
             return;
         }
-
+    
         OutputConfigManager outputConfigManager = plugin.getConfigManager().getOutputConfigManager();
-        
-        // 如果启用流式输出，不发送思考消息（由 StreamOutputManager 的占位符替代）
+            
+        // 如果启用流式输出，立即显示流式占位符（窗口期管理）
         if (outputConfigManager.isStreamEnabled()) {
+            plugin.getStreamOutputManager().startGeneration(player);
             return;
         }
-
-        // 使用配置的"正在思考"输出载体发送消息
+    
+        // 使用配置的“正在思考”输出载体发送消息
         OutputChannel channel = outputConfigManager.getThinkingChannel();
         String message = getFullThinkingMessage();
-        
+            
         // 通过 AIResponsePipeline 的 MessageDispatcher 发送
         plugin.getResponsePipeline().getDispatcher().dispatch(player, message, channel);
     }

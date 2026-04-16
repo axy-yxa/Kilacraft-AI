@@ -74,6 +74,13 @@ public class OutputConfigManager {
      */
     private int titleFadeOutTicks;
     
+    // ==================== Scoreboard 配置 ====================
+    
+    /**
+     * Scoreboard Sidebar 显示时长（秒），0=永久
+     */
+    private int sidebarDurationSeconds;
+    
     // ==================== 流式输出配置 ====================
     
     /**
@@ -125,6 +132,9 @@ public class OutputConfigManager {
         this.titleStayTicks = config.getInt("output.title.stay_ticks", 60);
         this.titleFadeInTicks = config.getInt("output.title.fade_in_ticks", 10);
         this.titleFadeOutTicks = config.getInt("output.title.fade_out_ticks", 10);
+        
+        // Scoreboard 配置
+        this.sidebarDurationSeconds = config.getInt("output.sidebar.duration_seconds", 60);
         
         // 流式输出配置
         this.streamEnabled = config.getBoolean("output.stream.enabled", false);

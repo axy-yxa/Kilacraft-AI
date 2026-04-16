@@ -68,7 +68,7 @@ public class StreamOutputManager {
     /**
      * 开始流式生成（窗口期）
      *
-     * <p>在 AI 请求发起时调用，立即显示"生成中..."占位符</p>
+     * <p>在 AI 请求发起时调用，立即显示“生成中...”占位符</p>
      *
      * @param player 目标玩家
      */
@@ -138,7 +138,23 @@ public class StreamOutputManager {
         // 根据配置决定是否保留最终结果到默认载体
         if (config.isStreamKeepFinalInDefault()) {
             OutputChannel defaultChannel = config.getDefaultChannel();
-            dispatchToChannel(player, finalMessage, defaultChannel);
+            OutputChannel streamChannel = config.getStreamChannel();
+            
+            // 如果流式载体和默认载体不同，确保发送最终消息
+            // 如果相同，流式输出已经在默认载体中显示了，无需重复发送
+            if (defaultChannel != streamChannel) {
+                // 添加 AI 前缀（与 pipeline.send() 保持一致）
+                String formattedMessage = com.zm.kilacraftAI.util.MessageUtil.getAIPrefix() + finalMessage;
+                
+                // 确保在主线程上发送最终消息
+                if (plugin.getServer().isPrimaryThread()) {
+                    dispatchToChannel(player, formattedMessage, defaultChannel);
+                } else {
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        dispatchToChannel(player, formattedMessage, defaultChannel);
+                    });
+                }
+            }
         }
 
         // 延迟清理状态（避免立即清理导致闪烁）

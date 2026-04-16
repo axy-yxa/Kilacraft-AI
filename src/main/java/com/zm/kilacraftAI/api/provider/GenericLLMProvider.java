@@ -384,8 +384,8 @@ public class GenericLLMProvider implements LLMProvider {
                         return "§c读取响应失败：" + e.getMessage();
                     }
 
-                    // 如果 handler 未开启流式输出，完成后一次性显示
-                    if (responseHandler != null && !responseHandler.isStreamOutputEnabled()) {
+                    // 流式输出完成后，调用 showResponse() 触发 completeGeneration()
+                    if (responseHandler != null) {
                         responseHandler.showResponse(fullResponse.toString());
                     }
 

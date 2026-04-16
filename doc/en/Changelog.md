@@ -6,96 +6,37 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-## v1.4.5 - Folia/lophine Thread Safety, Bukkit API Field Standardization, Stream Output Feature, AI Response Pipeline Refactor, Output Channel Configuration Enhancement
+## v1.4.5 - Folia/lophine Thread Safety, Stream Output Feature, Scoreboard Sidebar Carrier, AI Response Pipeline Refactor
 
 ### ✨ New Features
-- **Folia/lophine Thread Safety Compatibility**: Full support for Folia and its branches (lophine) region-based thread scheduling
-  - `EntityScheduler` reflection support: Player-related APIs must execute in player's region thread
-  - `FoliaCompat.callSyncOnEntity()` new method: Dedicated sync scheduling for Player entities
-  - `dispatchCommandSync/Async` enhanced: Use EntityScheduler for Player senders, avoiding cross-thread command dispatch
-  - `FoliaReflection` complete implementation: EntityScheduler.run reflection, adapting lophine's CancelledState return value
-- **Unified AI Response Output Pipeline**: Refactored AI reply output architecture with configurable carrier selection
-  - `AIResponsePipeline`: Unified routing and dispatching for all AI outputs
-  - `MessageDispatcher`: Intelligent routing to different carriers (CHAT/ACTION_BAR/BOSS_BAR/TITLE)
-  - `OutputChannel` enum: 4 output carriers (chat/actionBar/BossBar/title)
-  - `OutputScenario` enum: 5 output scenarios (normal chat/skill result/task result/AFK callback/error)
-  - `OutputConfigManager` configuration class: Encapsulates all output carrier configurations
-- **Stream Output Functionality**: Real-time display of LLM stream responses, eliminating waiting anxiety
-  - `StreamOutputManager`: Manages stream state machine and placeholder window period
-  - Window period placeholder: Immediately shows "Generating..." when AI request initiates, solving LLM first-character latency
-  - Stream chunk updates: Real-time display of LLM returned content, supports ACTION_BAR/BOSS_BAR carriers
+- **Stream Output Functionality**: LLM responses display character-by-character in real-time, eliminating waiting anxiety
+  - Immediately shows "Generating..." placeholder when request initiates, solving first-character latency
+  - Real-time display of LLM returned content, supports ACTION_BAR/BOSS_BAR carriers
   - Configurable toggle: `output.stream.enabled` controls enable/disable
-- **Thinking Message Configurability**: Unified AI prompt message management
-  - `MessageUtil.sendThinkingMessage()` integrates with output pipeline, supports configurable carriers
-  - Stream mode automatically disables thinking messages (replaced by placeholders), avoiding duplicate prompts
-  - **New `output.thinking_channel` configuration**: Independently controls output carrier for "Thinking..." prompt
-    - Defaults to `default_channel`, can be configured separately
-    - Solves carrier inconsistency between thinking message and AI reply when scenario override is applied
-    - Example: `default_channel: BOSS_BAR`, `thinking_channel: CHAT`, `scenarios.normal_chat: CHAT`
-  - All AI prompt messages uniformly use `messages.thinking_message` configuration
+  - Optional keep final result in default carrier after stream completion (`keep_final_in_default`)
+- **Scoreboard Sidebar Output Carrier**: Brand new right sidebar output method, perfect for long AI responses
+  - Supports up to 15 lines with 128 characters per line (Minecraft 1.13+)
+  - Auto-pagination: automatically splits into multiple pages when exceeding 15 lines
+  - Doesn't block game view, ideal for long AI responses (200-1500 characters)
+- **Unified AI Response Output Pipeline**: Refactored AI reply output architecture with 5 configurable carriers
+  - CHAT (chat box), ACTION_BAR (above hotbar), BOSS_BAR (top bar), TITLE (screen center), SIDEBAR (right sidebar)
+  - Scenario-level carrier configuration: normal chat/skill result/task result/AFK callback/error messages can be configured independently
+  - Configuration is contract: uses exactly what you configure, no implicit degradation
+- **Folia/lophine Thread Safety Compatibility**: Full support for Folia and its branches region-based thread scheduling
+  - Player-related APIs automatically execute in player's region thread
+  - Zero impact on Spigot end, fully backward compatible
+- **Independent Thinking Message Configuration**: `output.thinking_channel` independently controls "Thinking..." prompt output carrier
 
 ### 🔧 Improvements
-- **Bukkit API Data Return Standardization**: Unified field naming for all API returned Maps
-  - `extractThreadSafeData` method: Folia extracts Bukkit objects to pure data Maps within region threads
-  - ItemStack standardized fields: `item_type` (type), `item_name` (Chinese translation/custom name), `item_amount` (quantity)
-  - Block standardized fields: `block_type` (type), `x/y/z` (coordinates), `world` (world name)
-  - Location standardized fields: `x/y/z`, `yaw/pitch`, `world`
-  - Vector standardized fields: `x/y/z`
-  - Chinese display: `item_name` automatically translated to Chinese via ItemTranslator, no longer shows Material English names
-- **Folia Dual-End Compatibility Guarantee**: All modifications strictly separate Folia and Spigot ends, no mutual impact
-  - `BukkitAPIExecutor.execute()` adds `if (FoliaCompat.isFolia())` check at end
-  - Spigot end maintains original object return logic, zero impact
-  - Folia extracts data within region threads, avoiding cross-thread access `getCurrentWorldData() is null`
-- **Multi-Step Task Prompt Enhancement**: intent_prompts.yml adds mandatory rules
-  - Multiple real-time states must decompose: "what am I holding in both hands" → main hand + off hand two steps
-  - Error vs correct example comparison, preventing LLM from lazily returning single intent
-  - Global universal rule, applicable to all Skills, not limited to Bukkit API
-- **GlobalMarketPlus Vault Fallback Strategy**: Prioritize Vault economy system, fallback to default currency when unavailable
-  - `getBalance()` method first attempts `GlobalMarketEconomy.VAULT`
-  - Catches `NoClassDefFoundError` gracefully degrades to `getDefaultBalance()`
-  - No longer errors without Vault plugin, stronger compatibility
-- **Intent Classifier Removal**: Completely removed BM25 intent classifier functionality
-  - Deleted files: `IntentClassifier.java`, `IntentKeywordConfigManager.java`, `intent_keywords.yml`
-  - Reason: Too low fault tolerance, easily misclassified as normal chat during continuous conversation, and misclassifying as normal chat is unacceptable
-  - Impact: All user requests go directly to LLM intent recognition, no longer pre-classification short-circuit
-  - Simplified call chain: Reduced one layer of judgment logic, improved intent recognition accuracy
-- **Handler Architecture Deep Refactor**:
-  - Removed `BaseResponseHandler` abstract base class, each Handler directly implements `AIResponseHandler` interface
-  - Removed `IntentRecognitionResponseHandler` standalone class, changed to anonymous Handler inlined in `SkillIntentRecognizer`
-  - `PlayerResponseHandler`/`ConsoleResponseHandler`/`PluginCommandResponseHandler` have clearer responsibilities
-- **Stream State Machine Ensures Concurrent Safety**:
-  - `GenerationState` three-state state machine (IDLE → GENERATING → COMPLETED) prevents race conditions
-  - `updateStreamChunk()` only accepts updates in GENERATING state, preventing residual chunk reception after completion
-  - `completeGeneration()` sets COMPLETED state and immediately rejects subsequent updates
-- **Resource Release and Memory Leak Protection**:
-  - `StreamOutputManager.cleanup()`: Cleans up all stream state mappings when plugin disables
-  - `AIResponsePipeline.cleanup()`: Releases all BossBar instances and active states
-  - `ChatListener.onPlayerQuit()`: Instantly cleans up stream states when player quits
-  - Complete resource release chain: Plugin disable/Player quit/Normal completion/Exception cancellation four-fold protection
-- **Package Structure Optimization**: Reorganized code structure by functionality
-  - `enums/` package: Unified management of all enum classes (OutputChannel/OutputScenario/PluginPermissionEnum)
-  - `manager/` package: Unified management of Manager classes (StreamOutputManager/ConversationManager/LLMManager)
-  - `output/` package: Output pipeline core components (AIResponsePipeline/MessageDispatcher)
-  - `handler/` package: Simplified to Handler-related classes only
-
-### 🗑️ Removed
-- `BaseResponseHandler` abstract base class (Handlers no longer need shared base class)
-- `IntentRecognitionResponseHandler` standalone class (changed to anonymous Handler inlined)
-- `output.broadcast.*` configuration (public broadcast fixed to use CHAT+prefix)
-
-### 📚 Documentation Updates
-- **System Architecture Details.md**: Complete architecture diagram and data flow description for AI response output pipeline
-- **Server Owner Guide.md**: Added stream output configuration instructions and usage examples
-- **Changelog.md**: Detailed v1.4.5 version change records (this document)
-- **All documentation synchronized**: README, System Architecture, Document Index, etc. in both Chinese and English
+- **Bukkit API Data Return Standardization**: Unified field naming for all API returned data, item names auto-translated to Chinese
+- **Intent Classifier Removal**: Completely removed BM25 intent classifier, all requests go directly to LLM intent recognition for better accuracy
+- **Handler Architecture Refactor**: Removed abstract base class, each Handler directly implements interface with clearer responsibilities
+- **Package Structure Optimization**: Reorganized code by functionality (enums/manager/output/handler)
 
 ### ⚠️ Compatibility
-- Added `output/` configuration section (includes default_channel/scenarios/boss_bar/title/stream)
-- Added configuration file references: OutputChannel/OutputScenario enum classes
-- New permission nodes: None (output carrier configuration does not affect permission system)
-- Default configuration maintains CHAT carrier, all original behavior has zero changes
-- Handler interface signatures unchanged, no impact on third-party plugins
-- Fully backward compatible, recommend using `/kilacraft reload` to reload configuration
+- Added `output/` configuration section (includes default_channel/scenarios/boss_bar/title/sidebar/stream)
+- New SIDEBAR output carrier
+- Fully backward compatible, default configuration maintains CHAT carrier
 
 ---
 

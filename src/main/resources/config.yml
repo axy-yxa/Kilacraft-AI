@@ -171,14 +171,14 @@ messages:
 
 # ==================== AI 响应输出管线配置 ====================
 # 说明：统一控制所有 AI 回复的输出载体（聊天栏/ActionBar/BossBar/Title）
-# 默认使用 CHAT（与原有行为完全一致），可按场景精细化配置
+# 默认使用 CHAT，可按场景精细化配置
 output:
   # 全局默认输出载体
-  # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE
+  # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
   default_channel: CHAT
   
   # "正在思考"提示消息的输出载体
-  # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE
+  # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
   # 说明：默认为 default_channel，可独立配置
   # 示例：default_channel=BOSS_BAR, thinking_channel=CHAT → 思考提示在聊天框，回复也在聊天框（如果 normal_chat=CHAT）
   thinking_channel: ""
@@ -216,6 +216,22 @@ output:
     fade_in_ticks: 10
     # 淡出时间（ticks）
     fade_out_ticks: 10
+  
+  # Scoreboard Sidebar 专属配置（仅当载体为 SIDEBAR 时生效）
+  # 说明：
+  # - 支持最多 15 行，每行最多 128 字符（Minecraft 1.13+）
+  # - 自动分页：超过 15 行时自动拆分多页
+  # - 持久显示：不遮挡游戏视野，适合长文本 AI 回复
+  # 注意：
+  # - 如果服务器有其他插件使用了 Scoreboard Sidebar（如计分板、排行榜等），可能会导致冲突
+  # - 冲突表现：两个插件的 Sidebar 会互相覆盖，只能显示最后一个
+  # - 解决方案：
+  #   1. 检查是否有其他插件使用 Sidebar（如 Essentials、Stats、Factions 等）
+  #   2. 如果有冲突，建议改用其他载体（CHAT/BOSS_BAR）
+  #   3. 或者联系其他插件作者，看是否支持配置到其他显示槽位
+  sidebar:
+    # 显示时长（秒），0=永久显示直到新消息覆盖
+    duration_seconds: 60
   
   # 流式输出配置（实时显示 AI 生成过程）
   # 说明：
@@ -299,9 +315,13 @@ knowledge:
 #    - 玩家没有的命令权限，AI 代执行也会被服务器拒绝
 #    - 所有服务器安全机制（权限检查、冷却、安全区域等）均正常生效
 #    - 不存在越权风险：玩家不能做的事，AI 也做不了
-# 3. 建议服主在开启前确认服务器权限配置符合预期
+# 3. 权限要求：玩家必须拥有 kilacraft.command.execute 权限才能使用此功能
+#    - 即使配置开启，没有权限的玩家也无法触发命令执行
+#    - 建议在权限插件中按需分配（如只给 VIP 玩家）
+# 4. 建议服主在开启前确认服务器权限配置符合预期
 command_skill:
   # 是否启用命令执行技能（默认关闭，需手动开启）
+  # 注意：开启配置后，还需要给玩家分配 kilacraft.command.execute 权限
   enabled: false
 
 # ==================== 挂机任务配置 ====================

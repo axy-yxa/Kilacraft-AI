@@ -24,10 +24,8 @@ public class PlayerResponseHandler implements AIResponseHandler {
         this.plugin = KilacraftAI.getInstance();
         this.player = player;
         
-        // 如果启用流式输出，立即显示占位符（窗口期管理）
-        if (plugin.getConfigManager().getOutputConfigManager().isStreamEnabled()) {
-            plugin.getStreamOutputManager().startGeneration(player);
-        }
+        // 注意：流式占位符已在 AIRequestHandler.handleNormalAIRequest() 中提前显示
+        // 这里不再调用 startGeneration()，避免重复显示
     }
     
     @Override
