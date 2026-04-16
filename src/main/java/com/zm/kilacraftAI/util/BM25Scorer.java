@@ -30,7 +30,11 @@ public class BM25Scorer {
 
         String lowerDoc = document.toLowerCase();
         int docLength = lowerDoc.length();
-        double lengthNorm = 1 - b + b * ((double) docLength / avgDocLength);
+
+        // 优化：对短文档降低长度惩罚，避免命令文档得分过低
+        // 如果文档很短（< 50字符），使用最小的长度归一化
+        double effectiveLength = Math.max(docLength, 50);  // 最小按 50 字符计算
+        double lengthNorm = 1 - b + b * (effectiveLength / avgDocLength);
 
         double score = 0.0;
         for (String keyword : keywords) {

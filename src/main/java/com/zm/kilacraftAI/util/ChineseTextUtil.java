@@ -57,7 +57,8 @@ public class ChineseTextUtil {
     /**
      * 提取文本中的关键词(优化版:兼容短文本和长文本)
      * <p>策略:原始查询 + 分词结果 + TF-IDF 关键词,多层混合</p>
-     * <p>特殊处理:单字查询(如"弓")如果是自定义词典词汇或非停用词,也会保留</p>
+     * <p>特殊处理:单字查询(如“弓”)如果是自定义词典词汇或非停用词,也会保留</p>
+     * <p>命令优化:保留英文单词(如 back, spawn)，用于命令文档检索</p>
      *
      * @param text 待提取关键词的文本
      * @param topK 返回前 K 个关键词
@@ -87,6 +88,17 @@ public class ChineseTextUtil {
             }
         }
 
+        // 【第1.5层】提取英文单词（命令名优化）
+        // 保留独立的英文单词，如 "back", "spawn", "money"
+        String[] words = normalizedText.split("[\s,，.。?？!！;；:：]+");
+        for (String word : words) {
+            String trimmed = word.trim();
+            // 保留纯英文单词（2-15字符），如命令名
+            if (!trimmed.isEmpty() && trimmed.matches("^[a-zA-Z]{2,15}$")) {
+                keywordSet.add(trimmed.toLowerCase());
+            }
+        }
+
         // 【第2层】分词结果(中等优先级,捕获复合词的组成部分)
         List<String> segments = segment(text);
         keywordSet.addAll(segments);
@@ -103,9 +115,17 @@ public class ChineseTextUtil {
         for (String kw : tfidfKeywords) {
             // 清理可能的逗号、空格等分隔符
             String cleanedKw = kw.trim().replaceAll("[,，\\s]+", "");
-            // 放宽条件:允许单字关键词(如果是自定义词典词汇)
-            if (!cleanedKw.isEmpty() && !containsEnglish(cleanedKw) && !isGenericWord(cleanedKw) && !isStopWord(cleanedKw)) {
-                keywordSet.add(cleanedKw);
+            // 优化：允许英文命令名（如 back, spawn）
+            if (!cleanedKw.isEmpty() && !isGenericWord(cleanedKw) && !isStopWord(cleanedKw)) {
+                // 英文单词：只保留 2-15 字符的纯英文（命令名）
+                if (containsEnglish(cleanedKw)) {
+                    if (cleanedKw.matches("^[a-zA-Z]{2,15}$")) {
+                        keywordSet.add(cleanedKw.toLowerCase());
+                    }
+                } else {
+                    // 中文关键词：正常保留
+                    keywordSet.add(cleanedKw);
+                }
             }
         }
 
