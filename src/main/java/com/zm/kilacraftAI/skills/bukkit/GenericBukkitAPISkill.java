@@ -189,7 +189,7 @@ public class GenericBukkitAPISkill implements Skill {
                 if (obj instanceof org.bukkit.potion.PotionEffect effect) {
                     Map<String, Object> effectData = new java.util.HashMap<>();
                     effectData.put("type", effect.getType().getName());
-                    effectData.put("amplifier", effect.getAmplifier() + 1); // 0 = I, 1 = II
+                    effectData.put("amplifier", effect.getAmplifier() + 1);
                     effectData.put("duration_seconds", effect.getDuration() / 20);
                     effectsList.add(effectData);
                 }
@@ -539,13 +539,6 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
-     * 格式化 Location
-     */
-    private String formatLocation(org.bukkit.Location loc) {
-        return String.format("位置：X=%.2f, Y=%.2f, Z=%.2f, 世界=%s", loc.getX(), loc.getY(), loc.getZ(), loc.getWorld() != null ? loc.getWorld().getName() : "未知");
-    }
-
-    /**
      * 格式化 Location（lophine 兼容版本：接收 Map）
      */
     private String formatLocationFromMap(java.util.Map<?, ?> locMap) {
@@ -560,36 +553,27 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
-     * 格式化 ItemStack
+     * 数字转罗马数字（用于附魔等级）
      */
-    private String formatItemStack(org.bukkit.inventory.ItemStack item) {
-        if (item == null || item.getType() == org.bukkit.Material.AIR) {
-            return "空手";
-        }
-
-        StringBuilder sb = new StringBuilder();
-
-        // 优先使用自定义名称（displayName）
-        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
-            String displayName = item.getItemMeta().getDisplayName();
-            sb.append("物品：").append(displayName);
-        } else {
-            // 没有自定义名称，使用原版物品名称并翻译成中文
-            String englishName = item.getType().name();
-            String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(englishName);
-            sb.append("物品：").append(chineseName);
-        }
-
-        if (item.getAmount() > 1) {
-            sb.append(" x").append(item.getAmount());
-        }
-
-        return sb.toString();
+    private String toRoman(int number) {
+        return switch (number) {
+            case 1 -> "I";
+            case 2 -> "II";
+            case 3 -> "III";
+            case 4 -> "IV";
+            case 5 -> "V";
+            case 6 -> "VI";
+            case 7 -> "VII";
+            case 8 -> "VIII";
+            case 9 -> "IX";
+            case 10 -> "X";
+            default -> String.valueOf(number);
+        };
     }
 
     /**
      * 格式化 ItemStack（lophine 兼容版本：接收 Map）
-     * 
+     *
      * <p>注意：字段名必须与 extractThreadSafeData 和 extractDataFromResult 保持一致，
      * 使用标准化命名：item_type, item_name, item_amount</p>
      */
@@ -597,18 +581,18 @@ public class GenericBukkitAPISkill implements Skill {
         if (itemMap == null || itemMap.isEmpty()) {
             return "空手";
         }
-        
+
         // 使用标准化字段名（与 extractThreadSafeData 和 extractDataFromResult 一致）
         String type = (String) itemMap.get("item_type");
         if (type == null || type.equals("AIR")) {
             return "空手";
         }
-        
+
         int amount = itemMap.containsKey("item_amount") ? ((Number) itemMap.get("item_amount")).intValue() : 1;
-        
+
         // 优先使用 item_name（自定义名称或类型名）
         String displayName = (String) itemMap.get("item_name");
-        
+
         StringBuilder sb = new StringBuilder();
         if (displayName != null) {
             sb.append("物品：").append(displayName);
@@ -619,6 +603,44 @@ public class GenericBukkitAPISkill implements Skill {
         if (amount > 1) {
             sb.append(" x").append(amount);
         }
+
+        // 耐久度
+        if (itemMap.containsKey("remaining_durability") && itemMap.containsKey("max_durability")) {
+            int remaining = ((Number) itemMap.get("remaining_durability")).intValue();
+            int max = ((Number) itemMap.get("max_durability")).intValue();
+            sb.append(" [耐久:").append(remaining).append("/").append(max).append("]");
+        } else if (itemMap.containsKey("damage")) {
+            // 只有 damage 没有 max_durability 的情况
+            int damage = ((Number) itemMap.get("damage")).intValue();
+            sb.append(" [损伤:").append(damage).append("]");
+        }
+
+        // 附魔
+        if (itemMap.containsKey("enchantments") && itemMap.get("enchantments") instanceof Map<?, ?> enchantments) {
+            sb.append(" [附魔:");
+            boolean first = true;
+            for (Map.Entry<?, ?> entry : enchantments.entrySet()) {
+                if (!first) sb.append("; ");
+                String enchName = entry.getKey().toString();
+                int level = ((Number) entry.getValue()).intValue();
+                sb.append(enchName).append(" ").append(toRoman(level));
+                first = false;
+            }
+            sb.append("]");
+        }
+
+        // Lore（物品描述）
+        if (itemMap.containsKey("lore") && itemMap.get("lore") instanceof java.util.List<?> lore) {
+            if (!lore.isEmpty()) {
+                sb.append(" [描述:").append(lore.size()).append("行]");
+            }
+        }
+
+        // 特殊属性（无法破坏）
+        if (itemMap.containsKey("unbreakable") && Boolean.TRUE.equals(itemMap.get("unbreakable"))) {
+            sb.append(" [无法破坏]");
+        }
+
         return sb.toString();
     }
 
@@ -658,26 +680,24 @@ public class GenericBukkitAPISkill implements Skill {
      * 格式化世界环境类型
      */
     private String formatEnvironment(org.bukkit.World.Environment environment) {
-        String displayName = switch (environment) {
+        return switch (environment) {
             case NORMAL -> "主世界";
             case NETHER -> "下界";
             case THE_END -> "末地";
             case CUSTOM -> "自定义";
         };
-        return displayName;
     }
 
     /**
      * 格式化游戏难度
      */
     private String formatDifficulty(org.bukkit.Difficulty difficulty) {
-        String displayName = switch (difficulty) {
+        return switch (difficulty) {
             case PEACEFUL -> "和平";
             case EASY -> "简单";
             case NORMAL -> "普通";
             case HARD -> "困难";
         };
-        return displayName;
     }
 
     /**
@@ -692,7 +712,6 @@ public class GenericBukkitAPISkill implements Skill {
             case SPIN_ATTACK -> "旋转攻击";
             case SNEAKING -> "潜行";
             case DYING -> "死亡";
-            default -> pose.name().toLowerCase();
         };
         return "当前姿势：" + displayName;
     }
@@ -706,43 +725,6 @@ public class GenericBukkitAPISkill implements Skill {
             case RIGHT -> "右手（右撇子）";
         };
         return "主手偏好：" + displayName;
-    }
-
-    /**
-     * 格式化速度向量
-     */
-    private String formatVector(org.bukkit.util.Vector vector) {
-        double speed = vector.length();
-
-        // 判断是否静止（阈值设为 0.1，因为 MC 中站立时也有微小的重力影响）
-        if (speed < 0.1) {
-            return "移动状态：静止";
-        }
-
-        // 获取各方向的速度分量
-        double vx = vector.getX();
-        double vy = vector.getY();
-        double vz = vector.getZ();
-
-        // 构建移动方向描述
-        java.util.List<String> directions = new java.util.ArrayList<>();
-
-        // 水平方向（阈值设为 0.05）
-        if (Math.abs(vx) > 0.05) {
-            directions.add(vx > 0 ? "东" : "西");
-        }
-        if (Math.abs(vz) > 0.05) {
-            directions.add(vz > 0 ? "南" : "北");
-        }
-
-        // 垂直方向（阈值设为 0.05，区分明显的上升/下降）
-        if (Math.abs(vy) > 0.05) {
-            directions.add(vy > 0 ? "上升" : "下降");
-        }
-
-        String directionStr = directions.isEmpty() ? "静止" : String.join("、", directions);
-
-        return String.format("移动状态：%s，速度：%.2f", directionStr, speed);
     }
 
     /**
@@ -776,7 +758,7 @@ public class GenericBukkitAPISkill implements Skill {
             }
         }
 
-        return hasArmor ? "盔甲：" + sb.toString() : "盔甲：无";
+        return hasArmor ? "盔甲：" + sb : "盔甲：无";
     }
 
     /**
@@ -829,11 +811,8 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
-     * 格式化方块（lophine 兼容版本：接收 Map）
-     */
-    /**
      * 格式化 Block（lophine 兼容版本：接收 Map）
-     * 
+     *
      * <p>注意：字段名必须与 extractThreadSafeData 保持一致，
      * 使用标准化命名：block_type, x, y, z, world</p>
      */
@@ -842,7 +821,6 @@ public class GenericBukkitAPISkill implements Skill {
             return "瞄准方块：无（距离太远或没有方块）";
         }
 
-        // 使用标准化字段名（与 extractThreadSafeData 一致）
         String materialName = (String) blockMap.get("block_type");
         if (materialName == null) {
             return "瞄准方块：未知";
@@ -902,7 +880,7 @@ public class GenericBukkitAPISkill implements Skill {
             } else {
                 return String.format("世界总时间：%d 分钟", minutes);
             }
-        } else { // get_world_game_time
+        } else {
             if (days > 0) {
                 return String.format("世界游戏时间：%d 天 %d 小时", days, hours % 24);
             } else if (hours > 0) {
@@ -968,7 +946,7 @@ public class GenericBukkitAPISkill implements Skill {
         if (apiId.contains("sleep") || apiId.contains("sleeping")) {
             return value ? "玩家正在睡觉" : "玩家未在睡觉";
         }
-        if (apiId.contains("dead") || apiId.contains("dead")) {
+        if (apiId.contains("dead")) {
             return value ? "玩家已死亡" : "玩家存活";
         }
 

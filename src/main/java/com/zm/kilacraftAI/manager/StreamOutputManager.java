@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.manager;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.enums.OutputChannel;
 import com.zm.kilacraftAI.output.MessageDispatcher;
@@ -35,11 +36,17 @@ public class StreamOutputManager {
      * 流式生成状态
      */
     public enum GenerationState {
-        /** 空闲（无流式生成） */
+        /**
+         * 空闲（无流式生成）
+         */
         IDLE,
-        /** 生成中（窗口期 + 流式片段接收中） */
+        /**
+         * 生成中（窗口期 + 流式片段接收中）
+         */
         GENERATING,
-        /** 已完成（流式生成结束，等待清理） */
+        /**
+         * 已完成（流式生成结束，等待清理）
+         */
         COMPLETED
     }
 
@@ -52,6 +59,7 @@ public class StreamOutputManager {
     public StreamOutputManager(KilacraftAI plugin) {
         this.plugin = plugin;
         this.config = plugin.getConfigManager().getOutputConfigManager();
+        // 创建独立的 dispatcher 实例（避免与 AIResponsePipeline 循环依赖）
         this.dispatcher = new MessageDispatcher(plugin);
     }
 
@@ -68,24 +76,50 @@ public class StreamOutputManager {
     /**
      * 开始流式生成（窗口期）
      *
-     * <p>在 AI 请求发起时调用，立即显示“生成中...”占位符</p>
+     * <p>在 AI 请求发起时调用，立即显示"生成中..."占位符</p>
+     * <p>线程安全：如果从异步线程调用，会自动切换到同步线程</p>
      *
-     * @param player 目标玩家
+     * @param player  目标玩家
+     * @param channel 输出载体（由调用方传入场景配置）
      */
-    public void startGeneration(Player player) {
+    public void startGeneration(Player player, OutputChannel channel) {
+        startGeneration(player, channel, false);
+    }
+
+    /**
+     * 开始流式生成
+     *
+     * @param player  目标玩家
+     * @param channel 输出载体（由调用方传入场景配置）
+     * @param silent  是否静默启动（不显示占位符，仅初始化状态机）
+     */
+    public void startGeneration(Player player, OutputChannel channel, boolean silent) {
         if (player == null || !config.isStreamEnabled()) {
             return;
         }
 
+        // 线程安全：切换到同步线程
+        if (FoliaCompat.isPrimaryThread()) {
+            startGenerationSync(player, channel, silent);
+        } else {
+            FoliaCompat.runTask(plugin, () -> startGenerationSync(player, channel, silent));
+        }
+    }
+
+    /**
+     * 同步开始流式生成（必须在主线程/区域线程调用）
+     */
+    private void startGenerationSync(Player player, OutputChannel channel, boolean silent) {
         UUID playerId = player.getUniqueId();
-        String placeholder = getPlaceholderMessage();
-        
+
         // 设置状态为 GENERATING
         playerStates.put(playerId, GenerationState.GENERATING);
 
-        // 立即显示占位符
-        OutputChannel channel = config.getStreamChannel();
-        dispatchToChannel(player, placeholder, channel);
+        // 如果不是静默模式，立即显示占位符
+        if (!silent) {
+            String placeholder = getPlaceholderMessage();
+            dispatchToChannel(player, placeholder, channel);
+        }
     }
 
     /**
@@ -93,12 +127,14 @@ public class StreamOutputManager {
      *
      * <p>每收到一个 LLM 片段时调用，更新显示内容</p>
      * <p>状态检查：只在 GENERATING 状态下接受更新，防止竞态条件</p>
+     * <p>线程安全：LLM 回调在异步线程，必须切换到同步线程调用 Bukkit API</p>
      *
-     * @param player        目标玩家
-     * @param chunk         新片段（当前未使用，保留用于未来日志/统计扩展）
-     * @param fullMessage   当前累积的完整消息（用于显示）
+     * @param player      目标玩家
+     * @param chunk       新片段（当前未使用，保留用于未来日志/统计扩展）
+     * @param fullMessage 当前累积的完整消息（用于显示）
+     * @param channel     输出载体（由调用方传入场景配置）
      */
-    public void updateStreamChunk(Player player, String chunk, String fullMessage) {
+    public void updateStreamChunk(Player player, String chunk, String fullMessage, OutputChannel channel) {
         if (player == null || !config.isStreamEnabled()) {
             return;
         }
@@ -112,59 +148,72 @@ public class StreamOutputManager {
             return;
         }
 
-        // 更新显示（使用流式载体）
-        OutputChannel channel = config.getStreamChannel();
+        // 线程安全：LLM 回调在异步线程，必须切换到同步线程
+        if (FoliaCompat.isPrimaryThread()) {
+            updateStreamChunkSync(player, chunk, fullMessage, channel);
+        } else {
+            // Folia: 使用 GlobalRegionScheduler
+            // Spigot: 使用 Bukkit.getScheduler().runTask()
+            FoliaCompat.runTask(plugin, () -> updateStreamChunkSync(player, chunk, fullMessage, channel));
+        }
+    }
+
+    /**
+     * 同步更新流式内容（必须在主线程/区域线程调用）
+     */
+    private void updateStreamChunkSync(Player player, String chunk, String fullMessage, OutputChannel channel) {
+        // 双重检查：防止线程切换期间状态变化
+        UUID playerId = player.getUniqueId();
+        GenerationState state = playerStates.get(playerId);
+        if (state != GenerationState.GENERATING) {
+            return;
+        }
+
+        // 更新显示（使用调用方传入的载体）
         dispatchToChannel(player, fullMessage, channel);
     }
 
     /**
      * 完成流式生成
      *
-     * <p>LLM 响应完成后调用，设置 COMPLETED 状态并根据配置保留最终结果</p>
+     * <p>LLM 响应完成后调用，设置 COMPLETED 状态</p>
+     * <p>线程安全：LLM 回调在异步线程，必须切换到同步线程</p>
      *
-     * @param player        目标玩家
-     * @param finalMessage  最终完整消息
+     * @param player       目标玩家
+     * @param finalMessage 最终完整消息
      */
     public void completeGeneration(Player player, String finalMessage) {
         if (player == null || !config.isStreamEnabled()) {
             return;
         }
 
+        // 线程安全：切换到同步线程
+        if (FoliaCompat.isPrimaryThread()) {
+            completeGenerationSync(player, finalMessage);
+        } else {
+            FoliaCompat.runTask(plugin, () -> completeGenerationSync(player, finalMessage));
+        }
+    }
+
+    /**
+     * 同步完成流式生成（必须在主线程/区域线程调用）
+     */
+    private void completeGenerationSync(Player player, String finalMessage) {
         UUID playerId = player.getUniqueId();
-        
+
         // 设置状态为 COMPLETED，拒绝后续的 updateStreamChunk
         playerStates.put(playerId, GenerationState.COMPLETED);
 
-        // 根据配置决定是否保留最终结果到默认载体
-        if (config.isStreamKeepFinalInDefault()) {
-            OutputChannel defaultChannel = config.getDefaultChannel();
-            OutputChannel streamChannel = config.getStreamChannel();
-            
-            // 如果流式载体和默认载体不同，确保发送最终消息
-            // 如果相同，流式输出已经在默认载体中显示了，无需重复发送
-            if (defaultChannel != streamChannel) {
-                // 添加 AI 前缀（与 pipeline.send() 保持一致）
-                String formattedMessage = com.zm.kilacraftAI.util.MessageUtil.getAIPrefix() + finalMessage;
-                
-                // 确保在主线程上发送最终消息
-                if (plugin.getServer().isPrimaryThread()) {
-                    dispatchToChannel(player, formattedMessage, defaultChannel);
-                } else {
-                    plugin.getServer().getScheduler().runTask(plugin, () -> {
-                        dispatchToChannel(player, formattedMessage, defaultChannel);
-                    });
-                }
-            }
-        }
-
         // 延迟清理状态（避免立即清理导致闪烁）
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+        FoliaCompat.runTaskLater(plugin, () -> {
             playerStates.remove(playerId);
         }, 20L); // 1秒后清理
     }
 
     /**
      * 取消流式生成（异常场景）
+     *
+     * <p>线程安全：如果从异步线程调用，会自动切换到同步线程</p>
      *
      * @param player 目标玩家
      */
@@ -173,6 +222,18 @@ public class StreamOutputManager {
             return;
         }
 
+        // 线程安全：切换到同步线程
+        if (FoliaCompat.isPrimaryThread()) {
+            cancelGenerationSync(player);
+        } else {
+            FoliaCompat.runTask(plugin, () -> cancelGenerationSync(player));
+        }
+    }
+
+    /**
+     * 同步取消流式生成（必须在主线程/区域线程调用）
+     */
+    private void cancelGenerationSync(Player player) {
         UUID playerId = player.getUniqueId();
         playerStates.remove(playerId);
     }
@@ -181,6 +242,13 @@ public class StreamOutputManager {
      * 根据载体类型分发显示
      */
     private void dispatchToChannel(Player player, String message, OutputChannel channel) {
+        // SIDEBAR 载体需要特殊处理：title 使用 ai_prefix，content 不带 prefix
+        if (channel == OutputChannel.SIDEBAR) {
+            // 直接调用 ScoreboardManager，让它自动处理 prefix
+            dispatcher.getScoreboardManager().sendSidebar(player, message);
+            return;
+        }
+
         dispatcher.dispatch(player, message, channel);
     }
 

@@ -9,7 +9,6 @@ import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.output.AIResponsePipeline;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillIntent;
-import com.zm.kilacraftAI.skills.framework.task.LLMAnalysisService;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
@@ -37,13 +36,11 @@ public class AIRequestHandler {
     private final KilacraftAI plugin;
     private final AIRequestValidator validator;
     private final LanguageManager languageManager;
-    private final LLMAnalysisService analysisService;
 
     public AIRequestHandler(KilacraftAI plugin) {
         this.plugin = plugin;
         this.validator = new AIRequestValidator(plugin);
         this.languageManager = plugin.getLanguageManager();
-        this.analysisService = new LLMAnalysisService();
     }
 
     /**
@@ -61,20 +58,25 @@ public class AIRequestHandler {
     public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply) {
         // 使用统一的响应管线
         AIResponsePipeline pipeline = plugin.getResponsePipeline();
-        
+
         java.util.function.Consumer<String> sendResponse;
         java.util.function.Consumer<String> sendError;
-        
+
         if (publicReply) {
-            // 公屏模式：广播给所有在线玩家
-            sendResponse = response -> pipeline.broadcast(response, OutputScenario.NORMAL_CHAT);
+            // 公屏模式：先发送给触发者（使用场景配置），再广播给所有人
+            sendResponse = response -> {
+                // 1. 发送给触发者（使用 NORMAL_CHAT 场景配置，如 SIDEBAR）
+                pipeline.send(player, response, OutputScenario.NORMAL_CHAT);
+                // 2. 公屏广播（强制 CHAT）
+                pipeline.broadcast(response);
+            };
         } else {
             // 私信模式：只发给触发者
             sendResponse = response -> pipeline.send(player, response, OutputScenario.NORMAL_CHAT);
         }
         sendError = error -> pipeline.sendError(player, languageManager.getPluginCommandError() + error);
-        
-        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, sendError);
+
+        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, sendError, OutputScenario.NORMAL_CHAT, publicReply);
         handleAIRequestInternal(message, ctx, enableAgent);
     }
 
@@ -85,7 +87,7 @@ public class AIRequestHandler {
         UUID consoleUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
         Deque<ConversationManager.Message> consoleHistory = getOrCreateHistory(consoleUUID);
 
-        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error));
+        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error), OutputScenario.NORMAL_CHAT, false);
         handleAIRequestInternal(message, ctx, enableAgent);
     }
 
@@ -144,16 +146,21 @@ public class AIRequestHandler {
             plugin.getLogger().info("[DEBUG] 识别到多步骤任务：" + taskPlan.getGoal());
         }
 
-        TaskExecutor taskExecutor = new TaskExecutor(plugin.getSkillManager(), analysisService);
+        TaskExecutor taskExecutor = new TaskExecutor(plugin.getSkillManager());
         SkillContext context = new SkillContext(ctx.player(), null, new HashMap<>());
 
-        taskExecutor.executeTask(taskPlan, context, ctx.history(), message).thenAccept(execResult -> {
+        // TaskExecutor 返回 AnalysisSummary，通过中间层进行 LLM 二次分析
+        taskExecutor.executeTask(taskPlan, context, ctx.history(), message).thenAccept(summary -> {
             if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 任务计划执行完成：" + execResult.getMessage());
+                plugin.getLogger().info("[DEBUG] 任务计划执行完成，开始 LLM 二次分析...");
             }
-            // 使用管线输出（多步骤任务结果）
-            plugin.getResponsePipeline().send(ctx.player(), execResult.getMessage(), OutputScenario.TASK_RESULT);
-            validator.saveToHistory(ctx.history(), message, execResult.getMessage());
+
+            // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
+            plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenario.TASK_RESULT, false).thenAccept(result -> {
+                // 使用 ctx.sendResponse（支持公屏广播）
+                ctx.sendResponse.accept(result.getMessage());
+                validator.saveToHistory(ctx.history(), message, result.getMessage());
+            });
         });
     }
 
@@ -173,7 +180,13 @@ public class AIRequestHandler {
                     plugin.getLogger().info("[DEBUG] 技能执行成功");
                 }
                 AnalysisSummary summary = new AnalysisSummary().userMessage(message).addResult("SUCCESS", execResult.getMessage()).statistics(1, 0, 0);
-                return analysisService.analyzeResult(summary, context, ctx.history());
+
+                // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
+                return plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenario.SKILL_RESULT, false).thenApply(result -> {
+                    // 使用 ctx.sendResponse（支持公屏广播）
+                    ctx.sendResponse.accept(result.getMessage());
+                    return result;
+                });
             } else {
                 return CompletableFuture.completedFuture(execResult);
             }
@@ -182,8 +195,7 @@ public class AIRequestHandler {
                 if (plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().info("[DEBUG] 技能执行完成：" + finalResult.getMessage());
                 }
-                // 使用管线输出（单意图技能结果）
-                plugin.getResponsePipeline().send(ctx.player(), finalResult.getMessage(), OutputScenario.SKILL_RESULT);
+                // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, finalResult.getMessage());
             } else {
                 if (plugin.getConfigManager().isDebugMode()) {
@@ -212,7 +224,7 @@ public class AIRequestHandler {
 
         AIResponseHandler handler;
         if (ctx.player() != null) {
-            handler = new PlayerResponseHandler(ctx.player());
+            handler = new PlayerResponseHandler(plugin, ctx.player(), ctx.scenario(), ctx.sendResponse);
         } else {
             handler = new ConsoleResponseHandler(getSenderFromContext(ctx));
         }
@@ -254,6 +266,7 @@ public class AIRequestHandler {
      */
     private record RequestContext(String name, Player player, Deque<ConversationManager.Message> history,
                                   java.util.function.Consumer<String> sendResponse,
-                                  java.util.function.Consumer<String> sendError) {
+                                  java.util.function.Consumer<String> sendError, OutputScenario scenario,
+                                  boolean isBroadcast) {
     }
 }

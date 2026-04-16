@@ -11,12 +11,10 @@ import com.zm.kilacraftAI.skills.afktask.AFKTaskType;
 import com.zm.kilacraftAI.skills.afktask.ConditionEvaluator;
 import com.zm.kilacraftAI.skills.afktask.ConditionPlan;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.task.LLMAnalysisService;
+import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.util.MessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -230,7 +228,7 @@ public class CustomWatchTask extends AFKTask {
                 int failures = consecutiveFailures.incrementAndGet();
                 int maxFailures = plugin.getConfigManager().getAfkTaskMaxConsecutiveFailures();
                 if (failures >= maxFailures) {
-                    notifyPlayer("§c§l🔔 挂机任务已自动取消\n\n§f连续 " + maxFailures + " 次条件评估失败（无法提取字段 " + conditionPlan.getResultPath() + "），任务可能配置有误，请重新创建。");
+                    notifyPlayer("§c§l挂机任务已自动取消\n\n§f连续 " + maxFailures + " 次条件评估失败（无法提取字段 " + conditionPlan.getResultPath() + "），任务可能配置有误，请重新创建。");
                     complete("连续条件评估失败，任务自动取消。");
                 }
                 // 未达上限，继续下次轮询
@@ -279,22 +277,24 @@ public class CustomWatchTask extends AFKTask {
             // 3. 延迟反馈优化：不传入对话历史
             Deque<ConversationManager.Message> history = new java.util.ArrayDeque<>();
 
-            // 4. 执行多步骤任务
-            TaskExecutor executor = new TaskExecutor(plugin.getSkillManager(), new LLMAnalysisService());
+            // 4. 执行多步骤任务（TaskExecutor 返回 AnalysisSummary）
+            TaskExecutor executor = new TaskExecutor(plugin.getSkillManager());
 
-            CompletableFuture<SkillResult> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
+            CompletableFuture<AnalysisSummary> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
 
-            // 注意：任务在调用方 pollCondition() 中不会提前 complete，回调任务负责在异步完成后 complete
-            future.thenAccept(result -> {
-                // 通知玩家
-                notifyCallbackResult(result);
+            // 5. 处理执行结果：通过中间层进行LLM二次分析并输出
+            future.thenAccept(summary -> {
+                plugin.getLlmOutputCoordinator().outputAnalysisResult(creatorPlayer, summary, context, history, OutputScenario.AFK_CALLBACK, false);
 
                 // 完成任务
                 complete("条件满足，回调任务已执行。");
             }).exceptionally(ex -> {
                 plugin.getLogger().severe("[挂机任务] 回调任务执行异常: " + ex.getMessage());
                 ex.printStackTrace();
-                notifyPlayer("§c回调任务执行失败：" + ex.getMessage());
+                Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
+                if (errorPlayer != null && errorPlayer.isOnline()) {
+                    plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
+                }
                 complete("回调任务执行异常。");
                 return null;
             });
@@ -311,9 +311,9 @@ public class CustomWatchTask extends AFKTask {
      * 通知条件满足（纯通知模式）
      */
     private void notifyConditionMet() {
-        String message = String.format("§a§l🔔 挂机任务完成\n\n" + "§f• 监视条件：§e%s\n" + "§f• 当前值：§a%s\n" + "§f• 阈值：§e%s\n\n" + "§f条件已满足，任务已完成！", conditionPlan.getResultPath() + " " + conditionPlan.getOperatorDescription() + " " + conditionPlan.getThreshold(), getCurrentValue(), conditionPlan.getThreshold());
-
-        notifyPlayer(message);
+        // 通过 LLM 二次分析通知（不再硬编码消息）
+        String eventDescription = String.format("条件满足：%s %s %s（当前值：%s）", conditionPlan.getResultPath(), conditionPlan.getOperatorDescription(), conditionPlan.getThreshold(), getCurrentValue());
+        notifyWithLLMAnalysis(eventDescription);
     }
 
     /**
@@ -327,38 +327,6 @@ public class CustomWatchTask extends AFKTask {
             return String.valueOf(conditionPlan.getThreshold());
         }
         return "未知";
-    }
-
-    /**
-     * 通知回调任务执行结果
-     *
-     * @param result LLM二次分析后的结果
-     */
-    private void notifyCallbackResult(SkillResult result) {
-        String notifyTarget = callback.getNotifyTarget();
-
-        if (notifyTarget == null || notifyTarget.isEmpty()) {
-            notifyTarget = "{creator}";  // 默认通知任务创建者
-        }
-
-        // 构建通知消息
-        String analysisResult = result.getMessage() != null ? result.getMessage() : "无结果";
-
-        // 构建完整通知
-        String header = "§f§l🔔 挂机任务提醒\n\n";
-        String body = MessageUtil.convertMarkdownToMinecraft(analysisResult);
-        String fullMessage = header + body;
-
-        // 发送到目标玩家
-        if (notifyTarget.equals("{creator}")) {
-            notifyPlayer(fullMessage);
-        } else {
-            Player targetPlayer = Bukkit.getPlayerExact(notifyTarget);
-            if (targetPlayer != null && targetPlayer.isOnline()) {
-                // 使用统一响应管线（挂机任务回调场景）
-                plugin.getResponsePipeline().send(targetPlayer, fullMessage, OutputScenario.AFK_CALLBACK);
-            }
-        }
     }
 
     @Override

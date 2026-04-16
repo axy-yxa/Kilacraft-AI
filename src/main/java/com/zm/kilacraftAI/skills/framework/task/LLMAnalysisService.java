@@ -7,7 +7,6 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.util.HistoryUtil;
 
 import java.util.Deque;
 import java.util.UUID;
@@ -32,16 +31,17 @@ public class LLMAnalysisService {
     }
 
     /**
-     * 分析执行结果并生成最终回复
+     * 分析执行结果并使用自定义 Handler 输出
      *
-     * <p>基于 AnalysisSummary 统一格式构建提示词，支持历史对话上下文</p>
+     * <p>由 LLMOutputCoordinator 调用，传入外部创建的 Handler</p>
      *
      * @param summary 统一的分析摘要
      * @param context 执行上下文
      * @param history 对话历史（用于上下文关联，可为 null）
+     * @param handler 自定义响应处理器（由调用方创建）
      * @return 分析后的最终回复
      */
-    public CompletableFuture<SkillResult> analyzeResult(AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history) {
+    public CompletableFuture<SkillResult> analyzeResultWithHandler(AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, AIResponseHandler handler) {
         String promptContent = summary.buildPrompt();
         String keywordContent = summary.buildKeywordContent();
 
@@ -51,7 +51,6 @@ public class LLMAnalysisService {
         }
 
         String playerName = context.getPlayer() != null ? context.getPlayer().getName() : "Console";
-        CompletableFuture<String> responseFuture = new CompletableFuture<>();
 
         // 构建分析提示词：执行结果 + 后缀
         String suffix = configManager.getAgentAnalysisPromptSuffix();
@@ -71,45 +70,57 @@ public class LLMAnalysisService {
             return CompletableFuture.completedFuture(SkillResult.failure("LLM Provider 未初始化"));
         }
 
-        // 调用 LLM，传入历史对话，由 GenericLLMProvider 内部处理知识库检索和历史注入
-        llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, createAnalysisHandler(playerName, responseFuture), systemPrompt, true, false);
-        return responseFuture.thenApply(SkillResult::success);
-    }
+        // 创建 Future 用于返回 SkillResult
+        CompletableFuture<String> responseFuture = new CompletableFuture<>();
 
-    /**
-     * 创建分析用的 Handler
-     */
-    private AIResponseHandler createAnalysisHandler(String playerName, CompletableFuture<String> responseFuture) {
-        return new AIResponseHandler() {
+        // 包装 Handler，在完成 response 时同时完成 responseFuture
+        AIResponseHandler wrapperHandler = new AIResponseHandler() {
             @Override
             public UUID getPlayerId() {
-                return null;
+                return handler.getPlayerId();
             }
 
             @Override
             public String getPlayerName() {
-                return playerName;
+                return handler.getPlayerName();
             }
 
             @Override
             public void showResponse(String response) {
+                // 调用原始 Handler 的输出逻辑
+                handler.showResponse(response);
+                // 完成 Future（让调用链继续）
                 responseFuture.complete(response);
             }
 
             @Override
             public void showStreamChunk(String chunk, String currentMessage) {
-                // 分析阶段不需要流式输出
+                handler.showStreamChunk(chunk, currentMessage);
             }
 
             @Override
             public void handleError(String errorMessage) {
-                responseFuture.completeExceptionally(new RuntimeException(errorMessage));
+                try {
+                    handler.handleError(errorMessage);
+                } catch (Exception e) {
+                    // 记录 Handler 错误处理异常，但不影响 Future 完成
+                    plugin.getLogger().warning("[LLM分析] Handler 错误处理异常: " + e.getMessage());
+                } finally {
+                    // 确保 Future 一定被完成，防止调用链挂起
+                    responseFuture.completeExceptionally(new RuntimeException(errorMessage));
+                }
             }
 
             @Override
             public boolean isStreamOutputEnabled() {
-                return false;
+                return handler.isStreamOutputEnabled();
             }
         };
+
+        // 调用 LLM，传入包装后的 Handler
+        llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, true, false);
+
+        return responseFuture.thenApply(SkillResult::success);
     }
+
 }

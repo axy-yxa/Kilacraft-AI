@@ -8,11 +8,9 @@ import com.zm.kilacraftAI.skills.afktask.AFKTaskCallback;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskStatus;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskType;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.task.LLMAnalysisService;
+import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
-import com.zm.kilacraftAI.util.MessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,6 +23,7 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 玩家下线挂机任务
@@ -59,6 +58,11 @@ public class PlayerOfflineWatchTask extends AFKTask implements Listener {
      * 是否已注册事件监听器
      */
     private boolean listenerRegistered = false;
+
+    /**
+     * 回调执行标志（防止并发重复执行）
+     */
+    private final AtomicBoolean callbackExecuted = new AtomicBoolean(false);
 
     /**
      * 构造玩家下线挂机任务
@@ -151,6 +155,11 @@ public class PlayerOfflineWatchTask extends AFKTask implements Listener {
             return;
         }
 
+        // 原子操作：只有第一个线程能执行回调，防止并发冲突
+        if (!callbackExecuted.compareAndSet(false, true)) {
+            return; // 已经被其他线程执行
+        }
+
         // 目标玩家下线
         boolean hasCallback = callback != null && callback.getCallbackTask() != null && callback.getCallbackTask().getSteps() != null && !callback.getCallbackTask().getSteps().isEmpty();
 
@@ -159,8 +168,8 @@ public class PlayerOfflineWatchTask extends AFKTask implements Listener {
             complete("目标玩家 " + quitPlayerName + " 已下线，开始执行回调。");
             executeCallback(quitPlayerName);
         } else {
-            // 纯通知模式：直接通知下线
-            notifyPlayer("§a§l🔔 挂机任务完成\n\n" + "§f• 目标玩家：§e" + quitPlayerName + "\n" + "§f• 状态：§c已离开服务器\n\n" + "§f" + quitPlayerName + " 下线了！");
+            // 纯通知模式：通过 LLM 二次分析通知
+            notifyWithLLMAnalysis("目标玩家 " + quitPlayerName + " 已下线");
             complete("目标玩家 " + quitPlayerName + " 已下线，挂机任务完成。");
         }
     }
@@ -190,19 +199,23 @@ public class PlayerOfflineWatchTask extends AFKTask implements Listener {
             // 4. 延迟反馈优化：不传入对话历史（与 PlayerOnlineWatchTask 一致）
             Deque<ConversationManager.Message> history = new java.util.ArrayDeque<>();
 
-            // 5. 执行多步骤任务
-            TaskExecutor executor = new TaskExecutor(plugin.getSkillManager(), new LLMAnalysisService());
+            // 5. 执行多步骤任务（TaskExecutor 返回 AnalysisSummary）
+            TaskExecutor executor = new TaskExecutor(plugin.getSkillManager());
 
-            CompletableFuture<SkillResult> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
+            CompletableFuture<AnalysisSummary> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
 
-            // 6. 处理执行结果（注意：任务已在调用方通过 complete() 完成，此处仅做通知）
-            future.thenAccept(result -> {
-                // 7. 通知玩家
-                notifyCallbackResult(triggeredPlayerName, result);
+            // 6. 处理执行结果：通过中间层进行 LLM 二次分析并输出
+            future.thenAccept(summary -> {
+                // 通过中间层输出（不显示占位符）
+                plugin.getLlmOutputCoordinator().outputAnalysisResult(
+                    creatorPlayer, summary, context, history,
+                    OutputScenario.AFK_CALLBACK,
+                    false  // 挂机任务回调不显示占位符
+                );
             }).exceptionally(ex -> {
                 plugin.getLogger().severe("[挂机任务] 回调任务执行异常: " + ex.getMessage());
                 ex.printStackTrace();
-                notifyPlayer("§c回调任务执行失败：" + ex.getMessage());
+                plugin.getLlmOutputCoordinator().outputError(creatorPlayer, "§c回调任务执行失败：" + ex.getMessage());
                 return null;
             });
 
@@ -223,39 +236,6 @@ public class PlayerOfflineWatchTask extends AFKTask implements Listener {
                 return value.replace("{triggered_player}", triggeredPlayerName).replace("{creator}", getPlayerName());
             });
         });
-    }
-
-    /**
-     * 通知回调任务执行结果
-     *
-     * @param triggeredPlayerName 触发事件的玩家名称
-     * @param result              LLM 二次分析后的结果
-     */
-    private void notifyCallbackResult(String triggeredPlayerName, SkillResult result) {
-        String notifyTarget = callback.getNotifyTarget();
-
-        if (notifyTarget == null || notifyTarget.isEmpty()) {
-            notifyTarget = "{creator}";  // 默认通知任务创建者
-        }
-
-        // LLM 二次分析的完整结果
-        String analysisResult = result.getMessage() != null ? result.getMessage() : "无结果";
-
-        // 构建完整通知
-        String header = "§f§l🔔 挂机任务提醒\n\n";
-        String body = MessageUtil.convertMarkdownToMinecraft(analysisResult);
-        String fullMessage = header + body;
-
-        // 发送到目标玩家
-        if (notifyTarget.equals("{creator}")) {
-            notifyPlayer(fullMessage);
-        } else {
-            Player targetPlayer = Bukkit.getPlayerExact(notifyTarget);
-            if (targetPlayer != null && targetPlayer.isOnline()) {
-                // 使用统一响应管线（挂机任务回调场景）
-                plugin.getResponsePipeline().send(targetPlayer, fullMessage, OutputScenario.AFK_CALLBACK);
-            }
-        }
     }
 
     @Override

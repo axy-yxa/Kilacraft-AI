@@ -137,10 +137,15 @@ public class ChatListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         plugin.getConversationManager().onPlayerQuit(player);
-        
+
         // 清理玩家的流式生成状态（防止内存泄漏）
         if (plugin.getStreamOutputManager() != null) {
             plugin.getStreamOutputManager().cancelGeneration(player);
+        }
+
+        // 清理玩家的 Scoreboard（防止内存泄漏）
+        if (plugin.getResponsePipeline() != null && plugin.getResponsePipeline().getDispatcher() != null) {
+            plugin.getResponsePipeline().getDispatcher().getScoreboardManager().removeSidebar(player.getUniqueId());
         }
     }
 }

@@ -81,22 +81,22 @@ public class OutputConfigManager {
      */
     private int sidebarDurationSeconds;
     
+    /**
+     * Scoreboard Sidebar 每页最大行数
+     */
+    private int sidebarMaxLinesPerPage;
+    
+    /**
+     * Scoreboard Sidebar 每行最大字符数
+     */
+    private int sidebarMaxCharsPerLine;
+    
     // ==================== 流式输出配置 ====================
     
     /**
      * 是否启用流式输出
      */
     private boolean streamEnabled;
-    
-    /**
-     * 流式输出载体
-     */
-    private OutputChannel streamChannel;
-    
-    /**
-     * 流式完成后是否保留最终结果到默认载体
-     */
-    private boolean streamKeepFinalInDefault;
     
     /**
      * 从配置文件加载输出配置
@@ -134,12 +134,12 @@ public class OutputConfigManager {
         this.titleFadeOutTicks = config.getInt("output.title.fade_out_ticks", 10);
         
         // Scoreboard 配置
-        this.sidebarDurationSeconds = config.getInt("output.sidebar.duration_seconds", 60);
+        this.sidebarDurationSeconds = config.getInt("output.sidebar.duration_seconds", 15);
+        this.sidebarMaxLinesPerPage = config.getInt("output.sidebar.max_lines_per_page", 15);
+        this.sidebarMaxCharsPerLine = config.getInt("output.sidebar.max_chars_per_line", 32);
         
         // 流式输出配置
         this.streamEnabled = config.getBoolean("output.stream.enabled", false);
-        this.streamChannel = parseChannel(config.getString("output.stream.channel", "ACTION_BAR"));
-        this.streamKeepFinalInDefault = config.getBoolean("output.stream.keep_final_in_default", true);
     }
     
     /**

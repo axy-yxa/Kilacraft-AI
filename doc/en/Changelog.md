@@ -11,7 +11,7 @@ This file records all important changes to the Kilacraft-AI plugin.
 ### ✨ New Features
 - **Stream Output Functionality**: LLM responses display character-by-character in real-time, eliminating waiting anxiety
   - Immediately shows "Generating..." placeholder when request initiates, solving first-character latency
-  - Real-time display of LLM returned content, supports ACTION_BAR/BOSS_BAR carriers
+  - Real-time display of LLM returned content, supports ACTION_BAR/BOSS_BAR/SIDEBAR carriers
   - Configurable toggle: `output.stream.enabled` controls enable/disable
   - Optional keep final result in default carrier after stream completion (`keep_final_in_default`)
 - **Scoreboard Sidebar Output Carrier**: Brand new right sidebar output method, perfect for long AI responses

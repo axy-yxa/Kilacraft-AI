@@ -9,7 +9,7 @@ import com.zm.kilacraftAI.skills.afktask.AFKTaskStatus;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskType;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.task.LLMAnalysisService;
+import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import com.zm.kilacraftAI.util.MessageUtil;
@@ -26,6 +26,7 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 玩家传送挂机任务
@@ -72,6 +73,11 @@ public class PlayerTeleportWatchTask extends AFKTask implements Listener {
      * 是否已注册事件监听器
      */
     private boolean listenerRegistered = false;
+
+    /**
+     * 回调执行标志（防止并发重复执行）
+     */
+    private final AtomicBoolean callbackExecuted = new AtomicBoolean(false);
 
     /**
      * 构造玩家传送挂机任务
@@ -163,6 +169,11 @@ public class PlayerTeleportWatchTask extends AFKTask implements Listener {
             return;
         }
 
+        // 原子操作：只有第一个线程能执行回调，防止并发冲突
+        if (!callbackExecuted.compareAndSet(false, true)) {
+            return; // 已经被其他线程执行
+        }
+
         // 目标玩家传送
         boolean hasCallback = callback != null && callback.getCallbackTask() != null && callback.getCallbackTask().getSteps() != null && !callback.getCallbackTask().getSteps().isEmpty();
 
@@ -171,22 +182,10 @@ public class PlayerTeleportWatchTask extends AFKTask implements Listener {
             complete("目标玩家 " + teleportedPlayerName + " 已传送，开始执行回调。");
             executeCallback(teleportedPlayerName, event.getFrom(), event.getTo());
         } else {
-            // 纯通知模式：直接通知传送
+            // 纯通知模式：通过 LLM 二次分析通知
             Location from = event.getFrom();
             Location to = event.getTo();
-            String message = String.format(
-                "§a§l🔔 挂机任务完成\n\n" +
-                "§f• 目标玩家：§e%s\n" +
-                "§f• 状态：§e已传送\n" +
-                "§f• 从：§fX=%.1f, Y=%.1f, Z=%.1f, 世界=%s\n" +
-                "§f• 到：§fX=%.1f, Y=%.1f, Z=%.1f, 世界=%s\n\n" +
-                "§f%s 传送了！",
-                teleportedPlayerName,
-                from.getX(), from.getY(), from.getZ(), from.getWorld().getName(),
-                to.getX(), to.getY(), to.getZ(), to.getWorld().getName(),
-                teleportedPlayerName
-            );
-            notifyPlayer(message);
+            notifyWithLLMAnalysis("目标玩家 " + teleportedPlayerName + " 传送（从 X=" + String.format("%.1f", from.getX()) + ", Y=" + String.format("%.1f", from.getY()) + ", Z=" + String.format("%.1f", from.getZ()) + ", 世界=" + from.getWorld().getName() + " 到 X=" + String.format("%.1f", to.getX()) + ", Y=" + String.format("%.1f", to.getY()) + ", Z=" + String.format("%.1f", to.getZ()) + ", 世界=" + to.getWorld().getName() + "）");
             complete("目标玩家 " + teleportedPlayerName + " 已传送，挂机任务完成。");
         }
     }
@@ -218,18 +217,25 @@ public class PlayerTeleportWatchTask extends AFKTask implements Listener {
             // 4. 延迟反馈优化：不传入对话历史
             Deque<ConversationManager.Message> history = new java.util.ArrayDeque<>();
 
-            // 5. 执行多步骤任务
-            TaskExecutor executor = new TaskExecutor(plugin.getSkillManager(), new LLMAnalysisService());
+            // 5. 执行多步骤任务（TaskExecutor 返回 AnalysisSummary）
+            TaskExecutor executor = new TaskExecutor(plugin.getSkillManager());
 
-            CompletableFuture<SkillResult> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
+            CompletableFuture<AnalysisSummary> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
 
-            // 6. 处理执行结果（注意：任务已在调用方通过 complete() 完成，此处仅做通知）
-            future.thenAccept(result -> {
-                notifyCallbackResult(triggeredPlayerName, result);
+            // 6. 处理执行结果：通过中间层进行LLM二次分析并输出
+            future.thenAccept(summary -> {
+                plugin.getLlmOutputCoordinator().outputAnalysisResult(
+                    creatorPlayer, summary, context, history,
+                    OutputScenario.AFK_CALLBACK,
+                    false
+                );
             }).exceptionally(ex -> {
                 plugin.getLogger().severe("[挂机任务] 回调任务执行异常: " + ex.getMessage());
                 ex.printStackTrace();
-                notifyPlayer("§c回调任务执行失败：" + ex.getMessage());
+                Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
+                if (errorPlayer != null && errorPlayer.isOnline()) {
+                    plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
+                }
                 return null;
             });
 
@@ -263,39 +269,6 @@ public class PlayerTeleportWatchTask extends AFKTask implements Listener {
                     .replace("{to_z}", String.valueOf(toLocation.getZ()));
             });
         });
-    }
-
-    /**
-     * 通知回调任务执行结果
-     *
-     * @param triggeredPlayerName 触发事件的玩家名称
-     * @param result              LLM 二次分析后的结果
-     */
-    private void notifyCallbackResult(String triggeredPlayerName, SkillResult result) {
-        String notifyTarget = callback.getNotifyTarget();
-
-        if (notifyTarget == null || notifyTarget.isEmpty()) {
-            notifyTarget = "{creator}";  // 默认通知任务创建者
-        }
-
-        // LLM 二次分析的完整结果
-        String analysisResult = result.getMessage() != null ? result.getMessage() : "无结果";
-
-        // 构建完整通知
-        String header = "§f§l🔔 挂机任务提醒\n\n";
-        String body = MessageUtil.convertMarkdownToMinecraft(analysisResult);
-        String fullMessage = header + body;
-
-        // 发送到目标玩家
-        if (notifyTarget.equals("{creator}")) {
-            notifyPlayer(fullMessage);
-        } else {
-            Player targetPlayer = Bukkit.getPlayerExact(notifyTarget);
-            if (targetPlayer != null && targetPlayer.isOnline()) {
-                // 使用统一响应管线（挂机任务回调场景）
-                plugin.getResponsePipeline().send(targetPlayer, fullMessage, OutputScenario.AFK_CALLBACK);
-            }
-        }
     }
 
     @Override

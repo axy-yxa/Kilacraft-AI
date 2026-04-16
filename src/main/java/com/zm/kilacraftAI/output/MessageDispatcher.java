@@ -46,9 +46,9 @@ public class MessageDispatcher {
      */
     @Getter
     private final BossBarManager bossBarManager;
-    
+
     /**
-     * Scoreboard Sidebar 管理器（用于清理资源）
+     * Scoreboard Sidebar 管理器
      */
     @Getter
     private final ScoreboardManager scoreboardManager;

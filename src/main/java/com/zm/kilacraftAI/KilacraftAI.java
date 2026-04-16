@@ -23,6 +23,7 @@ import com.zm.kilacraftAI.skills.command.CommandSkill;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskListener;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
+import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import com.zm.kilacraftAI.util.ChineseTextUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
@@ -79,6 +80,12 @@ public final class KilacraftAI extends JavaPlugin {
     @Getter
     private StreamOutputManager streamOutputManager;
 
+    /**
+     * LLM 输出协调器（统一调度 LLM 二次分析的输出）
+     */
+    @Getter
+    private LLMOutputCoordinator llmOutputCoordinator;
+
     @Override
     public void onEnable() {
         instance = this;
@@ -86,8 +93,9 @@ public final class KilacraftAI extends JavaPlugin {
 
         initializeManagers();
         initializeKnowledgeSystem();
-        initializeResponsePipeline();  // 初始化响应输出管线
         initializeStreamOutput();      // 初始化流式输出管理器
+        initializeResponsePipeline();  // 初始化响应输出管线
+        initializeLLMOutputCoordinator();  // 初始化 LLM 输出协调器
         initializeChatAndCommands();
         registerMythicMobsPlaceholders();
         initializeSkillsSystem();
@@ -137,7 +145,6 @@ public final class KilacraftAI extends JavaPlugin {
      */
     private void initializeResponsePipeline() {
         responsePipeline = new AIResponsePipeline(this);
-        getLogger().info("AI 响应输出管线已初始化 [默认载体: " + configManager.getOutputConfigManager().getDefaultChannel() + "]");
     }
 
     /**
@@ -145,8 +152,13 @@ public final class KilacraftAI extends JavaPlugin {
      */
     private void initializeStreamOutput() {
         streamOutputManager = new StreamOutputManager(this);
-        boolean enabled = configManager.getOutputConfigManager().isStreamEnabled();
-        getLogger().info("流式输出管理器已初始化 [启用: " + enabled + ", 载体: " + configManager.getOutputConfigManager().getStreamChannel() + "]");
+    }
+
+    /**
+     * 初始化 LLM 输出协调器
+     */
+    private void initializeLLMOutputCoordinator() {
+        llmOutputCoordinator = new LLMOutputCoordinator(this);
     }
 
     /**

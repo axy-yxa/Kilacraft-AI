@@ -1,8 +1,39 @@
 # Kilacraft-AI - Knowledge Base Enhancement Guide
 
-> **Version**: v1.4.3  
-> **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation
+> **Version**: v1.4.5  
+> **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation  
 > **Plugin Version**: 1.4.3+
+
+---
+
+## 💡 Core Philosophy: Knowledge Base Quality is Everything
+
+> **“Garbage In, Garbage Out” (GIGO)**  
+> —— George Fuechsel, Computer Scientist
+
+In RAG (Retrieval Augmented Generation) technology, **the quality of knowledge base documents directly determines retrieval quality and recall rate**:
+
+- ✅ **High-Quality Knowledge Base** → Precise Retrieval → Accurate Answers → **Save Tokens**
+- ❌ **Low-Quality Knowledge Base** → Chaotic Retrieval → Wrong Answers → **Waste Tokens**
+
+### Why Quality Affects Token Consumption?
+
+| Knowledge Base Quality | Retrieval Result | Token Consumption | Answer Quality |
+|----------------------|------------------|-------------------|----------------|
+| **High Quality** (clear structure, accurate content) | 1-2 precise chunks | ~200-300 tokens | Accurate, concise |
+| **Medium Quality** (structured but not precise enough) | 3-5 relevant chunks | ~500-800 tokens | Basically accurate |
+| **Low Quality** (chaotic, repetitive, verbose) | 5+ noise chunks | ~1000+ tokens | Possibly wrong |
+
+**Conclusion**: Spending time optimizing knowledge base documents not only improves AI answer accuracy, but also **significantly reduces API call costs**!
+
+### Key Characteristics of High-Quality Knowledge Base
+
+1. ✅ **Clear Structure**: Use Markdown heading hierarchy for intelligent segmentation
+2. ✅ **Precise Content**: Each chapter focuses on one topic, avoid mixing content
+3. ✅ **Concise Language**: Express in concise language, avoid verbose writing
+4. ✅ **Rich Keywords**: Include keywords and synonyms that users might use
+5. ✅ **Standard Format**: Use structured content like lists, tables
+6. ✅ **Regular Maintenance**: Update outdated content timely, remove redundant information
 
 ---
 
@@ -267,26 +298,295 @@ knowledge/
 
 ### Intelligent Segmentation Algorithm
 
-Kilacraft-AI uses **Markdown heading-based intelligent segmentation**:
+Kilacraft-AI uses a **three-tier fallback segmentation strategy**, automatically selecting the most suitable segmentation method:
 
 ```
-# Server Rules                    ← Segmentation point 1
-
-## Basic Rules                      ← Segmentation point 2
-
-### Prohibited Actions                     ← Segmentation point 3
-1. No cheating
-2. No insulting
-
-### Allowed Actions                     ← Segmentation point 4
-1. Friendly communication
-2. Cooperative building
-
-## Economy System                      ← Segmentation point 5
-...
+Strategy 1: Split by Markdown headings (Priority)
+  ↓ If no headings
+Strategy 2: Split by paragraphs (empty line separator)
+  ↓ If no empty lines
+Strategy 3: Split by fixed size (Fallback)
 ```
 
-**Each segment contains**:
+---
+
+#### Strategy 1: Split by Markdown Headings ⭐ **Recommended**
+
+**Trigger Condition**: Document contains `#` to `######` headings
+
+**Segmentation Rules**:
+- Start from heading, read subsequent content
+- Stop when encountering **empty line** or **next heading**
+- Includes heading + immediate content (excluding content after empty line)
+- If single chunk exceeds `max_size (500 chars)` → automatically fallback to Strategy 2
+
+**Example 1: Standard Command Documentation**
+
+```markdown
+# Server Commands
+
+## /back - Return to Death Point
+After you die, you can use this command to quickly return to your death location.
+This is very useful when exploring caves or fighting bosses.
+Cooldown: 30 seconds
+Permission: None
+
+## /spawn - Teleport to Spawn
+Teleport to the server's spawn area.
+All players can use this.
+```
+
+**Segmentation Result**:
+```
+Chunk 1: "# Server Commands" (10 chars)
+Chunk 2: "## /back - Return to Death Point\nAfter you die...Cooldown: 30 seconds\nPermission: None" (180 chars) ✅
+Chunk 3: "## /spawn - Teleport to Spawn\nTeleport to the server's spawn area...All players can use this." (140 chars) ✅
+```
+
+**✅ Advantages**:
+- Each command maintains complete context
+- Heading information preserved (BM25 heading bonus +15 points)
+- Best semantic integrity
+
+---
+
+**Example 2: Ultra-long Command Description (>500 chars)**
+
+```markdown
+## /back - Return to Death Point
+After you die, you can use this command to quickly return to your death location.
+This is very useful when exploring caves or fighting bosses.
+(400 chars of detailed explanation omitted...)
+Notes:
+1. Cooldown: 30 seconds
+2. Cannot use in combat
+3. Need to stand still for 3 seconds
+```
+
+**Segmentation Result**:
+```
+Strategy 1 Attempt: Single chunk 700 chars > max_size (500)
+  ↓ Fallback to Strategy 2
+Strategy 2 Split by paragraphs:
+  Chunk 1: "## /back - Return to Death Point\nAfter you die..." (~350 chars) ✅
+  Chunk 2: "Notes:\n1. Cooldown: 30 seconds..." (~200 chars) ✅
+```
+
+**⚠️ Note**:
+- Heading only in chunk 1, chunk 2 loses heading bonus
+- User searching "back cooldown" may match chunk 2 without heading bonus
+
+---
+
+#### Strategy 2: Split by Paragraphs 📄 **Alternative**
+
+**Trigger Condition**: Markdown segmentation fails or document has no headings
+
+**Segmentation Rules**:
+- Use **empty lines** (`\n\n`) as separators
+- Each paragraph must be `≥ min_size (25 chars)`
+- Paragraphs shorter than 25 chars will be **filtered out**
+
+**Example 3: TXT Command Documentation (with empty lines)**
+
+```txt
+/back - Return to death point
+After you die, you can use this command.
+Cooldown: 30 seconds
+
+/spawn - Teleport to spawn
+Teleport to server's spawn area.
+All players can use this.
+```
+
+**Segmentation Result**:
+```
+Chunk 1: "/back - Return to death point\nAfter you die...Cooldown: 30 seconds" (100 chars) ✅
+Chunk 2: "/spawn - Teleport to spawn\nTeleport to server's spawn area...All players can use this." (120 chars) ✅
+```
+
+**✅ Advantages**:
+- Natural segmentation by empty lines
+- Maintains command integrity
+
+**⚠️ Note**:
+- No heading markers → loses BM25 heading bonus (-15 points)
+- Command names in plain text have lower weight
+
+---
+
+**Example 4: TXT Command Documentation (no empty lines)** ❌ **Critical Issue**
+
+```txt
+/back - Return to death point
+After you die, you can use this command.
+Cooldown: 30 seconds
+/spawn - Teleport to spawn
+Teleport to server's spawn area.
+/home - Go home
+Teleport to your home.
+```
+
+**Segmentation Result**:
+```
+Strategy 1: No # headings → Failed
+Strategy 2: No empty lines → Entire document as 1 paragraph (180 chars)
+  ↓ 180 < max_size (500)
+  Result: 1 large chunk containing all commands ❌
+```
+
+**❌ Problem**:
+- All commands mixed together
+- Cannot distinguish during BM25 retrieval
+- User searching "back" returns large chunk with all commands
+
+**✅ Correct Approach**: Must add empty lines between commands!
+
+---
+
+**Example 5: Short Command List (< 25 chars)** ⚠️ **Will Be Filtered**
+
+```txt
+/back return to death
+
+/spawn go to spawn
+
+/home go home
+
+/money check balance
+```
+
+**Segmentation Result**:
+```
+Chunk 1: "/back return to death" (21 chars) ❌ Less than 25 chars, filtered
+Chunk 2: "/spawn go to spawn" (18 chars) ❌ Less than 25 chars, filtered
+Chunk 3: "/home go home" (13 chars) ❌ Less than 25 chars, filtered
+Chunk 4: "/money check balance" (20 chars) ❌ Less than 25 chars, filtered
+
+Result: 0 chunks ❌ All commands filtered!
+```
+
+**⚠️ Important Note**:
+- `min_size: 25` configuration filters out too-short chunks
+- **One-command-per-line concise format will be filtered!**
+- Must add detailed descriptions to make each command chunk ≥ 25 chars
+
+**✅ Correct Approach**:
+```txt
+/back - Return to death point
+After you die, use this command to quickly return to death location.
+Cooldown: 30 seconds.
+
+/spawn - Teleport to spawn
+Teleport to server's spawn area, all players can use this.
+Spawn is a safe zone where PVP is prohibited.
+```
+
+---
+
+#### Strategy 3: Split by Fixed Size 🔧 **Fallback**
+
+**Trigger Condition**: Paragraph segmentation also fails (continuous text with no empty lines)
+
+**Segmentation Rules**:
+- Maximum `max_size (500 chars)` per chunk
+- Prefer cutting at **sentence boundaries** (`.` `!` `?` `\n`)
+- Adjacent chunks have `overlap (30 chars)` overlap
+
+**Example 6: Continuous Text (No Headings, No Empty Lines)**
+
+```txt
+Server has various commands, /back to return to death point, /spawn to return to spawn, /home to go home, /money to check balance, /tpa to request teleport. These commands are very commonly used, beginner players are recommended to familiarize themselves with these basic commands first.
+```
+
+**Segmentation Result**:
+```
+Strategy 1: No headings → Failed
+Strategy 2: No empty lines → Entire as 1 paragraph (200 chars)
+Strategy 3: 200 < max_size (500) → Not triggered
+Result: 1 chunk (200 chars)
+```
+
+---
+
+**Example 7: Ultra-long Continuous Text (>500 chars)**
+
+```txt
+Server has many commands, including /back to return to death point, /spawn to return to spawn, /home to go home, /money to check balance, /tpa to request teleport, /warp to teleport to landmarks, /kit to claim gift packs, /sell to sell items, /buy to buy items, /pay to transfer to other players, /balance to check balance, /afk to set away status, /nick to change nickname, /hat to wear items on head, /ender to open ender chest, /workbench to open workbench, /anvil to open anvil, /enchant to open enchanting table. These commands cover all aspects of the server, from teleportation to economy systems, from social to practical tools, everything is available. Beginner players are recommended to learn basic commands first, then gradually master advanced commands. Veteran players can use these commands to improve efficiency and optimize gaming experience. Server will also regularly update new commands, please follow announcements.
+```
+
+**Segmentation Result**:
+```
+Strategy 1: No headings → Failed
+Strategy 2: No empty lines → Entire as 1 paragraph (600 chars)
+Strategy 3: 600 > max_size (500) → Triggered
+```
+
+**If exceeds 500 chars**:
+```
+Chunk 1: "Server has many commands...enchanting table." (~350 chars, cut at period) ✅
+Chunk 2: "These commands cover all...everything is available." (~250 chars, 30 chars overlap) ✅
+Chunk 3: "Beginner players are recommended...follow announcements." (~200 chars) ✅
+```
+
+---
+
+### Segmentation Configuration Parameters
+
+```yaml
+knowledge:
+  segment:
+    max_size: 500    # Maximum characters per chunk
+    min_size: 25     # Minimum characters per chunk (filtered if below this)
+    overlap: 30      # Chunk overlap characters (Strategy 3 only)
+```
+
+**Parameter Description**:
+
+| Parameter | Purpose | Default | Impact |
+|-----------|---------|---------|--------|
+| `max_size` | Limit maximum chunk length | 500 | Prevents chunks being too long affecting retrieval precision |
+| `min_size` | Filter out too-short meaningless chunks | 25 | **⚠️ Short command lists will be filtered!** |
+| `overlap` | Maintain context between adjacent chunks | 30 | Strategy 3 only, prevents information loss |
+
+**⚠️ `min_size` Important Reminder**:
+
+If you write command documentation in the following format:
+
+```txt
+❌ Wrong: One command per line (will be filtered)
+/back return to death
+/spawn go to spawn
+/home go home
+```
+
+Must change to:
+
+```txt
+✅ Correct: Add detailed descriptions (≥ 25 chars)
+/back - Return to death point
+After you die, use this command to quickly return to death location.
+Cooldown: 30 seconds.
+
+/spawn - Teleport to spawn
+Teleport to server's spawn area, all players can use this.
+```
+
+Or use Markdown format:
+
+```markdown
+✅ Recommended: Use heading segmentation
+## /back - Return to death point
+After you die, use this command to quickly return to death location.
+Cooldown: 30 seconds.
+
+## /spawn - Teleport to spawn
+Teleport to server's spawn area, all players can use this.
+```
+
+---
+
+**Each chunk contains**:
 - Complete content text
 - Heading hierarchy information (for weight calculation)
 - Filename and path (for traceability)
@@ -434,7 +734,6 @@ Scoring Process:
 6. Exact Match: √ (any keyword present in document)
    
 Final Score ≈ 6.24 + 5.55 + 0 + 90.0 + 10.0 = 111.79
-```
 
 ---
 
@@ -510,18 +809,12 @@ Controls the number of knowledge segments returned per retrieval:
 
 #### `segment.max_size` / `min_size` / `overlap`
 
-Controls knowledge base segmentation strategy:
+**For detailed explanation, please refer to the "Segmentation Configuration Parameters" section above**.
 
-| Config Item | Effect | Default Value |
-|-------------|--------|--------------|
-| max_size | Maximum characters per chunk | 500 |
-| min_size | Minimum characters per chunk | 25 |
-| overlap | Chunk overlap characters (context retention) | 30 |
-
-**Segmentation Strategy**:
-1. Priority: Markdown heading segmentation
-2. Secondary: Paragraph (empty line) segmentation
-3. Fallback: Fixed-size segmentation
+Brief description:
+- `max_size`: Maximum characters per chunk (default 500)
+- `min_size`: Minimum characters per chunk (default 25, **chunks below this will be filtered**)
+- `overlap`: Chunk overlap characters (default 30, Strategy 3 only)
 
 ---
 

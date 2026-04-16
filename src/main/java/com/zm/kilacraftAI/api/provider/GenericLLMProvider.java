@@ -108,16 +108,50 @@ public class GenericLLMProvider implements LLMProvider {
 
         String contentForExtraction = userMessage;
 
-        // analysis_prompt_suffix 作为边界，只提取业务内容
+        // ========== 场景 1：意图识别 ==========
+        // 提示词格式：[当前输入]\n用户说：xxx\n\n请分析...
+        // 特征：包含“用户说：”标记
+        int userInputIndex = contentForExtraction.indexOf("用户说：");
+        if (userInputIndex >= 0) {
+            // 提取“用户说：”后面的内容，直到遇到空行或特定指令词
+            String afterMarker = contentForExtraction.substring(userInputIndex + "用户说：".length());
+            
+            // 查找结束位置：空行（\n\n）或“请分析”等指令词
+            int endPosition = afterMarker.length(); // 默认到结尾
+            
+            // 查找空行
+            int doubleNewline = afterMarker.indexOf("\n\n");
+            if (doubleNewline >= 0 && doubleNewline < endPosition) {
+                endPosition = doubleNewline;
+            }
+            
+            // 查找“请分析”（意图识别的指令词）
+            int pleaseAnalyze = afterMarker.indexOf("请分析");
+            if (pleaseAnalyze >= 0 && pleaseAnalyze < endPosition) {
+                endPosition = pleaseAnalyze;
+            }
+            
+            contentForExtraction = afterMarker.substring(0, endPosition).trim();
+            
+            // 直接返回用户真实输入，不再进行后续处理
+            int keywordTopK = configManager.getKeywordTopK();
+            return ChineseTextUtil.toSearchQuery(contentForExtraction, keywordTopK);
+        }
+
+        // ========== 场景 2：LLM 总结分析 ==========
+        // 提示词格式：[用户输入]\nxxx\n\n[执行结果]\n...\n\n[统计]\n...\n\n【回复要求】\n...
+        // 特征：包含 analysis_prompt_suffix（如“【回复要求】”）
         String suffix = plugin.getConfigManager().getAgentAnalysisPromptSuffix();
         if (suffix != null && !suffix.isEmpty()) {
             int suffixIndex = userMessage.indexOf(suffix);
             if (suffixIndex > 0) {
+                // 截取 suffix 之前的内容（包含用户输入和执行结果）
                 contentForExtraction = userMessage.substring(0, suffixIndex);
             }
         }
 
         // 检测统一格式标记（AnalysisSummary 产生的格式）
+        // 提取 [用户输入] 和 [执行结果] 部分，去除结构化标记
         contentForExtraction = extractCleanContent(contentForExtraction);
 
         // 使用配置的 topK 参数
@@ -250,7 +284,7 @@ public class GenericLLMProvider implements LLMProvider {
                     if (knowledgeRetriever != null) {
                         // 提取搜索查询关键词
                         String searchQuery = extractSearchQuery(userMessage);
-                        
+
                         // 检索相关知识
                         var relevantKnowledge = knowledgeRetriever.retrieveKnowledge(searchQuery);
 

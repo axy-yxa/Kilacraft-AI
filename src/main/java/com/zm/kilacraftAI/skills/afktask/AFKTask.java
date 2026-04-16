@@ -2,8 +2,13 @@ package com.zm.kilacraftAI.skills.afktask;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.enums.OutputScenario;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
+import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
 import lombok.Getter;
+import org.bukkit.entity.Player;
 
+import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.UUID;
 
@@ -170,6 +175,32 @@ public abstract class AFKTask {
             // 使用统一响应管线（挂机任务回调场景）
             plugin.getResponsePipeline().send(player, message, OutputScenario.AFK_CALLBACK);
         }
+    }
+
+    /**
+     * 通过 LLM 二次分析通知玩家（用于纯通知模式）
+     *
+     * <p>将事件信息构建为 AnalysisSummary，通过中间层进行 LLM 二次分析后输出</p>
+     *
+     * @param eventDescription 事件描述（面向 LLM，不是面向玩家）
+     */
+    protected void notifyWithLLMAnalysis(String eventDescription) {
+        if (playerUUID == null) return;
+        Player player = plugin.getServer().getPlayer(playerUUID);
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+
+        // 构建结构化摘要（面向 LLM）
+        AnalysisSummary summary = new AnalysisSummary().userMessage(description).addResult("SUCCESS", eventDescription).statistics(1, 0, 0);
+
+        // 构建上下文
+        SkillContext context = new SkillContext(player, description, params);
+
+        // 通过中间层输出（不显示占位符）
+        LLMOutputCoordinator coordinator = plugin.getLlmOutputCoordinator();
+        coordinator.outputAnalysisResult(player, summary, context, new ArrayDeque<>(), OutputScenario.AFK_CALLBACK, false  // 挂机任务回调不显示占位符
+        );
     }
 
     /**

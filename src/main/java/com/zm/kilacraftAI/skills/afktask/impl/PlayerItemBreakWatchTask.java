@@ -2,17 +2,16 @@ package com.zm.kilacraftAI.skills.afktask.impl;
 
 import com.google.gson.Gson;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTask;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskCallback;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskStatus;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskType;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.task.LLMAnalysisService;
+import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
-import com.zm.kilacraftAI.util.MessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -26,6 +25,7 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 玩家物品损坏挂机任务
@@ -72,6 +72,11 @@ public class PlayerItemBreakWatchTask extends AFKTask implements Listener {
      * 是否已注册事件监听器
      */
     private boolean listenerRegistered = false;
+
+    /**
+     * 回调执行标志（防止并发重复执行）
+     */
+    private final AtomicBoolean callbackExecuted = new AtomicBoolean(false);
 
     /**
      * 构造玩家物品损坏挂机任务
@@ -133,6 +138,11 @@ public class PlayerItemBreakWatchTask extends AFKTask implements Listener {
             return;
         }
 
+        // 原子操作：只有第一个线程能执行回调，防止并发冲突
+        if (!callbackExecuted.compareAndSet(false, true)) {
+            return; // 已经被其他线程执行
+        }
+
         // 检查是否是目标玩家
         ItemStack brokenItem = event.getBrokenItem();
         String itemName = getItemName(brokenItem);
@@ -147,8 +157,8 @@ public class PlayerItemBreakWatchTask extends AFKTask implements Listener {
             complete("目标玩家 " + brokenItemPlayerName + " 的物品 " + itemName + " 已损坏，开始执行回调。");
             executeCallback(brokenItemPlayerName, itemName, itemType);
         } else {
-            // 纯通知模式：直接通知玩家
-            notifyPlayer("§a§l🔔 挂机任务完成\n\n" + "§f• 目标玩家：§e" + brokenItemPlayerName + "\n" + "§f• 状态：§c物品损坏\n" + "§f• 物品：§e" + itemName + "\n\n" + "§f" + brokenItemPlayerName + " 的 " + itemName + " 坏了！");
+            // 纯通知模式：通过 LLM 二次分析通知
+            notifyWithLLMAnalysis("目标玩家 " + brokenItemPlayerName + " 的物品 " + itemName + " 已损坏");
             complete("目标玩家 " + brokenItemPlayerName + " 的物品 " + itemName + " 已损坏，挂机任务完成。");
         }
     }
@@ -193,19 +203,25 @@ public class PlayerItemBreakWatchTask extends AFKTask implements Listener {
             // 4. 延迟反馈优化：不传入对话历史
             Deque<ConversationManager.Message> history = new java.util.ArrayDeque<>();
 
-            // 5. 执行多步骤任务
-            TaskExecutor executor = new TaskExecutor(KilacraftAI.getInstance().getSkillManager(), new LLMAnalysisService());
+            // 5. 执行多步骤任务（TaskExecutor 返回 AnalysisSummary）
+            TaskExecutor executor = new TaskExecutor(KilacraftAI.getInstance().getSkillManager());
 
-            CompletableFuture<SkillResult> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
+            CompletableFuture<AnalysisSummary> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
 
-            // 注意：任务已在调用方通过 complete() 完成，此处仅做通知
-            future.thenAccept(result -> {
-                // 通知玩家
-                notifyCallbackResult(triggeredPlayerName, itemName, result);
+            // 6. 处理执行结果：通过中间层进行LLM二次分析并输出
+            future.thenAccept(summary -> {
+                plugin.getLlmOutputCoordinator().outputAnalysisResult(
+                    creatorPlayer, summary, context, history,
+                    OutputScenario.AFK_CALLBACK,
+                    false
+                );
             }).exceptionally(ex -> {
                 KilacraftAI.getInstance().getLogger().severe("[挂机任务] 回调任务执行异常: " + ex.getMessage());
                 ex.printStackTrace();
-                notifyPlayer("§c回调任务执行失败：" + ex.getMessage());
+                Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
+                if (errorPlayer != null && errorPlayer.isOnline()) {
+                    KilacraftAI.getInstance().getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
+                }
                 return null;
             });
         } catch (Exception e) {
@@ -229,35 +245,6 @@ public class PlayerItemBreakWatchTask extends AFKTask implements Listener {
                         .replace("{item_type}", itemType);
             });
         });
-    }
-
-    /**
-     * 通知回调结果
-     */
-    private void notifyCallbackResult(String triggeredPlayerName, String itemName, SkillResult result) {
-        String notificationMessage;
-        if (result.isSuccess()) {
-            notificationMessage = "§a§l🔔 挂机任务提醒\n\n" +
-                    MessageUtil.convertMarkdownToMinecraft(result.getMessage());
-        } else {
-            notificationMessage = "§c⚠️ 挂机任务提醒\n\n" +
-                    "挂机任务触发，但回调执行失败：" + result.getMessage();
-        }
-
-        // 判断通知目标
-        String notifyTarget = callback.getNotifyTarget();
-        if (notifyTarget == null || notifyTarget.isEmpty() || "{creator}".equalsIgnoreCase(notifyTarget)) {
-            // 通知创建者
-            notifyPlayer(notificationMessage);
-        } else {
-            // 通知指定玩家
-            Player targetPlayer = Bukkit.getPlayerExact(notifyTarget);
-            if (targetPlayer != null && targetPlayer.isOnline()) {
-                targetPlayer.sendMessage(notificationMessage);
-            } else {
-                notifyPlayer("§c⚠️ 挂机任务提醒\n\n通知目标玩家 " + notifyTarget + " 不在线。");
-            }
-        }
     }
 
     @Override

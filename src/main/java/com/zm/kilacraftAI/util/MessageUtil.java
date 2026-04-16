@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.util;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.enums.OutputChannel;
+
 import java.util.regex.Pattern;
 
 import org.bukkit.command.CommandSender;
@@ -73,28 +74,29 @@ public class MessageUtil {
         if (player == null || !player.isOnline()) {
             return;
         }
-    
+
         KilacraftAI plugin = KilacraftAI.getInstance();
         if (plugin == null) {
             // 降级处理：直接发送到 CHAT
             player.sendMessage(getFullThinkingMessage());
             return;
         }
-    
+
         OutputConfigManager outputConfigManager = plugin.getConfigManager().getOutputConfigManager();
-            
+
         // 如果启用流式输出，立即显示流式占位符（窗口期管理）
         if (outputConfigManager.isStreamEnabled()) {
-            plugin.getStreamOutputManager().startGeneration(player);
+            OutputChannel channel = outputConfigManager.getThinkingChannel();
+            plugin.getStreamOutputManager().startGeneration(player, channel);
             return;
         }
-    
+
         // 使用配置的“正在思考”输出载体发送消息
         OutputChannel channel = outputConfigManager.getThinkingChannel();
         String message = getFullThinkingMessage();
-            
-        // 通过 AIResponsePipeline 的 MessageDispatcher 发送
-        plugin.getResponsePipeline().getDispatcher().dispatch(player, message, channel);
+
+        // 通过 AIResponsePipeline 发送思考消息（使用动态配置的载体）
+        plugin.getResponsePipeline().sendThinking(player, message, channel);
     }
 
     /**

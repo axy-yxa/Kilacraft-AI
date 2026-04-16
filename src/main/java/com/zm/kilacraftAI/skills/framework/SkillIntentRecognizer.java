@@ -136,8 +136,10 @@ public class SkillIntentRecognizer {
 //            plugin.getLogger().warning("[DEBUG] 动态构建系统提示词：" + systemPrompt);
 //        }
 
-        // 调用 LLM 进行意图识别（禁用知识检索，因为意图识别是分类任务，不需要知识增强）
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, systemPrompt, false, false).thenApply(this::parseIntentFromResponse);
+        // 调用 LLM 进行意图识别
+        // 优化：启用知识检索，支持命令文档等定制知识
+        // 注：经过优化，ChineseTextUtil 和 BM25 已支持短文本和英文命令名
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, systemPrompt, true, false).thenApply(this::parseIntentFromResponse);
     }
 
     /**

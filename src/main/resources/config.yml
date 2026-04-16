@@ -183,6 +183,17 @@ output:
   # 示例：default_channel=BOSS_BAR, thinking_channel=CHAT → 思考提示在聊天框，回复也在聊天框（如果 normal_chat=CHAT）
   thinking_channel: ""
   
+  # 流式输出配置（实时显示 AI 生成过程）
+  # 说明：
+  # 1. 启用后，AI 响应会逐字实时显示，而非等待完整响应
+  # 2. 窗口期管理：请求发起后立即显示“生成中...”占位符
+  # 3. 流式输出使用场景对应的载体（与最终结果一致）
+  # 4. 推荐载体：ACTION_BAR（最佳体验）或 BOSS_BAR（适合长文本）
+  # 5. CHAT 载体不推荐（会刷屏），TITLE 载体不适合（会闪烁）
+  stream:
+    # 是否启用流式输出（总开关）
+    enabled: false
+  
   # 场景级覆盖配置（可选，留空则使用 default_channel）
   # 场景说明：
   # - normal_chat: 普通 AI 对话（无技能调用）
@@ -219,8 +230,7 @@ output:
   
   # Scoreboard Sidebar 专属配置（仅当载体为 SIDEBAR 时生效）
   # 说明：
-  # - 支持最多 15 行，每行最多 128 字符（Minecraft 1.13+）
-  # - 自动分页：超过 15 行时自动拆分多页
+  # - 自动分页：超过 max_lines_per_page 行时自动拆分多页
   # - 持久显示：不遮挡游戏视野，适合长文本 AI 回复
   # 注意：
   # - 如果服务器有其他插件使用了 Scoreboard Sidebar（如计分板、排行榜等），可能会导致冲突
@@ -231,25 +241,16 @@ output:
   #   3. 或者联系其他插件作者，看是否支持配置到其他显示槽位
   sidebar:
     # 显示时长（秒），0=永久显示直到新消息覆盖
-    duration_seconds: 60
-  
-  # 流式输出配置（实时显示 AI 生成过程）
-  # 说明：
-  # 1. 启用后，AI 响应会逐字实时显示，而非等待完整响应
-  # 2. 窗口期管理：请求发起后立即显示"生成中..."占位符
-  # 3. 推荐载体：ACTION_BAR（最佳体验）或 BOSS_BAR（适合长文本）
-  # 4. CHAT 载体不推荐（会刷屏），TITLE 载体不适合（会闪烁）
-  # 5. 流式完成后，可选择是否保留最终结果到默认载体
-  stream:
-    # 是否启用流式输出（总开关）
-    enabled: false
-    # 流式输出使用的载体（推荐 ACTION_BAR 或 BOSS_BAR）
-    # 可选值: ACTION_BAR, BOSS_BAR, CHAT（不推荐）, TITLE（不推荐）
-    channel: ACTION_BAR
-    # 流式完成后是否保留最终结果到默认载体
-    # true: 流式结束后，在默认载体（CHAT/ACTION_BAR等）再显示一次完整内容
-    # false: 流式结束后，不重复显示（适合 ACTION_BAR/BOSS_BAR）
-    keep_final_in_default: true
+    duration_seconds: 15
+    
+    # 每页最大行数（Minecraft Sidebar 上限为 15）
+    # 建议值：10-15，值越大单页显示内容越多，但太高会影响游戏体验
+    max_lines_per_page: 15
+    
+    # 每行最大字符数
+    # 建议值：32-40，值越小 Sidebar 越窄，阅读体验越好
+    # AI 回复一般不超过 400 汉字，32 字符/行约需 12-13 行
+    max_chars_per_line: 32
 
 # ==================== 知识库配置 ====================
 # 知识库功能说明：

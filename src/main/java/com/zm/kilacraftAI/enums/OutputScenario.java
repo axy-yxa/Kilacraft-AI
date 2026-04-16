@@ -27,7 +27,7 @@ public enum OutputScenario {
 
     /**
      * 单意图技能执行结果
-     * <p>来源：handleSkillIntent() → SkillManager → LLMAnalysisService.analyzeResult()</p>
+     * <p>来源：handleSkillIntent() → SkillManager → LLMAnalysisService.analyzeResultWithHandler()</p>
      */
     SKILL_RESULT,
 

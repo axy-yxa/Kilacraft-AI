@@ -18,15 +18,17 @@ import java.util.concurrent.CompletableFuture;
  * 1. 拓扑排序：根据依赖关系确定执行顺序
  * 2. 逐步执行：按顺序执行每个步骤
  * 3. 上下文传递：将前置步骤的结果传递给后续步骤
- * 4. 结果汇总：LLM 分析所有步骤的结果并给出综合性回复
+ * 4. 结果汇总：返回 AnalysisSummary，由调用方通过 LLMOutputCoordinator 进行 LLM 二次分析
  */
-@RequiredArgsConstructor
 public class TaskExecutor {
 
     private final SkillManager skillManager;
-    private final LLMAnalysisService analysisService;
 
     private final KilacraftAI plugin = KilacraftAI.getInstance();
+
+    public TaskExecutor(SkillManager skillManager) {
+        this.skillManager = skillManager;
+    }
 
     /**
      * 执行任务计划
@@ -35,9 +37,9 @@ public class TaskExecutor {
      * @param baseContext 基础上下文
      * @param history     对话历史（用于二次分析时的上下文关联）
      * @param userMessage 用户的原始输入（用于构建统一的分析摘要）
-     * @return 最终执行结果
+     * @return AnalysisSummary（由调用方通过 LLMOutputCoordinator 进行 LLM 二次分析）
      */
-    public CompletableFuture<SkillResult> executeTask(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history, String userMessage) {
+    public CompletableFuture<AnalysisSummary> executeTask(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history, String userMessage) {
         if (plugin.getConfigManager().isDebugMode()) {
             plugin.getLogger().info("[DEBUG] 共 " + plan.getStepCount() + " 个步骤");
         }
@@ -45,7 +47,9 @@ public class TaskExecutor {
         // 多步骤任务：先进行拓扑排序
         List<TaskStep> sortedSteps = topologicalSort(plan);
         if (sortedSteps == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("任务计划存在循环依赖，无法执行"));
+            // 返回失败的 AnalysisSummary
+            AnalysisSummary errorSummary = new AnalysisSummary().userMessage(userMessage).taskGoal(plan.getGoal()).addResult("INIT", "FAILURE", "任务计划存在循环依赖，无法执行").statistics(0, 1, 0);
+            return CompletableFuture.completedFuture(errorSummary);
         }
 
         if (plugin.getConfigManager().isDebugMode()) {
@@ -63,20 +67,20 @@ public class TaskExecutor {
      * - 依赖未满足：记录失败原因，跳过该步骤，继续执行
      * - 占位符解析失败：记录失败原因，跳过该步骤，继续执行
      * - 技能执行失败：记录失败原因，继续执行下一步
-     * - 最终汇总时，LLM 会基于所有成功步骤的结果尽可能回答用户问题
+     * - 最终汇总时，返回 AnalysisSummary 由调用方进行 LLM 二次分析
      *
      * @param plan        任务计划
      * @param sortedSteps 已排序的步骤列表
      * @param stepIndex   当前执行的步骤索引
      * @param baseContext 基础上下文
      * @param history     对话历史
-     * @return 最终结果
+     * @return AnalysisSummary
      */
-    private CompletableFuture<SkillResult> executeSteps(TaskPlan plan, List<TaskStep> sortedSteps, int stepIndex, SkillContext baseContext, Deque<ConversationManager.Message> history, String userMessage) {
+    private CompletableFuture<AnalysisSummary> executeSteps(TaskPlan plan, List<TaskStep> sortedSteps, int stepIndex, SkillContext baseContext, Deque<ConversationManager.Message> history, String userMessage) {
 
         if (stepIndex >= sortedSteps.size()) {
             // 所有步骤执行完成，进行最终分析
-            return synthesizeResults(plan, baseContext, history, userMessage);
+            return synthesizeResults(plan, baseContext, userMessage);
         }
 
         TaskStep currentStep = sortedSteps.get(stepIndex);
@@ -321,13 +325,14 @@ public class TaskExecutor {
     }
 
     /**
-     * 汇总所有步骤的结果，使用 LLMAnalysisService 进行最终分析
+     * 汇总所有步骤的结果，返回 AnalysisSummary
      * <p>
      * 结果格式结构化，明确标记每个步骤的执行状态（SUCCESS/FAILURE/SKIPPED）
+     * 注意：不再直接调用 LLM 分析，而是返回 AnalysisSummary 由调用方处理
      */
-    private CompletableFuture<SkillResult> synthesizeResults(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history, String userMessage) {
+    public CompletableFuture<AnalysisSummary> synthesizeResults(TaskPlan plan, SkillContext baseContext, String userMessage) {
         if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 所有步骤执行完成，开始分析结果...");
+            plugin.getLogger().info("[DEBUG] 所有步骤执行完成，开始汇总结果...");
         }
 
         // 构建统一的分析摘要
@@ -364,6 +369,6 @@ public class TaskExecutor {
         }
         summary.statistics(success, failure, skipped);
 
-        return analysisService.analyzeResult(summary, baseContext, history);
+        return CompletableFuture.completedFuture(summary);
     }
 }

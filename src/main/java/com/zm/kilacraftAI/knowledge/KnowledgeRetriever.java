@@ -210,24 +210,28 @@ public class KnowledgeRetriever {
 
         long splitStartTime = System.currentTimeMillis();
 
-        // 策略 1: 按 Markdown 标题分割 (# 或 ## 等)
-        List<String> markdownChunks = splitByMarkdownHeaders(content);
-        if (!markdownChunks.isEmpty()) {
-            // 如果 Markdown 分割成功，检查每个块是否还需要进一步分割
-            for (String mdChunk : markdownChunks) {
-                if (mdChunk.length() > MAX_CHUNK_SIZE) {
-                    // 仍然太大，按段落分割
-                    chunks.addAll(splitByParagraphs(mdChunk));
-                } else if (mdChunk.length() >= MIN_CHUNK_SIZE) {
-                    chunks.add(mdChunk.trim());
+        // 策略 1: 按 Markdown 标题分割 (# 或 ## 等) - 仅对 .md 文件生效
+        boolean isMarkdownFile = fileName != null && fileName.toLowerCase().endsWith(".md");
+        
+        if (isMarkdownFile) {
+            List<String> markdownChunks = splitByMarkdownHeaders(content);
+            if (!markdownChunks.isEmpty()) {
+                // 如果 Markdown 分割成功，检查每个块是否还需要进一步分割
+                for (String mdChunk : markdownChunks) {
+                    if (mdChunk.length() > MAX_CHUNK_SIZE) {
+                        // 仍然太大，按段落分割
+                        chunks.addAll(splitByParagraphs(mdChunk));
+                    } else if (mdChunk.length() >= MIN_CHUNK_SIZE) {
+                        chunks.add(mdChunk.trim());
+                    }
                 }
-            }
 
-            if (knowledgeBase.isDebugMode()) {
-                long splitTime = System.currentTimeMillis() - splitStartTime;
-                knowledgeBase.logInfo("[DEBUG] [知识库分段] 文件：" + fileName + " - 使用 Markdown 标题分割，得到 " + chunks.size() + " 个片段，耗时 " + splitTime + "ms");
+                if (knowledgeBase.isDebugMode()) {
+                    long splitTime = System.currentTimeMillis() - splitStartTime;
+                    knowledgeBase.logInfo("[DEBUG] [知识库分段] 文件：" + fileName + " - 使用 Markdown 标题分割，得到 " + chunks.size() + " 个片段，耗时 " + splitTime + "ms");
+                }
+                return chunks;
             }
-            return chunks;
         }
 
         // 策略 2: 按段落分割（空行分隔）
@@ -252,6 +256,9 @@ public class KnowledgeRetriever {
 
     /**
      * 按 Markdown 标题分割（优化版：包含标题和内容）
+     * 
+     * <p><b>重要</b>：如果没有找到任何 Markdown 标题（#{1,6}），必须返回空列表，
+     * 让调用方降级使用策略 2（段落分割）。</p>
      */
     private List<String> splitByMarkdownHeaders(String content) {
         List<String> chunks = new ArrayList<>();
@@ -260,8 +267,13 @@ public class KnowledgeRetriever {
         Pattern pattern = Pattern.compile("^#{1,6}\\s+.*$", Pattern.MULTILINE);
         Matcher matcher = pattern.matcher(content);
 
+        // 检查是否找到至少一个标题
+        boolean foundAnyHeader = false;
         int lastEnd = 0;
+        
         while (matcher.find()) {
+            foundAnyHeader = true;  // 标记找到标题
+            
             int start = matcher.start();
             int end = matcher.end();
 
@@ -311,6 +323,11 @@ public class KnowledgeRetriever {
             }
 
             lastEnd = nextNewline;
+        }
+
+        // 如果没有找到任何 Markdown 标题，返回空列表（让策略 2 接管）
+        if (!foundAnyHeader) {
+            return chunks;  // 空列表
         }
 
         // 添加最后一部分
@@ -372,7 +389,13 @@ public class KnowledgeRetriever {
                 chunks.add(chunk);
             }
 
-            start = end - CHUNK_OVERLAP; // 添加重叠部分
+            // 关键修复：确保 start 每次都前进，避免无限循环
+            int nextStart = end - CHUNK_OVERLAP;
+            if (nextStart <= start) {
+                nextStart = end; // 如果重叠导致不前进，直接跳到 end
+            }
+            start = nextStart;
+            
             if (start >= content.length()) {
                 break;
             }

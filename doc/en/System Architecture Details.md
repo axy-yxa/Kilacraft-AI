@@ -62,21 +62,37 @@ User Input: "@ai What am I holding? How much can this sell for?"
       │  └─ Supports array index access: {step_1.warps[0].warp_name}
       └─ Return comprehensive result
   ↓
-【3b. Secondary Analysis Layer】LLMAnalysisService ✨ Knowledge Enhancement
-  ├─ Build analysis prompt:
-  │   ├─ [History] (Last N rounds of conversation)
-  │   ├─ [Execution Results] (Data returned by Skills)
-  │   └─ [Knowledge Context] ← New!
-  │        └─ Retrieve relevant knowledge snippets
-  │           (server rules, item descriptions, etc.)
-  ├─ Call LLM for comprehensive analysis
-  ├─ Generate natural language response
-  └─ Return SkillResult
+【3b. Secondary Analysis Layer】LLMOutputCoordinator ✨ Intermediate Coordination Layer
+  ├─ LLMAnalysisService.analyzeResultWithHandler() analyzes execution results
+  │   ├─ Build analysis prompt:
+  │   │   ├─ [History] (Last N rounds of conversation)
+  │   │   ├─ [Execution Results] (Structured data returned by Skills)
+  │   │   └─ [Knowledge Context]
+  │   │        └─ Retrieve relevant knowledge snippets
+  │   │           (server rules, item descriptions, etc.)
+  │   ├─ Call LLM for comprehensive analysis
+  │   └─ Generate natural language response
+  │
+  └─ LLMOutputCoordinator unified output scheduling ✨ New!
+      ├─ Automatically determine stream/non-stream output based on configuration
+      ├─ Stream mode:
+      │   ├─ Start AIResponsePipeline.startStream()
+      │   ├─ Receive LLM chunks in real-time → updateStream()
+      │   └─ Complete output → completeStream()
+      └─ Non-stream mode:
+          └─ Directly call AIResponsePipeline.send()
   ↓
-【4. Response Layer】
-  ├─ Save conversation to history
-  ├─ Display to player
-  └─ Complete
+【4. Response Layer】AIResponsePipeline ✨ Unified Output Pipeline
+  ├─ Select output carrier based on scenario (CHAT/ACTION_BAR/BOSS_BAR/TITLE/SIDEBAR)
+  ├─ Scenario configuration: NORMAL_CHAT / SKILL_RESULT / TASK_RESULT / AFK_CALLBACK / ERROR
+  ├─ Public broadcast: Unified CHAT carrier + AI prefix
+  ├─ Thinking message: Uses dynamically configured thinking_channel
+  ├─ Stream output (optional, all scenarios supported):
+  │   ├─ StreamOutputManager manages window period state (state machine: IDLE → GENERATING → COMPLETED)
+  │   ├─ Request initiates → Display "✍️ AI is generating..." placeholder
+  │   ├─ Receive SSE chunks → Real-time update ACTION_BAR/BOSS_BAR/SIDEBAR
+  │   └─ Stream complete → Decide whether to keep final result based on configuration
+  └─ MessageDispatcher intelligently routes to different carriers (encapsulated method, external calls prohibited)
 ```
 
 ### Key Features
@@ -86,6 +102,10 @@ User Input: "@ai What am I holding? How much can this sell for?"
 3. **Knowledge Enhancement**: Inject relevant knowledge during secondary analysis, improve accuracy
 4. **Failure Fallback**: Auto-convert to normal AI dialogue when intent recognition fails or Skill execution errors
 5. **Command Execution Fallback**: CommandSkill supports execution-type commands (e.g., /back, /spawn), covering Skill gaps
+6. **LLM Secondary Analysis Coordination Layer**: LLMOutputCoordinator unified scheduling of analysis + output, supports streaming
+7. **AI Response Unified Output Pipeline**: Supports 5 carriers, 5 scenario configurations, MessageDispatcher encapsulates output logic
+8. **Stream Output All-Scenario Coverage**: Normal chat/skill results/task results/AFK callbacks all support streaming, state machine prevents race conditions
+9. **Thinking Message Dynamic Configuration**: `output.thinking_channel` independently configured, not linked with scenario configuration
 
 ### Example Flow
 
@@ -244,5 +264,5 @@ Console: "/kilacraft plugins default Hello UUID callback_cmd"
 
 ---
 
-> **Last Updated**: 2026-04-14
-> **Compatible Version**: Kilacraft-AI v1.4.3+
+> **Last Updated**: 2026-04-16  
+> **Compatible Version**: Kilacraft-AI v1.4.5+

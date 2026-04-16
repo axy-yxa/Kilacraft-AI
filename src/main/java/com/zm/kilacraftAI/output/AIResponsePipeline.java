@@ -4,35 +4,20 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.enums.OutputChannel;
 import com.zm.kilacraftAI.enums.OutputScenario;
+import com.zm.kilacraftAI.manager.StreamOutputManager;
 import com.zm.kilacraftAI.util.MessageUtil;
 import lombok.Getter;
 import org.bukkit.entity.Player;
 
 /**
- * AI 响应输出管线（核心组件）
+ * AI 响应输出管线
  *
  * <p>统一所有 AI 回复的输出入口，实现：</p>
  * <ul>
  *   <li>阶段1：格式化 - Markdown 转 Minecraft 格式 + 前缀</li>
  *   <li>阶段2：路由 - 根据场景配置选择输出载体</li>
  *   <li>阶段3：输出 - 通过 MessageDispatcher 分发到具体载体</li>
- * </ul>
- *
- * <h3>覆盖的输出点（重构前）：</h3>
- * <ol>
- *   <li>PlayerResponseHandler.showResponse() - 普通对话</li>
- *   <li>AIRequestHandler.ctx.sendResponse - 多步骤任务</li>
- *   <li>LLMAnalysisService 匿名 Handler - 单意图二次分析</li>
- *   <li>AFKTask.notifyPlayer() - 挂机任务通知</li>
- *   <li>AFKTask.notifyCallbackResult() - 挂机任务回调</li>
- * </ol>
- *
- * <h3>设计原则：</h3>
- * <ul>
- *   <li>向后兼容：默认 CHAT 载体，行为与原有代码完全一致</li>
- *   <li>单一职责：只负责输出，不关心业务逻辑</li>
- *   <li>配置驱动：输出载体由 config.yml 决定，代码无硬编码</li>
- *   <li>易于扩展：新增载体只需改 MessageDispatcher</li>
+ *   <li>流式输出管理 - 统一管理流式状态和输出</li>
  * </ul>
  *
  * @author Zm_Mmm
@@ -42,8 +27,9 @@ public class AIResponsePipeline {
 
     private final KilacraftAI plugin;
     private final OutputConfigManager config;
+    private final StreamOutputManager streamOutputManager;
     /**
-     * 消息分发器（用于高级场景）
+     * 消息分发器
      */
     @Getter
     private final MessageDispatcher dispatcher;
@@ -52,6 +38,7 @@ public class AIResponsePipeline {
         this.plugin = plugin;
         this.config = plugin.getConfigManager().getOutputConfigManager();
         this.dispatcher = new MessageDispatcher(plugin);
+        this.streamOutputManager = plugin.getStreamOutputManager();
     }
 
     /**
@@ -93,14 +80,116 @@ public class AIResponsePipeline {
     }
 
     /**
+     * 发送思考消息到玩家（使用动态配置的载体）
+     *
+     * <p>思考消息的载体由 config.yml 中的 thinking_channel 配置决定，</p>
+     * <p>不使用场景级配置，而是直接使用指定的载体。</p>
+     *
+     * @param player  目标玩家
+     * @param message 思考消息（已格式化）
+     * @param channel 输出载体（由调用方传入配置值）
+     */
+    public void sendThinking(Player player, String message, OutputChannel channel) {
+        if (player == null || message == null) {
+            return;
+        }
+        dispatcher.dispatch(player, message, channel);
+    }
+
+    /**
+     * 启动流式输出（显示"生成中..."占位符）
+     *
+     * <p>在 LLM 请求开始时调用，显示占位符并设置 GENERATING 状态</p>
+     *
+     * @param player  目标玩家
+     * @param channel 输出载体（由调用方传入场景配置）
+     */
+    public void startStream(Player player, OutputChannel channel) {
+        startStream(player, channel, false);
+    }
+
+    /**
+     * 启动流式输出
+     *
+     * @param player  目标玩家
+     * @param channel 输出载体（由调用方传入场景配置）
+     * @param silent  是否静默启动（不显示占位符，仅初始化状态机）
+     */
+    public void startStream(Player player, OutputChannel channel, boolean silent) {
+        if (player == null || !config.isStreamEnabled()) {
+            return;
+        }
+        streamOutputManager.startGeneration(player, channel, silent);
+    }
+
+    /**
+     * 更新流式输出内容
+     *
+     * <p>LLM 流式响应中，每收到一个 chunk 调用一次</p>
+     *
+     * @param player         目标玩家
+     * @param chunk          当前片段
+     * @param currentMessage 累积的完整消息
+     * @param channel        输出载体（由调用方传入场景配置）
+     */
+    public void updateStream(Player player, String chunk, String currentMessage, OutputChannel channel) {
+        if (player == null || !config.isStreamEnabled()) {
+            return;
+        }
+        streamOutputManager.updateStreamChunk(player, chunk, currentMessage, channel);
+    }
+
+    /**
+     * 完成流式输出
+     *
+     * <p>LLM 响应完成后调用，设置 COMPLETED 状态并发送最终消息</p>
+     *
+     * @param player       目标玩家
+     * @param finalMessage 最终完整消息
+     * @param scenario     输出场景（用于场景级载体配置）
+     */
+    public void completeStream(Player player, String finalMessage, OutputScenario scenario) {
+        if (player == null || !config.isStreamEnabled()) {
+            return;
+        }
+
+        // 完成流式状态机（清理占位符）
+        streamOutputManager.completeGeneration(player, finalMessage);
+
+        // 发送最终消息到场景对应的载体
+        send(player, finalMessage, scenario);
+    }
+
+    /**
+     * 取消流式输出（异常场景）
+     *
+     * @param player 目标玩家
+     */
+    public void cancelStream(Player player) {
+        if (player == null || !config.isStreamEnabled()) {
+            return;
+        }
+        streamOutputManager.cancelGeneration(player);
+    }
+
+    /**
+     * 获取场景对应的输出载体
+     *
+     * @param scenario 输出场景
+     * @return 载体类型
+     */
+    public OutputChannel getChannelForScenario(OutputScenario scenario) {
+        return config.getChannelForScenario(scenario);
+    }
+
+    /**
      * 公屏广播（关键词触发 public_reply=true 时使用）
      *
-     * <p>固定使用 CHAT 载体 + 前缀，因为 ActionBar/BossBar/Title 都是玩家私有的</p>
+     * <p>强制使用 CHAT 载体，因为其他载体（BOSSBAR/SIDEBAR/TITLE/ACTIONBAR）都是玩家私有的，会互相覆盖</p>
      *
      * @param rawMessage 原始消息
-     * @param scenario   输出场景
      */
-    public void broadcast(String rawMessage, OutputScenario scenario) {
+    public void broadcast(String rawMessage) {
         if (rawMessage == null) {
             return;
         }
@@ -108,13 +197,16 @@ public class AIResponsePipeline {
         // 阶段1: 格式化（公屏广播始终应用前缀）
         String formatted = formatMessage(rawMessage, true);
 
-        // 阶段2: 固定使用 CHAT 载体
+        // 阶段2: 强制使用 CHAT 载体（避免覆盖其他玩家的私有载体）
         OutputChannel channel = OutputChannel.CHAT;
 
         // 阶段3: 输出到所有在线玩家
         for (Player onlinePlayer : plugin.getServer().getOnlinePlayers()) {
             dispatcher.dispatch(onlinePlayer, formatted, channel);
         }
+
+        // 阶段4: 记录日志
+        plugin.getLogger().info("[AI] " + rawMessage);
     }
 
     /**
