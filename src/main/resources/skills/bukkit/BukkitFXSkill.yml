@@ -1,0 +1,35 @@
+# BukkitFXSkill 技能配置
+# 音效与粒子效果技能：播放音效或显示粒子效果（仅调用者听到/看到）
+# 用于：任务完成庆祝、警告提示、氛围营造
+
+# 此描述会发送给LLM，帮助其理解何时调用此技能
+description: '播放音效或显示粒子效果（仅自己听到/看到）。完整枚举列表已写入知识库，系统会在意图识别阶段自动检索提供参考。用于任务完成庆祝、警告提示、氛围营造等场景。'
+
+# 动作描述（Map 格式，key=动作名称，value=动作描述）
+# 每个动作的描述会发送给LLM，帮助其选择正确的action并提取参数
+action_descriptions:
+  play_sound: '播放Minecraft音效（仅自己听到）。需要参数：sound（音效枚举名称）、volume（音量0.0-1.0，默认1.0）、pitch（音调0.5-2.0，默认1.0）。音效枚举名称会通过知识库检索提供参考。'
+  spawn_particle: '显示粒子效果（仅自己看到）。需要参数：particle（粒子枚举名称）、count（数量1-100，默认10）、offset_x/y/z（扩散范围0.0-2.0，默认0.5）。粒子枚举名称会通过知识库检索提供参考。'
+
+# 额外提示信息（用于指导 LLM 正确使用技能）
+hints:
+  - "**枚举获取**：音效和粒子枚举名称已通过知识库检索提供，直接使用检索结果中的枚举值即可。"
+  - "**参数范围**：音量0.0-1.0，音调0.5-2.0，粒子数量1-100，扩散范围0.0-2.0。"
+
+# 返回消息模板（支持自定义 value，key 是预定义的）
+# 支持变量占位符：{sound}, {particle}, {volume}, {pitch}, {count}, {error}
+response_messages:
+  # 通用消息
+  unknown_action: "抱歉，我还不会播放其他音效或粒子效果。你可以让我：播放升级音效、显示爱心粒子等"
+  execute_error: "执行失败：{error}"
+  
+  # 播放音效
+  sound_missing: "请指定要播放的音效名称，例如：播放升级音效"
+  sound_invalid: "无效的音效名称：{sound}"
+  sound_success: "已播放音效：{sound}（音量：{volume}，音调：{pitch}）"
+  
+  # 显示粒子
+  particle_missing: "请指定要显示的粒子效果名称，例如：显示爱心粒子"
+  particle_invalid: "无效的粒子名称：{particle}"
+  particle_success: "已显示粒子效果：{particle}（数量：{count}，扩散范围：{offset_x}）"
+

@@ -14,6 +14,7 @@ import com.zm.kilacraftAI.output.AIResponsePipeline;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskListener;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
+import com.zm.kilacraftAI.skills.bukkit.BukkitFXSkill;
 import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
 import com.zm.kilacraftAI.skills.cmi.CMISkill;
 import com.zm.kilacraftAI.skills.command.CommandSkill;
@@ -240,6 +241,9 @@ public final class KilacraftAI extends JavaPlugin {
     private void registerDefaultSkills() {
         // 注册通用 Bukkit API 执行器（数据驱动的原版功能调用)
         skillManager.registerSkill(new GenericBukkitAPISkill());
+
+        // 注册音效与粒子效果技能
+        skillManager.registerSkill(new BukkitFXSkill());
 
         // 注册挂机任务技能
         if (configManager.isAfkTaskEnabled()) {

@@ -55,7 +55,12 @@ public enum PluginPermissionEnum {
     /**
      * CMI 传送功能（回家、地标传送、传送请求等）
      */
-    CMI_TELEPORT("kilacraft.cmi.teleport");
+    CMI_TELEPORT("kilacraft.cmi.teleport"),
+
+    /**
+     * Bukkit 音效与粒子效果（播放音效/显示粒子）
+     */
+    BUKKIT_FX("kilacraft.bukkit_fx");
 
     /**
      * 权限节点
