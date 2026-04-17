@@ -330,6 +330,31 @@
 
 ---
 
+## 安全拦截器
+
+Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityFilter），在所有 Skill 执行前自动扫描参数中的玩家名，保护玩家数据不被恶意 Skill 访问或篡改。
+
+### 核心机制
+
+- **Value 扫描 + 消毒**: 直接扫描 Skill 参数中所有值，检测到在线玩家名时校验权限
+- **非合作式**: 不依赖 Skill 声明，直接检测实际传递的数据值
+- **自动消毒**: 校验不通过时替换为当前玩家名，Skill 继续执行而非阻断
+
+### 内置 Skill 白名单
+
+| Skill/动作 | 白名单类型 | 说明 |
+|-----------|-----------|------|
+| `cmi.send_tp_request` | 动作级 | CMI 传送请求（TPA），允许向其他玩家发送传送请求 |
+| `AFKTask.create_task` | 动作级 | AFK 任务可监听其他玩家事件 |
+| `command.execute_command` | 动作级 | 命令以玩家身份执行，权限边界 = 玩家自身权限 |
+
+### 第三方 Skill 防护
+
+- 即使第三方 Skill 尝试操作其他玩家，安全过滤器会自动消毒（替换为当前玩家名）
+- 建议服主在安装第三方 Skill 前审查代码，确认其行为符合预期
+
+---
+
 ## Bukkit Event 监听器清单
 
 ### S 级监听器（7 个）
@@ -433,8 +458,8 @@
 
 ---
 
-> **最后更新**: 2026-04-16
+> **最后更新**: 2026-04-17  
 > **插件版本**: 1.4.5+  
-> **Skill 总数**: 5 个（AFKTaskSkill、GenericBukkitAPI、CMISkill、CommandSkill、MarketQuerySkill）  
-> **API 动作总数**: 60+ 个（GenericBukkitAPI）+ 8 个（CMISkill）+ 7 个（MarketQuerySkill）  
+> **Skill 总数**: 6 个（AFKTaskSkill、GenericBukkitAPI、CMISkill、CommandSkill、BukkitFXSkill、MarketQuerySkill）  
+> **API 动作总数**: 60+ 个（GenericBukkitAPI）+ 8 个（CMISkill）+ 2 个（BukkitFXSkill）+ 7 个（MarketQuerySkill）  
 > **Event 监听器总数**: 11 个（S 级 7 个 + A 级 4 个）

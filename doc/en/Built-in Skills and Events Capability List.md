@@ -330,6 +330,31 @@ Player: Show some heart particles
 
 ---
 
+## Security Interceptor
+
+Kilacraft-AI v1.4.5 introduces a **non-cooperative security filtering mechanism** (SkillSecurityFilter) that automatically scans player names in parameters before every Skill execution, protecting player data from being accessed or tampered with by malicious Skills.
+
+### Core Mechanism
+
+- **Value Scanning + Sanitization**: Directly scans all values in Skill parameters, validates permissions when online player names are detected
+- **Non-Cooperative**: Does not rely on Skill declarations, directly detects actual transmitted data values
+- **Automatic Sanitization**: Replaces with current player name if validation fails, Skill continues execution instead of being blocked
+
+### Built-in Skill Whitelist
+
+| Skill/Action | Whitelist Type | Description |
+|-------------|---------------|-------------|
+| `cmi.send_tp_request` | Action-level | CMI teleport request (TPA), allows sending teleport requests to other players |
+| `AFKTask.create_task` | Action-level | AFK tasks can monitor other players' events |
+| `command.execute_command` | Action-level | Commands execute as player identity, permission boundary = player's own permissions |
+
+### Third-Party Skill Protection
+
+- Even if third-party Skills attempt to operate on other players, the security filter will automatically sanitize (replace with current player name)
+- Server administrators are advised to review code before installing third-party Skills to ensure behavior meets expectations
+
+---
+
 ## Bukkit Event Listener List
 
 ### S-Level Listeners (7)
@@ -433,8 +458,8 @@ Player: Show some heart particles
 
 ---
 
-> **Last Updated**: 2026-04-14
-> **Plugin Version**: 1.4.5+
-> **Total Skills**: 5 (AFKTaskSkill, GenericBukkitAPI, CMISkill, CommandSkill, MarketQuerySkill)
-> **Total API Actions**: 60+ (GenericBukkitAPI) + 8 (CMISkill) + 7 (MarketQuerySkill)
+> **Last Updated**: 2026-04-17  
+> **Plugin Version**: 1.4.5+  
+> **Total Skills**: 6 (AFKTaskSkill, GenericBukkitAPI, CMISkill, CommandSkill, BukkitFXSkill, MarketQuerySkill)  
+> **Total API Actions**: 60+ (GenericBukkitAPI) + 8 (CMISkill) + 2 (BukkitFXSkill) + 7 (MarketQuerySkill)  
 > **Total Event Listeners**: 11 (S-level 7 + A-level 4)
