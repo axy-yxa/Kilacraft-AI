@@ -7,9 +7,9 @@ description: "查询CMI插件信息和执行传送操作。包括查询玩家的
 # 动作描述（Map 格式，key=动作名称，value=动作描述）
 # 每个动作的描述会发送给LLM，帮助其选择正确的action并提取参数
 action_descriptions:
-  query_homes: "查询玩家自己的家列表，返回每个家的名称和坐标。返回的 data 中包含 homes 字段（家数组，每个家包含 home_name、world、x、y、z 字段）。当用户问'我的家'、'我有哪些家'、'家列表'时使用"
+  query_homes: "【仅查询自己】查询玩家自己的家列表，返回每个家的名称和坐标。返回的 data 中包含 homes 字段（家数组，每个家包含 home_name、world、x、y、z 字段）。当用户问'我的家'、'我有哪些家'、'家列表'时使用"
   query_warps: "查询服务器公共地标列表，返回每个地标的名称和坐标。返回的 data 中包含 warps 字段（地标数组，每个地标包含 warp_name、world、x、y、z 字段）。当用户问'地标'、'warp列表'、'有哪些地标可以传送'时使用"
-  query_player_info: "查询指定玩家的CMI增强信息（游戏时长、AFK状态、隐身状态、飞行状态、游戏模式等）。需要参数：target_player（目标玩家名称，不填则查询自己）。当用户问'某玩家在线多久了'、'某玩家是否AFK'、'某玩家是否隐身'时使用"
+  query_player_info: "【仅查询自己】查询玩家自己的CMI增强信息（游戏时长、AFK状态、隐身状态、飞行状态、游戏模式等）。当用户问'我在线多久了'、'我是否AFK'、'我是否隐身'时使用"
   query_kits: "查询服务器可用的套装列表。当用户问'有什么套装'、'礼包列表'、'kit列表'时使用"
   query_online_players: "查询在线玩家列表（CMI增强版，包含AFK状态和隐身状态标记）。返回的 data 中包含 players 字段（玩家列表，每个玩家包含 name、afk、vanished 字段），可供后续步骤引用。当用户问'谁在线'、'在线玩家'、'哪些人在线且不是AFK'时使用"
   teleport_home: "传送到玩家自己的家。需要参数：home_name（家的名称）。**前置条件**：必须先调用 query_homes 获取家列表，从返回的 data.homes 中选择 home_name 字段作为参数。**重要**：如果用户未指定家名（如'回家'、'传送到家'），必须识别为多步骤任务（先query_homes再teleport_home），绝不能作为单意图调用。如果用户只有1个家则自动选择；如果有多个家则列出供用户选择。需要 kilacraft.cmi.teleport 权限"

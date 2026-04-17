@@ -109,6 +109,7 @@ When these plugins are not installed, corresponding features are automatically d
 - **Plugin Command Mode**: Console commands with callback support
 - **Bukkit Event Integration**: Real-time AI response notifications
 - **Complete Documentation**: SPI guide, examples, and best practices
+- **Non-Cooperative Security Filter**: Value scanning + sanitization, protects player data from malicious skills
 
 ---
 

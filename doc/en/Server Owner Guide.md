@@ -891,23 +891,57 @@ For more technical details, please check [Personality System Configuration Guide
 
 ## ⚠️ Security and Permission Management
 
-### Built-in Skill Security
+### Skill Security Interceptor
 
-All Skills built into Kilacraft-AI follow **security first** principle:
+Kilacraft-AI includes a **non-cooperative security filtering mechanism** (SkillSecurityFilter) that protects player data from being accessed or tampered with by malicious Skills.
+
+#### Core Design: Value Scanning + Sanitization
+
+The security interceptor **automatically runs before every Skill execution** and cannot be skipped. It does not rely on Skill's "cooperative declaration", but directly scans all values (Values) in Skill parameters to detect if they contain other online players' names:
+
+| Detection Scenario | Handling |
+|----------|----------|
+| Parameter value = current player's own name | ✅ Direct allow |
+| Parameter value = other online player name + in whitelist | ✅ Whitelist allow |
+| Parameter value = other online player name + not in whitelist | 🔄 Sanitize: auto-replace with current player name, Skill continues execution |
+
+**Why non-cooperative?** Malicious Skills may tamper with their parameter declarations to bypass checks. The non-cooperative approach directly scans actual transmitted data values — regardless of how the Skill declares, as long as the Value is an online player name, it will be detected.
+
+#### Whitelist Mechanism
+
+Some Skills need to operate on other players (such as CMI's TPA teleport requests, AFK monitoring tasks), and these Skills are allowed through the whitelist:
+
+```yaml
+# Configure in config.yml
+security:
+  player_isolation:
+    enabled: true                    # Master switch
+    allowed_actions:
+      - "cmi.send_tp_request"        # CMI teleport request (TPA)
+      - "AFKTask.create_task"        # AFK tasks (can monitor other players)
+      - "command.execute_command"    # Command execution (executes as player, permission boundary = player's own)
+```
+
+Whitelist supports two formats:
+- `"skill_name.action_name"`: Action-level whitelist (e.g., `cmi.send_tp_request`)
+- `"skill_name"`: Skill-level whitelist (allows all actions of that Skill)
+
+Supports `/kilacraft reload` hot update, no server restart required.
+
+#### Built-in Skill Security
+
+All Skills built into Kilacraft-AI have undergone strict security review:
 
 | Skill Name | Function | Security |
-|-----------|----------|----------|
+|-----------|------|--------|
 | **MarketQuerySkill** | Query market info (balance, prices, product lists, etc.) | ✅ Read-only, won't consume items or money |
 | **GenericBukkitAPISkill** | Query player status, world info, server info | ✅ Read-only, only calls getter methods |
-| **AFKTaskSkill** | Create background monitoring tasks (online, offline, death, etc.) | ✅ Only registers event listeners, doesn't modify game state |
+| **AFKTaskSkill** | Create background monitoring tasks (online, offline, death, etc.) | ✅ Allowed through whitelist, CUSTOM type has concurrency re-entry protection |
+| **CMISkill** | CMI plugin feature integration (teleport, homes, warps, etc.) | ✅ Allowed through whitelist, teleport operations use TPA request mode |
+| **CommandSkill** | Execute server commands as player | ✅ Allowed through whitelist, fully inherits server permission system (permissions player doesn't have, AI cannot bypass) |
+| **BukkitFXSkill** | Play sound effects/show particle effects | ✅ Only visible/audible to caller, doesn't affect other players |
 
-**Why Secure?**
-- 📖 **Read-Only Operations**: All built-in Skills only query information, don't modify any game data
-- 🔒 **Permission Control**: Each API has independent permission nodes, can be finely controlled through permission plugins
-- 🛡️ **Error Isolation**: Even if a Skill execution fails, it won't affect other functions
-- 📝 **Transparent**: All Skill definitions are in YAML files under `skills/` directory, can be reviewed anytime
-
-### Third-Party Skill Risk Warning
+#### Third-Party Skill Risk Warning
 
 If you install Skills developed by third-party plugins, please note:
 
@@ -922,6 +956,7 @@ If you install Skills developed by third-party plugins, please note:
 3. **Test Environment Verification**: First verify functionality is normal and safe on test server
 4. **Minimum Permissions**: Limit who can use which Skills through permission plugins
 5. **Monitor Logs**: Regularly check console logs, handle anomalies promptly
+6. **Security Interceptor Fallback**: Even if third-party Skill attempts to operate on other players, security filter will automatically sanitize (replace with current player name)
 
 **Advice for Developers:**
 If you're a plugin developer, please follow these principles when developing Skills:

@@ -10,6 +10,11 @@ import java.util.concurrent.CompletableFuture;
  *
  * <p>所有技能实现都必须实现此接口</p>
  *
+ * <h3>安全规范：玩家数据隔离</h3>
+ * <p>安全拦截器({@link SkillSecurityFilter})始终运行,不可跳过。</p>
+ * <p>拦截器扫描entities中所有Value,如果某个Value匹配在线玩家名且不是当前玩家自己,
+ * 则自动消毒(替换为当前玩家名)。这是非合作式安全机制,无法通过Skill声明绕过。</p>
+ *
  * @author Zm_Mmm
  * @since 2026-03-30
  */

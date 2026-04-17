@@ -9,6 +9,14 @@ This file records all important changes to the Kilacraft-AI plugin.
 ## v1.4.5 - Folia/lophine Thread Safety, Stream Output Feature, AI Response Pipeline Refactor, SIDEBAR Carrier
 
 ### ✨ New Features
+- **Non-Cooperative Skill Security Filter**: Value scanning + sanitization for player data isolation
+  - Interceptor always runs and cannot be skipped, independent of Skill parameter declarations (non-cooperative)
+  - Directly scans all Values in entities, validates against online player names
+  - Validation failure → Sanitization (auto-replace with current player name), Skill continues execution instead of blocking
+  - Whitelist mechanism: config.yml controls which Skills/actions can operate on other players
+  - Event-driven online player name cache (PlayerJoin/Quit), async thread-safe reads
+  - Pre-filter: Minecraft player name regex validation, non-matching values skipped immediately
+  - Built-in Skill whitelist: cmi.send_tp_request, AFKTask.create_task, command.execute_command
 - **BukkitFXSkill Sound & Particle Effects**: AI can play sounds or show particle effects for players (only caller hears/sees)
   - 2 Actions: `play_sound`, `spawn_particle`
   - Natural language trigger: task completion celebration, warning prompts, atmosphere creation

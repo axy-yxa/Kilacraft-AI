@@ -15,13 +15,14 @@
 6. [Multi-Step Task Data Passing](#6-multi-step-task-data-passing)
 7. [Error Isolation and Exception Handling](#7-error-isolation-and-exception-handling)
 8. [Permission and Availability Control](#8-permission-and-availability-control)
-9. [Naming Conventions and Conflict Resolution](#9-naming-conventions-and-conflict-resolution)
-10. [Configuration Support (Optional)](#10-configuration-support-optional)
-11. [Complete Example: Player Stats Query Plugin](#11-complete-example-player-stats-query-plugin)
-12. [Development Dependency Configuration](#12-development-dependency-configuration)
-13. [Lifecycle and Loading Order](#13-lifecycle-and-loading-order)
-14. [FAQ](#14-faq)
-15. [API Reference](#15-api-reference)
+9. [Security Interceptor (Important)](#9-security-interceptor-important)
+10. [Naming Conventions and Conflict Resolution](#10-naming-conventions-and-conflict-resolution)
+11. [Configuration Support (Optional)](#11-configuration-support-optional)
+12. [Complete Example: Player Stats Query Plugin](#12-complete-example-player-stats-query-plugin)
+13. [Development Dependency Configuration](#13-development-dependency-configuration)
+14. [Lifecycle and Loading Order](#14-lifecycle-and-loading-order)
+15. [FAQ](#15-faq)
+16. [API Reference](#16-api-reference)
 
 ---
 
@@ -632,9 +633,96 @@ public CompletableFuture<SkillResult> execute(SkillContext context) {
 
 ---
 
-## 9. Naming Conventions and Conflict Resolution
+## 9. Security Interceptor (Important)
 
-### 9.1 Namespace Recommendations
+Kilacraft-AI includes a **non-cooperative security filter** (SkillSecurityFilter) that automatically runs before every Skill execution, protecting player data from malicious Skill access or tampering.
+
+### 9.1 Core Mechanism: Value Scanning + Sanitization
+
+The security interceptor workflow:
+
+```
+Before Skill Execution
+    → SkillSecurityFilter.sanitize(skillName, action, context)
+    → Iterate through all Values in context.entities
+    → Check: Does Value match an online player name?
+        ├─ Is current player's own name → ✅ Allow
+        ├─ Is another online player + in whitelist → ✅ Allow
+        └─ Is another online player + not in whitelist → 🔄 Sanitize (replace with current player name)
+    → Return sanitized entities to Skill.execute()
+```
+
+**Key Features:**
+- **Non-cooperative**: Does not rely on Skill declaring parameter names, scans all Values directly
+- **Sanitize instead of block**: When validation fails, replaces with current player name, Skill continues execution
+- **Always runs**: Cannot be skipped or bypassed
+
+### 9.2 What Does This Mean for Your Skill?
+
+#### Scenario 1: Your Skill Only Operates on Current Player
+
+```java
+// Player queries their own status
+// entities: {} or {"field": "health"}
+// No other player names involved → Security interceptor allows directly
+```
+
+**No action needed**, develop normally.
+
+#### Scenario 2: Your Skill Needs to Operate on Other Players (e.g., Transfer)
+
+If your Skill needs to operate on other players (e.g., economy system transfer), you need to add it to the whitelist:
+
+```yaml
+# config.yml
+security:
+  player_isolation:
+    allowed_actions:
+      - "economy.transfer"      # Skill-level whitelist (all actions)
+      - "economy.send_payment"  # Or action-level whitelist
+```
+
+**Note:**
+- Whitelist is configured by server owner in config.yml, Skill developers cannot decide themselves
+- Skill name must exactly match `getName()` return value (case-sensitive)
+- Format: `"skill_name.action_name"` (action-level) or `"skill_name"` (skill-level)
+
+#### Scenario 3: Your Skill Tries to Operate on Other Players but Not in Whitelist
+
+```java
+// Suppose your Skill tries to transfer to "Hub", but not in whitelist
+// Original entities: {"target_player": "Hub", "amount": "100"}
+// Sanitized entities: {"target_player": "current_player_name", "amount": "100"}
+// Your Skill actually executes with target_player replaced by current player
+```
+
+In this case, your Skill will "think" the player is transferring to themselves, **no error thrown, but behavior is altered**. This is part of the security design — malicious Skills cannot bypass it.
+
+### 9.3 Whitelist Admission Guidelines
+
+If your Skill truly needs to operate on other players, when requesting server owner to add to whitelist:
+
+1. **Clear permission boundaries**: Explain the permission boundaries of the operation (e.g., transfers constrained by economy system permissions)
+2. **Controllable risk**: Explain why operating on other players is safe
+3. **Permission inheritance**: Prefer executing as the player, inheriting server's native permissions (like CommandSkill)
+
+**Examples of Built-in Whitelisted Skills:**
+- `cmi.send_tp_request`: CMI teleport request (TPA, requires target's consent)
+- `AFKTask.create_task`: AFK tasks (can monitor other players)
+- `command.execute_command`: Command execution (executes as player, permission boundary = player's own)
+
+### 9.4 Development Notes
+
+- **Do not attempt to bypass the security interceptor**: It always runs and cannot be skipped
+- **Do not embed player names in entities**: Formats like `"msg Hub hello"` won't be correctly recognized and cannot be parsed by Skills
+- **Player name format**: Minecraft player name regex `^[a-zA-Z0-9_]{1,16}$`, values not matching this format are skipped immediately
+- **Online player cache**: Maintained based on PlayerJoin/Quit events, async thread-safe reads
+
+---
+
+## 10. Naming Conventions and Conflict Resolution
+
+### 10.1 Namespace Recommendations
 
 To avoid conflicts with other plugins' Skills, use the following format:
 
@@ -647,7 +735,7 @@ Examples:
 - `essentials_balance` — Essentials balance query
 - `towny_query_info` — Towny land query
 
-### 9.2 Conflict Resolution Rules
+### 10.2 Conflict Resolution Rules
 
 When third-party Skill names conflict with already registered Skills (built-in or other third-party):
 

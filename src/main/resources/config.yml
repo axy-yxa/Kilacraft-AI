@@ -369,3 +369,18 @@ afk_task:
   # 当条件评估连续失败超过此次数时，自动终止任务并通知玩家
   # 建议值：5-15，值太小可能误杀正常任务，值太大会浪费资源
   max_consecutive_failures: 10
+
+# ==================== 安全配置 ====================
+# 玩家数据隔离：防止通过AI技能查询/操作其他玩家的敏感数据
+# 安全拦截器会扫描所有Skill参数值，如果匹配到在线玩家名且不是调用者自己，则自动替换为调用者名
+security:
+  player_isolation:
+    # 是否启用玩家数据隔离（默认开启）
+    enabled: true
+    # 允许操作其他玩家的Skill动作白名单（服主可自行添加SPI Skill）
+    # 格式：技能名.动作名（精确匹配）或 技能名（技能级白名单）
+    # 修改后执行 /kilacraft reload 即可生效，无需重启服务器
+    allowed_actions:
+      - "cmi.send_tp_request"        # TPA传送请求：target_player是传送目的地
+      - "AFKTask.create_task"        # 挂机任务：允许监控其他玩家（如"帮我盯着xxx"）
+      - "command.execute_command"    # 命令执行：以玩家身份执行命令，权限边界等于玩家自身权限

@@ -73,9 +73,10 @@ public class SkillManager {
     }
 
     /**
-     * 根据意图执行技能（带错误隔离）
+     * 根据意图执行技能（带错误隔离和安全消毒）
      *
      * <p>第三方 Skill 的异常会被 try-catch 捕获，不会影响 KilacraftAI 核心流程。</p>
+     * <p>执行前会通过 {@link SkillSecurityFilter} 对entities进行安全消毒。</p>
      *
      * @param intent  识别出的意图
      * @param context 执行上下文
@@ -103,11 +104,23 @@ public class SkillManager {
             return CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
         }
 
+        // 安全消毒：扫描entities中所有Value，在线玩家名不是自己则替换
+        Map<String, String> sanitizedEntities = SkillSecurityFilter.sanitize(skillName, intent.getAction(), context);
+        if (sanitizedEntities == null) {
+            return CompletableFuture.completedFuture(SkillResult.failure("执行上下文异常"));
+        }
+
+        // 如果entities被消毒过，需要重建SkillContext
+        SkillContext executionContext = context;
+        if (sanitizedEntities != context.getEntities()) {
+            executionContext = new SkillContext(context.getPlayer(), context.getAction(), sanitizedEntities);
+        }
+
         PluginLogger.debug("技能管理", "开始执行技能：" + skillName + ", action=" + intent.getAction());
 
         // 执行技能（带错误隔离，第三方 Skill 异常不影响核心流程）
         try {
-            return skill.execute(context).exceptionally(ex -> {
+            return skill.execute(executionContext).exceptionally(ex -> {
                 PluginLogger.error("技能管理", "技能执行异常（可能为第三方技能）：" + skillName + " - " + ex.getMessage(), ex);
                 return SkillResult.failure("技能执行出错，请联系管理员");
             });

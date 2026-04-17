@@ -21,6 +21,7 @@ import com.zm.kilacraftAI.skills.cmi.CMISkill;
 import com.zm.kilacraftAI.skills.command.CommandSkill;
 import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
+import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
 import com.zm.kilacraftAI.skills.framework.spi.SkillRegistry;
 import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
@@ -231,6 +232,10 @@ public final class KilacraftAI extends JavaPlugin {
         // Skills 系统（依赖 skillConfigManager）
         skillManager = new SkillManager();
         registerDefaultSkills();
+
+        // 安全过滤器：注册事件监听器（在线玩家名缓存）
+        SkillSecurityFilter securityFilter = SkillSecurityFilter.createAndInit();
+        getServer().getPluginManager().registerEvents(securityFilter, this);
 
         // 意图识别器（依赖 configManager + intentPromptConfigManager + skillManager）
         intentRecognizer = new SkillIntentRecognizer(configManager, intentPromptConfigManager, skillManager);

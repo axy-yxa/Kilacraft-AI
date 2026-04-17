@@ -46,6 +46,9 @@ public class IntentPromptConfigManager {
     private String whenReturnInvalid;
 
     @Getter
+    private String playerSecurityRule;
+
+    @Getter
     private String placeholderUsageRule;
 
     @Getter
@@ -106,8 +109,7 @@ public class IntentPromptConfigManager {
      */
     private void loadPromptSections() {
         // 第一部分:角色定义
-        this.roleDefinition = config.getString("role_definition",
-                "你是一个智能的技能意图识别助手.");
+        this.roleDefinition = config.getString("role_definition", "你是一个智能的技能意图识别助手.");
 
         // 第二部分:响应格式规范
         this.singleIntentFormat = config.getString("response_format.single_intent", "");
@@ -120,6 +122,7 @@ public class IntentPromptConfigManager {
         this.whenReturnInvalid = config.getString("decision_rules.when_return_invalid", "");
 
         // 第四部分:关键约束规则
+        this.playerSecurityRule = config.getString("critical_rules.player_security", "");
         this.placeholderUsageRule = config.getString("critical_rules.placeholder_usage", "");
         this.continuousConversationGuide = config.getString("critical_rules.continuous_conversation", "");
         this.entityFormatRule = config.getString("critical_rules.entity_format", "");
@@ -197,6 +200,9 @@ public class IntentPromptConfigManager {
 
         // 5. 关键约束规则
         sb.append("【关键约束规则】\n");
+        if (playerSecurityRule != null && !playerSecurityRule.isEmpty()) {
+            sb.append(playerSecurityRule).append("\n\n");
+        }
         sb.append(placeholderUsageRule).append("\n\n");
         sb.append(continuousConversationGuide).append("\n\n");
         sb.append(entityFormatRule).append("\n\n");

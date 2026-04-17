@@ -10,6 +10,16 @@ import java.util.List;
  * <p>第三方插件开发者实现此接口，用于向 Kilacraft-AI 注册自定义 Skill。</p>
  * <p>使用 Bukkit ServicesManager 机制进行自动发现。</p>
  *
+ * <h3>安全规范：玩家数据隔离</h3>
+ * <p>安全拦截器始终运行,不可跳过。拦截器会扫描entities中所有Value,</p>
+ * <p>如果某个Value匹配在线玩家名且不是当前玩家自己,则自动消毒(替换为当前玩家名)。</p>
+ * <p>这是非合作式安全机制,Skill无需(也无法)声明或绕过。</p>
+ *
+ * <h3>如果你的Skill需要操作其他玩家（白名单）</h3>
+ * <p>少数合理场景（如TPA传送）需要target_player指向其他玩家,</p>
+ * <p>需要服主在 config.yml 的 security.player_isolation.allowed_actions 中添加白名单条目,</p>
+ * <p>格式为 "技能名.动作名" 或 "技能名"，然后执行 /kilacraft reload 生效。</p>
+ *
  * <h3>接入步骤：</h3>
  * <ol>
  *     <li>在自己的插件项目中引用 {@code Kilacraft-Skill-API.jar} 作为 compileOnly 依赖</li>

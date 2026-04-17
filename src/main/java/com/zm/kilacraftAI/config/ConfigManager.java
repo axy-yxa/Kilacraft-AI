@@ -110,6 +110,12 @@ public class ConfigManager {
     @Getter
     private boolean commandSkillEnabled;              // 命令执行技能开关
 
+    // 安全配置
+    @Getter
+    private boolean securityPlayerIsolationEnabled;   // 玩家数据隔离开关
+    @Getter
+    private List<String> securityAllowedActions;      // 允许操作其他玩家的白名单
+
     // 挂机任务配置
     @Getter
     private boolean afkTaskEnabled;            // 挂机任务总开关
@@ -237,6 +243,10 @@ public class ConfigManager {
 
         // 命令执行技能配置
         this.commandSkillEnabled = config.getBoolean("command_skill.enabled", false);
+
+        // 安全配置
+        this.securityPlayerIsolationEnabled = config.getBoolean("security.player_isolation.enabled", true);
+        this.securityAllowedActions = config.getStringList("security.player_isolation.allowed_actions");
 
         // 挂机任务配置
         this.afkTaskEnabled = config.getBoolean("afk_task.enabled", true);
