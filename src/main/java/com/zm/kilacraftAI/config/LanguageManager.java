@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.config;
 
+import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -154,17 +155,17 @@ public class LanguageManager {
         File languageFile = new File(plugin.getDataFolder(), "language.yml");
         if (!languageFile.exists()) {
             plugin.saveResource("language.yml", false);
-            plugin.getLogger().info("已创建默认 language.yml 语言配置文件");
+            PluginLogger.info("语言配置", "已创建默认 language.yml 语言配置文件");
         }
-        
+
         // 手动加载 language.yml 文件内容到内存
         try {
             // 使用 YamlConfiguration 直接读取 language.yml
             this.config = YamlConfiguration.loadConfiguration(languageFile);
         } catch (Exception e) {
-            plugin.getLogger().severe("加载 language.yml 失败：" + e.getMessage());
+            PluginLogger.error("语言配置", "加载 language.yml 失败", e);
         }
-        
+
         // 加载语言配置
         loadLanguageConfig();
     }
@@ -243,9 +244,9 @@ public class LanguageManager {
     /**
      * 替换消息中的占位符
      *
-     * @param message 原始消息
+     * @param message     原始消息
      * @param placeholder 占位符名称（不含花括号）
-     * @param value 替换值
+     * @param value       替换值
      * @return 替换后的消息
      */
     public String replacePlaceholder(String message, String placeholder, String value) {
@@ -258,7 +259,7 @@ public class LanguageManager {
     /**
      * 替换多个占位符
      *
-     * @param message 原始消息
+     * @param message      原始消息
      * @param placeholders 占位符和值的数组，格式为：{placeholder1, value1, placeholder2, value2, ...}
      * @return 替换后的消息
      */
@@ -266,7 +267,7 @@ public class LanguageManager {
         if (message == null || placeholders == null || placeholders.length % 2 != 0) {
             return message;
         }
-        
+
         String result = message;
         for (int i = 0; i < placeholders.length; i += 2) {
             result = replacePlaceholder(result, placeholders[i], placeholders[i + 1]);

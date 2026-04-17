@@ -35,7 +35,7 @@ public class BukkitAPIConfigLoader {
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
         return parseAllSections(config);
     }
-    
+
     /**
      * 获取全局提示信息
      *
@@ -51,7 +51,7 @@ public class BukkitAPIConfigLoader {
         List<String> hints = config.getStringList("hints");
         return new ArrayList<>(hints);
     }
-    
+
     /**
      * 获取全局技能描述
      *
@@ -117,7 +117,7 @@ public class BukkitAPIConfigLoader {
 
             // 其他属性
             metadata.setResultTemplate(apiSection.getString("result_template"));
-            
+
             // 额外方法映射
             if (apiSection.isConfigurationSection("additional_methods")) {
                 var additionalMethods = apiSection.getConfigurationSection("additional_methods");
@@ -127,7 +127,7 @@ public class BukkitAPIConfigLoader {
                 }
                 metadata.setAdditionalMethods(methodsMap);
             }
-            
+
             apis.add(metadata);
         }
 

@@ -1,12 +1,12 @@
 package com.zm.kilacraftAI.skills.framework;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.util.PluginLogger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
 
 /**
  * 技能管理器
@@ -101,25 +101,20 @@ public class SkillManager {
                 return CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
             }
         } catch (Exception e) {
-            plugin.getLogger().log(Level.WARNING,
-                "检查技能可用性时异常：" + skillName + " - " + e.getMessage());
+            PluginLogger.warn("技能管理", "检查技能可用性时异常：" + skillName + " - " + e.getMessage(), e);
             return CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
         }
 
-        if (isDebug) {
-            plugin.getLogger().info("[DEBUG] 开始执行技能：" + skillName + ", action=" + intent.getAction());
-        }
+        PluginLogger.debug("技能管理", "开始执行技能：" + skillName + ", action=" + intent.getAction());
 
         // 执行技能（带错误隔离，第三方 Skill 异常不影响核心流程）
         try {
             return skill.execute(context).exceptionally(ex -> {
-                plugin.getLogger().log(Level.SEVERE,
-                    "技能执行异常（可能为第三方技能）：" + skillName + " - " + ex.getMessage());
+                PluginLogger.error("技能管理", "技能执行异常（可能为第三方技能）：" + skillName + " - " + ex.getMessage(), ex);
                 return SkillResult.failure("技能执行出错，请联系管理员");
             });
         } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE,
-                "技能执行失败：" + skillName + " - " + e.getMessage());
+            PluginLogger.error("技能管理", "技能执行失败：" + skillName + " - " + e.getMessage(), e);
             return CompletableFuture.completedFuture(SkillResult.failure("技能执行出错，请联系管理员"));
         }
     }

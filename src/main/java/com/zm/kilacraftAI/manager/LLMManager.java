@@ -1,8 +1,8 @@
 package com.zm.kilacraftAI.manager;
 
+import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.api.LLMProvider;
 import com.zm.kilacraftAI.api.provider.GenericLLMProvider;
-import com.zm.kilacraftAI.KilacraftAI;
 import lombok.Getter;
 
 /**
@@ -32,7 +32,6 @@ public class LLMManager {
      */
     private void initializeProvider() {
         this.currentProvider = new GenericLLMProvider();
-        plugin.getLogger().info("已初始化通用 LLM 提供商");
     }
 
     /**
@@ -44,7 +43,6 @@ public class LLMManager {
             currentProvider = null;
         }
         this.currentProvider = new GenericLLMProvider();
-        plugin.getLogger().info("已刷新 LLM 提供商配置");
     }
 
     /**
@@ -53,7 +51,6 @@ public class LLMManager {
     public void shutdownAll() {
         if (currentProvider != null) {
             currentProvider.shutdown();
-            plugin.getLogger().info("已关闭 LLM 提供商");
         }
     }
 }

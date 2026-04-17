@@ -157,7 +157,7 @@ player:
     method_chain:
       - "getInventory"
       - "getItemInMainHand"
-    
+
   get_player_offhand_item:
     id: "get_player_offhand_item"
     display_name: "获取玩家副手物品"
@@ -181,7 +181,7 @@ player:
       health: "getHealth"
       max_health: "getMaxHealth"
     result_template: "生命值：{health}/{max_health}"
-    
+
   get_player_food:
     id: "get_player_food"
     display_name: "获取玩家饥饿值"
@@ -203,7 +203,7 @@ player:
       remaining_air: "getRemainingAir"
       maximum_air: "getMaximumAir"
     result_template: "氧气：{remaining_air}/{maximum_air} tick"
-    
+
   # ========================
   # 位置与移动
   # ========================
@@ -228,7 +228,7 @@ player:
     required_permission: "kilacraft.api.player.info"
     method_chain:
       - "getEyeLocation"
-    
+
   get_player_velocity:
     id: "get_player_velocity"
     display_name: "获取玩家速度向量"

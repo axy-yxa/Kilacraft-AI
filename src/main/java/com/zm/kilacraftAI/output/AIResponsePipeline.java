@@ -11,14 +11,7 @@ import org.bukkit.entity.Player;
 
 /**
  * AI 响应输出管线
- *
- * <p>统一所有 AI 回复的输出入口，实现：</p>
- * <ul>
- *   <li>阶段1：格式化 - Markdown 转 Minecraft 格式 + 前缀</li>
- *   <li>阶段2：路由 - 根据场景配置选择输出载体</li>
- *   <li>阶段3：输出 - 通过 MessageDispatcher 分发到具体载体</li>
- *   <li>流式输出管理 - 统一管理流式状态和输出</li>
- * </ul>
+ * 统一所有 AI 回复的输出入口
  *
  * @author Zm_Mmm
  * @since 2026-04-15
@@ -80,7 +73,7 @@ public class AIResponsePipeline {
     }
 
     /**
-     * 发送思考消息到玩家（使用动态配置的载体）
+     * 发送思考消息到玩家
      *
      * <p>思考消息的载体由 config.yml 中的 thinking_channel 配置决定，</p>
      * <p>不使用场景级配置，而是直接使用指定的载体。</p>

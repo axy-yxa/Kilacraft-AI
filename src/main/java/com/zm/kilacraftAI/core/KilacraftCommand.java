@@ -1,24 +1,25 @@
 package com.zm.kilacraftAI.core;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
-import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.AIRequestHandler;
+import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
+import com.zm.kilacraftAI.skills.afktask.AFKTask;
+import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
 import com.zm.kilacraftAI.util.AIRequestValidator;
-import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.util.MessageUtil;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import com.zm.kilacraftAI.skills.afktask.AFKTask;
-import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.SimpleDateFormat;
@@ -47,7 +48,7 @@ public class KilacraftCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
-        // 缓存配置管理器引用，避免重复调用
+        // 缓存配置管理器引用
         ConfigManager configManager = plugin.getConfigManager();
 
         if (args.length == 0) {
@@ -65,9 +66,7 @@ public class KilacraftCommand implements CommandExecutor {
             case "plugins" -> handlePluginsCommand(sender, args);
             case "personalities" -> handlePersonalitiesCommand(sender, args);
             case "afk" -> handleAfkCommand(sender, args);
-            default ->
-                // 普通消息发送命令（无需权限检查）
-                    handleNormalMessageCommand(sender, args);
+            default -> handleNormalMessageCommand(sender, args);
         };
     }
 
@@ -91,7 +90,7 @@ public class KilacraftCommand implements CommandExecutor {
         if (PluginPermissionEnum.CLEAR_OTHER.hasPermission(sender)) {
             sender.sendMessage(languageManager.getHelpClearOther());
         }
-        
+
         // 根据权限显示挂机任务提示
         if (PluginPermissionEnum.AFK.hasPermission(sender)) {
             sender.sendMessage(languageManager.getHelpAfk());
@@ -118,7 +117,7 @@ public class KilacraftCommand implements CommandExecutor {
                 sender.sendMessage("§a已重新加载技能配置文件");
             }
 
-            // 同步条件技能的注册状态（动态注册/注销）
+            // 同步条件技能的注册状态
             plugin.syncConditionalSkills();
 
             // 热重载意图识别提示词配置
@@ -127,14 +126,11 @@ public class KilacraftCommand implements CommandExecutor {
                 sender.sendMessage("§a已重新加载意图识别提示词配置");
             }
 
-            // LLM 提供商配置的刷新已经在 ConfigManager.loadConfig() 中通过 refreshLLMConfigCache() 自动执行
-            // 此处不再重复调用，避免连接池被重复关闭和重建
-
             sender.sendMessage(languageManager.getCommandReloadSuccess());
-            plugin.getLogger().info(languageManager.replacePlaceholders(languageManager.getLogConfigReloaded(), "sender", getSenderName(sender)));
+            PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogConfigReloaded(), "sender", getSenderName(sender)));
         } catch (Exception e) {
             sender.sendMessage(languageManager.getCommandReloadFailure() + e.getMessage());
-            plugin.getLogger().severe(languageManager.getLogAiRequestError() + e.getMessage());
+            PluginLogger.error("命令", languageManager.getLogAiRequestError() + e.getMessage(), e);
         }
         return true;
     }
@@ -172,7 +168,7 @@ public class KilacraftCommand implements CommandExecutor {
             // 清除该玩家的所有历史记录（包括普通和插件命令）
             plugin.getConversationManager().clearAllHistory(targetPlayerId);
             sender.sendMessage(languageManager.replacePlaceholders(languageManager.getCommandClearOtherSuccess(), "player", targetPlayerName));
-            plugin.getLogger().info(languageManager.replacePlaceholders(languageManager.getLogClearOtherLogged(), "sender", getSenderName(sender), "player", targetPlayerName));
+            PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogClearOtherLogged(), "sender", getSenderName(sender), "player", targetPlayerName));
             return true;
         }
 
@@ -191,7 +187,7 @@ public class KilacraftCommand implements CommandExecutor {
         // 清除所有历史记录（包括普通和插件命令）
         plugin.getConversationManager().clearAllHistory(playerId);
         player.sendMessage(languageManager.getCommandClearSelfSuccess());
-        plugin.getLogger().info(languageManager.replacePlaceholders(languageManager.getLogClearSelfLogged(), "player", player.getName()));
+        PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogClearSelfLogged(), "player", player.getName()));
         return true;
     }
 
@@ -218,10 +214,10 @@ public class KilacraftCommand implements CommandExecutor {
         if (!inChatMode) {
             player.sendMessage(languageManager.getFeatureChatModeEnter());
             player.sendMessage(languageManager.getFeatureChatModeEnterSubtitle());
-            plugin.getLogger().info(languageManager.replacePlaceholders(languageManager.getLogChatModeEntered(), "player", player.getName()));
+            PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogChatModeEntered(), "player", player.getName()));
         } else {
             player.sendMessage(languageManager.getFeatureChatModeExit());
-            plugin.getLogger().info(languageManager.replacePlaceholders(languageManager.getLogChatModeExited(), "player", player.getName()));
+            PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogChatModeExited(), "player", player.getName()));
         }
         return true;
     }
@@ -260,10 +256,10 @@ public class KilacraftCommand implements CommandExecutor {
             plugin.getKnowledgeBase().reload();
             sender.sendMessage(languageManager.getCommandKnowledgeReloadSuccess());
             sender.sendMessage("§7" + plugin.getKnowledgeBase().getStatistics());
-            plugin.getLogger().info(languageManager.replacePlaceholders(languageManager.getLogKnowledgeReloaded(), "sender", getSenderName(sender)));
+            PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogKnowledgeReloaded(), "sender", getSenderName(sender)));
         } catch (Exception e) {
             sender.sendMessage(languageManager.getCommandKnowledgeReloadFailure() + e.getMessage());
-            plugin.getLogger().severe(languageManager.getLogAiRequestError() + e.getMessage());
+            PluginLogger.error("命令", languageManager.getLogAiRequestError() + e.getMessage(), e);
         }
         return true;
     }
@@ -310,10 +306,10 @@ public class KilacraftCommand implements CommandExecutor {
             plugin.getPersonalitiesConfigManager().reload();
             sender.sendMessage(languageManager.getCommandPersonalitiesReloadSuccess());
             sender.sendMessage("§7当前共加载 " + plugin.getPersonalitiesConfigManager().getAllPersonalities().size() + " 个人格");
-            plugin.getLogger().info(languageManager.replacePlaceholders(languageManager.getLogPersonalitiesReloaded(), "sender", getSenderName(sender)));
+            PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogPersonalitiesReloaded(), "sender", getSenderName(sender)));
         } catch (Exception e) {
             sender.sendMessage(languageManager.getCommandPersonalitiesReloadFailure() + e.getMessage());
-            plugin.getLogger().severe(languageManager.getLogAiRequestError() + e.getMessage());
+            PluginLogger.error("命令", languageManager.getLogAiRequestError() + e.getMessage(), e);
         }
         return true;
     }
@@ -332,7 +328,7 @@ public class KilacraftCommand implements CommandExecutor {
         // 检查是否为控制台执行
         if (sender instanceof Player player) {
             player.sendMessage(languageManager.getPluginCommandPlayerBlocked());
-            plugin.getLogger().warning(languageManager.replacePlaceholders(languageManager.getLogPlayerCommandAttempt(), "player", player.getName()));
+            PluginLogger.warn("命令", languageManager.replacePlaceholders(languageManager.getLogPlayerCommandAttempt(), "player", player.getName()));
             return true;
         }
 
@@ -360,7 +356,7 @@ public class KilacraftCommand implements CommandExecutor {
             }
             callbackCommand = sb.toString();
         }
-        final String finalCallbackCommand = callbackCommand; // Lambda 需要 final
+        final String finalCallbackCommand = callbackCommand;
 
         // 解析玩家 UUID
         UUID targetPlayerId;
@@ -426,12 +422,9 @@ public class KilacraftCommand implements CommandExecutor {
         final String finalPersonality = personality;
         String personalityPrompt = personalitiesConfig.getPersonalityPrompt(personality).replace("{player}", targetPlayerName);
 
-        // 调试模式日志
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 插件命令请求 - 人格：" + personality + ", 玩家：" + targetPlayerName + ", UUID: " + targetPlayerId);
-            plugin.getLogger().info("[DEBUG] 人格提示词：" + personalityPrompt);
-            plugin.getLogger().info("[DEBUG] 历史记录数量：" + pluginHistory.size());
-        }
+        PluginLogger.debug("命令", "插件命令请求 - 人格：" + personality + ", 玩家：" + targetPlayerName + ", UUID: " + targetPlayerId);
+        PluginLogger.debug("命令", "人格提示词：" + personalityPrompt);
+        PluginLogger.debug("命令", "历史记录数量：" + pluginHistory.size());
 
         // 使用统一的 API 处理请求（传入人格提示词）
         plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt).thenAccept(fullResponse -> {
@@ -457,52 +450,41 @@ public class KilacraftCommand implements CommandExecutor {
                     task.get(timeoutSeconds, TimeUnit.SECONDS);
 
                     long elapsed = System.currentTimeMillis() - startTime;
-                    if (plugin.getConfigManager().isDebugMode()) {
-                        plugin.getLogger().info(String.format("[DEBUG] 回调执行耗时: %dms", elapsed));
-                    }
+                    PluginLogger.debug("命令", String.format("回调执行耗时: %dms", elapsed));
 
                     // 如果执行时间超过 80% 的阈值，记录警告
                     if (elapsed > timeoutSeconds * 800L) {
-                        plugin.getLogger().warning(String.format("回调命令执行较慢 (%dms)，接近超时阈值 (%ds)", elapsed, timeoutSeconds));
+                        PluginLogger.warn("命令", String.format("回调命令执行较慢 (%dms)，接近超时阈值 (%ds)", elapsed, timeoutSeconds));
                     }
 
                 } catch (TimeoutException e) {
                     task.cancel(true);
-                    plugin.getLogger().warning(String.format("回调命令执行超时 (%ds)，已强制中断。命令: %s", timeoutSeconds, finalCallbackCommand.length() > 100 ? finalCallbackCommand.substring(0, 100) + "..." : finalCallbackCommand));
+                    PluginLogger.warn("命令", String.format("回调命令执行超时 (%ds)，已强制中断。命令: %s", timeoutSeconds, finalCallbackCommand.length() > 100 ? finalCallbackCommand.substring(0, 100) + "..." : finalCallbackCommand));
                 } catch (CancellationException e) {
                     // 任务被取消（超时），已在上面记录日志，这里不重复打印
                 } catch (ExecutionException e) {
-                    plugin.getLogger().warning("回调命令执行失败: " + e.getCause().getMessage());
-                    if (plugin.getConfigManager().isDebugMode()) {
-                        plugin.getLogger().warning("原始命令: " + finalCallbackCommand);
-                    }
+                    PluginLogger.warn("命令", "回调命令执行失败: " + e.getCause().getMessage());
+                    PluginLogger.debug("命令", "原始命令: " + finalCallbackCommand);
                 } catch (InterruptedException e) {
-                    plugin.getLogger().warning("回调命令执行被中断: " + e.getMessage());
+                    PluginLogger.warn("命令", "回调命令执行被中断: " + e.getMessage(), e);
                     Thread.currentThread().interrupt(); // 恢复中断状态
                 } catch (Exception e) {
-                    plugin.getLogger().warning("回调命令执行异常: " + e.getMessage());
+                    PluginLogger.warn("命令", "回调命令执行异常: " + e.getMessage(), e);
                 } finally {
                     // 立即删除缓存
                     plugin.getConversationManager().pollLatestAIResponse(targetPlayerId, finalPersonality);
 
-                    if (plugin.getConfigManager().isDebugMode()) {
-                        plugin.getLogger().info("[DEBUG] 回调命令执行完毕，缓存已删除");
-                    }
+                    PluginLogger.debug("命令", "回调命令执行完毕，缓存已删除");
                 }
             } else {
                 // 保留缓存供轮询获取
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] 保留缓存供轮询获取");
-                }
+                PluginLogger.debug("命令", "保留缓存供轮询获取");
             }
 
-            // 调试模式日志
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 插件命令响应完成，响应长度：" + fullResponse.length());
-            }
+            PluginLogger.debug("命令", "插件命令响应完成，响应长度：" + fullResponse.length());
         }).exceptionally(throwable -> {
             sender.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
-            plugin.getLogger().severe(languageManager.getLogPluginCommandAiError() + throwable.getMessage());
+            PluginLogger.error("命令", languageManager.getLogPluginCommandAiError() + throwable.getMessage(), throwable);
             return null;
         });
 
@@ -510,7 +492,7 @@ public class KilacraftCommand implements CommandExecutor {
     }
 
     /**
-     * 获取或创建插件命令的历史记录（线程安全）
+     * 获取或创建插件命令的历史记录
      *
      * @param historyKey 历史记录 key（格式：UUID_人格）
      * @return 历史记录队列
@@ -520,7 +502,7 @@ public class KilacraftCommand implements CommandExecutor {
     }
 
     /**
-     * 执行回调命令（配置驱动型插件集成）
+     * 执行回调命令
      *
      * @param callbackCommand 回调命令模板（支持 {response} 占位符）
      * @param response        AI 回复内容
@@ -529,11 +511,9 @@ public class KilacraftCommand implements CommandExecutor {
         // 替换占位符
         String finalCommand = callbackCommand.replace("{response}", response.replace("\"", "\\\""));
 
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 执行回调命令: " + finalCommand);
-        }
+        PluginLogger.debug("命令", "执行回调命令: " + finalCommand);
 
-        // 以控制台身份执行回调命令（通过兼容层确保在正确线程调度）
+        // 以控制台身份执行回调命令
         FoliaCompat.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
     }
 
@@ -569,13 +549,10 @@ public class KilacraftCommand implements CommandExecutor {
             return true;
         }
 
-        // 获取或创建历史记录（同步块保证线程安全）
+        // 获取或创建历史记录
         Deque<ConversationManager.Message> playerHistory = getOrCreateHistory(playerId);
 
-        // 调试模式：打印历史记录信息
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 玩家 " + player.getName() + " 的历史记录数量：" + playerHistory.size());
-        }
+        PluginLogger.debug("命令", "玩家 " + player.getName() + " 的历史记录数量：" + playerHistory.size());
 
         // 构建消息
         String message = String.join(" ", args);
@@ -592,14 +569,13 @@ public class KilacraftCommand implements CommandExecutor {
     }
 
     /**
-     * 获取或创建历史记录（线程安全）
+     * 获取或创建历史记录
      */
     private Deque<ConversationManager.Message> getOrCreateHistory(UUID playerId) {
         ConversationManager convManager = plugin.getConversationManager();
         Deque<ConversationManager.Message> history = convManager.getHistory(playerId);
 
         if (history == null) {
-            // 使用 computeIfAbsent 保证线程安全
             history = convManager.getHistory().computeIfAbsent(playerId, k -> new ArrayDeque<>());
         }
 
@@ -607,7 +583,7 @@ public class KilacraftCommand implements CommandExecutor {
     }
 
     /**
-     * 处理控制台消息命令（支持与玩家相同的完整功能，无冷却和世界限制）
+     * 处理控制台消息命令
      */
     private boolean handleConsoleMessageCommand(CommandSender sender, String[] args) {
         // 构建消息
@@ -623,7 +599,7 @@ public class KilacraftCommand implements CommandExecutor {
     }
 
     /**
-     * 获取发送者名称（安全处理）
+     * 获取发送者名称
      */
     private String getSenderName(CommandSender sender) {
         return sender instanceof Player player ? player.getName() : "Console";

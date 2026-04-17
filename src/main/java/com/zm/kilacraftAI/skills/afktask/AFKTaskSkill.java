@@ -2,33 +2,16 @@ package com.zm.kilacraftAI.skills.afktask;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.SkillConfigManager;
+import com.zm.kilacraftAI.skills.afktask.impl.*;
 import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.afktask.impl.PlayerOnlineWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.PlayerOfflineWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.PlayerDeathWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.PlayerTeleportWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.PlayerLevelChangeWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.PlayerChangedWorldWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.WeatherChangeWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.PlayerBedEnterWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.PlayerBedLeaveWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.PlayerRespawnWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.PlayerItemBreakWatchTask;
-import com.zm.kilacraftAI.skills.afktask.impl.CustomWatchTask;
+import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**

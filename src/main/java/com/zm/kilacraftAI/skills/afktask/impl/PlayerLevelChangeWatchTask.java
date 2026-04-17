@@ -11,6 +11,7 @@ import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -103,7 +104,7 @@ public class PlayerLevelChangeWatchTask extends AFKTask implements Listener {
         try {
             return GSON.fromJson(json, AFKTaskCallback.class);
         } catch (Exception e) {
-            plugin.getLogger().warning("[挂机任务] 解析回调配置失败: " + e.getMessage());
+            PluginLogger.warn("挂机任务", "解析回调配置失败: " + e.getMessage(), e);
             return new AFKTaskCallback();
         }
     }
@@ -126,9 +127,7 @@ public class PlayerLevelChangeWatchTask extends AFKTask implements Listener {
 
             // 启动通知由上游 AIRequestHandler 通过 LLM 二次分析发送，此处不再重复通知玩家
 
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] [挂机任务] 已启动: " + getTaskId() + ", 目标: " + targetPlayerName + ", 模式: " + (hasCallback ? "回调(" + callback.getCallbackTask().getSteps().size() + "步)" : "纯通知"));
-            }
+            PluginLogger.debug("挂机任务", "已启动: " + getTaskId() + ", 目标: " + targetPlayerName + ", 模式: " + (hasCallback ? "回调(" + callback.getCallbackTask().getSteps().size() + "步)" : "纯通知"));
         } catch (Exception e) {
             failStart("监听器注册失败: " + e.getMessage());
         }
@@ -142,11 +141,9 @@ public class PlayerLevelChangeWatchTask extends AFKTask implements Listener {
                 HandlerList.unregisterAll(this);
                 listenerRegistered = false;
 
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] [挂机任务] 已停止: " + getTaskId());
-                }
+                PluginLogger.debug("挂机任务", "已停止: " + getTaskId());
             } catch (Exception e) {
-                plugin.getLogger().warning("[挂机任务] 注销事件监听器失败: " + e.getMessage());
+                PluginLogger.warn("挂机任务", "注销事件监听器失败: " + e.getMessage(), e);
             }
         }
     }
@@ -192,8 +189,8 @@ public class PlayerLevelChangeWatchTask extends AFKTask implements Listener {
      * 执行回调任务
      *
      * @param triggeredPlayerName 触发事件的玩家名称
-     * @param oldLevel 旧等级
-     * @param newLevel 新等级
+     * @param oldLevel            旧等级
+     * @param newLevel            新等级
      */
     private void executeCallback(String triggeredPlayerName, int oldLevel, int newLevel) {
         try {
@@ -204,7 +201,7 @@ public class PlayerLevelChangeWatchTask extends AFKTask implements Listener {
             // 2. 获取任务创建者玩家对象
             Player creatorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (creatorPlayer == null || !creatorPlayer.isOnline()) {
-                plugin.getLogger().warning("[挂机任务] 任务创建者不在线，无法执行回调: " + getTaskId());
+                PluginLogger.warn("挂机任务", "任务创建者不在线，无法执行回调: " + getTaskId());
                 notifyPlayer("§c任务创建者不在线，回调任务已取消。");
                 return;
             }
@@ -223,13 +220,12 @@ public class PlayerLevelChangeWatchTask extends AFKTask implements Listener {
             // 6. 处理执行结果：通过中间层进行LLM二次分析并输出
             future.thenAccept(summary -> {
                 plugin.getLlmOutputCoordinator().outputAnalysisResult(
-                    creatorPlayer, summary, context, history,
-                    OutputScenario.AFK_CALLBACK,
-                    false
+                        creatorPlayer, summary, context, history,
+                        OutputScenario.AFK_CALLBACK,
+                        false
                 );
             }).exceptionally(ex -> {
-                plugin.getLogger().severe("[挂机任务] 回调任务执行异常: " + ex.getMessage());
-                ex.printStackTrace();
+                PluginLogger.error("挂机任务", "回调任务执行异常: " + ex.getMessage(), ex);
                 Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
                 if (errorPlayer != null && errorPlayer.isOnline()) {
                     plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
@@ -242,8 +238,7 @@ public class PlayerLevelChangeWatchTask extends AFKTask implements Listener {
             if (errorPlayer != null && errorPlayer.isOnline()) {
                 plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务启动失败：" + e.getMessage());
             }
-            plugin.getLogger().severe("[挂机任务] 回调任务启动异常: " + e.getMessage());
-            e.printStackTrace();
+            PluginLogger.error("挂机任务", "回调任务启动异常: " + e.getMessage(), e);
         }
     }
 
@@ -252,16 +247,16 @@ public class PlayerLevelChangeWatchTask extends AFKTask implements Listener {
      */
     private void replacePlaceholdersInTaskPlan(TaskPlan plan, String triggeredPlayerName, int oldLevel, int newLevel) {
         String direction = newLevel > oldLevel ? "升级" : "降级";
-        
+
         plan.getSteps().forEach(step -> {
             step.getEntities().replaceAll((key, value) -> {
                 if (value == null) return null;
                 return value
-                    .replace("{triggered_player}", triggeredPlayerName)
-                    .replace("{creator}", getPlayerName())
-                    .replace("{old_level}", String.valueOf(oldLevel))
-                    .replace("{new_level}", String.valueOf(newLevel))
-                    .replace("{direction}", direction);
+                        .replace("{triggered_player}", triggeredPlayerName)
+                        .replace("{creator}", getPlayerName())
+                        .replace("{old_level}", String.valueOf(oldLevel))
+                        .replace("{new_level}", String.valueOf(newLevel))
+                        .replace("{direction}", direction);
             });
         });
     }

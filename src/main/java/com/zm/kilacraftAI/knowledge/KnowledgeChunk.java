@@ -4,7 +4,7 @@ import lombok.Getter;
 
 /**
  * 知识片段及其相关性得分
- * 
+ *
  * <p>用于存储分段后的知识内容及其与查询的相关性评分</p>
  *
  * @author Zm_Mmm
@@ -12,11 +12,11 @@ import lombok.Getter;
  */
 @Getter
 public class KnowledgeChunk {
-    
+
     private final String fileName;
     private final String content;
     private final double score;
-    
+
     /**
      * 创建知识片段
      *

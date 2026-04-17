@@ -1,12 +1,12 @@
 package com.zm.kilacraftAI.skills.cmi;
 
 import com.zm.kilacraftAI.compat.cmi.CMIAPI;
+import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
 import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
-import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.util.BukkitCommandUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;

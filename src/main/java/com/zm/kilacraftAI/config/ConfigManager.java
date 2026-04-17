@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.config;
 
+import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -8,11 +9,7 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 配置管理
@@ -265,7 +262,7 @@ public class ConfigManager {
             }
         } catch (Exception e) {
             // 忽略异常，避免配置加载失败导致插件崩溃
-            com.zm.kilacraftAI.KilacraftAI.getInstance().getLogger().warning("[ConfigManager] 刷新 LLM 配置缓存时发生异常: " + e.getMessage());
+            PluginLogger.warn("配置管理", "刷新 LLM 配置缓存时发生异常: " + e.getMessage(), e);
         }
     }
 
@@ -293,7 +290,7 @@ public class ConfigManager {
             loadVocabularyFromJar(words);
 
         } catch (Exception e) {
-            plugin.getLogger().warning("[ConfigManager] 加载内置词汇表时发生异常: " + e.getMessage());
+            PluginLogger.warn("配置管理", "加载内置词汇表时发生异常: " + e.getMessage(), e);
         }
 
         return words;
@@ -311,7 +308,7 @@ public class ConfigManager {
             java.io.File jarFile = new java.io.File(plugin.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
 
             if (!jarFile.exists()) {
-                plugin.getLogger().warning("[ConfigManager] 无法找到插件 JAR 文件，跳过加载词汇表");
+                PluginLogger.warn("配置管理", "无法找到插件 JAR 文件，跳过加载词汇表");
                 return;
             }
 
@@ -339,12 +336,9 @@ public class ConfigManager {
                 }
             }
         } catch (java.net.URISyntaxException e) {
-            plugin.getLogger().warning("[ConfigManager] 无法解析 JAR 文件路径: " + e.getMessage() + "，跳过加载");
+            PluginLogger.warn("配置管理", "无法解析 JAR 文件路径: " + e.getMessage() + "，跳过加载", e);
         } catch (Exception e) {
-            plugin.getLogger().warning("[ConfigManager] 加载内置词汇表失败: " + e.getMessage());
-            if (debugMode) {
-                e.printStackTrace();
-            }
+            PluginLogger.warn("配置管理", "加载内置词汇表失败: " + e.getMessage(), e);
         }
     }
 }

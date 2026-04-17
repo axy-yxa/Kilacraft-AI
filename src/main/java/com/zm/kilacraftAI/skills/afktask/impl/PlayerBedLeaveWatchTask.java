@@ -12,6 +12,7 @@ import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -105,8 +106,7 @@ public class PlayerBedLeaveWatchTask extends AFKTask implements Listener {
         try {
             return GSON.fromJson(json, AFKTaskCallback.class);
         } catch (Exception e) {
-            KilacraftAI.getInstance().getLogger().warning(
-                    "[DEBUG] [挂机任务] 解析回调配置失败: " + e.getMessage());
+            PluginLogger.warn("挂机任务", "解析回调配置失败: " + e.getMessage(), e);
             return new AFKTaskCallback();
         }
     }
@@ -174,7 +174,7 @@ public class PlayerBedLeaveWatchTask extends AFKTask implements Listener {
             // 2. 获取任务创建者玩家对象
             Player creatorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (creatorPlayer == null || !creatorPlayer.isOnline()) {
-                KilacraftAI.getInstance().getLogger().warning("[挂机任务] 任务创建者不在线，无法执行回调: " + getTaskId());
+                PluginLogger.warn("挂机任务", "任务创建者不在线，无法执行回调: " + getTaskId());
                 notifyPlayer("§c任务创建者不在线，回调任务已取消。");
                 return;
             }
@@ -193,13 +193,12 @@ public class PlayerBedLeaveWatchTask extends AFKTask implements Listener {
             // 6. 处理执行结果：通过中间层进行LLM二次分析并输出
             future.thenAccept(summary -> {
                 plugin.getLlmOutputCoordinator().outputAnalysisResult(
-                    creatorPlayer, summary, context, history,
-                    OutputScenario.AFK_CALLBACK,
-                    false
+                        creatorPlayer, summary, context, history,
+                        OutputScenario.AFK_CALLBACK,
+                        false
                 );
             }).exceptionally(ex -> {
-                KilacraftAI.getInstance().getLogger().severe("[挂机任务] 回调任务执行异常: " + ex.getMessage());
-                ex.printStackTrace();
+                PluginLogger.error("挂机任务", "回调任务执行异常: " + ex.getMessage(), ex);
                 Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
                 if (errorPlayer != null && errorPlayer.isOnline()) {
                     KilacraftAI.getInstance().getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
@@ -207,8 +206,7 @@ public class PlayerBedLeaveWatchTask extends AFKTask implements Listener {
                 return null;
             });
         } catch (Exception e) {
-            KilacraftAI.getInstance().getLogger().severe("[挂机任务] 构建回调任务失败: " + e.getMessage());
-            e.printStackTrace();
+            PluginLogger.error("挂机任务", "构建回调任务失败: " + e.getMessage(), e);
             notifyPlayer("§c回调任务构建失败：" + e.getMessage());
         }
     }

@@ -1,14 +1,16 @@
 package com.zm.kilacraftAI.skills.bukkit;
 
-import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.util.PluginLogger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
 
 /**
  * 通用 Bukkit API 执行器
@@ -128,7 +130,7 @@ public class GenericBukkitAPISkill implements Skill {
 
             return CompletableFuture.completedFuture(SkillResult.success(formatted, dataMap));
         } catch (Exception e) {
-            KilacraftAI.getInstance().getLogger().log(Level.SEVERE, "执行 Bukkit API 失败：" + api.getId(), e);
+            PluginLogger.error("BukkitAPI", "执行 Bukkit API 失败：" + api.getId(), e);
             return CompletableFuture.completedFuture(SkillResult.failure("执行失败：" + e.getMessage()));
         }
     }

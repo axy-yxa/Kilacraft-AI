@@ -9,8 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 对话管理器
  *
- * <p>统一管理玩家的对话状态、历史记录和插件命令历史</p>
- *
  * @author Zm_Mmm
  * @since 2026-03-26
  */
@@ -35,12 +33,6 @@ public class ConversationManager {
 
     /**
      * AI 最新回复缓存（key: UUID_人格，value: AI 回复内容）
-     * <p>
-     * 特性：
-     * - 只保存每个"玩家 UUID_人格"的最新一条 AI 回复
-     * - 对话结束后保存，新的自动覆盖旧的
-     * - 被读取后自动清除
-     * </p>
      */
     @Getter
     private final Map<String, String> latestAIResponses = new ConcurrentHashMap<>();
@@ -101,16 +93,6 @@ public class ConversationManager {
     }
 
     /**
-     * 设置玩家的历史记录
-     *
-     * @param playerId     玩家 UUID
-     * @param historyDeque 历史记录队列
-     */
-    public void setHistory(UUID playerId, Deque<Message> historyDeque) {
-        history.put(playerId, historyDeque);
-    }
-
-    /**
      * 清除玩家的普通对话历史记录
      *
      * @param playerId 玩家 UUID
@@ -147,42 +129,16 @@ public class ConversationManager {
         clearHistory(playerId);
         clearPluginHistory(playerId);
     }
-    
-    /**
-     * 获取指定玩家的插件命令历史中的最新 AI 回复
-     * 
-     * @param playerId 玩家 UUID
-     * @param personality 人偶类型
-     * @return 最新的 AI 回复消息，如果不存在则返回 null
-     */
-    public String getLatestAIResponse(UUID playerId, String personality) {
-        String key = generatePluginHistoryKey(playerId, personality);
-        Deque<Message> history = pluginCommandHistory.get(key);
-        
-        if (history == null || history.isEmpty()) {
-            return null;
-        }
-        
-        // 获取最后一条 assistant 角色的消息
-        Message lastMessage = null;
-        for (Message msg : history) {
-            if ("assistant".equals(msg.getRole())) {
-                lastMessage = msg;
-            }
-        }
-        
-        return lastMessage != null ? lastMessage.getContent() : null;
-    }
 
     /**
      * 保存 AI 回复到最新回复缓存
      * <p>
      * 在对话结束时调用，保存 AI 的最新回复
      * </p>
-     * 
-     * @param playerId 玩家 UUID
+     *
+     * @param playerId    玩家 UUID
      * @param personality 人偶类型
-     * @param response AI 回复内容
+     * @param response    AI 回复内容
      */
     public void saveLatestAIResponse(UUID playerId, String personality, String response) {
         String key = generatePluginHistoryKey(playerId, personality);
@@ -194,8 +150,8 @@ public class ConversationManager {
      * <p>
      * 用于自定义占位符解析，获取后会清除该回复
      * </p>
-     * 
-     * @param playerId 玩家 UUID
+     *
+     * @param playerId    玩家 UUID
      * @param personality 人偶类型
      * @return AI 回复内容，如果不存在则返回 null
      */
@@ -204,11 +160,11 @@ public class ConversationManager {
         // 先获取值，然后删除
         return latestAIResponses.remove(key);
     }
-    
+
     /**
      * 生成插件命令历史记录键
-     * 
-     * @param playerId 玩家 UUID
+     *
+     * @param playerId    玩家 UUID
      * @param personality 人偶类型
      * @return 历史记录键（格式：UUID_人格）
      */

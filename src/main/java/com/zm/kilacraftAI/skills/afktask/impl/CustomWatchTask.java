@@ -2,19 +2,15 @@ package com.zm.kilacraftAI.skills.afktask.impl;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.manager.ConversationManager;
-import com.zm.kilacraftAI.skills.afktask.AFKTask;
-import com.zm.kilacraftAI.skills.afktask.AFKTaskCallback;
-import com.zm.kilacraftAI.skills.afktask.AFKTaskStatus;
-import com.zm.kilacraftAI.skills.afktask.AFKTaskType;
-import com.zm.kilacraftAI.skills.afktask.ConditionEvaluator;
-import com.zm.kilacraftAI.skills.afktask.ConditionPlan;
+import com.zm.kilacraftAI.skills.afktask.*;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
-import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -123,7 +119,7 @@ public class CustomWatchTask extends AFKTask {
             JsonObject obj = GSON.fromJson(json, JsonObject.class);
             return new ConditionPlan(obj.get("condition_skill").getAsString(), obj.get("condition_action").getAsString(), obj.get("result_path").getAsString(), obj.get("operator").getAsString(), obj.get("threshold").getAsDouble());
         } catch (Exception e) {
-            plugin.getLogger().warning("[挂机任务] 解析condition_plan JSON失败: " + e.getMessage());
+            PluginLogger.warn("挂机任务", "解析condition_plan JSON失败: " + e.getMessage(), e);
             return null;
         }
     }
@@ -138,7 +134,7 @@ public class CustomWatchTask extends AFKTask {
         try {
             return GSON.fromJson(json, AFKTaskCallback.class);
         } catch (Exception e) {
-            plugin.getLogger().warning("[挂机任务] 解析回调配置失败: " + e.getMessage());
+            PluginLogger.warn("挂机任务", "解析回调配置失败: " + e.getMessage(), e);
             return new AFKTaskCallback();
         }
     }
@@ -164,9 +160,7 @@ public class CustomWatchTask extends AFKTask {
 
             markRunning();
 
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[挂机任务] CUSTOM任务已启动: " + getTaskId() + ", 条件: " + conditionPlan);
-            }
+            PluginLogger.debug("挂机任务", "CUSTOM任务已启动: " + getTaskId() + ", 条件: " + conditionPlan);
         } catch (Exception e) {
             failStart("轮询任务启动失败: " + e.getMessage());
         }
@@ -185,7 +179,7 @@ public class CustomWatchTask extends AFKTask {
             try {
                 pollTask.cancel();
             } catch (Exception e) {
-                plugin.getLogger().warning("[挂机任务] 取消轮询任务失败: " + e.getMessage());
+                PluginLogger.warn("挂机任务", "取消轮询任务失败: " + e.getMessage(), e);
             }
         }
     }
@@ -289,8 +283,7 @@ public class CustomWatchTask extends AFKTask {
                 // 完成任务
                 complete("条件满足，回调任务已执行。");
             }).exceptionally(ex -> {
-                plugin.getLogger().severe("[挂机任务] 回调任务执行异常: " + ex.getMessage());
-                ex.printStackTrace();
+                PluginLogger.error("挂机任务", "回调任务执行异常: " + ex.getMessage(), ex);
                 Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
                 if (errorPlayer != null && errorPlayer.isOnline()) {
                     plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
@@ -301,8 +294,7 @@ public class CustomWatchTask extends AFKTask {
 
         } catch (Exception e) {
             notifyPlayer("§c回调任务启动失败：" + e.getMessage());
-            plugin.getLogger().severe("[挂机任务] 回调任务启动异常: " + e.getMessage());
-            e.printStackTrace();
+            PluginLogger.error("挂机任务", "回调任务启动异常: " + e.getMessage(), e);
             complete("回调任务启动异常。");
         }
     }

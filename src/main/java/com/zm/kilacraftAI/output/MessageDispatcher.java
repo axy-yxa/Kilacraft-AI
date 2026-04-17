@@ -3,30 +3,16 @@ package com.zm.kilacraftAI.output;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.enums.OutputChannel;
+import com.zm.kilacraftAI.manager.BossBarManager;
 import com.zm.kilacraftAI.manager.ScoreboardManager;
 import lombok.Getter;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
-
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 消息分发器
- *
- * <p>核心组件：根据配置将 AI 响应分发到不同的输出载体。</p>
- *
- * <h3>支持的载体：</h3>
- * <ul>
- *   <li>CHAT - player.sendMessage()</li>
- *   <li>ACTION_BAR - player.sendActionBar()</li>
- *   <li>BOSS_BAR - Bukkit.createBossBar() + 生命周期管理</li>
- *   <li>TITLE - player.sendTitle()</li>
- * </ul>
+ * 根据配置将 AI 响应分发到不同的输出载体
  *
  * <h3>设计原则：</h3>
  * <ul>
@@ -96,7 +82,6 @@ public class MessageDispatcher {
 
     /**
      * 发送聊天消息
-     * <p>原有逻辑：player.sendMessage(message)</p>
      */
     private void sendChat(Player player, String message) {
         player.sendMessage(message);
@@ -112,90 +97,9 @@ public class MessageDispatcher {
     }
 
     /**
-     * 发送 Title 消息（公开方法，供流式输出使用）
-     * <p>原有逻辑无此功能，新增载体</p>
+     * 发送 Title 消息
      */
     public void sendTitle(Player player, String message) {
         player.sendTitle(message, "", config.getTitleFadeInTicks(), config.getTitleStayTicks(), config.getTitleFadeOutTicks());
-    }
-
-    /**
-     * BossBar 管理器（内部类）
-     *
-     * <p>负责 BossBar 的创建、更新、清理和生命周期管理。</p>
-     */
-    static class BossBarManager {
-
-        private final KilacraftAI plugin;
-        private final OutputConfigManager config;
-
-        /**
-         * 玩家活跃的 BossBar 映射
-         * <p>Key: Player UUID, Value: BossBar 实例</p>
-         */
-        private final Map<UUID, BossBar> activeBars = new ConcurrentHashMap<>();
-
-        public BossBarManager(KilacraftAI plugin, OutputConfigManager config) {
-            this.plugin = plugin;
-            this.config = config;
-        }
-
-        /**
-         * 发送 BossBar 消息
-         *
-         * <p>逻辑：</p>
-         * <ol>
-         *   <li>如果玩家已有 BossBar，更新标题</li>
-         *   <li>如果没有，创建新的 BossBar</li>
-         *   <li>如果配置了 duration_seconds > 0，定时清理</li>
-         * </ol>
-         */
-        public void sendBossBar(Player player, String message) {
-            UUID playerId = player.getUniqueId();
-
-            BossBar bar = activeBars.computeIfAbsent(playerId, uuid -> {
-                BossBar newBar = Bukkit.createBossBar(message, config.getBossBarColor(), config.getBossBarStyle());
-                newBar.setProgress(1.0); // 满进度
-                newBar.addPlayer(player);
-                return newBar;
-            });
-
-            // 更新标题
-            bar.setTitle(message);
-
-            // 定时清理（如果配置了时长）
-            int durationSeconds = config.getBossBarDurationSeconds();
-            if (durationSeconds > 0) {
-                scheduleRemoval(playerId, durationSeconds);
-            }
-        }
-
-        /**
-         * 定时移除 BossBar
-         */
-        private void scheduleRemoval(UUID playerId, int delaySeconds) {
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                removeBossBar(playerId);
-            }, delaySeconds * 20L); // ticks = seconds * 20
-        }
-
-        /**
-         * 移除玩家的 BossBar
-         */
-        public void removeBossBar(UUID playerId) {
-            BossBar bar = activeBars.remove(playerId);
-            if (bar != null) {
-                bar.removeAll(); // 从所有玩家中移除
-                bar.setVisible(false);
-            }
-        }
-
-        /**
-         * 清理所有 BossBar（插件卸载时调用）
-         */
-        public void cleanup() {
-            activeBars.values().forEach(BossBar::removeAll);
-            activeBars.clear();
-        }
     }
 }

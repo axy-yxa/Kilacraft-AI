@@ -6,7 +6,7 @@ import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillIntent;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
-import lombok.RequiredArgsConstructor;
+import com.zm.kilacraftAI.util.PluginLogger;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -40,9 +40,7 @@ public class TaskExecutor {
      * @return AnalysisSummary（由调用方通过 LLMOutputCoordinator 进行 LLM 二次分析）
      */
     public CompletableFuture<AnalysisSummary> executeTask(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history, String userMessage) {
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 共 " + plan.getStepCount() + " 个步骤");
-        }
+        PluginLogger.debug("任务执行", "共 " + plan.getStepCount() + " 个步骤");
 
         // 多步骤任务：先进行拓扑排序
         List<TaskStep> sortedSteps = topologicalSort(plan);
@@ -52,9 +50,7 @@ public class TaskExecutor {
             return CompletableFuture.completedFuture(errorSummary);
         }
 
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 执行顺序：" + sortedSteps.size() + " 步");
-        }
+        PluginLogger.debug("任务执行", "执行顺序：" + sortedSteps.size() + " 步");
 
         // 递归执行所有步骤
         return executeSteps(plan, sortedSteps, 0, baseContext, history, userMessage);
@@ -90,15 +86,11 @@ public class TaskExecutor {
         if (dependencyError != null) {
             // 依赖未满足，记录失败原因，跳过该步骤，继续执行
             plan.getContext().put(currentStep.getId(), SkillResult.failure("[依赖未满足] " + dependencyError));
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().warning("[DEBUG] 步骤 " + currentStep.getId() + " 因依赖未满足被跳过: " + dependencyError);
-            }
+            PluginLogger.debug("任务执行", "步骤 " + currentStep.getId() + " 因依赖未满足被跳过: " + dependencyError);
             return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history, userMessage);
         }
 
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 执行步骤 [" + (stepIndex + 1) + "/" + sortedSteps.size() + "]: " + currentStep.getId() + " - " + currentStep.getAction());
-        }
+        PluginLogger.debug("任务执行", "执行步骤 [" + (stepIndex + 1) + "/" + sortedSteps.size() + "]: " + currentStep.getId() + " - " + currentStep.getAction());
 
         // 创建技能意图
         SkillIntent intent = new SkillIntent(currentStep.getSkillName(), currentStep.getAction(), currentStep.getEntities(), 1.0, plan.getGoal());
@@ -108,9 +100,7 @@ public class TaskExecutor {
         if (buildResult.isFailed()) {
             // 占位符解析失败，记录失败原因，跳过该步骤，继续执行
             plan.getContext().put(currentStep.getId(), SkillResult.failure("[参数解析失败] " + buildResult.errorMessage));
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().warning("[DEBUG] 步骤 " + currentStep.getId() + " 因参数解析失败被跳过: " + buildResult.errorMessage);
-            }
+            PluginLogger.debug("任务执行", "步骤 " + currentStep.getId() + " 因参数解析失败被跳过: " + buildResult.errorMessage);
             return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history, userMessage);
         }
         SkillContext stepContext = buildResult.context;
@@ -163,9 +153,7 @@ public class TaskExecutor {
 
         // 如果当前节点正在访问中，说明存在循环依赖
         if (visiting.contains(id)) {
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().severe("[DEBUG] 检测到循环依赖：" + id);
-            }
+            PluginLogger.error("任务执行", "检测到循环依赖：" + id);
             return true;
         }
 
@@ -208,18 +196,14 @@ public class TaskExecutor {
             // 依赖步骤不存在
             if (result == null) {
                 String error = "依赖步骤 " + dependencyId + " 尚未执行";
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().warning("[DEBUG] " + error);
-                }
+                PluginLogger.debug("任务执行", error);
                 return error;
             }
 
             // 依赖步骤执行失败
             if (result instanceof SkillResult skillResult && !skillResult.isSuccess()) {
                 String error = "依赖步骤 " + dependencyId + " 执行失败";
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().warning("[DEBUG] " + error);
-                }
+                PluginLogger.debug("任务执行", error);
                 return error;
             }
         }
@@ -237,9 +221,7 @@ public class TaskExecutor {
             if (result.isFailed()) {
                 // 占位符解析失败，终止执行
                 String errorMsg = String.format("步骤 %s 的参数 '%s' 解析失败：找不到 %s", step.getId(), entry.getKey(), result.failedPlaceholder);
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().warning("[DEBUG] " + errorMsg);
-                }
+                PluginLogger.debug("任务执行", errorMsg);
                 return new BuildContextResult(null, errorMsg);
             }
             resolvedEntities.put(entry.getKey(), result.resolvedValue);
@@ -278,9 +260,7 @@ public class TaskExecutor {
                 }
             }
             // 占位符解析失败，返回失败信息
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().warning("[DEBUG] 占位符解析失败：" + placeholder + " (步骤 " + stepId + " 不存在或路径 " + fieldPath + " 无效)");
-            }
+            PluginLogger.debug("任务执行", "占位符解析失败：" + placeholder + " (步骤 " + stepId + " 不存在或路径 " + fieldPath + " 无效)");
             return new PlaceholderResolveResult(null, placeholder);
         }
         matcher.appendTail(sb);
@@ -331,9 +311,7 @@ public class TaskExecutor {
      * 注意：不再直接调用 LLM 分析，而是返回 AnalysisSummary 由调用方处理
      */
     public CompletableFuture<AnalysisSummary> synthesizeResults(TaskPlan plan, SkillContext baseContext, String userMessage) {
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 所有步骤执行完成，开始汇总结果...");
-        }
+        PluginLogger.debug("任务执行", "所有步骤执行完成，开始汇总结果...");
 
         // 构建统一的分析摘要
         AnalysisSummary summary = new AnalysisSummary().userMessage(userMessage).taskGoal(plan.getGoal());

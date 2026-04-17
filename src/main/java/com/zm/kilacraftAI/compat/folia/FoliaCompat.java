@@ -5,7 +5,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Folia 兼容调度工具类（纯反射实现）
@@ -107,7 +110,7 @@ public class FoliaCompat {
 
     /**
      * 执行命令（自动适配 Folia/Spigot 调度方式），fire-and-forget
-     * 
+     *
      * <p>lophine/Folia 特殊处理：如果 sender 是 Player，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      */
     public static void dispatchCommand(org.bukkit.command.CommandSender sender, String command) {
@@ -129,13 +132,13 @@ public class FoliaCompat {
 
     /**
      * 同步执行命令并等待结果（阻塞）
-     * 
+     *
      * <p>lophine/Folia 特殊处理：如果 sender 是 Player，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      */
     public static boolean dispatchCommandSync(org.bukkit.command.CommandSender sender, String command, long timeoutSeconds) {
         if (FOLIA) {
             CompletableFuture<Boolean> future = new CompletableFuture<>();
-            
+
             // 如果 sender 是 Player，使用 EntityScheduler
             if (sender instanceof org.bukkit.entity.Player player) {
                 REFLECTION.invokeEntityRun(player, () -> {
@@ -174,13 +177,13 @@ public class FoliaCompat {
 
     /**
      * 异步执行命令，返回 CompletableFuture
-     * 
+     *
      * <p>lophine/Folia 特殊处理：如果 sender 是 Player，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      */
     public static CompletableFuture<Boolean> dispatchCommandAsync(org.bukkit.command.CommandSender sender, String command) {
         if (FOLIA) {
             CompletableFuture<Boolean> result = new CompletableFuture<>();
-            
+
             // 如果 sender 是 Player，使用 EntityScheduler（lophine 要求）
             if (sender instanceof org.bukkit.entity.Player player) {
                 REFLECTION.invokeEntityRun(player, () -> {
@@ -249,12 +252,12 @@ public class FoliaCompat {
 
     /**
      * 在指定玩家实体所属的区域线程同步执行 Supplier 并返回结果
-     * 
+     *
      * <p>lophine/Folia 特殊要求：Player 相关的 API（如 getTargetBlock）必须在玩家所在区域线程执行，
      * 不能使用 GlobalRegionScheduler，否则会报 getCurrentWorldData() is null</p>
-     * 
-     * @param player 目标玩家
-     * @param supplier 要执行的任务
+     *
+     * @param player         目标玩家
+     * @param supplier       要执行的任务
      * @param timeoutSeconds 超时时间（秒）
      * @return 执行结果
      */

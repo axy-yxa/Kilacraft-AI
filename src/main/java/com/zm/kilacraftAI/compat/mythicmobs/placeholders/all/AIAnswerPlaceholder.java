@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.compat.mythicmobs.placeholders.all;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.util.PluginLogger;
 import io.lumine.mythic.api.adapters.AbstractEntity;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import io.lumine.mythic.core.skills.placeholders.PlaceholderContext;
@@ -72,18 +73,14 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
 
             // 从 ConversationManager 获取并清除 AI 回复（读取后自动删除）
             String response = KilacraftAI.getInstance().getConversationManager().pollLatestAIResponse(casterId, type);
-            
+
             // 如果没有数据，说明 AI 正在思考还未回复，返回等待标识
             return Objects.requireNonNullElse(response, "UNDEFINED");
 
         } catch (Exception e) {
             // 尝试获取插件实例记录错误
             try {
-                KilacraftAI plugin = KilacraftAI.getInstance();
-                if (plugin != null && plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().severe("AI 占位符解析失败：" + e.getMessage());
-                    e.printStackTrace();
-                }
+                PluginLogger.error("AI占位符", "占位符解析失败: " + e.getMessage(), e);
             } catch (Exception ignored) {
             }
             return "[占位符解析错误]";

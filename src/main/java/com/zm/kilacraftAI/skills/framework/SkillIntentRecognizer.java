@@ -11,13 +11,9 @@ import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import com.zm.kilacraftAI.skills.framework.task.TaskStep;
 import com.zm.kilacraftAI.util.HistoryUtil;
+import com.zm.kilacraftAI.util.PluginLogger;
 
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -106,9 +102,7 @@ public class SkillIntentRecognizer {
             @Override
             public void showResponse(String response) {
                 // 意图识别场景：仅 debug 日志
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] [意图识别结果] \n" + response);
-                }
+                PluginLogger.debug("意图识别", "意图识别结果: " + response);
             }
 
             @Override
@@ -118,9 +112,7 @@ public class SkillIntentRecognizer {
 
             @Override
             public void handleError(String errorMessage) {
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().warning("[DEBUG] [意图识别错误] " + errorMessage);
-                }
+                PluginLogger.debug("意图识别", "意图识别错误: " + errorMessage);
             }
 
             @Override
@@ -132,9 +124,7 @@ public class SkillIntentRecognizer {
         // 构建系统提示词（全量注入）
         String systemPrompt = buildSystemPrompt();
 
-//        if (configManager.isDebugMode()) {
-//            plugin.getLogger().warning("[DEBUG] 动态构建系统提示词：" + systemPrompt);
-//        }
+//        PluginLogger.debug("意图识别", "动态构建系统提示词: " + systemPrompt);
 
         // 调用 LLM 进行意图识别
         // 优化：启用知识检索，支持命令文档等定制知识
@@ -215,9 +205,7 @@ public class SkillIntentRecognizer {
             // 否则按单意图处理
             return parseSingleIntentFromResponse(json);
         } catch (Exception e) {
-            if (configManager.isDebugMode()) {
-                plugin.getLogger().warning("[DEBUG] 解析意图失败：" + e.getMessage());
-            }
+            PluginLogger.debug("意图识别", "解析意图失败：" + e.getMessage());
             return createInvalidIntent("解析失败：" + e.getMessage());
         }
     }
@@ -311,9 +299,7 @@ public class SkillIntentRecognizer {
             return plan;
 
         } catch (Exception e) {
-            if (configManager.isDebugMode()) {
-                plugin.getLogger().warning("[DEBUG] 解析任务计划失败：" + e.getMessage());
-            }
+            PluginLogger.debug("意图识别", "解析任务计划失败：" + e.getMessage());
             return null;
         }
     }
@@ -339,9 +325,7 @@ public class SkillIntentRecognizer {
      * 创建无效的意图
      */
     private SkillIntent createInvalidIntent(String reason) {
-        if (configManager.isDebugMode()) {
-            plugin.getLogger().warning("[DEBUG] 创建无效意图：" + reason);
-        }
+        PluginLogger.debug("意图识别", "创建无效意图：" + reason);
         return new SkillIntent(null, null, new HashMap<>(), 0.0, reason);
     }
 

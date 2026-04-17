@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -47,9 +48,7 @@ public class ConditionEvaluator {
      * </ul>
      */
     public enum EvaluationResult {
-        MET,
-        NOT_MET,
-        FAILED
+        MET, NOT_MET, FAILED
     }
 
     private static final long EXECUTION_TIMEOUT_SECONDS = 5;
@@ -66,7 +65,7 @@ public class ConditionEvaluator {
             // 1. 获取Skill实例
             Skill skill = KilacraftAI.getInstance().getSkillManager().getSkill(conditionPlan.getConditionSkill());
             if (skill == null) {
-                KilacraftAI.getInstance().getLogger().warning("[条件评估] 找不到Skill: " + conditionPlan.getConditionSkill());
+                PluginLogger.warn("条件评估", "找不到Skill: " + conditionPlan.getConditionSkill());
                 return EvaluationResult.FAILED;
             }
 
@@ -79,42 +78,35 @@ public class ConditionEvaluator {
             try {
                 result = future.get(EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
-                KilacraftAI.getInstance().getLogger().warning("[条件评估] Skill执行超时: " + conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction());
+                PluginLogger.warn("条件评估", "Skill执行超时: " + conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction());
                 return EvaluationResult.FAILED;
             } catch (InterruptedException | ExecutionException e) {
-                KilacraftAI.getInstance().getLogger().warning("[条件评估] Skill执行异常: " + e.getMessage());
+                PluginLogger.warn("条件评估", "Skill执行异常: " + e.getMessage(), e);
                 return EvaluationResult.FAILED;
             }
 
             // 4. 检查执行结果
             if (!result.isSuccess()) {
-                if (KilacraftAI.getInstance().getConfigManager().isDebugMode()) {
-                    KilacraftAI.getInstance().getLogger().info("[DEBUG] [条件评估] Skill执行失败: " + result.getMessage());
-                }
+                PluginLogger.debug("条件评估", "Skill执行失败: " + result.getMessage());
                 return EvaluationResult.FAILED;
             }
 
             // 5. 提取字段值
             Double value = extractDoubleValue(result, conditionPlan.getResultPath());
             if (value == null) {
-                if (KilacraftAI.getInstance().getConfigManager().isDebugMode()) {
-                    KilacraftAI.getInstance().getLogger().info("[DEBUG] [条件评估] 无法提取字段: " + conditionPlan.getResultPath());
-                }
+                PluginLogger.debug("条件评估", "无法提取字段: " + conditionPlan.getResultPath());
                 return EvaluationResult.FAILED;
             }
 
             // 6. 执行比较
             boolean meetsCondition = compare(value, conditionPlan.getOperator(), conditionPlan.getThreshold());
 
-//            if (KilacraftAI.getInstance().getConfigManager().isDebugMode()) {
-//                KilacraftAI.getInstance().getLogger().info("[DEBUG] [条件评估] " + conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction() + " -> " + conditionPlan.getResultPath() + "=" + value + " " + conditionPlan.getOperatorDescription() + " " + conditionPlan.getThreshold() + " ? " + meetsCondition);
-//            }
+//            PluginLogger.debug("条件评估", conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction() + " -> " + conditionPlan.getResultPath() + "=" + value + " " + conditionPlan.getOperatorDescription() + " " + conditionPlan.getThreshold() + " ? " + meetsCondition);
 
             return meetsCondition ? EvaluationResult.MET : EvaluationResult.NOT_MET;
 
         } catch (Exception e) {
-            KilacraftAI.getInstance().getLogger().severe("[条件评估] 评估异常: " + e.getMessage());
-            e.printStackTrace();
+            PluginLogger.error("条件评估", "评估异常: " + e.getMessage(), e);
             return EvaluationResult.FAILED;
         }
     }
@@ -142,9 +134,7 @@ public class ConditionEvaluator {
             return convertToDouble(value);
 
         } catch (Exception e) {
-            if (KilacraftAI.getInstance().getConfigManager().isDebugMode()) {
-                KilacraftAI.getInstance().getLogger().info("[DEBUG] [条件评估] 提取字段失败: " + e.getMessage());
-            }
+            PluginLogger.debug("条件评估", "提取字段失败: " + e.getMessage());
             return null;
         }
     }
@@ -186,7 +176,7 @@ public class ConditionEvaluator {
             case "less_than_or_equal" -> actualValue <= threshold;
             case "greater_than" -> actualValue > threshold;
             case "greater_than_or_equal" -> actualValue >= threshold;
-            case "equal" -> Math.abs(actualValue - threshold) < 0.0001; // 浮点数相等比较
+            case "equal" -> Math.abs(actualValue - threshold) < 0.0001;
             case "not_equal" -> Math.abs(actualValue - threshold) >= 0.0001;
             default -> false;
         };

@@ -1,9 +1,10 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.skills.bukkit.BukkitAPIMetadata;
 import com.zm.kilacraftAI.skills.bukkit.BukkitAPIConfigLoader;
+import com.zm.kilacraftAI.skills.bukkit.BukkitAPIMetadata;
 import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
+import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -32,7 +33,7 @@ public class SkillConfigManager {
 
     private final KilacraftAI plugin;
     private final File skillsFolder;
-    
+
     /**
      * 传统技能配置缓存
      * key = packageName.skillName
@@ -44,13 +45,13 @@ public class SkillConfigManager {
      */
     @Getter
     private final Map<String, BukkitAPIMetadata> bukkitApiMap;
-    
+
     /**
      * Bukkit API 全局提示信息
      */
     @Getter
     private final List<String> bukkitApiGlobalHints;
-    
+
     /**
      * Bukkit API 技能描述
      */
@@ -81,11 +82,11 @@ public class SkillConfigManager {
 
         // 加载传统技能配置
         loadTraditionalSkillConfigs();
-        
+
         // 加载 Bukkit API 元数据
         loadBukkitAPIs();
 
-        plugin.getLogger().info("已加载 " + skillConfigs.size() + " 个技能配置");
+        PluginLogger.info("技能配置", "已加载 " + skillConfigs.size() + " 个技能配置");
     }
 
     /**
@@ -133,25 +134,24 @@ public class SkillConfigManager {
             try {
                 BukkitAPIConfigLoader loader = new BukkitAPIConfigLoader();
                 List<BukkitAPIMetadata> loadedApis = loader.loadFromFile(apisFile);
-                
+
                 // 加载全局 hints
                 List<String> globalHints = loader.loadGlobalHints(apisFile);
                 bukkitApiGlobalHints.clear();
                 bukkitApiGlobalHints.addAll(globalHints);
-                
+
                 // 加载全局技能描述
                 String skillDescription = loader.loadSkillDescription(apisFile);
                 bukkitApiSkillDescription = skillDescription != null ? skillDescription : "";
-                
+
                 // 转为 Map 存储，key 为 API ID
                 for (BukkitAPIMetadata api : loadedApis) {
                     bukkitApiMap.put(api.getId(), api);
                 }
-                
-                plugin.getLogger().info("已加载 " + loadedApis.size() + " 个 Bukkit API");
+
+                PluginLogger.info("技能配置", "已加载 " + loadedApis.size() + " 个 Bukkit API");
             } catch (Exception e) {
-                plugin.getLogger().severe("加载 Bukkit API 配置失败：" + apisFile.getPath());
-                e.printStackTrace();
+                PluginLogger.error("技能配置", "加载 Bukkit API 配置失败：" + apisFile.getPath(), e);
             }
         }
     }
@@ -164,10 +164,10 @@ public class SkillConfigManager {
             File defaultApisFile = new File(bukkitFolder, "apis.yml");
             if (!defaultApisFile.exists()) {
                 plugin.saveResource("skills/bukkit/apis.yml", false);
-                plugin.getLogger().info("已创建默认 Bukkit API 技能配置文件");
+                PluginLogger.info("技能配置", "已创建默认 Bukkit API 技能配置文件");
             }
         } catch (Exception e) {
-            plugin.getLogger().warning("无法创建默认 Bukkit API 配置：" + e.getMessage());
+            PluginLogger.warn("技能配置", "无法创建默认 Bukkit API 配置：" + e.getMessage(), e);
         }
     }
 
@@ -178,20 +178,12 @@ public class SkillConfigManager {
         try {
             FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
-            SkillConfig skillConfig = new SkillConfig(packageName, skillName, 
-                config.getString("description", ""), 
-                getActionDescriptions(config), 
-                getResponseMessages(config),
-                getHints(config));
+            SkillConfig skillConfig = new SkillConfig(packageName, skillName, config.getString("description", ""), getActionDescriptions(config), getResponseMessages(config), getHints(config));
 
             String key = packageName + "." + skillName;
             skillConfigs.put(key, skillConfig);
-
-            plugin.getLogger().fine("已加载技能配置：" + key);
-
         } catch (Exception e) {
-            plugin.getLogger().severe("加载技能配置失败：" + configFile.getPath());
-            e.printStackTrace();
+            PluginLogger.error("技能配置", "加载技能配置失败：" + configFile.getPath(), e);
         }
     }
 
@@ -215,13 +207,13 @@ public class SkillConfigManager {
      */
     private List<String> getHints(FileConfiguration config) {
         List<String> hints = new ArrayList<>();
-        
+
         // 优先使用 getStringList，兼容性更好
         List<String> loadedHints = config.getStringList("hints");
         if (!loadedHints.isEmpty()) {
             hints = new ArrayList<>(loadedHints);
         }
-        
+
         return hints;
     }
 
@@ -242,10 +234,9 @@ public class SkillConfigManager {
         try {
             String resourcePath = "skills/" + packageName + "/" + skillName + ".yml";
             plugin.saveResource(resourcePath, false);
-            plugin.getLogger().info("已创建默认 " + skillName + ".yml" + " 技能配置文件");
+            PluginLogger.info("技能配置", "已创建默认 " + skillName + ".yml" + " 技能配置文件");
         } catch (Exception e) {
-            plugin.getLogger().severe("保存技能配置失败：" + configFile.getPath());
-            e.printStackTrace();
+            PluginLogger.error("技能配置", "保存技能配置失败：" + configFile.getPath(), e);
         }
     }
 
@@ -271,7 +262,7 @@ public class SkillConfigManager {
         String key = packageName + "." + skillName;
         return skillConfigs.get(key);
     }
-    
+
     /**
      * 动态加载单个技能配置（如果文件存在）
      * 用于在插件运行时按需加载配置
@@ -285,25 +276,20 @@ public class SkillConfigManager {
         if (!configFile.exists()) {
             return null;
         }
-        
+
         try {
             FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
-            
-            SkillConfig skillConfig = new SkillConfig(packageName, skillName,
-                config.getString("description", ""),
-                getActionDescriptions(config),
-                getResponseMessages(config),
-                getHints(config));
-            
+
+            SkillConfig skillConfig = new SkillConfig(packageName, skillName, config.getString("description", ""), getActionDescriptions(config), getResponseMessages(config), getHints(config));
+
             String key = packageName + "." + skillName;
             skillConfigs.put(key, skillConfig);
-            
-            plugin.getLogger().fine("已动态加载技能配置：" + key);
+
+            PluginLogger.debug("技能配置", "已动态加载技能配置：" + key);
             return skillConfig;
-            
+
         } catch (Exception e) {
-            plugin.getLogger().severe("动态加载技能配置失败：" + configFile.getPath());
-            e.printStackTrace();
+            PluginLogger.error("技能配置", "动态加载技能配置失败：" + configFile.getPath(), e);
             return null;
         }
     }
@@ -315,9 +301,9 @@ public class SkillConfigManager {
         skillConfigs.clear();
         bukkitApiMap.clear();
         bukkitApiGlobalHints.clear();
-            
+
         loadAllSkillConfigs();
-            
-        plugin.getLogger().info("技能配置重载完成！");
+
+        PluginLogger.info("技能配置", "技能配置重载完成！");
     }
 }

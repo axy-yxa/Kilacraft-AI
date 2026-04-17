@@ -1,8 +1,9 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import org.bukkit.configuration.file.FileConfiguration;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,12 +56,12 @@ public class PersonalitiesConfigManager {
 
                 // 创建文件
                 personalitiesFile.createNewFile();
-                plugin.getLogger().info("已创建默认 " + personalitiesFile.getName() + " 人格配置文件");
+                PluginLogger.info("人格配置", "已创建默认 " + personalitiesFile.getName() + " 人格配置文件");
 
                 // 写入示例配置
                 writeExampleConfig();
             } catch (IOException e) {
-                plugin.getLogger().severe("创建人格配置文件失败：" + e.getMessage());
+                PluginLogger.error("人格配置", "创建人格配置文件失败", e);
             }
         }
     }
@@ -89,11 +90,11 @@ public class PersonalitiesConfigManager {
             newConfig.set("奸商", "你是一个精明的 Minecraft 商人，正在和顾客 {player} 交谈。\n" + "你说话圆滑，总想推销自己的商品，对经济系统和交易价格了如指掌，时不时会开个玩笑。");
 
             newConfig.save(personalitiesFile);
-            
+
             // 清空 config 引用，强制下次重新加载
             this.config = null;
         } catch (IOException e) {
-            plugin.getLogger().severe("写入示例配置失败：" + e.getMessage());
+            PluginLogger.error("人格配置", "写入示例配置失败", e);
         }
     }
 
@@ -104,7 +105,7 @@ public class PersonalitiesConfigManager {
         try {
             // 先检查文件是否存在且可读
             if (!personalitiesFile.exists()) {
-                plugin.getLogger().warning("人格配置文件不存在，将创建示例文件");
+                PluginLogger.warn("人格配置", "人格配置文件不存在，将创建示例文件");
                 writeExampleConfig();
             }
 
@@ -117,7 +118,7 @@ public class PersonalitiesConfigManager {
             // 获取所有配置节
             ConfigurationSection section = config.getConfigurationSection("");
             if (section == null || section.getKeys(false).isEmpty()) {
-                plugin.getLogger().warning("人格配置文件为空，将创建示例文件");
+                PluginLogger.warn("人格配置", "人格配置文件为空，将创建示例文件");
                 writeExampleConfig();
                 // 重新加载
                 loadConfig();
@@ -136,15 +137,12 @@ public class PersonalitiesConfigManager {
                 String prompt = section.getString(key);
                 if (!key.trim().isEmpty() && prompt != null && !prompt.trim().isEmpty()) {
                     personalitiesCache.put(key, prompt);
-                    plugin.getLogger().fine("已加载人格配置：" + key);
                 }
             }
 
-            plugin.getLogger().info("人格配置加载完成，共 " + personalitiesCache.size() + " 个人格");
+            PluginLogger.info("人格配置", "人格配置加载完成，共 " + personalitiesCache.size() + " 个人格");
         } catch (Exception e) {
-            plugin.getLogger().severe("加载人格配置文件失败：" + e.getMessage());
-            plugin.getLogger().severe("文件路径：" + personalitiesFile.getAbsolutePath());
-            e.printStackTrace();
+            PluginLogger.error("人格配置", "加载人格配置文件失败：" + personalitiesFile.getAbsolutePath(), e);
             // 直接重新生成配置文件
             writeExampleConfig();
             // 重新加载
@@ -195,8 +193,8 @@ public class PersonalitiesConfigManager {
      * 重新加载配置文件
      */
     public void reload() {
-        plugin.getLogger().info("正在重新加载人格配置...");
+        PluginLogger.info("人格配置", "正在重新加载人格配置...");
         loadConfig();
-        plugin.getLogger().info("人格配置加载完成");
+        PluginLogger.info("人格配置", "人格配置加载完成");
     }
 }

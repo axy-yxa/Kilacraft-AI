@@ -12,24 +12,34 @@ import java.util.Map;
  */
 @Getter
 public class TaskStep {
-    
-    /** 步骤 ID（如 step_1, step_2） */
+
+    /**
+     * 步骤 ID（如 step_1, step_2）
+     */
     private final String id;
-    
-    /** 技能名称 */
+
+    /**
+     * 技能名称
+     */
     private final String skillName;
-    
-    /** 动作 */
+
+    /**
+     * 动作
+     */
     private final String action;
-    
-    /** 实体（物品、数量等） */
+
+    /**
+     * 实体（物品、数量等）
+     */
     private final Map<String, String> entities;
-    
-    /** 依赖的前置步骤 ID 列表 */
+
+    /**
+     * 依赖的前置步骤 ID 列表
+     */
     private final List<String> dependsOn;
-    
-    public TaskStep(String id, String skillName, String action, 
-                   Map<String, String> entities, List<String> dependsOn) {
+
+    public TaskStep(String id, String skillName, String action,
+                    Map<String, String> entities, List<String> dependsOn) {
         this.id = id;
         this.skillName = skillName;
         this.action = action;

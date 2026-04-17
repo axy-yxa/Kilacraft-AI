@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.skills.afktask;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -99,9 +100,7 @@ public class AFKTaskManager {
             return SkillResult.failure("挂机任务创建失败：" + errorMsg);
         }
 
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] [挂机任务] 已创建: " + taskId + ", " + taskType + ", " + player.getName() + ", 总数: " + getActiveTaskCount());
-        }
+        PluginLogger.debug("挂机任务", "已创建: " + taskId + ", " + taskType + ", " + player.getName() + ", 总数: " + getActiveTaskCount());
 
         return SkillResult.success("挂机任务已创建并启动：" + task.getTaskDescription());
     }
@@ -123,22 +122,6 @@ public class AFKTaskManager {
     }
 
     /**
-     * 按任务ID取消任务
-     *
-     * @param taskId 任务ID
-     * @return 取消结果
-     */
-    public SkillResult cancelTaskById(String taskId) {
-        AFKTask task = taskIndex.remove(taskId);
-        if (task == null) {
-            return SkillResult.failure("找不到指定的挂机任务。");
-        }
-        taskMap.remove(task.getPlayerUUID());
-        task.stop();
-        return SkillResult.success("挂机任务已取消：" + task.getTaskDescription());
-    }
-
-    /**
      * 查询玩家的当前挂机任务
      *
      * @param playerUUID 玩家UUID
@@ -146,16 +129,6 @@ public class AFKTaskManager {
      */
     public AFKTask getTask(UUID playerUUID) {
         return taskMap.get(playerUUID);
-    }
-
-    /**
-     * 按任务ID查询
-     *
-     * @param taskId 任务ID
-     * @return 任务，null 表示不存在
-     */
-    public AFKTask getTaskById(String taskId) {
-        return taskIndex.get(taskId);
     }
 
     /**
@@ -189,9 +162,7 @@ public class AFKTaskManager {
         if (task != null) {
             taskIndex.remove(task.getTaskId());
             task.stop();
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] [挂机任务] 玩家下线，自动取消任务: " + task.getTaskId() + ", 玩家: " + task.getPlayerName());
-            }
+            PluginLogger.debug("挂机任务", "玩家下线，自动取消任务: " + task.getTaskId() + ", 玩家: " + task.getPlayerName());
         }
     }
 
@@ -211,7 +182,7 @@ public class AFKTaskManager {
      */
     public void shutdown() {
         if (!taskMap.isEmpty()) {
-            plugin.getLogger().info("[挂机任务] 正在关闭 " + taskMap.size() + " 个活跃任务...");
+            PluginLogger.info("挂机任务", "正在关闭 " + taskMap.size() + " 个活跃任务...");
             for (AFKTask task : taskMap.values()) {
                 task.stop();
             }

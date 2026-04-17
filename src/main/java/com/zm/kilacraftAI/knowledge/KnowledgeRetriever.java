@@ -2,9 +2,14 @@ package com.zm.kilacraftAI.knowledge;
 
 import com.zm.kilacraftAI.util.BM25Scorer;
 import com.zm.kilacraftAI.util.ChineseTextUtil;
+import com.zm.kilacraftAI.util.PluginLogger;
 
-import java.util.*;
-import java.util.regex.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 知识检索器
@@ -59,9 +64,7 @@ public class KnowledgeRetriever {
         // HanLP TF-IDF 提取有意义的关键词
         List<String> keywords = extractKeywords(question);
 
-        if (knowledgeBase.isDebugMode()) {
-            knowledgeBase.logInfo("[DEBUG] [知识库] 提取关键词：" + keywords);
-        }
+        PluginLogger.debug("知识库", "提取关键词：" + keywords);
 
         // 存储所有片段及其得分
         List<KnowledgeChunk> chunkScores = new ArrayList<>();
@@ -80,14 +83,9 @@ public class KnowledgeRetriever {
                 chunks = splitIntoChunks(content, fileName);
                 knowledgeBase.setChunkCache(fileName, chunks);
 
-                if (knowledgeBase.isDebugMode()) {
-                    long cacheTime = System.currentTimeMillis() - cacheStartTime;
-                    knowledgeBase.logInfo("[DEBUG] [知识库缓存] 文件：" + fileName + " - 首次分段并缓存，耗时 " + cacheTime + "ms");
-                }
+                PluginLogger.debug("知识库", "缓存文件：" + fileName + " - 首次分段并缓存，耗时 " + (System.currentTimeMillis() - cacheStartTime) + "ms");
             } else {
-                if (knowledgeBase.isDebugMode()) {
-                    knowledgeBase.logInfo("[DEBUG] [知识库缓存] 文件：" + fileName + " - 使用缓存的分段（" + chunks.size() + " 个片段）");
-                }
+                PluginLogger.debug("知识库", "缓存文件：" + fileName + " - 使用缓存的分段（" + chunks.size() + " 个片段）");
             }
 
             totalChunks += chunks.size();
@@ -115,18 +113,16 @@ public class KnowledgeRetriever {
         long endTime = System.currentTimeMillis();
 
         // 输出分段统计日志
-        if (knowledgeBase.isDebugMode()) {
-            knowledgeBase.logInfo("[DEBUG] [知识库] 检索耗时：" + (endTime - startTime) + "ms");
-            knowledgeBase.logInfo("[DEBUG] [知识库] 文件总数：" + allKnowledge.size() + ", 总片段数：" + totalChunks);
-            knowledgeBase.logInfo("[DEBUG] [知识库] 匹配片段：" + chunkScores.size() + ", 返回得分最高的 " + count + " 条");
+        PluginLogger.debug("知识库", "检索耗时：" + (endTime - startTime) + "ms");
+        PluginLogger.debug("知识库", "文件总数：" + allKnowledge.size() + ", 总片段数：" + totalChunks);
+        PluginLogger.debug("知识库", "匹配片段：" + chunkScores.size() + ", 返回得分最高的 " + count + " 条");
 
-            // 输出匹配的详细信息
-            for (int i = 0; i < count; i++) {
-                KnowledgeChunk chunk = chunkScores.get(i);
-                String preview = chunk.getContent().length() > 100 ? chunk.getContent().substring(0, 100) + "..." : chunk.getContent();
-                knowledgeBase.logInfo("[DEBUG] [知识库] 匹配 #" + (i + 1) + " - 文件：" + chunk.getFileName() + ", 得分：" + String.format("%.2f", chunk.getScore()) + ", 长度：" + chunk.getContent().length() + " 字符");
-                knowledgeBase.logInfo("[DEBUG] [知识库] " + preview.replace("\n", "\\n"));
-            }
+        // 输出匹配的详细信息
+        for (int i = 0; i < count; i++) {
+            KnowledgeChunk chunk = chunkScores.get(i);
+            String preview = chunk.getContent().length() > 100 ? chunk.getContent().substring(0, 100) + "..." : chunk.getContent();
+            PluginLogger.debug("知识库", "匹配 #" + (i + 1) + " - 文件：" + chunk.getFileName() + ", 得分：" + String.format("%.2f", chunk.getScore()) + ", 长度：" + chunk.getContent().length() + " 字符");
+            PluginLogger.debug("知识库", preview.replace("\n", "\\n"));
         }
 
         return relevantKnowledge;
@@ -165,15 +161,15 @@ public class KnowledgeRetriever {
 
         double score = 0.0;
 
-        // 1. 完整问题匹配（最高优先级）
+        // 完整问题匹配（最高优先级）
         if (lowerContent.contains(lowerQuestion)) {
             score += 50.0;
         }
 
-        // 2. BM25 评分
+        // BM25 评分
         score += BM25Scorer.score(content, keywords, bm25K1, bm25B, 500);
 
-        // 3. 标题位置加权：标题中的关键词额外加分
+        // 标题位置加权：标题中的关键词额外加分
         for (String keyword : keywords) {
             String[] lines = lowerContent.split("\n");
             for (String line : lines) {
@@ -185,7 +181,7 @@ public class KnowledgeRetriever {
             }
         }
 
-        // 4. 精确匹配额外奖励
+        // 精确匹配额外奖励
         boolean hasExactMatch = keywords.stream().anyMatch(lowerContent::contains);
         if (hasExactMatch) {
             score += 10.0;
@@ -212,7 +208,7 @@ public class KnowledgeRetriever {
 
         // 策略 1: 按 Markdown 标题分割 (# 或 ## 等) - 仅对 .md 文件生效
         boolean isMarkdownFile = fileName != null && fileName.toLowerCase().endsWith(".md");
-        
+
         if (isMarkdownFile) {
             List<String> markdownChunks = splitByMarkdownHeaders(content);
             if (!markdownChunks.isEmpty()) {
@@ -226,10 +222,7 @@ public class KnowledgeRetriever {
                     }
                 }
 
-                if (knowledgeBase.isDebugMode()) {
-                    long splitTime = System.currentTimeMillis() - splitStartTime;
-                    knowledgeBase.logInfo("[DEBUG] [知识库分段] 文件：" + fileName + " - 使用 Markdown 标题分割，得到 " + chunks.size() + " 个片段，耗时 " + splitTime + "ms");
-                }
+                PluginLogger.debug("知识库", "分段文件：" + fileName + " - 使用 Markdown 标题分割，得到 " + chunks.size() + " 个片段，耗时 " + (System.currentTimeMillis() - splitStartTime) + "ms");
                 return chunks;
             }
         }
@@ -237,26 +230,20 @@ public class KnowledgeRetriever {
         // 策略 2: 按段落分割（空行分隔）
         chunks = splitByParagraphs(content);
         if (!chunks.isEmpty()) {
-            if (knowledgeBase.isDebugMode()) {
-                long splitTime = System.currentTimeMillis() - splitStartTime;
-                knowledgeBase.logInfo("[DEBUG] [知识库分段] 文件：" + fileName + " - 使用段落分割，得到 " + chunks.size() + " 个片段，耗时 " + splitTime + "ms");
-            }
+            PluginLogger.debug("知识库", "分段文件：" + fileName + " - 使用段落分割，得到 " + chunks.size() + " 个片段，耗时 " + (System.currentTimeMillis() - splitStartTime) + "ms");
             return chunks;
         }
 
         // 策略 3: 如果以上都失败，按固定大小分割
         chunks = splitByFixedSize(content);
 
-        if (knowledgeBase.isDebugMode()) {
-            long splitTime = System.currentTimeMillis() - splitStartTime;
-            knowledgeBase.logInfo("[DEBUG] [知识库分段] 文件：" + fileName + " - 使用固定大小分割，得到 " + chunks.size() + " 个片段，耗时 " + splitTime + "ms");
-        }
+        PluginLogger.debug("知识库", "分段文件：" + fileName + " - 使用固定大小分割，得到 " + chunks.size() + " 个片段，耗时 " + (System.currentTimeMillis() - splitStartTime) + "ms");
         return chunks;
     }
 
     /**
      * 按 Markdown 标题分割（优化版：包含标题和内容）
-     * 
+     *
      * <p><b>重要</b>：如果没有找到任何 Markdown 标题（#{1,6}），必须返回空列表，
      * 让调用方降级使用策略 2（段落分割）。</p>
      */
@@ -270,10 +257,11 @@ public class KnowledgeRetriever {
         // 检查是否找到至少一个标题
         boolean foundAnyHeader = false;
         int lastEnd = 0;
-        
+
         while (matcher.find()) {
-            foundAnyHeader = true;  // 标记找到标题
-            
+            // 标记找到标题
+            foundAnyHeader = true;
+
             int start = matcher.start();
             int end = matcher.end();
 
@@ -327,7 +315,7 @@ public class KnowledgeRetriever {
 
         // 如果没有找到任何 Markdown 标题，返回空列表（让策略 2 接管）
         if (!foundAnyHeader) {
-            return chunks;  // 空列表
+            return chunks;
         }
 
         // 添加最后一部分
@@ -389,13 +377,14 @@ public class KnowledgeRetriever {
                 chunks.add(chunk);
             }
 
-            // 关键修复：确保 start 每次都前进，避免无限循环
+            // 确保 start 每次都前进，避免无限循环
             int nextStart = end - CHUNK_OVERLAP;
             if (nextStart <= start) {
-                nextStart = end; // 如果重叠导致不前进，直接跳到 end
+                // 如果重叠导致不前进，直接跳到 end
+                nextStart = end;
             }
             start = nextStart;
-            
+
             if (start >= content.length()) {
                 break;
             }

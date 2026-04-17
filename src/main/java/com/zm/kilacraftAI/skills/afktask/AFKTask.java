@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
+import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.entity.Player;
 
@@ -134,9 +135,7 @@ public abstract class AFKTask {
         this.status = AFKTaskStatus.COMPLETED;
         onStop();    // 释放子类资源（事件监听器、定时任务等）
         cleanup();
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] [挂机任务] 任务终止: " + taskId + " - " + message);
-        }
+        PluginLogger.debug("挂机任务", "任务终止: " + taskId + " - " + message);
     }
 
     /**
@@ -148,9 +147,7 @@ public abstract class AFKTask {
         }
         this.status = AFKTaskStatus.CANCELLED;
         onStop();
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] [挂机任务] 任务已取消: " + taskId);
-        }
+        PluginLogger.debug("挂机任务", "任务已取消: " + taskId);
     }
 
     /**

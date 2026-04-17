@@ -48,7 +48,7 @@ commands:
   kilacraft:
     description: 与 AI 对话
     usage: /<command> <消息>   # 命令使用格式说明
-    aliases: [kila, ai, zm]    # 命令别名（可以使用/kila、/ai、/zm 代替/kilacraft）
+    aliases: [ kila, ai, zm ]    # 命令别名（可以使用/kila、/ai、/zm 代替/kilacraft）
 
 # 权限节点定义
 permissions:

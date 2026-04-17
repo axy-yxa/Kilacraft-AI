@@ -2,8 +2,8 @@ package com.zm.kilacraftAI.handler.impl;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.enums.OutputChannel;
-import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.enums.OutputScenario;
+import com.zm.kilacraftAI.handler.AIResponseHandler;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -54,7 +54,7 @@ public class PlayerResponseHandler implements AIResponseHandler {
             customSendResponse.accept(response);
             return;
         }
-        
+
         // 默认逻辑：流式模式：通过管线完成流式输出
         if (plugin.getConfigManager().getOutputConfigManager().isStreamEnabled()) {
             plugin.getResponsePipeline().completeStream(player, response, scenario);

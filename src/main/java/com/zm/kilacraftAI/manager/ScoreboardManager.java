@@ -8,10 +8,10 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +76,7 @@ public class ScoreboardManager {
     }
 
     /**
-     * 内部实现：发送 Sidebar（必须在主线程调用）
+     * 发送 Sidebar（必须在主线程调用）
      */
     private void sendSidebarInternal(Player player, String message) {
         UUID playerId = player.getUniqueId();
@@ -106,7 +106,7 @@ public class ScoreboardManager {
         // 显示第一页
         info.showPage(0);
 
-        // 定时清理（如果配置了时长）
+        // 定时清理
         int durationSeconds = config.getSidebarDurationSeconds();
         if (durationSeconds > 0) {
             scheduleRemoval(playerId, durationSeconds);
@@ -182,8 +182,7 @@ public class ScoreboardManager {
         }
 
         // 创建新的定时器
-        BukkitTask task = plugin.getServer().getScheduler().runTaskLater(plugin, () -> removeSidebar(playerId), delaySeconds * 20L);
-        info.removalTask = task;
+        info.removalTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> removeSidebar(playerId), delaySeconds * 20L);
     }
 
     /**
@@ -197,7 +196,7 @@ public class ScoreboardManager {
     }
 
     /**
-     * 清理所有 Scoreboard（插件卸载时调用）
+     * 清理所有 Scoreboard
      */
     public void cleanup() {
         activeScoreboards.values().forEach(ScoreboardInfo::remove);

@@ -14,6 +14,7 @@ import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import com.zm.kilacraftAI.util.AIRequestValidator;
 import com.zm.kilacraftAI.util.MessageUtil;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -99,21 +100,17 @@ public class AIRequestHandler {
         if (!plugin.getConfigManager().isApiKeyConfigured()) {
             String hint = "§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/config.yml 中的 llm.api_key 后重启服务器或执行 /kilacraft reload";
             ctx.sendError.accept(hint);
-            plugin.getLogger().warning("[AI请求] 拒绝请求：API Key 未配置");
+            PluginLogger.warn("AI请求", "拒绝请求：API Key 未配置");
             return;
         }
 
         if (!enableAgent) {
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] Agent 能力已禁用，进入普通 AI 处理");
-            }
+            PluginLogger.debug("AI请求", "Agent 能力已禁用，进入普通 AI 处理");
             handleNormalAIRequest(message, ctx);
             return;
         }
 
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 开始 LLM 意图识别，用户：" + ctx.name() + ", 消息：" + message);
-        }
+        PluginLogger.debug("AI请求", "开始 LLM 意图识别，用户：" + ctx.name() + ", 消息：" + message);
 
         var intentRecognizer = plugin.getIntentRecognizer();
         if (intentRecognizer == null) {
@@ -127,9 +124,7 @@ public class AIRequestHandler {
             } else if (result instanceof SkillIntent intent && intent.isValid()) {
                 handleSkillIntent(intent, message, ctx);
             } else {
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] 意图识别结束，回退到普通 AI 处理");
-                }
+                PluginLogger.debug("AI请求", "意图识别结束，回退到普通 AI 处理");
                 handleNormalAIRequest(message, ctx);
             }
         }).exceptionally(throwable -> {
@@ -142,18 +137,14 @@ public class AIRequestHandler {
      * 处理任务计划（多步骤）
      */
     private void handleTaskPlan(TaskPlan taskPlan, String message, RequestContext ctx) {
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 识别到多步骤任务：" + taskPlan.getGoal());
-        }
+        PluginLogger.debug("AI请求", "识别到多步骤任务：" + taskPlan.getGoal());
 
         TaskExecutor taskExecutor = new TaskExecutor(plugin.getSkillManager());
         SkillContext context = new SkillContext(ctx.player(), null, new HashMap<>());
 
         // TaskExecutor 返回 AnalysisSummary，通过中间层进行 LLM 二次分析
         taskExecutor.executeTask(taskPlan, context, ctx.history(), message).thenAccept(summary -> {
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 任务计划执行完成，开始 LLM 二次分析...");
-            }
+            PluginLogger.debug("AI请求", "任务计划执行完成，开始 LLM 二次分析...");
 
             // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
             plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenario.TASK_RESULT, false).thenAccept(result -> {
@@ -168,17 +159,13 @@ public class AIRequestHandler {
      * 处理技能意图（单意图）
      */
     private void handleSkillIntent(SkillIntent intent, String message, RequestContext ctx) {
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 识别到单意图：" + intent.getAction());
-        }
+        PluginLogger.debug("AI请求", "识别到单意图：" + intent.getAction());
 
         SkillContext context = new SkillContext(ctx.player(), intent.getAction(), intent.getEntities());
 
         plugin.getSkillManager().executeSkillByIntent(intent, context).thenCompose(execResult -> {
             if (execResult.isSuccess()) {
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] 技能执行成功");
-                }
+                PluginLogger.debug("技能执行", "技能执行成功");
                 AnalysisSummary summary = new AnalysisSummary().userMessage(message).addResult("SUCCESS", execResult.getMessage()).statistics(1, 0, 0);
 
                 // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
@@ -192,16 +179,12 @@ public class AIRequestHandler {
             }
         }).thenAccept(finalResult -> {
             if (finalResult.isSuccess()) {
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().info("[DEBUG] 技能执行完成：" + finalResult.getMessage());
-                }
+                PluginLogger.debug("技能执行", "技能执行完成：" + finalResult.getMessage());
                 // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, finalResult.getMessage());
             } else {
-                if (plugin.getConfigManager().isDebugMode()) {
-                    plugin.getLogger().warning("[DEBUG] 技能执行失败：" + finalResult.getMessage());
-                    plugin.getLogger().warning("[DEBUG] 已回退到普通 AI 处理");
-                }
+                PluginLogger.debug("技能执行", "技能执行失败：" + finalResult.getMessage());
+                PluginLogger.debug("技能执行", "已回退到普通 AI 处理");
                 // 将技能失败信息注入消息上下文，回退到普通AI兜底
                 // LLM看到失败信息后可以理解原因并引导玩家（如提示取消旧的挂机任务）
                 String enrichedMessage = message + "\n[系统提示：技能执行失败 - " + finalResult.getMessage() + "]";
@@ -209,7 +192,7 @@ public class AIRequestHandler {
             }
         }).exceptionally(throwable -> {
             ctx.sendError.accept(throwable.getMessage());
-            plugin.getLogger().severe("[技能执行异常] " + throwable.getMessage());
+            PluginLogger.error("技能执行", "技能执行异常: " + throwable.getMessage(), throwable);
             return null;
         });
     }
@@ -218,9 +201,7 @@ public class AIRequestHandler {
      * 处理普通 AI 请求（无技能调用）
      */
     private void handleNormalAIRequest(String message, RequestContext ctx) {
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] " + ctx.name() + " 的历史记录数量：" + ctx.history().size());
-        }
+        PluginLogger.debug("AI请求", ctx.name() + " 的历史记录数量：" + ctx.history().size());
 
         AIResponseHandler handler;
         if (ctx.player() != null) {
@@ -230,9 +211,7 @@ public class AIRequestHandler {
         }
 
         plugin.getLlmManager().getCurrentProvider().processRequest(message, ctx.name(), ctx.history(), handler).thenAccept(fullResponse -> {
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] AI请求完成：" + fullResponse);
-            }
+            PluginLogger.debug("AI请求", "AI请求完成：" + fullResponse);
             validator.saveToHistory(ctx.history(), message, fullResponse);
         }).exceptionally(throwable -> {
             ctx.sendError.accept(throwable.getMessage());
@@ -241,7 +220,7 @@ public class AIRequestHandler {
     }
 
     /**
-     * 获取或创建历史记录（线程安全）
+     * 获取或创建历史记录
      */
     private Deque<ConversationManager.Message> getOrCreateHistory(UUID playerId) {
         ConversationManager convManager = plugin.getConversationManager();
@@ -256,8 +235,6 @@ public class AIRequestHandler {
      * 从上下文获取 CommandSender（用于控制台）
      */
     private CommandSender getSenderFromContext(RequestContext ctx) {
-        // 控制台场景下，通过回调推断 sender
-        // 这里用一个简单的方式：控制台的player为null
         return plugin.getServer().getConsoleSender();
     }
 

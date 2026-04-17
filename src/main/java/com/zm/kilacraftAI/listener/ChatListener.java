@@ -6,6 +6,7 @@ import com.zm.kilacraftAI.handler.AIRequestHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.util.AIRequestValidator;
 import com.zm.kilacraftAI.util.MessageUtil;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -87,9 +88,7 @@ public class ChatListener implements Listener {
     }
 
     /**
-     * 处理 AI 请求（带冷却、历史记录等）
-     *
-     * <p>所有请求统一使用 LLM 意图识别，不再使用关键词匹配</p>
+     * 处理 AI 请求
      *
      * @param publicReply 是否将AI回复广播给所有在线玩家
      */
@@ -113,10 +112,7 @@ public class ChatListener implements Listener {
         ConversationManager convManager = plugin.getConversationManager();
         Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
 
-        // 调试模式：打印历史记录信息
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 玩家 " + player.getName() + " 的历史记录数量：" + playerHistory.size());
-        }
+        PluginLogger.debug("聊天监听", "玩家 " + player.getName() + " 的历史记录数量：" + playerHistory.size());
 
         // 使用统一的 AI 请求处理器
         boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableChatListener();
@@ -138,12 +134,12 @@ public class ChatListener implements Listener {
         Player player = event.getPlayer();
         plugin.getConversationManager().onPlayerQuit(player);
 
-        // 清理玩家的流式生成状态（防止内存泄漏）
+        // 清理玩家的流式生成状态
         if (plugin.getStreamOutputManager() != null) {
             plugin.getStreamOutputManager().cancelGeneration(player);
         }
 
-        // 清理玩家的 Scoreboard（防止内存泄漏）
+        // 清理玩家的 Scoreboard
         if (plugin.getResponsePipeline() != null && plugin.getResponsePipeline().getDispatcher() != null) {
             plugin.getResponsePipeline().getDispatcher().getScoreboardManager().removeSidebar(player.getUniqueId());
         }

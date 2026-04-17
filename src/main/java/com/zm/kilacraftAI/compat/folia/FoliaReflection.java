@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.compat.folia;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -165,9 +166,9 @@ class FoliaReflection {
 
     /**
      * 在玩家实体所属的区域线程执行任务
-     * 
+     *
      * @param entity 目标实体（通常是 Player）
-     * @param task 要执行的任务
+     * @param task   要执行的任务
      */
     void invokeEntityRun(org.bukkit.entity.Entity entity, Runnable task) {
         try {
@@ -188,7 +189,7 @@ class FoliaReflection {
             try {
                 mhTaskCancel.invoke(task); // 返回值忽略（CancelledState 或 void）
             } catch (Throwable e) {
-                KilacraftAI.getInstance().getLogger().warning("[FoliaCompat] 取消任务失败: " + e.getMessage());
+                PluginLogger.warn("Folia兼容", "取消任务失败: " + e.getMessage(), e);
             }
         }
     }

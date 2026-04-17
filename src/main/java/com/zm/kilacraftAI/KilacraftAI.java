@@ -1,34 +1,30 @@
 package com.zm.kilacraftAI;
 
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.*;
 import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
-import com.zm.kilacraftAI.config.ConfigManager;
-import com.zm.kilacraftAI.config.IntentPromptConfigManager;
-import com.zm.kilacraftAI.config.LanguageManager;
-import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
-import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.listener.ChatListener;
 import com.zm.kilacraftAI.knowledge.KnowledgeBaseManager;
 import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
+import com.zm.kilacraftAI.listener.ChatListener;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.manager.LLMManager;
-
+import com.zm.kilacraftAI.manager.StreamOutputManager;
+import com.zm.kilacraftAI.output.AIResponsePipeline;
+import com.zm.kilacraftAI.skills.afktask.AFKTaskListener;
+import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
+import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
 import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
-import com.zm.kilacraftAI.skills.framework.SkillManager;
-import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
-import com.zm.kilacraftAI.skills.framework.spi.SkillRegistry;
-import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
 import com.zm.kilacraftAI.skills.cmi.CMISkill;
 import com.zm.kilacraftAI.skills.command.CommandSkill;
-import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
-import com.zm.kilacraftAI.skills.afktask.AFKTaskListener;
-import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
+import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
+import com.zm.kilacraftAI.skills.framework.SkillManager;
+import com.zm.kilacraftAI.skills.framework.spi.SkillRegistry;
 import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
+import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import com.zm.kilacraftAI.util.ChineseTextUtil;
-import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.output.AIResponsePipeline;
-import com.zm.kilacraftAI.manager.StreamOutputManager;
+import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -67,7 +63,7 @@ public final class KilacraftAI extends JavaPlugin {
     @Getter
     private AFKTaskManager afkTaskManager;
     private AFKTaskListener afkTaskListener;
-    
+
     /**
      * AI 响应输出管线（统一管理所有 AI 回复的输出载体）
      */
@@ -130,9 +126,9 @@ public final class KilacraftAI extends JavaPlugin {
         // 自定义词典（依赖 configManager）
         if (configManager.isCustomDictionaryEnabled()) {
             ChineseTextUtil.initCustomDictionary(configManager.getAllDictionaryWords());
-            getLogger().info("已加载 " + configManager.getInternalDictionaryWords().size() + " 个内置词汇");
+            PluginLogger.info("词典系统", "已加载 " + configManager.getInternalDictionaryWords().size() + " 个内置词汇");
             List<String> customWords = configManager.getCustomDictionaryWords();
-            getLogger().info("已加载 " + (customWords != null ? customWords.size() : 0) + " 个自定义词汇");
+            PluginLogger.info("词典系统", "已加载 " + (customWords != null ? customWords.size() : 0) + " 个自定义词汇");
         }
 
         // 物品翻译器（无外部依赖）
@@ -173,7 +169,7 @@ public final class KilacraftAI extends JavaPlugin {
             command.setExecutor(new KilacraftCommand(this));
             command.setTabCompleter(new TabCompleter());
         } else {
-            getLogger().severe("无法注册命令：kilacraft，请检查 plugin.yml 配置");
+            PluginLogger.error("命令注册", "无法注册命令：kilacraft，请检查 plugin.yml 配置");
         }
 
         // 注册事件监听器
@@ -196,15 +192,12 @@ public final class KilacraftAI extends JavaPlugin {
                 var method = managerClass.getMethod("registerPlaceholders");
                 method.invoke(managerInstance);
             } else {
-                getLogger().warning("当前 JDK 版本为 " + javaVersion + "，MythicMobs 需要 Java 21+，跳过占位符注册");
+                PluginLogger.warn("MythicMobs", "当前 JDK 版本为 " + javaVersion + "，MythicMobs 需要 Java 21+，跳过占位符注册");
             }
         } catch (ClassNotFoundException e) {
-            getLogger().severe("MythicMobs 兼容模块缺失，请检查 JAR 包完整性");
+            PluginLogger.error("MythicMobs", "MythicMobs 兼容模块缺失，请检查 JAR 包完整性");
         } catch (Exception e) {
-            getLogger().severe("MythicMobs 占位符注册失败：" + e.getMessage());
-            if (configManager != null && configManager.isDebugMode()) {
-                e.printStackTrace();
-            }
+            PluginLogger.error("MythicMobs", "MythicMobs 占位符注册失败：" + e.getMessage(), e);
         }
     }
 
@@ -234,11 +227,11 @@ public final class KilacraftAI extends JavaPlugin {
      * 打印启动标志
      */
     private void printStartupBanner() {
-        getLogger().info("╻┏ ╻╻  ┏━┓┏━╸┏━┓┏━┓┏━╸╺┳╸   ┏━┓╻");
-        getLogger().info("┣┻┓┃┃  ┣━┫┃  ┣┳┛┣━┫┣╸  ┃ ╺━╸┣━┫┃");
-        getLogger().info("╹ ╹╹┗━╸╹ ╹┗━╸╹┗╸╹ ╹╹   ╹    ╹ ╹╹");
-        getLogger().info("版本：v" + getDescription().getVersion());
-        getLogger().info("作者：Zm_Mmm");
+        PluginLogger.info("╻┏ ╻╻  ┏━┓┏━╸┏━┓┏━┓┏━╸╺┳╸   ┏━┓╻");
+        PluginLogger.info("┣┻┓┃┃  ┣━┫┃  ┣┳┛┣━┫┣╸  ┃ ╺━╸┣━┫┃");
+        PluginLogger.info("╹ ╹╹┗━╸╹ ╹┗━╸╹┗╸╹ ╹╹   ╹    ╹ ╹╹");
+        PluginLogger.info("版本：v" + getDescription().getVersion());
+        PluginLogger.info("作者：Zm_Mmm");
     }
 
     /**
@@ -274,7 +267,7 @@ public final class KilacraftAI extends JavaPlugin {
      */
     private void initializeAFKTaskSystem() {
         if (!configManager.isAfkTaskEnabled()) {
-            getLogger().info("挂机任务功能已禁用");
+            PluginLogger.info("挂机任务", "挂机任务功能已禁用");
             return;
         }
 
@@ -285,7 +278,7 @@ public final class KilacraftAI extends JavaPlugin {
         afkTaskListener = new AFKTaskListener(this);
         getServer().getPluginManager().registerEvents(afkTaskListener, this);
 
-        getLogger().info("初始化挂机任务系统（最大并发任务数：" + configManager.getAfkTaskMaxTasks() + "）");
+        PluginLogger.info("挂机任务", "初始化挂机任务系统（最大并发任务数：" + configManager.getAfkTaskMaxTasks() + "）");
     }
 
     /**
@@ -319,10 +312,10 @@ public final class KilacraftAI extends JavaPlugin {
 
         if (shouldBeRegistered && !isRegistered) {
             registerAction.run();
-            getLogger().info("热重载：已注册技能 " + skillName);
+            PluginLogger.info("热重载", "已注册技能 " + skillName);
         } else if (!shouldBeRegistered && isRegistered) {
             skillManager.unregisterSkill(skillName);
-            getLogger().info("热重载：已注销技能 " + skillName);
+            PluginLogger.info("热重载", "已注销技能 " + skillName);
         }
     }
 
@@ -339,7 +332,7 @@ public final class KilacraftAI extends JavaPlugin {
                 afkTaskListener = new AFKTaskListener(this);
                 getServer().getPluginManager().registerEvents(afkTaskListener, this);
             }
-            getLogger().info("热重载：挂机任务系统已初始化");
+            PluginLogger.info("热重载", "挂机任务系统已初始化");
         } else if (!shouldBeEnabled && afkTaskManager != null) {
             afkTaskManager.shutdown();
             // 注销监听器，防止内存泄漏
@@ -348,7 +341,7 @@ public final class KilacraftAI extends JavaPlugin {
                 afkTaskListener = null;
             }
             afkTaskManager = null;
-            getLogger().info("热重载：挂机任务系统已关闭");
+            PluginLogger.info("热重载", "挂机任务系统已关闭");
         }
     }
 
@@ -373,8 +366,8 @@ public final class KilacraftAI extends JavaPlugin {
         if (llmManager != null) {
             llmManager.shutdownAll();
         }
-        getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        getLogger().info("  Kilacraft-AI 已停止运行");
-        getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        PluginLogger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        PluginLogger.info("  Kilacraft-AI 已停止运行");
+        PluginLogger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 }

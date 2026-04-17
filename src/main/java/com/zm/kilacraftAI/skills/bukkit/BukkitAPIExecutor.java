@@ -63,7 +63,7 @@ public class BukkitAPIExecutor {
         } else {
             throw new IllegalStateException("API 必须配置 method_chain 或 additional_methods");
         }
-        
+
         // Folia 端特殊处理：
         // - 通过 invokeOnMainThread 调用的方法已经在区域线程内提取为 Map
         // - 只有未调度到区域线程的方法（不在 MAIN_THREAD_METHODS 中）才需要在此提取
@@ -185,7 +185,7 @@ public class BukkitAPIExecutor {
      * 在主线程/全局区域上同步执行方法调用
      * 用于 Chunk/Entity 等必须在主线程访问的 Bukkit API
      * 委托 FoliaCompat 处理 Folia/Spigot 调度差异
-     * 
+     *
      * <p>lophine/Folia 特殊处理：对于 Player 相关方法，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      * <p>重要：必须在区域线程内提取线程敏感对象为纯数据，否则跨线程访问会报 getCurrentWorldData() is null</p>
      */
@@ -206,7 +206,7 @@ public class BukkitAPIExecutor {
                     }
                 }, 5);
             }
-            
+
             // 其他对象使用 GlobalRegionScheduler
             return FoliaCompat.callSync(KilacraftAI.getInstance(), () -> {
                 try {
@@ -230,7 +230,7 @@ public class BukkitAPIExecutor {
 
     /**
      * 将线程敏感对象提取为线程安全的数据结构
-     * 
+     *
      * <p>lophine/Folia 要求：Block、Biome、Location、ItemStack 等对象只能在创建它们的区域线程访问，
      * 跨线程访问会报 getCurrentWorldData() is null。</p>
      * <p>此方法在区域线程内调用，将对象转换为 Map/String 等纯数据。</p>
@@ -275,30 +275,30 @@ public class BukkitAPIExecutor {
             Map<String, Object> itemData = new HashMap<>();
             itemData.put("item_type", itemStack.getType().name());
             itemData.put("item_amount", itemStack.getAmount());
-            
+
             // item_name 优先使用自定义名称，否则使用中文翻译
             if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
                 itemData.put("item_name", itemStack.getItemMeta().getDisplayName());
             } else {
                 // 使用 ItemTranslator 翻译为中文名
                 String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance()
-                    .translateToChinese(itemStack.getType().name());
+                        .translateToChinese(itemStack.getType().name());
                 itemData.put("item_name", chineseName);
             }
-            
+
             // 提取 ItemMeta 详细信息
             if (itemStack.hasItemMeta()) {
                 org.bukkit.inventory.meta.ItemMeta meta = itemStack.getItemMeta();
-                
+
                 // 1. 附魔列表
                 if (meta.hasEnchants()) {
                     Map<String, Integer> enchantments = new HashMap<>();
-                    meta.getEnchants().forEach((ench, level) -> 
-                        enchantments.put(ench.getName(), level)
+                    meta.getEnchants().forEach((ench, level) ->
+                            enchantments.put(ench.getName(), level)
                     );
                     itemData.put("enchantments", enchantments);
                 }
-                
+
                 // 2. 耐久度（损伤值）
                 if (meta instanceof org.bukkit.inventory.meta.Damageable damageable) {
                     if (damageable.hasDamage()) {
@@ -315,12 +315,12 @@ public class BukkitAPIExecutor {
                         itemData.put("unbreakable", true);
                     }
                 }
-                
+
                 // 3. Lore（物品描述）
                 if (meta.hasLore()) {
                     itemData.put("lore", meta.getLore());
                 }
-                
+
                 // 4. 属性修饰词（如 +攻击伤害）
                 if (meta.hasAttributeModifiers()) {
                     Map<String, Object> attributes = new HashMap<>();
@@ -333,20 +333,20 @@ public class BukkitAPIExecutor {
                         itemData.put("attributes", attributes);
                     }
                 }
-                
+
                 // 5. 自定义模型数据
                 if (meta.hasCustomModelData()) {
                     itemData.put("custom_model_data", meta.getCustomModelData());
                 }
-                
+
                 // 6. ItemFlags（隐藏的附魔等信息）
                 if (!meta.getItemFlags().isEmpty()) {
                     itemData.put("item_flags", meta.getItemFlags().stream()
-                        .map(Enum::name)
-                        .toList());
+                            .map(Enum::name)
+                            .toList());
                 }
             }
-            
+
             return itemData;
         }
 

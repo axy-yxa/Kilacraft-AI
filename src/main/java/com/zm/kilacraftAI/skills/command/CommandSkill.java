@@ -8,6 +8,7 @@ import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
 import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
 import com.zm.kilacraftAI.util.BukkitCommandUtil;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -171,10 +172,7 @@ public class CommandSkill implements Skill {
 
         final String finalCommand = command;
 
-        boolean isDebug = KilacraftAI.getInstance().getConfigManager().isDebugMode();
-        if (isDebug) {
-            KilacraftAI.getInstance().getLogger().info("[DEBUG] [CommandSkill] 玩家 " + player.getName() + " 通过 AI 执行命令: /" + finalCommand);
-        }
+        PluginLogger.debug("命令技能", "玩家 " + player.getName() + " 通过 AI 执行命令: /" + finalCommand);
 
         // 使用 dispatchAsync 获取执行结果
         return BukkitCommandUtil.dispatchAsync(player, finalCommand).thenApply(success -> {
@@ -184,7 +182,7 @@ public class CommandSkill implements Skill {
                 return SkillResult.failure(getResponseMessage("execute_failure", "命令执行失败，可能没有权限或命令不存在: /{command}", Map.of("command", finalCommand)));
             }
         }).exceptionally(ex -> {
-            KilacraftAI.getInstance().getLogger().warning("[CommandSkill] 命令执行异常: /" + finalCommand + " - " + ex.getMessage());
+            PluginLogger.warn("命令技能", "命令执行异常: /" + finalCommand + " - " + ex.getMessage(), ex);
             return SkillResult.failure("命令执行异常: /" + finalCommand);
         });
     }

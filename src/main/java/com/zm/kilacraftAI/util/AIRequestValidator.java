@@ -4,7 +4,6 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import lombok.Getter;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayDeque;
@@ -42,7 +41,7 @@ public class AIRequestValidator {
     /**
      * 检查世界限制
      *
-     * @param player  玩家
+     * @param player 玩家
      * @return true=允许使用，false=禁止使用
      */
     public boolean canUseAIInWorld(Player player) {
@@ -210,7 +209,7 @@ public class AIRequestValidator {
         int maxHistory = plugin.getConfigManager().getMaxHistory();
 
         if (maxHistory <= 0 || history == null) {
-            return; // 不保存历史记录
+            return;
         }
 
         // 添加用户消息
@@ -222,24 +221,16 @@ public class AIRequestValidator {
         while (history.size() > maxHistory * 2) {
             ConversationManager.Message removed = history.removeFirst();
 
-            // 调试模式日志
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 移除最早的历史记录：" + removed.getContent().substring(0, Math.min(20, removed.getContent().length())) + "...");
-            }
+            PluginLogger.debug("历史管理", "移除最早的历史记录：" + removed.getContent().substring(0, Math.min(20, removed.getContent().length())) + "...");
         }
 
         // 如果提供了 playerId 和 personality，保存到最新回复缓存
         if (playerId != null && personality != null) {
             plugin.getConversationManager().saveLatestAIResponse(playerId, personality, aiResponse);
-            if (plugin.getConfigManager().isDebugMode()) {
-                plugin.getLogger().info("[DEBUG] 已保存 AI 回复到最新回复缓存：" + playerId + "_" + personality);
-            }
+            PluginLogger.debug("历史管理", "已保存 AI 回复到最新回复缓存：" + playerId + "_" + personality);
         }
 
-        // 调试模式：打印保存后的历史记录
-        if (plugin.getConfigManager().isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] 已保存新对话，当前历史记录数量：" + history.size());
-        }
+        PluginLogger.debug("历史管理", "已保存新对话，当前历史记录数量：" + history.size());
     }
 
     /**

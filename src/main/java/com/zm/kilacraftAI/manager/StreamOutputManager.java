@@ -205,9 +205,7 @@ public class StreamOutputManager {
         playerStates.put(playerId, GenerationState.COMPLETED);
 
         // 延迟清理状态（避免立即清理导致闪烁）
-        FoliaCompat.runTaskLater(plugin, () -> {
-            playerStates.remove(playerId);
-        }, 20L); // 1秒后清理
+        FoliaCompat.runTaskLater(plugin, () -> playerStates.remove(playerId), 20L); // 1秒后清理
     }
 
     /**

@@ -84,7 +84,7 @@ settings:
   # 是否限制特定世界使用
   # 留空表示所有世界可用
   allowed_worlds:
-    #- "world"
+  #- "world"
 
   # 禁止使用的世界（优先级更高，比allowed_worlds高，如果一个世界同时在两个列表中会被禁止）
   # 在这些世界中禁用AI功能

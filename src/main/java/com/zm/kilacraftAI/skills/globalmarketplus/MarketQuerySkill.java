@@ -5,11 +5,11 @@ import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
+import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
 import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
-import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import org.bukkit.entity.Player;
 
@@ -149,21 +149,10 @@ public class MarketQuerySkill implements Skill {
     }
 
     // 初始化映射关系
-    private final Map<String, Function<SkillContext, CompletableFuture<SkillResult>>> actionToHandler = Map.ofEntries(
-            entry("query_balance", this::queryBalance),
-            entry("query_price", this::queryPrices),
-            entry("query_items", this::queryMarketItems),
-            entry("query_availability", this::queryAvailability),
-            entry("query_my_items", this::queryMyItems),
-            entry("query_mailbox", this::queryMailbox),
-            entry("query_market_stats", this::queryMarketStats)
-    );
+    private final Map<String, Function<SkillContext, CompletableFuture<SkillResult>>> actionToHandler = Map.ofEntries(entry("query_balance", this::queryBalance), entry("query_price", this::queryPrices), entry("query_items", this::queryMarketItems), entry("query_availability", this::queryAvailability), entry("query_my_items", this::queryMyItems), entry("query_mailbox", this::queryMailbox), entry("query_market_stats", this::queryMarketStats));
 
     private CompletableFuture<SkillResult> handleUnknownAction(SkillContext context) {
-        return CompletableFuture.completedFuture(
-                SkillResult.failure(getResponseMessage("unknown_action",
-                        "抱歉，我还不会查询其他市场信息。你可以问我：'我的余额是多少'、'市场上有什么商品'等"))
-        );
+        return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("unknown_action", "抱歉，我还不会查询其他市场信息。你可以问我：'我的余额是多少'、'市场上有什么商品'等")));
     }
 
     /**
@@ -281,12 +270,10 @@ public class MarketQuerySkill implements Skill {
                         // 根据价格是否相同选择显示方式
                         if (minPrice == maxPrice) {
                             // 所有卖家单价相同
-                            priceResults.add(String.format("§f%s × %d: §a$%.2f (单价：$%.2f)",
-                                    displayName, quantity, totalItemPrice, minPrice));
+                            priceResults.add(String.format("§f%s × %d: §a$%.2f (单价：$%.2f)", displayName, quantity, totalItemPrice, minPrice));
                         } else {
                             // 不同卖家单价不同，显示价格区间
-                            priceResults.add(String.format("§f%s × %d: §a$%.2f (单价：$%.2f - $%.2f)",
-                                    displayName, quantity, totalItemPrice, minPrice, maxPrice));
+                            priceResults.add(String.format("§f%s × %d: §a$%.2f (单价：$%.2f - $%.2f)", displayName, quantity, totalItemPrice, minPrice, maxPrice));
                         }
                     } else {
                         // 单个物品，显示单价
@@ -381,16 +368,14 @@ public class MarketQuerySkill implements Skill {
         int totalStock = getTotalStock(matchingItems);
 
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("§f%s × %d: §c库存不足 (市场仅有 %d 个)",
-                displayName, neededQuantity, totalStock));
+        sb.append(String.format("§f%s × %d: §c库存不足 (市场仅有 %d 个)", displayName, neededQuantity, totalStock));
 
         // 显示所有在售商品的价格和数量
         if (!matchingItems.isEmpty()) {
             sb.append("\n§7  在售信息:");
             for (int i = 0; i < matchingItems.size(); i++) {
                 MarketItem item = matchingItems.get(i);
-                sb.append(String.format("\n§7    [%d] $%.2f × %d个",
-                        i + 1, item.getPrice(), item.getAmount()));
+                sb.append(String.format("\n§7    [%d] $%.2f × %d个", i + 1, item.getPrice(), item.getAmount()));
             }
         }
 
@@ -522,8 +507,7 @@ public class MarketQuerySkill implements Skill {
         for (int i = 0; i < showCount; i++) {
             MarketItemDetail item = myItems.get(i);
             String displayName = translator.translateToChinese(item.getItemName());
-            sb.append(String.format("§7[%d] §f%s × %d §7- §a$%.2f\n",
-                    i + 1, displayName, item.getAmount(), item.getPrice()));
+            sb.append(String.format("§7[%d] §f%s × %d §7- §a$%.2f\n", i + 1, displayName, item.getAmount(), item.getPrice()));
         }
 
         if (myItems.size() > 10) {
@@ -557,9 +541,7 @@ public class MarketQuerySkill implements Skill {
         for (int i = 0; i < showCount; i++) {
             MailItem mail = mails.get(i);
             String displayName = translator.translateToChinese(mail.getItemName());
-            sb.append(String.format("§7[%d] §f%s × %d §7来自: §e%s\n",
-                    i + 1, displayName, mail.getAmount(),
-                    mail.getSenderName() != null ? mail.getSenderName() : "系统"));
+            sb.append(String.format("§7[%d] §f%s × %d §7来自: §e%s\n", i + 1, displayName, mail.getAmount(), mail.getSenderName() != null ? mail.getSenderName() : "系统"));
         }
 
         if (mails.size() > 5) {
@@ -579,9 +561,7 @@ public class MarketQuerySkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.success("§f市场暂无商品"));
         }
 
-        String sb = "§f=== 市场统计 ===\n" +
-        String.format("§7商品总数: §f%d 个\n", stats.getTotalItems()) +
-        String.format("§7卖家数量: §f%d 人", stats.getTotalSellers());
+        String sb = "§f=== 市场统计 ===\n" + String.format("§7商品总数: §f%d 个\n", stats.getTotalItems()) + String.format("§7卖家数量: §f%d 人", stats.getTotalSellers());
         return CompletableFuture.completedFuture(SkillResult.success(sb));
     }
 }

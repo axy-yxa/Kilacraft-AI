@@ -7,6 +7,7 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.util.PluginLogger;
 
 import java.util.Deque;
 import java.util.UUID;
@@ -45,10 +46,8 @@ public class LLMAnalysisService {
         String promptContent = summary.buildPrompt();
         String keywordContent = summary.buildKeywordContent();
 
-        if (configManager.isDebugMode()) {
-            plugin.getLogger().info("[DEBUG] LLM 二次分析 - 结果摘要:\n" + promptContent);
-            plugin.getLogger().info("[DEBUG] [知识库] 提取的内容: " + keywordContent);
-        }
+        PluginLogger.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n" + promptContent);
+        PluginLogger.debug("LLM分析", "[知识库] 提取的内容: " + keywordContent);
 
         String playerName = context.getPlayer() != null ? context.getPlayer().getName() : "Console";
 
@@ -104,7 +103,7 @@ public class LLMAnalysisService {
                     handler.handleError(errorMessage);
                 } catch (Exception e) {
                     // 记录 Handler 错误处理异常，但不影响 Future 完成
-                    plugin.getLogger().warning("[LLM分析] Handler 错误处理异常: " + e.getMessage());
+                    PluginLogger.warn("LLM分析", "Handler 错误处理异常: " + e.getMessage(), e);
                 } finally {
                     // 确保 Future 一定被完成，防止调用链挂起
                     responseFuture.completeExceptionally(new RuntimeException(errorMessage));

@@ -3,11 +3,10 @@ package com.zm.kilacraftAI.util;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.enums.OutputChannel;
-
-import java.util.regex.Pattern;
-
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import java.util.regex.Pattern;
 
 /**
  * 消息格式化工具类

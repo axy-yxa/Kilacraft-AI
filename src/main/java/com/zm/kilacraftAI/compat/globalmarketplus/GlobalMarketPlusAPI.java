@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import studio.trc.bukkit.globalmarketplus.api.GlobalMarket;
@@ -13,12 +14,7 @@ import studio.trc.bukkit.globalmarketplus.hook.GlobalMarketEconomy;
 import studio.trc.bukkit.globalmarketplus.mailbox.ItemMail;
 import studio.trc.bukkit.globalmarketplus.merchandise.Merchandise;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -53,7 +49,7 @@ public class GlobalMarketPlusAPI {
         try {
             return GlobalMarket.getGlobalMarket();
         } catch (Exception e) {
-            e.printStackTrace();
+            PluginLogger.error("市场插件", "获取GlobalMarket实例失败", e);
             return null;
         }
     }
@@ -82,13 +78,13 @@ public class GlobalMarketPlusAPI {
                 } catch (NoClassDefFoundError | Exception e) {
                     // Vault 未安装或不可用，回退到默认货币
                 }
-                
+
                 // 使用默认货币
                 return merchant.getDefaultBalance();
             }
             return -1;
         } catch (Exception e) {
-            e.printStackTrace();
+            PluginLogger.error("市场插件", "获取玩家余额失败: " + player.getName(), e);
             return -1;
         }
     }
@@ -153,7 +149,7 @@ public class GlobalMarketPlusAPI {
             result.sort(Comparator.comparingDouble(MarketItem::getPrice));
             return result;
         } catch (Exception e) {
-            e.printStackTrace();
+            PluginLogger.error("市场插件", "搜索市场商品失败: " + itemName, e);
             return new ArrayList<>();
         }
     }
@@ -210,7 +206,7 @@ public class GlobalMarketPlusAPI {
             result.sort(Comparator.comparingDouble(MarketItemDetail::getPrice));
             return result;
         } catch (Exception e) {
-            e.printStackTrace();
+            PluginLogger.error("市场插件", "获取商品详情失败: " + itemName, e);
             return new ArrayList<>();
         }
     }
@@ -283,7 +279,7 @@ public class GlobalMarketPlusAPI {
             }).collect(Collectors.toList());
 
         } catch (Exception e) {
-            e.printStackTrace();
+            PluginLogger.error("市场插件", "获取市场物品列表失败", e);
             return null;
         }
     }
@@ -322,7 +318,7 @@ public class GlobalMarketPlusAPI {
             result.sort(Comparator.comparingDouble(MarketItemDetail::getPrice));
             return result;
         } catch (Exception e) {
-            e.printStackTrace();
+            PluginLogger.error("市场插件", "获取我的商品列表失败: " + player.getName(), e);
             return new ArrayList<>();
         }
     }
@@ -367,7 +363,7 @@ public class GlobalMarketPlusAPI {
 
             return result;
         } catch (Exception e) {
-            e.printStackTrace();
+            PluginLogger.error("市场插件", "获取邮箱物品失败: " + player.getName(), e);
             return new ArrayList<>();
         }
     }
@@ -406,7 +402,7 @@ public class GlobalMarketPlusAPI {
 
             return new MarketStats(totalItems, sellers.size());
         } catch (Exception e) {
-            e.printStackTrace();
+            PluginLogger.error("市场插件", "获取市场统计信息失败", e);
             return new MarketStats(0, 0);
         }
     }

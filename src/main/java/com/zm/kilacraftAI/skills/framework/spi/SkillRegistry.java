@@ -3,11 +3,11 @@ package com.zm.kilacraftAI.skills.framework.spi;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
 
 /**
  * Skill 自动发现与注册中心
@@ -38,7 +38,7 @@ public class SkillRegistry {
         Collection<RegisteredServiceProvider<SkillProvider>> registrations = plugin.getServer().getServicesManager().getRegistrations(SkillProvider.class);
 
         if (registrations.isEmpty()) {
-            plugin.getLogger().info("未发现第三方 SkillProvider");
+            PluginLogger.info("技能注册", "未发现第三方 SkillProvider");
             return 0;
         }
 
@@ -59,21 +59,21 @@ public class SkillRegistry {
                     if (existingSkill == null) {
                         skillManager.registerSkill(skill);
                         registeredCount++;
-                        plugin.getLogger().info(String.format("发现并注册第三方技能：%s (来自 %s)", skill.getName(), sourcePlugin.getName()));
+                        PluginLogger.info("技能注册", String.format("发现并注册第三方技能：%s (来自 %s)", skill.getName(), sourcePlugin.getName()));
                     } else {
                         // 已存在内置 Skill，不覆盖，跳过
-                        plugin.getLogger().warning(String.format("跳过第三方技能 '%s'（来自 %s）：名称与已注册技能冲突", skill.getName(), sourcePlugin.getName()));
+                        PluginLogger.warn("技能注册", String.format("跳过第三方技能 '%s'（来自 %s）：名称与已注册技能冲突", skill.getName(), sourcePlugin.getName()));
                     }
                 } catch (Exception e) {
-                    plugin.getLogger().log(Level.WARNING, String.format("注册第三方技能失败:%s (来自 %s): %s", skill.getName(), sourcePlugin.getName(), e.getMessage()));
+                    PluginLogger.warn("技能注册", String.format("注册第三方技能失败:%s (来自 %s): %s", skill.getName(), sourcePlugin.getName(), e.getMessage()), e);
                 }
             }
         }
 
         if (registeredCount > 0) {
-            plugin.getLogger().info(String.format("共发现并注册 %d 个第三方技能", registeredCount));
+            PluginLogger.info("技能注册", String.format("共发现并注册 %d 个第三方技能", registeredCount));
         } else {
-            plugin.getLogger().info("未发现有效的第三方 SkillProvider");
+            PluginLogger.info("技能注册", "未发现有效的第三方 SkillProvider");
         }
 
         return registeredCount;

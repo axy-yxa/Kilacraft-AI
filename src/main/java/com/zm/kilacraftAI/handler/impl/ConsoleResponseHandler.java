@@ -14,24 +14,24 @@ import java.util.UUID;
  * @since 2026-03-25
  */
 public class ConsoleResponseHandler implements AIResponseHandler {
-    
+
     private final CommandSender sender;
 
     public ConsoleResponseHandler(CommandSender sender) {
         this.sender = sender;
     }
-    
+
     @Override
     public UUID getPlayerId() {
         // 控制台专用 UUID
         return UUID.fromString("00000000-0000-0000-0000-000000000000");
     }
-    
+
     @Override
     public String getPlayerName() {
         return "Console";
     }
-    
+
     @Override
     public void showResponse(String message) {
         sender.sendMessage(message);
