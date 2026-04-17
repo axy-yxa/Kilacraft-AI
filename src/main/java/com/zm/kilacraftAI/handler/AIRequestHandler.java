@@ -66,10 +66,12 @@ public class AIRequestHandler {
         if (publicReply) {
             // 公屏模式：先发送给触发者（使用场景配置），再广播给所有人
             sendResponse = response -> {
-                // 1. 发送给触发者（使用 NORMAL_CHAT 场景配置，如 SIDEBAR）
+                // 1. 发送给触发者（使用 NORMAL_CHAT 场景配置，如 ACTION_BAR/SIDEBAR/CHAT）
                 pipeline.send(player, response, OutputScenario.NORMAL_CHAT);
                 // 2. 公屏广播（强制 CHAT）
-                pipeline.broadcast(response);
+                // 如果NORMAL_CHAT的载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
+                boolean isChatChannel = (pipeline.getChannelForScenario(OutputScenario.NORMAL_CHAT) == com.zm.kilacraftAI.enums.OutputChannel.CHAT);
+                pipeline.broadcast(response, isChatChannel ? player : null);
             };
         } else {
             // 私信模式：只发给触发者
@@ -148,9 +150,15 @@ public class AIRequestHandler {
 
             // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
             plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenario.TASK_RESULT, false).thenAccept(result -> {
-                // 使用 ctx.sendResponse（支持公屏广播）
-                ctx.sendResponse.accept(result.getMessage());
+                // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, result.getMessage());
+
+                // 公屏广播（outputAnalysisResult只输出给触发者，公屏需要额外广播）
+                // 如果场景载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
+                if (ctx.isBroadcast()) {
+                    boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenario.TASK_RESULT) == com.zm.kilacraftAI.enums.OutputChannel.CHAT);
+                    plugin.getResponsePipeline().broadcast(result.getMessage(), isChatChannel ? ctx.player() : null);
+                }
             });
         });
     }
@@ -170,8 +178,13 @@ public class AIRequestHandler {
 
                 // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
                 return plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenario.SKILL_RESULT, false).thenApply(result -> {
-                    // 使用 ctx.sendResponse（支持公屏广播）
-                    ctx.sendResponse.accept(result.getMessage());
+                    // 公屏广播（outputAnalysisResult只输出给触发者，公屏需要额外广播）
+                    // 如果场景载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
+                    if (ctx.isBroadcast()) {
+                        boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenario.SKILL_RESULT) == com.zm.kilacraftAI.enums.OutputChannel.CHAT);
+                        plugin.getResponsePipeline().broadcast(result.getMessage(), isChatChannel ? ctx.player() : null);
+                    }
+
                     return result;
                 });
             } else {
@@ -179,7 +192,6 @@ public class AIRequestHandler {
             }
         }).thenAccept(finalResult -> {
             if (finalResult.isSuccess()) {
-                PluginLogger.debug("技能执行", "技能执行完成：" + finalResult.getMessage());
                 // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, finalResult.getMessage());
             } else {
@@ -210,10 +222,7 @@ public class AIRequestHandler {
             handler = new ConsoleResponseHandler(getSenderFromContext(ctx));
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequest(message, ctx.name(), ctx.history(), handler).thenAccept(fullResponse -> {
-            PluginLogger.debug("AI请求", "AI请求完成：" + fullResponse);
-            validator.saveToHistory(ctx.history(), message, fullResponse);
-        }).exceptionally(throwable -> {
+        plugin.getLlmManager().getCurrentProvider().processRequest(message, ctx.name(), ctx.history(), handler).thenAccept(fullResponse -> validator.saveToHistory(ctx.history(), message, fullResponse)).exceptionally(throwable -> {
             ctx.sendError.accept(throwable.getMessage());
             return null;
         });

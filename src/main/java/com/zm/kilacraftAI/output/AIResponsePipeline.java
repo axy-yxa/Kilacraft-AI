@@ -7,6 +7,7 @@ import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.manager.SoundEffectManager;
 import com.zm.kilacraftAI.manager.StreamOutputManager;
 import com.zm.kilacraftAI.util.MessageUtil;
+import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.entity.Player;
 
@@ -48,6 +49,9 @@ public class AIResponsePipeline {
         if (player == null || rawMessage == null) {
             return;
         }
+
+        // 统一打印DEBUG日志（所有场景的最终回复都从这里输出）
+        PluginLogger.debug("AI响应", player.getName() + " 收到AI回复 [" + scenario.name() + "]：" + rawMessage);
 
         // 播放 AI 回复音效（与输出同步）
         if (soundEffectManager != null) {
@@ -189,8 +193,9 @@ public class AIResponsePipeline {
      * <p>强制使用 CHAT 载体，因为其他载体（BOSSBAR/SIDEBAR/TITLE/ACTIONBAR）都是玩家私有的，会互相覆盖</p>
      *
      * @param rawMessage 原始消息
+     * @param excludePlayer 要排除的玩家（触发者，当场景载体为CHAT时需要排除避免重复）
      */
-    public void broadcast(String rawMessage) {
+    public void broadcast(String rawMessage, Player excludePlayer) {
         if (rawMessage == null) {
             return;
         }
@@ -198,11 +203,15 @@ public class AIResponsePipeline {
         // 格式化
         String formatted = formatMessage(rawMessage, true);
 
-        // 强制使用 CHAT 载体（避免覆盖其他玩家的私有载体）
+        // 强制使用 CHAT 载体（公屏广播必须用 CHAT）
         OutputChannel channel = OutputChannel.CHAT;
 
         // 输出到所有在线玩家
         for (Player onlinePlayer : plugin.getServer().getOnlinePlayers()) {
+            // 如果场景载体是 CHAT，跳过触发者避免重复输出
+            if (onlinePlayer.equals(excludePlayer)) {
+                continue;
+            }
             dispatcher.dispatch(onlinePlayer, formatted, channel);
         }
     }

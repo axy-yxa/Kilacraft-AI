@@ -279,7 +279,7 @@ public class GenericLLMProvider implements LLMProvider {
                         if (!relevantKnowledge.isEmpty()) {
                             String knowledgeContext = knowledgeRetriever.formatAsContext(relevantKnowledge);
                             enhancedUserMessage = knowledgeContext + "\n用户问题：" + userMessage;
-                            PluginLogger.debug("LLM", "已添加 " + relevantKnowledge.size() + " 个知识片段到上下文中");
+                            PluginLogger.debug("LLM请求", "已添加 " + relevantKnowledge.size() + " 个知识片段到上下文中");
                         }
                     }
                 }
