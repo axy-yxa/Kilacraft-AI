@@ -1,5 +1,7 @@
 package com.zm.kilacraftAI.config;
 
+import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -7,8 +9,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.io.InputStream;
-import java.nio.file.Files;
 
 /**
  * 意图识别提示词配置管理器
@@ -85,18 +85,11 @@ public class IntentPromptConfigManager {
      */
     public void loadConfig() {
         try {
-            // 确保插件数据目录存在
-            if (!plugin.getDataFolder().exists()) {
-                plugin.getDataFolder().mkdirs();
-            }
-
             // 配置文件路径
             configFile = new File(plugin.getDataFolder(), "intent_prompts.yml");
 
-            // 如果配置文件不存在 复制默认配置
-            if (!configFile.exists()) {
-                saveDefaultConfig();
-            }
+            // 复制默认配置
+            ConfigResourceUtil.saveDefaultResource((KilacraftAI) plugin, "intent_prompts.yml", "意图提示词");
 
             // 加载配置
             config = YamlConfiguration.loadConfiguration(configFile);
@@ -105,22 +98,6 @@ public class IntentPromptConfigManager {
             loadPromptSections();
         } catch (Exception e) {
             PluginLogger.error("意图提示词", "加载意图识别提示词配置失败", e);
-        }
-    }
-
-    /**
-     * 保存默认配置
-     */
-    private void saveDefaultConfig() {
-        try (InputStream inputStream = plugin.getResource("intent_prompts.yml")) {
-            if (inputStream != null) {
-                Files.copy(inputStream, configFile.toPath());
-                PluginLogger.info("意图提示词", "已创建默认 intent_prompts.yml 意图识别提示词配置文件");
-            } else {
-                PluginLogger.warn("意图提示词", "未找到默认的 intent_prompts.yml 资源文件");
-            }
-        } catch (Exception e) {
-            PluginLogger.error("意图提示词", "保存默认配置失败", e);
         }
     }
 

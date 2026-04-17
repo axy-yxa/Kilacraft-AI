@@ -1,12 +1,12 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,64 +38,9 @@ public class PersonalitiesConfigManager {
         this.personalitiesFile = new File(plugin.getDataFolder(), "personalities.yml");
         this.personalitiesCache = new HashMap<>();
 
-        // 确保配置文件存在
-        createDefaultConfigIfNotExists();
+        // 复制默认配置
+        ConfigResourceUtil.saveDefaultResource(plugin, "personalities.yml", "人格配置");
         loadConfig();
-    }
-
-    /**
-     * 创建默认配置文件（如果不存在）
-     */
-    private void createDefaultConfigIfNotExists() {
-        if (!personalitiesFile.exists()) {
-            try {
-                // 创建父目录
-                if (!personalitiesFile.getParentFile().exists()) {
-                    personalitiesFile.getParentFile().mkdirs();
-                }
-
-                // 创建文件
-                personalitiesFile.createNewFile();
-                PluginLogger.info("人格配置", "已创建默认 " + personalitiesFile.getName() + " 人格配置文件");
-
-                // 写入示例配置
-                writeExampleConfig();
-            } catch (IOException e) {
-                PluginLogger.error("人格配置", "创建人格配置文件失败", e);
-            }
-        }
-    }
-
-    /**
-     * 写入示例配置内容（YAML 格式）
-     */
-    private void writeExampleConfig() {
-        try {
-            // 使用 Bukkit 的配置 API 写入 YAML
-            FileConfiguration newConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(personalitiesFile);
-
-            // 公共提示词（所有人格共享的基础提示词）
-            newConfig.set("common_prompt", "你是一个 Minecraft 游戏的 NPC，需要满足玩家的常见要求。");
-
-            // 严厉教师
-            newConfig.set("严厉教师", "你是一位严厉的 Minecraft 教师，正在教导玩家 {player}。\n" + "你对学生的要求很高，说话简洁直接，但会耐心解答问题。\n" + "专注于教授游戏机制、红石电路和建筑技巧。");
-
-            // 冒险伙伴
-            newConfig.set("冒险伙伴", "你是玩家 {player} 的忠实冒险伙伴，性格开朗幽默。\n" + "你喜欢分享探险故事，提供战斗建议，推荐装备搭配，总是鼓励玩家勇敢探索。");
-
-            // 图书管理员
-            newConfig.set("图书管理员", "你是一位博学的图书管理员，正在为冒险者 {player} 提供知识服务。\n" + "你说话文雅，喜欢引用古籍，精通 Minecraft 的历史、生物特性、矿物分布和各种冷知识。");
-
-            // 奸商
-            newConfig.set("奸商", "你是一个精明的 Minecraft 商人，正在和顾客 {player} 交谈。\n" + "你说话圆滑，总想推销自己的商品，对经济系统和交易价格了如指掌，时不时会开个玩笑。");
-
-            newConfig.save(personalitiesFile);
-
-            // 清空 config 引用，强制下次重新加载
-            this.config = null;
-        } catch (IOException e) {
-            PluginLogger.error("人格配置", "写入示例配置失败", e);
-        }
     }
 
     /**
@@ -105,8 +50,8 @@ public class PersonalitiesConfigManager {
         try {
             // 先检查文件是否存在且可读
             if (!personalitiesFile.exists()) {
-                PluginLogger.warn("人格配置", "人格配置文件不存在，将创建示例文件");
-                writeExampleConfig();
+                PluginLogger.warn("人格配置", "人格配置文件不存在");
+                return;
             }
 
             // 清空缓存，确保重新加载
@@ -118,10 +63,7 @@ public class PersonalitiesConfigManager {
             // 获取所有配置节
             ConfigurationSection section = config.getConfigurationSection("");
             if (section == null || section.getKeys(false).isEmpty()) {
-                PluginLogger.warn("人格配置", "人格配置文件为空，将创建示例文件");
-                writeExampleConfig();
-                // 重新加载
-                loadConfig();
+                PluginLogger.warn("人格配置", "人格配置文件为空");
                 return;
             }
 
@@ -143,10 +85,6 @@ public class PersonalitiesConfigManager {
             PluginLogger.info("人格配置", "人格配置加载完成，共 " + personalitiesCache.size() + " 个人格");
         } catch (Exception e) {
             PluginLogger.error("人格配置", "加载人格配置文件失败：" + personalitiesFile.getAbsolutePath(), e);
-            // 直接重新生成配置文件
-            writeExampleConfig();
-            // 重新加载
-            loadConfig();
         }
     }
 

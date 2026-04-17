@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.skills.bukkit.BukkitAPIConfigLoader;
 import com.zm.kilacraftAI.skills.bukkit.BukkitAPIMetadata;
 import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
+import com.zm.kilacraftAI.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -99,14 +100,10 @@ public class SkillConfigManager {
         }
 
         for (File packageFolder : packageFolders) {
-            // 跳过 bukkit 目录（单独处理）
-            if (packageFolder.getName().equalsIgnoreCase("bukkit")) {
-                continue;
-            }
-
             String packageName = packageFolder.getName();
 
-            File[] configFiles = packageFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+            // 跳过 apis.yml（由 loadBukkitAPIs 专门处理），但加载其他 .yml 文件
+            File[] configFiles = packageFolder.listFiles((dir, name) -> name.endsWith(".yml") && !name.equalsIgnoreCase("apis.yml"));
             if (configFiles == null) {
                 // 目录存在但无配置文件，配置文件将由具体 Skill 实例在构造时从 JAR 模板创建
                 continue;
@@ -126,7 +123,8 @@ public class SkillConfigManager {
         File bukkitFolder = new File(skillsFolder, "bukkit");
         if (!bukkitFolder.exists()) {
             bukkitFolder.mkdirs();
-            copyDefaultBukkitAPIs(bukkitFolder);
+            // 复制默认的 Bukkit API 配置
+            ConfigResourceUtil.saveDefaultResourceToDir(plugin, "skills/bukkit/apis.yml", bukkitFolder, "技能配置");
         }
 
         File apisFile = new File(bukkitFolder, "apis.yml");
@@ -153,21 +151,6 @@ public class SkillConfigManager {
             } catch (Exception e) {
                 PluginLogger.error("技能配置", "加载 Bukkit API 配置失败：" + apisFile.getPath(), e);
             }
-        }
-    }
-
-    /**
-     * 从 JAR 包复制默认的 Bukkit API 配置
-     */
-    private void copyDefaultBukkitAPIs(File bukkitFolder) {
-        try {
-            File defaultApisFile = new File(bukkitFolder, "apis.yml");
-            if (!defaultApisFile.exists()) {
-                plugin.saveResource("skills/bukkit/apis.yml", false);
-                PluginLogger.info("技能配置", "已创建默认 Bukkit API 技能配置文件");
-            }
-        } catch (Exception e) {
-            PluginLogger.warn("技能配置", "无法创建默认 Bukkit API 配置：" + e.getMessage(), e);
         }
     }
 
@@ -221,23 +204,8 @@ public class SkillConfigManager {
      * 保存默认技能配置文件 (如果不存在)
      */
     public void saveDefaultSkillConfig(String packageName, String skillName) {
-        File packageFolder = new File(skillsFolder, packageName);
-        if (!packageFolder.exists()) {
-            packageFolder.mkdirs();
-        }
-
-        File configFile = new File(packageFolder, skillName + ".yml");
-        if (configFile.exists()) {
-            return;
-        }
-
-        try {
-            String resourcePath = "skills/" + packageName + "/" + skillName + ".yml";
-            plugin.saveResource(resourcePath, false);
-            PluginLogger.info("技能配置", "已创建默认 " + skillName + ".yml" + " 技能配置文件");
-        } catch (Exception e) {
-            PluginLogger.error("技能配置", "保存技能配置失败：" + configFile.getPath(), e);
-        }
+        String resourcePath = "skills/" + packageName + "/" + skillName + ".yml";
+        ConfigResourceUtil.saveDefaultResource(plugin, resourcePath, "技能配置");
     }
 
     /**

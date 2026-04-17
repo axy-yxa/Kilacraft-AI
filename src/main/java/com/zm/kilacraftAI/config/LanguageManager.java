@@ -1,5 +1,7 @@
 package com.zm.kilacraftAI.config;
 
+import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -151,15 +153,12 @@ public class LanguageManager {
      * 加载语言配置文件
      */
     public void loadConfig() {
-        // 只在 language.yml 不存在时才保存默认配置
-        File languageFile = new File(plugin.getDataFolder(), "language.yml");
-        if (!languageFile.exists()) {
-            plugin.saveResource("language.yml", false);
-            PluginLogger.info("语言配置", "已创建默认 language.yml 语言配置文件");
-        }
+        // 复制默认配置
+        ConfigResourceUtil.saveDefaultResource((KilacraftAI) plugin, "language.yml", "语言配置");
 
         // 手动加载 language.yml 文件内容到内存
         try {
+            File languageFile = new File(plugin.getDataFolder(), "language.yml");
             // 使用 YamlConfiguration 直接读取 language.yml
             this.config = YamlConfiguration.loadConfiguration(languageFile);
         } catch (Exception e) {

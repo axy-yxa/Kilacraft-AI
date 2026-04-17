@@ -87,8 +87,6 @@ public class SkillManager {
         }
 
         String skillName = intent.getSkillName();
-        boolean isDebug = plugin != null && plugin.getConfigManager().isDebugMode();
-
         Skill skill = skills.get(skillName);
 
         if (skill == null) {
