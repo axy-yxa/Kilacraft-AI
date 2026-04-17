@@ -123,15 +123,40 @@ Player: How do I get diamonds?
 output:
   stream:
     enabled: true                      # Enable stream output
-    channel: ACTION_BAR                # Recommend ACTION_BAR or BOSS_BAR
-    keep_final_in_default: true        # Show complete reply in default channel after completion
 ```
 
 **Channel Recommendations:**
-- ⭐⭐⭐⭐⭐ **ACTION_BAR**: Single line overlay update, no spam (best choice)
-- ⭐⭐⭐⭐ **BOSS_BAR**: Top bar display, suitable for long text
+- ⭐⭐⭐⭐⭐ **SIDEBAR**: Right sidebar, doesn't block view, suitable for long text (best choice)
+- ⭐⭐⭐⭐ **BOSS_BAR**: Top bar display, suitable for medium-long text
+- ⭐⭐⭐ **ACTION_BAR**: Above hotbar, suitable for short text
 - ⭐⭐ **CHAT**: Not recommended, will cause spam
 - ⭐ **TITLE**: Not recommended, will flicker
+
+#### AI Response Sound Effect
+
+When enabled, AI automatically plays a sound effect **when starting to respond**, synchronized with text output for enhanced immersive experience.
+
+**Key Features:**
+- ✅ **Synchronized Sound**: Plays immediately when AI starts responding, synchronized with text output
+- ✅ **Only Trigger Player Hears**: Uses `player.playSound()`, doesn't affect other players
+- ✅ **Full Scenario Coverage**: Supports normal chat/skill results/task results/AFK callbacks
+- ✅ **Configurable Toggle**: Can be enabled/disabled anytime, supports custom sound/volume/pitch
+
+**Configuration:**
+```yaml
+output:
+  sound:
+    enabled: true                      # Enable AI response sound effect (default ON)
+    sound_name: "ENTITY_PLAYER_LEVELUP" # Sound enum name
+    volume: 0.5                        # Volume (0.0-1.0)
+    pitch: 1.2                         # Pitch (0.5-2.0)
+```
+
+**Recommended Sounds:**
+- `ENTITY_PLAYER_LEVELUP`: Level up sound (default)
+- `ENTITY_EXPERIENCE_ORB_PICKUP`: Experience orb pickup
+- `BLOCK_NOTE_BLOCK_PLING`: Note block pling
+- `UI_TOAST_CHALLENGE_COMPLETE`: Challenge complete
 
 ---
 

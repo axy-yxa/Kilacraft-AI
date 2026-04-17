@@ -126,6 +126,12 @@ public class KilacraftCommand implements CommandExecutor {
                 sender.sendMessage("§a已重新加载意图识别提示词配置");
             }
 
+            // 热重载 AI 回复音效配置
+            if (plugin.getSoundEffectManager() != null) {
+                plugin.getSoundEffectManager().loadConfig();
+                sender.sendMessage("§a已重新加载AI回复音效配置");
+            }
+
             sender.sendMessage(languageManager.getCommandReloadSuccess());
             PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogConfigReloaded(), "sender", getSenderName(sender)));
         } catch (Exception e) {

@@ -13,6 +13,10 @@ This file records all important changes to the Kilacraft-AI plugin.
   - 2 Actions: `play_sound`, `spawn_particle`
   - Natural language trigger: task completion celebration, warning prompts, atmosphere creation
   - YML configuration driven, supports hot reload
+- **AI Response Sound Effect**: Automatically plays sound effect when AI starts responding, enhancing immersive experience
+  - Sound synchronized with output content, only triggering player hears
+  - Configurable toggle: `output.sound.enabled` (default ON), supports custom sound/volume/pitch
+  - Supports all scenarios: normal chat/skill result/task result/AFK callback
 - **Stream Output Functionality**: LLM responses display character-by-character in real-time, eliminating waiting anxiety
   - Immediately shows "Generating..." placeholder when request initiates, solving first-character latency
   - Real-time display of LLM returned content, supports 5 configurable carriers (CHAT/ACTION_BAR/BOSS_BAR/TITLE/SIDEBAR)

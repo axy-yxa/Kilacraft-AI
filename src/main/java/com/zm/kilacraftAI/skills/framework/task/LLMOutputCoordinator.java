@@ -76,8 +76,13 @@ public class LLMOutputCoordinator {
             // 根据 showPlaceholder 决定是否显示占位符
             boolean silent = !showPlaceholder;  // showPlaceholder=false 时静默启动
             pipeline.startStream(player, channel, silent);
+
+            // 播放 AI 回复音效（流式开始时）
+            if (plugin.getSoundEffectManager() != null) {
+                plugin.getSoundEffectManager().playResponseSound(player);
+            }
         } else if (showPlaceholder) {
-            // 非流式模式：显示“正在思考”消息
+            // 非流式模式：显示"正在思考"消息
             MessageUtil.sendThinkingMessage(player);
         }
 

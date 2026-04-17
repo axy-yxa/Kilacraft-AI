@@ -66,6 +66,7 @@ When these plugins are not installed, corresponding features are automatically d
 - **Stream Output Feature**: AI replies displayed character-by-character in real-time, supports all 5 carriers, state machine prevents race conditions
 - **LLM Secondary Analysis Coordinator**: Uniformly dispatches analysis + output flow, supports automatic stream/non-stream switching
 - **Public Broadcast Mechanism**: Trigger player uses configured carrier, others receive CHAT broadcast, no interference
+- **AI Response Sound Effect**: Automatically plays sound when AI starts responding, enhancing immersive experience, configurable toggle
 
 ### 💰 Economy Integration
 - **GlobalMarketPlus Support**: Balance checks, price queries, item availability

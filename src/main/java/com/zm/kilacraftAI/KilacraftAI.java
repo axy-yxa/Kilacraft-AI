@@ -9,6 +9,7 @@ import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
 import com.zm.kilacraftAI.listener.ChatListener;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.manager.LLMManager;
+import com.zm.kilacraftAI.manager.SoundEffectManager;
 import com.zm.kilacraftAI.manager.StreamOutputManager;
 import com.zm.kilacraftAI.output.AIResponsePipeline;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskListener;
@@ -78,6 +79,12 @@ public final class KilacraftAI extends JavaPlugin {
     private StreamOutputManager streamOutputManager;
 
     /**
+     * AI 回复音效管理器
+     */
+    @Getter
+    private SoundEffectManager soundEffectManager;
+
+    /**
      * LLM 输出协调器（统一调度 LLM 二次分析的输出）
      */
     @Getter
@@ -91,6 +98,7 @@ public final class KilacraftAI extends JavaPlugin {
         initializeManagers();
         initializeKnowledgeSystem();
         initializeStreamOutput();      // 初始化流式输出管理器
+        initializeSoundEffect();       // 初始化音效管理器
         initializeResponsePipeline();  // 初始化响应输出管线
         initializeLLMOutputCoordinator();  // 初始化 LLM 输出协调器
         initializeChatAndCommands();
@@ -149,6 +157,13 @@ public final class KilacraftAI extends JavaPlugin {
      */
     private void initializeStreamOutput() {
         streamOutputManager = new StreamOutputManager(this);
+    }
+
+    /**
+     * 初始化 AI 回复音效管理器
+     */
+    private void initializeSoundEffect() {
+        soundEffectManager = new SoundEffectManager(this);
     }
 
     /**

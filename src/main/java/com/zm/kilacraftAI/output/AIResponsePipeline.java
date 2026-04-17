@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.enums.OutputChannel;
 import com.zm.kilacraftAI.enums.OutputScenario;
+import com.zm.kilacraftAI.manager.SoundEffectManager;
 import com.zm.kilacraftAI.manager.StreamOutputManager;
 import com.zm.kilacraftAI.util.MessageUtil;
 import lombok.Getter;
@@ -21,6 +22,7 @@ public class AIResponsePipeline {
     private final KilacraftAI plugin;
     private final OutputConfigManager config;
     private final StreamOutputManager streamOutputManager;
+    private final SoundEffectManager soundEffectManager;
     /**
      * 消息分发器
      */
@@ -32,6 +34,7 @@ public class AIResponsePipeline {
         this.config = plugin.getConfigManager().getOutputConfigManager();
         this.dispatcher = new MessageDispatcher(plugin);
         this.streamOutputManager = plugin.getStreamOutputManager();
+        this.soundEffectManager = plugin.getSoundEffectManager();
     }
 
     /**
@@ -46,13 +49,18 @@ public class AIResponsePipeline {
             return;
         }
 
-        // 阶段1: 格式化
+        // 播放 AI 回复音效（与输出同步）
+        if (soundEffectManager != null) {
+            soundEffectManager.playResponseSound(player);
+        }
+
+        // 格式化
         String formatted = formatMessage(rawMessage, true);
 
-        // 阶段2: 路由（选择载体）
+        // 路由（选择载体）
         OutputChannel channel = resolveChannel(scenario);
 
-        // 阶段3: 输出
+        // 输出
         dispatcher.dispatch(player, formatted, channel);
     }
 
