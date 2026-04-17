@@ -225,9 +225,9 @@ Player: Help me go home
 
 ### 4. CommandSkill - Command Execution
 
-**Capability Type**: Server Command Execution (Player Identity)
-**Dependency Plugin**: Pure Bukkit Native API
-**File Location**: `skills/command/CommandSkill.yml`
+**Capability Type**: Server Command Execution (Player Identity)  
+**Dependency Plugin**: Pure Bukkit Native API  
+**File Location**: `skills/command/CommandSkill.yml`  
 **Implementation Class**: `CommandSkill.java`
 
 #### Supported Actions
@@ -244,7 +244,66 @@ Player: Help me go home
 
 ---
 
-### 5. MarketQuerySkill - GlobalMarketPlus Plugin Integration
+### 5. BukkitFXSkill - Sound & Particle Effects
+
+**Capability Type**: Client-side Effect Playback (Only Caller Visible/Audible)  
+**Dependency Plugin**: Pure Bukkit Native API  
+**File Location**: `skills/bukkit/BukkitFXSkill.yml`  
+**Implementation Class**: `BukkitFXSkill.java`
+
+#### Supported Actions
+
+| Action | Description | Required Parameters | Optional Parameters |
+|--------|-------------|---------------------|---------------------|
+| `play_sound` | Play sound (only caller hears) | `sound` | `volume`, `pitch` |
+| `spawn_particle` | Show particle effect (only caller sees) | `particle` | `count`, `offset_x`, `offset_y`, `offset_z` |
+
+#### Sound Categories Examples
+
+| Category | Example | Applicable Scenario |
+|----------|---------|---------------------|
+| Ambient Sound | `AMBIENT_CAVE` | Cave exploration atmosphere |
+| Block Sound | `BLOCK_ANVIL_BREAK` | Building/destruction prompt |
+| Entity Sound | `ENTITY_PLAYER_LEVELUP` | Level up celebration, task completion |
+| Item Sound | `ITEM_ARMOR_EQUIP_DIAMOND` | Equipment prompt |
+
+#### Particle Categories Examples
+
+| Category | Example | Applicable Scenario |
+|----------|---------|---------------------|
+| Celebration | `HEART`, `VILLAGER_HAPPY` | Task completion, celebration |
+| Warning | `VILLAGER_ANGRY`, `DAMAGE_INDICATOR` | Danger reminder |
+| Combat | `CRIT`, `SWEEP_ATTACK` | Combat feedback |
+| Magic | `ENCHANTMENT_TABLE`, `SPELL` | Enchantment/potion effect |
+| Nature | `FLAME`, `SMOKE_NORMAL` | Environment atmosphere |
+| Explosion | `EXPLOSION_NORMAL`, `EXPLOSION_LARGE` | Explosion effect |
+| Portal | `PORTAL`, `END_ROD` | Teleport prompt |
+
+#### Core Features
+
+- ✅ **Security Isolation**: All effects only apply to `context.getPlayer()`, no impact on other players
+- ✅ **Parameter Range Limits**: Volume 0.0-1.0, pitch 0.5-2.0, particle count 1-100
+- ✅ **YML Configuration Driven**: Descriptions and hints defined via config files, supports hot reload
+- ✅ **Knowledge Base Enhanced**: Supports extending supported sound/particle lists through knowledge base files
+- ✅ **Main Thread Execution**: Automatically detects thread environment, ensures effects play on main thread
+
+#### Typical Usage Scenario
+
+```
+Player: Play a level up sound to celebrate
+→ BukkitFXSkill (play_sound)
+    sound: ENTITY_PLAYER_LEVELUP
+    volume: 1.0, pitch: 1.0
+
+Player: Show some heart particles
+→ BukkitFXSkill (spawn_particle)
+    particle: HEART
+    count: 10, offset: 0.5/0.5/0.5
+```
+
+---
+
+### 6. MarketQuerySkill - GlobalMarketPlus Plugin Integration
 
 **Capability Type**: Market Information Query
 **Dependency Plugin**: GlobalMarketPlus (v1.3.8.0+)

@@ -524,7 +524,37 @@ Let AI execute server commands on behalf of players (such as `/back`, `/spawn`, 
 **Security Mechanisms:**
 - AI executes commands as the player (`Bukkit.dispatchCommand(player, command)`), fully inheriting the server's native security mechanisms
 - If a player doesn't have command permissions, AI execution will also be rejected by the server (no privilege escalation risk)
-- All server security mechanisms (permission checks, cooldowns, safe zones, etc.) function normally
+- All server security mechanisms (permission checks, cooldowns, safe areas, etc.) work normally
+
+---
+
+### 7️⃣ Sound & Particle Effects (Extended Feature)
+Let AI play sounds or show particle effects for players, enhancing interaction experience.
+
+**Core Features:**
+- ✅ **Security Isolation**: Effects only visible/audible to the triggering player, no impact on others
+- ✅ **Natural Language Trigger**: Just tell AI "play level up sound", "show heart particles"
+- ✅ **Multi-Scenario Application**:
+  - Task completion celebration: Play `ENTITY_PLAYER_LEVELUP` sound
+  - Warning prompts: Show `VILLAGER_ANGRY` particles
+  - Atmosphere creation: Play ambient sounds or natural particles
+- ✅ **Controllable Parameters**: Volume, pitch, particle count all configurable
+- ✅ **YML Configuration Driven**: Supported sound/particle lists defined via config files
+
+**Usage Examples:**
+```
+Player: Play a level up sound to celebrate
+→ AI plays ENTITY_PLAYER_LEVELUP sound (only this player hears)
+
+Player: Show some heart particles
+→ AI shows HEART particles at player location (only this player sees)
+```
+
+**Configuration File:**
+- Location: `plugins/Kilacraft-AI/skills/bukkit/BukkitFXSkill.yml`
+- Supports hot reload: Execute `/kilacraft reload` after modification
+
+---
 
 **Capability Boundaries:**
 - Only supports execution-type commands (no need to read command output), for example: `/back`, `/spawn`, `/home` home name

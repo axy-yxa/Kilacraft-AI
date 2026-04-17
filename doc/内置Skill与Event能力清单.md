@@ -244,7 +244,66 @@
 
 ---
 
-### 5. MarketQuerySkill - GlobalMarketPlus 插件集成
+### 5. BukkitFXSkill - 音效与粒子效果
+
+**能力类型**: 客户端效果播放（仅调用者可见/可听）  
+**依赖插件**: 纯 Bukkit 原生 API  
+**文件位置**: `skills/bukkit/BukkitFXSkill.yml`  
+**实现类**: `BukkitFXSkill.java`
+
+#### 支持的动作
+
+| 动作 | 说明 | 必需参数 | 可选参数 |
+|------|------|----------|----------|
+| `play_sound` | 播放音效（仅调用者听到） | `sound` | `volume`, `pitch` |
+| `spawn_particle` | 显示粒子效果（仅调用者看到） | `particle` | `count`, `offset_x`, `offset_y`, `offset_z` |
+
+#### 音效分类示例
+
+| 分类 | 示例 | 适用场景 |
+|------|------|---------|
+| 环境音效 | `AMBIENT_CAVE` | 洞穴探索氛围 |
+| 方块音效 | `BLOCK_ANVIL_BREAK` | 建筑/破坏提示 |
+| 实体音效 | `ENTITY_PLAYER_LEVELUP` | 升级庆祝、任务完成 |
+| 物品音效 | `ITEM_ARMOR_EQUIP_DIAMOND` | 装备提示 |
+
+#### 粒子分类示例
+
+| 分类 | 示例 | 适用场景 |
+|------|------|---------|
+| 庆祝类 | `HEART`, `VILLAGER_HAPPY` | 任务完成、庆祝 |
+| 警告类 | `VILLAGER_ANGRY`, `DAMAGE_INDICATOR` | 危险提醒 |
+| 战斗类 | `CRIT`, `SWEEP_ATTACK` | 战斗反馈 |
+| 魔法类 | `ENCHANTMENT_TABLE`, `SPELL` | 附魔/药水效果 |
+| 自然类 | `FLAME`, `SMOKE_NORMAL` | 环境氛围 |
+| 爆炸类 | `EXPLOSION_NORMAL`, `EXPLOSION_LARGE` | 爆炸效果 |
+| 传送类 | `PORTAL`, `END_ROD` | 传送提示 |
+
+#### 核心特性
+
+- ✅ **安全隔离**: 所有效果仅对 `context.getPlayer()` 生效，不影响其他玩家
+- ✅ **参数范围限制**: 音量 0.0-1.0，音调 0.5-2.0，粒子数量 1-100
+- ✅ **YML 配置驱动**: 描述和提示词通过配置文件定义，支持热重载
+- ✅ **知识库增强**: 支持通过知识库文件扩展支持的音效/粒子列表
+- ✅ **主线程执行**: 自动检测线程环境，确保效果在主线程播放
+
+#### 典型使用场景
+
+```
+玩家: 给我放个升级音效庆祝一下
+→ BukkitFXSkill (play_sound)
+    sound: ENTITY_PLAYER_LEVELUP
+    volume: 1.0, pitch: 1.0
+
+玩家: 显示一些爱心粒子
+→ BukkitFXSkill (spawn_particle)
+    particle: HEART
+    count: 10, offset: 0.5/0.5/0.5
+```
+
+---
+
+### 6. MarketQuerySkill - GlobalMarketPlus 插件集成
 
 **能力类型**: 市场信息查询  
 **依赖插件**: GlobalMarketPlus (v1.3.8.0+)  

@@ -9,6 +9,10 @@ This file records all important changes to the Kilacraft-AI plugin.
 ## v1.4.5 - Folia/lophine Thread Safety, Stream Output Feature, AI Response Pipeline Refactor, SIDEBAR Carrier
 
 ### ✨ New Features
+- **BukkitFXSkill Sound & Particle Effects**: AI can play sounds or show particle effects for players (only caller hears/sees)
+  - 2 Actions: `play_sound`, `spawn_particle`
+  - Natural language trigger: task completion celebration, warning prompts, atmosphere creation
+  - YML configuration driven, supports hot reload
 - **Stream Output Functionality**: LLM responses display character-by-character in real-time, eliminating waiting anxiety
   - Immediately shows "Generating..." placeholder when request initiates, solving first-character latency
   - Real-time display of LLM returned content, supports 5 configurable carriers (CHAT/ACTION_BAR/BOSS_BAR/TITLE/SIDEBAR)
@@ -37,6 +41,8 @@ This file records all important changes to the Kilacraft-AI plugin.
 - **Independent Thinking Message Configuration**: `output.thinking_channel` independently controls "Thinking..." prompt output carrier
 
 ### 🔧 Improvements
+- **Built-in Config File Management**: Encapsulated ConfigResourceUtil utility class, unified all config file reading and initialization logic
+- **Logging System Standardization**: Fully adopted PluginLogger replacing scattered logging calls, structured tag output
 - **Bukkit API Data Return Standardization**: Unified field naming for all API returned data, item names auto-translated to Chinese
 - **Intent Classifier Removal**: Completely removed BM25 intent classifier, all requests go directly to LLM intent recognition for better accuracy
 - **Handler Architecture Refactor**: Each Handler directly implements AIResponseHandler interface with clearer responsibilities

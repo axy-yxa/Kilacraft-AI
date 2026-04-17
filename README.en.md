@@ -85,6 +85,13 @@ When these plugins are not installed, corresponding features are automatically d
 - **Capability Boundary**: Only execution-type commands (no need to read command output), query needs use dedicated Skills
 - **Security Mechanism**: If player doesn't have permission, AI can't bypass it
 
+### 🎨 Sound & Particle Effects
+- **BukkitFXSkill**: AI can play sounds or show particle effects for players (only caller hears/sees)
+- **Natural Language Trigger**: "Play a level up sound for me", "Celebrate", "Show heart particles"
+- **Multi-Scenario Application**: Task completion celebration, warning prompts, atmosphere creation
+- **Security Isolation**: Effects only visible/audible to trigger, no impact on other players
+- **YML Configuration Driven**: Supported sound/particle lists defined via config files, easy to extend
+
 ### 🔔 AFK Task System
 - **12 Task Types**: 11 event listeners + CUSTOM generic condition polling (monitor any Skill's numeric return values)
 - **Natural Language Creation**: Just tell AI "help me watch for xxx to come online" or "alert me when health drops below 5"
