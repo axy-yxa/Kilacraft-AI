@@ -194,19 +194,16 @@ public class AIResponsePipeline {
             return;
         }
 
-        // 阶段1: 格式化（公屏广播始终应用前缀）
+        // 格式化
         String formatted = formatMessage(rawMessage, true);
 
-        // 阶段2: 强制使用 CHAT 载体（避免覆盖其他玩家的私有载体）
+        // 强制使用 CHAT 载体（避免覆盖其他玩家的私有载体）
         OutputChannel channel = OutputChannel.CHAT;
 
-        // 阶段3: 输出到所有在线玩家
+        // 输出到所有在线玩家
         for (Player onlinePlayer : plugin.getServer().getOnlinePlayers()) {
             dispatcher.dispatch(onlinePlayer, formatted, channel);
         }
-
-        // 阶段4: 记录日志
-        plugin.getLogger().info("[AI] " + rawMessage);
     }
 
     /**
