@@ -126,31 +126,58 @@ public class ScoreboardManager {
 
     /**
      * 将消息分割为行
+     * <p>颜色代码（§x）不计入可见字符长度，但切片时保留完整颜色代码</p>
      */
     private List<String> splitMessageToLines(String message) {
         List<String> lines = new ArrayList<>();
         String[] rawLines = message.split("\n");
 
         for (String rawLine : rawLines) {
-            // 移除颜色代码后再计算长度
+            // 移除颜色代码后再计算可见字符长度
             String stripped = ChatColor.stripColor(rawLine);
 
             if (stripped.length() <= config.getSidebarMaxCharsPerLine()) {
                 // 单行不超过限制，直接添加
                 lines.add(rawLine);
             } else {
-                // 超长行，按字符分割
-                int start = 0;
-                while (start < stripped.length()) {
-                    int end = Math.min(start + config.getSidebarMaxCharsPerLine(), stripped.length());
-                    String segment = rawLine.substring(start, end);
-                    lines.add(segment);
-                    start = end;
+                // 超长行：按可见字符数分割，保留颜色代码
+                int[] rawIndexMap = buildStrippedToRawIndexMap(rawLine);
+                int visibleStart = 0;
+                while (visibleStart < stripped.length()) {
+                    int visibleEnd = Math.min(visibleStart + config.getSidebarMaxCharsPerLine(), stripped.length());
+                    // 通过映射获取 rawLine 中对应的起止位置
+                    int rawStart = rawIndexMap[visibleStart];
+                    int rawEnd = (visibleEnd < stripped.length()) ? rawIndexMap[visibleEnd] : rawLine.length();
+                    lines.add(rawLine.substring(rawStart, rawEnd));
+                    visibleStart = visibleEnd;
                 }
             }
         }
 
         return lines;
+    }
+
+    /**
+     * 构建 stripped 位置 → rawLine 位置的映射数组
+     * <p>rawIndexMap[i] 表示 stripped 的第 i 个可见字符在 rawLine 中的起始位置</p>
+     * <p>颜色代码格式：§ + 1字符，共2字符</p>
+     */
+    private int[] buildStrippedToRawIndexMap(String rawLine) {
+        String stripped = ChatColor.stripColor(rawLine);
+        int[] map = new int[stripped.length()];
+        int rawPos = 0;
+        int visiblePos = 0;
+        while (rawPos < rawLine.length() && visiblePos < stripped.length()) {
+            if (rawLine.charAt(rawPos) == '§' && rawPos + 1 < rawLine.length()) {
+                // 跳过颜色代码（§ + 1字符）
+                rawPos += 2;
+            } else {
+                map[visiblePos] = rawPos;
+                visiblePos++;
+                rawPos++;
+            }
+        }
+        return map;
     }
 
     /**
