@@ -212,29 +212,41 @@ public class TaskExecutor {
 
     /**
      * 构建步骤上下文
+     *
+     * <p>对于嵌套任务定义字段（callback、condition_plan），采用宽松解析策略：
+     * 外层能解析的占位符正常替换，外层无法解析的占位符保留原样，
+     * 留给内层 TaskExecutor 解析。这是因为这些字段是嵌套的 JSON 字符串，
+     * 内部可能包含对内层步骤的引用，外层不应因无法解析而终止整个步骤。</p>
      */
     private BuildContextResult buildStepContext(TaskStep step, TaskPlan plan, SkillContext baseContext) {
         // 解析 entities 中的占位符（如 {step_1.item_name}）
         Map<String, String> resolvedEntities = new HashMap<>();
         for (Map.Entry<String, String> entry : step.getEntities().entrySet()) {
-            PlaceholderResolveResult result = resolvePlaceholders(entry.getValue(), plan);
+            String key = entry.getKey();
+            // 嵌套任务定义字段：内部可能包含内层步骤引用，解析失败时保留原占位符
+            boolean lenient = "callback".equals(key) || "condition_plan".equals(key);
+            PlaceholderResolveResult result = resolvePlaceholders(entry.getValue(), plan, lenient);
             if (result.isFailed()) {
                 // 占位符解析失败，终止执行
-                String errorMsg = String.format("步骤 %s 的参数 '%s' 解析失败：找不到 %s", step.getId(), entry.getKey(), result.failedPlaceholder);
+                String errorMsg = String.format("步骤 %s 的参数 '%s' 解析失败：找不到 %s", step.getId(), key, result.failedPlaceholder);
                 PluginLogger.debug("任务执行", errorMsg);
                 return new BuildContextResult(null, errorMsg);
             }
-            resolvedEntities.put(entry.getKey(), result.resolvedValue);
+            resolvedEntities.put(key, result.resolvedValue);
         }
         return new BuildContextResult(new SkillContext(baseContext.getPlayer(), step.getAction(), resolvedEntities), null);
     }
 
     /**
      * 解析占位符（如 {step_1.item_name} 或 {step_1.warps[0].warp_name}）
-     * 解析失败时返回失败信息，而不是保留原占位符
+     *
+     * @param value   可能包含占位符的字符串
+     * @param plan    任务计划（用于查找步骤结果）
+     * @param lenient 宽松模式：为 true 时，解析失败的占位符保留原样而非报错，
+     *                适用于嵌套任务定义（callback、condition_plan）中的内层步骤引用
      */
     @SuppressWarnings("unchecked")
-    private PlaceholderResolveResult resolvePlaceholders(String value, TaskPlan plan) {
+    private PlaceholderResolveResult resolvePlaceholders(String value, TaskPlan plan, boolean lenient) {
         if (value == null || !value.contains("{")) {
             return new PlaceholderResolveResult(value, null);
         }
@@ -259,7 +271,13 @@ public class TaskExecutor {
                     continue;
                 }
             }
-            // 占位符解析失败，返回失败信息
+            if (lenient) {
+                // 宽松模式：保留原占位符，留给内层 TaskExecutor 解析
+                PluginLogger.debug("任务执行", "占位符宽松保留：" + placeholder + " (外层步骤 " + stepId + " 无 " + fieldPath + " 字段，将留给内层解析)");
+                matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(placeholder));
+                continue;
+            }
+            // 严格模式：占位符解析失败，返回失败信息
             PluginLogger.debug("任务执行", "占位符解析失败：" + placeholder + " (步骤 " + stepId + " 不存在或路径 " + fieldPath + " 无效)");
             return new PlaceholderResolveResult(null, placeholder);
         }

@@ -70,6 +70,17 @@
 #    - 示例："kilacraft.api.player.inventory"
 #    - 自定义：✅ 允许自定义，用于细粒度权限控制
 #
+# 9. data_field (可选)
+#    - 类型：String
+#    - 说明：dataMap 中主结果字段的语义化名称，仅对 method_chain 模式有效
+#    - 用途：对于返回简单标量（Number/Boolean/String/enum）的 method_chain API，
+#           默认 dataMap 只有 raw_result 字段，LLM 难以引用。设置 data_field 后，
+#           执行器会自动将主结果值以该字段名注入 dataMap
+#    - 示例：data_field: "ping" → dataMap 中既有 raw_result，也有 ping=42
+#    - 注意：additional_methods 模式无需此属性（框架已自动提取所有 key 到 dataMap）
+#    - 注意：对 Collection 类型（如 getOnlinePlayers），自动注入元素数量而非集合本身
+#    - 自定义：✅ 允许自定义，建议使用小写字母和下划线
+#
 # 【重要规则】
 # --------------------------------------------
 # 1. method_chain 和 additional_methods 二选一，不能同时使用
@@ -196,7 +207,7 @@ player:
   get_player_oxygen:
     id: "get_player_oxygen"
     display_name: "获取玩家氧气值"
-    description: "获取玩家当前的氧气值（水下呼吸时间），单位为 tick"
+    description: "获取玩家当前的氧气值（水下呼吸时间），单位为 tick。返回的 data 中包含 remaining_air 和 maximum_air 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
     additional_methods:
@@ -223,7 +234,7 @@ player:
   get_player_eye_location:
     id: "get_player_eye_location"
     display_name: "获取玩家视线位置"
-    description: "【仅查询自己】获取玩家眼睛（视线起点）的精确坐标位置，常用于判断视线方向或精确位置。返回的 data 中包含 x、y、z 坐标。"
+    description: "【仅查询自己】获取玩家眼睛（视线起点）的精确坐标位置，常用于判断视线方向或精确位置。返回的 data 中包含 x、y、z、yaw、pitch、world 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
     method_chain:
@@ -232,7 +243,7 @@ player:
   get_player_velocity:
     id: "get_player_velocity"
     display_name: "获取玩家速度向量"
-    description: "获取玩家当前的移动速度向量（X, Y, Z 方向的速度）"
+    description: "获取玩家当前的移动速度向量（X, Y, Z 方向的速度）。返回的 data 中包含 x、y、z 字段（各方向速度分量），可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
     method_chain:
@@ -244,16 +255,17 @@ player:
   get_player_gamemode:
     id: "get_player_gamemode"
     display_name: "获取玩家游戏模式"
-    description: "获取玩家当前的游戏模式（生存/创造/冒险/旁观）。什么模式、游戏模式、创造还是生存"
+    description: "获取玩家当前的游戏模式（生存/创造/冒险/旁观）。什么模式、游戏模式、创造还是生存。返回的 data 中包含 game_mode 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
+    data_field: "game_mode"
     method_chain:
       - "getGameMode"
   
   get_player_fly_status:
     id: "get_player_fly_status"
     display_name: "获取玩家飞行状态"
-    description: "获取玩家是否允许飞行以及当前是否正在飞行"
+    description: "获取玩家是否允许飞行以及当前是否正在飞行。返回的 data 中包含 allow_flight 和 is_flying 字段（布尔），可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
     additional_methods:
@@ -264,18 +276,20 @@ player:
   get_player_fly_speed:
     id: "get_player_fly_speed"
     display_name: "获取玩家飞行速度"
-    description: "获取玩家的飞行速度设置"
+    description: "获取玩家的飞行速度设置。返回的 data 中包含 fly_speed 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
+    data_field: "fly_speed"
     method_chain:
       - "getFlySpeed"
   
   get_player_walk_speed:
     id: "get_player_walk_speed"
     display_name: "获取玩家行走速度"
-    description: "获取玩家的行走速度设置"
+    description: "获取玩家的行走速度设置。返回的 data 中包含 walk_speed 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
+    data_field: "walk_speed"
     method_chain:
       - "getWalkSpeed"
   
@@ -296,9 +310,10 @@ player:
   get_player_exp_to_level:
     id: "get_player_exp_to_level"
     display_name: "获取升到下一级所需经验"
-    description: "获取从当前经验进度升到下一级所需的经验值点数。注意：方法名容易混淆，实际返回的是到下一级的经验需求"
+    description: "获取从当前经验进度升到下一级所需的经验值点数。注意：方法名容易混淆，实际返回的是到下一级的经验需求。返回的 data 中包含 exp_to_level 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
+    data_field: "exp_to_level"
     method_chain:
       - "getExpToLevel"
   
@@ -308,25 +323,27 @@ player:
   get_player_main_hand:
     id: "get_player_main_hand"
     display_name: "获取玩家主手偏好"
-    description: "获取玩家的左右手偏好设置（左撇子/右撇子）"
+    description: "获取玩家的左右手偏好设置（左撇子/右撇子）。返回的 data 中包含 main_hand 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
+    data_field: "main_hand"
     method_chain:
       - "getMainHand"
   
   get_player_ping:
     id: "get_player_ping"
     display_name: "获取玩家延迟"
-    description: "获取玩家的网络延迟（ping），单位为毫秒。卡不卡、延迟多少、ping多少、网络好不好"
+    description: "获取玩家的网络延迟（ping），单位为毫秒。卡不卡、延迟多少、ping多少、网络好不好。返回的 data 中包含 ping 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
+    data_field: "ping"
     method_chain:
       - "getPing"
   
   get_player_sleep_status:
     id: "get_player_sleep_status"
     display_name: "获取玩家睡眠状态"
-    description: "获取玩家是否正在睡觉以及睡眠时间"
+    description: "获取玩家是否正在睡觉以及睡眠时间。返回的 data 中包含 is_sleeping（布尔）和 sleep_ticks 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
     additional_methods:
@@ -337,7 +354,7 @@ player:
   get_player_last_death:
     id: "get_player_last_death"
     display_name: "获取玩家上次死亡位置"
-    description: "【仅查询自己】获取玩家上次死亡的位置坐标。死在哪了、上次死在哪、死亡地点在哪"
+    description: "【仅查询自己】获取玩家上次死亡的位置坐标。死在哪了、上次死在哪、死亡地点在哪。返回的 data 中包含 x、y、z、yaw、pitch、world 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
     method_chain:
@@ -346,16 +363,17 @@ player:
   get_player_attack_cooldown:
     id: "get_player_attack_cooldown"
     display_name: "获取玩家攻击冷却"
-    description: "获取玩家当前的攻击冷却进度（0-1，1表示冷却完成）"
+    description: "获取玩家当前的攻击冷却进度（0-1，1表示冷却完成）。返回的 data 中包含 attack_cooldown 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
+    data_field: "attack_cooldown"
     method_chain:
       - "getAttackCooldown"
   
   get_player_vehicle:
     id: "get_player_vehicle"
     display_name: "获取玩家骑乘状态"
-    description: "获取玩家是否在载具中以及载具类型"
+    description: "获取玩家是否在载具中以及载具类型。返回的 data 中包含 in_vehicle 字段（布尔），可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
     additional_methods:
@@ -365,7 +383,7 @@ player:
   get_player_fire_status:
     id: "get_player_fire_status"
     display_name: "获取玩家着火状态"
-    description: "获取玩家当前是否着火，未着火时显示'未着火'，着火时显示剩余燃烧时间（秒）"
+    description: "获取玩家当前是否着火，未着火时显示'未着火'，着火时显示剩余燃烧时间（秒）。返回的 data 中包含 fire_ticks 和 max_fire_ticks 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
     additional_methods:
@@ -376,7 +394,7 @@ player:
   get_player_freeze_status:
     id: "get_player_freeze_status"
     display_name: "获取玩家冰冻状态"
-    description: "获取玩家是否被冰冻（在细雪中）以及冰冻程度"
+    description: "获取玩家是否被冰冻（在细雪中）以及冰冻程度。返回的 data 中包含 is_frozen（布尔）、freeze_ticks 和 max_freeze_ticks 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
     additional_methods:
@@ -388,9 +406,10 @@ player:
   get_player_pose:
     id: "get_player_pose"
     display_name: "获取玩家姿势"
-    description: "获取玩家当前的姿势状态（站立/蹲下/游泳/睡觉等）"
+    description: "获取玩家当前的姿势状态（站立/蹲下/游泳/睡觉等）。返回的 data 中包含 pose 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
+    data_field: "pose"
     method_chain:
       - "getPose"
 
@@ -400,7 +419,7 @@ player:
   get_player_armor:
     id: "get_player_armor"
     display_name: "获取玩家盔甲装备"
-    description: "【仅查询自己】获取玩家当前穿戴的全套盔甲（头盔、胸甲、护腿、靴子）。穿什么装备、身上的盔甲、防具。返回的 data 中包含 helmet、chestplate、leggings、boots 字段，可供后续步骤引用。"
+    description: "【仅查询自己】获取玩家当前穿戴的全套盔甲（头盔、胸甲、护腿、靴子）。穿什么装备、身上的盔甲、防具。返回的 data 中对每个非空槽位包含 helmet_name/helmet_type/helmet_amount、chestplate_name/chestplate_type/chestplate_amount、leggings_name/leggings_type/leggings_amount、boots_name/boots_type/boots_amount 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.inventory"
     method_chain:
@@ -410,7 +429,7 @@ player:
   get_player_potion_effects:
     id: "get_player_potion_effects"
     display_name: "获取玩家药水效果"
-    description: "【仅查询自己】获取玩家当前所有活跃的药水效果列表（包括效果名称、等级、剩余时间）。有什么buff、药水效果、中了什么效果。返回的 data 中包含 effects 字段（效果列表），可供后续步骤引用。"
+    description: "【仅查询自己】获取玩家当前所有活跃的药水效果列表（包括效果名称、等级、剩余时间）。有什么buff、药水效果、中了什么效果。返回的 data 中包含 effects 字段（效果列表，每个效果包含 type、amplifier、duration_seconds 字段）和 effect_count 字段（效果数量），可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
     method_chain:
@@ -431,18 +450,20 @@ player:
   get_player_sneak_status:
     id: "get_player_sneak_status"
     display_name: "获取玩家潜行状态"
-    description: "获取玩家当前是否在潜行（Shift 键）"
+    description: "获取玩家当前是否在潜行（Shift 键）。返回的 data 中包含 sneaking 字段（布尔），可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
+    data_field: "sneaking"
     method_chain:
       - "isSneaking"
 
   get_player_sprint_status:
     id: "get_player_sprint_status"
     display_name: "获取玩家冲刺状态"
-    description: "获取玩家当前是否在冲刺（双击 W）"
+    description: "获取玩家当前是否在冲刺（双击 W）。返回的 data 中包含 sprinting 字段（布尔），可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
+    data_field: "sprinting"
     method_chain:
       - "isSprinting"
 
@@ -452,18 +473,20 @@ player:
   get_player_locale:
     id: "get_player_locale"
     display_name: "获取玩家客户端语言"
-    description: "获取玩家客户端的语言设置（如 zh_CN、en_US）"
+    description: "获取玩家客户端的语言设置（如 zh_CN、en_US）。返回的 data 中包含 locale 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
+    data_field: "locale"
     method_chain:
       - "getLocale"
 
   get_player_display_name:
     id: "get_player_display_name"
     display_name: "获取玩家显示名称"
-    description: "获取玩家的显示名称（可能包含前缀/后缀，不同于 getName）"
+    description: "获取玩家的显示名称（可能包含前缀/后缀，不同于 getName）。返回的 data 中包含 display_name 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
+    data_field: "display_name"
     method_chain:
       - "getDisplayName"
 
@@ -488,6 +511,7 @@ player:
     description: "获取玩家从开始游戏至今累积的总经验值（区别于当前等级的经验进度）。返回的 data 中包含 total_exp 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.status"
+    data_field: "total_exp"
     method_chain:
       - "getTotalExperience"
 
@@ -505,13 +529,14 @@ world:
     description: "获取当前世界的游戏时间（刻数），会被自动格式化为 HH:MM 格式。返回的 data 中包含 time_ticks 字段（当前世界刻数），可供后续步骤引用。几点了、什么时间、现在几点、游戏时间"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "time_ticks"
     method_chain:
       - "getTime"
   
   get_weather:
     id: "get_weather"
     display_name: "获取天气状况"
-    description: "获取当前世界的天气（晴天/雨天/雷暴）。天气怎么样、下雨了吗、什么天气、是不是在打雷"
+    description: "获取当前世界的天气（晴天/雨天/雷暴）。天气怎么样、下雨了吗、什么天气、是不是在打雷。返回的 data 中包含 has_storm 和 is_thundering 字段（布尔），可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
     additional_methods:
@@ -525,7 +550,7 @@ world:
   get_world_info:
     id: "get_world_info"
     display_name: "获取世界基本信息"
-    description: "获取当前世界的名称、环境类型（主世界/下界/末地）和难度。什么世界、世界信息、世界类型"
+    description: "获取当前世界的名称、环境类型（主世界/下界/末地）和难度。什么世界、世界信息、世界类型。返回的 data 中包含 name、environment 和 difficulty 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
     additional_methods:
@@ -537,16 +562,17 @@ world:
   get_world_seed:
     id: "get_world_seed"
     display_name: "获取世界种子"
-    description: "获取当前世界的种子值"
+    description: "获取当前世界的种子值。返回的 data 中包含 seed 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "seed"
     method_chain:
       - "getSeed"
   
   get_world_spawn:
     id: "get_world_spawn"
     display_name: "获取世界出生点"
-    description: "获取当前世界的出生点位置"
+    description: "获取当前世界的出生点位置。返回的 data 中包含 x、y、z、world 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
     method_chain:
@@ -555,7 +581,7 @@ world:
   get_world_height_limit:
     id: "get_world_height_limit"
     display_name: "获取世界高度限制"
-    description: "获取当前世界的最低和最高建筑高度"
+    description: "获取当前世界的最低和最高建筑高度。返回的 data 中包含 min_height 和 max_height 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
     additional_methods:
@@ -569,7 +595,7 @@ world:
   get_world_spawn_rules:
     id: "get_world_spawn_rules"
     display_name: "获取世界生物生成规则"
-    description: "获取当前世界是否允许生成怪物和动物"
+    description: "获取当前世界是否允许生成怪物和动物。返回的 data 中包含 allow_monsters 和 allow_animals 字段（布尔），可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
     additional_methods:
@@ -580,9 +606,10 @@ world:
   get_world_pvp:
     id: "get_world_pvp"
     display_name: "获取世界 PVP 设置"
-    description: "获取当前世界是否允许 PVP"
+    description: "获取当前世界是否允许 PVP。返回的 data 中包含 pvp 字段（布尔），可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "pvp"
     method_chain:
       - "getPVP"
 
@@ -595,6 +622,7 @@ world:
     description: "获取指定坐标的生物群系类型（如平原、沙漠、森林等）。默认查询玩家当前位置。返回的 data 中包含 biome 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "biome"
     method_chain:
       - "getBiome"
 
@@ -604,6 +632,7 @@ world:
     description: "获取指定坐标的温度值（影响生物生成、降雪等）。默认查询玩家当前位置。返回的 data 中包含 temperature 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "temperature"
     method_chain:
       - "getTemperature"
 
@@ -613,6 +642,7 @@ world:
     description: "获取指定坐标的湿度值（影响降雨概率）。默认查询玩家当前位置。返回的 data 中包含 humidity 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "humidity"
     method_chain:
       - "getHumidity"
 
@@ -622,7 +652,7 @@ world:
   get_world_player_count:
     id: "get_world_player_count"
     display_name: "获取世界玩家数量"
-    description: "获取当前世界中的玩家数量"
+    description: "获取当前世界中的玩家数量。返回的 data 中包含 player_count 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
     additional_methods:
@@ -632,7 +662,7 @@ world:
   get_world_living_entities:
     id: "get_world_living_entities"
     display_name: "获取世界生物数量"
-    description: "获取当前世界中所有存活生物（包括玩家、怪物、动物等）的数量。有多少怪、怪物数量、动物数量、生物多少"
+    description: "获取当前世界中所有存活生物（包括玩家、怪物、动物等）的数量。有多少怪、怪物数量、动物数量、生物多少。返回的 data 中包含 living_entities 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
     additional_methods:
@@ -642,7 +672,7 @@ world:
   get_world_entity_count:
     id: "get_world_entity_count"
     display_name: "获取世界实体总数"
-    description: "获取当前世界中所有实体（包括生物、物品、矿车、画等）的总数"
+    description: "获取当前世界中所有实体（包括生物、物品、矿车、画等）的总数。返回的 data 中包含 entity_count 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
     additional_methods:
@@ -655,9 +685,10 @@ world:
   get_world_sea_level:
     id: "get_world_sea_level"
     display_name: "获取世界海平面高度"
-    description: "获取当前世界的海平面高度（Y 坐标）"
+    description: "获取当前世界的海平面高度（Y 坐标）。返回的 data 中包含 sea_level 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "sea_level"
     method_chain:
       - "getSeaLevel"
 
@@ -667,18 +698,20 @@ world:
   get_world_clear_weather_duration:
     id: "get_world_clear_weather_duration"
     display_name: "获取晴天剩余时间"
-    description: "获取当前晴天天气剩余的持续时间（tick）"
+    description: "获取当前晴天天气剩余的持续时间（tick）。返回的 data 中包含 clear_weather_duration 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "clear_weather_duration"
     method_chain:
       - "getClearWeatherDuration"
 
   get_world_thunder_duration:
     id: "get_world_thunder_duration"
     display_name: "获取雷暴剩余时间"
-    description: "获取当前雷暴天气剩余的持续时间（tick）"
+    description: "获取当前雷暴天气剩余的持续时间（tick）。返回的 data 中包含 thunder_duration 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "thunder_duration"
     method_chain:
       - "getThunderDuration"
 
@@ -691,6 +724,7 @@ world:
     description: "获取世界的总运行时间（tick），不受睡眠影响，持续累加。返回的 data 中包含 full_time 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "full_time"
     method_chain:
       - "getFullTime"
 
@@ -700,6 +734,7 @@ world:
     description: "获取世界自创建以来的总游戏时间（tick），不受 /time set 影响。返回的 data 中包含 game_time 字段，可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "game_time"
     method_chain:
       - "getGameTime"
 
@@ -712,6 +747,7 @@ world:
     description: "获取当前世界中正在进行的所有袭击（Raid）列表。返回的 data 中包含 raids 字段（袭击数量），可供后续步骤引用。"
     target_type: "World"
     required_permission: "kilacraft.api.world.info"
+    data_field: "raids"
     method_chain:
       - "getRaids"
 
@@ -726,18 +762,20 @@ server:
   get_online_players:
     id: "get_online_players"
     display_name: "获取在线玩家数量"
-    description: "获取当前服务器上的在线玩家数量和列表，查看谁在线、在线人数、有哪些玩家在线"
+    description: "获取当前服务器上的在线玩家数量和列表，查看谁在线、在线人数、有哪些玩家在线。返回的 data 中包含 online_count 字段（在线人数），可供后续步骤引用。"
     target_type: "Server"
     required_permission: "kilacraft.api.server.info"
+    data_field: "online_count"
     method_chain:
       - "getOnlinePlayers"
   
   get_max_players:
     id: "get_max_players"
     display_name: "获取最大玩家数"
-    description: "获取服务器允许的最大玩家数量。最多能进多少人、服务器人数上限"
+    description: "获取服务器允许的最大玩家数量。最多能进多少人、服务器人数上限。返回的 data 中包含 max_players 字段，可供后续步骤引用。"
     target_type: "Server"
     required_permission: "kilacraft.api.server.info"
+    data_field: "max_players"
     method_chain:
       - "getMaxPlayers"
   
@@ -747,7 +785,7 @@ server:
   get_server_version:
     id: "get_server_version"
     display_name: "获取服务器版本"
-    description: "获取服务器的版本信息（Bukkit 版本和 Minecraft 版本）。服务器什么版本、版本号多少、MC版本"
+    description: "获取服务器的版本信息（Bukkit 版本和 Minecraft 版本）。服务器什么版本、版本号多少、MC版本。返回的 data 中包含 version 和 bukkit_version 字段，可供后续步骤引用。"
     target_type: "Server"
     required_permission: "kilacraft.api.server.info"
     additional_methods:
@@ -770,9 +808,10 @@ server:
   get_server_worlds:
     id: "get_server_worlds"
     display_name: "获取服务器世界列表"
-    description: "获取服务器上所有已加载的世界列表。有哪些世界、世界列表、服务器有几个世界"
+    description: "获取服务器上所有已加载的世界列表。有哪些世界、世界列表、服务器有几个世界。返回的 data 中包含 world_count 字段（世界数量），可供后续步骤引用。"
     target_type: "Server"
     required_permission: "kilacraft.api.server.info"
+    data_field: "world_count"
     method_chain:
       - "getWorlds"
   
@@ -782,7 +821,7 @@ server:
   get_server_settings:
     id: "get_server_settings"
     display_name: "获取服务器设置"
-    description: "获取服务器的基本设置（是否允许飞行、下界、末地）。服务器设置、能不能飞、有没有下界末地"
+    description: "获取服务器的基本设置（是否允许飞行、下界、末地）。服务器设置、能不能飞、有没有下界末地。返回的 data 中包含 allow_flight、allow_nether 和 allow_end 字段（布尔），可供后续步骤引用。"
     target_type: "Server"
     required_permission: "kilacraft.api.server.info"
     additional_methods:

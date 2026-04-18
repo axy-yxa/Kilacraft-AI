@@ -40,15 +40,25 @@ import java.util.concurrent.TimeoutException;
 public class ConditionEvaluator {
 
     /**
-     * 条件评估结果（三态）
+     * 条件评估结果（三态 + 实际值）
      * <ul>
      *   <li>MET：条件满足，应触发回调或通知</li>
      *   <li>NOT_MET：条件正常评估但不满足，继续轮询</li>
      *   <li>FAILED：评估过程出错（Skill找不到/超时/字段提取失败等），属于配置错误</li>
      * </ul>
      */
-    public enum EvaluationResult {
-        MET, NOT_MET, FAILED
+    public record EvaluationResult(Status status, Double actualValue) {
+
+        public enum Status { MET, NOT_MET, FAILED }
+
+        /** 兼容旧调用：仅关注状态 */
+        public boolean isMet() { return status == Status.MET; }
+        public boolean isFailed() { return status == Status.FAILED; }
+
+        /** 快捷构造方法 */
+        public static EvaluationResult met(double actualValue) { return new EvaluationResult(Status.MET, actualValue); }
+        public static EvaluationResult notMet(double actualValue) { return new EvaluationResult(Status.NOT_MET, actualValue); }
+        public static EvaluationResult failed() { return new EvaluationResult(Status.FAILED, null); }
     }
 
     private static final long EXECUTION_TIMEOUT_SECONDS = 5;
@@ -66,11 +76,11 @@ public class ConditionEvaluator {
             Skill skill = KilacraftAI.getInstance().getSkillManager().getSkill(conditionPlan.getConditionSkill());
             if (skill == null) {
                 PluginLogger.warn("条件评估", "找不到Skill: " + conditionPlan.getConditionSkill());
-                return EvaluationResult.FAILED;
+                return EvaluationResult.failed();
             }
 
-            // 2. 构建执行上下文
-            SkillContext context = new SkillContext(player, conditionPlan.getConditionAction(), Map.of());
+            // 2. 构建执行上下文（使用条件计划中的参数）
+            SkillContext context = new SkillContext(player, conditionPlan.getConditionAction(), conditionPlan.getConditionParams());
 
             // 3. 执行Skill（带超时保护）
             CompletableFuture<SkillResult> future = skill.execute(context);
@@ -79,23 +89,23 @@ public class ConditionEvaluator {
                 result = future.get(EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
                 PluginLogger.warn("条件评估", "Skill执行超时: " + conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction());
-                return EvaluationResult.FAILED;
+                return EvaluationResult.failed();
             } catch (InterruptedException | ExecutionException e) {
                 PluginLogger.warn("条件评估", "Skill执行异常: " + e.getMessage(), e);
-                return EvaluationResult.FAILED;
+                return EvaluationResult.failed();
             }
 
             // 4. 检查执行结果
             if (!result.isSuccess()) {
                 PluginLogger.debug("条件评估", "Skill执行失败: " + result.getMessage());
-                return EvaluationResult.FAILED;
+                return EvaluationResult.failed();
             }
 
             // 5. 提取字段值
             Double value = extractDoubleValue(result, conditionPlan.getResultPath());
             if (value == null) {
                 PluginLogger.debug("条件评估", "无法提取字段: " + conditionPlan.getResultPath());
-                return EvaluationResult.FAILED;
+                return EvaluationResult.failed();
             }
 
             // 6. 执行比较
@@ -103,11 +113,11 @@ public class ConditionEvaluator {
 
 //            PluginLogger.debug("条件评估", conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction() + " -> " + conditionPlan.getResultPath() + "=" + value + " " + conditionPlan.getOperatorDescription() + " " + conditionPlan.getThreshold() + " ? " + meetsCondition);
 
-            return meetsCondition ? EvaluationResult.MET : EvaluationResult.NOT_MET;
+            return meetsCondition ? EvaluationResult.met(value) : EvaluationResult.notMet(value);
 
         } catch (Exception e) {
             PluginLogger.error("条件评估", "评估异常: " + e.getMessage(), e);
-            return EvaluationResult.FAILED;
+            return EvaluationResult.failed();
         }
     }
 
@@ -153,6 +163,9 @@ public class ConditionEvaluator {
         try {
             if (value instanceof Number) {
                 return ((Number) value).doubleValue();
+            } else if (value instanceof Boolean) {
+                // 布尔值转换：true → 1.0, false → 0.0，与 ConditionPlan 中布尔阈值转换一致
+                return ((Boolean) value) ? 1.0 : 0.0;
             } else if (value instanceof String) {
                 return Double.parseDouble((String) value);
             }

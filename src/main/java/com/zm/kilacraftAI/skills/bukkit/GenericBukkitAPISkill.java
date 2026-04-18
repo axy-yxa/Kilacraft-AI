@@ -108,24 +108,43 @@ public class GenericBukkitAPISkill implements Skill {
 
             // 根据 API 配置自动提取 data 字段
             // 对于 additional_methods 模式：自动提取所有方法返回值
+            // 对于 method_chain + lophine 模式：executor 返回的 Map 也走此路径
             if (result instanceof java.util.Map<?, ?> resultMap) {
                 for (Map.Entry<?, ?> entry : resultMap.entrySet()) {
                     String key = entry.getKey().toString();
                     Object value = entry.getValue();
-                    // 只添加基本类型，避免复杂对象序列化问题
+                    // 添加基本类型和可安全序列化的容器类型（Map/Collection）
                     if (value instanceof Number || value instanceof Boolean || value instanceof String) {
+                        dataMap.put(key, value);
+                    } else if (value instanceof java.util.Map<?, ?> || value instanceof java.util.Collection<?>) {
+                        // lophine ItemStack 提取的 enchantments(Map)、lore(List) 等容器类型
+                        // Gson 可正常序列化，允许加入 dataMap
                         dataMap.put(key, value);
                     }
                 }
             }
             // 对于 method_chain 模式：根据返回类型自动提取常用字段
             else if (result != null) {
-                extractDataFromResult(result, dataMap);
+                extractDataFromResult(api, result, dataMap);
             }
 
-            // 特殊处理：get_world_time 需要注入 time_ticks 以便 CUSTOM 挂机任务做数值比较
-            if ("get_world_time".equals(api.getId()) && result instanceof Number) {
-                dataMap.put("time_ticks", ((Number) result).longValue());
+            // 通用语义化字段注入：如果配置了 data_field，将主结果值以该字段名注入 dataMap
+            // 使 LLM 可通过 {step_x.field_name} 引用，而非只有 raw_result
+            String dataField = api.getDataField();
+            if (dataField != null && !dataField.isEmpty() && result != null) {
+                // 避免与 additional_methods 自动提取的字段冲突
+                if (!dataMap.containsKey(dataField)) {
+                    // 对简单标量直接注入
+                    if (result instanceof Number || result instanceof Boolean || result instanceof String) {
+                        dataMap.put(dataField, result);
+                    } else if (result instanceof java.util.Collection<?> collection) {
+                        // 集合类型注入元素数量（如在线玩家数、世界数）
+                        dataMap.put(dataField, collection.size());
+                    } else {
+                        // enum 等其他类型，转 String 注入
+                        dataMap.put(dataField, result.toString());
+                    }
+                }
             }
 
             return CompletableFuture.completedFuture(SkillResult.success(formatted, dataMap));
@@ -138,19 +157,63 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 从复杂对象中自动提取常用字段到 dataMap
      */
-    private void extractDataFromResult(Object result, Map<String, Object> dataMap) {
-        // ItemStack：提取物品信息
+    private void extractDataFromResult(BukkitAPIMetadata api, Object result, Map<String, Object> dataMap) {
+        // ItemStack：提取物品信息（与 BukkitAPIExecutor.extractThreadSafeData 保持字段名一致）
         if (result instanceof org.bukkit.inventory.ItemStack itemStack) {
             if (itemStack.getType() != org.bukkit.Material.AIR) {
+                dataMap.put("item_type", itemStack.getType().name());
+                dataMap.put("item_amount", itemStack.getAmount());
+
+                // item_name 优先使用自定义名称，否则使用中文翻译
                 String itemName;
                 if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
                     itemName = itemStack.getItemMeta().getDisplayName();
                 } else {
-                    itemName = itemStack.getType().name();
+                    itemName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(itemStack.getType().name());
                 }
                 dataMap.put("item_name", itemName);
-                dataMap.put("item_amount", itemStack.getAmount());
-                dataMap.put("item_type", itemStack.getType().name());
+
+                // 提取 ItemMeta 详细信息
+                if (itemStack.hasItemMeta()) {
+                    org.bukkit.inventory.meta.ItemMeta meta = itemStack.getItemMeta();
+
+                    // 附魔列表
+                    if (meta.hasEnchants()) {
+                        Map<String, Integer> enchantments = new HashMap<>();
+                        meta.getEnchants().forEach((ench, level) -> enchantments.put(ench.getName(), level));
+                        dataMap.put("enchantments", enchantments);
+                    }
+
+                    // 耐久度（损伤值）
+                    if (meta instanceof org.bukkit.inventory.meta.Damageable damageable) {
+                        if (damageable.hasDamage()) {
+                            dataMap.put("damage", damageable.getDamage());
+                            int maxDurability = itemStack.getType().getMaxDurability();
+                            if (maxDurability > 0) {
+                                dataMap.put("max_durability", maxDurability);
+                                dataMap.put("remaining_durability", maxDurability - damageable.getDamage());
+                            }
+                        }
+                        if (meta.isUnbreakable()) {
+                            dataMap.put("unbreakable", true);
+                        }
+                    }
+
+                    // Lore（物品描述）
+                    if (meta.hasLore()) {
+                        dataMap.put("lore", meta.getLore());
+                    }
+
+                    // 自定义模型数据
+                    if (meta.hasCustomModelData()) {
+                        dataMap.put("custom_model_data", meta.getCustomModelData());
+                    }
+
+                    // ItemFlags
+                    if (!meta.getItemFlags().isEmpty()) {
+                        dataMap.put("item_flags", meta.getItemFlags().stream().map(Enum::name).toList());
+                    }
+                }
             }
         }
         // Location：提取坐标信息
@@ -184,8 +247,8 @@ public class GenericBukkitAPISkill implements Skill {
                 }
             }
         }
-        // Set<PotionEffect>：药水效果集合
-        else if (result instanceof java.util.Set<?> potionEffects) {
+        // Collection<PotionEffect>：药水效果集合（仅对 get_player_potion_effects 生效）
+        else if (result instanceof java.util.Collection<?> potionEffects && api != null && "get_player_potion_effects".equals(api.getId())) {
             java.util.List<Map<String, Object>> effectsList = new java.util.ArrayList<>();
             for (Object obj : potionEffects) {
                 if (obj instanceof org.bukkit.potion.PotionEffect effect) {
@@ -199,12 +262,9 @@ public class GenericBukkitAPISkill implements Skill {
             dataMap.put("effects", effectsList);
             dataMap.put("effect_count", effectsList.size());
         }
-        // Collection<Raid>：袭击列表
-        else if (result instanceof java.util.Collection<?> raids) {
-            dataMap.put("raids", raids.size());
-        }
         // 其他类型不提取额外字段，只保留 raw_result
-        // 注意：Map 格式的数据由 execute() 方法中的 L109-118 通用逻辑处理，不需要在这里硬编码
+        // Map 格式的数据由 execute() 方法中的通用逻辑处理
+        // Collection 类型（如在线玩家、世界列表、袭击列表）由 data_field 机制统一注入 size
     }
 
     /**
@@ -245,6 +305,14 @@ public class GenericBukkitAPISkill implements Skill {
         if (result instanceof java.time.Duration duration) {
             return formatDuration(duration);
         }
+        // 药水效果集合（必须在通用 Collection 分支之前）
+        if (result instanceof java.util.Collection<?> potionEffects && api.getId().equals("get_player_potion_effects")) {
+            return formatPotionEffects(potionEffects);
+        }
+        // 袭击列表（必须在通用 Collection 分支之前）
+        if (result instanceof java.util.Collection<?> raids && api.getId().equals("get_world_raids")) {
+            return formatRaids(raids);
+        }
         // 在线玩家列表或世界列表
         if (result instanceof java.util.Collection<?> collection) {
             return formatCollection(collection, api);
@@ -271,10 +339,6 @@ public class GenericBukkitAPISkill implements Skill {
         if (result instanceof org.bukkit.inventory.ItemStack[] armorContents && api.getId().equals("get_player_armor")) {
             return formatArmorContents(armorContents);
         }
-        // 药水效果集合
-        if (result instanceof java.util.Collection<?> potionEffects && api.getId().equals("get_player_potion_effects")) {
-            return formatPotionEffects(potionEffects);
-        }
         // 瞄准的方块（lophine 优化：Block 对象已在区域线程内提取为 Map）
         if (result instanceof java.util.Map<?, ?> blockMap && api.getId().equals("get_player_target_block")) {
             return formatBlockFromMap(blockMap);
@@ -286,10 +350,6 @@ public class GenericBukkitAPISkill implements Skill {
         // 温度/湿度（Double 类型）
         if (result instanceof Double temp && (api.getId().equals("get_world_temperature") || api.getId().equals("get_world_humidity"))) {
             return String.format("%.2f", temp);
-        }
-        // 袭击列表
-        if (result instanceof java.util.Collection<?> raids && api.getId().equals("get_world_raids")) {
-            return formatRaids(raids);
         }
         // 世界总时间/游戏时间（Long 类型）
         if (result instanceof Long timeTicks && (api.getId().equals("get_world_full_time") || api.getId().equals("get_world_game_time"))) {

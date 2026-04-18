@@ -304,7 +304,12 @@ public class MarketQuerySkill implements Skill {
                 sb.append("§7- ").append(result).append("\n");
             }
 
-            return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
+            // 库存不足时也提供 dataMap，保证多步骤任务可引用
+            Map<String, Object> dataMap = new LinkedHashMap<>();
+            dataMap.put("total_price", totalPrice);
+            dataMap.put("item_count", successCount);
+
+            return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
         }
 
         if (successCount == 0) {
@@ -417,7 +422,13 @@ public class MarketQuerySkill implements Skill {
             // 拼接翻译后的名称和价格
             sb.append(getResponseMessage("items_format", "§7- ")).append(translator.translateToChinese(itemName)).append(pricePart).append("\n");
         }
-        return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
+
+        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        Map<String, Object> dataMap = new LinkedHashMap<>();
+        dataMap.put("items", items);
+        dataMap.put("count", items.size());
+
+        return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
     }
 
     /**
@@ -448,7 +459,10 @@ public class MarketQuerySkill implements Skill {
         }
 
         if (details.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.success("§f" + translator.translateToChinese(englishItemName) + " §c目前市场上没有在售"));
+            Map<String, Object> dataMap = new LinkedHashMap<>();
+            dataMap.put("available", false);
+            dataMap.put("total_stock", 0);
+            return CompletableFuture.completedFuture(SkillResult.success("§f" + translator.translateToChinese(englishItemName) + " §c目前市场上没有在售", dataMap));
         }
 
         // 物品在售
@@ -462,6 +476,14 @@ public class MarketQuerySkill implements Skill {
         for (MarketItemDetail detail : details) {
             uniqueSellers.add(detail.getSellerName());
         }
+
+        // 构建 dataMap，供挂机任务条件评估和多步骤任务引用
+        Map<String, Object> dataMap = new LinkedHashMap<>();
+        dataMap.put("available", true);
+        dataMap.put("total_stock", totalStock);
+        dataMap.put("min_price", minPrice);
+        dataMap.put("max_price", maxPrice);
+        dataMap.put("seller_count", uniqueSellers.size());
 
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("§f%s §a有在售\n", displayName));
@@ -480,7 +502,7 @@ public class MarketQuerySkill implements Skill {
             sb.append(String.format(" ... 等%d人", sellerList.size()));
         }
 
-        return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
+        return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
     }
 
     /**
@@ -503,18 +525,33 @@ public class MarketQuerySkill implements Skill {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("§f你在售的商品 (共 %d 个):\n", myItems.size()));
 
+        // 构建商品数据列表
+        List<Map<String, Object>> myItemsData = new ArrayList<>();
         int showCount = Math.min(10, myItems.size());
         for (int i = 0; i < showCount; i++) {
             MarketItemDetail item = myItems.get(i);
             String displayName = translator.translateToChinese(item.getItemName());
             sb.append(String.format("§7[%d] §f%s × %d §7- §a$%.2f\n", i + 1, displayName, item.getAmount(), item.getPrice()));
+
+            Map<String, Object> itemData = new LinkedHashMap<>();
+            itemData.put("item_name", displayName);
+            itemData.put("english_name", item.getItemName());
+            itemData.put("amount", item.getAmount());
+            itemData.put("price", item.getPrice());
+            itemData.put("seller_name", item.getSellerName());
+            myItemsData.add(itemData);
         }
 
         if (myItems.size() > 10) {
             sb.append(String.format("§7... 还有 %d 个商品", myItems.size() - 10));
         }
 
-        return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
+        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        Map<String, Object> dataMap = new LinkedHashMap<>();
+        dataMap.put("my_items", myItemsData);
+        dataMap.put("count", myItems.size());
+
+        return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
     }
 
     /**
@@ -537,18 +574,32 @@ public class MarketQuerySkill implements Skill {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("§f邮箱待领取 (共 %d 封):\n", mails.size()));
 
+        // 构建邮件数据列表
+        List<Map<String, Object>> mailsData = new ArrayList<>();
         int showCount = Math.min(5, mails.size());
         for (int i = 0; i < showCount; i++) {
             MailItem mail = mails.get(i);
             String displayName = translator.translateToChinese(mail.getItemName());
             sb.append(String.format("§7[%d] §f%s × %d §7来自: §e%s\n", i + 1, displayName, mail.getAmount(), mail.getSenderName() != null ? mail.getSenderName() : "系统"));
+
+            Map<String, Object> mailData = new LinkedHashMap<>();
+            mailData.put("item_name", displayName);
+            mailData.put("english_name", mail.getItemName());
+            mailData.put("amount", mail.getAmount());
+            mailData.put("sender_name", mail.getSenderName() != null ? mail.getSenderName() : "系统");
+            mailsData.add(mailData);
         }
 
         if (mails.size() > 5) {
             sb.append(String.format("§7... 还有 %d 封邮件", mails.size() - 5));
         }
 
-        return CompletableFuture.completedFuture(SkillResult.success(sb.toString()));
+        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        Map<String, Object> dataMap = new LinkedHashMap<>();
+        dataMap.put("mails", mailsData);
+        dataMap.put("count", mails.size());
+
+        return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
     }
 
     /**
@@ -558,10 +609,19 @@ public class MarketQuerySkill implements Skill {
         MarketStats stats = GlobalMarketPlusAPI.getMarketStats();
 
         if (stats.getTotalItems() == 0) {
-            return CompletableFuture.completedFuture(SkillResult.success("§f市场暂无商品"));
+            Map<String, Object> dataMap = new LinkedHashMap<>();
+            dataMap.put("total_items", 0);
+            dataMap.put("total_sellers", 0);
+            return CompletableFuture.completedFuture(SkillResult.success("§f市场暂无商品", dataMap));
         }
 
         String sb = "§f=== 市场统计 ===\n" + String.format("§7商品总数: §f%d 个\n", stats.getTotalItems()) + String.format("§7卖家数量: §f%d 人", stats.getTotalSellers());
-        return CompletableFuture.completedFuture(SkillResult.success(sb));
+
+        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        Map<String, Object> dataMap = new LinkedHashMap<>();
+        dataMap.put("total_items", stats.getTotalItems());
+        dataMap.put("total_sellers", stats.getTotalSellers());
+
+        return CompletableFuture.completedFuture(SkillResult.success(sb, dataMap));
     }
 }

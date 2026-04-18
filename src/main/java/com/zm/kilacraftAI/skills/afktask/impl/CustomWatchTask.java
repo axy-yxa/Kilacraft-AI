@@ -1,7 +1,9 @@
 package com.zm.kilacraftAI.skills.afktask.impl;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.manager.ConversationManager;
@@ -14,9 +16,7 @@ import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.util.Deque;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -117,7 +117,22 @@ public class CustomWatchTask extends AFKTask {
         }
         try {
             JsonObject obj = GSON.fromJson(json, JsonObject.class);
-            return new ConditionPlan(obj.get("condition_skill").getAsString(), obj.get("condition_action").getAsString(), obj.get("result_path").getAsString(), obj.get("operator").getAsString(), obj.get("threshold").getAsDouble());
+            // threshold 支持布尔值和数值：LLM 可能对布尔型字段（如 available）生成 true/false
+            // 布尔转换规则：true → 1.0, false → 0.0，与 ConditionEvaluator 中布尔结果转换一致
+            JsonElement thresholdEl = obj.get("threshold");
+            double thresholdValue;
+            if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isBoolean()) {
+                thresholdValue = thresholdEl.getAsBoolean() ? 1.0 : 0.0;
+            } else {
+                thresholdValue = thresholdEl.getAsDouble();
+            }
+            // 解析 condition_params（条件技能的执行参数，如 item=经验瓶）
+            Map<String, String> conditionParams = Collections.emptyMap();
+            JsonElement paramsEl = obj.get("condition_params");
+            if (paramsEl != null && paramsEl.isJsonObject()) {
+                conditionParams = GSON.fromJson(paramsEl, new TypeToken<Map<String, String>>() {}.getType());
+            }
+            return new ConditionPlan(obj.get("condition_skill").getAsString(), obj.get("condition_action").getAsString(), obj.get("result_path").getAsString(), obj.get("operator").getAsString(), thresholdValue, conditionParams);
         } catch (Exception e) {
             PluginLogger.warn("挂机任务", "解析condition_plan JSON失败: " + e.getMessage(), e);
             return null;
@@ -214,10 +229,10 @@ public class CustomWatchTask extends AFKTask {
                 return;
             }
 
-            // 评估条件（三态返回：MET/NOT_MET/FAILED）
+            // 评估条件（三态返回：MET/NOT_MET/FAILED + 实际值）
             ConditionEvaluator.EvaluationResult evalResult = ConditionEvaluator.evaluate(conditionPlan, creatorPlayer);
 
-            if (evalResult == ConditionEvaluator.EvaluationResult.FAILED) {
+            if (evalResult.isFailed()) {
                 // 评估过程出错（Skill找不到/超时/字段提取失败）—— 配置错误，累加失败计数
                 int failures = consecutiveFailures.incrementAndGet();
                 int maxFailures = plugin.getConfigManager().getAfkTaskMaxConsecutiveFailures();
@@ -230,7 +245,7 @@ public class CustomWatchTask extends AFKTask {
                 // 评估正常（MET 或 NOT_MET），重置失败计数
                 consecutiveFailures.set(0);
 
-                if (evalResult == ConditionEvaluator.EvaluationResult.MET) {
+                if (evalResult.isMet()) {
                     // 先停止轮询，防止新的调度
                     stopPolling();
 
@@ -240,7 +255,7 @@ public class CustomWatchTask extends AFKTask {
                         enteredCallback = true;
                         executeCallback(creatorPlayer);
                     } else {
-                        notifyConditionMet();
+                        notifyConditionMet(evalResult.actualValue());
                         complete("条件满足，挂机任务完成。");
                     }
                 }
@@ -301,24 +316,23 @@ public class CustomWatchTask extends AFKTask {
 
     /**
      * 通知条件满足（纯通知模式）
+     *
+     * @param actualValue 条件评估时的实际值
      */
-    private void notifyConditionMet() {
-        // 通过 LLM 二次分析通知（不再硬编码消息）
-        String eventDescription = String.format("条件满足：%s %s %s（当前值：%s）", conditionPlan.getResultPath(), conditionPlan.getOperatorDescription(), conditionPlan.getThreshold(), getCurrentValue());
-        notifyWithLLMAnalysis(eventDescription);
-    }
-
-    /**
-     * 获取当前值（用于通知）
-     */
-    private String getCurrentValue() {
-        Player player = Bukkit.getPlayer(getPlayerUUID());
-        if (player != null && player.isOnline()) {
-            // 再次执行一次获取当前值（不进行比较）
-            // 这里简化处理，直接返回阈值
-            return String.valueOf(conditionPlan.getThreshold());
+    private void notifyConditionMet(Double actualValue) {
+        // 构建丰富的条件描述（面向 LLM 二次分析，需包含足够上下文让 LLM 生成友好的通知）
+        String currentValueStr = actualValue != null ? String.valueOf(actualValue) : "未知";
+        StringBuilder eventDesc = new StringBuilder();
+        eventDesc.append("挂机任务条件满足：");
+        eventDesc.append(conditionPlan.getConditionSkill()).append(".").append(conditionPlan.getConditionAction());
+        eventDesc.append(" 返回的 ").append(conditionPlan.getResultPath());
+        eventDesc.append(" ").append(conditionPlan.getOperatorDescription()).append(" ").append(conditionPlan.getThreshold());
+        eventDesc.append("（当前值：").append(currentValueStr).append("）");
+        // 附加条件参数，让 LLM 知道监控的具体对象
+        if (!conditionPlan.getConditionParams().isEmpty()) {
+            eventDesc.append("，监控参数：").append(conditionPlan.getConditionParams());
         }
-        return "未知";
+        notifyWithLLMAnalysis(eventDesc.toString());
     }
 
     @Override

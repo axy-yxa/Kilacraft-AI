@@ -2,6 +2,9 @@ package com.zm.kilacraftAI.skills.afktask;
 
 import lombok.Getter;
 
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * 条件计划数据结构
  *
@@ -11,7 +14,7 @@ import lombok.Getter;
  * <ul>
  *   <li>单条件限制：只支持一个数值条件，不支持多条件组合（AND/OR）</li>
  *   <li>通用性：通过Skill返回结果 + 字段提取 + 数值比较实现</li>
- *   <li>类型安全：所有数值统一使用double进行比较</li>
+ *   <li>类型安全：所有数值统一使用double进行比较，布尔值会转为数值（true=1.0, false=0.0）</li>
  * </ul>
  *
  * <h3>使用场景：</h3>
@@ -62,8 +65,17 @@ public class ConditionPlan {
 
     /**
      * 阈值（用于比较的数值）
+     * <p>布尔阈值在解析时已转换为数值：true → 1.0, false → 0.0</p>
      */
     private final double threshold;
+
+    /**
+     * 条件技能的执行参数（传递给 SkillContext 的 entities）
+     *
+     * <p>某些条件技能需要额外参数才能执行（如 market_query.query_availability 需要 item 参数），
+     * 此字段用于存储这些参数，在每次轮询评估时传递给 SkillContext。</p>
+     */
+    private final Map<String, String> conditionParams;
 
     /**
      * 构造条件计划
@@ -75,11 +87,26 @@ public class ConditionPlan {
      * @param threshold       阈值
      */
     public ConditionPlan(String conditionSkill, String conditionAction, String resultPath, String operator, double threshold) {
+        this(conditionSkill, conditionAction, resultPath, operator, threshold, Collections.emptyMap());
+    }
+
+    /**
+     * 构造条件计划（含条件技能参数）
+     *
+     * @param conditionSkill   条件技能名称
+     * @param conditionAction  条件动作名称
+     * @param resultPath       结果字段路径
+     * @param operator         比较操作符
+     * @param threshold        阈值
+     * @param conditionParams  条件技能的执行参数
+     */
+    public ConditionPlan(String conditionSkill, String conditionAction, String resultPath, String operator, double threshold, Map<String, String> conditionParams) {
         this.conditionSkill = conditionSkill;
         this.conditionAction = conditionAction;
         this.resultPath = resultPath;
         this.operator = operator;
         this.threshold = threshold;
+        this.conditionParams = conditionParams != null ? conditionParams : Collections.emptyMap();
     }
 
     /**
@@ -114,6 +141,7 @@ public class ConditionPlan {
 
     @Override
     public String toString() {
-        return String.format("%s.%s → %s %s %.1f", conditionSkill, conditionAction, resultPath, getOperatorDescription(), threshold);
+        String paramsStr = conditionParams.isEmpty() ? "" : ", params=" + conditionParams;
+        return String.format("%s.%s → %s %s %.1f%s", conditionSkill, conditionAction, resultPath, getOperatorDescription(), threshold, paramsStr);
     }
 }

@@ -128,6 +128,9 @@ public class BukkitAPIConfigLoader {
                 metadata.setAdditionalMethods(methodsMap);
             }
 
+            // dataMap 语义化字段名（可选）
+            metadata.setDataField(apiSection.getString("data_field"));
+
             apis.add(metadata);
         }
 
