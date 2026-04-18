@@ -139,9 +139,10 @@ public class ChatListener implements Listener {
             plugin.getStreamOutputManager().cancelGeneration(player);
         }
 
-        // 清理玩家的 Scoreboard
+        // 清理玩家的 Scoreboard / BossBar（防止离线后定时器仍在运行导致内存泄漏）
         if (plugin.getResponsePipeline() != null && plugin.getResponsePipeline().getDispatcher() != null) {
             plugin.getResponsePipeline().getDispatcher().getScoreboardManager().removeSidebar(player.getUniqueId());
+            plugin.getResponsePipeline().getDispatcher().getBossBarManager().removeBossBar(player.getUniqueId());
         }
     }
 }

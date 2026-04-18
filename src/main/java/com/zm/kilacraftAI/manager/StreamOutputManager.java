@@ -30,7 +30,13 @@ public class StreamOutputManager {
 
     private final KilacraftAI plugin;
     private final OutputConfigManager config;
-    private final MessageDispatcher dispatcher;
+
+    /**
+     * 获取 MessageDispatcher（延迟获取 Pipeline 的 dispatcher，确保 BOSS_BAR 等资源由同一管理器管理）
+     */
+    private MessageDispatcher getDispatcher() {
+        return plugin.getResponsePipeline().getDispatcher();
+    }
 
     /**
      * 流式生成状态
@@ -59,8 +65,6 @@ public class StreamOutputManager {
     public StreamOutputManager(KilacraftAI plugin) {
         this.plugin = plugin;
         this.config = plugin.getConfigManager().getOutputConfigManager();
-        // 创建独立的 dispatcher 实例（避免与 AIResponsePipeline 循环依赖）
-        this.dispatcher = new MessageDispatcher(plugin);
     }
 
     /**
@@ -169,40 +173,50 @@ public class StreamOutputManager {
             return;
         }
 
-        // 更新显示（使用调用方传入的载体）
-        dispatchToChannel(player, fullMessage, channel);
+        // 将 Markdown 转换为 Minecraft 格式，再添加 ai_prefix（与最终消息保持一致）
+        // SIDEBAR 载体：ScoreboardManager.sendSidebar 内部会自动 removePrefix 再用 getAIPrefix() 做 title
+        String converted = MessageUtil.convertMarkdownToMinecraft(fullMessage);
+        String prefixedMessage = MessageUtil.getAIPrefix() + converted;
+        dispatchToChannel(player, prefixedMessage, channel);
     }
 
     /**
      * 完成流式生成
      *
-     * <p>LLM 响应完成后调用，设置 COMPLETED 状态</p>
+     * <p>LLM 响应完成后调用，设置 COMPLETED 状态并更新载体为带前缀的最终消息</p>
      * <p>线程安全：LLM 回调在异步线程，必须切换到同步线程</p>
      *
-     * @param player       目标玩家
-     * @param finalMessage 最终完整消息
+     * @param player           目标玩家
+     * @param formattedMessage 已格式化的最终消息（带 ai_prefix）
+     * @param channel          输出载体
      */
-    public void completeGeneration(Player player, String finalMessage) {
+    public void completeGeneration(Player player, String formattedMessage, OutputChannel channel) {
         if (player == null || !config.isStreamEnabled()) {
             return;
         }
 
         // 线程安全：切换到同步线程
         if (FoliaCompat.isPrimaryThread()) {
-            completeGenerationSync(player, finalMessage);
+            completeGenerationSync(player, formattedMessage, channel);
         } else {
-            FoliaCompat.runTask(plugin, () -> completeGenerationSync(player, finalMessage));
+            FoliaCompat.runTask(plugin, () -> completeGenerationSync(player, formattedMessage, channel));
         }
     }
 
     /**
      * 同步完成流式生成（必须在主线程/区域线程调用）
+     *
+     * <p>在主线程中原子执行：先设置 COMPLETED 状态拒绝后续 chunk，再更新载体为最终内容</p>
+     * <p>这保证了最终带前缀的内容不会被后续残留 chunk 覆盖</p>
      */
-    private void completeGenerationSync(Player player, String finalMessage) {
+    private void completeGenerationSync(Player player, String formattedMessage, OutputChannel channel) {
         UUID playerId = player.getUniqueId();
 
-        // 设置状态为 COMPLETED，拒绝后续的 updateStreamChunk
+        // 先设置 COMPLETED，拒绝后续的 updateStreamChunk
         playerStates.put(playerId, GenerationState.COMPLETED);
+
+        // 更新载体为带前缀的最终消息（在 COMPLETED 之后，不会被后续 chunk 覆盖）
+        dispatchToChannel(player, formattedMessage, channel);
 
         // 延迟清理状态（避免立即清理导致闪烁）
         FoliaCompat.runTaskLater(plugin, () -> playerStates.remove(playerId), 20L); // 1秒后清理
@@ -243,11 +257,11 @@ public class StreamOutputManager {
         // SIDEBAR 载体需要特殊处理：title 使用 ai_prefix，content 不带 prefix
         if (channel == OutputChannel.SIDEBAR) {
             // 直接调用 ScoreboardManager，让它自动处理 prefix
-            dispatcher.getScoreboardManager().sendSidebar(player, message);
+            getDispatcher().getScoreboardManager().sendSidebar(player, message);
             return;
         }
 
-        dispatcher.dispatch(player, message, channel);
+        getDispatcher().dispatch(player, message, channel);
     }
 
     /**

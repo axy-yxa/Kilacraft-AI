@@ -106,11 +106,13 @@ public class OutputConfigManager {
     public void load(FileConfiguration config) {
         // 基础配置
         this.defaultChannel = parseChannel(config.getString("output.default_channel", "CHAT"));
-        this.thinkingChannel = parseChannel(config.getString("output.thinking_channel", ""));
 
-        // 如果 thinking_channel 未配置，使用 default_channel
-        if (this.thinkingChannel == null) {
+        // thinking_channel：未配置或为空时使用 default_channel
+        String thinkingChannelStr = config.getString("output.thinking_channel", "");
+        if (thinkingChannelStr == null || thinkingChannelStr.isEmpty()) {
             this.thinkingChannel = this.defaultChannel;
+        } else {
+            this.thinkingChannel = parseChannel(thinkingChannelStr);
         }
 
         // 场景级配置

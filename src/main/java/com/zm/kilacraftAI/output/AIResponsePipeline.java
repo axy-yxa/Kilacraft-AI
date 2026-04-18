@@ -148,9 +148,11 @@ public class AIResponsePipeline {
      * 完成流式输出
      *
      * <p>LLM 响应完成后调用，设置 COMPLETED 状态并发送最终消息</p>
+     * <p>流式输出完成时，最终载体更新统一由 StreamOutputManager 在主线程执行，</p>
+     * <p>不通过 send() 二次操作载体，避免竞态覆盖和闪烁</p>
      *
      * @param player       目标玩家
-     * @param finalMessage 最终完整消息
+     * @param finalMessage 最终完整消息（原始文本，未格式化）
      * @param scenario     输出场景（用于场景级载体配置）
      */
     public void completeStream(Player player, String finalMessage, OutputScenario scenario) {
@@ -158,11 +160,21 @@ public class AIResponsePipeline {
             return;
         }
 
-        // 完成流式状态机（清理占位符）
-        streamOutputManager.completeGeneration(player, finalMessage);
+        // 路由（选择载体）
+        OutputChannel channel = resolveChannel(scenario);
 
-        // 发送最终消息到场景对应的载体
-        send(player, finalMessage, scenario);
+        // 格式化（带前缀）
+        String formatted = formatMessage(finalMessage, true);
+
+        // 完成流式状态机，同时将载体更新为带前缀的最终消息
+        // 所有载体操作统一在 StreamOutputManager 内部主线程执行，只操作一次
+        streamOutputManager.completeGeneration(player, formatted, channel);
+
+        // 非输出副作用（由管线统一管理）
+        PluginLogger.debug("AI响应", player.getName() + " 收到AI回复 [" + scenario.name() + "]：" + finalMessage);
+        if (soundEffectManager != null) {
+            soundEffectManager.playResponseSound(player);
+        }
     }
 
     /**
