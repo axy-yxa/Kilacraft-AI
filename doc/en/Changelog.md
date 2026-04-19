@@ -47,6 +47,7 @@ This file records all important changes to the Kilacraft-AI plugin.
   - Auto-pagination: automatically splits into multiple pages when exceeding 15 lines
   - Doesn't block game view, ideal for long AI responses (200-1500 characters)
   - Title auto-sync: directly uses `ai_prefix` configuration
+- **bStats Anonymous Metrics Integration**: Collects skill usage distribution, request types, AFK task types and other anonymous usage data via bStats (can be disabled via metrics config option)
 - **Folia/lophine Thread Safety Compatibility**: Full support for Folia and its branches region-based thread scheduling
   - Player-related APIs automatically execute in player's region thread
   - Zero impact on Spigot end, fully backward compatible
