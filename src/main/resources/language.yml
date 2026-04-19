@@ -1,11 +1,19 @@
 # ==================== Kilacraft-AI 语言配置文件 ====================
-# 本配置文件用于管理 AI 插件的所有系统提示文本
+# 本配置文件用于管理插件直接展示给玩家的消息文本
 # 管理员可以自定义这些消息来适配服务器风格
-# 支持颜色代码（§ + 数字/字母）和变量占位符
+# 支持颜色代码（§ + 数字/字母）和变量占位符（如 {player}、{seconds}）
+#
+# 说明：此文件仅控制"玩家在游戏中看到的消息"
+# - AI 回复内容（由 LLM 生成）：由 config.yml 的 agent.prompts 控制
+# - 内部错误消息（如挂机任务异常）：保持硬编码，不在此配置
+# - 控制台日志：由下方 logs 段控制
+#
+# 修改后使用 /kilacraft reload 热重载即可生效，无需重启服务器
 
 # ==================== 命令帮助消息 ====================
+# 以下配置控制 /kilacraft 命令显示的帮助信息
 help:
-  # 基础帮助消息（每行一条）
+  # 基础帮助消息（每行一条，按顺序显示）
   messages:
     - "§e使用方法：/kilacraft <消息>"
     - "§e简写：/kila <消息> 或者 /ai <消息> 或者 /zm <消息>"
@@ -14,154 +22,170 @@ help:
     - "§e重载知识库：/kilacraft knowledge reload"
     - "§e重载人格配置：/kilacraft personalities reload"
   
-  # 清除历史提示（根据权限动态显示）
+  # 清除历史提示 — 当玩家有对应权限时显示
   clear-self: "§e清除历史：/kilacraft clear"
+  # 当玩家有清除他人历史权限时额外显示
   clear-other: "§e清除玩家历史：/kilacraft clear [玩家名称]"
   
-  # 知识管理帮助
+  # /kilacraft knowledge 子命令的帮助提示
   knowledge: "§e使用方法：/kilacraft knowledge reload"
   
-  # 人格管理帮助
+  # /kilacraft personalities 子命令的帮助提示
   personalities: "§e使用方法：/kilacraft personalities reload"
   personalities-subcommands: "§e可用子命令：reload - 重新加载人格配置"
   
-  # 挂机任务帮助
+  # /kilacraft afk 子命令的帮助提示
   afk: "§e查询挂机任务：/kilacraft afk"
   afk-subcommands: "§e可用子命令：query(查询), cancel(取消)"
 
 # ==================== 权限相关消息 ====================
+# 以下配置控制玩家执行没有权限的命令时的提示
 permissions:
+  # 执行 /kilacraft reload 但没有 kilacraft.reload 权限
   reload: "§c你没有权限重载配置！"
+  # 执行 /kilacraft clear 但没有 kilacraft.clear.self 权限
   clear-self: "§c你没有权限清除自己的对话历史记录！"
+  # 执行 /kilacraft clear <玩家> 但没有 kilacraft.clear.other 权限
   clear-other: "§c你没有权限清除其他玩家的历史记录！"
+  # 执行 /kilacraft knowledge 但没有 kilacraft.knowledge 权限
   knowledge: "§c你没有权限管理知识库！"
+  # 执行 /kilacraft personalities 但没有 kilacraft.personalities 权限
   personalities: "§c你没有权限管理人格配置！"
 
 # ==================== 功能状态消息 ====================
+# 以下配置控制玩家使用连续对话模式（/kilacraft chat）时的提示
 features:
-  # 连续对话模式被禁用
+  # config.yml 中 chat_mode_enabled=false 时，玩家尝试通过 @ai 触发聊天模式
   chat-mode-disabled: "§c连续对话模式已被禁用！"
   
-  # 非玩家使用聊天模式
+  # 控制台尝试使用聊天模式
   chat-mode-player-only: "§c只有玩家才能使用连续对话模式！"
   
-  # 进入连续对话模式
+  # 玩家执行 /kilacraft chat 进入连续对话模式
   chat-mode-enter: "§a已进入连续对话模式！现在你说的每句话都会发送给 Kilacraft-AI。"
+  # 进入连续对话模式时的副标题（Subtitle）
   chat-mode-enter-subtitle: "§7输入 §e/kilacraft chat§7 退出连续对话模式"
   
-  # 退出连续对话模式
+  # 玩家再次执行 /kilacraft chat 退出连续对话模式
   chat-mode-exit: "§7已退出连续对话模式"
 
 # ==================== 命令执行结果消息 ====================
+# 以下配置控制各种命令执行成功/失败后显示给玩家的反馈
 commands:
-  # 重载成功
+  # /kilacraft reload 重载成功（统一提示，涵盖所有子模块重载）
   reload-success: "§a配置已重载！"
   
-  # 重载失败
+  # /kilacraft reload 重载失败
   reload-failure: "§c配置重载失败："
   
-  # 清除自己历史成功
+  # /kilacraft clear 清除自己的对话历史成功
   clear-self-success: "§a已清除你的对话历史记录！"
   
-  # 清除他人历史成功
+  # /kilacraft clear <玩家> 清除他人历史成功 — 变量: {player}=目标玩家名
   clear-other-success: "§a已清除玩家 {player} 的对话历史记录！"
   
-  # 控制台清除命令提示
+  # 控制台执行 /kilacraft clear 但没有指定玩家名
   clear-console-hint: "§c请在命令中添加玩家名称来清除其历史记录：/kilacraft clear <玩家名称>"
   
-  # 知识库重载成功
+  # /kilacraft knowledge reload 重载成功
   knowledge-reload-success: "§a知识库已重载！"
   
-  # 知识库重载失败
+  # /kilacraft knowledge reload 重载失败
   knowledge-reload-failure: "§c知识库重载失败："
   
-  # 人格配置重载成功
+  # /kilacraft personalities reload 重载成功
   personalities-reload-success: "§a人格配置已重载！"
   
-  # 人格配置重载失败
+  # /kilacraft personalities reload 重载失败
   personalities-reload-failure: "§c人格配置重载失败："
   
-  # 未知子命令
+  # /kilacraft <子命令> 输入了未知的子命令
   unknown-subcommand: "§c未知的子命令："
   
-  # 可用子命令列表
+  # /kilacraft knowledge 或 personalities 输入未知子命令时提示
   available-subcommands: "§e可用子命令：reload"
   
-  # 冷却时间提示
+  # 玩家发送消息但在冷却时间内 — 变量: {seconds}=剩余秒数
   cooldown-warning: "§c请等待 {seconds} 秒后再试！"
   
-  # 插件命令冷却时间提示
+  # 第三方插件通过控制台命令调用 AI，但该玩家还在冷却中
+  # 变量: {player}=玩家名, {seconds}=剩余秒数
   plugin-command-cooldown-warning: "§c玩家 {player} 正在冷却中，请等待 {seconds} 秒后再试！"
   
-  # 世界限制提示
+  # 玩家在 config.yml 的 banned_worlds 世界中发送消息
+  # 变量: {ai_name}=AI 名称（来自 config.yml 的 ai_name）
   world-banned-hint: "§c当前世界禁止使用 {ai_name}！"
 
 # ==================== 插件命令专用消息 ====================
+# 以下配置控制第三方插件通过 /kilacraft plugins 命令调用 AI 时的提示
+# 此命令为控制台专用，普通玩家不可使用
 plugins-command:
-  # 玩家尝试执行控制台命令
+  # 普通玩家尝试执行 /kilacraft plugins 命令
   player-blocked: "§c请使用 /kilacraft <消息>"
   
-  # 参数不足
+  # 控制台执行但参数不足
   insufficient-args: "§c参数不足！使用方法：/kilacraft plugins <人格> <内容> <玩家 UUID> [回调命令...]"
   
-  # 使用示例（基础）
+  # 参数不足时显示的使用示例
   usage-example: "§e示例：/kilacraft plugins 严厉教师 你好 069a79f4-44e9-4726-a5be-fca90e38aaf5"
   
   # 回调命令说明
   callback-hint: "§7可选：在末尾添加回调命令，AI 完成后自动执行"
   
-  # 回调命令示例
+  # 带回调命令的使用示例
   callback-example: "§e带回调：/kilacraft plugins mm_ai 你好 UUID testai handleAI {response} mm_ai"
   
-  # 占位符说明
+  # {response} 占位符的说明
   callback-placeholder-hint: "§7{response} 会被替换为实际的 AI 回复内容"
   
-  # 无效 UUID 格式
+  # 提供的玩家 UUID 格式无效
   invalid-uuid: "§c无效的玩家 UUID 格式："
   
   # UUID 格式提示
   uuid-format-hint: "§e请确保 UUID 格式正确，例如：069a79f4-44e9-4726-a5be-fca90e38aaf5"
   
-  # 人格不存在
+  # 指定的人格名称在 personalities.yml 中不存在
   personality-not-found: "§c未找到人格配置："
   
-  # 人格列表提示
+  # 人格不存在时显示可用列表
   personality-list-hint: "§e可用的人格列表："
   
-  # 错误消息
+  # 插件命令执行过程中发生错误
   error: "§c发生错误："
 
-# ==================== 日志消息（带变量） ====================
+# ==================== 日志消息（输出到服务器控制台） ====================
+# 以下配置控制插件输出到服务器控制台的日志文本
+# 变量: {sender}=执行者名称, {player}=目标玩家名称
 logs:
-  # 配置重载日志
+  # /kilacraft reload 执行成功
   config-reloaded: "配置已由 {sender} 重载"
   
-  # 知识库重载日志
+  # /kilacraft knowledge reload 执行成功
   knowledge-reloaded: "知识库已由 {sender} 重载"
   
-  # 人格配置重载日志
+  # /kilacraft personalities reload 执行成功
   personalities-reloaded: "人格配置已由 {sender} 重载"
   
-  # 玩家进入聊天模式
+  # 玩家进入连续对话模式
   chat-mode-entered: "玩家 {player} 已进入连续对话模式"
   
-  # 玩家退出聊天模式
+  # 玩家退出连续对话模式
   chat-mode-exited: "玩家 {player} 已退出连续对话模式"
   
-  # 清除自己历史日志
+  # 玩家清除自己的对话历史
   clear-self-logged: "玩家 {player} 已清除对话历史记录"
   
-  # 清除他人历史日志
+  # 管理员清除他人的对话历史
   clear-other-logged: "{sender} 已清除玩家 {player} 的对话历史记录"
   
-  # 玩家尝试执行控制台命令
+  # 普通玩家尝试执行控制台专用命令 /kilacraft plugins
   player-command-attempt: "玩家 {player} 尝试执行控制台专用命令 /kilacraft plugins"
   
-  # AI 请求错误日志
+  # 玩家通过聊天触发 AI 请求时发生错误
   ai-request-error: "AI 请求发生错误："
   
-  # 控制台 AI 请求错误
+  # 控制台通过命令触发 AI 请求时发生错误
   console-ai-error: "控制台 AI 请求发生错误："
   
-  # 插件命令 AI 请求错误
+  # 第三方插件通过控制台命令触发 AI 请求时发生错误
   plugin-command-ai-error: "插件命令 AI 请求发生错误："

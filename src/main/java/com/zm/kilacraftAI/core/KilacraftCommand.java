@@ -114,7 +114,6 @@ public class KilacraftCommand implements CommandExecutor {
             // 热重载技能配置（包括 Bukkit API 元数据）
             if (plugin.getSkillConfigManager() != null) {
                 plugin.getSkillConfigManager().reloadAllConfigs();
-                sender.sendMessage("§a已重新加载技能配置文件");
             }
 
             // 同步条件技能的注册状态
@@ -123,13 +122,11 @@ public class KilacraftCommand implements CommandExecutor {
             // 热重载意图识别提示词配置
             if (plugin.getIntentPromptConfigManager() != null) {
                 plugin.getIntentPromptConfigManager().reload();
-                sender.sendMessage("§a已重新加载意图识别提示词配置");
             }
 
             // 热重载 AI 回复音效配置
             if (plugin.getSoundEffectManager() != null) {
                 plugin.getSoundEffectManager().loadConfig();
-                sender.sendMessage("§a已重新加载AI回复音效配置");
             }
 
             sender.sendMessage(languageManager.getCommandReloadSuccess());
