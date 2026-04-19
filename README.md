@@ -1,354 +1,127 @@
+<div align="center">
+
 # Kilacraft-AI
 
-> **🚀 v1.4.5** | 零依赖 · 低内存 · 高性能 · 完全开源  
-> 专为 Minecraft 服务器打造的轻量级 AI Agent 插件,支持自然语言交互。
+**轻量级 Minecraft AI Agent 插件**
 
+Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
+
+[![Version](https://img.shields.io/badge/Version-1.4.5-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.4.5-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
+
+</div>
 
 ---
 
-## 🎯 什么是 Kilacraft-AI？
+玩家通过自然语言与 AI 对话，查询游戏数据、执行命令、编排多步骤任务。
+基于 Plan-and-Execute + Function Calling 架构，一个 JAR 文件，无需数据库、Redis 等任何中间件。
 
-Kilacraft-AI 为你的 Minecraft 服务器带来智能 AI 助手，理解自然语言。玩家可以通过简单对话与 AI 聊天、查询游戏数据、检查市场价格，甚至执行复杂的多步骤任务。
+## 特性一览
 
-**核心优势：**
-- 🚀 **现代 Agent 架构（Plan-and-Execute + Function Calling）**
-  - 采用 **Harness Engineering** 设计模式
-  - Plan 阶段：LLM 智能规划任务（单意图或多步骤）
-  - Execute 阶段：拓扑排序 + 递归串行执行
-  - Function Calling：动态 Skill 注册与调用机制
-  - 错误容错：步骤失败不中断整个流程，智能降级
-- ⚡ **零中间件依赖**：单个 JAR 文件，无需数据库或缓存
-- 💾 **超低内存占用**：8-50 MB 动态使用（传统方案需 2-5 GB）
-- 🔌 **高度可扩展**：开放 SPI 接口供第三方插件集成
-- 🎭 **完全可定制**：人格系统、知识库、语言配置
+| | 功能 | 说明 |
+|:---:|:---|:---|
+| 🤖 | **AI 智能引擎** | LLM 意图识别 · 多步骤任务规划与执行 · RAG 知识库 · 5 种输出载体 · 流式输出 · 二次分析协调器 · 公屏广播 · 回复音效 |
+| 💰 | **经济系统** | GlobalMarketPlus 深度集成 · 自然语言查询余额/价格/在售 · 多物品联合查询 |
+| 🔍 | **Bukkit API** | 58 个内置只读 API · YAML 数据驱动 · 多步骤数据传递（含数组索引）· 细粒度权限 |
+| 🎮 | **CMI 集成** | 传送（家/地标/TPA）· 玩家增强信息（时长/AFK/隐身/套装/在线列表） |
+| 🔧 | **命令执行** | 以玩家身份执行命令 · 完全继承服务器权限 · config 开关 + 权限节点双重保护 |
+| 🎨 | **音效与粒子** | AI 触发音效/粒子效果 · 仅调用者感知 · YML 配置驱动 |
+| 🔔 | **挂机任务** | 12 种类型（11 事件监听 + CUSTOM 轮询）· 自然语言创建 · 通知/回调双模式 |
+| 🎭 | **个性化** | 多人格系统 · RAG 知识库增强（HanLP + BM25）· 自定义词典 · 全语言可配置 |
+| 🔌 | **SPI 扩展** | 第三方 Skill 注册 · 插件命令模式 · 完整开发文档 |
+| 🛡️ | **安全隔离** | 非合作式 Value 扫描拦截器 · 除白名单 Skill 外禁止跨玩家操作 · 恶意 Skill 无法绕过 |
 
----
+## 快速开始
 
-## 📦 依赖要求与兼容性
+**1.** 下载 [Kilacraft-AI-1.4.5.jar](https://gitee.com/zm_mmm/kilacraft-ai/releases) 放入 `plugins/`
 
-### ✅ 版本兼容性
+**2.** 编辑 `plugins/Kilacraft-AI/config.yml`，填入 API 密钥：
 
-**最低兼容版本：Minecraft 1.16.5 + Java 17**
-
-Kilacraft-AI 基于 Spigot 1.16.5 API 开发，一套 JAR 包兼容所有后续版本。
-
-| Minecraft 版本 | Java 要求 | 服务端核心支持 | 说明 |
-|---------------|----------|--------------|------|
-| **1.16.x (1.16.1-1.16.4)** | - | ❌ 不支持 | 官方核心均不支持此范围 |
-| **1.16.5** | Java 17+ | ⚠️ Paper/Purpur/Leaf/Folia 需 `-DPaper.IgnoreJavaVersion=true` | CraftBukkit/Spigot 不支持 Java 17+ |
-| **1.17.x - 1.19.x** | Java 17+ | ✅ 完全支持 | Spigot/Paper/Purpur/Leaf/Folia/CraftBukkit |
-| **1.20.x - 1.21.x** | Java 21+ | ✅ 完全支持 | 服务端核心要求 Java 21 启动 |
-
-### 🎁 可选依赖
-
-以下插件未安装时对应功能自动禁用，**不影响核心对话功能**：
-
-| 插件 | 最低版本 | 功能 |
-|------|---------|------|
-| **MythicMobs** | 5.12.0+ | NPC 占位符（让 NPC 显示 AI 回复） |
-| **GlobalMarketPlus** | 1.3.8.0+ | 经济系统（余额、价格、商品查询） |
-| **Vault** | 最新版 | 多货币系统支持 |
-
----
-
-## ✨ 核心功能
-
-### 🤖 AI 智能引擎
-- **LLM 意图识别**：理解玩家意图并路由到对应技能
-- **多步骤任务规划**：自动将复杂查询分解为可执行步骤
-- **历史对话上下文**：保持对话连贯性
-- **LLM 二次分析**：基于执行结果生成友好回复
-- **RAG 增强架构**：HanLP TF-IDF + BM25 算法
-- **AI 响应统一输出管线**：支持 CHAT/ACTION_BAR/BOSS_BAR/TITLE/SIDEBAR 五种载体，按场景智能路由
-- **流式输出功能**：AI 回复逐字实时显示，支持全部 5 种载体，状态机防止竞态条件
-- **LLM 二次分析协调器**：统一调度分析+输出流程，支持流式/非流式自动切换
-- **公屏广播机制**：触发者使用配置载体，其他玩家强制 CHAT 广播，互不干扰
-- **AI 回复音效**：AI 开始回复时自动播放提示音效，增强沉浸式体验，配置化开关
-
-### 💰 经济系统集成
-- **GlobalMarketPlus 支持**：余额查询、价格查询、商品在售检查
-- **自然语言查询**：“钻石多少钱？”或“查看我的邮箱”
-- **多物品搜索**：同时查询多个物品
-
-### 🔍 Bukkit API 访问
-- **58 个内置 API**：查询玩家状态、世界信息、服务器统计
-- **数据驱动配置**：YAML 定义 API，无需编码
-- **多步骤数据传递**：API 返回值自动提取，支持后续步骤引用（包括数组索引访问）
-- **权限控制**：每个 API 的细粒度访问控制
-
-### 🔧 命令执行技能
-- **通用命令执行**：AI 帮玩家执行服务器命令（如 /back、/spawn、/home）
-- **权限继承**：以玩家身份执行命令，受服务器权限系统约束
-- **双重保护**：config.yml 开关（默认关闭）+ 权限节点（默认 OP）
-- **能力边界**：仅执行型命令（无需读取命令输出），查询类需求走专用 Skill
-- **安全机制**：玩家没有的权限，AI 也无法越权执行
-
-### 🎨 音效与粒子效果
-- **BukkitFXSkill**：AI 可为玩家播放音效或显示粒子效果（仅调用者听到/看到）
-- **自然语言触发**："给我放个升级音效"、"庆祝一下"、"显示爱心粒子"
-- **多场景应用**：任务完成庆祝、警告提示、氛围营造
-- **安全隔离**：效果仅对触发者可见/可听，不影响其他玩家
-- **YML 配置驱动**：支持的音效/粒子列表通过配置文件定义，易于扩展
-
-### 🔔 挂机任务系统
-- **12 种任务类型**：11 个事件监听器 + CUSTOM 通用条件轮询（支持监控任意 Skill 返回的数值条件）
-- **自然语言创建**：直接跟 AI 说"帮我盯着xxx上线"或"帮我盯着血量低于5"即可
-- **纯通知 / 回调双模式**：简单提醒或自动执行多步骤任务
-- **自动资源管理**：玩家下线自动取消，任务完成自动清理
-
-### 🎭 个性化定制
-- **人格系统**：多个 AI 人设，独特风格
-- **知识库增强**：基于服务器文档的 RAG 增强回复
-- **语言自定义**：完全可配置的 UI 文本和提示词
-
-### 🔌 开发者友好
-- **Skill SPI 扩展**：第三方插件可注册自定义技能
-- **插件命令模式**：支持回调的控制台命令
-- **Bukkit 事件集成**：实时 AI 响应通知
-- **完整文档**：SPI 指南、示例和最佳实践
-- **非合作式安全拦截器**：Value 扫描 + 消毒机制，保护玩家数据不被恶意 Skill 访问
-
----
-
-## 🚀 快速开始
-
-### 环境要求
-
-#### 运行环境
-- Minecraft Server 1.16.5+
-- Java 17+
-- 可选：GlobalMarketPlus 1.3.8.0+, MythicMobs 5.12.0+
-
-#### 源码编译环境（仅开发者需要）
-- **JDK 21+**（必需，因为集成了 MythicMobs 5.12+ 占位符功能）
-- Maven 3.6+
-
-> **💡 为什么编译需要 JDK 21？**  
-> 本项目集成了 MythicMobs 5.12+ 的占位符系统，该版本的 MythicMobs 使用 Java 21 编译。为了能够读取其类文件，编译时必须使用 Java 21+ 的编译器。
-> 
-> 但通过 `<release>17</release>` 配置，生成的 JAR 包字节码仍然兼容 **Java 17+** 的运行环境，因此服务器只需 Java 17 即可运行。
-> 
-> **大多数用户无需编译**,直接从 [Releases](https://gitee.com/zm_mmm/kilacraft-ai/releases) 下载预编译的 JAR 包即可。
-
-### 安装步骤（5 分钟）
-
-1. **下载** `Kilacraft-AI-1.4.5.jar` 放入 `plugins/` 目录
-2. **启动** 服务器生成配置文件
-3. **编辑** `plugins/Kilacraft-AI/config.yml`：
-  ```yaml
-  llm:
-    api_url: "https://api.deepseek.com/v1/chat/completions"
-    api_key: "your-api-key"  # ← 在此处输入您的API密钥
-    model: "deepseek-chat"
-    temperature: 0.7
-    max_tokens: 1000
-  ```
-4. **重启** 服务器
-5. **测试**：`/kila 你好！`
-
-完成！🎉
-
----
-
-## 📖 文档导航
-
-### 服主文档
-- **[服主指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9C%8D%E4%B8%BB%E6%8C%87%E5%8D%97)** - 完整配置、故障排除
-- **[更新日志](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)** - 版本历史和更新
-
-### 技术参考文档
-- **[Bukkit API 参考手册](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Bukkit-API%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C)** - 58 个 API 详细说明
-- **[AFK 挂机任务系统详解](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/AFK%E6%8C%82%E6%9C%BA%E4%BB%BB%E5%8A%A1%E7%B3%BB%E7%BB%9F%E8%AF%A6%E8%A7%A3)** - 挂机任务系统架构与使用详解
-- **[人格系统配置指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E4%BA%BA%E6%A0%BC%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97)** - 多个人格的管理和定制
-- **[知识库增强指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E7%9F%A5%E8%AF%86%E5%BA%93%E5%A2%9E%E5%BC%BA%E6%8C%87%E5%8D%97)** - RAG 知识库使用详解
-
-### 开发者文档
-- **[Skill SPI 接入文档](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Skill-SPI-%E6%8E%A5%E5%85%A5%E6%96%87%E6%A1%A3)** - 如何扩展 Kilacraft-AI（包含异步处理、错误隔离等最佳实践）
-
----
-
-## 🎮 使用示例
-
-### 基础对话
-```
-玩家：/kila 怎么获得钻石？
-AI: 你可以在 Y=-58 到 Y=-53 层挖矿找到钻石，或者探索洞穴和峡谷！
+```yaml
+llm:
+  api_url: "https://api.deepseek.com/v1/chat/completions"
+  api_key: "your-api-key"
+  model: "deepseek-chat"
 ```
 
-### 市场查询
+**3.** 重启服务器，输入 `/kila 你好` 测试
+
+> 支持所有 OpenAI 兼容 API（DeepSeek / 智谱 AI / Moonshot 等），修改 `api_url` 和 `model` 即可切换。
+
+## 使用示例
+
 ```
 玩家：钻石多少钱？
-AI: 钻石当前价格：$100.00/个（库存 15 个）
-```
+  AI：钻石当前价格：$100.00/个（库存 15 个）
 
-### 玩家状态
-```
-玩家：我还有多少血？
-AI: 你的生命值：18.5/20.0
-```
-
-### 多步骤任务
-```
 玩家：查一下钻石价格，看看我能不能买 10 个
-AI: 钻石：$80.00/个，你的余额：$12,580
-    💡 分析：购买 10 个钻石需要 $800，你的余额充足！
+  AI：钻石：$80.00/个，你的余额：$12,580 → 购买 10 个需 $800，余额充足！
+
+玩家：帮我盯着 Steve 上线
+  AI：已创建监控任务。
+  🔔 Steve 已上线！
+
+玩家：帮我盯着自己血量低于 5
+  AI：已创建监控任务。
+  🔔 你的血量已降至 4.0！
 ```
 
-### 挂机任务
-```
-玩家：帮我盯着 Steve 上线，上线后查一下他手里拿的什么
-AI: 好的！已创建监控任务。Steve 上线后会自动查询他手中的物品。
+## 兼容性
 
-（Steve 上线后...）
-🔔 挂机任务提醒：Steve 已上线！查询到他主手拿着钻石剑 x1。
-```
+| Minecraft | Java | 服务端 | 状态 |
+|---|---|---|---|
+| 1.16.5 | 17+ | Paper/Purpur/Leaf/Folia | ⚠️ 需 `-DPaper.IgnoreJavaVersion=true` |
+| 1.17 - 1.19 | 17+ | 全部主流 | ✅ |
+| 1.20 - 1.21+ | 21+ | 全部主流 | ✅ |
 
----
+> 可选依赖：MythicMobs 5.12+（NPC 占位符）· GlobalMarketPlus 1.3.8+（经济）· CMI（传送/查询）· Vault（多货币）
+> 未安装时对应功能自动禁用，不影响核心对话。
 
-## 🔧 配置亮点
+## 命令
 
-### 切换 LLM 提供商
-只需修改 `config.yml`：
-```yaml
-api:
-  url: "https://open.bigmodel.cn/api/paas/v4/chat/completions"  # 智谱 AI
-  model: "glm-4-plus"
-```
+| 命令 | 权限 | 说明 |
+|---|---|---|
+| `/kila <消息>` | 无 | 与 AI 对话（`/kilacraft`、`/ai`、`/zm` 均可） |
+| `/kilacraft chat` | 无 | 进入/退出连续对话模式 |
+| `/kilacraft clear [玩家]` | `clear.self` / `clear.other` | 清除对话历史 |
+| `/kilacraft reload` | OP | 重载配置和语言文件 |
+| `/kilacraft knowledge reload` | OP | 重载知识库 |
+| `/kilacraft personalities reload` | OP | 重载人格配置 |
+| `/kilacraft afk [cancel]` | 无 | 查看/取消挂机任务 |
+| `/kilacraft plugins <人格> <内容> <UUID> [回调]` | 控制台 | 第三方插件集成 |
 
-### 启用/禁用功能
-```yaml
-agent:
-  enabled: true                    # 总开关
-  enable_chat_listener: true       # 关键词触发 (@ai)
-  enable_command: true             # /kilacraft 命令
-```
+## 文档
 
-### 添加知识库
-在 `plugins/Kilacraft-AI/knowledge/` 创建 `.md` 文件：
-```markdown
-# 服务器规则
-1. 禁止作弊
-2. 保持友好
-```
-然后执行：`/kilacraft knowledge reload`
+| 文档 | 说明 |
+|---|---|
+| [服主指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9C%8D%E4%B8%BB%E6%8C%87%E5%8D%97) | 完整配置与故障排除 |
+| [更新日志](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97) | 版本历史 |
+| [Bukkit API 参考](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Bukkit-API%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C) | 58 个 API 详解 |
+| [AFK 任务详解](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/AFK%E6%8C%82%E6%9C%BA%E4%BB%BB%E5%8A%A1%E7%B3%BB%E7%BB%9F%E8%AF%A6%E8%A7%A3) | 挂机任务系统架构 |
+| [人格系统指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E4%BA%BA%E6%A0%BC%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97) | AI 人设管理 |
+| [知识库指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E7%9F%A5%E8%AF%86%E5%BA%93%E5%A2%9E%E5%BC%BA%E6%8C%87%E5%8D%97) | RAG 知识库配置 |
+| [Skill SPI 文档](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Skill-SPI-%E6%8E%A5%E5%85%A5%E6%96%87%E6%A1%A3) | 第三方 Skill 开发 |
 
-**高级配置**：
-```yaml
-knowledge:
-  enabled: true                    # 是否启用知识库
-  max_relevant_chunks: 3           # 每次检索返回的最大片段数
-  segment:
-    max_size: 500                  # 每个片段最大字符数
-    min_size: 25                   # 最小字符数
-    overlap: 30                    # 片段重叠字符数
-  keywords:
-    top_k: 10                      # 每次提取的关键词数量
-  bm25:
-    k1: 1.5                        # 词频饱和参数
-    b: 0.75                        # 文档长度归一化参数
-```
+## 开发者
 
-**知识库特性**：
-- ✅ **HanLP TF-IDF 算法**：智能提取关键词，自动过滤停用词
-- ✅ **BM25 评分算法**：精确计算文档相关性
-- ✅ **智能分段**：Markdown 标题 → 段落 → 固定大小三级策略
-- ✅ **性能优化**：分段缓存，二次检索速度提升约70%
+- **源码编译**需 JDK 21+（MythicMobs 5.12+ 依赖），生成的 JAR 兼容 Java 17+ 运行
+- 第三方插件可通过 **Skill SPI** 注册自定义技能 → [接入文档](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Skill-SPI-%E6%8E%A5%E5%85%A5%E6%96%87%E6%A1%A3)
+- 欢迎 [Issues](https://gitee.com/zm_mmm/kilacraft-ai/issues) / Pull Request
 
 ---
 
-## 📊 性能指标
+<div align="center">
 
-| 指标 | 数值 |
-|------|------|
-| **内存占用** | 8-50 MB（动态） |
-| **JAR 大小** | ~3 MB |
-| **启动时间** | < 2 秒 |
-| **API 响应** | 2-5 秒（取决于 LLM） |
-| **并发用户** | 无限制（异步非阻塞） |
+MIT License · Made by [Zm_Mmm](https://gitee.com/zm_mmm) · <a href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147"><img src="https://img.shields.io/badge/QQ%E7%BE%A4-1094391147-12B7F5?logo=tencent-qq" height="20" valign="middle" alt="QQ群" /></a>
 
----
+本项目完全开源免费，如果觉得有用，欢迎请我喝杯咖啡 ☕
 
-## 🤝 贡献指南
+<img src="sponsor.jpg" width="300" alt="赞助码" />
 
-欢迎贡献！请：
-1. Fork 本仓库
-2. 创建特性分支（`git checkout -b feature/amazing-feature`）
-3. 提交更改（`git commit -m 'Add amazing feature'`）
-4. 推送到分支（`git push origin feature/amazing-feature`）
-5. 提交 Pull Request
+扫码时可备注你的游戏 ID，感谢支持！
 
-**贡献方式：**
-- 🐛 通过 [Issues](https://gitee.com/zm_mmm/kilacraft-ai/issues) 报告 Bug
-- 💡 提出功能建议或改进意见
-- 📝 改进文档
-- 🔌 为你的插件开发自定义 Skills
+**大服私人定制 / 针对性优化**：QQ 1456133139 · 微信 lyh1456133139
 
----
-
-## 📄 许可证
-
-本项目采用 [MIT 许可证](LICENSE)。
-
-**你可以：**
-- ✅ 使用、复制、修改、合并、发布、分发
-- ✅ 用于商业项目
-- ✅ 创建衍生作品
-
-**你必须：**
-- 📝 包含原始版权声明和许可证
-
----
-
-## ❤️ 支持开发
-
-如果 Kilacraft-AI 帮助到了你，可以考虑支持项目的持续发展：
-
-- **[爱发电](https://afdian.com/a/Zm_Mmm)** - 支持微信/支付宝
-
-你的支持将用于：
-- 🚀 持续的功能更新与性能优化
-- 🐛 Bug 修复与稳定性提升
-- 📚 文档完善与教程制作
-- 💬 社区支持与问题解答
-
-感谢每一位支持者！🙏
-
----
-
-## 👨‍💻 作者
-
-**Zm_Mmm**
-- GitHub: [@Zm-Mmm](https://github.com/axy-yxa)
-- Gitee: [@zm_mmm](https://gitee.com/zm_mmm)
-- QQ群: 1094391147
-
----
-
-## 🌟 支持项目
-
-如果 Kilacraft-AI 对你有帮助，请考虑：
-- ⭐ **Star 项目**：在 GitHub 或 Gitee 上给我们一个 Star
-- 📢 **分享给朋友**：推荐给其他服主
-- 💬 **提供反馈**：告诉我们你的使用体验和改进建议
-- 🔌 **开发 Skills**：为你的插件集成 AI 能力
-- 🐛 **报告问题**：发现 Bug 及时提交 Issue
-
-**你的支持是我们持续优化的动力！** ❤️
-
----
-
-## 🔗 相关链接
-
-- [DeepSeek API 文档](https://platform.deepseek.com/api-docs/)
-- [智谱 AI 文档](https://open.bigmodel.cn/dev/api)
-- [Moonshot 文档](https://platform.moonshot.cn/docs)
-
----
-
-> **最后更新**: 2026-04-15  
-> **插件版本**: 1.4.5  
-> **开源协议**: MIT
+</div>

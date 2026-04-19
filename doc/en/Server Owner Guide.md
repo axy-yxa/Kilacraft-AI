@@ -1143,25 +1143,7 @@ settings:
 
 ---
 
-## 🤝 Support and Contribution
-
-### 💖 Support Project Development
-
-If Kilacraft-AI has helped you, consider supporting the project's continued development:
-
-- **[Afdian](https://afdian.com/a/Zm_Mmm)** - Supports WeChat/Alipay
-
-Your support will be used for:
-- 🚀 Continuous feature updates and performance optimization
-- 🐛 Bug fixes and stability improvements
-- 📚 Documentation improvement and tutorial creation
-- 💬 Community support and problem solving
-
-Thank you to every supporter! 🙏
-
----
-
-### 🌟 Participate in Community Contributions
+## 🤝 Contributing & Community
 
 We welcome community contributions! If you have any suggestions or discover problems:
 
@@ -1169,33 +1151,14 @@ We welcome community contributions! If you have any suggestions or discover prob
 2. **📢 Share with Friends**: Recommend to other server owners and developers
 3. **🐛 Submit Issues**: Report problems or suggest improvements
 4. **💻 Submit PRs**: Fix bugs or add new features
-5. **📝 Share Experience**: Share your usage experiences and configuration tips in community
-6. **🔧 Develop Skills**: Develop custom Skills for your plugins, enrich ecosystem
-
-**Your support is our motivation for continuous optimization!** ❤️
-
----
-
-## 🔗 Related Links
+5. **🔧 Develop Skills**: Develop custom Skills for your plugins, enrich ecosystem
 
 - **📚 Complete Document Index**: [View all technical documents](./Document%20Index.md)
 - **DeepSeek API Documentation**: https://platform.deepseek.com/api-docs/
 - **Zhipu AI Documentation**: https://open.bigmodel.cn/dev/api
 - **Moonshot Documentation**: https://platform.moonshot.cn/docs
 
----
-
-## 📄 License
-
 This project uses **MIT License** - See [LICENSE](../LICENSE) file for details
-
-**You Can:**
-- ✅ Freely use, copy, modify, merge, publish, distribute
-- ✅ Use for commercial projects
-- ✅ Create derivative works
-
-**You Need To:**
-- 📝 Include original copyright notice and license in copies
 
 ---
 
