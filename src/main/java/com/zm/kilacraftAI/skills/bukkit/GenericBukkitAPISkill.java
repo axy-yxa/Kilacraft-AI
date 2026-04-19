@@ -244,6 +244,17 @@ public class GenericBukkitAPISkill implements Skill {
                     dataMap.put(slotNames[i] + "_name", itemName);
                     dataMap.put(slotNames[i] + "_type", item.getType().name());
                     dataMap.put(slotNames[i] + "_amount", item.getAmount());
+                    // 附魔信息
+                    if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
+                        Map<String, Integer> enchants = new java.util.HashMap<>();
+                        item.getItemMeta().getEnchants().forEach((ench, level) -> enchants.put(ench.getKey().getKey().toUpperCase(), level));
+                        dataMap.put(slotNames[i] + "_enchantments", enchants);
+                    }
+                    // 耐久度信息
+                    if (item.getType().getMaxDurability() > 0) {
+                        dataMap.put(slotNames[i] + "_max_durability", (int) item.getType().getMaxDurability());
+                        dataMap.put(slotNames[i] + "_remaining_durability", (int) (item.getType().getMaxDurability() - item.getDurability()));
+                    }
                 }
             }
         }
@@ -280,7 +291,7 @@ public class GenericBukkitAPISkill implements Skill {
             return formatLocationFromMap(locationMap);
         }
         if (result instanceof java.util.Map<?, ?> itemMap && api.getId().contains("item")) {
-            return formatItemStackFromMap(itemMap);
+            return formatItemStackFromMap(api, itemMap);
         }
         if (result instanceof java.util.Map<?, ?> vectorMap && (api.getId().contains("velocity") || api.getId().contains("direction"))) {
             return formatVectorFromMap(vectorMap);
@@ -639,7 +650,7 @@ public class GenericBukkitAPISkill implements Skill {
      * <p>注意：字段名必须与 extractThreadSafeData 和 extractDataFromResult 保持一致，
      * 使用标准化命名：item_type, item_name, item_amount</p>
      */
-    private String formatItemStackFromMap(java.util.Map<?, ?> itemMap) {
+    private String formatItemStackFromMap(BukkitAPIMetadata api, java.util.Map<?, ?> itemMap) {
         if (itemMap == null || itemMap.isEmpty()) {
             return "空手";
         }
@@ -656,11 +667,20 @@ public class GenericBukkitAPISkill implements Skill {
         String displayName = (String) itemMap.get("item_name");
 
         StringBuilder sb = new StringBuilder();
+        // 根据API类型添加手部标识
+        String label = "物品";
+        if (api != null) {
+            if (api.getId().equals("get_player_hand_item")) {
+                label = "主手物品";
+            } else if (api.getId().equals("get_player_offhand_item")) {
+                label = "副手物品";
+            }
+        }
         if (displayName != null) {
-            sb.append("物品：").append(displayName);
+            sb.append(label).append("：").append(displayName);
         } else {
             String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(type);
-            sb.append("物品：").append(chineseName);
+            sb.append(label).append("：").append(chineseName);
         }
         if (amount > 1) {
             sb.append(" x").append(amount);
@@ -815,6 +835,23 @@ public class GenericBukkitAPISkill implements Skill {
                 }
                 if (item.getAmount() > 1) {
                     sb.append(" x").append(item.getAmount());
+                }
+                // 耐久度
+                if (item.getType().getMaxDurability() > 0) {
+                    int max = item.getType().getMaxDurability();
+                    int remaining = max - item.getDurability();
+                    sb.append(" [耐久:").append(remaining).append("/").append(max).append("]");
+                }
+                // 附魔
+                if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
+                    sb.append(" [附魔:");
+                    boolean first = true;
+                    for (Map.Entry<org.bukkit.enchantments.Enchantment, Integer> entry : item.getItemMeta().getEnchants().entrySet()) {
+                        if (!first) sb.append("; ");
+                        sb.append(entry.getKey().getKey().getKey().toUpperCase()).append(" ").append(toRoman(entry.getValue()));
+                        first = false;
+                    }
+                    sb.append("]");
                 }
                 hasArmor = true;
             }

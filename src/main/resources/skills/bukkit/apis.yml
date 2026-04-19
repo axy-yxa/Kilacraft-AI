@@ -419,7 +419,7 @@ player:
   get_player_armor:
     id: "get_player_armor"
     display_name: "获取玩家盔甲装备"
-    description: "【仅查询自己】获取玩家当前穿戴的全套盔甲（头盔、胸甲、护腿、靴子）。穿什么装备、身上的盔甲、防具。返回的 data 中对每个非空槽位包含 helmet_name/helmet_type/helmet_amount、chestplate_name/chestplate_type/chestplate_amount、leggings_name/leggings_type/leggings_amount、boots_name/boots_type/boots_amount 字段，可供后续步骤引用。"
+    description: "【仅查询自己】获取玩家当前穿戴的全套盔甲（头盔、胸甲、护腿、靴子）及其附魔和耐久度信息。穿什么装备、身上的盔甲、防具。返回的 data 中对每个非空槽位包含 helmet_name/helmet_type/helmet_amount、chestplate_name/chestplate_type/chestplate_amount、leggings_name/leggings_type/leggings_amount、boots_name/boots_type/boots_amount 字段，以及各槽位的 helmet_enchantments（附魔Map）、helmet_max_durability、helmet_remaining_durability 等附魔与耐久度字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.inventory"
     method_chain:
