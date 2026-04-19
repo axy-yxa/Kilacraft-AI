@@ -39,6 +39,13 @@ settings:
   # 调试时开启，正常使用建议关闭
   debug_mode: false
 
+  # 是否启用匿名统计（bStats）
+  # 收集匿名使用数据帮助改进插件，不收集任何敏感信息
+  # 统计内容：技能调用次数、请求类型分布、挂机任务类型、LLM模型名、服务端类型
+  # 数据公开查看：https://bstats.org/plugin/bukkit/Kilacraft-AI
+  # 注意：修改此项后需要重启服务器才能生效，热重载不会更新此配置
+  metrics: true
+
   # 是否启用聊天命令模式
   # true: 可以使用/kilacraft chat进入对话模式
   # false: 禁用聊天模式，只能用/kilacraft命令

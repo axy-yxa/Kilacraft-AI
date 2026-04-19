@@ -6,6 +6,7 @@ import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
+import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.output.AIResponsePipeline;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillIntent;
@@ -108,6 +109,7 @@ public class AIRequestHandler {
 
         if (!enableAgent) {
             PluginLogger.debug("AI请求", "Agent 能力已禁用，进入普通 AI 处理");
+            MetricsCollector.getInstance().recordRequestType("normal_chat");
             handleNormalAIRequest(message, ctx);
             return;
         }
@@ -116,17 +118,21 @@ public class AIRequestHandler {
 
         var intentRecognizer = plugin.getIntentRecognizer();
         if (intentRecognizer == null) {
+            MetricsCollector.getInstance().recordRequestType("normal_chat");
             handleNormalAIRequest(message, ctx);
             return;
         }
 
         intentRecognizer.recognizeIntent(message, ctx.history(), ctx.name()).thenAccept(result -> {
             if (result instanceof TaskPlan taskPlan && taskPlan.isMultiStep()) {
+                MetricsCollector.getInstance().recordRequestType("skill_execution");
                 handleTaskPlan(taskPlan, message, ctx);
             } else if (result instanceof SkillIntent intent && intent.isValid()) {
+                MetricsCollector.getInstance().recordRequestType("skill_execution");
                 handleSkillIntent(intent, message, ctx);
             } else {
                 PluginLogger.debug("AI请求", "意图识别结束，回退到普通 AI 处理");
+                MetricsCollector.getInstance().recordRequestType("normal_chat");
                 handleNormalAIRequest(message, ctx);
             }
         }).exceptionally(throwable -> {

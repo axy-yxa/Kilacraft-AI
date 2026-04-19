@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.skills.afktask;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.SkillConfigManager;
+import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.skills.afktask.impl.*;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
@@ -134,6 +135,9 @@ public class AFKTaskSkill implements Skill {
         }
 
         AFKTaskType taskType = AFKTaskType.fromActionName(taskTypeStr);
+
+        // 统计埋点：记录挂机任务类型
+        MetricsCollector.getInstance().recordAfkTaskType(taskType.name());
 
         // 检查是否已存在任务
         if (manager.hasTask(player.getUniqueId())) {

@@ -61,6 +61,11 @@
                             <pattern>okio</pattern>
                             <shadedPattern>com.zm.kilacraftAI.shaded.okio</shadedPattern>
                         </relocation>
+                        <!-- 重定位 bStats，避免与其他插件冲突 -->
+                        <relocation>
+                            <pattern>org.bstats</pattern>
+                            <shadedPattern>com.zm.kilacraftAI.shaded.bstats</shadedPattern>
+                        </relocation>
                     </relocations>
                 </configuration>
                 <executions>
@@ -184,6 +189,14 @@
             <groupId>com.hankcs</groupId>
             <artifactId>hanlp</artifactId>
             <version>portable-1.8.4</version>
+        </dependency>
+
+        <!-- bStats 统计 -->
+        <dependency>
+            <groupId>org.bstats</groupId>
+            <artifactId>bstats-bukkit</artifactId>
+            <version>3.1.0</version>
+            <scope>compile</scope>
         </dependency>
         
         <!-- MythicMobs Dependency (Provided) - 本地 JAR -->

@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.framework;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.util.PluginLogger;
 
 import java.util.ArrayList;
@@ -117,6 +118,9 @@ public class SkillManager {
         }
 
         PluginLogger.debug("技能管理", "开始执行技能：" + skillName + ", action=" + intent.getAction());
+
+        // 统计埋点：记录技能调用
+        MetricsCollector.getInstance().recordSkillAction(skillName, intent.getAction());
 
         // 执行技能（带错误隔离，第三方 Skill 异常不影响核心流程）
         try {
