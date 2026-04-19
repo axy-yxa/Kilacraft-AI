@@ -10,30 +10,8 @@ api-version: '1.16'
 folia-supported: true
 # 作者信息
 author: Zm_Mmm
-# 插件描述（多行文本，使用 | 保持格式）
-description: |
-  A powerful Minecraft AI Agent plugin with natural language interaction.
-  一款强大的 Minecraft AI Agent 插件，支持自然语言交互。
-  
-  Core Features / 核心功能：
-  - LLM-based intent recognition & skill execution framework
-    基于 LLM 的意图识别与技能执行框架
-  - Bukkit API integration (query player status, world info, server data)
-    Bukkit API 集成（查询玩家状态、世界信息、服务器数据）
-  - GlobalMarketPlus economy system integration
-    GlobalMarketPlus 经济系统集成
-  - MythicMobs placeholder support for custom AI responses
-    MythicMobs 占位符支持自定义 AI 回复
-  - Knowledge base enhancement for server-aware AI
-    知识库增强功能，让 AI 更了解服务器
-  - Multiple interaction modes: command chat, continuous conversation, keyword trigger
-    多种交互模式：命令对话、连续聊天、关键词触发
-  - Multi-step task planning for complex queries
-    多步骤任务规划，处理复杂查询
-  - Configurable personality system
-    可配置的人格系统
-  - Permission-controlled API access
-    权限控制的 API 访问
+# 插件描述
+description: "一款强大的 Minecraft AI Agent 插件，基于 LLM 意图识别与技能执行框架，支持自然语言交互、多步骤任务规划、挂机任务系统、知识库增强等功能。"
 # 插件加载时机（POSTWORLD 表示在世界加载后加载，确保依赖插件已加载）
 load: POSTWORLD
 # 软依赖列表（如果这些插件存在则会集成其功能）
