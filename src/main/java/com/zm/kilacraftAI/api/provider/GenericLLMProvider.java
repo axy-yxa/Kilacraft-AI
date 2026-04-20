@@ -124,8 +124,8 @@ public class GenericLLMProvider implements LLMProvider {
 
             contentForExtraction = afterMarker.substring(0, endPosition).trim();
 
-            // 直接返回用户真实输入，不再进行后续处理
             int keywordTopK = configManager.getKeywordTopK();
+            PluginLogger.debug("知识库", "提取的内容: " + contentForExtraction);
             return ChineseTextUtil.toSearchQuery(contentForExtraction, keywordTopK);
         }
 
@@ -144,6 +144,7 @@ public class GenericLLMProvider implements LLMProvider {
 
         // 使用配置的 topK 参数
         int keywordTopK = configManager.getKeywordTopK();
+        PluginLogger.debug("知识库", "提取的内容: " + contentForExtraction);
         return ChineseTextUtil.toSearchQuery(contentForExtraction, keywordTopK);
     }
 

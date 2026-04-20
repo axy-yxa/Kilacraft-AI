@@ -44,10 +44,8 @@ public class LLMAnalysisService {
      */
     public CompletableFuture<SkillResult> analyzeResultWithHandler(AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, AIResponseHandler handler) {
         String promptContent = summary.buildPrompt();
-        String keywordContent = summary.buildKeywordContent();
 
         PluginLogger.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n" + promptContent);
-        PluginLogger.debug("LLM分析", "[知识库] 提取的内容: " + keywordContent);
 
         String playerName = context.getPlayer() != null ? context.getPlayer().getName() : "Console";
 
