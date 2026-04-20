@@ -104,37 +104,6 @@ public class AnalysisSummary {
     }
 
     /**
-     * 构建用于知识库关键词提取的内容
-     *
-     * <p>提取用户原始输入 + 执行结果中的实际数据，
-     * 排除结构化标记（step_id、状态标签、颜色代码），
-     * 保留有语义价值的信息用于关键词提取</p>
-     */
-    public String buildKeywordContent() {
-        StringBuilder sb = new StringBuilder();
-
-        if (userMessage != null && !userMessage.isEmpty()) {
-            sb.append(userMessage).append(" ");
-        }
-
-        for (StepResult result : results) {
-            // 去除 Minecraft 颜色代码，保留实际文本
-            String cleanMsg = stripColorCodes(result.message());
-            sb.append(cleanMsg).append(" ");
-        }
-
-        return sb.toString().trim();
-    }
-
-    /**
-     * 去除 Minecraft 颜色代码（§后跟一个字符）
-     */
-    private String stripColorCodes(String text) {
-        if (text == null) return "";
-        return text.replaceAll("§[0-9a-fk-orA-FK-OR]", "");
-    }
-
-    /**
      * 步骤结果
      */
     public record StepResult(String stepId, String status, String message) {
