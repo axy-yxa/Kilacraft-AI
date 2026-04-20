@@ -161,7 +161,7 @@ public class SkillConfigManager {
         try {
             FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
-            SkillConfig skillConfig = new SkillConfig(packageName, skillName, config.getString("description", ""), getActionDescriptions(config), getResponseMessages(config), getHints(config));
+            SkillConfig skillConfig = new SkillConfig(packageName, skillName, config.getString("description", ""), getActionDescriptions(config), getHints(config));
 
             String key = packageName + "." + skillName;
             skillConfigs.put(key, skillConfig);
@@ -209,21 +209,6 @@ public class SkillConfigManager {
     }
 
     /**
-     * 从配置文件获取响应消息 (Map 格式)
-     */
-    private Map<String, String> getResponseMessages(FileConfiguration config) {
-        Map<String, String> messages = new LinkedHashMap<>();
-        if (config.isConfigurationSection("response_messages")) {
-            var section = config.getConfigurationSection("response_messages");
-            for (String key : section.getKeys(false)) {
-                messages.put(key, section.getString(key));
-            }
-        }
-
-        return messages;
-    }
-
-    /**
      * 获取指定技能的配置
      */
     public SkillConfig getSkillConfig(String packageName, String skillName) {
@@ -248,7 +233,7 @@ public class SkillConfigManager {
         try {
             FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
-            SkillConfig skillConfig = new SkillConfig(packageName, skillName, config.getString("description", ""), getActionDescriptions(config), getResponseMessages(config), getHints(config));
+            SkillConfig skillConfig = new SkillConfig(packageName, skillName, config.getString("description", ""), getActionDescriptions(config), getHints(config));
 
             String key = packageName + "." + skillName;
             skillConfigs.put(key, skillConfig);

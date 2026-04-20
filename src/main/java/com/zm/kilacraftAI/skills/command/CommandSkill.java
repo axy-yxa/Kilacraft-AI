@@ -82,33 +82,6 @@ public class CommandSkill implements Skill {
         return new ArrayList<>();
     }
 
-    /**
-     * 获取响应消息（从配置文件）
-     */
-    private String getResponseMessage(String key, String defaultMessage) {
-        SkillConfig config = getConfig();
-        if (config != null && config.getResponseMessages() != null) {
-            String message = config.getResponseMessages().get(key);
-            if (message != null && !message.isEmpty()) {
-                return message;
-            }
-        }
-        return defaultMessage;
-    }
-
-    /**
-     * 获取响应消息（支持变量替换）
-     */
-    private String getResponseMessage(String key, String defaultMessage, Map<String, String> variables) {
-        String message = getResponseMessage(key, defaultMessage);
-        if (variables != null && !variables.isEmpty()) {
-            for (Map.Entry<String, String> e : variables.entrySet()) {
-                message = message.replace("{" + e.getKey() + "}", e.getValue());
-            }
-        }
-        return message;
-    }
-
     @Override
     public boolean isAvailable(SkillContext context) {
         // 全局开关检查
@@ -177,9 +150,9 @@ public class CommandSkill implements Skill {
         // 使用 dispatchAsync 获取执行结果
         return BukkitCommandUtil.dispatchAsync(player, finalCommand).thenApply(success -> {
             if (success) {
-                return SkillResult.success(getResponseMessage("execute_success", "已执行命令: /{command}", Map.of("command", finalCommand)));
+                return SkillResult.success("已执行命令: /" + finalCommand);
             } else {
-                return SkillResult.failure(getResponseMessage("execute_failure", "命令执行失败，可能没有权限或命令不存在: /{command}", Map.of("command", finalCommand)));
+                return SkillResult.failure("[FAILURE] 命令执行失败，可能没有权限或命令不存在: /" + finalCommand);
             }
         }).exceptionally(ex -> {
             PluginLogger.warn("命令技能", "命令执行异常: /" + finalCommand + " - " + ex.getMessage(), ex);

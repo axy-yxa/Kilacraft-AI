@@ -90,42 +90,13 @@ public class CMISkill implements Skill {
         return CMIAPI.isAvailable();
     }
 
-    /**
-     * 获取响应消息（从配置文件）
-     */
-    protected String getResponseMessage(String key, String defaultMessage) {
-        SkillConfig config = getConfig();
-        if (config != null && config.getResponseMessages() != null) {
-            String message = config.getResponseMessages().get(key);
-            if (message != null && !message.isEmpty()) {
-                return message;
-            }
-        }
-        return defaultMessage;
-    }
-
-    /**
-     * 获取响应消息（支持变量替换）
-     */
-    protected String getResponseMessage(String key, String defaultMessage, Map<String, String> variables) {
-        String message = getResponseMessage(key, defaultMessage);
-        if (variables != null && !variables.isEmpty()) {
-            for (Map.Entry<String, String> e : variables.entrySet()) {
-                message = message.replace("{" + e.getKey() + "}", e.getValue());
-            }
-        }
-        return message;
-    }
-
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
         try {
             String action = context.getAction();
             return actionToHandler.getOrDefault(action, this::handleUnknownAction).apply(context);
         } catch (Exception e) {
-            Map<String, String> vars = new LinkedHashMap<>();
-            vars.put("error", e.getMessage());
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("query_error", "查询失败：" + e.getMessage(), vars)));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 查询失败: " + e.getMessage()));
         }
     }
 
@@ -135,7 +106,7 @@ public class CMISkill implements Skill {
     // ==================== 通用方法 ====================
 
     private CompletableFuture<SkillResult> handleUnknownAction(SkillContext context) {
-        return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("unknown_action", "抱歉，我还不会这个CMI操作。你可以问我：'我的家'、'有哪些地标'、'谁在线'等")));
+        return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 不支持的CMI操作，可用的操作：query_homes, query_warps, query_player_info, query_kits, query_online_players, teleport_home, teleport_to_warp, send_tp_request"));
     }
 
     // ==================== 查询类动作（只读） ====================
@@ -146,34 +117,23 @@ public class CMISkill implements Skill {
     private CompletableFuture<SkillResult> queryHomes(SkillContext context) {
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("not_player", "请在游戏中使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
         }
 
         if (!PluginPermissionEnum.CMI_QUERY.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("no_permission", "你没有权限使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 权限不足: 缺少 kilacraft.cmi.query 权限"));
         }
 
         List<Map<String, Object>> homes = CMIAPI.getHomes(player);
 
         if (homes.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("homes_empty", "§f你还没有设置任何家")));
+            return CompletableFuture.completedFuture(SkillResult.success("玩家没有设置任何家", Map.of("homes", List.of(), "count", 0)));
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append(getResponseMessage("homes_header", "§f你的家列表：\n"));
-        String format = getResponseMessage("homes_format", "§7- §f家名：{name} §8| §7{world} §8(§7{x}, {y}, {z}§8)");
-
         List<Map<String, Object>> homesData = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        sb.append("玩家有 ").append(homes.size()).append(" 个家:");
         for (Map<String, Object> home : homes) {
-            Map<String, String> vars = new LinkedHashMap<>();
-            vars.put("name", String.valueOf(home.get("name")));
-            vars.put("world", String.valueOf(home.getOrDefault("world", "unknown")));
-            vars.put("x", String.valueOf(home.getOrDefault("x", "?")));
-            vars.put("y", String.valueOf(home.getOrDefault("y", "?")));
-            vars.put("z", String.valueOf(home.getOrDefault("z", "?")));
-            sb.append(format.replace("{name}", vars.get("name")).replace("{world}", vars.get("world")).replace("{x}", vars.get("x")).replace("{y}", vars.get("y")).replace("{z}", vars.get("z"))).append("\n");
-
-            // 构建返回数据
             Map<String, Object> homeData = new LinkedHashMap<>();
             homeData.put("home_name", home.get("name"));
             homeData.put("world", home.getOrDefault("world", "unknown"));
@@ -181,6 +141,13 @@ public class CMISkill implements Skill {
             homeData.put("y", home.getOrDefault("y", 0));
             homeData.put("z", home.getOrDefault("z", 0));
             homesData.add(homeData);
+
+            sb.append("\n  - ").append(home.get("name"))
+                    .append(" (world=").append(home.getOrDefault("world", "unknown"))
+                    .append(", x=").append(home.getOrDefault("x", "?"))
+                    .append(", y=").append(home.getOrDefault("y", "?"))
+                    .append(", z=").append(home.getOrDefault("z", "?"))
+                    .append(")");
         }
 
         Map<String, Object> dataMap = new LinkedHashMap<>();
@@ -196,33 +163,23 @@ public class CMISkill implements Skill {
     private CompletableFuture<SkillResult> queryWarps(SkillContext context) {
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("not_player", "请在游戏中使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
         }
 
         if (!PluginPermissionEnum.CMI_QUERY.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("no_permission", "你没有权限使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 权限不足: 缺少 kilacraft.cmi.query 权限"));
         }
 
         List<Map<String, Object>> warps = CMIAPI.getWarps();
 
         if (warps.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("warps_empty", "§f服务器暂无公共地标")));
+            return CompletableFuture.completedFuture(SkillResult.success("服务器暂无公共地标", Map.of("warps", List.of(), "count", 0)));
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append(getResponseMessage("warps_header", "§f公共地标列表：\n"));
-        String format = getResponseMessage("warps_format", "§7- §f地标名：{name} §8| §7{world} §8(§7{x}, {y}, {z}§8)");
-
         List<Map<String, Object>> warpsData = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        sb.append("服务器有 ").append(warps.size()).append(" 个公共地标:");
         for (Map<String, Object> warp : warps) {
-            Map<String, String> vars = new LinkedHashMap<>();
-            vars.put("name", String.valueOf(warp.get("name")));
-            vars.put("world", String.valueOf(warp.getOrDefault("world", "unknown")));
-            vars.put("x", String.valueOf(warp.getOrDefault("x", "?")));
-            vars.put("y", String.valueOf(warp.getOrDefault("y", "?")));
-            vars.put("z", String.valueOf(warp.getOrDefault("z", "?")));
-            sb.append(format.replace("{name}", vars.get("name")).replace("{world}", vars.get("world")).replace("{x}", vars.get("x")).replace("{y}", vars.get("y")).replace("{z}", vars.get("z"))).append("\n");
-
             Map<String, Object> warpData = new LinkedHashMap<>();
             warpData.put("warp_name", warp.get("name"));
             warpData.put("world", warp.getOrDefault("world", "unknown"));
@@ -230,6 +187,13 @@ public class CMISkill implements Skill {
             warpData.put("y", warp.getOrDefault("y", 0));
             warpData.put("z", warp.getOrDefault("z", 0));
             warpsData.add(warpData);
+
+            sb.append("\n  - ").append(warp.get("name"))
+                    .append(" (world=").append(warp.getOrDefault("world", "unknown"))
+                    .append(", x=").append(warp.getOrDefault("x", "?"))
+                    .append(", y=").append(warp.getOrDefault("y", "?"))
+                    .append(", z=").append(warp.getOrDefault("z", "?"))
+                    .append(")");
         }
 
         Map<String, Object> dataMap = new LinkedHashMap<>();
@@ -245,42 +209,31 @@ public class CMISkill implements Skill {
     private CompletableFuture<SkillResult> queryPlayerInfo(SkillContext context) {
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("not_player", "请在游戏中使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
         }
 
         if (!PluginPermissionEnum.CMI_QUERY.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("no_permission", "你没有权限使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 权限不足: 缺少 kilacraft.cmi.query 权限"));
         }
 
-        // 获取目标玩家名称（可选参数，默认查询自己）
         String targetName = context.getEntity("target_player");
 
         Map<String, Object> info;
         if (targetName != null && !targetName.isEmpty()) {
             info = CMIAPI.getOtherPlayerInfo(targetName);
             if (info == null) {
-                Map<String, String> vars = new LinkedHashMap<>();
-                vars.put("name", targetName);
-                return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("player_not_found", "§f未找到玩家：{name}", vars)));
+                return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 未找到玩家: " + targetName));
             }
         } else {
             info = CMIAPI.getPlayerInfo(player);
             if (info == null) {
-                return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("cmi_not_available", "CMI 插件未安装，此功能不可用")));
+                return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] CMI 插件未安装或不可用"));
             }
         }
 
-        // 格式化输出
-        Map<String, String> vars = new LinkedHashMap<>();
-        vars.put("name", String.valueOf(info.get("name")));
-        vars.put("display_name", String.valueOf(info.get("display_name")));
-        vars.put("playtime", String.valueOf(info.get("playtime_formatted")));
-        vars.put("afk", Boolean.TRUE.equals(info.get("afk")) ? "§a是" : "§c否");
-        vars.put("vanished", Boolean.TRUE.equals(info.get("vanished")) ? "§a是" : "§c否");
-        vars.put("fly", Boolean.TRUE.equals(info.get("fly")) ? "§a是" : "§c否");
-        vars.put("game_mode", String.valueOf(info.get("game_mode")));
-
-        String message = getResponseMessage("player_info_format", "§f玩家：§a{name}\n§f昵称：§a{display_name}\n§f游戏时长：§a{playtime}\n§fAFK：§a{afk}\n§f隐身：§a{vanished}\n§f飞行：§a{fly}\n§f游戏模式：§a{game_mode}", vars);
+        String message = String.format("玩家信息: name=%s, display_name=%s, playtime=%s, afk=%s, vanished=%s, fly=%s, game_mode=%s",
+                info.get("name"), info.get("display_name"), info.get("playtime_formatted"),
+                info.get("afk"), info.get("vanished"), info.get("fly"), info.get("game_mode"));
 
         return CompletableFuture.completedFuture(SkillResult.success(message, info));
     }
@@ -292,31 +245,26 @@ public class CMISkill implements Skill {
     private CompletableFuture<SkillResult> queryKits(SkillContext context) {
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("not_player", "请在游戏中使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
         }
 
         if (!PluginPermissionEnum.CMI_QUERY.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("no_permission", "你没有权限使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 权限不足: 缺少 kilacraft.cmi.query 权限"));
         }
 
         List<String> kits = CMIAPI.getKitNames();
 
         if (kits.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("kits_empty", "§f服务器暂无可用套装")));
+            return CompletableFuture.completedFuture(SkillResult.success("服务器暂无可用套装", Map.of("kits", List.of(), "count", 0)));
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append(getResponseMessage("kits_header", "§f可用套装列表：\n"));
-        String format = getResponseMessage("kits_format", "§7- §f{name}");
-        for (String kit : kits) {
-            sb.append(format.replace("{name}", kit)).append("\n");
-        }
+        String message = "可用套装列表 (" + kits.size() + "): " + String.join(", ", kits);
 
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("kits", kits);
         dataMap.put("count", kits.size());
 
-        return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
+        return CompletableFuture.completedFuture(SkillResult.success(message, dataMap));
     }
 
     /**
@@ -325,24 +273,17 @@ public class CMISkill implements Skill {
     private CompletableFuture<SkillResult> queryOnlinePlayers(SkillContext context) {
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("not_player", "请在游戏中使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
         }
 
         if (!PluginPermissionEnum.CMI_QUERY.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("no_permission", "你没有权限使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 权限不足: 缺少 kilacraft.cmi.query 权限"));
         }
 
         List<Map<String, Object>> players = CMIAPI.getOnlinePlayersInfo();
 
         StringBuilder sb = new StringBuilder();
-        Map<String, String> countVars = new LinkedHashMap<>();
-        countVars.put("count", String.valueOf(players.size()));
-        sb.append(getResponseMessage("online_header", "§f在线玩家 §a({count})§f：\n", countVars));
-
-        String formatNormal = getResponseMessage("online_format", "§7- §f{name}");
-        String formatAfk = getResponseMessage("online_format_afk", "§7- §f{name} §8[§eAFK§8]");
-        String formatVanished = getResponseMessage("online_format_vanished", "§7- §f{name} §8[§5隐身§8]");
-        String formatAfkVanished = getResponseMessage("online_format_afk_vanished", "§7- §f{name} §8[§eAFK§8]§8[§5隐身§8]");
+        sb.append("在线玩家 (").append(players.size()).append("):");
 
         List<Map<String, Object>> playersData = new ArrayList<>();
         for (Map<String, Object> pInfo : players) {
@@ -350,17 +291,14 @@ public class CMISkill implements Skill {
             boolean afk = Boolean.TRUE.equals(pInfo.get("afk"));
             boolean vanished = Boolean.TRUE.equals(pInfo.get("vanished"));
 
-            String line;
-            if (afk && vanished) {
-                line = formatAfkVanished.replace("{name}", name);
-            } else if (afk) {
-                line = formatAfk.replace("{name}", name);
-            } else if (vanished) {
-                line = formatVanished.replace("{name}", name);
-            } else {
-                line = formatNormal.replace("{name}", name);
+            List<String> flags = new ArrayList<>();
+            if (afk) flags.add("AFK");
+            if (vanished) flags.add("隐身");
+
+            sb.append("\n  - ").append(name);
+            if (!flags.isEmpty()) {
+                sb.append(" [").append(String.join("|", flags)).append("]");
             }
-            sb.append(line).append("\n");
             playersData.add(pInfo);
         }
 
@@ -379,33 +317,29 @@ public class CMISkill implements Skill {
     private CompletableFuture<SkillResult> teleportHome(SkillContext context) {
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("not_player", "请在游戏中使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
         }
 
         if (!PluginPermissionEnum.CMI_TELEPORT.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("no_permission", "你没有权限使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 权限不足: 缺少 kilacraft.cmi.teleport 权限"));
         }
 
         String homeName = context.getEntity("home_name");
         if (homeName == null || homeName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("teleport_no_param", "请指定传送目标（家名称、地标名称或玩家名称）")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 缺少参数: home_name(家名称)"));
         }
 
         // 验证家是否存在
         List<Map<String, Object>> homes = CMIAPI.getHomes(player);
         boolean found = homes.stream().anyMatch(h -> homeName.equalsIgnoreCase(String.valueOf(h.get("name"))));
         if (!found) {
-            Map<String, String> vars = new LinkedHashMap<>();
-            vars.put("home_name", homeName);
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("teleport_home_not_found", "§f未找到家：{home_name}", vars)));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 未找到家: " + homeName));
         }
 
         // 通过 CMI 命令执行传送（受 CMI 权限、冷却、安全检查保护）
         BukkitCommandUtil.dispatchOnMainThread(player, "cmi home " + homeName);
 
-        Map<String, String> vars = new LinkedHashMap<>();
-        vars.put("home_name", homeName);
-        return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("teleport_home_success", "§f已请求传送到家：§a{home_name}", vars)));
+        return CompletableFuture.completedFuture(SkillResult.success("已请求传送到家: " + homeName + "，传送结果由CMI处理"));
     }
 
     /**
@@ -414,33 +348,29 @@ public class CMISkill implements Skill {
     private CompletableFuture<SkillResult> teleportToWarp(SkillContext context) {
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("not_player", "请在游戏中使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
         }
 
         if (!PluginPermissionEnum.CMI_TELEPORT.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("no_permission", "你没有权限使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 权限不足: 缺少 kilacraft.cmi.teleport 权限"));
         }
 
         String warpName = context.getEntity("warp_name");
         if (warpName == null || warpName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("teleport_no_param", "请指定传送目标（家名称、地标名称或玩家名称）")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 缺少参数: warp_name(地标名称)"));
         }
 
         // 验证地标是否存在
         List<Map<String, Object>> warps = CMIAPI.getWarps();
         boolean found = warps.stream().anyMatch(w -> warpName.equalsIgnoreCase(String.valueOf(w.get("name"))));
         if (!found) {
-            Map<String, String> vars = new LinkedHashMap<>();
-            vars.put("warp_name", warpName);
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("teleport_warp_not_found", "§f未找到地标：{warp_name}", vars)));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 未找到地标: " + warpName));
         }
 
         // 通过 CMI 命令执行传送
         BukkitCommandUtil.dispatchOnMainThread(player, "cmi warp " + warpName);
 
-        Map<String, String> vars = new LinkedHashMap<>();
-        vars.put("warp_name", warpName);
-        return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("teleport_warp_success", "§f已请求传送到地标：§a{warp_name}", vars)));
+        return CompletableFuture.completedFuture(SkillResult.success("已请求传送到地标: " + warpName + "，传送结果由CMI处理"));
     }
 
     /**
@@ -449,31 +379,27 @@ public class CMISkill implements Skill {
     private CompletableFuture<SkillResult> sendTpRequest(SkillContext context) {
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("not_player", "请在游戏中使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
         }
 
         if (!PluginPermissionEnum.CMI_TELEPORT.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("no_permission", "你没有权限使用此功能")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 权限不足: 缺少 kilacraft.cmi.teleport 权限"));
         }
 
         String targetName = context.getEntity("target_player");
         if (targetName == null || targetName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("teleport_no_param", "请指定传送目标（家名称、地标名称或玩家名称）")));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 缺少参数: target_player(目标玩家名称)"));
         }
 
         // 验证目标玩家是否在线
         Player target = Bukkit.getPlayer(targetName);
         if (target == null) {
-            Map<String, String> vars = new LinkedHashMap<>();
-            vars.put("target", targetName);
-            return CompletableFuture.completedFuture(SkillResult.failure(getResponseMessage("teleport_tpa_not_found", "§f未找到在线玩家：{target}", vars)));
+            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 未找到在线玩家: " + targetName));
         }
 
         // 通过 CMI 命令发送 TPA 请求（需要对方同意）
         BukkitCommandUtil.dispatchOnMainThread(player, "cmi tpa " + targetName);
 
-        Map<String, String> vars = new LinkedHashMap<>();
-        vars.put("target", target.getName());
-        return CompletableFuture.completedFuture(SkillResult.success(getResponseMessage("teleport_tpa_success", "§f已向 §a{target} §f发送传送请求，等待对方同意", vars)));
+        return CompletableFuture.completedFuture(SkillResult.success("已向 " + target.getName() + " 发送传送请求(TPA)，等待对方同意"));
     }
 }
