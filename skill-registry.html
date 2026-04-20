@@ -282,6 +282,7 @@
          * 主函数
          */
         async function main() {
+            const now = new Date();
             try {
                 // 并行获取白名单和 bStats 数据
                 const [whitelist, bstatsData] = await Promise.all([
@@ -308,7 +309,6 @@
                 renderTable(skills, whitelist);
                 
                 // 更新最后更新时间
-                const now = new Date();
                 document.getElementById('lastUpdate').textContent = now.toLocaleString('zh-CN');
                 document.getElementById('subtitle').textContent = 
                     `数据来源：bStats 实时统计 | 共发现 ${skills.length} 个 Skill`;
@@ -322,6 +322,7 @@
                         错误信息：${error.message}
                     </div>
                 `;
+                document.getElementById('lastUpdate').textContent = now.toLocaleString('zh-CN');
             }
         }
         
