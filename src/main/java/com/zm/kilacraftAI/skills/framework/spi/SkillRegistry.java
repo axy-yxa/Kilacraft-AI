@@ -57,7 +57,7 @@ public class SkillRegistry {
                     // 检查 Skill 是否已注册（防止同名覆盖）
                     Skill existingSkill = skillManager.getSkill(skill.getName());
                     if (existingSkill == null) {
-                        skillManager.registerSkill(skill);
+                        skillManager.registerSkill(skill, sourcePlugin.getName());
                         registeredCount++;
                         PluginLogger.info("技能注册", String.format("发现并注册第三方技能：%s (来自 %s)", skill.getName(), sourcePlugin.getName()));
                     } else {

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kilacraft-AI Skill 实时数据清单</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-built-in {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .badge-third-party {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .badge-verified {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .badge-unverified {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        
+        .footer a {
+            color: #1976d2;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kilacraft-AI SPI Skill 实时数据清单</h1>
+        <div class="subtitle" id="subtitle">数据来源：bStats 实时统计 | 加载中...</div>
+        
+        <div id="content">
+            <div class="loading">正在从 bStats 加载数据...</div>
+        </div>
+        
+        <div class="footer">
+            <p>
+                🟢 官方 = KilacraftAI 内置 Skill | 
+                🟢 已审查 = 已通过代码安全审查 | 
+                🔴 未审查 = 存在安全风险，请谨慎使用
+            </p>
+            <p style="margin-top: 10px;">
+                <a href="https://github.com/axy-yxa/Kilacraft-AI" target="_blank">GitHub</a> | 
+                <a href="https://bstats.org/plugin/bukkit/Kilacraft-AI/30853" target="_blank">bStats</a> |
+                最后更新：<span id="lastUpdate">-</span>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 白名单配置（由维护者手动更新）
+        const WHITELIST_URL = 'https://raw.githubusercontent.com/axy-yxa/Kilacraft-AI/main/registry/verified-skills.json';
+        
+        // bStats API 端点
+        const BSTATS_API = 'https://bstats.org/api/v1/plugins/30853/charts/all_skills/data';
+        
+        /**
+         * 获取白名单
+         */
+        async function fetchWhitelist() {
+            try {
+                const response = await fetch(WHITELIST_URL);
+                if (!response.ok) return {};
+                return await response.json();
+            } catch (error) {
+                console.warn('无法加载白名单:', error);
+                return {};
+            }
+        }
+        
+        /**
+         * 从 bStats API 获取 Skill 数据
+         */
+        async function fetchSkillData() {
+            const response = await fetch(BSTATS_API);
+            if (!response.ok) {
+                throw new Error('bStats API 请求失败');
+            }
+            return await response.json();
+        }
+        
+        /**
+         * 解析并合并所有服务器上报的 Skill 数据
+         */
+        function parseAndMergeSkills(bstatsData) {
+            const skillMap = new Map();
+            
+            bstatsData.data.forEach(item => {
+                try {
+                    const skills = JSON.parse(item.name);
+                    const serverCount = item.value;
+                    
+                    skills.forEach(skill => {
+                        if (!skillMap.has(skill.n)) {
+                            skillMap.set(skill.n, {
+                                name: skill.n,
+                                type: skill.t,
+                                sourcePlugin: skill.s,
+                                serverCount: serverCount
+                            });
+                        } else {
+                            // 如果已存在，累加服务器数
+                            const existing = skillMap.get(skill.n);
+                            existing.serverCount += serverCount;
+                        }
+                    });
+                } catch (error) {
+                    console.warn('解析 Skill 数据失败:', error);
+                }
+            });
+            
+            return Array.from(skillMap.values());
+        }
+        
+        /**
+         * 获取安全状态
+         */
+        function getStatus(skillName, type, whitelist) {
+            if (type === 'built_in') {
+                return { text: '🟢 官方', class: 'badge-verified' };
+            }
+            
+            if (whitelist[skillName]) {
+                return { text: '🟢 已审查', class: 'badge-verified' };
+            }
+            
+            return { text: '🔴 未审查', class: 'badge-unverified' };
+        }
+        
+        /**
+         * 渲染台账表格
+         */
+        function renderTable(skills, whitelist) {
+            // 按服务器数降序排序
+            skills.sort((a, b) => b.serverCount - a.serverCount);
+
+            document.getElementById('content').innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Skill 名称</th>
+                            <th>类型</th>
+                            <th>来源插件</th>
+                            <th>服务器数</th>
+                            <th>安全状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${skills.map(skill => {
+                const status = getStatus(skill.name, skill.type, whitelist);
+                const typeBadge = skill.type === 'built_in'
+                    ? '<span class="badge badge-built-in">内置</span>'
+                    : '<span class="badge badge-third-party">SPI</span>';
+
+                return `
+                                <tr>
+                                    <td><strong>${skill.name}</strong></td>
+                                    <td>${typeBadge}</td>
+                                    <td>${skill.sourcePlugin}</td>
+                                    <td>${skill.serverCount}</td>
+                                    <td><span class="badge ${status.class}">${status.text}</span></td>
+                                </tr>
+                            `;
+            }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        /**
+         * 主函数
+         */
+        async function main() {
+            try {
+                // 并行获取白名单和 bStats 数据
+                const [whitelist, bstatsData] = await Promise.all([
+                    fetchWhitelist(),
+                    fetchSkillData()
+                ]);
+                
+                // 解析并合并数据
+                const skills = parseAndMergeSkills(bstatsData);
+                
+                // 渲染表格
+                renderTable(skills, whitelist);
+                
+                // 更新最后更新时间
+                const now = new Date();
+                document.getElementById('lastUpdate').textContent = now.toLocaleString('zh-CN');
+                document.getElementById('subtitle').textContent = 
+                    `数据来源：bStats 实时统计 | 共发现 ${skills.length} 个 Skill`;
+                
+            } catch (error) {
+                console.error('加载失败:', error);
+                document.getElementById('content').innerHTML = `
+                    <div class="error">
+                        <strong>加载失败</strong><br>
+                        无法从 bStats 获取数据，请稍后重试。<br>
+                        错误信息：${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // 页面加载时执行
+        main();
+        
+        // 每 30 分钟自动刷新
+        setInterval(main, 30 * 60 * 1000);
+    </script>
+</body>
+</html>

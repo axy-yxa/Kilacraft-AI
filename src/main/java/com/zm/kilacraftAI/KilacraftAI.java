@@ -12,6 +12,7 @@ import com.zm.kilacraftAI.manager.LLMManager;
 import com.zm.kilacraftAI.manager.SoundEffectManager;
 import com.zm.kilacraftAI.manager.StreamOutputManager;
 import com.zm.kilacraftAI.metrics.MetricsBootstrap;
+import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.output.AIResponsePipeline;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskListener;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
@@ -108,6 +109,10 @@ public final class KilacraftAI extends JavaPlugin {
         registerMythicMobsPlaceholders();
         initializeSkillsSystem();
         initializeAFKTaskSystem();
+        
+        // 设置 MetricsCollector 的 SkillManager 引用（用于动态获取 Skill 列表）
+        MetricsCollector.getInstance().setSkillManager(skillManager);
+        
         MetricsBootstrap.bootstrap(this);
         printStartupBanner();
     }

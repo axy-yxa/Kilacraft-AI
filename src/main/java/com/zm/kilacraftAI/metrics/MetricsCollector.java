@@ -1,5 +1,7 @@
 package com.zm.kilacraftAI.metrics;
 
+import com.google.gson.Gson;
+import com.zm.kilacraftAI.skills.framework.SkillManager;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,11 +11,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 统计数据收集器
- *
- * <p>纯内存累加器，线程安全。
- * bStats 定时通过 getter 读取数据进行上报。</p>
- *
- * <p>设计原则：与业务代码零耦合，只做计数，不碰任何业务逻辑。</p>
  *
  * @author Zm_Mmm
  * @since 2026-04-18
@@ -45,6 +42,13 @@ public class MetricsCollector {
     @Setter
     @Getter
     private volatile String llmModel;
+
+    /**
+     * 所有 Skill 的元信息列表
+     * 动态生成，避免第三方 Skill 延迟注册导致的数据不完整
+     */
+    @Setter
+    private volatile SkillManager skillManager;
 
     private MetricsCollector() {
     }
@@ -85,27 +89,11 @@ public class MetricsCollector {
     /**
      * 记录 Skill 来源
      *
-     * @param skillClass Skill 类的 Class 对象
+     * @param skill Skill 实例
      */
-    public void recordSkillSource(Class<?> skillClass) {
-        String source = isThirdPartySkill(skillClass) ? "third_party" : "built_in";
+    public void recordSkillSource(com.zm.kilacraftAI.skills.framework.Skill skill) {
+        String source = SkillManager.isThirdPartySkill(skill) ? "third_party" : "built_in";
         skillSourceCounts.computeIfAbsent(source, k -> new AtomicLong(0)).incrementAndGet();
-    }
-
-    /**
-     * 判断是否为第三方 Skill
-     * <p>通过检查 Skill 类的包名是否以 com.zm.kilacraftAI 开头来判断。</p>
-     *
-     * @param skillClass Skill 类的 Class 对象
-     * @return true 表示第三方，false 表示内置
-     */
-    private boolean isThirdPartySkill(Class<?> skillClass) {
-        if (skillClass == null) return true;
-        Package pkg = skillClass.getPackage();
-        if (pkg == null) return true;
-        String packageName = pkg.getName();
-        // 内置 Skill 都在 com.zm.kilacraftAI 包下
-        return !packageName.startsWith("com.zm.kilacraftAI");
     }
 
     /**
@@ -167,6 +155,20 @@ public class MetricsCollector {
      */
     public Map<String, Integer> getSkillSourceSnapshot() {
         return getSnapshot(skillSourceCounts);
+    }
+
+    /**
+     * 获取所有 Skill 的元信息 JSON
+     * 每次 bStats 读取时动态生成，确保包含最新注册的第三方 Skill
+     *
+     * @return JSON 字符串
+     */
+    public String getAllSkillsJson() {
+        if (skillManager == null) {
+            return "[]";
+        }
+        List<SkillInfo> skills = skillManager.getAllSkillInfoList();
+        return new Gson().toJson(skills);
     }
 
     /**

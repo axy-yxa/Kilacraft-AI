@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.skills.framework;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
+import com.zm.kilacraftAI.metrics.SkillInfo;
 import com.zm.kilacraftAI.util.PluginLogger;
 
 import java.util.ArrayList;
@@ -20,10 +21,12 @@ import java.util.concurrent.CompletableFuture;
 public class SkillManager {
 
     private final Map<String, Skill> skills;
+    private final Map<String, String> skillSourcePlugins;
     private final KilacraftAI plugin;
 
     public SkillManager() {
         this.skills = new java.util.concurrent.ConcurrentHashMap<>();
+        this.skillSourcePlugins = new java.util.concurrent.ConcurrentHashMap<>();
         this.plugin = KilacraftAI.getInstance();
     }
 
@@ -46,12 +49,24 @@ public class SkillManager {
     }
 
     /**
+     * 注册技能（带来源插件信息）
+     *
+     * @param skill        技能实例
+     * @param sourcePlugin 来源插件名
+     */
+    public void registerSkill(Skill skill, String sourcePlugin) {
+        registerSkill(skill);
+        skillSourcePlugins.put(skill.getName(), sourcePlugin);
+    }
+
+    /**
      * 注销技能
      *
      * @param skillName 技能名称
      */
     public void unregisterSkill(String skillName) {
         skills.remove(skillName);
+        skillSourcePlugins.remove(skillName);
     }
 
     /**
@@ -71,6 +86,37 @@ public class SkillManager {
      */
     public List<Skill> getAllSkills() {
         return new ArrayList<>(skills.values());
+    }
+
+    /**
+     * 获取所有 Skill 的元信息列表（用于 bStats 上报）
+     *
+     * @return SkillInfo 列表
+     */
+    public List<SkillInfo> getAllSkillInfoList() {
+        List<SkillInfo> result = new ArrayList<>();
+        for (Skill skill : skills.values()) {
+            String skillName = skill.getName();
+            String sourcePlugin = skillSourcePlugins.getOrDefault(skillName, "KilacraftAI");
+            String type = isThirdPartySkill(skill) ? "third_party" : "built_in";
+            result.add(new SkillInfo(skillName, type, sourcePlugin));
+        }
+        return result;
+    }
+
+    /**
+     * 判断是否为第三方 Skill
+     *
+     * @param skill Skill 实例
+     * @return true 表示第三方，false 表示内置
+     */
+    public static boolean isThirdPartySkill(Skill skill) {
+        if (skill == null) return true;
+        Package pkg = skill.getClass().getPackage();
+        if (pkg == null) return true;
+        String packageName = pkg.getName();
+        // 内置 Skill 都在 com.zm.kilacraftAI 包下
+        return !packageName.startsWith("com.zm.kilacraftAI");
     }
 
     /**
@@ -121,7 +167,7 @@ public class SkillManager {
 
         // 统计埋点：记录技能调用
         MetricsCollector.getInstance().recordSkillAction(skillName, intent.getAction());
-        MetricsCollector.getInstance().recordSkillSource(skill.getClass());
+        MetricsCollector.getInstance().recordSkillSource(skill);
 
         // 执行技能（带错误隔离，第三方 Skill 异常不影响核心流程）
         try {

@@ -52,6 +52,9 @@ public class MetricsBootstrap {
         // Chart 5: Skill 来源分布
         metrics.addCustomChart(new AdvancedPie("skill_source", collector::getSkillSourceSnapshot));
 
+        // Chart 6: 全量 Skill 元信息（用于全球 Skill 台账）
+        metrics.addCustomChart(new SimplePie("all_skills", collector::getAllSkillsJson));
+
         PluginLogger.info("统计", "bStats 统计已启用");
     }
 }
