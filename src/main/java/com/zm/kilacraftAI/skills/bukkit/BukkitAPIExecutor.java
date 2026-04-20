@@ -52,6 +52,13 @@ public class BukkitAPIExecutor {
             throw new IllegalStateException("无法获取目标对象：" + api.getTargetType());
         }
 
+        // 特殊处理：get_player_feet_block 需要获取脚下（Y-1）的方块
+        // method_chain 的 getLocation().getBlock() 返回的是玩家脚部位置（通常是空气），
+        // 玩家实际踩着的方块在 Y-1 位置
+        if ("get_player_feet_block".equals(api.getId()) && player != null) {
+            return getFeetBlock(player);
+        }
+
         // 判断使用哪种模式
         Object result;
         if (api.getMethodChain() != null && !api.getMethodChain().isEmpty()) {
@@ -145,12 +152,14 @@ public class BukkitAPIExecutor {
 
     /**
      * 需要在主线程执行的方法名集合
-     * 这些方法涉及 Chunk/Entity/World 操作，在异步线程调用会触发 NPE 或 AsyncCatcher 异常
+     * 这些方法涉及 Chunk/Entity/World/Inventory 操作，在异步线程调用会触发 NPE、AsyncCatcher 异常或返回空/过期数据
      * - getLivingEntities / getEntities：遍历 Chunk 中的实体
      * - getTargetBlock：射线追踪访问 BlockState（lophine 等端要求主线程，Spigot 端不强制但也不安全）
+     * - getStorageContents：访问 Inventory 内部的 ItemStack 数据（Paper 系异步访问可能返回空数组）
+     * - getLastDamageCause：访问 Entity 内部的事件数据
      * - getBiome / getTemperature / getHumidity：通过坐标访问 Chunk 中的生物群系/气候数据
      */
-    private static final java.util.Set<String> MAIN_THREAD_METHODS = java.util.Set.of("getLivingEntities", "getEntities", "getTargetBlock", "getBlock", "getLastDamageCause", "getBiome", "getTemperature", "getHumidity");
+    private static final java.util.Set<String> MAIN_THREAD_METHODS = java.util.Set.of("getLivingEntities", "getEntities", "getTargetBlock", "getBlock", "getStorageContents", "getLastDamageCause", "getBiome", "getTemperature", "getHumidity");
 
     /**
      * 反射调用方法
@@ -229,6 +238,38 @@ public class BukkitAPIExecutor {
     }
 
     /**
+     * 获取玩家脚下的方块（Y-1 位置）
+     *
+     * <p>player.getLocation().getBlock() 返回的是玩家脚部所在位置的方块，通常是空气。
+     * 玩家实际踩着的方块在脚部位置的正下方一格，即 Y-1。</p>
+     *
+     * <p>Folia/lophine 端：在区域线程内提取为 Map，避免跨线程访问。
+     * Spigot 端：直接返回 Block 对象。</p>
+     */
+    private Object getFeetBlock(Player player) throws Exception {
+        try {
+            return FoliaCompat.callSyncOnEntity(player, () -> {
+                try {
+                    org.bukkit.Location feetLoc = player.getLocation().subtract(0, 1, 0);
+                    org.bukkit.block.Block block = feetLoc.getBlock();
+                    // Folia 端：在区域线程内提取为线程安全 Map
+                    if (FoliaCompat.isFolia()) {
+                        return extractThreadSafeData(block, "getBlock");
+                    }
+                    return block;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }, 5);
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof Exception ex) {
+                throw ex;
+            }
+            throw e;
+        }
+    }
+
+    /**
      * 将线程敏感对象提取为线程安全的数据结构
      *
      * <p>lophine/Folia 要求：Block、Biome、Location、ItemStack 等对象只能在创建它们的区域线程访问，
@@ -281,8 +322,7 @@ public class BukkitAPIExecutor {
                 itemData.put("item_name", itemStack.getItemMeta().getDisplayName());
             } else {
                 // 使用 ItemTranslator 翻译为中文名
-                String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance()
-                        .translateToChinese(itemStack.getType().name());
+                String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(itemStack.getType().name());
                 itemData.put("item_name", chineseName);
             }
 
@@ -293,9 +333,7 @@ public class BukkitAPIExecutor {
                 // 1. 附魔列表
                 if (meta.hasEnchants()) {
                     Map<String, Integer> enchantments = new HashMap<>();
-                    meta.getEnchants().forEach((ench, level) ->
-                            enchantments.put(ench.getName(), level)
-                    );
+                    meta.getEnchants().forEach((ench, level) -> enchantments.put(ench.getName(), level));
                     itemData.put("enchantments", enchantments);
                 }
 
@@ -341,9 +379,7 @@ public class BukkitAPIExecutor {
 
                 // 6. ItemFlags（隐藏的附魔等信息）
                 if (!meta.getItemFlags().isEmpty()) {
-                    itemData.put("item_flags", meta.getItemFlags().stream()
-                            .map(Enum::name)
-                            .toList());
+                    itemData.put("item_flags", meta.getItemFlags().stream().map(Enum::name).toList());
                 }
             }
 
@@ -409,7 +445,10 @@ public class BukkitAPIExecutor {
             usageData.put("empty_slots", contents.length - count);
 
             // 如果是摘要模式（非 usage-only），额外提取物品名称+数量
-            if ("getStorageContents".equals(methodName)) {
+            // 注意：methodName 在 invokeOnMainThread 路径下是方法名（"getStorageContents"），
+            // 在 execute() 末尾 Folia 分支下是 api.getId()（"get_player_inventory" 等），
+            // 所以两种情况都要覆盖
+            if ("getStorageContents".equals(methodName) || "get_player_inventory".equals(methodName) || "get_player_ender_chest".equals(methodName) || "get_player_open_container".equals(methodName)) {
                 java.util.List<Map<String, Object>> itemsList = new java.util.ArrayList<>();
                 for (int i = 0; i < contents.length; i++) {
                     org.bukkit.inventory.ItemStack item = contents[i];
