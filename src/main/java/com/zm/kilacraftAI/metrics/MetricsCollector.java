@@ -3,9 +3,7 @@ package com.zm.kilacraftAI.metrics;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -24,6 +22,11 @@ public class MetricsCollector {
 
     private static final MetricsCollector INSTANCE = new MetricsCollector();
 
+    /**
+     * Top N 统计数量
+     */
+    private static final int TOP_N_SKILL_ACTION = 10;
+
     // 技能调用计数：key = "SkillName:actionName"
     private final ConcurrentHashMap<String, AtomicLong> skillActionCounts = new ConcurrentHashMap<>();
 
@@ -33,18 +36,15 @@ public class MetricsCollector {
     // 挂机任务类型计数：key = "PLAYER_ONLINE_WATCH" / "CUSTOM" / ...
     private final ConcurrentHashMap<String, AtomicLong> afkTaskTypeCounts = new ConcurrentHashMap<>();
 
+    // Skill 来源计数：key = "built_in" / "third_party"
+    private final ConcurrentHashMap<String, AtomicLong> skillSourceCounts = new ConcurrentHashMap<>();
+
     /**
      * LLM 模型名
      */
     @Setter
     @Getter
     private volatile String llmModel;
-    /**
-     * 服务端类型
-     */
-    @Setter
-    @Getter
-    private volatile String serverType;
 
     private MetricsCollector() {
     }
@@ -83,12 +83,69 @@ public class MetricsCollector {
     }
 
     /**
-     * 获取技能调用次数快照
+     * 记录 Skill 来源
      *
-     * @return 不可变 Map，key = "SkillName:actionName", value = 调用次数
+     * @param skillClass Skill 类的 Class 对象
+     */
+    public void recordSkillSource(Class<?> skillClass) {
+        String source = isThirdPartySkill(skillClass) ? "third_party" : "built_in";
+        skillSourceCounts.computeIfAbsent(source, k -> new AtomicLong(0)).incrementAndGet();
+    }
+
+    /**
+     * 判断是否为第三方 Skill
+     * <p>通过检查 Skill 类的包名是否以 com.zm.kilacraftAI 开头来判断。</p>
+     *
+     * @param skillClass Skill 类的 Class 对象
+     * @return true 表示第三方，false 表示内置
+     */
+    private boolean isThirdPartySkill(Class<?> skillClass) {
+        if (skillClass == null) return true;
+        Package pkg = skillClass.getPackage();
+        if (pkg == null) return true;
+        String packageName = pkg.getName();
+        // 内置 Skill 都在 com.zm.kilacraftAI 包下
+        return !packageName.startsWith("com.zm.kilacraftAI");
+    }
+
+    /**
+     * 获取技能调用次数快照（Top 10）
+     *
+     * @return 不可变 Map，按调用次数降序排列，最多 10 条
      */
     public Map<String, Integer> getSkillActionSnapshot() {
-        return getSnapshot(skillActionCounts);
+        return getTopNSnapshot(skillActionCounts, TOP_N_SKILL_ACTION);
+    }
+
+    /**
+     * 获取 Top N 排序快照
+     *
+     * @param counterMap 计数器 Map
+     * @param topN       Top N 数量
+     * @return 按调用次数降序排列的不可变 Map
+     */
+    private Map<String, Integer> getTopNSnapshot(ConcurrentHashMap<String, AtomicLong> counterMap, int topN) {
+
+        if (counterMap.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        // 1. 转成 List
+        List<Map.Entry<String, AtomicLong>> entries = new ArrayList<>(counterMap.entrySet());
+
+        // 2. 排序（按调用次数降序）
+        entries.sort((a, b) -> Long.compare(b.getValue().get(), a.getValue().get()));
+
+        // 3. 取 Top N
+        Map<String, Integer> snapshot = new LinkedHashMap<>();
+        int count = 0;
+        for (Map.Entry<String, AtomicLong> entry : entries) {
+            if (count >= topN) break;
+            snapshot.put(entry.getKey(), entry.getValue().intValue());
+            count++;
+        }
+
+        return Collections.unmodifiableMap(snapshot);
     }
 
     /**
@@ -105,6 +162,16 @@ public class MetricsCollector {
         return getSnapshot(afkTaskTypeCounts);
     }
 
+    /**
+     * 获取 Skill 来源次数快照
+     */
+    public Map<String, Integer> getSkillSourceSnapshot() {
+        return getSnapshot(skillSourceCounts);
+    }
+
+    /**
+     * 获取原始快照（不过滤）
+     */
     private Map<String, Integer> getSnapshot(ConcurrentHashMap<String, AtomicLong> counterMap) {
         if (counterMap.isEmpty()) {
             return Collections.emptyMap();

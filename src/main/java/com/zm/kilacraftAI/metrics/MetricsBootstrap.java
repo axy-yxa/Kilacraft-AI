@@ -32,13 +32,12 @@ public class MetricsBootstrap {
         MetricsCollector collector = MetricsCollector.getInstance();
 
         // 初始化静态数据
-        collector.setServerType(org.bukkit.Bukkit.getServer().getName());
         collector.setLlmModel(plugin.getConfigManager().getLlmModel());
 
         // 注册 bStats
         Metrics metrics = new Metrics(plugin, BSTATS_PLUGIN_ID);
 
-        // Chart 1: 技能调用次数（含第三方 SPI Skill）
+        // Chart 1: 技能调用次数 TOP 10（含第三方 SPI Skill）
         metrics.addCustomChart(new AdvancedPie("skill_action_usage", collector::getSkillActionSnapshot));
 
         // Chart 2: 请求类型分布
@@ -50,8 +49,8 @@ public class MetricsBootstrap {
         // Chart 4: LLM 模型分布
         metrics.addCustomChart(new SimplePie("llm_model", collector::getLlmModel));
 
-        // Chart 5: 服务端类型分布
-        metrics.addCustomChart(new SimplePie("server_type", collector::getServerType));
+        // Chart 5: Skill 来源分布
+        metrics.addCustomChart(new AdvancedPie("skill_source", collector::getSkillSourceSnapshot));
 
         PluginLogger.info("统计", "bStats 统计已启用");
     }
