@@ -71,26 +71,35 @@ public class ChineseTextUtil {
 
         Set<String> keywordSet = new LinkedHashSet<>();  // 去重保序
 
+        // 统一归一化：将所有空白字符(含换行、制表符)归为单空格
+        String normalizedText = text.trim().replaceAll("\\s+", " ");
         // 【第1层】原始查询(优先级最高,确保短文本完整匹配)
-        String normalizedText = text.trim();
-        // 清理标点符号（逗号、句号、问号、感叹号等）
-        String cleanedText = normalizedText.replaceAll("[,，.。?？!！;；:：\s]+", " ").trim();
+        // 清理标点符号（逗号、句号、问号、感叹号等），统一为空格
+        String cleanedText = normalizedText.replaceAll("[,，.。?？!！;；:：]+", " ").trim();
 
-        // 放宽条件:1-20字符的查询都保留,单字需要检查是否为停用词
         if (!cleanedText.isEmpty() && cleanedText.length() <= 20) {
             if (cleanedText.length() == 1) {
                 // 单字查询:只有非停用词才保留
                 if (!isStopWord(cleanedText)) {
                     keywordSet.add(cleanedText);
                 }
-            } else {
+            } else if (!cleanedText.contains(" ")) {
+                // 无空格的连续短语(如"钻石矛")，完整保留以支持精确匹配
                 keywordSet.add(cleanedText);
+            } else {
+                // 含空格的多词文本(如"那3格都是啥 背包 空")，拆分为独立 token
+                for (String token : cleanedText.split("\\s+")) {
+                    String t = token.trim();
+                    if (!t.isEmpty() && t.length() > 1 && !isStopWord(t) && !isGenericWord(t)) {
+                        keywordSet.add(t);
+                    }
+                }
             }
         }
 
         // 【第1.5层】提取英文单词（命令名优化）
         // 保留独立的英文单词，如 "back", "spawn", "money"
-        String[] words = normalizedText.split("[\s,，.。?？!！;；:：]+");
+        String[] words = normalizedText.split("[,，.。?？!！;；:：]+");
         for (String word : words) {
             String trimmed = word.trim();
             // 保留纯英文单词（2-15字符），如命令名
@@ -100,18 +109,20 @@ public class ChineseTextUtil {
         }
 
         // 【第2层】分词结果(中等优先级,捕获复合词的组成部分)
-        List<String> segments = segment(text);
+        // 使用归一化文本，避免 HanLP 将换行符作为 token
+        List<String> segments = segment(normalizedText);
         keywordSet.addAll(segments);
 
         // 【第2.5层】单字分词补充(捕获自定义词典中的单字词)
         // 对于短查询,额外检查单字分词结果
         if (normalizedText.length() <= 4) {
-            List<String> singleCharWords = extractMeaningfulSingleChars(text);
+            List<String> singleCharWords = extractMeaningfulSingleChars(normalizedText);
             keywordSet.addAll(singleCharWords);
         }
 
         // 【第3层】TF-IDF 关键词(补充,用于长文本)
-        List<String> tfidfKeywords = HanLP.extractKeyword(text, topK * 2);
+        // 使用归一化文本，避免 HanLP 返回含换行的 token
+        List<String> tfidfKeywords = HanLP.extractKeyword(normalizedText, topK * 2);
         for (String kw : tfidfKeywords) {
             // 清理可能的逗号、空格等分隔符
             String cleanedKw = kw.trim().replaceAll("[,，\\s]+", "");

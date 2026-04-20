@@ -3,6 +3,15 @@ package com.zm.kilacraftAI.util;
 import com.zm.kilacraftAI.KilacraftAI;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.stream.Stream;
 
 /**
  * 配置资源文件工具类
@@ -84,6 +93,39 @@ public class ConfigResourceUtil {
             PluginLogger.info(logModule, "已创建默认配置文件: " + targetFile.getName());
         } catch (Exception e) {
             PluginLogger.error(logModule, "创建配置文件失败: " + resourcePath, e);
+        }
+    }
+
+    /**
+     * 批量保存内置资源目录下的所有文件(仅当目标文件不存在时才复制)
+     *
+     * <p>扫描 JAR 包中指定资源目录下的所有文件，逐一调用 saveDefaultResource。</p>
+     * <p>适用于 knowledge/ 等需要整体复制且后续可能新增文件的场景。</p>
+     *
+     * @param plugin      插件实例
+     * @param resourceDir 资源目录路径(如 "knowledge")
+     * @param logModule   日志模块名称
+     */
+    public static void saveDefaultResourceDir(KilacraftAI plugin, String resourceDir, String logModule) {
+        var resource = plugin.getClass().getClassLoader().getResource(resourceDir);
+        if (resource == null) {
+            return;
+        }
+
+        try {
+            URI uri = resource.toURI();
+            try (FileSystem fs = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+                Path jarDir = fs.getPath(resourceDir);
+                try (Stream<Path> stream = Files.walk(jarDir)) {
+                    stream.filter(Files::isRegularFile).forEach(path -> {
+                        String relative = jarDir.relativize(path).toString();
+                        String resourcePath = resourceDir + "/" + relative.replace('\\', '/');
+                        saveDefaultResource(plugin, resourcePath, logModule);
+                    });
+                }
+            }
+        } catch (URISyntaxException | IOException e) {
+            PluginLogger.error(logModule, "扫描内置资源目录失败: " + resourceDir, e);
         }
     }
 }

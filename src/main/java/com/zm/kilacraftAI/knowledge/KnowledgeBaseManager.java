@@ -34,8 +34,8 @@ public class KnowledgeBaseManager {
         this.knowledgeCache = new HashMap<>();
         this.chunkCache = new HashMap<>();
 
-        // 复制默认配置
-        ConfigResourceUtil.saveDefaultResource(plugin, "knowledge/sounds_particles.md", "知识库");
+        // 批量复制内置知识库文件（仅当目标文件不存在时才复制，不覆盖用户自定义）
+        ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge", "知识库");
     }
 
     /**
