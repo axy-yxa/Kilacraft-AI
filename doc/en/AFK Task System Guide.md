@@ -1,6 +1,6 @@
 # Kilacraft-AI - AFK Task System Guide
 
-> **Version**: v1.4.5  
+> **Version**: v1.4.6  
 > **Description**: This document provides a comprehensive guide to the AFK Task System, including architecture, usage, call chains, and best practices
 
 ---
@@ -658,7 +658,7 @@ CANCELLED (Cancelled)
 
 ---
 
-> **Last Updated**: 2026-04-13  
-> **Plugin Version**: 1.4.5+  
+> **Last Updated**: 2026-04-19  
+> **Plugin Version**: 1.4.6+  
 > **Implemented Listeners**: 11 (S-Tier 7 + A-Tier 4) + CUSTOM generic condition polling  
 > **Document Version**: v2.0

@@ -636,6 +636,6 @@ entities:
 
 ---
 
-> **Last Updated**: 2026-04-10  
+> **Last Updated**: 2026-04-19  
 > **Plugin Version**: 1.4.5+  
 > **Implemented Listeners**: 11 (S-Tier 7 + A-Tier 4)

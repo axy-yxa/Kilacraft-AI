@@ -1,7 +1,7 @@
 # Kilacraft-AI Plugin Command Mode Detailed Guide
 
 > **Target Audience**: Third-party plugin developers, advanced server owners   
-> **Last Updated**: 2026-04-08
+> **Last Updated**: 2026-04-19
 
 ---
 
@@ -621,5 +621,5 @@ if (player != null && player.isOnline()) {
 
 ---
 
-> **Last Updated**: 2026-04-07  
-> **Applicable Plugin Version**: Kilacraft-AI 1.4.5+
+> **Last Updated**: 2026-04-19  
+> **Applicable Plugin Version**: Kilacraft-AI 1.4.6+

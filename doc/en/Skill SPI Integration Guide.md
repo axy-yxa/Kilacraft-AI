@@ -1,7 +1,7 @@
 # Kilacraft-AI Skill SPI Integration Guide
 
-> Version: 1.0 | Last Updated: 2026-04-16
-> Applicable Plugin Version: Kilacraft-AI 1.4.5+
+> Version: 1.0 | Last Updated: 2026-04-19
+> Applicable Plugin Version: Kilacraft-AI 1.4.6+
 
 ---
 

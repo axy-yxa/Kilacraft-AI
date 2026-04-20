@@ -1,13 +1,13 @@
 # Kilacraft-AI - Bukkit API 参考手册
 
-> **版本**: v1.4.5  
+> **版本**: v1.4.6  
 > **说明**: 本文档提供所有内置 Bukkit API 的详细说明、配置示例和使用场景
 
 ---
 
 ## 📊 Bukkit API 快速参考表
 
-### 👤 玩家相关 API（31 个）
+### 👤 玩家相关 API（45 个）
 
 | API ID | 显示名称 | 功能 | 调用方式 | 权限 |
 |--------|---------|------|----------|------|
@@ -43,8 +43,20 @@
 | `get_player_display_name` | 获取玩家显示名称 | 获取显示名称（含前缀） | method_chain | `kilacraft.api.player.info` |
 | `get_player_bed_spawn` | 获取玩家床重生点 | 获取床重生点位置 | method_chain | `kilacraft.api.player.info` |
 | `get_player_total_exp` | 获取玩家总经验值 | 获取累积总经验 | method_chain | `kilacraft.api.player.status` |
+| `get_player_inventory_usage` | 获取背包使用率 | 获取占用格数/总格数/百分比 | additional_methods | `kilacraft.api.player.inventory` |
+| `get_player_inventory` | 获取背包物品摘要 | 获取背包内物品名称+数量列表 | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_ender_chest` | 获取末影箱摘要 | 获取末影箱物品名称+数量列表 | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_open_container` | 获取打开的容器内容 | 获取当前打开的容器物品摘要 | additional_methods | `kilacraft.api.player.inventory` |
+| `get_player_open_inventory` | 获取当前打开的界面 | 获取正在查看的容器/类型 | additional_methods | `kilacraft.api.player.info` |
+| `get_player_absorption` | 获取玩家吸收之心 | 获取额外吸收生命值 | method_chain | `kilacraft.api.player.status` |
+| `get_player_arrows_in_body` | 获取玩家身上箭数 | 获取嵌入身体的箭数量 | method_chain | `kilacraft.api.player.status` |
+| `get_player_no_damage_ticks` | 获取玩家无敌帧 | 获取受伤后无敌时间（tick） | method_chain | `kilacraft.api.player.status` |
+| `get_player_fall_distance` | 获取玩家下落距离 | 获取当前累积下落距离 | method_chain | `kilacraft.api.player.status` |
+| `get_player_compass_target` | 获取指南针目标 | 获取指南针指向的坐标 | additional_methods | `kilacraft.api.player.info` |
+| `get_player_feet_block` | 获取脚下方块 | 获取脚下站立的方块信息 | method_chain | `kilacraft.api.player.info` |
+| `get_player_last_damage` | 获取上次受伤原因 | 获取上次受伤来源/原因/伤害量 | method_chain | `kilacraft.api.player.status` |
 
-### 🌍 世界相关 API（21 个）
+### 🌍 世界相关 API（22 个）
 
 | API ID | 显示名称 | 功能 | 调用方式 | 权限 |
 |--------|---------|------|----------|------|
@@ -68,6 +80,7 @@
 | `get_world_full_time` | 获取世界总时间 | 获取总运行时间（不受睡眠影响） | method_chain | `kilacraft.api.world.info` |
 | `get_world_game_time` | 获取世界游戏时间 | 获取自创建以来总时间 | method_chain | `kilacraft.api.world.info` |
 | `get_world_raids` | 获取世界袭击事件 | 获取正在进行的袭击列表 | method_chain | `kilacraft.api.world.info` |
+| `get_world_border` | 获取世界边界信息 | 获取世界边界的中心/大小/伤害 | method_chain | `kilacraft.api.world.info` |
 
 ### 🖥️ 服务器相关 API（6 个）
 
@@ -1812,6 +1825,6 @@ BukkitAPIExecutor 使用反射调用方法，JVM 会自动优化频繁调用的�
 
 ---
 
-> **最后更新**: 2026-04-08  
-> **插件版本**: 1.4.5+  
+> **最后更新**: 2026-04-19  
+> **插件版本**: 1.4.6+  
 > **API 总数**: 58（玩家 31 + 世界 21 + 服务器 6）

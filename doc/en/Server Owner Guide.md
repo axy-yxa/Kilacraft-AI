@@ -1,6 +1,6 @@
 # Kilacraft-AI - Lightweight AI Agent Built for Minecraft Servers
 
-> **🚀 v1.4.5 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
+> **🚀 v1.4.6 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
 > Enable every Minecraft server to have an intelligent AI assistant
 
 ---
@@ -1162,6 +1162,6 @@ This project uses **MIT License** - See [LICENSE](../LICENSE) file for details
 
 ---
 
-> **Last Updated**: 2026-04-16
+> **Last Updated**: 2026-04-19
 > **Applicable Plugin Version**: Kilacraft-AI 1.4.5+
 > **Open Source License**: MIT License

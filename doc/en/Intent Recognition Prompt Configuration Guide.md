@@ -544,10 +544,10 @@ It's recommended to add change records at the top of the configuration file:
 
 ```yaml
 # ==================== Intent Recognition Prompt Configuration ====================
-# Last Modified: 2026-04-06
+# Last Modified: 2026-04-19
 # Modified By: XXX
 # Change Log:
-# - 2026-04-06: Initial version
+# - 2026-04-19: Initial version
 # - 2026-04-XX: Optimized multi-step task trigger conditions
 # - ...
 ```
@@ -762,5 +762,5 @@ If you encounter problems or have improvement suggestions during usage:
 
 ---
 
-**Last Updated**: 2026-04-14
-**Compatible Version**: Kilacraft-AI v1.4.5+
+**Last Updated**: 2026-04-19
+**Compatible Version**: Kilacraft-AI v1.4.6+

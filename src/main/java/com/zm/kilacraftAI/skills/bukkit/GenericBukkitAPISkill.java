@@ -147,6 +147,17 @@ public class GenericBukkitAPISkill implements Skill {
                 }
             }
 
+            // 打开容器 API 的额外元数据注入（需要 player 对象，extractDataFromResult 没有）
+            if ("get_player_open_container".equals(api.getId()) && context.getPlayer() != null) {
+                try {
+                    var openInv = context.getPlayer().getOpenInventory();
+                    dataMap.put("container_type", openInv.getType().name());
+                    dataMap.put("container_title", openInv.getTitle());
+                } catch (Exception ignored) {
+                    // 异步环境下可能无法访问
+                }
+            }
+
             return CompletableFuture.completedFuture(SkillResult.success(formatted, dataMap));
         } catch (Exception e) {
             PluginLogger.error("BukkitAPI", "执行 Bukkit API 失败：" + api.getId(), e);
@@ -234,7 +245,7 @@ public class GenericBukkitAPISkill implements Skill {
             dataMap.put("z", vector.getZ());
         }
         // ItemStack[]：盔甲装备数组
-        else if (result instanceof org.bukkit.inventory.ItemStack[] armorContents) {
+        else if (result instanceof org.bukkit.inventory.ItemStack[] armorContents && api != null && "get_player_armor".equals(api.getId())) {
             // Bukkit 盔甲数组顺序：[靴子, 护腿, 胸甲, 头盔]
             String[] slotNames = {"boots", "leggings", "chestplate", "helmet"};
             for (int i = 0; i < armorContents.length; i++) {
@@ -258,6 +269,25 @@ public class GenericBukkitAPISkill implements Skill {
                 }
             }
         }
+        // ItemStack[]：背包占用格数（极轻量，只计数不读 ItemMeta）
+        else if (result instanceof org.bukkit.inventory.ItemStack[] contents && api != null && "get_player_inventory_usage".equals(api.getId())) {
+            extractInventoryUsage(contents, dataMap);
+        }
+        // ItemStack[]：背包物品摘要（名称+数量，不含附魔/耐久）
+        else if (result instanceof org.bukkit.inventory.ItemStack[] contents && api != null && "get_player_inventory".equals(api.getId())) {
+            extractInventoryUsage(contents, dataMap);
+            extractInventorySummary(contents, dataMap);
+        }
+        // ItemStack[]：末影箱物品摘要
+        else if (result instanceof org.bukkit.inventory.ItemStack[] contents && api != null && "get_player_ender_chest".equals(api.getId())) {
+            extractInventoryUsage(contents, dataMap);
+            extractInventorySummary(contents, dataMap);
+        }
+        // ItemStack[]：打开的容器物品摘要（容器元数据在 formatResult 中提取，因为 extractDataFromResult 没有 player 参数）
+        else if (result instanceof org.bukkit.inventory.ItemStack[] contents && api != null && "get_player_open_container".equals(api.getId())) {
+            extractInventoryUsage(contents, dataMap);
+            extractInventorySummary(contents, dataMap);
+        }
         // Collection<PotionEffect>：药水效果集合（仅对 get_player_potion_effects 生效）
         else if (result instanceof java.util.Collection<?> potionEffects && api != null && "get_player_potion_effects".equals(api.getId())) {
             java.util.List<Map<String, Object>> effectsList = new java.util.ArrayList<>();
@@ -273,6 +303,32 @@ public class GenericBukkitAPISkill implements Skill {
             dataMap.put("effects", effectsList);
             dataMap.put("effect_count", effectsList.size());
         }
+        // Block：脚下方块（Spigot 路径，Folia 走 Map）
+        else if (result instanceof org.bukkit.block.Block block && api != null && "get_player_feet_block".equals(api.getId())) {
+            dataMap.put("block_type", block.getType().name());
+            dataMap.put("x", block.getX());
+            dataMap.put("y", block.getY());
+            dataMap.put("z", block.getZ());
+            if (block.getWorld() != null) {
+                dataMap.put("world", block.getWorld().getName());
+            }
+        }
+        // EntityDamageEvent：上次受伤原因（Spigot 路径，Folia 走 Map）
+        else if (result instanceof org.bukkit.event.entity.EntityDamageEvent damageEvent && api != null && "get_player_last_damage".equals(api.getId())) {
+            dataMap.put("damage_cause", formatDamageCause(damageEvent.getCause()));
+            dataMap.put("damage_amount", damageEvent.getDamage());
+            if (damageEvent instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntityEvent) {
+                org.bukkit.entity.Entity damager = byEntityEvent.getDamager();
+                if (damager != null) {
+                    dataMap.put("damager_type", damager.getType().name());
+                    if (damager instanceof org.bukkit.entity.Player attacker) {
+                        dataMap.put("damager_name", attacker.getName());
+                    } else if (damager instanceof org.bukkit.entity.LivingEntity livingMob) {
+                        dataMap.put("damager_name", livingMob.getName() != null ? livingMob.getName() : damager.getType().name());
+                    }
+                }
+            }
+        }
         // 其他类型不提取额外字段，只保留 raw_result
         // Map 格式的数据由 execute() 方法中的通用逻辑处理
         // Collection 类型（如在线玩家、世界列表、袭击列表）由 data_field 机制统一注入 size
@@ -287,6 +343,10 @@ public class GenericBukkitAPISkill implements Skill {
         }
 
         // 特殊类型处理（lophine 优化：已在区域线程内提取为 Map/String）
+        // 背包/末影箱/打开容器 Map（必须在通用 item/location Map 分支之前）
+        if (result instanceof java.util.Map<?, ?> inventoryMap && (api.getId().equals("get_player_inventory_usage") || api.getId().equals("get_player_inventory") || api.getId().equals("get_player_ender_chest") || api.getId().equals("get_player_open_container"))) {
+            return formatInventoryFromMap(api, inventoryMap);
+        }
         if (result instanceof java.util.Map<?, ?> locationMap && api.getId().contains("location")) {
             return formatLocationFromMap(locationMap);
         }
@@ -350,9 +410,53 @@ public class GenericBukkitAPISkill implements Skill {
         if (result instanceof org.bukkit.inventory.ItemStack[] armorContents && api.getId().equals("get_player_armor")) {
             return formatArmorContents(armorContents);
         }
+        // 背包占用格数（极轻量）
+        if (result instanceof org.bukkit.inventory.ItemStack[] contents && api.getId().equals("get_player_inventory_usage")) {
+            return formatInventoryUsage(contents, "背包");
+        }
+        // 背包物品摘要
+        if (result instanceof org.bukkit.inventory.ItemStack[] contents && api.getId().equals("get_player_inventory")) {
+            return formatInventorySummary(contents, "背包");
+        }
+        // 末影箱物品摘要
+        if (result instanceof org.bukkit.inventory.ItemStack[] contents && api.getId().equals("get_player_ender_chest")) {
+            return formatInventorySummary(contents, "末影箱");
+        }
+        // 打开的容器物品摘要
+        if (result instanceof org.bukkit.inventory.ItemStack[] contents && api.getId().equals("get_player_open_container")) {
+            String containerLabel = "容器";
+            if (player != null) {
+                try {
+                    var invType = player.getOpenInventory().getType();
+                    containerLabel = formatInventoryType(invType).replace("当前界面：", "");
+                } catch (Exception ignored) {}
+            }
+            return formatInventorySummary(contents, containerLabel);
+        }
         // 瞄准的方块（lophine 优化：Block 对象已在区域线程内提取为 Map）
         if (result instanceof java.util.Map<?, ?> blockMap && api.getId().equals("get_player_target_block")) {
             return formatBlockFromMap(blockMap);
+        }
+        // 脚下方块（Folia Map 路径）
+        if (result instanceof java.util.Map<?, ?> feetBlockMap && api.getId().equals("get_player_feet_block")) {
+            return formatFeetBlockFromMap(feetBlockMap);
+        }
+        // 脚下方块（Spigot Block 路径）
+        if (result instanceof org.bukkit.block.Block block && api.getId().equals("get_player_feet_block")) {
+            String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(block.getType().name());
+            return String.format("脚下方块：%s（位置：X=%d, Y=%d, Z=%d）", chineseName, block.getX(), block.getY(), block.getZ());
+        }
+        // 上次受伤原因（Folia Map 路径）
+        if (result instanceof java.util.Map<?, ?> damageMap && api.getId().equals("get_player_last_damage")) {
+            return formatDamageFromMap(damageMap);
+        }
+        // 上次受伤原因（Spigot EntityDamageEvent 路径）
+        if (result instanceof org.bukkit.event.entity.EntityDamageEvent damageEvent && api.getId().equals("get_player_last_damage")) {
+            return formatDamageEvent(damageEvent);
+        }
+        // 当前打开的界面类型（InventoryType 枚举）
+        if (result instanceof org.bukkit.event.inventory.InventoryType inventoryType && api.getId().equals("get_player_open_inventory")) {
+            return formatInventoryType(inventoryType);
         }
         // 生物群系（lophine 优化：Biome 对象已在区域线程内提取为 String）
         if (result instanceof String biomeName && api.getId().equals("get_world_biome")) {
@@ -934,6 +1038,109 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
+     * 格式化脚下方块（Folia Map 路径）
+     */
+    private String formatFeetBlockFromMap(java.util.Map<?, ?> blockMap) {
+        if (blockMap == null || blockMap.isEmpty()) {
+            return "脚下方块：未知";
+        }
+        String materialName = blockMap.get("block_type") != null ? blockMap.get("block_type").toString() : null;
+        if (materialName == null) {
+            return "脚下方块：未知";
+        }
+        String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(materialName);
+        int x = blockMap.containsKey("x") ? ((Number) blockMap.get("x")).intValue() : 0;
+        int y = blockMap.containsKey("y") ? ((Number) blockMap.get("y")).intValue() : 0;
+        int z = blockMap.containsKey("z") ? ((Number) blockMap.get("z")).intValue() : 0;
+        return String.format("脚下方块：%s（位置：X=%d, Y=%d, Z=%d）", chineseName, x, y, z);
+    }
+
+    /**
+     * 格式化上次受伤原因（Folia Map 路径）
+     */
+    private String formatDamageFromMap(java.util.Map<?, ?> damageMap) {
+        if (damageMap == null || damageMap.isEmpty()) {
+            return "无受伤记录";
+        }
+        String causeName = damageMap.get("damage_cause") != null ? damageMap.get("damage_cause").toString() : "未知";
+        String causeDisplay = formatDamageCauseByName(causeName);
+        double amount = damageMap.containsKey("damage_amount") ? ((Number) damageMap.get("damage_amount")).doubleValue() : 0;
+        StringBuilder sb = new StringBuilder();
+        sb.append("上次受伤：").append(causeDisplay).append(String.format("（%.1f 伤害）", amount));
+        if (damageMap.containsKey("damager_name")) {
+            sb.append("，攻击者：").append(damageMap.get("damager_name"));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 格式化上次受伤原因（Spigot EntityDamageEvent 路径）
+     */
+    private String formatDamageEvent(org.bukkit.event.entity.EntityDamageEvent damageEvent) {
+        String causeDisplay = formatDamageCause(damageEvent.getCause());
+        StringBuilder sb = new StringBuilder();
+        sb.append("上次受伤：").append(causeDisplay).append(String.format("（%.1f 伤害）", damageEvent.getDamage()));
+        if (damageEvent instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntityEvent) {
+            org.bukkit.entity.Entity damager = byEntityEvent.getDamager();
+            if (damager != null) {
+                String name = damager instanceof org.bukkit.entity.Player p ? p.getName() :
+                        (damager instanceof org.bukkit.entity.LivingEntity m ? (m.getName() != null ? m.getName() : m.getType().name()) : damager.getType().name());
+                sb.append("，攻击者：").append(name);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 将 DamageCause 枚举转为中文描述
+     */
+    private String formatDamageCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause cause) {
+        return switch (cause) {
+            case ENTITY_ATTACK -> "被实体攻击";
+            case ENTITY_SWEEP_ATTACK -> "被横扫攻击";
+            case PROJECTILE -> "被弹射物击中";
+            case SUFFOCATION -> "窒息（卡在方块中）";
+            case FALL -> "摔落伤害";
+            case FIRE -> "火焰伤害";
+            case FIRE_TICK -> "燃烧伤害";
+            case MELTING -> "融化伤害";
+            case LAVA -> "岩浆伤害";
+            case DROWNING -> "溺水";
+            case BLOCK_EXPLOSION -> "方块爆炸";
+            case ENTITY_EXPLOSION -> "实体爆炸（苦力怕/TNT）";
+            case VOID -> "掉入虚空";
+            case LIGHTNING -> "雷击";
+            case SUICIDE -> "自杀";
+            case STARVATION -> "饥饿";
+            case POISON -> "中毒";
+            case MAGIC -> "魔法伤害";
+            case WITHER -> "凋零";
+            case FALLING_BLOCK -> "被掉落方块砸中";
+            case THORNS -> "荆棘反伤";
+            case DRAGON_BREATH -> "龙息";
+            case CUSTOM -> "自定义伤害";
+            case FLY_INTO_WALL -> "动能伤害（撞墙）";
+            case HOT_FLOOR -> "踩到热地板";
+            case CRAMMING -> "实体挤压";
+            case CONTACT -> "接触伤害（仙人掌/浆果丛）";
+            default -> cause.name();
+        };
+    }
+
+    /**
+     * 将 DamageCause 枚举名称（String）转为中文描述（用于 Folia Map 路径）
+     */
+    private String formatDamageCauseByName(String causeName) {
+        try {
+            org.bukkit.event.entity.EntityDamageEvent.DamageCause cause =
+                    org.bukkit.event.entity.EntityDamageEvent.DamageCause.valueOf(causeName);
+            return formatDamageCause(cause);
+        } catch (IllegalArgumentException e) {
+            return causeName;
+        }
+    }
+
+    /**
      * 格式化生物群系（lophine 兼容版本：接收 String）
      */
     private String formatBiomeByName(String biomeName) {
@@ -948,6 +1155,175 @@ public class GenericBukkitAPISkill implements Skill {
             displayName = Character.toUpperCase(displayName.charAt(0)) + displayName.substring(1);
         }
         return "生物群系：" + displayName;
+    }
+
+    /**
+     * 从 ItemStack[] 中提取占用格数和空格数（极轻量，不读取 ItemMeta）
+     */
+    private void extractInventoryUsage(org.bukkit.inventory.ItemStack[] contents, Map<String, Object> dataMap) {
+        int count = 0;
+        for (org.bukkit.inventory.ItemStack item : contents) {
+            if (item != null && item.getType() != org.bukkit.Material.AIR) {
+                count++;
+            }
+        }
+        dataMap.put("item_count", count);
+        dataMap.put("empty_slots", contents.length - count);
+    }
+
+    /**
+     * 从 ItemStack[] 中提取物品摘要（仅物品名称+数量，不含附魔/耐久）
+     */
+    private void extractInventorySummary(org.bukkit.inventory.ItemStack[] contents, Map<String, Object> dataMap) {
+        java.util.List<Map<String, Object>> itemsList = new java.util.ArrayList<>();
+        for (int i = 0; i < contents.length; i++) {
+            org.bukkit.inventory.ItemStack item = contents[i];
+            if (item != null && item.getType() != org.bukkit.Material.AIR) {
+                Map<String, Object> itemData = new java.util.HashMap<>();
+                itemData.put("slot", i);
+                itemData.put("item_type", item.getType().name());
+                // 仅读取名称，不读取附魔/耐久等详情
+                String itemName;
+                if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+                    itemName = item.getItemMeta().getDisplayName();
+                } else {
+                    itemName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(item.getType().name());
+                }
+                itemData.put("item_name", itemName);
+                itemData.put("item_amount", item.getAmount());
+                itemsList.add(itemData);
+            }
+        }
+        dataMap.put("items", itemsList);
+    }
+
+    /**
+     * 格式化背包占用情况（极轻量，仅显示格数）
+     */
+    private String formatInventoryUsage(org.bukkit.inventory.ItemStack[] contents, String label) {
+        int count = 0;
+        for (org.bukkit.inventory.ItemStack item : contents) {
+            if (item != null && item.getType() != org.bukkit.Material.AIR) {
+                count++;
+            }
+        }
+        int empty = contents.length - count;
+        return label + "占用：" + count + "/" + contents.length + " 格（空 " + empty + " 格）";
+    }
+
+    /**
+     * 格式化背包/末影箱物品摘要
+     */
+    private String formatInventorySummary(org.bukkit.inventory.ItemStack[] contents, String label) {
+        int count = 0;
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < contents.length; i++) {
+            org.bukkit.inventory.ItemStack item = contents[i];
+            if (item != null && item.getType() != org.bukkit.Material.AIR) {
+                if (count == 0) {
+                    // 第一行时统计总数
+                    int total = 0;
+                    for (org.bukkit.inventory.ItemStack c : contents) {
+                        if (c != null && c.getType() != org.bukkit.Material.AIR) total++;
+                    }
+                    sb.append(label).append("物品（已用 ").append(total).append("/").append(contents.length).append(" 格）：\n");
+                }
+                String itemName;
+                if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+                    itemName = item.getItemMeta().getDisplayName();
+                } else {
+                    itemName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(item.getType().name());
+                }
+                sb.append("  [").append(i).append("] ").append(itemName);
+                if (item.getAmount() > 1) {
+                    sb.append(" x").append(item.getAmount());
+                }
+                sb.append("\n");
+                count++;
+            }
+        }
+
+        return count > 0 ? sb.toString().trim() : label + "：空";
+    }
+
+    /**
+     * 格式化当前打开的界面类型
+     */
+    private String formatInventoryType(org.bukkit.event.inventory.InventoryType type) {
+        String displayName = switch (type.name()) {
+            case "CHEST" -> "箱子";
+            case "CRAFTING" -> "合成栏";
+            case "FURNACE" -> "熔炉";
+            case "WORKBENCH" -> "工作台";
+            case "ANVIL" -> "铁砧";
+            case "ENCHANTING" -> "附魔台";
+            case "BREWING" -> "酿造台";
+            case "PLAYER" -> "玩家背包";
+            case "CREATIVE" -> "创造模式背包";
+            case "MERCHANT" -> "村民交易";
+            case "ENDER_CHEST" -> "末影箱";
+            case "BEACON" -> "信标";
+            case "HOPPER" -> "漏斗";
+            case "DROPPER" -> "投掷器";
+            case "DISPENSER" -> "发射器";
+            case "SHULKER_BOX" -> "潜影盒";
+            case "SMITHING" -> "锻造台";
+            case "STONECUTTER" -> "切石机";
+            case "GRINDSTONE" -> "砂轮";
+            case "LECTERN" -> "讲台";
+            case "LOOM" -> "织布机";
+            case "BLAST_FURNACE" -> "高炉";
+            case "SMOKER" -> "烟熏炉";
+            case "CARTOGRAPHY" -> "制图台";
+            default -> type.name();
+        };
+        return "当前界面：" + displayName;
+    }
+
+    /**
+     * 格式化背包/末影箱 Map（Folia 兼容版本：接收 extractThreadSafeData 返回的 Map）
+     *
+     * <p>Map 结构：item_count, empty_slots, items(List<Map>，仅摘要模式)</p>
+     */
+    private String formatInventoryFromMap(BukkitAPIMetadata api, java.util.Map<?, ?> invMap) {
+        String label = api.getId().equals("get_player_ender_chest") ? "末影箱" : (api.getId().equals("get_player_open_container") ? "容器" : "背包");
+
+        if (invMap == null || invMap.isEmpty()) {
+            return label + "：空";
+        }
+
+        int itemCount = invMap.containsKey("item_count") ? ((Number) invMap.get("item_count")).intValue() : 0;
+        int totalSlots = itemCount + (invMap.containsKey("empty_slots") ? ((Number) invMap.get("empty_slots")).intValue() : 0);
+
+        // 极轻量模式：只显示格数
+        if (api.getId().equals("get_player_inventory_usage")) {
+            return label + "占用：" + itemCount + "/" + totalSlots + " 格（空 " + (totalSlots - itemCount) + " 格）";
+        }
+
+        // 摘要模式：显示物品列表
+        Object itemsObj = invMap.get("items");
+        if (!(itemsObj instanceof java.util.List<?> itemsList) || itemsList.isEmpty()) {
+            return label + "：空";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(label).append("物品（已用 ").append(itemCount).append("/").append(totalSlots).append(" 格）：\n");
+
+        for (Object obj : itemsList) {
+            if (obj instanceof java.util.Map<?, ?> itemData) {
+                int slot = itemData.containsKey("slot") ? ((Number) itemData.get("slot")).intValue() : -1;
+                String itemName = itemData.get("item_name") != null ? itemData.get("item_name").toString() : (itemData.get("item_type") != null ? itemData.get("item_type").toString() : "未知");
+                int amount = itemData.containsKey("item_amount") ? ((Number) itemData.get("item_amount")).intValue() : 1;
+                sb.append("  [").append(slot).append("] ").append(itemName);
+                if (amount > 1) {
+                    sb.append(" x").append(amount);
+                }
+                sb.append("\n");
+            }
+        }
+
+        return sb.toString().trim();
     }
 
     /**

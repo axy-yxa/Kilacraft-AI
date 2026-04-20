@@ -264,5 +264,5 @@ Console: "/kilacraft plugins default Hello UUID callback_cmd"
 
 ---
 
-> **Last Updated**: 2026-04-16  
-> **Compatible Version**: Kilacraft-AI v1.4.5+
+> **Last Updated**: 2026-04-19  
+> **Compatible Version**: Kilacraft-AI v1.4.6+

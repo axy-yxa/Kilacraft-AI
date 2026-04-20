@@ -150,7 +150,7 @@ public class BukkitAPIExecutor {
      * - getTargetBlock：射线追踪访问 BlockState（lophine 等端要求主线程，Spigot 端不强制但也不安全）
      * - getBiome / getTemperature / getHumidity：通过坐标访问 Chunk 中的生物群系/气候数据
      */
-    private static final java.util.Set<String> MAIN_THREAD_METHODS = java.util.Set.of("getLivingEntities", "getEntities", "getTargetBlock", "getBiome", "getTemperature", "getHumidity");
+    private static final java.util.Set<String> MAIN_THREAD_METHODS = java.util.Set.of("getLivingEntities", "getEntities", "getTargetBlock", "getBlock", "getLastDamageCause", "getBiome", "getTemperature", "getHumidity");
 
     /**
      * 反射调用方法
@@ -366,6 +366,70 @@ public class BukkitAPIExecutor {
             effectData.put("amplifier", effect.getAmplifier());
             effectData.put("duration", effect.getDuration());
             return effectData;
+        }
+
+        // InventoryType 枚举：线程安全，直接返回
+        if (result instanceof org.bukkit.event.inventory.InventoryType) {
+            return result;
+        }
+
+        // EntityDamageEvent：提取为线程安全的数据 Map
+        if (result instanceof org.bukkit.event.entity.EntityDamageEvent damageEvent) {
+            Map<String, Object> damageData = new HashMap<>();
+            damageData.put("damage_cause", damageEvent.getCause().name());
+            damageData.put("damage_amount", damageEvent.getDamage());
+            damageData.put("final_damage", damageEvent.getFinalDamage());
+            // 如果被实体攻击，提取攻击者信息
+            if (damageEvent instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntityEvent) {
+                org.bukkit.entity.Entity damager = byEntityEvent.getDamager();
+                if (damager != null) {
+                    damageData.put("damager_type", damager.getType().name());
+                    if (damager instanceof org.bukkit.entity.Player attacker) {
+                        damageData.put("damager_name", attacker.getName());
+                    } else if (damager instanceof org.bukkit.entity.LivingEntity livingMob) {
+                        damageData.put("damager_name", livingMob.getName() != null ? livingMob.getName() : livingMob.getType().name());
+                    }
+                }
+            }
+            return damageData;
+        }
+
+        // ItemStack[] 数组：在区域线程内提取为纯数据，避免跨线程访问
+        // 根据方法链的最终方法名判断需要提取的粒度
+        if (result instanceof org.bukkit.inventory.ItemStack[] contents) {
+            // 极轻量模式：只计数
+            int count = 0;
+            for (org.bukkit.inventory.ItemStack item : contents) {
+                if (item != null && item.getType() != org.bukkit.Material.AIR) {
+                    count++;
+                }
+            }
+            Map<String, Object> usageData = new HashMap<>();
+            usageData.put("item_count", count);
+            usageData.put("empty_slots", contents.length - count);
+
+            // 如果是摘要模式（非 usage-only），额外提取物品名称+数量
+            if ("getStorageContents".equals(methodName)) {
+                java.util.List<Map<String, Object>> itemsList = new java.util.ArrayList<>();
+                for (int i = 0; i < contents.length; i++) {
+                    org.bukkit.inventory.ItemStack item = contents[i];
+                    if (item != null && item.getType() != org.bukkit.Material.AIR) {
+                        Map<String, Object> itemData = new HashMap<>();
+                        itemData.put("slot", i);
+                        itemData.put("item_type", item.getType().name());
+                        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+                            itemData.put("item_name", item.getItemMeta().getDisplayName());
+                        } else {
+                            itemData.put("item_name", com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(item.getType().name()));
+                        }
+                        itemData.put("item_amount", item.getAmount());
+                        itemsList.add(itemData);
+                    }
+                }
+                usageData.put("items", itemsList);
+            }
+
+            return usageData;
         }
 
         // 其他类型直接返回（String、Integer、List、Enum 等已经是线程安全的）

@@ -1,7 +1,7 @@
 # 插件名称
 name: Kilacraft-AI
 # 插件版本号
-version: '1.4.5'
+version: '1.4.6'
 # 主类路径（插件入口）
 main: com.zm.kilacraftAI.KilacraftAI
 # Bukkit API 版本（支持的最低服务端版本）
@@ -98,4 +98,9 @@ permissions:
   # Bukkit 音效与粒子效果技能权限
   kilacraft.bukkit_fx:
     description: 允许播放音效和显示粒子效果（仅自己听到/看到）
+    default: true              # 默认所有玩家可用
+
+  # Bukkit 原版统计数据查询权限
+  kilacraft.bukkit_stats:
+    description: 允许查询 Minecraft 原版统计数据（生涯累计统计）
     default: true              # 默认所有玩家可用

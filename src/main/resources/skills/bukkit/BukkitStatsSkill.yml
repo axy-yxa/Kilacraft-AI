@@ -1,0 +1,16 @@
+# BukkitStatsSkill 技能配置
+# Minecraft 原版统计数据查询技能：查询玩家的累计统计信息（生涯记录）
+# 用于：查询死亡次数、击杀数、行走距离等历史累计数据
+
+# 此描述会发送给LLM，帮助其理解何时调用此技能
+description: '查询玩家 Minecraft 原版统计数据（累计/生涯记录）。完整统计项列表已写入知识库，系统会在意图识别阶段自动检索提供参考。用于查询历史累计数据，如总死亡次数、总击杀数、总行走距离、挖矿数量等。注意：此技能查询的是生涯累计值，不是当前实时状态（如血量、饱食度）。'
+
+# 动作描述（Map 格式，key=动作名称，value=动作描述）
+action_descriptions:
+  query_statistic: '查询指定统计项的值。需要参数：statistic（统计枚举名称，如 DEATHS、KILL_ENTITY、MINE_BLOCK）。部分统计项需要额外参数：entity_type（实体类型名，如 ZOMBIE，仅 KILL_ENTITY/ENTITY_KILLED_BY 需要）、material（材质名，如 DIAMOND_ORE，仅 MINE_BLOCK/CRAFT_ITEM/USE_ITEM/BREAK_ITEM 需要）。统计枚举名称会通过知识库检索提供参考。返回的 data 中包含 statistic（统计枚举名）、value（统计值，int，距离类单位为厘米，时长类单位为tick）、statistic_type（统计类型：UNTYPED/ITEM/BLOCK/ENTITY）字段；ITEM/BLOCK 类型还包含 material 字段，ENTITY 类型还包含 entity_type 字段，可供后续步骤引用。'
+
+# 额外提示信息（用于指导 LLM 正确使用技能）
+hints:
+  - "**累计统计 vs 当前状态**：此技能查询生涯累计值（如总共死了多少次），不适用于查询当前实时状态（如血量/饱食度/等级），那些应使用对应的状态查询 Skill。"
+  - "**参数类型**：统计项分四种类型——无参数（UNTYPED）、需要material参数（ITEM/BLOCK类型）、需要entity_type参数（ENTITY类型）。统计枚举名称会通过知识库检索提供参考，请根据检索结果中的类型说明传参。"
+  - "**距离与时长单位**：返回的 value 字段中，移动距离统计值单位为厘米（CM，1格=100CM），时长统计值单位为tick（20tick=1秒）。在多步骤任务的条件表达式中引用 {step_x.value} 时需注意单位换算，例如 10万格 = 10000000 厘米。"

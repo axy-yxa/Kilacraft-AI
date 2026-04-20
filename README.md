@@ -6,7 +6,7 @@
 
 Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 
-[![Version](https://img.shields.io/badge/Version-1.4.5-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
+[![Version](https://img.shields.io/badge/Version-1.4.6-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
@@ -24,10 +24,11 @@ Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 |:---:|:---|:---|
 | 🤖 | **AI 智能引擎** | LLM 意图识别 · 多步骤任务规划与执行 · RAG 知识库 · 5 种输出载体 · 流式输出 · 二次分析协调器 · 公屏广播 · 回复音效 |
 | 💰 | **经济系统** | GlobalMarketPlus 深度集成 · 自然语言查询余额/价格/在售 · 多物品联合查询 |
-| 🔍 | **Bukkit API** | 58 个内置只读 API · YAML 数据驱动 · 多步骤数据传递（含数组索引）· 细粒度权限 |
+| 🔍 | **Bukkit API** | 72 个内置只读 API · YAML 数据驱动 · 多步骤数据传递（含数组索引）· 细粒度权限 |
 | 🎮 | **CMI 集成** | 传送（家/地标/TPA）· 玩家增强信息（时长/AFK/隐身/套装/在线列表） |
 | 🔧 | **命令执行** | 以玩家身份执行命令 · 完全继承服务器权限 · config 开关 + 权限节点双重保护 |
 | 🎨 | **音效与粒子** | AI 触发音效/粒子效果 · 仅调用者感知 · YML 配置驱动 |
+| 📊 | **原版统计** | 80+ 原版统计数据查询 · 知识库驱动 BM25 检索 · 距离/时长自动换算 · 多步骤条件监控 |
 | 🔔 | **挂机任务** | 12 种类型（11 事件监听 + CUSTOM 轮询）· 自然语言创建 · 通知/回调双模式 |
 | 🎭 | **个性化** | 多人格系统 · RAG 知识库增强（HanLP + BM25）· 自定义词典 · 全语言可配置 |
 | 🔌 | **SPI 扩展** | 第三方 Skill 注册 · 插件命令模式 · 完整开发文档 |
@@ -35,7 +36,7 @@ Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 
 ## 快速开始
 
-**1.** 下载 [Kilacraft-AI-1.4.5.jar](https://gitee.com/zm_mmm/kilacraft-ai/releases) 放入 `plugins/`
+**1.** 下载 [Kilacraft-AI-1.4.6.jar](https://gitee.com/zm_mmm/kilacraft-ai/releases) 放入 `plugins/`
 
 **2.** 编辑 `plugins/Kilacraft-AI/config.yml`，填入 API 密钥：
 

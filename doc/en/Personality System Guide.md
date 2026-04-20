@@ -537,6 +537,6 @@ Use correspondingly:
 
 ---
 
-> **Last Updated**: 2026-04-08  
-> **Plugin Version**: 1.4.5+  
+> **Last Updated**: 2026-04-19  
+> **Plugin Version**: 1.4.6+  
 > **Tip**: Regularly update personality prompts to stay synchronized with server versions

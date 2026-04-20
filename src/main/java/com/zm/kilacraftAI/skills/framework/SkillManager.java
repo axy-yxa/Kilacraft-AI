@@ -121,6 +121,7 @@ public class SkillManager {
 
         // 统计埋点：记录技能调用
         MetricsCollector.getInstance().recordSkillAction(skillName, intent.getAction());
+        MetricsCollector.getInstance().recordSkillSource(skill.getClass());
 
         // 执行技能（带错误隔离，第三方 Skill 异常不影响核心流程）
         try {

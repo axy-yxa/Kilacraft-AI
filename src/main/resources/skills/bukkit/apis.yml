@@ -178,6 +178,36 @@ player:
     method_chain:
       - "getInventory"
       - "getItemInOffHand"
+
+  get_player_inventory_usage:
+    id: "get_player_inventory_usage"
+    display_name: "获取背包占用情况"
+    description: "【仅查询自己】【极轻量】获取玩家背包（快捷栏+主背包，共36格）的占用格数和空格数。背包快满了、还有多少空位、背包用了多少格。返回的 data 中包含 item_count（已占用格数）和 empty_slots（空格数）字段，可供后续步骤引用。适合CUSTOM挂机任务轮询监控。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.inventory"
+    method_chain:
+      - "getInventory"
+      - "getStorageContents"
+
+  get_player_inventory:
+    id: "get_player_inventory"
+    display_name: "获取背包物品摘要"
+    description: "【仅查询自己】获取玩家背包（快捷栏+主背包，共36格）中所有物品的摘要列表（仅物品名称和数量，不含附魔/耐久等详情）。背包里有什么、有没有钻石、带了什么。返回的 data 中包含 item_count（已占用格数）、empty_slots（空格数）、items（物品摘要列表，每项包含 slot/item_name/item_type/item_amount）字段，可供后续步骤引用。如需物品详情请用 get_player_hand_item。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.inventory"
+    method_chain:
+      - "getInventory"
+      - "getStorageContents"
+
+  get_player_ender_chest:
+    id: "get_player_ender_chest"
+    display_name: "获取末影箱物品摘要"
+    description: "【仅查询自己】获取玩家末影箱中所有物品的摘要列表（仅物品名称和数量，不含附魔/耐久等详情）。末影箱里有什么、有没有钻石。返回的 data 中包含 item_count（已占用格数）、empty_slots（空格数）、items（物品摘要列表，每项包含 slot/item_name/item_type/item_amount）字段，可供后续步骤引用。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.inventory"
+    method_chain:
+      - "getEnderChest"
+      - "getStorageContents"
   
   # ========================
   # 生命与状态
@@ -444,6 +474,102 @@ player:
     method_chain:
       - "getTargetBlock"
 
+  get_player_open_inventory:
+    id: "get_player_open_inventory"
+    display_name: "获取当前打开的界面"
+    description: "获取玩家当前正在查看的界面类型（如箱子、熔炉、附魔台等）。打开了什么界面、正在看什么菜单。返回的 data 中包含 inventory_type 字段（界面类型），可供后续步骤引用。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.inventory"
+    method_chain:
+      - "getOpenInventory"
+      - "getType"
+
+  get_player_open_container:
+    id: "get_player_open_container"
+    display_name: "获取打开的容器内容"
+    description: "【仅查询自己】获取玩家当前正在查看的容器（箱子、熔炉、附魔台、潜影盒等）中的所有物品摘要（仅物品名称和数量）。打开的箱子里有什么、容器里有什么东西。前提：玩家必须正在查看某个容器界面（get_player_open_inventory 返回非 PLAYER 时）。返回的 data 中包含 item_count（已占用格数）、empty_slots（空格数）、items（物品摘要列表，每项包含 slot/item_name/item_type/item_amount）、container_type（容器类型）和 container_title（容器标题）字段，可供后续步骤引用。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.inventory"
+    method_chain:
+      - "getOpenInventory"
+      - "getTopInventory"
+      - "getStorageContents"
+
+  get_player_compass_target:
+    id: "get_player_compass_target"
+    display_name: "获取指南针目标"
+    description: "【仅查询自己】获取玩家指南针指向的目标位置。指南针指向哪、指南针目标。返回的 data 中包含 x、y、z、world 字段，可供后续步骤引用。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.info"
+    method_chain:
+      - "getCompassTarget"
+
+  # ========================
+  # 战斗与生存
+  # ========================
+  get_player_absorption:
+    id: "get_player_absorption"
+    display_name: "获取玩家吸收之心"
+    description: "获取玩家当前的吸收生命值（吃金苹果/图腾后获得的额外黄心）。有没有金苹果效果、额外的心还有多少。返回的 data 中包含 absorption 字段（吸收血量），可供后续步骤引用。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.status"
+    data_field: "absorption"
+    method_chain:
+      - "getAbsorptionAmount"
+
+  get_player_arrows_in_body:
+    id: "get_player_arrows_in_body"
+    display_name: "获取玩家身上的箭"
+    description: "获取玩家身上插着的箭矢数量。身上有多少箭、被射了几箭。返回的 data 中包含 arrows_in_body 字段（箭矢数量），可供后续步骤引用。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.status"
+    data_field: "arrows_in_body"
+    method_chain:
+      - "getArrowsInBody"
+
+  get_player_no_damage_ticks:
+    id: "get_player_no_damage_ticks"
+    display_name: "获取玩家无敌帧"
+    description: "获取玩家当前的无敌帧（受伤后短暂免疫伤害的时间）。返回的 data 中包含 no_damage_ticks 和 max_no_damage_ticks 字段，可供后续步骤引用。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.status"
+    additional_methods:
+      no_damage_ticks: "getNoDamageTicks"
+      max_no_damage_ticks: "getMaximumNoDamageTicks"
+    result_template: "无敌帧：{no_damage_ticks}/{max_no_damage_ticks} tick"
+
+  get_player_fall_distance:
+    id: "get_player_fall_distance"
+    display_name: "获取玩家下落距离"
+    description: "获取玩家当前的下落距离（格）。摔了多高、掉落距离。返回的 data 中包含 fall_distance 字段（下落格数），可供后续步骤引用。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.status"
+    data_field: "fall_distance"
+    method_chain:
+      - "getFallDistance"
+
+  # ========================
+  # 环境感知
+  # ========================
+  get_player_feet_block:
+    id: "get_player_feet_block"
+    display_name: "获取脚下方块"
+    description: "获取玩家脚下踩着的方块类型和位置。站在什么上面、脚下是什么方块、下面是什么。返回的 data 中包含 block_type（方块类型）、x、y、z、world 字段，可供后续步骤引用。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.info"
+    method_chain:
+      - "getLocation"
+      - "getBlock"
+
+  get_player_last_damage:
+    id: "get_player_last_damage"
+    display_name: "获取上次受伤原因"
+    description: "获取玩家最近一次受到伤害的原因和伤害值。怎么死的、被什么打的、上次怎么受伤的、死因。返回的 data 中包含 damage_cause（伤害原因中文描述）、damage_amount（伤害值）字段；如果被实体攻击还包含 damager_type（攻击者类型）和 damager_name（攻击者名称）字段，可供后续步骤引用。注意：玩家未受过伤或服务器重启后可能返回空。"
+    target_type: "Player"
+    required_permission: "kilacraft.api.player.status"
+    method_chain:
+      - "getLastDamageCause"
+
   # ========================
   # 动作状态
   # ========================
@@ -577,6 +703,18 @@ world:
     required_permission: "kilacraft.api.world.info"
     method_chain:
       - "getSpawnLocation"
+
+  get_world_border:
+    id: "get_world_border"
+    display_name: "获取世界边界"
+    description: "获取当前世界的边界信息，包括边界大小和中心坐标。世界边界在哪、边界有多大、离边界多远。返回的 data 中包含 border_size（边界直径，单位格）、center_x（中心X坐标）、center_z（中心Z坐标）字段，可供后续步骤引用。"
+    target_type: "World"
+    required_permission: "kilacraft.api.world.info"
+    additional_methods:
+      border_size: "getWorldBorder.getSize"
+      center_x: "getWorldBorder.getCenter.getX"
+      center_z: "getWorldBorder.getCenter.getZ"
+    result_template: "世界边界：大小={border_size}格，中心：X={center_x}, Z={center_z}"
   
   get_world_height_limit:
     id: "get_world_height_limit"

@@ -2,7 +2,7 @@
 
 > **Version**: v1.4.5  
 > **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation  
-> **Plugin Version**: 1.4.5+
+> **Plugin Version**: 1.4.6+
 
 ---
 
@@ -1062,6 +1062,6 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 
 ---
 
-> **Last Updated**: 2026-04-09  
+> **Last Updated**: 2026-04-19  
 > **Plugin Version**: 1.4.5+  
 > **Tip**: Regularly update knowledge base to keep content synchronized with server

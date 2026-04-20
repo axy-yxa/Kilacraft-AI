@@ -1,6 +1,6 @@
 # Kilacraft-AI - 内置 Skill 与 Event 能力清单
 
-> **版本**: v1.4.5  
+> **版本**: v1.4.6  
 > **说明**: 本文档汇总了 Kilacraft-AI 内置的所有 Skill 动作和支持的 Bukkit Event 监听器，帮助服主和插件开发者快速了解插件的能力边界、集成的第三方插件以及安全风险。
 
 ---
@@ -303,7 +303,91 @@
 
 ---
 
-### 6. MarketQuerySkill - GlobalMarketPlus 插件集成
+### 6. BukkitStatsSkill - 原版统计数据查询
+
+**能力类型**: 玩家原版累计统计数据查询（生涯记录）  
+**依赖插件**: 纯 Bukkit 原生 API  
+**文件位置**: `skills/bukkit/BukkitStatsSkill.yml`  
+**实现类**: `BukkitStatsSkill.java`  
+**知识库**: `knowledge/statistics.md`（BM25 语义检索，80+ 统计枚举）
+
+#### 支持的动作
+
+| 动作 | 说明 | 必需参数 | 可选参数 | 返回 data 字段 |
+|------|------|----------|----------|---------------|
+| `query_statistic` | 查询指定统计项的值 | `statistic` | `entity_type`, `material` | `statistic`, `value`, `statistic_type` |
+
+#### 四种统计类型
+
+| 类型 | 说明 | 示例统计项 | 额外参数 |
+|------|------|-----------|----------|
+| UNTYPED | 无参数，直接查询 | DEATHS, PLAYER_KILLS, JUMP | 无 |
+| ITEM | 需要物品参数 | CRAFT_ITEM, USE_ITEM, BREAK_ITEM | `material` |
+| BLOCK | 需要方块参数 | MINE_BLOCK | `material` |
+| ENTITY | 需要实体参数 | KILL_ENTITY, ENTITY_KILLED_BY | `entity_type` |
+
+#### 典型统计项
+
+| 统计项 | 类型 | 说明 |
+|--------|------|------|
+| DEATHS | UNTYPED | 总死亡次数 |
+| PLAYER_KILLS | UNTYPED | 击杀玩家总数 |
+| MOB_KILLS | UNTYPED | 击杀生物总数 |
+| PLAY_ONE_MINUTE | UNTYPED | 游戏总时长（tick） |
+| TIME_SINCE_DEATH | UNTYPED | 距上次死亡的时间（tick） |
+| WALK_ONE_CM | UNTYPED | 行走总距离（厘米） |
+| JUMP | UNTYPED | 跳跃总次数 |
+| KILL_ENTITY | ENTITY | 击杀指定生物次数 |
+| ENTITY_KILLED_BY | ENTITY | 被指定生物击杀次数 |
+| MINE_BLOCK | BLOCK | 挖掘指定方块次数 |
+| CRAFT_ITEM | ITEM | 合成指定物品次数 |
+
+#### 智能格式化
+
+- **距离统计**：自动转换厘米 → 米/公里（如 1234567 厘米 → 12.3 公里）
+- **时长统计**：自动转换 tick → 可读时间（如 72000 tick → 1 小时）
+- **EntityType 翻译**：30+ 常见实体中文名称
+- **Material 翻译**：复用 ItemTranslator
+
+#### 核心特性
+
+- ✅ **知识库驱动**: 统计枚举通过 BM25 检索匹配，LLM 自动获取正确枚举名
+- ✅ **多步骤数据传递**: 返回 value 字段，支持 AFK CUSTOM 轮询条件监控
+- ✅ **参数校验**: 自动验证 Material/EntityType 合法性
+- ✅ **累计统计边界**: 明确与当前状态（血量/饱食度/等级）查询的区分
+
+#### 典型使用场景
+
+```
+玩家: 我总共死了多少次
+→ BukkitStatsSkill (query_statistic)
+    statistic: DEATHS
+    返回: 总死亡次数：42
+
+玩家: 我杀了多少僵尸
+→ BukkitStatsSkill (query_statistic)
+    statistic: KILL_ENTITY
+    entity_type: ZOMBIE
+    返回: 击杀生物（僵尸）：15
+
+玩家: 我走了多远
+→ BukkitStatsSkill (query_statistic)
+    statistic: WALK_ONE_CM
+    返回: 行走距离：12.5 公里
+
+玩家: 帮我盯着我的飞行距离，突破10万格就放烟花
+→ 多步骤任务：
+    Step 1: BukkitStatsSkill (query_statistic)
+            statistic: AVIATE_ONE_CM
+    Step 2: CUSTOM 挂机任务
+            condition: "{step_1.value} > 10000000"
+            callback: BukkitFXSkill (spawn_particle)
+                    particle: FIREWORKS_SPARK, count: 50
+```
+
+---
+
+### 7. MarketQuerySkill - GlobalMarketPlus 插件集成
 
 **能力类型**: 市场信息查询  
 **依赖插件**: GlobalMarketPlus (v1.3.8.0+)  
@@ -458,8 +542,8 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 
 ---
 
-> **最后更新**: 2026-04-17  
-> **插件版本**: 1.4.5+  
+> **最后更新**: 2026-04-19  
+> **插件版本**: 1.4.6+  
 > **Skill 总数**: 6 个（AFKTaskSkill、GenericBukkitAPI、CMISkill、CommandSkill、BukkitFXSkill、MarketQuerySkill）  
 > **API 动作总数**: 60+ 个（GenericBukkitAPI）+ 8 个（CMISkill）+ 2 个（BukkitFXSkill）+ 7 个（MarketQuerySkill）  
 > **Event 监听器总数**: 11 个（S 级 7 个 + A 级 4 个）

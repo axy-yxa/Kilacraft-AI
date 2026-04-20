@@ -6,7 +6,7 @@
 
 Plan-and-Execute Architecture · Natural Language · Zero Dependencies · Fully Open Source
 
-[![Version](https://img.shields.io/badge/Version-1.4.5-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
+[![Version](https://img.shields.io/badge/Version-1.4.6-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
@@ -24,10 +24,11 @@ Built on Plan-and-Execute + Function Calling architecture. Single JAR, no databa
 |:---:|:---|:---|
 | 🤖 | **AI Engine** | LLM intent recognition · Multi-step task planning & execution · RAG knowledge base · 5 output carriers · Streaming output · Secondary analysis coordinator · Public broadcast · Response sound effects |
 | 💰 | **Economy** | GlobalMarketPlus integration · Natural language balance/price/listing queries · Multi-item search |
-| 🔍 | **Bukkit API** | 58 built-in read-only APIs · YAML data-driven · Multi-step data passing (with array indexing) · Fine-grained permissions |
+| 🔍 | **Bukkit API** | 72 built-in read-only APIs · YAML data-driven · Multi-step data passing (with array indexing) · Fine-grained permissions |
 | 🎮 | **CMI Integration** | Teleport (home/warp/TPA) · Enhanced player info (playtime/AFK/vanish/armor/online list) |
 | 🔧 | **Command Execution** | Execute commands as player · Full server permission inheritance · Config toggle + permission node |
 | 🎨 | **Sound & Particles** | AI-triggered sounds/particles · Only caller perceives · YAML-driven config |
+| 📊 | **Vanilla Stats** | 80+ vanilla statistics query · Knowledge base BM25 retrieval · Distance/time auto-conversion · Multi-step condition monitoring |
 | 🔔 | **AFK Tasks** | 12 types (11 event listeners + CUSTOM polling) · Natural language creation · Notification/callback dual mode |
 | 🎭 | **Personalization** | Multi-personality system · RAG knowledge enhancement (HanLP + BM25) · Custom dictionary · Full language config |
 | 🔌 | **SPI Extension** | Third-party Skill registration · Plugin command mode · Complete dev docs |
@@ -35,7 +36,7 @@ Built on Plan-and-Execute + Function Calling architecture. Single JAR, no databa
 
 ## Quick Start
 
-**1.** Download [Kilacraft-AI-1.4.5.jar](https://github.com/Zm-Mmm/Kilacraft-AI/releases) and place it in `plugins/`
+**1.** Download [Kilacraft-AI-1.4.6.jar](https://github.com/Zm-Mmm/Kilacraft-AI/releases) and place it in `plugins/`
 
 **2.** Edit `plugins/Kilacraft-AI/config.yml` with your API key:
 

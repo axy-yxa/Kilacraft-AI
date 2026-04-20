@@ -6,6 +6,40 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
+## v1.4.6 - BukkitStatsSkill Statistics Query, Environment Perception APIs, Three-Layer Inventory Design
+
+### ✨ New Features
+- **BukkitStatsSkill Vanilla Statistics Query**: Query player Minecraft vanilla cumulative statistics (career records)
+  - Knowledge base driven: `knowledge/statistics.md` provides BM25 retrieval for 80+ statistic enums
+  - Supports four statistic types: UNTYPED (no param), ITEM (requires material), BLOCK (requires material), ENTITY (requires entity_type)
+  - Smart formatting: distance auto-converts cm → meters/km, time auto-converts ticks → readable time
+  - Multi-step data passing: returns statistic/value/statistic_type fields, supports AFK CUSTOM polling condition monitoring
+  - 30+ common EntityType Chinese translations, Material reuses ItemTranslator
+- **14 New BukkitAPI Configurations**:
+  - **Three-layer Inventory Design**: Ultra-lightweight (inventory_usage) → Summary (inventory/ender_chest) → Container content (open_container)
+  - **Environment Perception**: Feet block (feet_block), last damage cause (last_damage), world border (world_border)
+  - **Combat Assistance**: Absorption hearts, arrows in body, invincibility ticks, fall distance
+  - **Exploration Assistance**: Currently open inventory, compass target location
+- **Full DamageCause Enum Translation**: 33 damage causes covered (1.16.5 compatible)
+
+### 🔧 Improvements
+- **Knowledge Base Driven Skill Pattern**: BukkitStatsSkill and BukkitFXSkill adopt unified architecture — knowledge base retrieval + LLM parameter passing
+- **Skill Description Standard**: All query Skill action descriptions must declare returned data fields, ensuring multi-step task placeholder references
+- **Hints Conflict Avoidance**: Clear boundary between "cumulative statistics vs current state", preventing conflicts with HP/hunger real-time state queries
+
+### 📚 Documentation Updates
+- **Built-in Skills and Events Capability List**: Added BukkitStatsSkill and 14 new APIs
+- **Bukkit API Reference**: Added 14 new API details
+- **Changelog**: Chinese and English synchronized
+- **README**: Updated Bukkit API count 58 → 72
+
+### ⚠️ Compatibility
+- New `bukkit_stats` Skill (knowledge base `statistics.md` auto-loads)
+- New permission node: `kilacraft.bukkit_stats` (default true)
+- Fully backward compatible, no existing config changes needed
+
+---
+
 ## v1.4.5 - Folia/lophine Thread Safety, Stream Output Feature, AI Response Pipeline Refactor, SIDEBAR Carrier
 
 ### ✨ New Features
@@ -504,4 +538,4 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ---
 
-**Last Updated**: 2026-04-15
+**Last Updated**: 2026-04-19

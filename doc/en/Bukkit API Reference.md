@@ -1,13 +1,13 @@
 # Kilacraft-AI - Bukkit API Reference Manual
 
-> **Version**: v1.4.5  
+> **Version**: v1.4.6  
 > **Description**: This document provides detailed explanations, configuration examples, and usage scenarios for all built-in Bukkit APIs
 
 ---
 
 ## 📊 Bukkit API Quick Reference
 
-### 👤 Player APIs (31)
+### 👤 Player APIs (45)
 
 | API ID | Display Name | Function | Call Mode | Permission |
 |--------|-------------|----------|-----------|------------|
@@ -42,8 +42,20 @@
 | `get_player_is_banned` | Get Player Ban Status | Check if banned | method_chain | `kilacraft.api.player.info` |
 | `get_player_is_op` | Get Player OP Status | Check if OP | method_chain | `kilacraft.api.player.info` |
 | `get_player_is_online` | Get Player Online Status | Check if online | method_chain | `kilacraft.api.player.info` |
+| `get_player_inventory_usage` | Get Inventory Usage | Get occupied slots/total/% | additional_methods | `kilacraft.api.player.inventory` |
+| `get_player_inventory` | Get Inventory Summary | Get inventory items name+amount | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_ender_chest` | Get Ender Chest Summary | Get ender chest items name+amount | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_open_container` | Get Open Container Content | Get current open container items | additional_methods | `kilacraft.api.player.inventory` |
+| `get_player_open_inventory` | Get Open Inventory | Get currently viewing container/type | additional_methods | `kilacraft.api.player.info` |
+| `get_player_absorption` | Get Absorption Hearts | Get extra absorption health | method_chain | `kilacraft.api.player.status` |
+| `get_player_arrows_in_body` | Get Arrows in Body | Get embedded arrow count | method_chain | `kilacraft.api.player.status` |
+| `get_player_no_damage_ticks` | Get No Damage Ticks | Get invincibility time after hit | method_chain | `kilacraft.api.player.status` |
+| `get_player_fall_distance` | Get Fall Distance | Get accumulated fall distance | method_chain | `kilacraft.api.player.status` |
+| `get_player_compass_target` | Get Compass Target | Get compass pointing coordinates | additional_methods | `kilacraft.api.player.info` |
+| `get_player_feet_block` | Get Feet Block | Get block standing on | method_chain | `kilacraft.api.player.info` |
+| `get_player_last_damage` | Get Last Damage | Get last damage source/cause/amount | method_chain | `kilacraft.api.player.status` |
 
-### 🌍 World APIs (21)
+### 🌍 World APIs (22)
 
 | API ID | Display Name | Function | Call Mode | Permission |
 |--------|-------------|----------|-----------|------------|
@@ -68,6 +80,7 @@
 | `get_world_is_hardcore` | Get Hardcore Status | Check if hardcore mode | method_chain | `kilacraft.api.world.info` |
 | `get_world_is_natural_regeneration` | Get Natural Regen | Check natural regeneration | method_chain | `kilacraft.api.world.info` |
 | `get_world_ultra_warm` | Get Ultra Warm | Check if ultra warm | method_chain | `kilacraft.api.world.info` |
+| `get_world_border` | Get World Border | Get border center/size/damage | method_chain | `kilacraft.api.world.info` |
 
 ### 🖥️ Server APIs (6)
 
@@ -1812,6 +1825,6 @@ BukkitAPIExecutor uses reflection to call methods, and JVM automatically optimiz
 
 ---
 
-> **Last Updated**: 2026-04-08  
-> **Plugin Version**: 1.4.5+  
+> **Last Updated**: 2026-04-19  
+> **Plugin Version**: 1.4.6+  
 > **Total APIs**: 58 (Player 31 + World 21 + Server 6)

@@ -1,7 +1,7 @@
 # Kilacraft-AI Document Index
 > **Version**: v1.4.5  
 > **Language**: English  
-> **Last Updated**: 2026-04-16
+> **Last Updated**: 2026-04-19
 ---
 ## 📚 Document Overview
 This document index lists all Chinese technical documents of the Kilacraft-AI project to help you quickly find the required information.

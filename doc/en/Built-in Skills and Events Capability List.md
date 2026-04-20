@@ -1,6 +1,6 @@
 # Kilacraft-AI - Built-in Skills and Events Capability List
 
-> **Version**: v1.4.5
+> **Version**: v1.4.6
 > **Description**: This document summarizes all built-in Skill actions and supported Bukkit Event listeners of Kilacraft-AI, helping server administrators and plugin developers quickly understand the plugin's capabilities, integrated third-party plugins, and security risks.
 
 ---
@@ -303,7 +303,91 @@ Player: Show some heart particles
 
 ---
 
-### 6. MarketQuerySkill - GlobalMarketPlus Plugin Integration
+### 6. BukkitStatsSkill - Vanilla Statistics Query
+
+**Capability Type**: Player Vanilla Cumulative Statistics Query (Career Records)  
+**Dependency Plugin**: Pure Bukkit Native API  
+**File Location**: `skills/bukkit/BukkitStatsSkill.yml`  
+**Implementation Class**: `BukkitStatsSkill.java`  
+**Knowledge Base**: `knowledge/statistics.md` (BM25 semantic retrieval, 80+ statistic enums)
+
+#### Supported Actions
+
+| Action | Description | Required Params | Optional Params | Returned Data Fields |
+|--------|-------------|-----------------|-----------------|---------------------|
+| `query_statistic` | Query specified statistic value | `statistic` | `entity_type`, `material` | `statistic`, `value`, `statistic_type` |
+
+#### Four Statistic Types
+
+| Type | Description | Example Statistics | Extra Param |
+|------|-------------|-------------------|-------------|
+| UNTYPED | No parameter, direct query | DEATHS, PLAYER_KILLS, JUMP | None |
+| ITEM | Requires item parameter | CRAFT_ITEM, USE_ITEM, BREAK_ITEM | `material` |
+| BLOCK | Requires block parameter | MINE_BLOCK | `material` |
+| ENTITY | Requires entity parameter | KILL_ENTITY, ENTITY_KILLED_BY | `entity_type` |
+
+#### Typical Statistics
+
+| Statistic | Type | Description |
+|-----------|------|-------------|
+| DEATHS | UNTYPED | Total death count |
+| PLAYER_KILLS | UNTYPED | Total player kills |
+| MOB_KILLS | UNTYPED | Total mob kills |
+| PLAY_ONE_MINUTE | UNTYPED | Total game time (ticks) |
+| TIME_SINCE_DEATH | UNTYPED | Time since last death (ticks) |
+| WALK_ONE_CM | UNTYPED | Total walking distance (cm) |
+| JUMP | UNTYPED | Total jump count |
+| KILL_ENTITY | ENTITY | Kills of specified entity |
+| ENTITY_KILLED_BY | ENTITY | Times killed by specified entity |
+| MINE_BLOCK | BLOCK | Times mined specified block |
+| CRAFT_ITEM | ITEM | Times crafted specified item |
+
+#### Smart Formatting
+
+- **Distance Stats**: Auto-converts cm → meters/km (e.g., 1234567 cm → 12.3 km)
+- **Time Stats**: Auto-converts ticks → readable time (e.g., 72000 ticks → 1 hour)
+- **EntityType Translation**: 30+ common entity Chinese names
+- **Material Translation**: Reuses ItemTranslator
+
+#### Core Features
+
+- ✅ **Knowledge Base Driven**: Statistic enums matched via BM25 retrieval, LLM auto-gets correct enum name
+- ✅ **Multi-step Data Passing**: Returns value field, supports AFK CUSTOM polling condition monitoring
+- ✅ **Parameter Validation**: Auto-validates Material/EntityType legality
+- ✅ **Cumulative Stats Boundary**: Clear distinction from current state (HP/hunger/level) queries
+
+#### Typical Use Cases
+
+```
+Player: How many times have I died in total
+→ BukkitStatsSkill (query_statistic)
+    statistic: DEATHS
+    Returns: Total death count: 42
+
+Player: How many zombies have I killed
+→ BukkitStatsSkill (query_statistic)
+    statistic: KILL_ENTITY
+    entity_type: ZOMBIE
+    Returns: Entity kills (Zombie): 15
+
+Player: How far have I walked
+→ BukkitStatsSkill (query_statistic)
+    statistic: WALK_ONE_CM
+    Returns: Walking distance: 12.5 km
+
+Player: Watch my elytra flight distance, celebrate with fireworks when it exceeds 100,000 blocks
+→ Multi-step task:
+    Step 1: BukkitStatsSkill (query_statistic)
+            statistic: AVIATE_ONE_CM
+    Step 2: CUSTOM AFK task
+            condition: "{step_1.value} > 10000000"
+            callback: BukkitFXSkill (spawn_particle)
+                    particle: FIREWORKS_SPARK, count: 50
+```
+
+---
+
+### 7. MarketQuerySkill - GlobalMarketPlus Plugin Integration
 
 **Capability Type**: Market Information Query
 **Dependency Plugin**: GlobalMarketPlus (v1.3.8.0+)
@@ -458,8 +542,8 @@ Kilacraft-AI v1.4.5 introduces a **non-cooperative security filtering mechanism*
 
 ---
 
-> **Last Updated**: 2026-04-17  
-> **Plugin Version**: 1.4.5+  
+> **Last Updated**: 2026-04-19  
+> **Plugin Version**: 1.4.6+  
 > **Total Skills**: 6 (AFKTaskSkill, GenericBukkitAPI, CMISkill, CommandSkill, BukkitFXSkill, MarketQuerySkill)  
 > **Total API Actions**: 60+ (GenericBukkitAPI) + 8 (CMISkill) + 2 (BukkitFXSkill) + 7 (MarketQuerySkill)  
 > **Total Event Listeners**: 11 (S-level 7 + A-level 4)
