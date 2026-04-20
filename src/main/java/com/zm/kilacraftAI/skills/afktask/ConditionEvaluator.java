@@ -102,6 +102,18 @@ public class ConditionEvaluator {
             }
 
             // 5. 提取字段值
+            if (conditionPlan.getThresholdStr() != null) {
+                // 字符串比较路径（用于 equal/not_equal 的字符串阈值，如方块类型）
+                String strValue = extractStringValue(result, conditionPlan.getResultPath());
+                if (strValue == null) {
+                    PluginLogger.debug("条件评估", "无法提取字段: " + conditionPlan.getResultPath());
+                    return EvaluationResult.failed();
+                }
+                boolean meetsCondition = compareString(strValue, conditionPlan.getOperator(), conditionPlan.getThresholdStr());
+                return meetsCondition ? EvaluationResult.met(1.0) : EvaluationResult.notMet(0.0);
+            }
+
+            // 数值比较路径
             Double value = extractDoubleValue(result, conditionPlan.getResultPath());
             if (value == null) {
                 PluginLogger.debug("条件评估", "无法提取字段: " + conditionPlan.getResultPath());
@@ -191,6 +203,32 @@ public class ConditionEvaluator {
             case "greater_than_or_equal" -> actualValue >= threshold;
             case "equal" -> Math.abs(actualValue - threshold) < 0.0001;
             case "not_equal" -> Math.abs(actualValue - threshold) >= 0.0001;
+            default -> false;
+        };
+    }
+
+    /**
+     * 从 SkillResult 中提取字符串值
+     */
+    private static String extractStringValue(SkillResult result, String resultPath) {
+        if (resultPath == null || resultPath.isEmpty()) return null;
+        try {
+            Map<String, Object> data = result.getDataMap();
+            if (data == null || !data.containsKey(resultPath)) return null;
+            Object value = data.get(resultPath);
+            return value != null ? value.toString() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 执行字符串比较（仅支持 equal / not_equal）
+     */
+    private static boolean compareString(String actualValue, String operator, String threshold) {
+        return switch (operator != null ? operator : "") {
+            case "equal" -> actualValue.equals(threshold);
+            case "not_equal" -> !actualValue.equals(threshold);
             default -> false;
         };
     }

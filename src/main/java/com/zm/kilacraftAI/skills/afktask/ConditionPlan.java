@@ -70,6 +70,12 @@ public class ConditionPlan {
     private final double threshold;
 
     /**
+     * 字符串阈值（用于 equal/not_equal 的字符串比较，如方块类型 GRASS_BLOCK）
+     * <p>为 null 时使用数值比较，非 null 时使用字符串比较</p>
+     */
+    private final String thresholdStr;
+
+    /**
      * 条件技能的执行参数（传递给 SkillContext 的 entities）
      *
      * <p>某些条件技能需要额外参数才能执行（如 market_query.query_availability 需要 item 参数），
@@ -87,7 +93,7 @@ public class ConditionPlan {
      * @param threshold       阈值
      */
     public ConditionPlan(String conditionSkill, String conditionAction, String resultPath, String operator, double threshold) {
-        this(conditionSkill, conditionAction, resultPath, operator, threshold, Collections.emptyMap());
+        this(conditionSkill, conditionAction, resultPath, operator, threshold, null, Collections.emptyMap());
     }
 
     /**
@@ -101,11 +107,19 @@ public class ConditionPlan {
      * @param conditionParams  条件技能的执行参数
      */
     public ConditionPlan(String conditionSkill, String conditionAction, String resultPath, String operator, double threshold, Map<String, String> conditionParams) {
+        this(conditionSkill, conditionAction, resultPath, operator, threshold, null, conditionParams);
+    }
+
+    /**
+     * 全参构造（含字符串阈值和条件技能参数）
+     */
+    public ConditionPlan(String conditionSkill, String conditionAction, String resultPath, String operator, double threshold, String thresholdStr, Map<String, String> conditionParams) {
         this.conditionSkill = conditionSkill;
         this.conditionAction = conditionAction;
         this.resultPath = resultPath;
         this.operator = operator;
         this.threshold = threshold;
+        this.thresholdStr = thresholdStr;
         this.conditionParams = conditionParams != null ? conditionParams : Collections.emptyMap();
     }
 
@@ -142,6 +156,7 @@ public class ConditionPlan {
     @Override
     public String toString() {
         String paramsStr = conditionParams.isEmpty() ? "" : ", params=" + conditionParams;
-        return String.format("%s.%s → %s %s %.1f%s", conditionSkill, conditionAction, resultPath, getOperatorDescription(), threshold, paramsStr);
+        String thresholdDisplay = thresholdStr != null ? "\"" + thresholdStr + "\"" : String.format("%.1f", threshold);
+        return String.format("%s.%s → %s %s %s%s", conditionSkill, conditionAction, resultPath, getOperatorDescription(), thresholdDisplay, paramsStr);
     }
 }

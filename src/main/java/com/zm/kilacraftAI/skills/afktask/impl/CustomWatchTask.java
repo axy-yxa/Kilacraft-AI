@@ -117,14 +117,20 @@ public class CustomWatchTask extends AFKTask {
         }
         try {
             JsonObject obj = GSON.fromJson(json, JsonObject.class);
-            // threshold 支持布尔值和数值：LLM 可能对布尔型字段（如 available）生成 true/false
-            // 布尔转换规则：true → 1.0, false → 0.0，与 ConditionEvaluator 中布尔结果转换一致
+            // threshold 支持布尔值、数值和字符串：
+            // - 布尔值：true → 1.0, false → 0.0，与 ConditionEvaluator 中布尔结果转换一致
+            // - 数值：直接使用 double
+            // - 字符串：用于 equal/not_equal 的字符串比较（如方块类型 GRASS_BLOCK）
             JsonElement thresholdEl = obj.get("threshold");
-            double thresholdValue;
+            double thresholdValue = 0;
+            String thresholdStr = null;
             if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isBoolean()) {
                 thresholdValue = thresholdEl.getAsBoolean() ? 1.0 : 0.0;
-            } else {
+            } else if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isNumber()) {
                 thresholdValue = thresholdEl.getAsDouble();
+            } else {
+                // 字符串阈值（如 GRASS_BLOCK），仅用于 equal/not_equal
+                thresholdStr = thresholdEl.getAsString();
             }
             // 解析 condition_params（条件技能的执行参数，如 item=经验瓶）
             Map<String, String> conditionParams = Collections.emptyMap();
@@ -132,7 +138,7 @@ public class CustomWatchTask extends AFKTask {
             if (paramsEl != null && paramsEl.isJsonObject()) {
                 conditionParams = GSON.fromJson(paramsEl, new TypeToken<Map<String, String>>() {}.getType());
             }
-            return new ConditionPlan(obj.get("condition_skill").getAsString(), obj.get("condition_action").getAsString(), obj.get("result_path").getAsString(), obj.get("operator").getAsString(), thresholdValue, conditionParams);
+            return new ConditionPlan(obj.get("condition_skill").getAsString(), obj.get("condition_action").getAsString(), obj.get("result_path").getAsString(), obj.get("operator").getAsString(), thresholdValue, thresholdStr, conditionParams);
         } catch (Exception e) {
             PluginLogger.warn("挂机任务", "解析condition_plan JSON失败: " + e.getMessage(), e);
             return null;
@@ -322,11 +328,16 @@ public class CustomWatchTask extends AFKTask {
     private void notifyConditionMet(Double actualValue) {
         // 构建丰富的条件描述（面向 LLM 二次分析，需包含足够上下文让 LLM 生成友好的通知）
         String currentValueStr = actualValue != null ? String.valueOf(actualValue) : "未知";
+        // 字符串阈值场景：显示实际字符串值而非 numeric
+        if (conditionPlan.getThresholdStr() != null) {
+            currentValueStr = conditionPlan.getThresholdStr(); // 字符串匹配时，当前值就是阈值本身
+        }
+        String thresholdDisplay = conditionPlan.getThresholdStr() != null ? conditionPlan.getThresholdStr() : String.valueOf(conditionPlan.getThreshold());
         StringBuilder eventDesc = new StringBuilder();
         eventDesc.append("挂机任务条件满足：");
         eventDesc.append(conditionPlan.getConditionSkill()).append(".").append(conditionPlan.getConditionAction());
         eventDesc.append(" 返回的 ").append(conditionPlan.getResultPath());
-        eventDesc.append(" ").append(conditionPlan.getOperatorDescription()).append(" ").append(conditionPlan.getThreshold());
+        eventDesc.append(" ").append(conditionPlan.getOperatorDescription()).append(" ").append(thresholdDisplay);
         eventDesc.append("（当前值：").append(currentValueStr).append("）");
         // 附加条件参数，让 LLM 知道监控的具体对象
         if (!conditionPlan.getConditionParams().isEmpty()) {
