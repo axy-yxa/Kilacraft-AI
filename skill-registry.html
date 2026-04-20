@@ -125,8 +125,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Kilacraft-AI SPI Skill 实时数据清单</h1>
-        <div class="subtitle" id="subtitle">数据来源：bStats 实时统计 | 加载中...</div>
+        <h1>Kilacraft-AI Skill 实时数据清单</h1>
+        <div class="subtitle" id="subtitle">数据来源：bStats 实时统计</div>
         
         <div id="content">
             <div class="loading">正在从 bStats 加载数据...</div>
@@ -169,45 +169,57 @@
         
         /**
          * 从 bStats API 获取 Skill 数据
+         * bStats SimplePie API 返回格式: [{"name": "jsonString", "y": serverCount}, ...]
          */
         async function fetchSkillData() {
             const response = await fetch(BSTATS_API);
             if (!response.ok) {
                 throw new Error('bStats API 请求失败');
             }
-            return await response.json();
+            const rawData = await response.json();
+
+            // 无数据时返回空数组
+            if (!Array.isArray(rawData) || rawData.length === 0) {
+                return [];
+            }
+
+            // 解析 SimplePie 格式: [{name: JSON字符串, y: 服务器数}]
+            const allSkills = [];
+            for (const item of rawData) {
+                try {
+                    const skills = JSON.parse(item.name);
+                    skills.forEach(skill => {
+                        allSkills.push({
+                            ...skill,
+                            serverCount: item.y
+                        });
+                    });
+                } catch (e) {
+                    console.warn('解析 Skill 条目失败:', e);
+                }
+            }
+            return allSkills;
         }
         
         /**
-         * 解析并合并所有服务器上报的 Skill 数据
+         * 合并来自多个服务器上报的 Skill 数据（累加 serverCount）
          */
-        function parseAndMergeSkills(bstatsData) {
+        function parseAndMergeSkills(rawSkills) {
             const skillMap = new Map();
-            
-            bstatsData.data.forEach(item => {
-                try {
-                    const skills = JSON.parse(item.name);
-                    const serverCount = item.value;
-                    
-                    skills.forEach(skill => {
-                        if (!skillMap.has(skill.n)) {
-                            skillMap.set(skill.n, {
-                                name: skill.n,
-                                type: skill.t,
-                                sourcePlugin: skill.s,
-                                serverCount: serverCount
-                            });
-                        } else {
-                            // 如果已存在，累加服务器数
-                            const existing = skillMap.get(skill.n);
-                            existing.serverCount += serverCount;
-                        }
+
+            for (const skill of rawSkills) {
+                if (!skillMap.has(skill.name)) {
+                    skillMap.set(skill.name, {
+                        name: skill.name,
+                        type: skill.type,
+                        sourcePlugin: skill.sourcePlugin,
+                        serverCount: skill.serverCount
                     });
-                } catch (error) {
-                    console.warn('解析 Skill 数据失败:', error);
+                } else {
+                    skillMap.get(skill.name).serverCount += skill.serverCount;
                 }
-            });
-            
+            }
+
             return Array.from(skillMap.values());
         }
         
@@ -279,6 +291,18 @@
                 
                 // 解析并合并数据
                 const skills = parseAndMergeSkills(bstatsData);
+
+                if (skills.length === 0) {
+                    document.getElementById('content').innerHTML = `
+                        <div class="error">
+                            <strong>暂无数据</strong><br>
+                            bStats 尚未收到 Skill 上报数据。插件首次启动后需等待约 30 分钟让 bStats 采集数据。<br>
+                            您可以 <a href="javascript:void(0)" onclick="main()">点击刷新</a> 或稍后再试。
+                        </div>
+                    `;
+                    document.getElementById('lastUpdate').textContent = now.toLocaleString('zh-CN');
+                    return;
+                }
                 
                 // 渲染表格
                 renderTable(skills, whitelist);
