@@ -74,6 +74,7 @@ public class BukkitAPIExecutor {
         // Folia 端特殊处理：
         // - 通过 invokeOnMainThread 调用的方法已经在区域线程内提取为 Map
         // - 只有未调度到区域线程的方法（不在 MAIN_THREAD_METHODS 中）才需要在此提取
+        // Paper 端特殊处理：某些方法异步调用返回非标准类型，需要 extractThreadSafeData 提取为纯数据 Map
         if (FoliaCompat.isFolia()) {
             return extractThreadSafeData(result, api.getId());
         }
@@ -155,11 +156,11 @@ public class BukkitAPIExecutor {
      * 这些方法涉及 Chunk/Entity/World/Inventory 操作，在异步线程调用会触发 NPE、AsyncCatcher 异常或返回空/过期数据
      * - getLivingEntities / getEntities：遍历 Chunk 中的实体
      * - getTargetBlock：射线追踪访问 BlockState（lophine 等端要求主线程，Spigot 端不强制但也不安全）
-     * - getStorageContents：访问 Inventory 内部的 ItemStack 数据（Paper 系异步访问可能返回空数组）
+     * - getStorageContents：访问 Inventory 内部的 ItemStack 数据（Paper 系异步访问可能返回空数组或非标准类型）
      * - getLastDamageCause：访问 Entity 内部的事件数据
      * - getBiome / getTemperature / getHumidity：通过坐标访问 Chunk 中的生物群系/气候数据
      */
-    private static final java.util.Set<String> MAIN_THREAD_METHODS = java.util.Set.of("getLivingEntities", "getEntities", "getTargetBlock", "getBlock", "getStorageContents", "getLastDamageCause", "getBiome", "getTemperature", "getHumidity");
+    private static final java.util.Set<String> MAIN_THREAD_METHODS = java.util.Set.of("getLivingEntities", "getEntities", "getTargetBlock", "getBlock", "getStorageContents", "getArmorContents", "getLastDamageCause", "getBiome", "getTemperature", "getHumidity");
 
     /**
      * 反射调用方法
@@ -433,7 +434,42 @@ public class BukkitAPIExecutor {
         // ItemStack[] 数组：在区域线程内提取为纯数据，避免跨线程访问
         // 根据方法链的最终方法名判断需要提取的粒度
         if (result instanceof org.bukkit.inventory.ItemStack[] contents) {
-            // 极轻量模式：只计数
+            // 盔甲专用提取：按槽位提取详细信息（必须在通用计数分支之前）
+            // methodName 可能是方法名 "getArmorContents"（invokeOnMainThread 路径）或 api.getId() "get_player_armor"（Folia 路径）
+            if ("getArmorContents".equals(methodName) || "get_player_armor".equals(methodName)) {
+                String[] slotNames = {"boots", "leggings", "chestplate", "helmet"};
+                Map<String, Object> armorData = new HashMap<>();
+                boolean hasArmor = false;
+                for (int i = 0; i < contents.length; i++) {
+                    org.bukkit.inventory.ItemStack item = contents[i];
+                    if (item != null && item.getType() != org.bukkit.Material.AIR) {
+                        hasArmor = true;
+                        String prefix = slotNames[i];
+                        armorData.put(prefix + "_type", item.getType().name());
+                        armorData.put(prefix + "_amount", item.getAmount());
+                        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+                            armorData.put(prefix + "_name", item.getItemMeta().getDisplayName());
+                        } else {
+                            armorData.put(prefix + "_name", com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(item.getType().name()));
+                        }
+                        if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
+                            Map<String, Integer> enchants = new HashMap<>();
+                            item.getItemMeta().getEnchants().forEach((ench, level) -> enchants.put(ench.getKey().getKey().toUpperCase(), level));
+                            armorData.put(prefix + "_enchantments", enchants);
+                        }
+                        if (item.getType().getMaxDurability() > 0) {
+                            armorData.put(prefix + "_max_durability", (int) item.getType().getMaxDurability());
+                            armorData.put(prefix + "_remaining_durability", (int) (item.getType().getMaxDurability() - item.getDurability()));
+                        }
+                    }
+                }
+                if (!hasArmor) {
+                    armorData.put("empty", true);
+                }
+                return armorData;
+            }
+
+            // 通用 ItemStack[] 处理：极轻量模式只计数
             int count = 0;
             for (org.bukkit.inventory.ItemStack item : contents) {
                 if (item != null && item.getType() != org.bukkit.Material.AIR) {

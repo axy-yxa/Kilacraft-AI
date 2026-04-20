@@ -309,9 +309,8 @@ public class GenericBukkitAPISkill implements Skill {
             dataMap.put("x", block.getX());
             dataMap.put("y", block.getY());
             dataMap.put("z", block.getZ());
-            if (block.getWorld() != null) {
-                dataMap.put("world", block.getWorld().getName());
-            }
+            block.getWorld();
+            dataMap.put("world", block.getWorld().getName());
         }
         // EntityDamageEvent：上次受伤原因（Spigot 路径，Folia 走 Map）
         else if (result instanceof org.bukkit.event.entity.EntityDamageEvent damageEvent && api != null && "get_player_last_damage".equals(api.getId())) {
@@ -319,13 +318,12 @@ public class GenericBukkitAPISkill implements Skill {
             dataMap.put("damage_amount", damageEvent.getDamage());
             if (damageEvent instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntityEvent) {
                 org.bukkit.entity.Entity damager = byEntityEvent.getDamager();
-                if (damager != null) {
-                    dataMap.put("damager_type", damager.getType().name());
-                    if (damager instanceof org.bukkit.entity.Player attacker) {
-                        dataMap.put("damager_name", attacker.getName());
-                    } else if (damager instanceof org.bukkit.entity.LivingEntity livingMob) {
-                        dataMap.put("damager_name", livingMob.getName() != null ? livingMob.getName() : damager.getType().name());
-                    }
+                dataMap.put("damager_type", damager.getType().name());
+                if (damager instanceof org.bukkit.entity.Player attacker) {
+                    dataMap.put("damager_name", attacker.getName());
+                } else if (damager instanceof org.bukkit.entity.LivingEntity livingMob) {
+                    livingMob.getName();
+                    dataMap.put("damager_name", livingMob.getName());
                 }
             }
         }
@@ -346,6 +344,10 @@ public class GenericBukkitAPISkill implements Skill {
         // 背包/末影箱/打开容器 Map（必须在通用 item/location Map 分支之前）
         if (result instanceof java.util.Map<?, ?> inventoryMap && (api.getId().equals("get_player_inventory_usage") || api.getId().equals("get_player_inventory") || api.getId().equals("get_player_ender_chest") || api.getId().equals("get_player_open_container"))) {
             return formatInventoryFromMap(api, inventoryMap);
+        }
+        // 盔甲装备 Map（Paper 系异步/主线程可能返回 Map 而非 ItemStack[]）
+        if (result instanceof java.util.Map<?, ?> armorMap && api.getId().equals("get_player_armor")) {
+            return formatArmorFromMap(armorMap);
         }
         if (result instanceof java.util.Map<?, ?> locationMap && api.getId().contains("location")) {
             return formatLocationFromMap(locationMap);
@@ -406,6 +408,19 @@ public class GenericBukkitAPISkill implements Skill {
             int percentage = Math.round(cooldown * 100);
             return "攻击冷却进度：" + percentage + "%";
         }
+        // 吸收之心（Double/Float 类型，结构化输出）
+        if ((result instanceof Double || result instanceof Float) && api.getId().equals("get_player_absorption")) {
+            double absorption = ((Number) result).doubleValue();
+            return "吸收之心：" + String.format("%.1f", absorption);
+        }
+        // 手持物品（单个 ItemStack，Spigot 路径）
+        if (result instanceof org.bukkit.inventory.ItemStack itemStack && (api.getId().equals("get_player_hand_item") || api.getId().equals("get_player_offhand_item"))) {
+            String label = api.getId().equals("get_player_hand_item") ? "主手物品" : "副手物品";
+            if (itemStack.getType() == org.bukkit.Material.AIR) {
+                return label + "：空手";
+            }
+            return formatSingleItemStack(label, itemStack);
+        }
         // 盔甲装备（ItemStack 数组）
         if (result instanceof org.bukkit.inventory.ItemStack[] armorContents && api.getId().equals("get_player_armor")) {
             return formatArmorContents(armorContents);
@@ -429,7 +444,8 @@ public class GenericBukkitAPISkill implements Skill {
                 try {
                     var invType = player.getOpenInventory().getType();
                     containerLabel = formatInventoryType(invType).replace("当前界面：", "");
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
             return formatInventorySummary(contents, containerLabel);
         }
@@ -478,6 +494,10 @@ public class GenericBukkitAPISkill implements Skill {
         // 升到下一级所需经验（Bukkit 原生方法）
         if (result instanceof Integer exp && api.getId().equals("get_player_exp_to_level")) {
             return "升到下一级需要：" + exp + " 点经验";
+        }
+        // 身上的箭（Integer 类型，结构化输出）
+        if (result instanceof Integer arrows && api.getId().equals("get_player_arrows_in_body")) {
+            return "身上的箭矢：" + arrows + " 支";
         }
 
         // additional_methods 模式返回的 Map
@@ -749,29 +769,49 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
+     * 格式化单个 ItemStack（Spigot 路径，直接持有 Bukkit 对象）
+     */
+    private String formatSingleItemStack(String label, org.bukkit.inventory.ItemStack item) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(label).append("：");
+        // 优先使用自定义名称，否则使用中文翻译
+        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+            sb.append(item.getItemMeta().getDisplayName());
+        } else {
+            String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(item.getType().name());
+            sb.append(chineseName);
+        }
+        if (item.getAmount() > 1) {
+            sb.append(" x").append(item.getAmount());
+        }
+        // 耐久度
+        if (item.getType().getMaxDurability() > 0) {
+            int max = item.getType().getMaxDurability();
+            int remaining = max - item.getDurability();
+            sb.append(" [耐久:").append(remaining).append("/").append(max).append("]");
+        }
+        // 附魔
+        if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
+            sb.append(" [附魔:");
+            boolean first = true;
+            for (Map.Entry<org.bukkit.enchantments.Enchantment, Integer> entry : item.getItemMeta().getEnchants().entrySet()) {
+                if (!first) sb.append("; ");
+                sb.append(entry.getKey().getKey().getKey().toUpperCase()).append(" ").append(toRoman(entry.getValue()));
+                first = false;
+            }
+            sb.append("]");
+        }
+        return sb.toString();
+    }
+
+    /**
      * 格式化 ItemStack（lophine 兼容版本：接收 Map）
      *
      * <p>注意：字段名必须与 extractThreadSafeData 和 extractDataFromResult 保持一致，
      * 使用标准化命名：item_type, item_name, item_amount</p>
      */
     private String formatItemStackFromMap(BukkitAPIMetadata api, java.util.Map<?, ?> itemMap) {
-        if (itemMap == null || itemMap.isEmpty()) {
-            return "空手";
-        }
-
-        // 使用标准化字段名（与 extractThreadSafeData 和 extractDataFromResult 一致）
-        String type = (String) itemMap.get("item_type");
-        if (type == null || type.equals("AIR")) {
-            return "空手";
-        }
-
-        int amount = itemMap.containsKey("item_amount") ? ((Number) itemMap.get("item_amount")).intValue() : 1;
-
-        // 优先使用 item_name（自定义名称或类型名）
-        String displayName = (String) itemMap.get("item_name");
-
-        StringBuilder sb = new StringBuilder();
-        // 根据API类型添加手部标识
+        // 根据API类型确定标签
         String label = "物品";
         if (api != null) {
             if (api.getId().equals("get_player_hand_item")) {
@@ -780,6 +820,22 @@ public class GenericBukkitAPISkill implements Skill {
                 label = "副手物品";
             }
         }
+        if (itemMap == null || itemMap.isEmpty()) {
+            return label + "：空手";
+        }
+
+        // 使用标准化字段名（与 extractThreadSafeData 和 extractDataFromResult 一致）
+        String type = (String) itemMap.get("item_type");
+        if (type == null || type.equals("AIR")) {
+            return label + "：空手";
+        }
+
+        int amount = itemMap.containsKey("item_amount") ? ((Number) itemMap.get("item_amount")).intValue() : 1;
+
+        // 优先使用 item_name（自定义名称或类型名）
+        String displayName = (String) itemMap.get("item_name");
+
+        StringBuilder sb = new StringBuilder();
         if (displayName != null) {
             sb.append(label).append("：").append(displayName);
         } else {
@@ -1056,6 +1112,72 @@ public class GenericBukkitAPISkill implements Skill {
     }
 
     /**
+     * 格式化盔甲装备（Map 格式，来自 Paper 异步或 Folia extractThreadSafeData）
+     * 字段名与 BukkitAPIExecutor.extractThreadSafeData 盔甲分支一致：
+     * {slot}_name, {slot}_type, {slot}_enchantments, {slot}_max_durability, {slot}_remaining_durability
+     * slot 名称：boots, leggings, chestplate, helmet
+     */
+    private String formatArmorFromMap(java.util.Map<?, ?> armorMap) {
+        if (armorMap == null || armorMap.isEmpty() || armorMap.containsKey("empty") || armorMap.containsKey("item_count")) {
+            // 空 Map 或标记为 empty 或旧格式（只有 item_count/empty_slots）
+            if (armorMap != null && armorMap.containsKey("item_count")) {
+                int count = armorMap.get("item_count") instanceof Number n ? n.intValue() : 0;
+                if (count > 0) {
+                    // 有盔甲但旧格式无法提取详情，提示重新查询
+                    return "盔甲：有 " + count + " 件装备";
+                }
+            }
+            return "盔甲：无";
+        }
+
+        // Bukkit 盔甲数组顺序：[靴子, 护腿, 胸甲, 头盔]
+        String[] slotKeys = {"boots", "leggings", "chestplate", "helmet"};
+        String[] slotNames = {"靴子", "护腿", "胸甲", "头盔"};
+        StringBuilder sb = new StringBuilder();
+        boolean hasArmor = false;
+
+        for (int i = 0; i < slotKeys.length; i++) {
+            String prefix = slotKeys[i];
+            String nameKey = prefix + "_name";
+            if (armorMap.containsKey(nameKey)) {
+                if (hasArmor) sb.append("; ");
+                sb.append(slotNames[i]).append("：");
+
+                // 名称
+                Object nameObj = armorMap.get(nameKey);
+                sb.append(nameObj != null ? nameObj.toString() : "未知");
+
+                // 耐久度
+                String remainingKey = prefix + "_remaining_durability";
+                String maxKey = prefix + "_max_durability";
+                if (armorMap.containsKey(remainingKey) && armorMap.containsKey(maxKey)) {
+                    int remaining = armorMap.get(remainingKey) instanceof Number n ? n.intValue() : 0;
+                    int max = armorMap.get(maxKey) instanceof Number n ? n.intValue() : 0;
+                    sb.append(" [耐久:").append(remaining).append("/").append(max).append("]");
+                }
+
+                // 附魔
+                String enchKey = prefix + "_enchantments";
+                if (armorMap.containsKey(enchKey) && armorMap.get(enchKey) instanceof Map<?, ?> enchants) {
+                    sb.append(" [附魔:");
+                    boolean first = true;
+                    for (Map.Entry<?, ?> entry : enchants.entrySet()) {
+                        if (!first) sb.append("; ");
+                        String enchName = entry.getKey().toString();
+                        int level = entry.getValue() instanceof Number n ? n.intValue() : 0;
+                        sb.append(enchName).append(" ").append(toRoman(level));
+                        first = false;
+                    }
+                    sb.append("]");
+                }
+                hasArmor = true;
+            }
+        }
+
+        return hasArmor ? "盔甲：" + sb : "盔甲：无";
+    }
+
+    /**
      * 格式化上次受伤原因（Folia Map 路径）
      */
     private String formatDamageFromMap(java.util.Map<?, ?> damageMap) {
@@ -1083,8 +1205,7 @@ public class GenericBukkitAPISkill implements Skill {
         if (damageEvent instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntityEvent) {
             org.bukkit.entity.Entity damager = byEntityEvent.getDamager();
             if (damager != null) {
-                String name = damager instanceof org.bukkit.entity.Player p ? p.getName() :
-                        (damager instanceof org.bukkit.entity.LivingEntity m ? (m.getName() != null ? m.getName() : m.getType().name()) : damager.getType().name());
+                String name = damager instanceof org.bukkit.entity.Player p ? p.getName() : (damager instanceof org.bukkit.entity.LivingEntity m ? (m.getName() != null ? m.getName() : m.getType().name()) : damager.getType().name());
                 sb.append("，攻击者：").append(name);
             }
         }
@@ -1132,8 +1253,7 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatDamageCauseByName(String causeName) {
         try {
-            org.bukkit.event.entity.EntityDamageEvent.DamageCause cause =
-                    org.bukkit.event.entity.EntityDamageEvent.DamageCause.valueOf(causeName);
+            org.bukkit.event.entity.EntityDamageEvent.DamageCause cause = org.bukkit.event.entity.EntityDamageEvent.DamageCause.valueOf(causeName);
             return formatDamageCause(cause);
         } catch (IllegalArgumentException e) {
             return causeName;
