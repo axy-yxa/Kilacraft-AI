@@ -8,7 +8,7 @@
       "verifiedDate": "验证日期（YYYY-MM-DD）"
     }
   },
-  "HelloWorldSkill": {
+  "hello_world": {
     "author": "axy-yxa",
     "description": "示例 Skill，用于测试 SPI 接入功能。向玩家发送问候消息。",
     "docLink": "https://github.com/axy-yxa/Kilacraft-AI/wiki",
