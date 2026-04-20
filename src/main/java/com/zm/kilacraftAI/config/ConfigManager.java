@@ -194,7 +194,7 @@ public class ConfigManager {
 
         // 知识库分段配置
         this.knowledgeMaxChunkSize = config.getInt("knowledge.segment.max_size", 500);
-        this.knowledgeMinChunkSize = config.getInt("knowledge.segment.min_size", 25);
+        this.knowledgeMinChunkSize = config.getInt("knowledge.segment.min_size", 20);
         this.knowledgeChunkOverlap = config.getInt("knowledge.segment.overlap", 30);
 
         // 关键词提取配置
