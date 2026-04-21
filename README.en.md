@@ -135,7 +135,7 @@ Want your Skill to be whitelisted in the global registry? After review, users wi
 
 Once approved, I'll add your Skill to the whitelist and mark it as 🟢 Verified on the registry page.
 
-## Sponsor & Support
+---
 
 <div align="center">
 
@@ -143,9 +143,9 @@ This project is fully open-source and free. Sponsorship is purely voluntary. You
 
 **🎁 Sponsor perks:** 💬 Exclusive Discord channel · 🎫 Priority support · 🚀 Early access to new versions
 
-<img src="sponsor.jpg" width="350" alt="Sponsor QR Code" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+<img src="sponsor.jpg" width="350" alt="Sponsor QR Code" />
 
-<a href="https://ko-fi.com/zmmmm"><img src="Ko-fi.jpg" width="350" alt="Support on Ko-fi" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" /></a>
+<a href="https://ko-fi.com/zmmmm"><img src="Ko-fi.jpg" width="350" alt="Support on Ko-fi" /></a>
 
 <a href="https://ko-fi.com/zmmmm"><img src="ko-fi-button.png" alt="Support on Ko-fi" height="40" /></a>
 

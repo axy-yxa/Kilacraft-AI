@@ -135,7 +135,7 @@ llm:
 
 审查通过后，我会将你的 Skill 加入白名单，并在台账页面标记为 🟢 已审查。
 
-## 赞助与支持
+---
 
 <div align="center">
 
@@ -143,9 +143,9 @@ llm:
 
 **🎁 赞助可享：** 💬 独立 Discord 频道 · 🎫 工单优先响应 · 🚀 抢先体验新版本
 
-<img src="sponsor.jpg" width="350" alt="赞助码" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+<img src="sponsor.jpg" width="350" alt="赞助码" />
 
-<a href="https://ko-fi.com/zmmmm"><img src="Ko-fi.jpg" width="350" alt="Support on Ko-fi" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" /></a>
+<a href="https://ko-fi.com/zmmmm"><img src="Ko-fi.jpg" width="350" alt="Support on Ko-fi" /></a>
 
 <a href="https://ko-fi.com/zmmmm"><img src="ko-fi-button.png" alt="Support on Ko-fi" height="40" /></a>
 
