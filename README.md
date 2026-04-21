@@ -8,10 +8,9 @@ Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 
 [![Version](https://img.shields.io/badge/Version-1.4.6-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![QQ Group](https://img.shields.io/badge/QQ%E7%BE%A4-1094391147-12B7F5?logo=tencent-qq)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
-[![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
+[![QQ Group](https://img.shields.io/badge/QQ%E7%BE%A4-1094391147-12B7F5?logo=tencent-qq)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147)
 
 </div>
 
@@ -144,10 +143,6 @@ llm:
 **🎁 赞助可享：** 💬 独立 Discord 频道 · 🎫 工单优先响应 · 🚀 抢先体验新版本
 
 <img src="sponsor.jpg" width="350" alt="赞助码" />
-
-<a href="https://ko-fi.com/zmmmm"><img src="Ko-fi.jpg" width="350" alt="Support on Ko-fi" /></a>
-
-<a href="https://ko-fi.com/zmmmm"><img src="ko-fi-button.png" alt="Support on Ko-fi" height="40" /></a>
 
 *赞助后请保留截图，联系我开通权益*
 

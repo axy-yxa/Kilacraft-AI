@@ -8,10 +8,8 @@ Plan-and-Execute Architecture · Natural Language · Zero Dependencies · Fully 
 
 [![Version](https://img.shields.io/badge/Version-1.4.6-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![QQ Group](https://img.shields.io/badge/QQ%20Group-1094391147-12B7F5?logo=tencent-qq)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
-[![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 
 </div>
 
@@ -143,13 +141,11 @@ This project is fully open-source and free. Sponsorship is purely voluntary. You
 
 **🎁 Sponsor perks:** 💬 Exclusive Discord channel · 🎫 Priority support · 🚀 Early access to new versions
 
-<img src="sponsor.jpg" width="350" alt="Sponsor QR Code" />
-
 <a href="https://ko-fi.com/zmmmm"><img src="Ko-fi.jpg" width="350" alt="Support on Ko-fi" /></a>
 
 <a href="https://ko-fi.com/zmmmm"><img src="ko-fi-button.png" alt="Support on Ko-fi" height="40" /></a>
 
-*Please keep your payment screenshot after sponsoring, then contact me to activate your perks*
+*Please keep your payment screenshot after sponsoring, then contact me on Discord to activate your perks*
 
 </div>
 
@@ -157,8 +153,8 @@ This project is fully open-source and free. Sponsorship is purely voluntary. You
 
 <div align="center">
 
-MIT License · Made by [Zm_Mmm](https://github.com/axy-yxa) · <a href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147"><img src="https://img.shields.io/badge/QQ%20Group-1094391147-12B7F5?logo=tencent-qq" height="20" valign="middle" alt="QQ Group" /></a> · <a href="https://discord.gg/nNmhcZHDxr"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" height="20" valign="middle" alt="Discord" /></a>
+MIT License · Made by [Zm_Mmm](https://github.com/axy-yxa) · <a href="https://discord.gg/nNmhcZHDxr"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" height="20" valign="middle" alt="Discord" /></a>
 
-Custom development / Server-specific optimization · QQ 1456133139 · WeChat lyh1456133139 · [Discord](https://discord.gg/nNmhcZHDxr)
+Custom development / Server-specific optimization · [Discord](https://discord.gg/nNmhcZHDxr)
 
 </div>
