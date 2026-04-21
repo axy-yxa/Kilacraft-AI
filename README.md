@@ -8,6 +8,8 @@ Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 
 [![Version](https://img.shields.io/badge/Version-1.4.6-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![QQ Group](https://img.shields.io/badge/QQ%E7%BE%A4-1094391147-12B7F5?logo=tencent-qq)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147)
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 
@@ -31,7 +33,7 @@ Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 | 📊 | **原版统计** | 80+ 原版统计数据查询 · 知识库驱动 BM25 检索 · 距离/时长自动换算 · 多步骤条件监控 |
 | 🔔 | **挂机任务** | 12 种类型（11 事件监听 + CUSTOM 轮询）· 自然语言创建 · 通知/回调双模式 |
 | 🎭 | **个性化** | 多人格系统 · RAG 知识库增强（HanLP + BM25）· 自定义词典 · 全语言可配置 |
-| 🔌 | **SPI 扩展** | 第三方 Skill 注册 · 插件命令模式 · 完整开发文档 |
+| 🔌 | **SPI 扩展** | 第三方 Skill 注册 · 插件命令模式 · 完整开发文档 · 全球 Skill 台账监管 |
 | 🛡️ | **安全隔离** | 非合作式 Value 扫描拦截器 · 除白名单 Skill 外禁止跨玩家操作 · 恶意 Skill 无法绕过 |
 
 ## 快速开始
@@ -104,6 +106,7 @@ llm:
 | [人格系统指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E4%BA%BA%E6%A0%BC%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97) | AI 人设管理 |
 | [知识库指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E7%9F%A5%E8%AF%86%E5%BA%93%E5%A2%9E%E5%BC%BA%E6%8C%87%E5%8D%97) | RAG 知识库配置 |
 | [Skill SPI 文档](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Skill-SPI-%E6%8E%A5%E5%85%A5%E6%96%87%E6%A1%A3) | 第三方 Skill 开发 |
+| [Skill 全球台账](https://axy-yxa.github.io/Kilacraft-AI/skill-registry.html) | 实时 Skill 使用统计与安全审查 |
 
 ## 开发者
 
@@ -111,18 +114,51 @@ llm:
 - 第三方插件可通过 **Skill SPI** 注册自定义技能 → [接入文档](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Skill-SPI-%E6%8E%A5%E5%85%A5%E6%96%87%E6%A1%A3)
 - 欢迎 [Issues](https://gitee.com/zm_mmm/kilacraft-ai/issues) / Pull Request
 
+## 提交 Skill 审查
+
+想让 Skill 进入全球台账白名单？提交审查后，用户可在 [Skill 全球台账](https://axy-yxa.github.io/Kilacraft-AI/skill-registry.html) 看到 🟢 已审查 标记。
+
+**提交方式**：在 [Issues](https://gitee.com/zm_mmm/kilacraft-ai/issues) 创建新 Issue，标题格式 `[Skill 审查] 你的 Skill 名称`
+
+**需要提供：**
+1. **Skill 名称**（与注册时一致）
+2. **源码或 JAR 文件**（必须，用于安全审查）
+3. **功能描述**（简要说明 Skill 做什么）
+4. **权限说明**（需要哪些 Bukkit 权限或依赖哪些插件）
+5. **文档链接**（可选，如有使用文档或 Wiki）
+
+**审查标准：**
+- ✅ 不直接操作其他玩家数据（除非明确声明且合理）
+- ✅ 不执行危险命令（op 级别命令、文件读写等）
+- ✅ 无恶意网络请求或数据外传
+- ✅ 资源释放正确（无内存泄漏）
+
+审查通过后，我会将你的 Skill 加入白名单，并在台账页面标记为 🟢 已审查。
+
+## 赞助与支持
+
+<div align="center">
+
+本项目完全开源免费，赞助纯属自愿。你的支持是我持续更新的动力 ❤️
+
+**🎁 赞助可享：** 💬 独立 Discord 频道 · 🎫 工单优先响应 · 🚀 抢先体验新版本
+
+<img src="sponsor.jpg" width="350" alt="赞助码" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+
+<a href="https://ko-fi.com/zmmmm"><img src="Ko-fi.jpg" width="350" alt="Support on Ko-fi" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" /></a>
+
+<a href="https://ko-fi.com/zmmmm"><img src="ko-fi-button.png" alt="Support on Ko-fi" height="40" /></a>
+
+*赞助后请保留截图，联系我开通权益*
+
+</div>
+
 ---
 
 <div align="center">
 
-MIT License · Made by [Zm_Mmm](https://gitee.com/zm_mmm) · <a href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147"><img src="https://img.shields.io/badge/QQ%E7%BE%A4-1094391147-12B7F5?logo=tencent-qq" height="20" valign="middle" alt="QQ群" /></a>
+MIT License · Made by [Zm_Mmm](https://gitee.com/zm_mmm) · <a href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147"><img src="https://img.shields.io/badge/QQ%E7%BE%A4-1094391147-12B7F5?logo=tencent-qq" height="20" valign="middle" alt="QQ群" /></a> · <a href="https://discord.gg/nNmhcZHDxr"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" height="20" valign="middle" alt="Discord" /></a>
 
-本项目完全开源免费，如果觉得有用，欢迎请我喝杯咖啡 ☕
-
-<img src="sponsor.jpg" width="300" alt="赞助码" />
-
-扫码时可备注你的游戏 ID，感谢支持！
-
-**大服私人定制 / 针对性优化**：QQ 1456133139 · 微信 lyh1456133139
+大服私人定制 / 针对性优化 · QQ 1456133139 · 微信 lyh1456133139 · [Discord](https://discord.gg/nNmhcZHDxr)
 
 </div>

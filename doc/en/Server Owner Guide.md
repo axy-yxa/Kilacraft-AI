@@ -28,6 +28,7 @@
 - **Gitee**: https://gitee.com/zm_mmm/kilacraft-ai
 - **Official Chinese Wiki**: [Click Here](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3%E7%B4%A2%E5%BC%95)
 - **Official English Wiki**: [Click Here](https://github.com/axy-yxa/Kilacraft-AI/wiki)
+- **Discord**: https://discord.gg/nNmhcZHDxr
 - **QQ Group**: 1094391147
 - **Email**: 1456133139@qq.com
 
@@ -1022,6 +1023,43 @@ If you're a plugin developer, welcome to:
 - ✅ **MythicMobs**: Placeholder support (NPC displays AI replies)
 
 **Looking forward to your plugin being next!** 🎉
+
+---
+
+## 🔍 Skill Global Registry & Review Process
+
+### 📊 Real-Time Skill Usage Statistics
+
+Kilacraft-AI provides a **Skill Global Registry page** that displays in real-time the Skill usage inventory, server counts, and security review status worldwide:
+
+👉 **View Registry**: https://axy-yxa.github.io/Kilacraft-AI/skill-registry.html
+
+**Registry Features:**
+- 📈 Real-time display of server usage count for each Skill
+- 🟢 Security status badges: Official / Verified / Unverified
+- 🔍 Distinguishes built-in Skills from third-party SPI Skills
+- 📋 Sorted by server count in descending order
+
+### 🛡️ Skill Review Process
+
+Want your Skill to be whitelisted? After review, users will see 🟢 Verified badge on the registry page.
+
+**How to submit**: Create a new Issue on [GitHub Issues](https://github.com/axy-yxa/Kilacraft-AI/issues) or [Gitee Issues](https://gitee.com/zm_mmm/kilacraft-ai/issues) with title `[Skill Review] Your Skill Name`
+
+**Required information:**
+1. **Skill name** (must match registration)
+2. **Source code or JAR** (required for security review)
+3. **Description** (brief explanation of what the Skill does)
+4. **Permissions** (Bukkit permissions needed or plugin dependencies)
+5. **Documentation** (optional, if you have usage docs or Wiki)
+
+**Review criteria:**
+- ✅ Does not manipulate other players' data (unless explicitly stated and justified)
+- ✅ Does not execute dangerous commands (op-level commands, file I/O, etc.)
+- ✅ No malicious network requests or data exfiltration
+- ✅ Proper resource cleanup (no memory leaks)
+
+Once approved, your Skill will be added to the whitelist and marked as 🟢 Verified on the registry page.
 
 ---
 

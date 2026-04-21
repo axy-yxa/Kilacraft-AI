@@ -8,6 +8,8 @@ Plan-and-Execute Architecture · Natural Language · Zero Dependencies · Fully 
 
 [![Version](https://img.shields.io/badge/Version-1.4.6-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![QQ Group](https://img.shields.io/badge/QQ%20Group-1094391147-12B7F5?logo=tencent-qq)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147)
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
 [![Gitee](https://img.shields.io/badge/Gitee-Kilacraft--AI-red?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 
@@ -31,7 +33,7 @@ Built on Plan-and-Execute + Function Calling architecture. Single JAR, no databa
 | 📊 | **Vanilla Stats** | 80+ vanilla statistics query · Knowledge base BM25 retrieval · Distance/time auto-conversion · Multi-step condition monitoring |
 | 🔔 | **AFK Tasks** | 12 types (11 event listeners + CUSTOM polling) · Natural language creation · Notification/callback dual mode |
 | 🎭 | **Personalization** | Multi-personality system · RAG knowledge enhancement (HanLP + BM25) · Custom dictionary · Full language config |
-| 🔌 | **SPI Extension** | Third-party Skill registration · Plugin command mode · Complete dev docs |
+| 🔌 | **SPI Extension** | Third-party Skill registration · Plugin command mode · Complete dev docs · Global Skill registry |
 | 🛡️ | **Security** | Non-cooperative value scanning filter · Cross-player ops blocked unless whitelisted · Malicious Skills cannot bypass |
 
 ## Quick Start
@@ -104,6 +106,7 @@ Player: Alert me when my health drops below 5
 | [Personality Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Personality-System-Guide) | AI persona management |
 | [Knowledge Base Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Knowledge-Base-Guide) | RAG knowledge base config |
 | [Skill SPI Doc](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Skill-SPI-Integration-Guide) | Third-party Skill development |
+| [Skill Global Registry](https://axy-yxa.github.io/Kilacraft-AI/skill-registry.html) | Real-time Skill usage stats & security review |
 
 ## Developers
 
@@ -111,18 +114,51 @@ Player: Alert me when my health drops below 5
 - Third-party plugins can register custom Skills via **Skill SPI** → [Integration Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Skill-SPI-Integration-Guide)
 - Contributions welcome via [Issues](https://github.com/axy-yxa/Kilacraft-AI/issues) / Pull Requests
 
+## Submit Skill for Review
+
+Want your Skill to be whitelisted in the global registry? After review, users will see 🟢 Verified badge on the [Skill Global Registry](https://axy-yxa.github.io/Kilacraft-AI/skill-registry.html).
+
+**How to submit**: Create a new [Issue](https://github.com/axy-yxa/Kilacraft-AI/issues) with title `[Skill Review] Your Skill Name`
+
+**Required information:**
+1. **Skill name** (must match registration)
+2. **Source code or JAR** (required for security review)
+3. **Description** (brief explanation of what the Skill does)
+4. **Permissions** (Bukkit permissions needed or plugin dependencies)
+5. **Documentation** (optional, if you have usage docs or Wiki)
+
+**Review criteria:**
+- ✅ Does not manipulate other players' data (unless explicitly stated and justified)
+- ✅ Does not execute dangerous commands (op-level commands, file I/O, etc.)
+- ✅ No malicious network requests or data exfiltration
+- ✅ Proper resource cleanup (no memory leaks)
+
+Once approved, I'll add your Skill to the whitelist and mark it as 🟢 Verified on the registry page.
+
+## Sponsor & Support
+
+<div align="center">
+
+This project is fully open-source and free. Sponsorship is purely voluntary. Your support keeps me motivated ❤️
+
+**🎁 Sponsor perks:** 💬 Exclusive Discord channel · 🎫 Priority support · 🚀 Early access to new versions
+
+<img src="sponsor.jpg" width="350" alt="Sponsor QR Code" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+
+<a href="https://ko-fi.com/zmmmm"><img src="Ko-fi.jpg" width="350" alt="Support on Ko-fi" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" /></a>
+
+<a href="https://ko-fi.com/zmmmm"><img src="ko-fi-button.png" alt="Support on Ko-fi" height="40" /></a>
+
+*Please keep your payment screenshot after sponsoring, then contact me to activate your perks*
+
+</div>
+
 ---
 
 <div align="center">
 
-MIT License · Made by [Zm_Mmm](https://github.com/axy-yxa) · <a href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147"><img src="https://img.shields.io/badge/QQ%20Group-1094391147-12B7F5?logo=tencent-qq" height="20" valign="middle" alt="QQ Group" /></a>
+MIT License · Made by [Zm_Mmm](https://github.com/axy-yxa) · <a href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=FlgSknDUfFcXVYsU7tqPZ8xMMBLgPJjg&authKey=pAJFrXh%2BPpr4V%2BbXhhVUWzoQN4j%2BOWitvi%2BcB59jx7S1JM21yL8kikQBhqm3Cgff&noverify=0&group_code=1094391147"><img src="https://img.shields.io/badge/QQ%20Group-1094391147-12B7F5?logo=tencent-qq" height="20" valign="middle" alt="QQ Group" /></a> · <a href="https://discord.gg/nNmhcZHDxr"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" height="20" valign="middle" alt="Discord" /></a>
 
-This project is fully open-source and free. If you find it useful, consider buying me a coffee ☕
-
-<img src="sponsor.jpg" width="300" alt="Sponsor QR Code" />
-
-Feel free to include your in-game name in the note!
-
-**Custom development / Server-specific optimization**: QQ 1456133139 · WeChat lyh1456133139
+Custom development / Server-specific optimization · QQ 1456133139 · WeChat lyh1456133139 · [Discord](https://discord.gg/nNmhcZHDxr)
 
 </div>

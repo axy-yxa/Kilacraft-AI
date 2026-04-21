@@ -24,14 +24,20 @@ This file records all important changes to the Kilacraft-AI plugin.
 
 ### 🔧 Improvements
 - **Knowledge Base Driven Skill Pattern**: BukkitStatsSkill and BukkitFXSkill adopt unified architecture — knowledge base retrieval + LLM parameter passing
+- **Knowledge Base Tokenization Optimization**: Unified text normalization, all whitespace characters (including newlines, tabs) normalized to single space, preventing HanLP tokenization anomalies
 - **Skill Description Standard**: All query Skill action descriptions must declare returned data fields, ensuring multi-step task placeholder references
 - **Hints Conflict Avoidance**: Clear boundary between "cumulative statistics vs current state", preventing conflicts with HP/hunger real-time state queries
+- **Custom AFK Task String Threshold Support**: CUSTOM task condition_plan now supports string type thresholds (e.g., block name "GRASS_BLOCK"), fixing original NumberFormatException issue
+  - ConditionPlan added thresholdStr field, distinguishing numeric/string comparison paths
+  - ConditionEvaluator added extractStringValue/compareString methods, supporting equal/not_equal string operators
+  - Log display optimization: string thresholds and current values display as readable names, avoiding LLM confusion
 
 ### 📚 Documentation Updates
 - **Built-in Skills and Events Capability List**: Added BukkitStatsSkill and 14 new APIs
 - **Bukkit API Reference**: Added 14 new API details
+- **Server Owner Guide**: Added Skill Global Registry & Review Process section, Discord contact
 - **Changelog**: Chinese and English synchronized
-- **README**: Updated Bukkit API count 58 → 72
+- **README**: Updated Bukkit API count 58 → 72, added Skill registry entry, Discord community entry, sponsor perks description, Skill review process
 
 ### ⚠️ Compatibility
 - New `bukkit_stats` Skill (knowledge base `statistics.md` auto-loads)
