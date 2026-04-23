@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kilacraft-AI Skill 实时数据清单</title>
+    <title>Kilacraft-AI Skill Registry</title>
     <style>
         * {
             margin: 0;
@@ -125,36 +125,36 @@
 </head>
 <body>
     <div class="container">
-        <h1>Kilacraft-AI Skill 实时数据清单</h1>
-        <div class="subtitle" id="subtitle">数据来源：bStats 实时统计</div>
+        <h1>Kilacraft-AI Skill Registry</h1>
+        <div class="subtitle" id="subtitle">Data Source: bStats Real-time Statistics</div>
         
         <div id="content">
-            <div class="loading">正在从 bStats 加载数据...</div>
+            <div class="loading">Loading data from bStats...</div>
         </div>
         
         <div class="footer">
             <p>
-                🟢 官方 = KilacraftAI 内置 Skill | 
-                🟢 已审查 = 已通过代码安全审查 | 
-                🔴 未审查 = 存在安全风险，请谨慎使用
+                🟢 Official = Built-in Skills by KilacraftAI | 
+                🟢 Verified = Passed code security review | 
+                🔴 Unverified = Potential security risks, use with caution
             </p>
             <p style="margin-top: 10px;">
                 <a href="https://github.com/axy-yxa/Kilacraft-AI" target="_blank">GitHub</a> | 
                 <a href="https://bstats.org/plugin/bukkit/Kilacraft-AI/30853" target="_blank">bStats</a> |
-                最后更新：<span id="lastUpdate">-</span>
+                Last Updated: <span id="lastUpdate">-</span>
             </p>
         </div>
     </div>
 
     <script>
-        // 白名单配置（由维护者手动更新）
-        const WHITELIST_URL = 'https://raw.githubusercontent.com/axy-yxa/Kilacraft-AI/main/verified-skills.json';
+        // Whitelist configuration (manually maintained by project maintainers)
+        const WHITELIST_URL = 'https://raw.githubusercontent.com/axy-yxa/Kilacraft-AI/master/verified-skills.json';
         
-        // bStats API 端点
+        // bStats API endpoint
         const BSTATS_API = 'https://bstats.org/api/v1/plugins/30853/charts/all_skills/data';
         
         /**
-         * 获取白名单
+         * Fetch verified skills whitelist
          */
         async function fetchWhitelist() {
             try {
@@ -162,28 +162,28 @@
                 if (!response.ok) return {};
                 return await response.json();
             } catch (error) {
-                console.warn('无法加载白名单:', error);
+                console.warn('Failed to load whitelist:', error);
                 return {};
             }
         }
         
         /**
-         * 从 bStats API 获取 Skill 数据
-         * bStats SimplePie API 返回格式: [{"name": "jsonString", "y": serverCount}, ...]
+         * Fetch Skill data from bStats API
+         * bStats SimplePie API returns format: [{"name": "jsonString", "y": serverCount}, ...]
          */
         async function fetchSkillData() {
             const response = await fetch(BSTATS_API);
             if (!response.ok) {
-                throw new Error('bStats API 请求失败');
+                throw new Error('bStats API request failed');
             }
             const rawData = await response.json();
 
-            // 无数据时返回空数组
+            // Return empty array when no data
             if (!Array.isArray(rawData) || rawData.length === 0) {
                 return [];
             }
 
-            // 解析 SimplePie 格式: [{name: JSON字符串, y: 服务器数}]
+            // Parse SimplePie format: [{name: JSON string, y: server count}]
             const allSkills = [];
             for (const item of rawData) {
                 try {
@@ -195,14 +195,14 @@
                         });
                     });
                 } catch (e) {
-                    console.warn('解析 Skill 条目失败:', e);
+                    console.warn('Failed to parse Skill entry:', e);
                 }
             }
             return allSkills;
         }
         
         /**
-         * 合并来自多个服务器上报的 Skill 数据（累加 serverCount）
+         * Merge Skill data reported from multiple servers (accumulate serverCount)
          */
         function parseAndMergeSkills(rawSkills) {
             const skillMap = new Map();
@@ -224,43 +224,43 @@
         }
         
         /**
-         * 获取安全状态
+         * Get security status
          */
         function getStatus(skillName, type, whitelist) {
             if (type === 'built_in') {
-                return { text: '🟢 官方', class: 'badge-verified' };
+                return { text: '🟢 Official', class: 'badge-verified' };
             }
             
             if (whitelist[skillName]) {
-                return { text: '🟢 已审查', class: 'badge-verified' };
+                return { text: '🟢 Verified', class: 'badge-verified' };
             }
             
-            return { text: '🔴 未审查', class: 'badge-unverified' };
+            return { text: '🔴 Unverified', class: 'badge-unverified' };
         }
         
         /**
-         * 渲染台账表格
+         * Render registry table
          */
         function renderTable(skills, whitelist) {
-            // 按服务器数降序排序
+            // Sort by server count in descending order
             skills.sort((a, b) => b.serverCount - a.serverCount);
 
             document.getElementById('content').innerHTML = `
                 <table>
                     <thead>
                         <tr>
-                            <th>Skill 名称</th>
-                            <th>类型</th>
-                            <th>来源插件</th>
-                            <th>服务器数</th>
-                            <th>安全状态</th>
+                            <th>Skill Name</th>
+                            <th>Type</th>
+                            <th>Source Plugin</th>
+                            <th>Servers</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${skills.map(skill => {
                 const status = getStatus(skill.name, skill.type, whitelist);
                 const typeBadge = skill.type === 'built_in'
-                    ? '<span class="badge badge-built-in">内置</span>'
+                    ? '<span class="badge badge-built-in">Official</span>'
                     : '<span class="badge badge-third-party">SPI</span>';
 
                 return `
@@ -279,57 +279,57 @@
         }
         
         /**
-         * 主函数
+         * Main function
          */
         async function main() {
             const now = new Date();
             try {
-                // 并行获取白名单和 bStats 数据
+                // Fetch whitelist and bStats data in parallel
                 const [whitelist, bstatsData] = await Promise.all([
                     fetchWhitelist(),
                     fetchSkillData()
                 ]);
                 
-                // 解析并合并数据
+                // Parse and merge data
                 const skills = parseAndMergeSkills(bstatsData);
 
                 if (skills.length === 0) {
                     document.getElementById('content').innerHTML = `
                         <div class="error">
-                            <strong>暂无数据</strong><br>
-                            bStats 尚未收到 Skill 上报数据。插件首次启动后需等待约 30 分钟让 bStats 采集数据。<br>
-                            您可以 <a href="javascript:void(0)" onclick="main()">点击刷新</a> 或稍后再试。
+                            <strong>No Data Available</strong><br>
+                            bStats has not received any Skill reporting data yet. After the plugin's first startup, it takes approximately 30 minutes for bStats to collect data.<br>
+                            You can <a href="javascript:void(0)" onclick="main()">click to refresh</a> or try again later.
                         </div>
                     `;
-                    document.getElementById('lastUpdate').textContent = now.toLocaleString('zh-CN');
+                    document.getElementById('lastUpdate').textContent = now.toLocaleString('en-US');
                     return;
                 }
                 
-                // 渲染表格
+                // Render table
                 renderTable(skills, whitelist);
                 
-                // 更新最后更新时间
-                document.getElementById('lastUpdate').textContent = now.toLocaleString('zh-CN');
+                // Update last update time
+                document.getElementById('lastUpdate').textContent = now.toLocaleString('en-US');
                 document.getElementById('subtitle').textContent = 
-                    `数据来源：bStats 实时统计 | 共发现 ${skills.length} 个 Skill`;
+                    `Data Source: bStats Real-time Statistics | Total Skills Discovered: ${skills.length}`;
                 
             } catch (error) {
-                console.error('加载失败:', error);
+                console.error('Load failed:', error);
                 document.getElementById('content').innerHTML = `
                     <div class="error">
-                        <strong>加载失败</strong><br>
-                        无法从 bStats 获取数据，请稍后重试。<br>
-                        错误信息：${error.message}
+                        <strong>Load Failed</strong><br>
+                        Unable to retrieve data from bStats, please try again later.<br>
+                        Error: ${error.message}
                     </div>
                 `;
-                document.getElementById('lastUpdate').textContent = now.toLocaleString('zh-CN');
+                document.getElementById('lastUpdate').textContent = now.toLocaleString('en-US');
             }
         }
         
-        // 页面加载时执行
+        // Execute on page load
         main();
         
-        // 每 30 分钟自动刷新
+        // Auto refresh every 30 minutes
         setInterval(main, 30 * 60 * 1000);
     </script>
 </body>
