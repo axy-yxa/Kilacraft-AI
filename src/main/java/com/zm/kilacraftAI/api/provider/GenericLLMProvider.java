@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.api.provider;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.zm.kilacraftAI.KilacraftAI;
@@ -393,8 +394,12 @@ public class GenericLLMProvider implements LLMProvider {
 
                                         JsonObject delta = choice.getAsJsonObject("delta");
                                         if (delta != null && delta.has("content")) {
-                                            String content = delta.get("content").getAsString();
-                                            if (content == null || content.isEmpty()) {
+                                            JsonElement contentElement = delta.get("content");
+                                            if (contentElement == null || contentElement.isJsonNull()) {
+                                                continue;
+                                            }
+                                            String content = contentElement.getAsString();
+                                            if (content.isEmpty()) {
                                                 continue;
                                             }
 

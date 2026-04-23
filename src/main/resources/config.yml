@@ -3,8 +3,10 @@
 llm:
   # LLM API 配置（通用，支持所有 OpenAI 标准格式的厂商）
   # LLM API Configuration (Universal, supports all OpenAI standard format providers)
-  # 可用厂商示例（均兼容 OpenAI Chat Completions API，均支持非思考模式）：
-  # Available provider examples (all compatible with OpenAI Chat Completions API, all support non-thinking mode):
+  # 可用厂商示例（均兼容 OpenAI Chat Completions API，仅支持非思考模式）：
+  # Available provider examples (all compatible with OpenAI Chat Completions API, non-thinking mode only):
+  # 注意：不支持思考/推理模型（如 deepseek-reasoner、o1、o3 等），MC 场景无法展示大段思考内容
+  # Note: Reasoning/thinking models (e.g. deepseek-reasoner, o1, o3) are NOT supported — MC cannot display long reasoning content
   # - OpenAI: https://api.openai.com/v1/chat/completions
   #   Models: gpt-4o-mini, gpt-4o
   # - DeepSeek: https://api.deepseek.com/v1/chat/completions
@@ -37,9 +39,9 @@ llm:
   
   # 模型名称（根据厂商配置）
   # Model name (configure according to provider)
-  # DeepSeek 示例：deepseek-chat, deepseek-coder
-  # 智谱AI 示例：glm-4-plus, glm-4-flash
-  # Moonshot 示例：moonshot-v1-8k, moonshot-v1-32k
+  # DeepSeek: deepseek-chat
+  # 智谱AI: glm-4-plus, glm-4-flash
+  # Moonshot: moonshot-v1-8k, moonshot-v1-32k
   model: "deepseek-chat"
   
   # 通用配置（覆盖各个提供商的默认值）
