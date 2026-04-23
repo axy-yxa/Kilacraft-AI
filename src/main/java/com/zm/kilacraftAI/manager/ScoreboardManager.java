@@ -127,16 +127,20 @@ public class ScoreboardManager {
     /**
      * 将消息分割为行
      * <p>颜色代码（§x）不计入可见字符长度，但切片时保留完整颜色代码</p>
+     * <p>根据当前语言自动选择每行最大字符数（中文/英文视觉宽度不同）</p>
      */
     private List<String> splitMessageToLines(String message) {
         List<String> lines = new ArrayList<>();
         String[] rawLines = message.split("\n");
 
+        // 根据当前语言获取每行最大字符数
+        int maxCharsPerLine = config.getSidebarMaxCharsPerLine(plugin.getConfigManager().isChinese());
+
         for (String rawLine : rawLines) {
             // 移除颜色代码后再计算可见字符长度
             String stripped = ChatColor.stripColor(rawLine);
 
-            if (stripped.length() <= config.getSidebarMaxCharsPerLine()) {
+            if (stripped.length() <= maxCharsPerLine) {
                 // 单行不超过限制，直接添加
                 lines.add(rawLine);
             } else {
@@ -144,7 +148,7 @@ public class ScoreboardManager {
                 int[] rawIndexMap = buildStrippedToRawIndexMap(rawLine);
                 int visibleStart = 0;
                 while (visibleStart < stripped.length()) {
-                    int visibleEnd = Math.min(visibleStart + config.getSidebarMaxCharsPerLine(), stripped.length());
+                    int visibleEnd = Math.min(visibleStart + maxCharsPerLine, stripped.length());
                     // 通过映射获取 rawLine 中对应的起止位置
                     int rawStart = rawIndexMap[visibleStart];
                     int rawEnd = (visibleEnd < stripped.length()) ? rawIndexMap[visibleEnd] : rawLine.length();

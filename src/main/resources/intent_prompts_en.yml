@@ -185,6 +185,10 @@ special_scenarios:
     4. Do not fabricate non-existent parameter values
     5. If parameter is completely undetermined and cannot be obtained through skills, return invalid intent and explain in reasoning
     6. **Summary: Better to add an extra step to get parameters than to return null parameters!**
+    7. **[Mandatory Rule] Query-then-Action pattern: when the user requests an action, but the prerequisite information (e.g. location, item, status) must first be obtained via a skill, you MUST return multi-step task format: first query to get the prerequisite information, then execute the action based on query results**
+       - Criterion: if the user's intent contains BOTH a "get information" phase AND a "do something with it" phase, both steps must be in the multi-step task
+       - Wrong: only returning the query step without the action step → user's request is only half fulfilled
+       - Correct: return the complete query + action two-step task
   
   skill_name_restriction: |
     [Skill Name Strict Restriction - Highest Priority Rule]

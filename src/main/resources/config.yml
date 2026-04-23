@@ -72,7 +72,7 @@ settings:
   # Scope: log output, skill messages, LLM prompts, AFK task notifications, etc.
   # 修改后执行 /kilacraft reload 即时生效
   # Run /kilacraft reload to apply changes immediately
-  language: zh
+  language: en
 
   # 是否在控制台显示API请求日志
   # Whether to display API request logs in console
@@ -183,7 +183,7 @@ settings:
   system_prompt: "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、简洁的方式回答，输出不超过200个汉字。可以提到 Minecraft 游戏相关的内容。【绝对禁令】你是一个纯文字聊天机器人，你没有任何能力执行任何游戏内操作，包括但不限于：发送私信、传送、给予物品、修改数据、操作方块等。当玩家请求你执行任何操作时，你必须明确回复'我无法执行此操作，我只能通过文字与您交流'。严禁使用'我帮你'、'已经'、'成功'等暗示操作已执行的措辞。"
   # 英文版系统提示词（language=en 时生效，留空则使用中文版）
   # English system prompt (effective when language=en, leave empty to use Chinese version)
-  system_prompt_en: "You are a Minecraft game assistant, chatting with player {player}. Please respond in a friendly and concise manner, no more than 200 words. Feel free to mention Minecraft-related content. [ABSOLUTE PROHIBITION] You are a text-only chatbot. You have ZERO ability to perform ANY in-game actions, including but not limited to: sending private messages, teleporting, giving items, modifying data, operating blocks, etc. When the player requests any action, you MUST clearly reply 'I cannot perform this action, I can only communicate through text.' NEVER use phrases like 'I'll help you', 'done', 'successfully' that imply an action was executed."
+  system_prompt_en: "You are a Minecraft game assistant, chatting with player {player}. Please respond in a friendly and concise manner, no more than 80 words. Feel free to mention Minecraft-related content. [ABSOLUTE PROHIBITION] You are a text-only chatbot. You have ZERO ability to perform ANY in-game actions, including but not limited to: sending private messages, teleporting, giving items, modifying data, operating blocks, etc. When the player requests any action, you MUST clearly reply 'I cannot perform this action, I can only communicate through text.' NEVER use phrases like 'I'll help you', 'done', 'successfully' that imply an action was executed."
 
 # ==================== Agent 能力配置 ====================
 # Agent Capability Configuration
@@ -261,11 +261,12 @@ agent:
       【回复要求】
       1. 用简洁友好的自然语言直接回答玩家的问题，像朋友聊天一样自然
       2. 执行结果中的数据是核心事实，必须准确呈现，数值（如耐久度、生命值、数量、坐标等）必须使用原始数据，不得四舍五入、近似或概括（如479/481不得说成"满耐久"）
-      3. 如果上下文中包含知识库检索到的相关信息，可以适当融入回答中作为补充，让回复更有价值
+      3. 如果上下文中包含知识库检索到的相关信息，可以适当融入回答中作为补充。但执行结果是核心事实，知识库只是补充，不得用知识库信息替代或覆盖执行结果中的实际数据
       4. 但不要编造执行结果和知识库中都不存在的数据，也不要凭空捏造游戏操作指南
       5. **严格约束：只描述执行结果中实际完成的操作，不要提及执行结果中未包含的功能（如音效、粒子效果、传送等），即使知识库或技能描述中有相关说明**
-      6. 不要使用任何固定标题或模板（禁止"分析与建议"、"简要分析"、"当前市场情况"、"后续操作建议"等标题）
-      7. 输出不超过400个汉字
+      6. **操作与查询区分：如果执行结果只包含查询数据（如坐标、状态），不得声称执行了动作（如传送、给予、生成）。查询到坐标不等于传送到了该位置，查询到物品不等于给予了物品**
+      7. 不要使用任何固定标题或模板（禁止“分析与建议”、“简要分析”、“当前市场情况”、“后续操作建议”等标题）
+      8. 输出不超过400个汉字
       
       【关于部分失败的处理】
       - 如果执行结果中包含 [FAILURE] 标记，表示该步骤执行失败
@@ -280,11 +281,12 @@ agent:
       [Response Requirements]
       1. Answer the player's question directly in concise and friendly natural language, like chatting with a friend
       2. Data in execution results is core fact and must be presented accurately. Numeric values (e.g. durability, health, quantity, coordinates) must use raw data without rounding, approximation, or generalization (e.g. 479/481 must not be described as "full durability")
-      3. If relevant knowledge base information is available in the context, you may incorporate it into your answer as a supplement to make it more valuable
+      3. If relevant knowledge base information is available in the context, you may incorporate it as a supplement. However, execution results are the core facts — knowledge base is only a supplement. Do NOT use knowledge base information to replace or override actual data from execution results
       4. Do not fabricate data that does not exist in either the execution results or the knowledge base, and do not invent game guides out of thin air
       5. **Strict constraint: only describe operations actually completed in the execution results. Do not mention features not included in the results (e.g. sounds, particle effects, teleportation), even if they are described in the knowledge base or skill documentation**
-      6. Do not use any fixed titles or templates (no "Analysis & Suggestions", "Brief Analysis", "Current Market Status", "Next Steps", etc.)
-      7. Output no more than 400 words
+      6. **Query vs Action distinction: if execution results only contain query data (e.g. coordinates, status), you must NOT claim an action was performed (e.g. teleportation, giving items, spawning). Retrieving coordinates does NOT mean teleporting to that location. Retrieving item info does NOT mean giving that item**
+      7. Do not use any fixed titles or templates (no "Analysis & Suggestions", "Brief Analysis", "Current Market Status", "Next Steps", etc.)
+      8. Output no more than 150 words
       
       [Handling Partial Failures]
       - If execution results contain [FAILURE] markers, it means that step failed
@@ -483,11 +485,14 @@ output:
     
     # 每行最大字符数
     # Max characters per line
-    # 建议值：32-40，值越小 Sidebar 越窄，阅读体验越好
-    # Recommended: 32-40, smaller values make Sidebar narrower with better reading experience
-    # AI 回复一般不超过 400 汉字，32 字符/行约需 12-13 行
-    # AI replies generally do not exceed 400 Chinese characters, 32 chars/line requires about 12-13 lines
-    max_chars_per_line: 32
+    # 建议值：中文 26-32，英文 44-50
+    # Recommended: Chinese 26-32, English 44-50
+    # 中文每个字视觉宽度约等于2个英文字符，所以中文需要更小的值
+    # Each Chinese character has visual width of ~2 English characters, so Chinese needs a smaller value
+    max_chars_per_line: 30
+    # 英文版每行最大字符数（language=en 时生效，留空或设0则使用中文版）
+    # English max characters per line (effective when language=en, leave empty or 0 to use Chinese version)
+    max_chars_per_line_en: 64
 
 # ==================== 知识库配置 ====================
 # Knowledge Base Configuration

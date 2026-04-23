@@ -122,8 +122,8 @@ public class ChineseTextUtil implements TextProcessor {
         String[] words = normalizedText.split("[,，.。?？!！;；:：]+");
         for (String word : words) {
             String trimmed = word.trim();
-            // 保留纯英文单词（2-15字符），如命令名
-            if (!trimmed.isEmpty() && trimmed.matches("^[a-zA-Z]{2,15}$")) {
+            // 保留纯英文单词（2-15字符），如命令名；排除罗马数字（MC附魔等级标记）
+            if (!trimmed.isEmpty() && trimmed.matches("^[a-zA-Z]{2,15}$") && !isRomanNumeral(trimmed)) {
                 keywordSet.add(trimmed.toLowerCase());
             }
         }
@@ -131,7 +131,11 @@ public class ChineseTextUtil implements TextProcessor {
         // 【第2层】分词结果(中等优先级,捕获复合词的组成部分)
         // 使用归一化文本，避免 HanLP 将换行符作为 token
         List<String> segments = segmentStatic(normalizedText);
-        keywordSet.addAll(segments);
+        for (String seg : segments) {
+            if (!isGenericWord(seg) && !isPureNumeric(seg)) {
+                keywordSet.add(seg);
+            }
+        }
 
         // 【第2.5层】单字分词补充(捕获自定义词典中的单字词)
         // 对于短查询,额外检查单字分词结果
@@ -147,10 +151,10 @@ public class ChineseTextUtil implements TextProcessor {
             // 清理可能的逗号、空格等分隔符
             String cleanedKw = kw.trim().replaceAll("[,，\\s]+", "");
             // 优化：允许英文命令名（如 back, spawn）
-            if (!cleanedKw.isEmpty() && !isGenericWord(cleanedKw) && !isStopWord(cleanedKw)) {
-                // 英文单词：只保留 2-15 字符的纯英文（命令名）
+            if (!cleanedKw.isEmpty() && !isGenericWord(cleanedKw) && !isStopWord(cleanedKw) && !isPureNumeric(cleanedKw)) {
+                // 英文单词：只保留 2-15 字符的纯英文（命令名），排除罗马数字
                 if (containsEnglish(cleanedKw)) {
-                    if (cleanedKw.matches("^[a-zA-Z]{2,15}$")) {
+                    if (cleanedKw.matches("^[a-zA-Z]{2,15}$") && !isRomanNumeral(cleanedKw)) {
                         keywordSet.add(cleanedKw.toLowerCase());
                     }
                 } else {
@@ -228,6 +232,21 @@ public class ChineseTextUtil implements TextProcessor {
      */
     private static boolean isStopWord(String word) {
         return word.matches("^[的得地了着过吗呢吧啊呀哦嗯嘛啦呗哇哈嘿哟嚯]$") || word.matches("^(这个|那个|哪些|什么|怎么|如何|是否|可以|可能|应该|需要|想要)$");
+    }
+
+    /**
+     * 判断是否为罗马数字（MC附魔等级标记，如 III、V）
+     */
+    private static boolean isRomanNumeral(String word) {
+        return word.matches("^(?i)(i{1,3}|iv|v|vi{0,3}|ix|x)$");
+    }
+
+    /**
+     * 判断是否为纯数字（含负号、小数点）
+     */
+    private static boolean isPureNumeric(String word) {
+        if (word == null || word.isEmpty()) return true;
+        return word.matches("-?\\d+(\\.\\d+)?");
     }
 
     /**

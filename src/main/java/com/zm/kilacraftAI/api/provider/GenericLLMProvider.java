@@ -211,6 +211,8 @@ public class GenericLLMProvider implements LLMProvider {
             String resultsSection = content.substring(textStart, textEnd);
             // 去除 step_id、状态标签、颜色代码、行首标记
             String cleaned = resultsSection.replaceAll("-\\s*step_\\w+:\\s*", "").replaceAll("-\\s*(?=\\[)", "").replaceAll("\\[(SUCCESS|FAILURE|SKIPPED|UNKNOWN)]\\s*", "").replaceAll("§[0-9a-fk-orA-FK-OR]", "").replaceAll("^[\\s\\-]+", "").replaceAll("\\n\\s*-\\s*", " ").trim();
+            // 去除坐标/数值型数据（如 x: -11.00, y: 97.00），这些对知识库检索无语义价值
+            cleaned = cleaned.replaceAll("\\b(x|y|z|pitch|yaw):\\s*-?\\d+(\\.\\d+)?\\b", "").trim();
             if (!cleaned.isEmpty()) {
                 cleanContent.append(cleaned);
             }

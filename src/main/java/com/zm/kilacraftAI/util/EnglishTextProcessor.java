@@ -31,7 +31,12 @@ public class EnglishTextProcessor implements TextProcessor {
             "know", "need", "want", "let", "make", "go", "think", "say", "tell",
             "give", "use", "find", "ask", "work", "seem", "feel", "try",
             "leave", "call", "keep", "much", "many", "any", "now", "new",
-            "way", "thing", "things", "still", "well", "back", "even"
+            "way", "thing", "things", "still", "well", "back", "even",
+            "am", "oh", "wow", "hey", "yeah", "yep", "nope", "omg", "ugh", "huh",
+            "holy", "shit", "damn", "hell", "fuck", "fucking", "goddamn",
+            "lol", "lmao", "wtf", "bruh", "bro", "dude", "ya", "yay",
+            // 罗马数字（MC附魔等级标记，对知识库检索无语义价值）
+            "ii", "iii", "iv", "vi", "vii", "viii", "ix"
     );
 
     // 对MC查询来说语义价值较低的通用英文词
@@ -40,7 +45,9 @@ public class EnglishTextProcessor implements TextProcessor {
             "execute", "input", "output", "task", "target", "query",
             "check", "current", "following", "above", "related", "specific",
             "detail", "details", "please", "help", "show", "tell",
-            "what", "status", "situation"
+            "what", "status", "situation",
+            // MC格式化输出中的结构标签
+            "ench", "durability", "lore"
     );
 
     private final Set<String> customWords = new LinkedHashSet<>();
@@ -62,6 +69,7 @@ public class EnglishTextProcessor implements TextProcessor {
         return Arrays.stream(text.toLowerCase().split("[^a-zA-Z0-9_-]+"))
                 .filter(word -> !word.isEmpty())
                 .filter(word -> word.length() > 1)
+                .filter(word -> !isPureNumeric(word))  // 过滤纯数字（坐标、数值等无语义价值）
                 .filter(word -> !STOP_WORDS.contains(word))
                 .collect(Collectors.toList());
     }
@@ -87,7 +95,8 @@ public class EnglishTextProcessor implements TextProcessor {
             } else {
                 for (String token : cleanedText.split("\\s+")) {
                     String t = token.trim();
-                    if (t.length() > 1 && !STOP_WORDS.contains(t) && !GENERIC_WORDS.contains(t)) {
+                    if (t.length() > 1 && !STOP_WORDS.contains(t) && !GENERIC_WORDS.contains(t)
+                            && !isPureNumeric(t)) {
                         keywordSet.add(t);
                     }
                 }
@@ -97,7 +106,7 @@ public class EnglishTextProcessor implements TextProcessor {
         // 第二层：分词结果
         List<String> tokens = segment(normalizedText);
         for (String token : tokens) {
-            if (!GENERIC_WORDS.contains(token)) {
+            if (!GENERIC_WORDS.contains(token) && !isPureNumeric(token)) {
                 keywordSet.add(token);
             }
         }
@@ -118,6 +127,8 @@ public class EnglishTextProcessor implements TextProcessor {
             freq.entrySet().stream()
                     .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
                     .limit(topK)
+                    .filter(e -> !GENERIC_WORDS.contains(e.getKey()))
+                    .filter(e -> !isPureNumeric(e.getKey()))
                     .forEach(e -> keywordSet.add(e.getKey()));
         }
 
@@ -128,5 +139,14 @@ public class EnglishTextProcessor implements TextProcessor {
     public String toSearchQuery(String text, int topK) {
         List<String> keywords = extractKeywords(text, topK);
         return String.join(" ", keywords);
+    }
+
+    /**
+     * 判断字符串是否为纯数字（含负号、小数点）
+     * <p>纯数字（如坐标值 -11, 97.00）对知识库检索无语义价值，应过滤</p>
+     */
+    private static boolean isPureNumeric(String word) {
+        if (word == null || word.isEmpty()) return true;
+        return word.matches("-?\\d+(\\.\\d+)?");
     }
 }

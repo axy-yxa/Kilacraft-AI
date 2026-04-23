@@ -91,6 +91,12 @@ public class OutputConfigManager {
      */
     private int sidebarMaxCharsPerLine;
 
+    /**
+     * Scoreboard Sidebar 每行最大字符数（英文版）
+     * <p>英文每个字符视觉宽度较窄，Sidebar 可容纳更多字符</p>
+     */
+    private int sidebarMaxCharsPerLineEn;
+
     // ==================== 流式输出配置 ====================
 
     /**
@@ -139,6 +145,7 @@ public class OutputConfigManager {
         this.sidebarDurationSeconds = config.getInt("output.sidebar.duration_seconds", 15);
         this.sidebarMaxLinesPerPage = config.getInt("output.sidebar.max_lines_per_page", 15);
         this.sidebarMaxCharsPerLine = config.getInt("output.sidebar.max_chars_per_line", 32);
+        this.sidebarMaxCharsPerLineEn = config.getInt("output.sidebar.max_chars_per_line_en", 0);
 
         // 流式输出配置
         this.streamEnabled = config.getBoolean("output.stream.enabled", false);
@@ -189,5 +196,19 @@ public class OutputConfigManager {
      */
     public OutputChannel getChannelForScenario(OutputScenario scenario) {
         return scenarioChannels.getOrDefault(scenario, defaultChannel);
+    }
+
+    /**
+     * 获取语言感知的 Sidebar 每行最大字符数
+     * <p>英文模式下使用 max_chars_per_line_en（如果配置了），否则回退到中文版</p>
+     *
+     * @param isChinese 是否为中文模式
+     * @return 每行最大字符数
+     */
+    public int getSidebarMaxCharsPerLine(boolean isChinese) {
+        if (!isChinese && sidebarMaxCharsPerLineEn > 0) {
+            return sidebarMaxCharsPerLineEn;
+        }
+        return sidebarMaxCharsPerLine;
     }
 }
