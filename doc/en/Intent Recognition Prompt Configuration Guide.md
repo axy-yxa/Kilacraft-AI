@@ -759,4 +759,4 @@ If you encounter problems or have improvement suggestions during usage:
 ---
 
 **Last Updated**: 2026-04-19
-**Compatible Version**: Kilacraft-AI v1.4.6+
+**Compatible Version**: Kilacraft-AI v1.5.0+

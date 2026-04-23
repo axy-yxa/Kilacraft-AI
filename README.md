@@ -8,7 +8,7 @@
 
 Plan-and-Execute Architecture · Natural Language · Zero Dependencies · Fully Open Source
 
-[![Version](https://img.shields.io/badge/Version-1.4.6-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
+[![Version](https://img.shields.io/badge/Version-1.5.0-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
@@ -38,7 +38,7 @@ Built on Plan-and-Execute + Function Calling architecture. Single JAR, no databa
 
 ## Quick Start
 
-**1.** Download [Kilacraft-AI-1.4.6.jar](https://github.com/Zm-Mmm/Kilacraft-AI/releases) and place it in `plugins/`
+**1.** Download [Kilacraft-AI-1.5.0.jar](https://github.com/Zm-Mmm/Kilacraft-AI/releases) and place it in `plugins/`
 
 **2.** Edit `plugins/Kilacraft-AI/config.yml` with your API key:
 
@@ -101,7 +101,7 @@ Player: Alert me when my health drops below 5
 |---|---|
 | [Server Owner Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Server-Owner-Guide) | Complete setup & troubleshooting |
 | [Changelog](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog) | Version history |
-| [Bukkit API Reference](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Bukkit-API-Reference) | 58 API details |
+| [Bukkit API Reference](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Bukkit-API-Reference) | 72 API details |
 | [AFK Task Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/AFK-Task-System-Guide) | AFK task system architecture |
 | [Personality Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Personality-System-Guide) | AI persona management |
 | [Knowledge Base Guide](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Knowledge-Base-Guide) | RAG knowledge base config |

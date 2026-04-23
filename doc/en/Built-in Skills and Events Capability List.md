@@ -543,7 +543,7 @@ Kilacraft-AI v1.4.5 introduces a **non-cooperative security filtering mechanism*
 ---
 
 > **Last Updated**: 2026-04-19  
-> **Plugin Version**: 1.4.6+  
+> **Plugin Version**: 1.5.0+  
 > **Total Skills**: 6 (AFKTaskSkill, GenericBukkitAPI, CMISkill, CommandSkill, BukkitFXSkill, MarketQuerySkill)  
 > **Total API Actions**: 60+ (GenericBukkitAPI) + 8 (CMISkill) + 2 (BukkitFXSkill) + 7 (MarketQuerySkill)  
 > **Total Event Listeners**: 11 (S-level 7 + A-level 4)

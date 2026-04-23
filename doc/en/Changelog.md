@@ -5,6 +5,37 @@
 
 ---
 
+## v1.5.0 - Comprehensive Internationalization, Prompt Optimization, Tokenization Noise Exclusion, Skill Registry Upgrade
+
+### ✨ New Features
+- **Comprehensive Internationalization (i18n) Architecture**: New I18nService with Chinese original text as key translation engine, all player output messages fully support multiple languages (built-in 821 lines English translation, complete English versions for Skill configs/knowledge base/prompts/vocabulary)
+- **Tokenization Noise Exclusion Optimization**: Refactored ChineseTextUtil and EnglishTextProcessor, new TextProcessor interface supporting automatic Chinese/English tokenization strategy switching, unified text normalization
+- **Sidebar Output Carrier Internationalization**: ScoreboardManager supports dynamic sidebar content generation based on player language, auto-pagination and multi-language character length adaptation
+- **Skill Registry Optimization**: Updated skill-registry.html, optimized Skill metadata reporting logic, supporting real-time usage statistics and security review status display
+
+### 🔧 Improvements
+- **Prompt Optimization**: Streamlined intent_prompts.yml redundant descriptions, enhanced continuous conversation rules, improved LLM intent recognition accuracy
+- **GenericLLMProvider Refactor**: Optimized HTTP connection pool, retry mechanism and streaming response processing, reduced first-character latency
+- **Knowledge Base Format Optimization**: Unified sounds_particles.md and statistics.md structure, reduced minimum segment character size, improved BM25 retrieval matching rate
+- **Configuration System Enhancement**: ConfigManager/IntentPromptConfigManager/SkillConfigManager support automatic detection and fallback mechanism for Chinese and English configuration files
+- **Output Pipeline Internationalization**: KilacraftCommand, ChatListener, AIRequestHandler, AIResponsePipeline, SoundEffectManager and other core entries fully integrated with I18nService
+- **AFK Task Internationalization**: 12 AFK task types and ConditionPlan/ConditionEvaluator support multi-language message output and threshold display
+- **Core Component Optimization**: BukkitStatsSkill, BukkitAPIExecutor, KnowledgeBaseManager, KnowledgeRetriever, SkillIntentRecognizer, TaskExecutor, MarketQuerySkill, CMISkill, CommandSkill and others support multi-language formatted output and retrieval
+
+### 📚 Documentation Updates
+- **README / README.zh.md**: Version updated to 1.5.0, Bukkit API count 58 → 72
+- **Changelog / 更新日志**: Chinese and English synchronized with new v1.5.0 version record
+- **All technical documents**: Version uniformly updated to 1.5.0, last update date synchronized to 2026-04-23
+- **Skill Registry page**: Real-time update of Skill usage statistics and security review status (51 updates)
+
+### ⚠️ Compatibility
+- New `i18n/`, `knowledge/en/`, `internal/vocabulary/en/` directories (auto-created on first startup)
+- All Skill configuration files add `_en.yml` English versions, new `intent_prompts_en.yml`, `language_en.yml`, `personalities_en.yml`
+- `config.yml` adds `language` configuration item (default `zh`, supports `zh`/`en`)
+- Fully backward compatible, defaults to Chinese, no configuration changes needed to run normally
+
+---
+
 ## v1.4.6 - BukkitStatsSkill Statistics Query, Environment Perception APIs, Three-Layer Inventory Design
 
 ### ✨ New Features

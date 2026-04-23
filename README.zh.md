@@ -8,7 +8,7 @@
 
 Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 
-[![Version](https://img.shields.io/badge/Version-1.4.6-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
+[![Version](https://img.shields.io/badge/Version-1.5.0-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
@@ -39,7 +39,7 @@ Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 
 ## 快速开始
 
-**1.** 下载 [Kilacraft-AI-1.4.6.jar](https://gitee.com/zm_mmm/kilacraft-ai/releases) 放入 `plugins/`
+**1.** 下载 [Kilacraft-AI-1.5.0.jar](https://gitee.com/zm_mmm/kilacraft-ai/releases) 放入 `plugins/`
 
 **2.** 编辑 `plugins/Kilacraft-AI/config.yml`，填入 API 密钥：
 
@@ -102,7 +102,7 @@ llm:
 |---|---|
 | [服主指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9C%8D%E4%B8%BB%E6%8C%87%E5%8D%97) | 完整配置与故障排除 |
 | [更新日志](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97) | 版本历史 |
-| [Bukkit API 参考](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Bukkit-API%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C) | 58 个 API 详解 |
+| [Bukkit API 参考](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Bukkit-API%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C) | 72 个 API 详解 |
 | [AFK 任务详解](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/AFK%E6%8C%82%E6%9C%BA%E4%BB%BB%E5%8A%A1%E7%B3%BB%E7%BB%9F%E8%AF%A6%E8%A7%A3) | 挂机任务系统架构 |
 | [人格系统指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E4%BA%BA%E6%A0%BC%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E6%8C%87%E5%8D%97) | AI 人设管理 |
 | [知识库指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E7%9F%A5%E8%AF%86%E5%BA%93%E5%A2%9E%E5%BC%BA%E6%8C%87%E5%8D%97) | RAG 知识库配置 |
