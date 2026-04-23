@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.framework.spi;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.util.PluginLogger;
@@ -59,19 +60,19 @@ public class SkillRegistry {
                     if (existingSkill == null) {
                         skillManager.registerSkill(skill, sourcePlugin.getName());
                         registeredCount++;
-                        PluginLogger.info("技能注册", String.format("发现并注册第三方技能：%s (来自 %s)", skill.getName(), sourcePlugin.getName()));
+                        PluginLogger.info("技能注册", "发现并注册第三方技能：{} (来自 {})", skill.getName(), sourcePlugin.getName());
                     } else {
                         // 已存在内置 Skill，不覆盖，跳过
-                        PluginLogger.warn("技能注册", String.format("跳过第三方技能 '%s'（来自 %s）：名称与已注册技能冲突", skill.getName(), sourcePlugin.getName()));
+                        PluginLogger.warn("技能注册", "跳过第三方技能 '{}'（来自 {}）：名称与已注册技能冲突", skill.getName(), sourcePlugin.getName());
                     }
                 } catch (Exception e) {
-                    PluginLogger.warn("技能注册", String.format("注册第三方技能失败:%s (来自 %s): %s", skill.getName(), sourcePlugin.getName(), e.getMessage()), e);
+                    PluginLogger.warn("技能注册", I18nService.tr("注册第三方技能失败:{} (来自 {}): {}", skill.getName(), sourcePlugin.getName(), e.getMessage()), e);
                 }
             }
         }
 
         if (registeredCount > 0) {
-            PluginLogger.info("技能注册", String.format("共发现并注册 %d 个第三方技能", registeredCount));
+            PluginLogger.info("技能注册", "共发现并注册 {} 个第三方技能", registeredCount);
         } else {
             PluginLogger.info("技能注册", "未发现有效的第三方 SkillProvider");
         }

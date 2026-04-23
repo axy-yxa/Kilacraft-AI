@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.skills.framework.task;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.api.LLMProvider;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
@@ -45,7 +46,7 @@ public class LLMAnalysisService {
     public CompletableFuture<SkillResult> analyzeResultWithHandler(AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, AIResponseHandler handler) {
         String promptContent = summary.buildPrompt();
 
-        PluginLogger.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n" + promptContent);
+        PluginLogger.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n{}", promptContent);
 
         String playerName = context.getPlayer() != null ? context.getPlayer().getName() : "Console";
 
@@ -101,7 +102,7 @@ public class LLMAnalysisService {
                     handler.handleError(errorMessage);
                 } catch (Exception e) {
                     // 记录 Handler 错误处理异常，但不影响 Future 完成
-                    PluginLogger.warn("LLM分析", "Handler 错误处理异常: " + e.getMessage(), e);
+                    PluginLogger.warn("LLM分析", I18nService.tr("Handler 错误处理异常: {}", e.getMessage()), e);
                 } finally {
                     // 确保 Future 一定被完成，防止调用链挂起
                     responseFuture.completeExceptionally(new RuntimeException(errorMessage));

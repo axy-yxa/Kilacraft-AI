@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.compat.mythicmobs;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.mythicmobs.placeholders.all.AIAnswerPlaceholder;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.PluginLogger;
 import io.lumine.mythic.core.utils.annotations.MythicPlaceholder;
 import org.bukkit.Bukkit;
@@ -23,27 +24,27 @@ public class MythicMobsPlaceholderManager {
      */
     public void registerPlaceholders() {
         if (registered) {
-            PluginLogger.warn("MythicMobs", "占位符已经注册过了");
+            PluginLogger.warn("MythicMobs", I18nService.tr("占位符已经注册过了"));
             return;
         }
 
         try {
             // 检查 MythicMobs 是否已加载
             if (!Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
-                PluginLogger.warn("MythicMobs", "MythicMobs 未启用，跳过占位符注册");
+                PluginLogger.warn("MythicMobs", I18nService.tr("MythicMobs 未启用，跳过占位符注册"));
                 return;
             }
 
             // 获取 MythicBukkit 实例
             var mythicApi = io.lumine.mythic.bukkit.MythicBukkit.inst();
             if (mythicApi == null) {
-                throw new RuntimeException("无法获取 MythicBukkit 实例");
+                throw new RuntimeException(I18nService.tr("无法获取 MythicBukkit 实例"));
             }
 
             // 获取 PlaceholderManager
             var placeholderManager = mythicApi.getPlaceholderManager();
             if (placeholderManager == null) {
-                throw new RuntimeException("无法获取 PlaceholderManager");
+                throw new RuntimeException(I18nService.tr("无法获取 PlaceholderManager"));
             }
 
             // 重要：对于 GenericPlaceholder，必须传入注解以便 MythicMobs 正确初始化
@@ -51,9 +52,9 @@ public class MythicMobsPlaceholderManager {
             placeholderManager.register(AIAnswerPlaceholder.class, annotation);
 
             registered = true;
-            PluginLogger.info("MythicMobs", "已加载 MythicMobs 占位符");
+            PluginLogger.info("MythicMobs", I18nService.tr("已加载 MythicMobs 占位符"));
         } catch (Exception e) {
-            PluginLogger.error("MythicMobs", "占位符注册失败: " + e.getMessage(), e);
+            PluginLogger.error("MythicMobs", I18nService.tr("占位符注册失败: {}", e.getMessage()), e);
         }
     }
 }

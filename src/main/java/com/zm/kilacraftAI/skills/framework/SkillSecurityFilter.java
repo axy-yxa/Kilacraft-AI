@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.framework;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -142,7 +143,7 @@ public class SkillSecurityFilter implements Listener {
             // 匹配到在线玩家名 → 需要检查白名单
             if (ONLINE_PLAYER_NAMES.contains(value)) {
                 if (allowedActions.contains(actionKey) || allowedActions.contains(skillName)) {
-                    PluginLogger.debug("安全拦截", "白名单放行：" + actionKey + " → " + value);
+                    PluginLogger.debug("安全拦截", "白名单放行：{} → {}", actionKey, value);
                     continue;
                 }
 
@@ -151,7 +152,7 @@ public class SkillSecurityFilter implements Listener {
                     sanitized = new java.util.HashMap<>(entities);
                 }
                 sanitized.put(entry.getKey(), playerName);
-                PluginLogger.warn("安全拦截", "玩家数据隔离：entities[" + entry.getKey() + "]=" + value + " 是其他在线玩家，已替换为当前玩家 " + playerName);
+                PluginLogger.warn("安全拦截", I18nService.tr("玩家数据隔离：entities[{}]={} 是其他在线玩家，已替换为当前玩家 {}", entry.getKey(), value, playerName));
             }
         }
 

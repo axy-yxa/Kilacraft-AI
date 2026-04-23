@@ -1,144 +1,261 @@
 # ==================== LLM 提供商配置 ====================
+# LLM Provider Configuration
 llm:
   # LLM API 配置（通用，支持所有 OpenAI 标准格式的厂商）
-  # 可用厂商示例：
+  # LLM API Configuration (Universal, supports all OpenAI standard format providers)
+  # 可用厂商示例（均兼容 OpenAI Chat Completions API，均支持非思考模式）：
+  # Available provider examples (all compatible with OpenAI Chat Completions API, all support non-thinking mode):
+  # - OpenAI: https://api.openai.com/v1/chat/completions
+  #   Models: gpt-4o-mini, gpt-4o
   # - DeepSeek: https://api.deepseek.com/v1/chat/completions
-  # - 智谱AI: https://open.bigmodel.cn/api/paas/v4/chat/completions
+  #   Models: deepseek-chat
+  # - ZhipuAI (智谱AI): https://open.bigmodel.cn/api/paas/v4/chat/completions
+  #   Models: glm-4-flash, glm-4-plus
   # - Moonshot: https://api.moonshot.cn/v1/chat/completions
+  #   Models: moonshot-v1-8k, moonshot-v1-32k
+  # - Groq: https://api.groq.com/openai/v1/chat/completions
+  #   Models: llama-3.3-70b-versatile, llama-3.1-8b-instant
+  # - Together AI: https://api.together.xyz/v1/chat/completions
+  #   Models: meta-llama/Llama-3.3-70B-Instruct-Turbo
+  # - Mistral AI: https://api.mistral.ai/v1/chat/completions
+  #   Models: mistral-small-latest, mistral-large-latest
+  # - Perplexity: https://api.perplexity.ai/chat/completions
+  #   Models: sonar, sonar-pro
+  # - Fireworks AI: https://api.fireworks.ai/inference/v1/chat/completions
+  #   Models: accounts/fireworks/models/llama-v3p3-70b-instruct
+  # - SiliconFlow (硅基流动): https://api.siliconflow.cn/v1/chat/completions
+  #   Models: Qwen/Qwen3-8B, deepseek-ai/DeepSeek-V3
+  # - Google Gemini: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+  #   Models: gemini-2.0-flash
+  # - OpenRouter: https://openrouter.ai/api/v1/chat/completions
+  #   Models: openai/gpt-4o-mini, meta-llama/llama-3.3-70b-instruct
   api_url: "https://api.deepseek.com/v1/chat/completions"
   
   # API 密钥（从对应厂商获取）
+  # API key (obtained from the corresponding provider)
   api_key: "your-api-key"
   
   # 模型名称（根据厂商配置）
+  # Model name (configure according to provider)
   # DeepSeek 示例：deepseek-chat, deepseek-coder
   # 智谱AI 示例：glm-4-plus, glm-4-flash
   # Moonshot 示例：moonshot-v1-8k, moonshot-v1-32k
   model: "deepseek-chat"
   
   # 通用配置（覆盖各个提供商的默认值）
+  # General configuration (overrides default values for each provider)
   # 温度参数（0-2之间）
+  # Temperature parameter (between 0-2)
   # 值越高回答越有创意和随机性
+  # Higher values = more creative and random responses
   # 值越低回答越保守和确定性
+  # Lower values = more conservative and deterministic responses
   # 0.7是平衡点，适合一般对话
+  # 0.7 is the balance point, suitable for general conversation
   temperature: 0.7
 
   # 最大返回token数
+  # Maximum response tokens
   # 控制AI回复的最大长度（约1token≈0.75个中文）
+  # Controls max length of AI response (approx. 1 token ≈ 0.75 Chinese characters)
   # 1000约等于750个中文字符
+  # 1000 ≈ 750 Chinese characters
   max_tokens: 600
 
 # ==================== 插件设置 ====================
+# Plugin Settings
 settings:
+  # 插件语言设置
+  # Plugin language setting
+  # zh = 中文（默认），en = English
+  # 影响范围：日志输出、技能消息、LLM提示词、AFK任务通知等
+  # Scope: log output, skill messages, LLM prompts, AFK task notifications, etc.
+  # 修改后执行 /kilacraft reload 即时生效
+  # Run /kilacraft reload to apply changes immediately
+  language: zh
+
   # 是否在控制台显示API请求日志
+  # Whether to display API request logs in console
   # 调试时开启，正常使用建议关闭
+  # Enable for debugging, disable for normal use
   debug_mode: false
 
   # 是否启用匿名统计（bStats）
+  # Whether to enable anonymous statistics (bStats)
   # 收集匿名使用数据帮助改进插件，不收集任何敏感信息
+  # Collects anonymous usage data to help improve the plugin, no sensitive information collected
   # 统计内容：技能调用次数、请求类型分布、挂机任务类型、LLM模型名、服务端类型
+  # Statistics: skill call counts, request type distribution, AFK task types, LLM model names, server type
   # 数据公开查看：https://bstats.org/plugin/bukkit/Kilacraft-AI
+  # Public data: https://bstats.org/plugin/bukkit/Kilacraft-AI
   # 注意：修改此项后需要重启服务器才能生效，热重载不会更新此配置
+  # Note: Requires server restart to take effect, hot reload will not update this config
   metrics: true
 
   # 是否启用聊天命令模式
+  # Whether to enable chat command mode
   # true: 可以使用/kilacraft chat进入对话模式
+  # true: Use /kilacraft chat to enter conversation mode
   # false: 禁用聊天模式，只能用/kilacraft命令
+  # false: Disable chat mode, only /kilacraft command available
   enable_chat_command: true
 
   # 是否启用关键词触发
+  # Whether to enable keyword trigger
   # 玩家在公共频道说"@kilacraft"即可触发AI回复
+  # Players can trigger AI reply by saying "@kilacraft" in public chat
   enable_trigger: true
 
   # 触发关键词（多个用逗号分隔）
+  # Trigger keywords (comma-separated)
   trigger_keywords: "@kila,@ai,@zm"
 
   # 是否开启公屏回复（默认关闭）
+  # Whether to enable public reply (default: off)
   # true: 玩家通过关键词触发AI时，AI的回复会发送给所有在线玩家（公屏可见）
+  # true: AI reply is sent to all online players (publicly visible)
   #       上下文历史仍然只保存给触发AI的玩家
+  #       Conversation history is still saved only for the triggering player
   # false: AI的回复只有触发AI的玩家能看到（私信模式）
+  # false: AI reply is visible only to the triggering player (private message mode)
   public_reply: false
 
   # 冷却时间（秒）
+  # Cooldown time (seconds)
   # 防止玩家频繁调用 API 导致费用过高
+  # Prevents excessive API calls that may incur high costs
   # 设置为 0 可禁用冷却
+  # Set to 0 to disable cooldown
   cooldown_seconds: 5
 
   # 插件命令专用冷却时间（秒）
+  # Plugin command-specific cooldown (seconds)
   # 仅针对 /kilacraft plugins 命令生效
+  # Only applies to /kilacraft plugins command
   # 设置为 0 可禁用冷却，-1 表示与普通命令共用冷却时间
+  # Set to 0 to disable, -1 to share cooldown with normal commands
   plugins_cooldown_seconds: 3
 
   # 回调命令超时保护（秒）
+  # Callback command timeout protection (seconds)
   # 重要：无论第三方插件是同步还是异步处理，超过此时间都会记录警告并强制中断
+  # Important: Regardless of whether the third-party plugin processes synchronously or asynchronously,
+  #           exceeding this time will log a warning and force termination
   # 原因：第三方插件的逻辑不可控，可能出现死循环、长时间阻塞等风险
+  # Reason: Third-party plugin logic is uncontrollable, risks include infinite loops and long blocking
   # 建议值：2-5 秒（根据服务器性能和第三方插件复杂度调整）
+  # Recommended: 2-5 seconds (adjust based on server performance and third-party plugin complexity)
   callback_timeout_seconds: 3
 
   # 最大历史消息数（用于上下文对话）
+  # Maximum history message count (for contextual conversation)
   # 保存最近的 N 轮对话作为上下文
+  # Saves the latest N rounds of conversation as context
   # max_history: 0 - 禁用历史记录（不保存）
+  # max_history: 0 - Disable history (no saving)
   # max_history: 5 - 保存最近 5 轮对话（10 条消息）
+  # max_history: 5 - Save latest 5 rounds (10 messages)
   # max_history: 10 - 保存最近 10 轮对话（20 条消息）
+  # max_history: 10 - Save latest 10 rounds (20 messages)
   # max_history: 20 - 保存最近 20 轮对话（40 条消息）
+  # max_history: 20 - Save latest 20 rounds (40 messages)
   max_history: 10
 
   # 是否限制特定世界使用
+  # Whether to restrict usage to specific worlds
   # 留空表示所有世界可用
+  # Leave empty to allow all worlds
   allowed_worlds:
   #- "world"
 
   # 禁止使用的世界（优先级更高，比allowed_worlds高，如果一个世界同时在两个列表中会被禁止）
+  # Banned worlds (higher priority than allowed_worlds; if a world is in both lists, it will be banned)
   # 在这些世界中禁用AI功能
+  # Disable AI features in these worlds
   banned_worlds:
   #- "world_nether"
   #- "world_the_end"
 
   # 系统提示词（AI 的默认回答方式和风格）
+  # System prompt (AI's default response style and behavior)
   # 使用 {player} 占位符，会被自动替换为实际玩家名称
-  system_prompt: "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、简洁的方式回答，输出不超过200个汉字。可以提到 Minecraft 游戏相关的内容。"
+  # Uses {player} placeholder, auto-replaced with actual player name
+  system_prompt: "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、简洁的方式回答，输出不超过200个汉字。可以提到 Minecraft 游戏相关的内容。【绝对禁令】你是一个纯文字聊天机器人，你没有任何能力执行任何游戏内操作，包括但不限于：发送私信、传送、给予物品、修改数据、操作方块等。当玩家请求你执行任何操作时，你必须明确回复'我无法执行此操作，我只能通过文字与您交流'。严禁使用'我帮你'、'已经'、'成功'等暗示操作已执行的措辞。"
+  # 英文版系统提示词（language=en 时生效，留空则使用中文版）
+  # English system prompt (effective when language=en, leave empty to use Chinese version)
+  system_prompt_en: "You are a Minecraft game assistant, chatting with player {player}. Please respond in a friendly and concise manner, no more than 200 words. Feel free to mention Minecraft-related content. [ABSOLUTE PROHIBITION] You are a text-only chatbot. You have ZERO ability to perform ANY in-game actions, including but not limited to: sending private messages, teleporting, giving items, modifying data, operating blocks, etc. When the player requests any action, you MUST clearly reply 'I cannot perform this action, I can only communicate through text.' NEVER use phrases like 'I'll help you', 'done', 'successfully' that imply an action was executed."
 
 # ==================== Agent 能力配置 ====================
+# Agent Capability Configuration
 # Agent 能力说明：
+# Agent capability description:
 # 1. 启用后，AI 会先进行意图识别，判断是否需要调用技能（单意图或多步骤任务）
+# 1. When enabled, AI performs intent recognition first to determine if skill invocation is needed (single-intent or multi-step task)
 # 2. 意图识别失败或技能执行失败时，回退到普通 AI 对话
+# 2. Falls back to normal AI conversation when intent recognition fails or skill execution fails
 # 3. 关闭后，直接进入普通 AI 对话，不进行意图分析
+# 3. When disabled, goes directly to normal AI conversation without intent analysis
 agent:
   # 是否启用 Agent 能力（总开关，优先级高于以下两个独立配置）
+  # Whether to enable Agent capability (master switch, higher priority than the two individual configs below)
   enabled: true
   
   # ChatListener 入口是否启用 Agent 能力（关键词触发、连续对话模式）
+  # Whether to enable Agent capability for ChatListener entry (keyword trigger, continuous conversation mode)
   # true: 玩家通过@ai 等关键词触发时，会先进行意图识别
+  # true: Intent recognition is performed first when triggered by keywords like @ai
   # false: 玩家通过关键词触发时，直接进入普通 AI 对话
+  # false: Goes directly to normal AI conversation when triggered by keywords
   enable_chat_listener: true
   
   # KilacraftCommand 入口是否启用 Agent 能力（/kilacraft 命令）
+  # Whether to enable Agent capability for KilacraftCommand entry (/kilacraft command)
   # true: 玩家使用/kilacraft 命令时，会先进行意图识别
+  # true: Intent recognition is performed first when using /kilacraft command
   # false: 玩家使用/kilacraft 命令时，直接进入普通 AI 对话
+  # false: Goes directly to normal AI conversation when using /kilacraft command
   enable_command: true
   
   # 意图识别时的历史对话上下文数量(轮数)
+  # Number of history conversation context rounds for intent recognition
   # 用于帮助 LLM 理解用户的连续对话意图
+  # Helps LLM understand the user's continuous conversation intent
   # 例如：用户说"再查一下那个物品"，LLM 需要历史来理解"那个物品"指什么
+  # Example: User says "check that item again", LLM needs history to understand what "that item" refers to
   # 建议值：3-5，值越大上下文越丰富，但 token 消耗也越高
+  # Recommended: 3-5, higher values provide richer context but consume more tokens
   intent_history_count: 5
   
   # 二次分析时的历史对话上下文数量(轮数)
+  # Number of history conversation context rounds for secondary analysis
   # 用于让 LLM 在分析 Skill 执行结果时参考对话上下文
+  # Allows LLM to reference conversation context when analyzing Skill execution results
   # 使最终回复更自然、能关联上下文
+  # Makes the final reply more natural and context-aware
   # 建议值：1-2，精简历史即可满足大部分场景
+  # Recommended: 1-2, concise history is sufficient for most scenarios
   analysis_history_count: 2
   
   # LLM 分析执行结果并生成最终回复提示词配置
+  # LLM analysis of execution results and final reply prompt configuration
   prompts:
     # 系统提示词
+    # System prompt
     system_prompt: "你是一个热情有趣的 Minecraft 游戏助手，正在为玩家分析任务执行结果。优先根据执行结果数据回答问题，如果上下文中有知识库提供的相关信息，也可以适当补充。"
+    # 英文版系统提示词（language=en 时生效，留空则使用中文版）
+    # English system prompt (effective when language=en, leave empty to use Chinese version)
+    system_prompt_en: "You are an enthusiastic Minecraft game assistant, analyzing task execution results for the player. Prioritize answering questions based on execution result data. If relevant knowledge base information is available in the context, you may supplement your answer appropriately."
     
     # 分析提示词后缀
+    # Analysis prompt suffix
     # 用途：
+    # Purpose:
     # 1. 作为提示词后缀：用于单意图和多步骤任务的 LLM 二次分析
+    # 1. As prompt suffix: for LLM secondary analysis of single-intent and multi-step tasks
     # 2. 作为关键词提取边界：用于知识库检索时排除提示词干扰
+    # 2. As keyword extraction boundary: to exclude prompt interference during knowledge base retrieval
     # 注意：普通 AI 对话不使用此后缀作为提示词，但会用于关键词提取边界
+    # Note: Normal AI conversation does not use this suffix as a prompt, but it is used for keyword extraction boundary
     analysis_prompt_suffix: |
       
       【回复要求】
@@ -156,75 +273,144 @@ agent:
       - 请基于所有成功的步骤结果，尽可能形成对用户有用的回答
       - 对于失败或跳过的步骤，请明确指出哪些部分因何原因未能完成，并提供建议
       - 不要因为部分失败而完全拒绝回答，要充分利用已获取的信息
+    # 英文版分析提示词后缀（language=en 时生效，留空则使用中文版）
+    # English analysis prompt suffix (effective when language=en, leave empty to use Chinese version)
+    analysis_prompt_suffix_en: |
+      
+      [Response Requirements]
+      1. Answer the player's question directly in concise and friendly natural language, like chatting with a friend
+      2. Data in execution results is core fact and must be presented accurately. Numeric values (e.g. durability, health, quantity, coordinates) must use raw data without rounding, approximation, or generalization (e.g. 479/481 must not be described as "full durability")
+      3. If relevant knowledge base information is available in the context, you may incorporate it into your answer as a supplement to make it more valuable
+      4. Do not fabricate data that does not exist in either the execution results or the knowledge base, and do not invent game guides out of thin air
+      5. **Strict constraint: only describe operations actually completed in the execution results. Do not mention features not included in the results (e.g. sounds, particle effects, teleportation), even if they are described in the knowledge base or skill documentation**
+      6. Do not use any fixed titles or templates (no "Analysis & Suggestions", "Brief Analysis", "Current Market Status", "Next Steps", etc.)
+      7. Output no more than 400 words
+      
+      [Handling Partial Failures]
+      - If execution results contain [FAILURE] markers, it means that step failed
+      - If execution results contain [SKIPPED] markers, it means that step was skipped due to unmet dependencies or parameter parsing failures
+      - Please form as useful an answer as possible based on all successful step results
+      - For failed or skipped steps, clearly indicate which parts failed and why, and provide suggestions
+      - Do not completely refuse to answer due to partial failure; make full use of the information already obtained
 
 # ==================== 消息格式配置 ====================
+# Message Format Configuration
 messages:
   # AI 名称（用于提示语中的 AI 标识）
+  # AI name (used as AI identifier in prompts)
   # 例如："Kilacraft-AI"、"AI 助手" 等
+  # Examples: "Kilacraft-AI", "AI Assistant", etc.
   ai_name: "Kilacraft-AI"
   
   # AI 响应前缀（用于各种 AI 提示消息）
+  # AI response prefix (for various AI prompt messages)
   # 支持颜色代码（§ + 数字/字母）
+  # Supports color codes (§ + digit/letter)
   # 例如：§7=灰色，§f=白色，§b=浅蓝色，§a=绿色，§c=红色
+  # Examples: §7=gray, §f=white, §b=light blue, §a=green, §c=red
   # 可以使用任何符号包裹，如 []、【】、『』等，或者不用符号
+  # Can be wrapped with any symbols like [], 【】, 『』, or no symbols at all
   ai_prefix: "§7[Kilacraft-AI] §f"
   
   # "正在思考"提示文本
+  # "Thinking" prompt text
   thinking_message: "正在思考中..."
+  # 英文版提示文本（language=en 时生效，留空则使用中文版）
+  # English prompt text (effective when language=en, leave empty to use Chinese version)
+  thinking_message_en: "Thinking..."
 
 # ==================== AI 响应输出管线配置 ====================
+# AI Response Output Pipeline Configuration
 # 说明：统一控制所有 AI 回复的输出载体（聊天栏/ActionBar/BossBar/Title/Sidebar）
+# Description: Unified control for all AI reply output channels (Chat/ActionBar/BossBar/Title/Sidebar)
 # 默认使用 CHAT，可按场景精细化配置
+# Default is CHAT, can be fine-tuned per scenario
 output:
   # 全局默认输出载体
+  # Global default output channel
   # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
+  # Available values: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
   default_channel: CHAT
   
   # "正在思考"提示消息的输出载体
+  # Output channel for "thinking" prompt message
   # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
+  # Available values: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
   # 说明：默认为 default_channel，可独立配置
+  # Description: Defaults to default_channel, can be configured independently
   # 示例：default_channel=BOSS_BAR, thinking_channel=CHAT → 思考提示在聊天框，回复也在聊天框（如果 normal_chat=CHAT）
+  # Example: default_channel=BOSS_BAR, thinking_channel=CHAT → thinking prompt in chat, reply also in chat (if normal_chat=CHAT)
   thinking_channel: ""
   
   # 流式输出配置（实时显示 AI 生成过程）
+  # Stream output configuration (real-time display of AI generation process)
   # 说明：
+  # Description:
   # 1. 启用后，AI 响应会逐字实时显示，而非等待完整响应
+  # 1. When enabled, AI response is displayed character by character in real-time instead of waiting for the full response
   # 2. 窗口期管理：请求发起后立即显示"生成中..."占位符
+  # 2. Window management: "Generating..." placeholder is displayed immediately after request is sent
   # 3. 流式输出使用场景对应的载体（与最终结果一致）
+  # 3. Stream output uses the scenario's channel (same as final result)
   # 4. 推荐载体：SIDEBAR（最佳体验，适合长文本）/ BOSS_BAR（中长文本）/ ACTION_BAR（短文本）
+  # 4. Recommended channels: SIDEBAR (best experience, for long text) / BOSS_BAR (medium text) / ACTION_BAR (short text)
   # 5. CHAT 载体不推荐（会刷屏），TITLE 载体不适合（会闪烁）
+  # 5. CHAT channel not recommended (screen flooding), TITLE channel not suitable (flickering)
   stream:
     # 是否启用流式输出（总开关）
+    # Whether to enable stream output (master switch)
     enabled: false
   
   # AI 回复音效配置
+  # AI reply sound effect configuration
   # 说明：
+  # Description:
   # 1. 启用后，AI 开始回复时会播放提示音效（仅触发玩家听到）
+  # 1. When enabled, a prompt sound plays when AI starts replying (only the triggering player hears it)
   # 2. 音效时机：思考完成/开始生成时播放，与输出内容同步
+  # 2. Sound timing: plays when thinking completes / generation starts, synchronized with output content
   # 3. 适用场景：普通对话/技能结果/任务结果/挂机回调
+  # 3. Applicable scenarios: normal chat / skill results / task results / AFK callback
   # 4. 提升沉浸式体验：声音与文字同步出现
+  # 4. Enhances immersive experience: sound and text appear simultaneously
   sound:
     # 是否启用 AI 回复音效（总开关，默认开启）
+    # Whether to enable AI reply sound effect (master switch, default: on)
     enabled: true
     # 音效枚举名称（Bukkit Sound 枚举）
+    # Sound enum name (Bukkit Sound enum)
     # 推荐值：
+    # Recommended values:
     # - ENTITY_PLAYER_LEVELUP（升级音效，默认）
+    # - ENTITY_PLAYER_LEVELUP (level-up sound, default)
     # - ENTITY_EXPERIENCE_ORB_PICKUP（经验球拾取）
+    # - ENTITY_EXPERIENCE_ORB_PICKUP (experience orb pickup)
     # - BLOCK_NOTE_BLOCK_PLING（音符方块）
+    # - BLOCK_NOTE_BLOCK_PLING (note block)
     # - UI_TOAST_CHALLENGE_COMPLETE（成就完成）
+    # - UI_TOAST_CHALLENGE_COMPLETE (advancement complete)
     sound_name: "ENTITY_PLAYER_LEVELUP"
     # 音量（0.0-1.0）
+    # Volume (0.0-1.0)
     volume: 0.5
     # 音调（0.5-2.0）
+    # Pitch (0.5-2.0)
     pitch: 1.2
   
   # 场景级覆盖配置（可选，留空则使用 default_channel）
+  # Scenario-level override configuration (optional, leave empty to use default_channel)
   # 场景说明：
+  # Scenario descriptions:
   # - normal_chat: 普通 AI 对话（无技能调用）
+  # - normal_chat: Normal AI conversation (no skill invocation)
   # - skill_result: 单意图技能执行结果（含 LLM 二次分析）
+  # - skill_result: Single-intent skill execution result (with LLM secondary analysis)
   # - task_result: 多步骤任务执行结果（含 LLM 二次分析）
+  # - task_result: Multi-step task execution result (with LLM secondary analysis)
   # - afk_callback: 挂机任务回调通知
+  # - afk_callback: AFK task callback notification
   # - error: 错误消息
+  # - error: Error messages
   scenarios:
     normal_chat: ""
     skill_result: ""
@@ -233,97 +419,159 @@ output:
     error: ""
   
   # BossBar 专属配置（仅当载体为 BOSS_BAR 时生效）
+  # BossBar-specific configuration (only effective when channel is BOSS_BAR)
   boss_bar:
     # BossBar 颜色
+    # BossBar color
     # 可选值: PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
+    # Available values: PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
     color: PURPLE
     # BossBar 样式
+    # BossBar style
     # 可选值: SOLID（实心）, SEGMENTED_6/10/12/20（分段）
+    # Available values: SOLID (solid), SEGMENTED_6/10/12/20 (segmented)
     style: SOLID
     # 显示时长（秒），0=永久显示直到新消息覆盖
+    # Display duration (seconds), 0=persistent until new message overwrites
     duration_seconds: 15
   
   # Title 专属配置（仅当载体为 TITLE 时生效）
+  # Title-specific configuration (only effective when channel is TITLE)
   title:
     # 主标题停留时间（ticks，20 ticks = 1秒）
+    # Main title stay duration (ticks, 20 ticks = 1 second)
     stay_ticks: 60
     # 淡入时间（ticks）
+    # Fade-in duration (ticks)
     fade_in_ticks: 10
     # 淡出时间（ticks）
+    # Fade-out duration (ticks)
     fade_out_ticks: 10
   
   # Scoreboard Sidebar 专属配置（仅当载体为 SIDEBAR 时生效）
+  # Scoreboard Sidebar-specific configuration (only effective when channel is SIDEBAR)
   # 说明：
+  # Description:
   # - 自动分页：超过 max_lines_per_page 行时自动拆分多页
+  # - Auto-pagination: automatically splits into multiple pages when exceeding max_lines_per_page
   # - 持久显示：不遮挡游戏视野，适合长文本 AI 回复
+  # - Persistent display: does not obstruct game view, suitable for long AI replies
   # 注意：
+  # Note:
   # - 如果服务器有其他插件使用了 Scoreboard Sidebar（如计分板、排行榜等），可能会导致冲突
+  # - If other plugins use Scoreboard Sidebar (e.g., scoreboards, leaderboards), conflicts may occur
   # - 冲突表现：两个插件的 Sidebar 会互相覆盖，只能显示最后一个
+  # - Conflict behavior: Sidebars from two plugins will overwrite each other, only the last one is visible
   # - 解决方案：
+  # - Solutions:
   #   1. 检查是否有其他插件使用 Sidebar（如 Essentials、Stats、Factions 等）
+  #   1. Check if other plugins use Sidebar (e.g., Essentials, Stats, Factions)
   #   2. 如果有冲突，建议改用其他载体（CHAT/BOSS_BAR）
+  #   2. If conflict exists, consider using other channels (CHAT/BOSS_BAR)
   #   3. 或者联系其他插件作者，看是否支持配置到其他显示槽位
+  #   3. Or contact other plugin authors to see if they support configuring to other display slots
   sidebar:
     # 显示时长（秒），0=永久显示直到新消息覆盖
+    # Display duration (seconds), 0=persistent until new message overwrites
     duration_seconds: 15
     
     # 每页最大行数（Minecraft Sidebar 上限为 15）
+    # Max lines per page (Minecraft Sidebar limit is 15)
     # 建议值：10-15，值越大单页显示内容越多，但太高会影响游戏体验
+    # Recommended: 10-15, higher values show more content per page but may affect gameplay experience
     max_lines_per_page: 15
     
     # 每行最大字符数
+    # Max characters per line
     # 建议值：32-40，值越小 Sidebar 越窄，阅读体验越好
+    # Recommended: 32-40, smaller values make Sidebar narrower with better reading experience
     # AI 回复一般不超过 400 汉字，32 字符/行约需 12-13 行
+    # AI replies generally do not exceed 400 Chinese characters, 32 chars/line requires about 12-13 lines
     max_chars_per_line: 32
 
 # ==================== 知识库配置 ====================
+# Knowledge Base Configuration
 # 知识库功能说明：
+# Knowledge base feature description:
 # 1. 在插件目录/plugins/Kilacraft-AI/knowledge/下创建 Markdown 或 TXT 文件
+# 1. Create Markdown or TXT files under /plugins/Kilacraft-AI/knowledge/
 # 2. 将服务器特有的知识、规则、FAQ 等内容放入文件中
+# 2. Put server-specific knowledge, rules, FAQ, etc. into the files
 # 3. AI 会自动检索相关知识并基于知识回答
+# 3. AI automatically retrieves relevant knowledge and answers based on it
 # 4. 使用 /kilacraft knowledge reload 命令重新加载知识库
+# 4. Use /kilacraft knowledge reload command to reload the knowledge base
 knowledge:
   # 是否启用知识库检索（默认开启）
+  # Whether to enable knowledge base retrieval (default: on)
   enabled: true
   
   # 每次检索最多返回的相关知识数量（建议 1-5）
+  # Maximum number of relevant knowledge chunks returned per retrieval (recommended 1-5)
   max_relevant_chunks: 3
   
+  # 最低相关性得分阈值（默认 30.0）
+  # Minimum relevance score threshold (default 30.0)
+  # 得分低于此值的片段视为噪声，不会注入到 AI 上下文
+  # Chunks scoring below this value are treated as noise and will not be injected into AI context
+  # 值越高过滤越严格，但可能漏掉一些相关的片段
+  # Higher values = stricter filtering, but may miss some relevant chunks
+  # 建议范围：20.0 - 50.0
+  # Recommended range: 20.0 - 50.0
+  min_relevance_score: 30.0
+  
   # 知识库分段配置
+  # Knowledge base segmentation configuration
   segment:
     # 每个片段最大字符数（超过此值会继续分割）
+    # Max characters per chunk (chunks exceeding this will be further split)
     max_size: 500
     
     # 每个片段最小字符数（小于此值的片段会被忽略）
+    # Min characters per chunk (chunks below this will be ignored)
     min_size: 20
     
     # 片段重叠字符数（保持上下文连贯性）
+    # Chunk overlap characters (maintains context coherence)
     overlap: 30
   
   # 关键词提取配置
+  # Keyword extraction configuration
   keywords:
     # 每次提取的关键词数量（建议 5-15）
+    # Number of keywords extracted per query (recommended 5-15)
     # 值越大召回率越高，但可能引入噪音
+    # Higher values = higher recall rate, but may introduce noise
     top_k: 10
   
   # BM25 评分算法配置
+  # BM25 scoring algorithm configuration
   bm25:
     # k1 参数：控制词频饱和点（建议 1.2-2.0）
+    # k1 parameter: controls term frequency saturation point (recommended 1.2-2.0)
     # 值越小，词频影响越容易饱和
+    # Smaller values = term frequency saturates more easily
     k1: 1.5
     
     # b 参数：控制文档长度归一化（建议 0.5-0.8）
+    # b parameter: controls document length normalization (recommended 0.5-0.8)
     # 值越大，长文档惩罚越重
+    # Larger values = heavier penalty for long documents
     b: 0.75
   
   # 自定义词典配置
+  # Custom dictionary configuration
   # 用于添加专业术语、服务器特有词汇等，提升分词准确性
+  # Used to add technical terms, server-specific vocabulary, etc. to improve tokenization accuracy
   custom_dictionary:
     # 是否启用自定义词典
+    # Whether to enable custom dictionary
     enabled: true
     
     # 自定义词汇列表（每行一个词）
+    # Custom vocabulary list (one word per line)
     # 支持中文、英文、数字混合
+    # Supports mixed Chinese, English, and numbers
     words:
       - "圈地"
       - "领地"
@@ -332,57 +580,104 @@ knowledge:
       - "村民交易"
       - "刷怪塔"
       - "末影龙"
+    # 英文版自定义词汇（language=en 时生效，留空则使用中文版）
+    # English custom vocabulary (effective when language=en, leave empty to use Chinese version)
+    words_en:
+      - "redstone"
+      - "enchantment"
+      - "villager"
+      - "ender-dragon"
+      - "netherite"
+      - "mob-farm"
+      - "claim"
 
 # ==================== 命令执行技能配置 ====================
+# Command Execution Skill Configuration
 # 命令执行技能说明：
+# Command execution skill description:
 # 1. 开启后 AI 可以代替玩家执行服务器命令（如 /back、/home 等）
+# 1. When enabled, AI can execute server commands on behalf of the player (e.g., /back, /home)
 # 2. AI 以玩家身份执行命令，权限边界等于玩家自身的权限
+# 2. AI executes commands as the player, permission boundary equals the player's own permissions
 #    - 玩家没有的命令权限，AI 代执行也会被服务器拒绝
+#    - Commands the player doesn't have permission for will also be rejected when AI executes them
 #    - 所有服务器安全机制（权限检查、冷却、安全区域等）均正常生效
+#    - All server security mechanisms (permission checks, cooldowns, safe zones, etc.) remain in effect
 #    - 不存在越权风险：玩家不能做的事，AI 也做不了
+#    - No privilege escalation risk: what the player can't do, AI can't do either
 # 3. 权限要求：玩家必须拥有 kilacraft.command.execute 权限才能使用此功能
+# 3. Permission requirement: player must have kilacraft.command.execute permission to use this feature
 #    - 即使配置开启，没有权限的玩家也无法触发命令执行
+#    - Even if config is enabled, players without permission cannot trigger command execution
 #    - 建议在权限插件中按需分配（如只给 VIP 玩家）
+#    - Recommended to assign via permission plugin as needed (e.g., VIP players only)
 # 4. 建议服主在开启前确认服务器权限配置符合预期
+# 4. Server owners should verify permission configuration meets expectations before enabling
 command_skill:
   # 是否启用命令执行技能（默认关闭，需手动开启）
+  # Whether to enable command execution skill (default: off, requires manual enable)
   # 注意：开启配置后，还需要给玩家分配 kilacraft.command.execute 权限
+  # Note: After enabling config, players still need kilacraft.command.execute permission assigned
   enabled: false
 
 # ==================== 挂机任务配置 ====================
+# AFK Task Configuration
 # 挂机任务功能说明：
+# AFK task feature description:
 # 1. 玩家可以通过 AI 对话或命令创建后台监控任务
+# 1. Players can create background monitoring tasks via AI conversation or commands
 # 2. 条件满足时自动通知玩家并执行动作
+# 2. Automatically notifies player and executes actions when conditions are met
 # 3. 每个玩家同时只能拥有一个挂机任务
+# 3. Each player can only have one AFK task at a time
 # 4. 玩家下线或任务完成后自动释放资源
+# 4. Resources are automatically released when player goes offline or task completes
 afk_task:
   # 是否启用挂机任务功能
+  # Whether to enable AFK task feature
   enabled: true
   
   # 最大并发任务数（全局限制）
+  # Maximum concurrent tasks (global limit)
   # 同时运行的最大挂机任务数量
+  # Maximum number of AFK tasks running simultaneously
   max_tasks: 10
   
   # 定时轮询间隔（单位：ticks，20 ticks = 1秒）
+  # Polling interval (unit: ticks, 20 ticks = 1 second)
   # 仅用于没有对应 Bukkit 事件的场景
+  # Only used for scenarios without corresponding Bukkit events
   check_interval_ticks: 20
   
   # 最大连续评估失败次数
+  # Maximum consecutive evaluation failures
   # 当条件评估连续失败超过此次数时，自动终止任务并通知玩家
+  # When condition evaluation fails consecutively beyond this count, task is automatically terminated and player is notified
   # 建议值：5-15，值太小可能误杀正常任务，值太大会浪费资源
+  # Recommended: 5-15, too small may kill normal tasks, too large wastes resources
   max_consecutive_failures: 10
 
 # ==================== 安全配置 ====================
+# Security Configuration
 # 玩家数据隔离：防止通过AI技能查询/操作其他玩家的敏感数据
+# Player data isolation: prevents querying/manipulating other players' sensitive data via AI skills
 # 安全拦截器会扫描所有Skill参数值，如果匹配到在线玩家名且不是调用者自己，则自动替换为调用者名
+# Security interceptor scans all Skill parameter values; if an online player name is matched and it's not the caller, it's auto-replaced with the caller's name
 security:
   player_isolation:
     # 是否启用玩家数据隔离（默认开启）
+    # Whether to enable player data isolation (default: on)
     enabled: true
     # 允许操作其他玩家的Skill动作白名单（服主可自行添加SPI Skill）
+    # Whitelist of Skill actions allowed to operate on other players (server owners can add SPI Skills)
     # 格式：技能名.动作名（精确匹配）或 技能名（技能级白名单）
+    # Format: skill_name.action_name (exact match) or skill_name (skill-level whitelist)
     # 修改后执行 /kilacraft reload 即可生效，无需重启服务器
+    # Run /kilacraft reload to apply changes, no server restart required
     allowed_actions:
       - "cmi.send_tp_request"        # TPA传送请求：target_player是传送目的地
+      # TPA request: target_player is the teleport destination
       - "AFKTask.create_task"        # 挂机任务：允许监控其他玩家（如"帮我盯着xxx"）
+      # AFK task: allows monitoring other players (e.g., "keep an eye on xxx for me")
       - "command.execute_command"    # 命令执行：以玩家身份执行命令，权限边界等于玩家自身权限
+      # Command execution: executes as player, permission boundary equals player's own permissions

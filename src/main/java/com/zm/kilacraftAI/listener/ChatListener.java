@@ -112,7 +112,7 @@ public class ChatListener implements Listener {
         ConversationManager convManager = plugin.getConversationManager();
         Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
 
-        PluginLogger.debug("聊天监听", "玩家 " + player.getName() + " 的历史记录数量：" + playerHistory.size());
+        PluginLogger.debug("聊天监听", "玩家 {} 的历史记录数量：{}", player.getName(), playerHistory.size());
 
         // 使用统一的 AI 请求处理器
         boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableChatListener();

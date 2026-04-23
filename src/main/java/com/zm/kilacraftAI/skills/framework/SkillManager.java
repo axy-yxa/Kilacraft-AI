@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.framework;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.metrics.SkillInfo;
 import com.zm.kilacraftAI.util.PluginLogger;
@@ -37,12 +38,12 @@ public class SkillManager {
      */
     public void registerSkill(Skill skill) {
         if (skill == null) {
-            throw new IllegalArgumentException("技能不能为空");
+            throw new IllegalArgumentException(I18nService.tr("技能不能为空"));
         }
 
         String name = skill.getName();
         if (skills.containsKey(name)) {
-            throw new IllegalArgumentException("技能已注册：" + name);
+            throw new IllegalArgumentException(I18nService.tr("技能已注册：{}", name));
         }
 
         skills.put(name, skill);
@@ -138,7 +139,7 @@ public class SkillManager {
         Skill skill = skills.get(skillName);
 
         if (skill == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("抱歉，我没有找到名为 '" + skillName + "' 的技能"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("抱歉，我没有找到名为 '{}' 的技能", skillName)));
         }
 
         // 检查技能是否可用（带错误隔离）
@@ -147,7 +148,7 @@ public class SkillManager {
                 return CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
             }
         } catch (Exception e) {
-            PluginLogger.warn("技能管理", "检查技能可用性时异常：" + skillName + " - " + e.getMessage(), e);
+            PluginLogger.warn("技能管理", "检查技能可用性时异常：{} - {}", skillName, e.getMessage(), e);
             return CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
         }
 
@@ -163,7 +164,7 @@ public class SkillManager {
             executionContext = new SkillContext(context.getPlayer(), context.getAction(), sanitizedEntities);
         }
 
-        PluginLogger.debug("技能管理", "开始执行技能：" + skillName + ", action=" + intent.getAction());
+        PluginLogger.debug("技能管理", "开始执行技能：{}, action={}", skillName, intent.getAction());
 
         // 统计埋点：记录技能调用
         MetricsCollector.getInstance().recordSkillAction(skillName, intent.getAction());
@@ -172,12 +173,12 @@ public class SkillManager {
         // 执行技能（带错误隔离，第三方 Skill 异常不影响核心流程）
         try {
             return skill.execute(executionContext).exceptionally(ex -> {
-                PluginLogger.error("技能管理", "技能执行异常（可能为第三方技能）：" + skillName + " - " + ex.getMessage(), ex);
-                return SkillResult.failure("技能执行出错，请联系管理员");
+                PluginLogger.error("技能管理", I18nService.tr("技能执行异常（可能为第三方技能）：{} - {}", skillName, ex.getMessage()), ex);
+                return SkillResult.failure(I18nService.tr("技能执行出错，请联系管理员"));
             });
         } catch (Exception e) {
-            PluginLogger.error("技能管理", "技能执行失败：" + skillName + " - " + e.getMessage(), e);
-            return CompletableFuture.completedFuture(SkillResult.failure("技能执行出错，请联系管理员"));
+            PluginLogger.error("技能管理", I18nService.tr("技能执行失败：{} - {}", skillName, e.getMessage()), e);
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("技能执行出错，请联系管理员")));
         }
     }
 

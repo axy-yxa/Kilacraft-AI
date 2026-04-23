@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.command;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.skills.framework.Skill;
@@ -119,10 +120,10 @@ public class CommandSkill implements Skill {
         try {
             return switch (action) {
                 case "execute_command" -> executeCommand(player, context);
-                default -> CompletableFuture.completedFuture(SkillResult.failure("未知动作：" + action));
+                default -> CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未知动作：{}", action)));
             };
         } catch (Exception e) {
-            return CompletableFuture.completedFuture(SkillResult.failure("命令执行失败：" + e.getMessage()));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("命令执行失败：{}", e.getMessage())));
         }
     }
 
@@ -145,18 +146,18 @@ public class CommandSkill implements Skill {
 
         final String finalCommand = command;
 
-        PluginLogger.debug("命令技能", "玩家 " + player.getName() + " 通过 AI 执行命令: /" + finalCommand);
+        PluginLogger.debug("命令技能", "玩家 {} 通过 AI 执行命令: /{}", player.getName(), finalCommand);
 
         // 使用 dispatchAsync 获取执行结果
         return BukkitCommandUtil.dispatchAsync(player, finalCommand).thenApply(success -> {
             if (success) {
-                return SkillResult.success("已执行命令: /" + finalCommand);
+                return SkillResult.success(I18nService.tr("已执行命令: /{}", finalCommand));
             } else {
-                return SkillResult.failure("[FAILURE] 命令执行失败，可能没有权限或命令不存在: /" + finalCommand);
+                return SkillResult.failure(I18nService.tr("[FAILURE] 命令执行失败，可能没有权限或命令不存在: /{}", finalCommand));
             }
         }).exceptionally(ex -> {
-            PluginLogger.warn("命令技能", "命令执行异常: /" + finalCommand + " - " + ex.getMessage(), ex);
-            return SkillResult.failure("命令执行异常: /" + finalCommand);
+            PluginLogger.warn("命令技能", I18nService.tr("命令执行异常: /{}", finalCommand + " - " + ex.getMessage()), ex);
+            return SkillResult.failure(I18nService.tr("命令执行异常: /{}", finalCommand));
         });
     }
 }

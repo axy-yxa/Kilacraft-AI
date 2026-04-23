@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.afktask;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.skills.afktask.impl.*;
@@ -117,7 +118,7 @@ public class AFKTaskSkill implements Skill {
             case "cancel_task" -> manager.cancelTask(player.getUniqueId());
             case "query_task" -> handleQueryTask(player, manager);
             default ->
-                    SkillResult.failure("未知的挂机任务动作：" + action + "。请用自然语言告知玩家操作无法识别，并询问具体需求");
+                    SkillResult.failure(I18nService.tr("未知的挂机任务动作：{}。请用自然语言告知玩家操作无法识别，并询问具体需求", action));
         };
 
         return CompletableFuture.completedFuture(result);
@@ -142,7 +143,7 @@ public class AFKTaskSkill implements Skill {
         // 检查是否已存在任务
         if (manager.hasTask(player.getUniqueId())) {
             AFKTask existingTask = manager.getTask(player.getUniqueId());
-            return SkillResult.failure("玩家已有一个正在运行的挂机任务（" + existingTask.getTaskDescription() + "）。请用自然语言告知玩家当前有任务在运行，并建议使用 /kilacraft afk cancel 取消旧任务后再创建新的");
+            return SkillResult.failure(I18nService.tr("玩家已有一个正在运行的挂机任务（{}）。请用自然语言告知玩家当前有任务在运行，并建议使用 /kilacraft afk cancel 取消旧任务后再创建新的", existingTask.getTaskDescription()));
         }
 
         // 目标在线/离线合理性检查
@@ -152,10 +153,10 @@ public class AFKTaskSkill implements Skill {
             boolean isOnline = targetPlayer != null && targetPlayer.isOnline();
 
             if (taskType == AFKTaskType.PLAYER_ONLINE_WATCH && isOnline) {
-                return SkillResult.failure("目标玩家 " + targetPlayerName + " 当前已在线，PLAYER_ONLINE_WATCH 任务无意义。请用自然语言告知玩家目标已在线，并建议：如果需要监视 TA 下线，可以说\"帮我盯着" + targetPlayerName + "下线\"");
+                return SkillResult.failure(I18nService.tr("目标玩家 {} 当前已在线，PLAYER_ONLINE_WATCH 任务无意义。请用自然语言告知玩家目标已在线，并建议：如果需要监视 TA 下线，可以说\"帮我盯着{}下线\"", targetPlayerName, targetPlayerName));
             }
             if (taskType == AFKTaskType.PLAYER_OFFLINE_WATCH && !isOnline) {
-                return SkillResult.failure("目标玩家 " + targetPlayerName + " 当前不在线，PLAYER_OFFLINE_WATCH 任务无意义。请用自然语言告知玩家目标不在线，并建议：如果需要监视 TA 上线，可以说\"帮我盯着" + targetPlayerName + "上线\"");
+                return SkillResult.failure(I18nService.tr("目标玩家 {} 当前不在线，PLAYER_OFFLINE_WATCH 任务无意义。请用自然语言告知玩家目标不在线，并建议：如果需要监视 TA 上线，可以说\"帮我盯着{}上线\"", targetPlayerName, targetPlayerName));
             }
         }
 
@@ -217,7 +218,7 @@ public class AFKTaskSkill implements Skill {
         }
 
         AFKTask task = manager.getTask(playerUUID);
-        String taskInfo = "玩家当前挂机任务信息：任务ID=" + task.getTaskId() + ", 类型=" + task.getTaskType().getDescription() + ", 描述=" + task.getTaskDescription() + ", 状态=" + task.getStatusText() + ", 创建时间=" + formatTimestamp(task.getCreatedAt()) + "。请基于这些信息用自然语言告知玩家当前任务状态";
+        String taskInfo = I18nService.tr("玩家当前挂机任务信息：任务ID={}, 类型={}, 描述={}, 状态={}, 创建时间={}。请基于这些信息用自然语言告知玩家当前任务状态", task.getTaskId(), task.getTaskType().getLocalizedDescription(), task.getTaskDescription(), task.getStatusText(), formatTimestamp(task.getCreatedAt()));
         return SkillResult.success(taskInfo);
     }
 

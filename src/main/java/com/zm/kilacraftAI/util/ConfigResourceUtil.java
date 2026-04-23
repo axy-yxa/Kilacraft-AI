@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.util;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +27,7 @@ public class ConfigResourceUtil {
      * 私有构造函数,防止实例化
      */
     private ConfigResourceUtil() {
-        throw new UnsupportedOperationException("工具类不允许实例化");
+        throw new UnsupportedOperationException(I18nService.tr("工具类不允许实例化"));
     }
 
     /**
@@ -56,9 +57,9 @@ public class ConfigResourceUtil {
         // 拷贝资源文件
         try {
             plugin.saveResource(resourcePath, false);
-            PluginLogger.info(logModule, "已创建默认配置文件: " + targetFile.getName());
+            PluginLogger.info(logModule, "已创建默认配置文件: {}", targetFile.getName());
         } catch (Exception e) {
-            PluginLogger.error(logModule, "创建配置文件失败: " + resourcePath, e);
+            PluginLogger.error(logModule, I18nService.tr("创建配置文件失败: {}", resourcePath), e);
         }
     }
 
@@ -90,9 +91,9 @@ public class ConfigResourceUtil {
         // 拷贝资源文件
         try {
             plugin.saveResource(resourcePath, false);
-            PluginLogger.info(logModule, "已创建默认配置文件: " + targetFile.getName());
+            PluginLogger.info(logModule, "已创建默认配置文件: {}", targetFile.getName());
         } catch (Exception e) {
-            PluginLogger.error(logModule, "创建配置文件失败: " + resourcePath, e);
+            PluginLogger.error(logModule, I18nService.tr("创建配置文件失败: {}", resourcePath), e);
         }
     }
 
@@ -107,6 +108,21 @@ public class ConfigResourceUtil {
      * @param logModule   日志模块名称
      */
     public static void saveDefaultResourceDir(KilacraftAI plugin, String resourceDir, String logModule) {
+        saveDefaultResourceDir(plugin, resourceDir, logModule, Integer.MAX_VALUE);
+    }
+
+    /**
+     * 批量保存内置资源目录下的文件(仅当目标文件不存在时才复制)
+     *
+     * <p>扫描 JAR 包中指定资源目录下的文件，逐一调用 saveDefaultResource。</p>
+     * <p>maxDepth=1 表示只扫描根目录文件，不递归子目录（用于按语言过滤资源）。</p>
+     *
+     * @param plugin      插件实例
+     * @param resourceDir 资源目录路径(如 "knowledge")
+     * @param logModule   日志模块名称
+     * @param maxDepth    最大递归深度（1=仅根目录文件）
+     */
+    public static void saveDefaultResourceDir(KilacraftAI plugin, String resourceDir, String logModule, int maxDepth) {
         var resource = plugin.getClass().getClassLoader().getResource(resourceDir);
         if (resource == null) {
             return;
@@ -116,7 +132,7 @@ public class ConfigResourceUtil {
             URI uri = resource.toURI();
             try (FileSystem fs = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
                 Path jarDir = fs.getPath(resourceDir);
-                try (Stream<Path> stream = Files.walk(jarDir)) {
+                try (Stream<Path> stream = Files.walk(jarDir, maxDepth)) {
                     stream.filter(Files::isRegularFile).forEach(path -> {
                         String relative = jarDir.relativize(path).toString();
                         String resourcePath = resourceDir + "/" + relative.replace('\\', '/');
@@ -125,7 +141,7 @@ public class ConfigResourceUtil {
                 }
             }
         } catch (URISyntaxException | IOException e) {
-            PluginLogger.error(logModule, "扫描内置资源目录失败: " + resourceDir, e);
+            PluginLogger.error(logModule, I18nService.tr("扫描内置资源目录失败: {}", resourceDir), e);
         }
     }
 }

@@ -11,6 +11,7 @@ import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -105,7 +106,7 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
         try {
             return GSON.fromJson(json, AFKTaskCallback.class);
         } catch (Exception e) {
-            PluginLogger.warn("挂机任务", "解析回调配置失败: " + e.getMessage(), e);
+            PluginLogger.warn("挂机任务", I18nService.tr("解析回调配置失败: {}", e.getMessage()), e);
             return new AFKTaskCallback();
         }
     }
@@ -124,9 +125,9 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
             // 启动通知由上游 AIRequestHandler 通过 LLM 二次分析发送，此处不再重复通知玩家
 
             String worldDesc = (targetWorldName != null && !targetWorldName.isEmpty()) ? targetWorldName : "玩家当前世界";
-            PluginLogger.debug("挂机任务", "已启动: " + getTaskId() + ", 目标世界: " + worldDesc + ", 模式: " + (hasCallback ? "回调(" + callback.getCallbackTask().getSteps().size() + "步)" : "纯通知"));
+            PluginLogger.debug("挂机任务", "已启动: {}, 目标世界: {}, 模式: {}", getTaskId(), worldDesc, hasCallback ? "回调(" + callback.getCallbackTask().getSteps().size() + "步)" : "纯通知");
         } catch (Exception e) {
-            failStart("监听器注册失败: " + e.getMessage());
+            failStart(I18nService.tr("监听器注册失败: {}", e.getMessage()));
         }
     }
 
@@ -138,9 +139,9 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
                 HandlerList.unregisterAll(this);
                 listenerRegistered = false;
 
-                PluginLogger.debug("挂机任务", "已停止: " + getTaskId());
+                PluginLogger.debug("挂机任务", "已停止: {}", getTaskId());
             } catch (Exception e) {
-                PluginLogger.warn("挂机任务", "注销事件监听器失败: " + e.getMessage(), e);
+                PluginLogger.warn("挂机任务", I18nService.tr("注销事件监听器失败: {}", e.getMessage()), e);
             }
         }
     }
@@ -185,12 +186,12 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
 
         if (hasCallback) {
             // 先完成任务：立即注销事件监听器，防止异步回调期间新事件触发重复回调
-            complete("世界 " + eventWorld.getName() + " 天气变化（" + weatherDesc + "），开始执行回调。");
+            complete(I18nService.tr("世界 {} 天气变化（{}），开始执行回调。", eventWorld.getName(), weatherDesc));
             executeCallback(eventWorld.getName(), toWeatherState, weatherDesc);
         } else {
             // 纯通知模式：通过 LLM 二次分析通知
-            notifyWithLLMAnalysis("世界 " + eventWorld.getName() + " 天气变化（" + weatherDesc + "）");
-            complete("世界 " + eventWorld.getName() + " 天气变化（" + weatherDesc + "），挂机任务完成。");
+            notifyWithLLMAnalysis(I18nService.tr("世界 {} 天气变化（{}）", eventWorld.getName(), weatherDesc));
+            complete(I18nService.tr("世界 {} 天气变化（{}），挂机任务完成。", eventWorld.getName(), weatherDesc));
         }
     }
 
@@ -210,7 +211,7 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
             // 2. 获取任务创建者玩家对象
             Player creatorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (creatorPlayer == null || !creatorPlayer.isOnline()) {
-                PluginLogger.warn("挂机任务", "任务创建者不在线，无法执行回调: " + getTaskId());
+                PluginLogger.warn("挂机任务", "任务创建者不在线，无法执行回调: {}", getTaskId());
                 notifyPlayer("§c任务创建者不在线，回调任务已取消。");
                 return;
             }
@@ -234,10 +235,10 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
                         false
                 );
             }).exceptionally(ex -> {
-                PluginLogger.error("挂机任务", "回调任务执行异常: " + ex.getMessage(), ex);
+                PluginLogger.error("挂机任务", I18nService.tr("回调任务执行异常: {}", ex.getMessage()), ex);
                 Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
                 if (errorPlayer != null && errorPlayer.isOnline()) {
-                    plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
+                    plugin.getLlmOutputCoordinator().outputError(errorPlayer, I18nService.tr("§c回调任务执行失败：{}", ex.getMessage()));
                 }
                 return null;
             });
@@ -247,7 +248,7 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
             if (errorPlayer != null && errorPlayer.isOnline()) {
                 plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务启动失败：" + e.getMessage());
             }
-            PluginLogger.error("挂机任务", "回调任务启动异常: " + e.getMessage(), e);
+            PluginLogger.error("挂机任务", I18nService.tr("回调任务启动异常: {}", e.getMessage()), e);
         }
     }
 
@@ -271,12 +272,12 @@ public class WeatherChangeWatchTask extends AFKTask implements Listener {
 
     @Override
     public String getTaskDescription() {
-        String worldDesc = (targetWorldName != null && !targetWorldName.isEmpty()) ? targetWorldName : "当前世界";
+        String worldDesc = (targetWorldName != null && !targetWorldName.isEmpty()) ? targetWorldName : I18nService.tr("当前世界");
         if (callback != null && callback.getCallbackTask() != null && callback.getCallbackTask().getSteps() != null && !callback.getCallbackTask().getSteps().isEmpty()) {
             String goal = callback.getCallbackTask().getGoal();
-            String goalDesc = (goal != null && !goal.isEmpty()) ? "，目标：" + goal : "";
-            return "监视世界 " + worldDesc + " 天气变化，触发回调任务（" + callback.getCallbackTask().getSteps().size() + "步）" + goalDesc;
+            String goalDesc = (goal != null && !goal.isEmpty()) ? I18nService.tr("，目标：{}", goal) : "";
+            return I18nService.tr("监视世界 {} 天气变化，触发回调任务（{}步）{}", worldDesc, callback.getCallbackTask().getSteps().size(), goalDesc);
         }
-        return "监视世界 " + worldDesc + " 天气变化，变化后通知创建者（纯通知）";
+        return I18nService.tr("监视世界 {} 天气变化，变化后通知创建者（纯通知）", worldDesc);
     }
 }

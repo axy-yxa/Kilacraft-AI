@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.afktask;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
@@ -75,7 +76,7 @@ public class ConditionEvaluator {
             // 1. 获取Skill实例
             Skill skill = KilacraftAI.getInstance().getSkillManager().getSkill(conditionPlan.getConditionSkill());
             if (skill == null) {
-                PluginLogger.warn("条件评估", "找不到Skill: " + conditionPlan.getConditionSkill());
+                PluginLogger.warn("条件评估", "找不到Skill: {}", conditionPlan.getConditionSkill());
                 return EvaluationResult.failed();
             }
 
@@ -88,16 +89,16 @@ public class ConditionEvaluator {
             try {
                 result = future.get(EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
-                PluginLogger.warn("条件评估", "Skill执行超时: " + conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction());
+                PluginLogger.warn("条件评估", "Skill执行超时: {}.{}", conditionPlan.getConditionSkill(), conditionPlan.getConditionAction());
                 return EvaluationResult.failed();
             } catch (InterruptedException | ExecutionException e) {
-                PluginLogger.warn("条件评估", "Skill执行异常: " + e.getMessage(), e);
+                PluginLogger.warn("条件评估", I18nService.tr("Skill执行异常: {}", e.getMessage()), e);
                 return EvaluationResult.failed();
             }
 
             // 4. 检查执行结果
             if (!result.isSuccess()) {
-                PluginLogger.debug("条件评估", "Skill执行失败: " + result.getMessage());
+                PluginLogger.debug("条件评估", "Skill执行失败: {}", result.getMessage());
                 return EvaluationResult.failed();
             }
 
@@ -106,29 +107,31 @@ public class ConditionEvaluator {
                 // 字符串比较路径（用于 equal/not_equal 的字符串阈值，如方块类型）
                 String strValue = extractStringValue(result, conditionPlan.getResultPath());
                 if (strValue == null) {
-                    PluginLogger.debug("条件评估", "无法提取字段: " + conditionPlan.getResultPath());
+                    PluginLogger.debug("条件评估", "无法提取字段: {}", conditionPlan.getResultPath());
                     return EvaluationResult.failed();
                 }
                 boolean meetsCondition = compareString(strValue, conditionPlan.getOperator(), conditionPlan.getThresholdStr());
+                PluginLogger.warn("条件评估", "{}.{} -> {}=\"{}\" {} \"{}\" ? {}", conditionPlan.getConditionSkill(), conditionPlan.getConditionAction(), conditionPlan.getResultPath(), strValue, conditionPlan.getOperator(), conditionPlan.getThresholdStr(), meetsCondition);
                 return meetsCondition ? EvaluationResult.met(1.0) : EvaluationResult.notMet(0.0);
             }
 
             // 数值比较路径
             Double value = extractDoubleValue(result, conditionPlan.getResultPath());
             if (value == null) {
-                PluginLogger.debug("条件评估", "无法提取字段: " + conditionPlan.getResultPath());
+                PluginLogger.debug("条件评估", "无法提取字段: {}", conditionPlan.getResultPath());
                 return EvaluationResult.failed();
             }
 
             // 6. 执行比较
             boolean meetsCondition = compare(value, conditionPlan.getOperator(), conditionPlan.getThreshold());
 
-//            PluginLogger.debug("条件评估", conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction() + " -> " + conditionPlan.getResultPath() + "=" + value + " " + conditionPlan.getOperatorDescription() + " " + conditionPlan.getThreshold() + " ? " + meetsCondition);
+            // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
+//            PluginLogger.warn("条件评估", "{}.{} -> {}={} {} {} ? {}", conditionPlan.getConditionSkill(), conditionPlan.getConditionAction(), conditionPlan.getResultPath(), value, conditionPlan.getOperatorDescription(), conditionPlan.getThreshold(), meetsCondition);
 
             return meetsCondition ? EvaluationResult.met(value) : EvaluationResult.notMet(value);
 
         } catch (Exception e) {
-            PluginLogger.error("条件评估", "评估异常: " + e.getMessage(), e);
+            PluginLogger.error("条件评估", I18nService.tr("评估异常: {}", e.getMessage()), e);
             return EvaluationResult.failed();
         }
     }
@@ -156,7 +159,7 @@ public class ConditionEvaluator {
             return convertToDouble(value);
 
         } catch (Exception e) {
-            PluginLogger.debug("条件评估", "提取字段失败: " + e.getMessage());
+            PluginLogger.debug("条件评估", "提取字段失败: {}", e.getMessage());
             return null;
         }
     }

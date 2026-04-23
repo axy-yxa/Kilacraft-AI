@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.framework.task;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillIntent;
@@ -40,17 +41,17 @@ public class TaskExecutor {
      * @return AnalysisSummary（由调用方通过 LLMOutputCoordinator 进行 LLM 二次分析）
      */
     public CompletableFuture<AnalysisSummary> executeTask(TaskPlan plan, SkillContext baseContext, Deque<ConversationManager.Message> history, String userMessage) {
-        PluginLogger.debug("任务执行", "共 " + plan.getStepCount() + " 个步骤");
+        PluginLogger.debug("任务执行", "共 {} 个步骤", plan.getStepCount());
 
         // 多步骤任务：先进行拓扑排序
         List<TaskStep> sortedSteps = topologicalSort(plan);
         if (sortedSteps == null) {
             // 返回失败的 AnalysisSummary
-            AnalysisSummary errorSummary = new AnalysisSummary().userMessage(userMessage).taskGoal(plan.getGoal()).addResult("INIT", "FAILURE", "任务计划存在循环依赖，无法执行").statistics(0, 1, 0);
+            AnalysisSummary errorSummary = new AnalysisSummary().userMessage(userMessage).taskGoal(plan.getGoal()).addResult("INIT", "FAILURE", I18nService.tr("任务计划存在循环依赖，无法执行")).statistics(0, 1, 0);
             return CompletableFuture.completedFuture(errorSummary);
         }
 
-        PluginLogger.debug("任务执行", "执行顺序：" + sortedSteps.size() + " 步");
+        PluginLogger.debug("任务执行", "执行顺序：{} 步", sortedSteps.size());
 
         // 递归执行所有步骤
         return executeSteps(plan, sortedSteps, 0, baseContext, history, userMessage);
@@ -85,12 +86,12 @@ public class TaskExecutor {
         String dependencyError = checkDependencies(plan, currentStep);
         if (dependencyError != null) {
             // 依赖未满足，记录失败原因，跳过该步骤，继续执行
-            plan.getContext().put(currentStep.getId(), SkillResult.failure("[依赖未满足] " + dependencyError));
-            PluginLogger.debug("任务执行", "步骤 " + currentStep.getId() + " 因依赖未满足被跳过: " + dependencyError);
+            plan.getContext().put(currentStep.getId(), SkillResult.failure(I18nService.tr("[依赖未满足] {}", dependencyError)));
+            PluginLogger.debug("任务执行", "步骤 {} 因依赖未满足被跳过: {}", currentStep.getId(), dependencyError);
             return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history, userMessage);
         }
 
-        PluginLogger.debug("任务执行", "执行步骤 [" + (stepIndex + 1) + "/" + sortedSteps.size() + "]: " + currentStep.getId() + " - " + currentStep.getAction());
+        PluginLogger.debug("任务执行", "执行步骤 [{}/{}]: {} - {}", stepIndex + 1, sortedSteps.size(), currentStep.getId(), currentStep.getAction());
 
         // 创建技能意图
         SkillIntent intent = new SkillIntent(currentStep.getSkillName(), currentStep.getAction(), currentStep.getEntities(), 1.0, plan.getGoal());
@@ -99,8 +100,8 @@ public class TaskExecutor {
         BuildContextResult buildResult = buildStepContext(currentStep, plan, baseContext);
         if (buildResult.isFailed()) {
             // 占位符解析失败，记录失败原因，跳过该步骤，继续执行
-            plan.getContext().put(currentStep.getId(), SkillResult.failure("[参数解析失败] " + buildResult.errorMessage));
-            PluginLogger.debug("任务执行", "步骤 " + currentStep.getId() + " 因参数解析失败被跳过: " + buildResult.errorMessage);
+            plan.getContext().put(currentStep.getId(), SkillResult.failure(I18nService.tr("[参数解析失败] {}", buildResult.errorMessage)));
+            PluginLogger.debug("任务执行", "步骤 {} 因参数解析失败被跳过: {}", currentStep.getId(), buildResult.errorMessage);
             return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history, userMessage);
         }
         SkillContext stepContext = buildResult.context;
@@ -153,7 +154,7 @@ public class TaskExecutor {
 
         // 如果当前节点正在访问中，说明存在循环依赖
         if (visiting.contains(id)) {
-            PluginLogger.error("任务执行", "检测到循环依赖：" + id);
+            PluginLogger.error("任务执行", "检测到循环依赖：{}", id);
             return true;
         }
 
@@ -195,14 +196,14 @@ public class TaskExecutor {
 
             // 依赖步骤不存在
             if (result == null) {
-                String error = "依赖步骤 " + dependencyId + " 尚未执行";
+                String error = I18nService.tr("依赖步骤 {} 尚未执行", dependencyId);
                 PluginLogger.debug("任务执行", error);
                 return error;
             }
 
             // 依赖步骤执行失败
             if (result instanceof SkillResult skillResult && !skillResult.isSuccess()) {
-                String error = "依赖步骤 " + dependencyId + " 执行失败";
+                String error = I18nService.tr("依赖步骤 {} 执行失败", dependencyId);
                 PluginLogger.debug("任务执行", error);
                 return error;
             }
@@ -228,7 +229,7 @@ public class TaskExecutor {
             PlaceholderResolveResult result = resolvePlaceholders(entry.getValue(), plan, lenient);
             if (result.isFailed()) {
                 // 占位符解析失败，终止执行
-                String errorMsg = String.format("步骤 %s 的参数 '%s' 解析失败：找不到 %s", step.getId(), key, result.failedPlaceholder);
+                String errorMsg = I18nService.tr("步骤 {} 的参数 '{}' 解析失败：找不到 {}", step.getId(), key, result.failedPlaceholder);
                 PluginLogger.debug("任务执行", errorMsg);
                 return new BuildContextResult(null, errorMsg);
             }
@@ -273,12 +274,12 @@ public class TaskExecutor {
             }
             if (lenient) {
                 // 宽松模式：保留原占位符，留给内层 TaskExecutor 解析
-                PluginLogger.debug("任务执行", "占位符宽松保留：" + placeholder + " (外层步骤 " + stepId + " 无 " + fieldPath + " 字段，将留给内层解析)");
+                PluginLogger.debug("任务执行", "占位符宽松保留：{} (外层步骤 {} 无 {} 字段，将留给内层解析)", placeholder, stepId, fieldPath);
                 matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(placeholder));
                 continue;
             }
             // 严格模式：占位符解析失败，返回失败信息
-            PluginLogger.debug("任务执行", "占位符解析失败：" + placeholder + " (步骤 " + stepId + " 不存在或路径 " + fieldPath + " 无效)");
+            PluginLogger.debug("任务执行", "占位符解析失败：{} (步骤 {} 不存在或路径 {} 无效)", placeholder, stepId, fieldPath);
             return new PlaceholderResolveResult(null, placeholder);
         }
         matcher.appendTail(sb);

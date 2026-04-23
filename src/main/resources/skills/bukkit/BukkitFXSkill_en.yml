@@ -1,0 +1,16 @@
+# BukkitFXSkill Configuration (English)
+# Sound & particle effects skill: play sounds or display particle effects (only heard/seen by the caller)
+# Used for: task completion celebration, warning alerts, atmosphere creation
+
+# This description is sent to the LLM to help it understand when to use this skill
+description: 'Play sound effects or display particle effects (only you hear/see). Complete enumeration list is written to the knowledge base, the system will automatically retrieve and provide reference during intent recognition. Used for task completion celebration, warning alerts, atmosphere creation, etc.'
+
+# Action descriptions (Map format, key=action name, value=action description)
+action_descriptions:
+  play_sound: 'Play a Minecraft sound effect (only you hear). Required parameters: sound (sound enum name), volume (volume 0.0-1.0, default 1.0), pitch (pitch 0.5-2.0, default 1.0). Sound enum names will be provided via knowledge base retrieval.'
+  spawn_particle: 'Display particle effects (only you see). Required parameters: particle (particle enum name), count (amount 1-100, default 10), offset_x/y/z (spread range 0.0-2.0, default 0.5). Particle enum names will be provided via knowledge base retrieval.'
+
+# Additional hints (for guiding LLM to use skills correctly)
+hints:
+  - "**Enumeration retrieval**: Sound and particle enum names are provided via knowledge base retrieval, use the enum values from the retrieval results directly."
+  - "**Parameter ranges**: Volume 0.0-1.0, pitch 0.5-2.0, particle count 1-100, spread range 0.0-2.0."

@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.skills.bukkit;
 
+import com.zm.kilacraftAI.config.I18nService;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -29,7 +30,7 @@ public class BukkitAPIConfigLoader {
      */
     public List<BukkitAPIMetadata> loadFromFile(File file) throws Exception {
         if (!file.exists()) {
-            throw new FileNotFoundException("配置文件不存在：" + file.getPath());
+            throw new FileNotFoundException(I18nService.tr("配置文件不存在：{}", file.getPath()));
         }
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);

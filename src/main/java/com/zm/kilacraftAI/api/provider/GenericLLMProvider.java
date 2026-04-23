@@ -7,10 +7,11 @@ import com.google.gson.JsonParseException;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.api.LLMProvider;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
-import com.zm.kilacraftAI.util.ChineseTextUtil;
 import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.util.TextProcessorFactory;
 import okhttp3.*;
 import okhttp3.internal.http2.ConnectionShutdownException;
 
@@ -101,51 +102,67 @@ public class GenericLLMProvider implements LLMProvider {
 
         String contentForExtraction = userMessage;
 
-        // ========== 意图识别 ==========
-        int userInputIndex = contentForExtraction.indexOf("用户说：");
+        // ========== 意图识别场景：提取用户原始输入 ==========
+        // 标记可能被翻译（"用户说：" / "User says: "）
+        String userSaysMarker = I18nService.tr("用户说：");
+        int userInputIndex = contentForExtraction.indexOf(userSaysMarker);
+        if (userInputIndex < 0) {
+            // 回退：尝试中文原始标记（兼容未翻译场景）
+            userInputIndex = contentForExtraction.indexOf("用户说：");
+        }
         if (userInputIndex >= 0) {
-            // 提取“用户说：”后面的内容，直到遇到空行或特定指令词
-            String afterMarker = contentForExtraction.substring(userInputIndex + "用户说：".length());
+            String afterMarker = contentForExtraction.substring(userInputIndex + userSaysMarker.length());
 
-            // 查找结束位置：空行（\n\n）或“请分析”等指令词
+            // 查找结束位置：空行或指令词
             int endPosition = afterMarker.length();
 
-            // 查找空行
             int doubleNewline = afterMarker.indexOf("\n\n");
             if (doubleNewline >= 0) {
                 endPosition = doubleNewline;
             }
 
-            // 查找“请分析”（意图识别的指令词）
-            int pleaseAnalyze = afterMarker.indexOf("请分析");
-            if (pleaseAnalyze >= 0 && pleaseAnalyze < endPosition) {
-                endPosition = pleaseAnalyze;
+            // 查找指令词（可能被翻译）
+            String pleaseAnalyze = I18nService.tr("请分析");
+            int pleaseAnalyzeIdx = afterMarker.indexOf(pleaseAnalyze);
+            if (pleaseAnalyzeIdx >= 0 && pleaseAnalyzeIdx < endPosition) {
+                endPosition = pleaseAnalyzeIdx;
+            }
+            // 回退：尝试中文原始
+            if (!"请分析".equals(pleaseAnalyze)) {
+                int fallback = afterMarker.indexOf("请分析");
+                if (fallback >= 0 && fallback < endPosition) {
+                    endPosition = fallback;
+                }
             }
 
             contentForExtraction = afterMarker.substring(0, endPosition).trim();
 
-            int keywordTopK = configManager.getKeywordTopK();
-            PluginLogger.debug("知识库", "提取的内容: " + contentForExtraction);
-            return ChineseTextUtil.toSearchQuery(contentForExtraction, keywordTopK);
+            PluginLogger.debug("知识库", "提取的内容: {}", contentForExtraction);
+            return toSearchQuery(contentForExtraction);
         }
 
-        // ========== LLM 总结分析 ==========
+        // ========== LLM 总结分析场景 ==========
         String suffix = plugin.getConfigManager().getAgentAnalysisPromptSuffix();
         if (suffix != null && !suffix.isEmpty()) {
             int suffixIndex = userMessage.indexOf(suffix);
             if (suffixIndex > 0) {
-                // 截取 suffix 之前的内容（包含用户输入和执行结果）
                 contentForExtraction = userMessage.substring(0, suffixIndex);
             }
         }
 
-        // 检测统一格式标记（AnalysisSummary 产生的格式）
+        // 检测统一格式标记（AnalysisSummary 产生的格式，可能被翻译）
         contentForExtraction = extractCleanContent(contentForExtraction);
 
-        // 使用配置的 topK 参数
+        PluginLogger.debug("知识库", "提取的内容: {}", contentForExtraction);
+        return toSearchQuery(contentForExtraction);
+    }
+
+    /**
+     * 根据当前语言选择关键词提取策略
+     */
+    private String toSearchQuery(String content) {
         int keywordTopK = configManager.getKeywordTopK();
-        PluginLogger.debug("知识库", "提取的内容: " + contentForExtraction);
-        return ChineseTextUtil.toSearchQuery(contentForExtraction, keywordTopK);
+        return TextProcessorFactory.get().toSearchQuery(content, keywordTopK);
     }
 
     /**
@@ -157,16 +174,24 @@ public class GenericLLMProvider implements LLMProvider {
      * @return 干净的文本内容
      */
     private String extractCleanContent(String content) {
-        // 检测统一格式标记
-        if (!content.contains("[执行结果]")) {
+        // 检测统一格式标记（可能被翻译，同时尝试中英文版本）
+        String resultsMarker = I18nService.tr("[执行结果]");
+        if (!content.contains(resultsMarker)) {
+            resultsMarker = "[执行结果]"; // 回退中文原始
+        }
+        if (!content.contains(resultsMarker)) {
             return content;
         }
 
         // 提取 [用户输入] 部分的内容
         StringBuilder cleanContent = new StringBuilder();
-        int userInputStart = content.indexOf("[用户输入]");
+        String userInputMarker = I18nService.tr("[用户输入]");
+        int userInputStart = content.indexOf(userInputMarker);
+        if (userInputStart < 0) {
+            userInputStart = content.indexOf("[用户输入]"); // 回退
+        }
         if (userInputStart >= 0) {
-            int textStart = userInputStart + "[用户输入]".length();
+            int textStart = userInputStart + userInputMarker.length();
             int textEnd = findNextMarker(content, textStart);
             String userInput = content.substring(textStart, textEnd).trim();
             if (!userInput.isEmpty()) {
@@ -175,21 +200,17 @@ public class GenericLLMProvider implements LLMProvider {
         }
 
         // 提取 [执行结果] 部分的实际数据（去除结构标记和颜色代码）
-        int resultsStart = content.indexOf("[执行结果]");
+        int resultsStart = content.indexOf(resultsMarker);
         if (resultsStart >= 0) {
-            int textStart = resultsStart + "[执行结果]".length();
-            int textEnd = content.indexOf("[统计]");
+            int textStart = resultsStart + resultsMarker.length();
+            String statsMarker = I18nService.tr("[统计]");
+            int textEnd = content.indexOf(statsMarker);
+            if (textEnd < 0) textEnd = content.indexOf("[统计]");
             if (textEnd < 0) textEnd = content.length();
 
             String resultsSection = content.substring(textStart, textEnd);
             // 去除 step_id、状态标签、颜色代码、行首标记
-            String cleaned = resultsSection.replaceAll("-\\s*step_\\w+:\\s*", "")  // 去除 "- step_1: "
-                    .replaceAll("-\\s*(?=\\[)", "")            // 去除行首 "- "（在状态标签前）
-                    .replaceAll("\\[(SUCCESS|FAILURE|SKIPPED|UNKNOWN)]\\s*", "") // 去除状态标签
-                    .replaceAll("§[0-9a-fk-orA-FK-OR]", "") // 去除颜色代码
-                    .replaceAll("^[\\s\\-]+", "")            // 去除开头的空白和连字符
-                    .replaceAll("\\n\\s*-\\s*", " ")       // 后续行的 "- " 替换为空格
-                    .trim();
+            String cleaned = resultsSection.replaceAll("-\\s*step_\\w+:\\s*", "").replaceAll("-\\s*(?=\\[)", "").replaceAll("\\[(SUCCESS|FAILURE|SKIPPED|UNKNOWN)]\\s*", "").replaceAll("§[0-9a-fk-orA-FK-OR]", "").replaceAll("^[\\s\\-]+", "").replaceAll("\\n\\s*-\\s*", " ").trim();
             if (!cleaned.isEmpty()) {
                 cleanContent.append(cleaned);
             }
@@ -202,7 +223,8 @@ public class GenericLLMProvider implements LLMProvider {
      * 查找下一个格式标记的位置
      */
     private int findNextMarker(String content, int fromIndex) {
-        String[] markers = {"[任务目标]", "[执行结果]", "[统计]"};
+        // 同时查找翻译后和中文原始的标记
+        String[] markers = {I18nService.tr("[任务目标]"), I18nService.tr("[执行结果]"), I18nService.tr("[统计]"), "[任务目标]", "[执行结果]", "[统计]"};
         int nearest = content.length();
         for (String marker : markers) {
             int idx = content.indexOf(marker, fromIndex);
@@ -218,16 +240,16 @@ public class GenericLLMProvider implements LLMProvider {
      */
     private void printDebugLog(String playerName, String userMessage, Deque<ConversationManager.Message> history) {
         PluginLogger.debug("LLM请求", "========== API 请求开始 ==========");
-        PluginLogger.debug("LLM请求", "玩家：" + playerName);
-        PluginLogger.debug("LLM请求", "当前消息：" + userMessage);
-        PluginLogger.debug("LLM请求", "模型：" + cachedModel);
-        PluginLogger.debug("LLM请求", "URL：" + cachedApiUrl);
-        PluginLogger.debug("LLM请求", "温度：" + cachedTemperature);
-        PluginLogger.debug("LLM请求", "最大 Token:" + cachedMaxTokens);
+        PluginLogger.debug("LLM请求", "玩家：{}", playerName);
+        PluginLogger.debug("LLM请求", "当前消息：{}", userMessage);
+        PluginLogger.debug("LLM请求", "模型：{}", cachedModel);
+        PluginLogger.debug("LLM请求", "URL: {}", cachedApiUrl);
+        PluginLogger.debug("LLM请求", "温度：{}", cachedTemperature);
+        PluginLogger.debug("LLM请求", "最大 Token:{}", cachedMaxTokens);
 
         // 打印历史记录信息
         if (history != null && !history.isEmpty()) {
-            PluginLogger.debug("LLM请求", "历史对话数量：" + history.size() + " 条");
+            PluginLogger.debug("LLM请求", "历史对话数量：{} 条", history.size());
             int index = 0;
             for (ConversationManager.Message msg : history) {
                 index++;
@@ -236,7 +258,7 @@ public class GenericLLMProvider implements LLMProvider {
                 if (ROLE_ASSISTANT.equals(msg.getRole()) && content.length() > LOG_TRUNCATE_LENGTH) {
                     content = content.substring(0, LOG_TRUNCATE_LENGTH) + "... (共" + msg.getContent().length() + " 字符)";
                 }
-                PluginLogger.debug("LLM请求", "历史 [" + index + "] (" + msg.getRole() + ")：" + content);
+                PluginLogger.debug("LLM请求", "历史 [{}] ({}): {}", index, msg.getRole(), content);
             }
         } else {
             PluginLogger.debug("LLM请求", "历史对话：无");
@@ -279,8 +301,8 @@ public class GenericLLMProvider implements LLMProvider {
                         // 如果有相关知识，添加到上下文中
                         if (!relevantKnowledge.isEmpty()) {
                             String knowledgeContext = knowledgeRetriever.formatAsContext(relevantKnowledge);
-                            enhancedUserMessage = knowledgeContext + "\n用户问题：" + userMessage;
-                            PluginLogger.debug("LLM请求", "已添加 " + relevantKnowledge.size() + " 个知识片段到上下文中");
+                            enhancedUserMessage = knowledgeContext + "\n" + I18nService.tr("用户问题：") + userMessage;
+                            PluginLogger.debug("LLM请求", "已添加 {} 个知识片段到上下文中", relevantKnowledge.size());
                         }
                     }
                 }
@@ -325,12 +347,12 @@ public class GenericLLMProvider implements LLMProvider {
                 // ========== 使用流式读取 ==========
                 try (Response response = httpClient.newCall(request).execute()) {
                     if (!response.isSuccessful()) {
-                        return "§c请求失败：" + response.code() + " - " + response.message();
+                        return "§c" + I18nService.tr("请求失败：{} - {}", String.valueOf(response.code()), response.message());
                     }
 
                     ResponseBody body = response.body();
                     if (body == null) {
-                        return "§cAPI 响应为空";
+                        return "§c" + I18nService.tr("API 响应为空");
                     }
 
                     // 预分配容量，减少扩容开销
@@ -387,7 +409,7 @@ public class GenericLLMProvider implements LLMProvider {
                                     // 忽略 JSON 解析错误，继续处理下一行
                                     if (cachedDebugMode) {
                                         String truncatedData = data.length() > 100 ? data.substring(0, 100) + "..." : data;
-                                        PluginLogger.debug("LLM请求", "JSON 解析失败：" + truncatedData);
+                                        PluginLogger.debug("LLM请求", "JSON 解析失败：{}", truncatedData);
                                     }
                                 }
                             }
@@ -398,7 +420,7 @@ public class GenericLLMProvider implements LLMProvider {
                         } else {
                             PluginLogger.warn("LLM请求", "读取响应流失败", e);
                         }
-                        return "§c读取响应失败：" + e.getMessage();
+                        return "§c" + I18nService.tr("读取响应失败：{}", e.getMessage());
                     }
 
                     // 流式输出完成后，调用 showResponse() 触发 completeGeneration()
@@ -412,9 +434,9 @@ public class GenericLLMProvider implements LLMProvider {
             } catch (Exception e) {
                 PluginLogger.error("LLM请求", "LLM 请求失败", e);
                 if (cachedDebugMode) {
-                    PluginLogger.debug("LLM请求", "错误详情：" + e.getMessage());
+                    PluginLogger.debug("LLM请求", "错误详情：{}", e.getMessage());
                 }
-                String errorMsg = "§c请求失败：" + e.getMessage();
+                String errorMsg = "§c" + I18nService.tr("请求失败：{}", e.getMessage());
                 if (responseHandler != null) {
                     responseHandler.handleError(errorMsg);
                 }

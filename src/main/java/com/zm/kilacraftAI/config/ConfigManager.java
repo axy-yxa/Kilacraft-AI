@@ -59,6 +59,8 @@ public class ConfigManager {
     @Getter
     private int maxRelevantChunks;
     @Getter
+    private double minRelevanceScore;            // 最低相关性得分阈值
+    @Getter
     private int knowledgeMaxChunkSize;      // 每个片段最大字符数
     @Getter
     private int knowledgeMinChunkSize;      // 每个片段最小字符数
@@ -87,8 +89,8 @@ public class ConfigManager {
     @Getter
     private List<String> allDictionaryWords; // 所有词汇（内置+自定义，去重后）
 
-    // 内置词汇表加载状态标记
-    private boolean vocabularyLoaded = false;
+    // 内置词汇表加载状态：记录上次加载的语言，语言变化时重新加载
+    private String vocabularyLoadedLanguage = null;
 
     // Agent 能力配置
     @Getter
@@ -109,6 +111,10 @@ public class ConfigManager {
     // 命令执行技能配置
     @Getter
     private boolean commandSkillEnabled;              // 命令执行技能开关
+
+    // 语言配置
+    @Getter
+    private String language;                        // 当前语言（zh、en 等，默认 zh）
 
     // 安全配置
     @Getter
@@ -143,6 +149,15 @@ public class ConfigManager {
         return llmApiKey != null && !llmApiKey.isEmpty() && !"your-api-key".equals(llmApiKey);
     }
 
+    /**
+     * 检查当前语言是否为中文
+     *
+     * @return true=中文模式
+     */
+    public boolean isChinese() {
+        return "zh".equals(language);
+    }
+
     @Getter
     private String llmApiUrl;                  // LLM API 地址
     @Getter
@@ -164,6 +179,7 @@ public class ConfigManager {
 
         // 插件设置
         this.debugMode = config.getBoolean("settings.debug_mode", false);
+        this.language = config.getString("settings.language", "zh");
         this.enableChatCommand = config.getBoolean("settings.enable_chat_command", true);
         this.enableTrigger = config.getBoolean("settings.enable_trigger", true);
         String keywordsStr = config.getString("settings.trigger_keywords", "@kila,@ai,@zm");
@@ -181,16 +197,17 @@ public class ConfigManager {
         if (this.bannedWorlds.isEmpty()) {
             this.bannedWorlds = new ArrayList<>();
         }
-        this.systemPrompt = config.getString("settings.system_prompt", "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。");
+        this.systemPrompt = getLocalizedString(config, "settings.system_prompt", "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。【绝对禁令】你是一个纯文字聊天机器人，你没有任何能力执行任何游戏内操作。当玩家请求你执行任何操作时，你必须明确回复'我无法执行此操作，我只能通过文字与您交流'。严禁使用'我帮你'、'已经'、'成功'等暗示操作已执行的措辞。");
 
         // 消息格式配置
         this.aiName = config.getString("messages.ai_name", "Kilacraft-AI");
         this.aiPrefix = config.getString("messages.ai_prefix", "§7[Kilacraft-AI] §f");
-        this.thinkingMessage = config.getString("messages.thinking_message", "正在思考中...");
+        this.thinkingMessage = getLocalizedString(config, "messages.thinking_message", "正在思考中...");
 
         // 知识库配置
         this.knowledgeEnabled = config.getBoolean("knowledge.enabled", true);
         this.maxRelevantChunks = config.getInt("knowledge.max_relevant_chunks", 3);
+        this.minRelevanceScore = config.getDouble("knowledge.min_relevance_score", 30.0);
 
         // 知识库分段配置
         this.knowledgeMaxChunkSize = config.getInt("knowledge.segment.max_size", 500);
@@ -206,12 +223,18 @@ public class ConfigManager {
 
         // 自定义词典配置
         this.customDictionaryEnabled = config.getBoolean("knowledge.custom_dictionary.enabled", true);
-        this.customDictionaryWords = config.getStringList("knowledge.custom_dictionary.words");
+        // 按语言选择自定义词汇列表：en 模式优先读取 words_en，为空则回退到 words
+        if ("en".equals(this.language)) {
+            List<String> enWords = config.getStringList("knowledge.custom_dictionary.words_en");
+            this.customDictionaryWords = !enWords.isEmpty() ? enWords : config.getStringList("knowledge.custom_dictionary.words");
+        } else {
+            this.customDictionaryWords = config.getStringList("knowledge.custom_dictionary.words");
+        }
 
-        // 加载内置词汇表（防止重复加载）
-        if (!vocabularyLoaded) {
+        // 加载内置词汇表（语言变化时重新加载）
+        if (vocabularyLoadedLanguage == null || !vocabularyLoadedLanguage.equals(this.language)) {
             this.internalDictionaryWords = loadInternalVocabulary();
-            vocabularyLoaded = true;
+            vocabularyLoadedLanguage = this.language;
         }
 
         if (this.internalDictionaryWords == null) {
@@ -231,10 +254,10 @@ public class ConfigManager {
         this.agentEnableCommand = config.getBoolean("agent.enable_command", true);
         this.agentIntentHistoryCount = config.getInt("agent.intent_history_count", 5);
         this.agentAnalysisHistoryCount = config.getInt("agent.analysis_history_count", 2);
-        this.agentSystemPrompt = config.getString("agent.prompts.system_prompt", "");
+        this.agentSystemPrompt = getLocalizedString(config, "agent.prompts.system_prompt", "");
 
         // 分析提示词后缀（用于识别业务内容边界）
-        this.agentAnalysisPromptSuffix = config.getString("agent.prompts.analysis_prompt_suffix", "");
+        this.agentAnalysisPromptSuffix = getLocalizedString(config, "agent.prompts.analysis_prompt_suffix", "");
 
         // LLM 提供商配置（通用）
         this.llmApiKey = config.getString("llm.api_key", "");
@@ -272,7 +295,7 @@ public class ConfigManager {
             }
         } catch (Exception e) {
             // 忽略异常，避免配置加载失败导致插件崩溃
-            PluginLogger.warn("配置管理", "刷新 LLM 配置缓存时发生异常: " + e.getMessage(), e);
+            PluginLogger.warn("配置管理", I18nService.tr("刷新 LLM 配置缓存时发生异常: {}", e.getMessage()), e);
         }
     }
 
@@ -300,7 +323,7 @@ public class ConfigManager {
             loadVocabularyFromJar(words);
 
         } catch (Exception e) {
-            PluginLogger.warn("配置管理", "加载内置词汇表时发生异常: " + e.getMessage(), e);
+            PluginLogger.warn("配置管理", I18nService.tr("加载内置词汇表时发生异常: {}", e.getMessage()), e);
         }
 
         return words;
@@ -308,7 +331,7 @@ public class ConfigManager {
 
     /**
      * 从 JAR 包中加载内置词汇表
-     * 扫描 internal/vocabulary/ 目录下的所有 .txt 文件
+     * 按语言子目录加载：中文加载 internal/vocabulary/ 下的 .txt，英文加载 internal/vocabulary/en/ 下的 .txt
      *
      * @param words 词汇列表（会被填充）
      */
@@ -322,17 +345,22 @@ public class ConfigManager {
                 return;
             }
 
-            // 读取 JAR 文件中 vocabulary 目录下的所有 .txt 文件
+            // 按语言确定扫描前缀：中文默认目录，英文进 en/ 子目录
+            String prefix = "en".equals(this.language) ? "internal/vocabulary/en/" : "internal/vocabulary/";
+
             try (java.util.jar.JarFile jar = new java.util.jar.JarFile(jarFile)) {
-                String prefix = "internal/vocabulary/";
                 java.util.Enumeration<java.util.jar.JarEntry> entries = jar.entries();
 
                 while (entries.hasMoreElements()) {
                     java.util.jar.JarEntry entry = entries.nextElement();
                     String name = entry.getName();
 
-                    // 只处理 vocabulary 目录下的 .txt 文件
+                    // 只处理对应语言目录下的 .txt 文件（排除子目录）
                     if (name.startsWith(prefix) && name.endsWith(".txt") && !entry.isDirectory()) {
+                        // 确保文件在目标目录层级（排除更深层级的文件）
+                        String relativePath = name.substring(prefix.length());
+                        if (relativePath.contains("/")) continue;
+
                         try (InputStream is = plugin.getResource(name); BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
                             String line;
                             while ((line = reader.readLine()) != null) {
@@ -346,9 +374,31 @@ public class ConfigManager {
                 }
             }
         } catch (java.net.URISyntaxException e) {
-            PluginLogger.warn("配置管理", "无法解析 JAR 文件路径: " + e.getMessage() + "，跳过加载", e);
+            PluginLogger.warn("配置管理", I18nService.tr("无法解析 JAR 文件路径: {}，跳过加载", e.getMessage()), e);
         } catch (Exception e) {
-            PluginLogger.warn("配置管理", "加载内置词汇表失败: " + e.getMessage(), e);
+            PluginLogger.warn("配置管理", I18nService.tr("加载内置词汇表失败: {}", e.getMessage()), e);
         }
+    }
+
+    /**
+     * 按语言读取配置中的本地化字符串
+     * <p>当 language=en 时，优先读取 {key}_en，如果为空则回退到 {key}；
+     * 当 language=zh 时，直接读取 {key}。</p>
+     *
+     * @param config          配置对象
+     * @param key             配置键名（如 "settings.system_prompt"）
+     * @param fallbackDefault 回退默认值（key 不存在时使用）
+     * @return 对应语言的配置值
+     */
+    private String getLocalizedString(FileConfiguration config, String key, String fallbackDefault) {
+        String lang = this.language;
+        if ("en".equals(lang)) {
+            String enKey = key + "_en";
+            String enValue = config.getString(enKey, "");
+            if (!enValue.isEmpty()) {
+                return enValue;
+            }
+        }
+        return config.getString(key, fallbackDefault);
     }
 }

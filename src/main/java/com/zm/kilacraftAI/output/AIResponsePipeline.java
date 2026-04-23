@@ -171,7 +171,7 @@ public class AIResponsePipeline {
         streamOutputManager.completeGeneration(player, formatted, channel);
 
         // 非输出副作用（由管线统一管理）
-        PluginLogger.debug("AI响应", player.getName() + " 收到AI回复 [" + scenario.name() + "]：" + finalMessage);
+        PluginLogger.debug("AI响应", "{} 收到AI回复 [{}]：{}", player.getName(), scenario.name(), finalMessage);
         if (soundEffectManager != null) {
             soundEffectManager.playResponseSound(player);
         }

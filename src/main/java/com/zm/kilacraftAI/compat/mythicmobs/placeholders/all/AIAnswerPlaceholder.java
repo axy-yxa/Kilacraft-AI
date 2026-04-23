@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.compat.mythicmobs.placeholders.all;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.PluginLogger;
 import io.lumine.mythic.api.adapters.AbstractEntity;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
@@ -41,7 +42,7 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
             // 获取实体
             AbstractEntity entity = getEntity.get(placeholderContext);
             if (entity == null) {
-                return "[错误：无法获取实体]";
+                return I18nService.tr("[错误：无法获取实体]");
             }
 
             // 获取 UUID
@@ -54,7 +55,7 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
             }
 
             if (casterId == null) {
-                return "[错误：无法获取 UUID]";
+                return I18nService.tr("[错误：无法获取 UUID]");
             }
 
             // 使用 placeholderContext 解析 typeSegment，支持动态占位符
@@ -68,7 +69,7 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
             }
 
             if (type == null || type.isEmpty()) {
-                return "[错误：必须指定 type 参数]";
+                return I18nService.tr("[错误：必须指定 type 参数]");
             }
 
             // 从 ConversationManager 获取并清除 AI 回复（读取后自动删除）
@@ -80,10 +81,10 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
         } catch (Exception e) {
             // 尝试获取插件实例记录错误
             try {
-                PluginLogger.error("AI占位符", "占位符解析失败: " + e.getMessage(), e);
+                PluginLogger.error("AI占位符", I18nService.tr("占位符解析失败: {}", e.getMessage()), e);
             } catch (Exception ignored) {
             }
-            return "[占位符解析错误]";
+            return I18nService.tr("[占位符解析错误]");
         }
     }
 }

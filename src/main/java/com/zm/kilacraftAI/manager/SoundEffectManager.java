@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.manager;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.Sound;
@@ -48,7 +49,7 @@ public class SoundEffectManager {
         try {
             this.sound = Sound.valueOf(soundName.toUpperCase());
         } catch (IllegalArgumentException e) {
-            PluginLogger.warn("音效管理", "无效的音效枚举: " + soundName + "，使用默认值 ENTITY_PLAYER_LEVELUP");
+            PluginLogger.warn("音效管理", I18nService.tr("无效的音效枚举: {}，使用默认值 ENTITY_PLAYER_LEVELUP", soundName));
             this.sound = Sound.ENTITY_PLAYER_LEVELUP;
         }
 

@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.cmi;
 
 import com.zm.kilacraftAI.compat.cmi.CMIAPI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.skills.framework.Skill;
@@ -96,7 +97,7 @@ public class CMISkill implements Skill {
             String action = context.getAction();
             return actionToHandler.getOrDefault(action, this::handleUnknownAction).apply(context);
         } catch (Exception e) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 查询失败: " + e.getMessage()));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 查询失败: {}", e.getMessage())));
         }
     }
 
@@ -132,7 +133,7 @@ public class CMISkill implements Skill {
 
         List<Map<String, Object>> homesData = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
-        sb.append("玩家有 ").append(homes.size()).append(" 个家:");
+        sb.append(I18nService.tr("玩家有 {} 个家:", homes.size()));
         for (Map<String, Object> home : homes) {
             Map<String, Object> homeData = new LinkedHashMap<>();
             homeData.put("home_name", home.get("name"));
@@ -178,7 +179,7 @@ public class CMISkill implements Skill {
 
         List<Map<String, Object>> warpsData = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
-        sb.append("服务器有 ").append(warps.size()).append(" 个公共地标:");
+        sb.append(I18nService.tr("服务器有 {} 个公共地标:", warps.size()));
         for (Map<String, Object> warp : warps) {
             Map<String, Object> warpData = new LinkedHashMap<>();
             warpData.put("warp_name", warp.get("name"));
@@ -222,7 +223,7 @@ public class CMISkill implements Skill {
         if (targetName != null && !targetName.isEmpty()) {
             info = CMIAPI.getOtherPlayerInfo(targetName);
             if (info == null) {
-                return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 未找到玩家: " + targetName));
+                return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 未找到玩家: {}", targetName)));
             }
         } else {
             info = CMIAPI.getPlayerInfo(player);
@@ -231,7 +232,7 @@ public class CMISkill implements Skill {
             }
         }
 
-        String message = String.format("玩家信息: name=%s, display_name=%s, playtime=%s, afk=%s, vanished=%s, fly=%s, game_mode=%s",
+        String message = I18nService.tr("玩家信息: name={}, display_name={}, playtime={}, afk={}, vanished={}, fly={}, game_mode={}",
                 info.get("name"), info.get("display_name"), info.get("playtime_formatted"),
                 info.get("afk"), info.get("vanished"), info.get("fly"), info.get("game_mode"));
 
@@ -258,7 +259,7 @@ public class CMISkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.success("服务器暂无可用套装", Map.of("kits", List.of(), "count", 0)));
         }
 
-        String message = "可用套装列表 (" + kits.size() + "): " + String.join(", ", kits);
+        String message = I18nService.tr("可用套装列表 ({}): {}", kits.size(), String.join(", ", kits));
 
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("kits", kits);
@@ -283,7 +284,7 @@ public class CMISkill implements Skill {
         List<Map<String, Object>> players = CMIAPI.getOnlinePlayersInfo();
 
         StringBuilder sb = new StringBuilder();
-        sb.append("在线玩家 (").append(players.size()).append("):");
+        sb.append(I18nService.tr("在线玩家 ({}):", players.size()));
 
         List<Map<String, Object>> playersData = new ArrayList<>();
         for (Map<String, Object> pInfo : players) {
@@ -293,7 +294,7 @@ public class CMISkill implements Skill {
 
             List<String> flags = new ArrayList<>();
             if (afk) flags.add("AFK");
-            if (vanished) flags.add("隐身");
+            if (vanished) flags.add(I18nService.tr("隐身"));
 
             sb.append("\n  - ").append(name);
             if (!flags.isEmpty()) {
@@ -333,13 +334,13 @@ public class CMISkill implements Skill {
         List<Map<String, Object>> homes = CMIAPI.getHomes(player);
         boolean found = homes.stream().anyMatch(h -> homeName.equalsIgnoreCase(String.valueOf(h.get("name"))));
         if (!found) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 未找到家: " + homeName));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 未找到家: {}", homeName)));
         }
 
         // 通过 CMI 命令执行传送（受 CMI 权限、冷却、安全检查保护）
         BukkitCommandUtil.dispatchOnMainThread(player, "cmi home " + homeName);
 
-        return CompletableFuture.completedFuture(SkillResult.success("已请求传送到家: " + homeName + "，传送结果由CMI处理"));
+        return CompletableFuture.completedFuture(SkillResult.success(I18nService.tr("已请求传送到家: {}，传送结果由CMI处理", homeName)));
     }
 
     /**
@@ -364,13 +365,13 @@ public class CMISkill implements Skill {
         List<Map<String, Object>> warps = CMIAPI.getWarps();
         boolean found = warps.stream().anyMatch(w -> warpName.equalsIgnoreCase(String.valueOf(w.get("name"))));
         if (!found) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 未找到地标: " + warpName));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 未找到地标: {}", warpName)));
         }
 
         // 通过 CMI 命令执行传送
         BukkitCommandUtil.dispatchOnMainThread(player, "cmi warp " + warpName);
 
-        return CompletableFuture.completedFuture(SkillResult.success("已请求传送到地标: " + warpName + "，传送结果由CMI处理"));
+        return CompletableFuture.completedFuture(SkillResult.success(I18nService.tr("已请求传送到地标: {}，传送结果由CMI处理", warpName)));
     }
 
     /**
@@ -394,12 +395,12 @@ public class CMISkill implements Skill {
         // 验证目标玩家是否在线
         Player target = Bukkit.getPlayer(targetName);
         if (target == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 未找到在线玩家: " + targetName));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 未找到在线玩家: {}", targetName)));
         }
 
         // 通过 CMI 命令发送 TPA 请求（需要对方同意）
         BukkitCommandUtil.dispatchOnMainThread(player, "cmi tpa " + targetName);
 
-        return CompletableFuture.completedFuture(SkillResult.success("已向 " + target.getName() + " 发送传送请求(TPA)，等待对方同意"));
+        return CompletableFuture.completedFuture(SkillResult.success(I18nService.tr("已向 {} 发送传送请求(TPA)，等待对方同意", target.getName())));
     }
 }

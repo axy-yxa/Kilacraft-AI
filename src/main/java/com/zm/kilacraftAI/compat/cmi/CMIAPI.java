@@ -4,6 +4,7 @@ import com.Zrips.CMI.CMI;
 import com.Zrips.CMI.Containers.CMIUser;
 import com.Zrips.CMI.Modules.Homes.CmiHome;
 import com.Zrips.CMI.Modules.Warps.CmiWarp;
+import com.zm.kilacraftAI.config.I18nService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -147,7 +148,7 @@ public class CMIAPI {
         // 转换为可读格式
         long hours = playtime / 3600000;
         long minutes = (playtime % 3600000) / 60000;
-        info.put("playtime_formatted", hours + "小时" + minutes + "分钟");
+        info.put("playtime_formatted", I18nService.tr("{}小时{}分钟", hours, minutes));
 
         return info;
     }

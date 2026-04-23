@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.afktask;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
 import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.entity.Player;
@@ -66,12 +67,12 @@ public class AFKTaskManager {
         // 检查是否已有任务
         if (hasTask(playerUUID)) {
             AFKTask existing = taskMap.get(playerUUID);
-            return SkillResult.failure("玩家已有一个正在运行的挂机任务：" + existing.getTaskDescription() + "。请用自然语言告知玩家当前有任务在运行，并建议：可以使用 /kilacraft afk cancel 命令取消旧任务后再创建新的，或使用 /kilacraft afk query 查询详情。");
+            return SkillResult.failure(I18nService.tr("玩家已有一个正在运行的挂机任务：{}。请用自然语言告知玩家当前有任务在运行，并建议：可以使用 /kilacraft afk cancel 命令取消旧任务后再创建新的，或使用 /kilacraft afk query 查询详情。", existing.getTaskDescription()));
         }
 
         // 检查队列是否已满
         if (isFull()) {
-            return SkillResult.failure("挂机任务队列已满（当前 " + getActiveTaskCount() + "/" + maxTasks + "），暂时无法创建新任务。请用自然语言告知玩家稍后再试。");
+            return SkillResult.failure(I18nService.tr("挂机任务队列已满（当前 {}/{}），暂时无法创建新任务。请用自然语言告知玩家稍后再试。", getActiveTaskCount(), maxTasks));
         }
 
         // 生成任务ID
@@ -97,12 +98,12 @@ public class AFKTaskManager {
             taskMap.remove(playerUUID);
             taskIndex.remove(taskId);
             String errorMsg = task.getStartError() != null ? task.getStartError() : "任务启动失败，未知原因";
-            return SkillResult.failure("挂机任务创建失败：" + errorMsg);
+            return SkillResult.failure(I18nService.tr("挂机任务创建失败：{}", errorMsg));
         }
 
-        PluginLogger.debug("挂机任务", "已创建: " + taskId + ", " + taskType + ", " + player.getName() + ", 总数: " + getActiveTaskCount());
+        PluginLogger.debug("挂机任务", "已创建: {}, {}, {}, 总数: {}", taskId, taskType, player.getName(), getActiveTaskCount());
 
-        return SkillResult.success("挂机任务已创建并启动：" + task.getTaskDescription());
+        return SkillResult.success(I18nService.tr("挂机任务已创建并启动：{}", task.getTaskDescription()));
     }
 
     /**
@@ -118,7 +119,7 @@ public class AFKTaskManager {
         }
         taskIndex.remove(task.getTaskId());
         task.stop();
-        return SkillResult.success("挂机任务已取消：" + task.getTaskDescription());
+        return SkillResult.success(I18nService.tr("挂机任务已取消：{}", task.getTaskDescription()));
     }
 
     /**
@@ -162,7 +163,7 @@ public class AFKTaskManager {
         if (task != null) {
             taskIndex.remove(task.getTaskId());
             task.stop();
-            PluginLogger.debug("挂机任务", "玩家下线，自动取消任务: " + task.getTaskId() + ", 玩家: " + task.getPlayerName());
+            PluginLogger.debug("挂机任务", "玩家下线，自动取消任务: {}, 玩家: {}", task.getTaskId(), task.getPlayerName());
         }
     }
 
@@ -182,7 +183,7 @@ public class AFKTaskManager {
      */
     public void shutdown() {
         if (!taskMap.isEmpty()) {
-            PluginLogger.info("挂机任务", "正在关闭 " + taskMap.size() + " 个活跃任务...");
+            PluginLogger.info("挂机任务", "正在关闭 {} 个活跃任务...", taskMap.size());
             for (AFKTask task : taskMap.values()) {
                 task.stop();
             }

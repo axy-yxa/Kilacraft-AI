@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.skills.afktask.impl;
 
 import com.google.gson.Gson;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTask;
@@ -106,7 +107,7 @@ public class PlayerItemBreakWatchTask extends AFKTask implements Listener {
         try {
             return GSON.fromJson(json, AFKTaskCallback.class);
         } catch (Exception e) {
-            PluginLogger.warn("挂机任务", "解析回调配置失败: " + e.getMessage(), e);
+            PluginLogger.warn("挂机任务", I18nService.tr("解析回调配置失败: {}", e.getMessage()), e);
             return new AFKTaskCallback();
         }
     }
@@ -154,12 +155,12 @@ public class PlayerItemBreakWatchTask extends AFKTask implements Listener {
 
         if (hasCallback) {
             // 先完成任务：立即注销事件监听器，防止异步回调期间新事件触发重复回调
-            complete("目标玩家 " + brokenItemPlayerName + " 的物品 " + itemName + " 已损坏，开始执行回调。");
+            complete(I18nService.tr("目标玩家 {} 的物品 {} 已损坏，开始执行回调。", brokenItemPlayerName, itemName));
             executeCallback(brokenItemPlayerName, itemName, itemType);
         } else {
             // 纯通知模式：通过 LLM 二次分析通知
-            notifyWithLLMAnalysis("目标玩家 " + brokenItemPlayerName + " 的物品 " + itemName + " 已损坏");
-            complete("目标玩家 " + brokenItemPlayerName + " 的物品 " + itemName + " 已损坏，挂机任务完成。");
+            notifyWithLLMAnalysis(I18nService.tr("目标玩家 {} 的物品 {} 已损坏", brokenItemPlayerName, itemName));
+            complete(I18nService.tr("目标玩家 {} 的物品 {} 已损坏，挂机任务完成。", brokenItemPlayerName, itemName));
         }
     }
 
@@ -192,7 +193,7 @@ public class PlayerItemBreakWatchTask extends AFKTask implements Listener {
             // 2. 获取任务创建者玩家对象
             Player creatorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (creatorPlayer == null || !creatorPlayer.isOnline()) {
-                PluginLogger.warn("挂机任务", "任务创建者不在线，无法执行回调: " + getTaskId());
+                PluginLogger.warn("挂机任务", I18nService.tr("任务创建者不在线，无法执行回调: {}", getTaskId()));
                 notifyPlayer("§c任务创建者不在线，回调任务已取消。");
                 return;
             }
@@ -216,16 +217,16 @@ public class PlayerItemBreakWatchTask extends AFKTask implements Listener {
                         false
                 );
             }).exceptionally(ex -> {
-                PluginLogger.error("挂机任务", "回调任务执行异常: " + ex.getMessage(), ex);
+                PluginLogger.error("挂机任务", I18nService.tr("回调任务执行异常: {}", ex.getMessage()), ex);
                 Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
                 if (errorPlayer != null && errorPlayer.isOnline()) {
-                    KilacraftAI.getInstance().getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
+                    KilacraftAI.getInstance().getLlmOutputCoordinator().outputError(errorPlayer, I18nService.tr("§c回调任务执行失败：{}", ex.getMessage()));
                 }
                 return null;
             });
         } catch (Exception e) {
-            PluginLogger.error("挂机任务", "构建回调任务失败: " + e.getMessage(), e);
-            notifyPlayer("§c回调任务构建失败：" + e.getMessage());
+            PluginLogger.error("挂机任务", I18nService.tr("构建回调任务失败: {}", e.getMessage()), e);
+            notifyPlayer(I18nService.tr("§c回调任务构建失败：{}", e.getMessage()));
         }
     }
 
@@ -255,15 +256,15 @@ public class PlayerItemBreakWatchTask extends AFKTask implements Listener {
 
     @Override
     public String getTaskDescription() {
-        String desc = "监视玩家 " + targetPlayerName + " 的物品损坏";
+        String desc = I18nService.tr("监视玩家 {} 的物品损坏", targetPlayerName);
         if (callback.getCallbackTask() != null && callback.getCallbackTask().getSteps() != null &&
                 !callback.getCallbackTask().getSteps().isEmpty()) {
             int stepCount = callback.getCallbackTask().getSteps().size();
             String goal = callback.getCallbackTask().getGoal();
             if (goal != null && !goal.isEmpty()) {
-                desc += "，触发回调任务（" + stepCount + "步），目标：" + goal;
+                desc = I18nService.tr("监视玩家 {} 的物品损坏，触发回调任务（{}步），目标：{}", targetPlayerName, stepCount, goal);
             } else {
-                desc += "，触发回调任务（" + stepCount + "步）";
+                desc = I18nService.tr("监视玩家 {} 的物品损坏，触发回调任务（{}步）", targetPlayerName, stepCount);
             }
         }
         return desc;

@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
@@ -101,7 +102,7 @@ public class MarketQuerySkill implements Skill {
             String action = context.getAction();
             return actionToHandler.getOrDefault(action, this::handleUnknownAction).apply(context);
         } catch (Exception e) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 查询失败: " + e.getMessage()));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 查询失败: {}", e.getMessage())));
         }
     }
 
@@ -133,7 +134,7 @@ public class MarketQuerySkill implements Skill {
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("balance", balance);
 
-        return CompletableFuture.completedFuture(SkillResult.success(String.format("余额: $%.2f", balance), dataMap));
+        return CompletableFuture.completedFuture(SkillResult.success(I18nService.tr("余额: ${}", String.format("%.2f", balance)), dataMap));
     }
 
     /**
@@ -243,7 +244,7 @@ public class MarketQuerySkill implements Skill {
                 }
             } else {
                 // 未找到价格
-                priceResults.add(String.format("%s: 未找到价格", itemNameOnly));
+                priceResults.add(I18nService.tr("{}: 未找到价格", itemNameOnly));
             }
         }
 
@@ -251,7 +252,7 @@ public class MarketQuerySkill implements Skill {
         if (successCount == 0 && !priceResults.isEmpty()) {
             // 有物品但库存不足的情况，返回成功（告知用户库存不足）
             StringBuilder sb = new StringBuilder();
-            sb.append("商品价格:\n");
+            sb.append(I18nService.tr("商品价格:\n"));
 
             for (String result : priceResults) {
                 sb.append("- ").append(result).append("\n");
@@ -272,7 +273,7 @@ public class MarketQuerySkill implements Skill {
             if (colonIdx > 0) {
                 cleanItemName = itemName.substring(0, colonIdx).trim();
             }
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 未找到物品 '" + translator.translateToChinese(cleanItemName) + "' 的价格信息"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 未找到物品 '{}' 的价格信息", translator.translateToChinese(cleanItemName))));
         }
 
         // 构建响应消息
@@ -284,7 +285,7 @@ public class MarketQuerySkill implements Skill {
         }
 
         // 显示总价
-        sb.append(String.format("\n总计: $%.2f", totalPrice));
+        sb.append(I18nService.tr("\n总计: ${}", String.format("%.2f", totalPrice)));
 
         // 构建 data Map，供多步骤任务引用
         Map<String, Object> dataMap = new LinkedHashMap<>();
@@ -323,14 +324,14 @@ public class MarketQuerySkill implements Skill {
         int totalStock = getTotalStock(matchingItems);
 
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%s x%d: 库存不足 (市场仅有 %d 个)", displayName, neededQuantity, totalStock));
+        sb.append(I18nService.tr("{} x{}: 库存不足 (市场仅有 {} 个)", displayName, neededQuantity, totalStock));
 
         // 显示所有在售商品的价格和数量
         if (!matchingItems.isEmpty()) {
-            sb.append("\n  在售信息:");
+            sb.append(I18nService.tr("\n  在售信息:"));
             for (int i = 0; i < matchingItems.size(); i++) {
                 MarketItem item = matchingItems.get(i);
-                sb.append(String.format("\n    [%d] $%.2f x %d个", i + 1, item.getPrice(), item.getAmount()));
+                sb.append(I18nService.tr("\n    [{}] ${} x {}个", i + 1, String.format("%.2f", item.getPrice()), item.getAmount()));
             }
         }
 
@@ -352,7 +353,7 @@ public class MarketQuerySkill implements Skill {
         ItemTranslator translator = ItemTranslator.getInstance();
 
         StringBuilder sb = new StringBuilder();
-        sb.append("市场商品列表:\n");
+        sb.append(I18nService.tr("市场商品列表:\n"));
 
         for (String item : items) {
             // 解析物品名称和价格（格式可能是 "DIAMOND: $100.00" 或 "DIAMOND"）
@@ -388,7 +389,7 @@ public class MarketQuerySkill implements Skill {
         String itemName = context.getEntity("item");
 
         if (itemName == null || itemName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 缺少参数: item(物品名称)"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 缺少参数: item(物品名称)")));
         }
 
         // 去掉数量后缀（如果有）
@@ -412,7 +413,7 @@ public class MarketQuerySkill implements Skill {
             Map<String, Object> dataMap = new LinkedHashMap<>();
             dataMap.put("available", false);
             dataMap.put("total_stock", 0);
-            return CompletableFuture.completedFuture(SkillResult.success(translator.translateToChinese(englishItemName) + " 目前市场上没有在售", dataMap));
+            return CompletableFuture.completedFuture(SkillResult.success(I18nService.tr("{} 目前市场上没有在售", translator.translateToChinese(englishItemName)), dataMap));
         }
 
         // 物品在售
@@ -436,10 +437,10 @@ public class MarketQuerySkill implements Skill {
         dataMap.put("seller_count", uniqueSellers.size());
 
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%s 有在售\n", displayName));
-        sb.append(String.format("库存: %d 个\n", totalStock));
-        sb.append(String.format("价格: $%.2f - $%.2f\n", minPrice, maxPrice));
-        sb.append("卖家: ");
+        sb.append(I18nService.tr("{} 有在售\n", displayName));
+        sb.append(I18nService.tr("库存: {} 个\n", totalStock));
+        sb.append(I18nService.tr("价格: ${} - ${}\n", String.format("%.2f", minPrice), String.format("%.2f", maxPrice)));
+        sb.append(I18nService.tr("卖家: "));
 
         // 显示去重后的卖家名称
         java.util.List<String> sellerList = new java.util.ArrayList<>(uniqueSellers);
@@ -449,7 +450,7 @@ public class MarketQuerySkill implements Skill {
             sb.append(sellerList.get(i));
         }
         if (sellerList.size() > 5) {
-            sb.append(String.format(" ... 等%d人", sellerList.size()));
+            sb.append(I18nService.tr(" ... 等{}人", sellerList.size()));
         }
 
         return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
@@ -473,7 +474,7 @@ public class MarketQuerySkill implements Skill {
 
         ItemTranslator translator = ItemTranslator.getInstance();
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("你在售的商品 (共 %d 个):\n", myItems.size()));
+        sb.append(I18nService.tr("你在售的商品 (共 {} 个):\n", myItems.size()));
 
         // 构建商品数据列表
         List<Map<String, Object>> myItemsData = new ArrayList<>();
@@ -493,7 +494,7 @@ public class MarketQuerySkill implements Skill {
         }
 
         if (myItems.size() > 10) {
-            sb.append(String.format("... 还有 %d 个商品", myItems.size() - 10));
+            sb.append(I18nService.tr("... 还有 {} 个商品", myItems.size() - 10));
         }
 
         // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
@@ -522,7 +523,7 @@ public class MarketQuerySkill implements Skill {
 
         ItemTranslator translator = ItemTranslator.getInstance();
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("邮箱待领取 (共 %d 封):\n", mails.size()));
+        sb.append(I18nService.tr("邮箱待领取 (共 {} 封):\n", mails.size()));
 
         // 构建邮件数据列表
         List<Map<String, Object>> mailsData = new ArrayList<>();
@@ -530,18 +531,18 @@ public class MarketQuerySkill implements Skill {
         for (int i = 0; i < showCount; i++) {
             MailItem mail = mails.get(i);
             String displayName = translator.translateToChinese(mail.getItemName());
-            sb.append(String.format("[%d] %s x %d 来自: %s\n", i + 1, displayName, mail.getAmount(), mail.getSenderName() != null ? mail.getSenderName() : "系统"));
+            sb.append(String.format("[%d] %s x %d ", i + 1, displayName, mail.getAmount())).append(I18nService.tr("来自: {}", mail.getSenderName() != null ? mail.getSenderName() : I18nService.tr("系统"))).append("\n");
 
             Map<String, Object> mailData = new LinkedHashMap<>();
             mailData.put("item_name", displayName);
             mailData.put("english_name", mail.getItemName());
             mailData.put("amount", mail.getAmount());
-            mailData.put("sender_name", mail.getSenderName() != null ? mail.getSenderName() : "系统");
+            mailData.put("sender_name", mail.getSenderName() != null ? mail.getSenderName() : I18nService.tr("系统"));
             mailsData.add(mailData);
         }
 
         if (mails.size() > 5) {
-            sb.append(String.format("... 还有 %d 封邮件", mails.size() - 5));
+            sb.append(I18nService.tr("... 还有 {} 封邮件", mails.size() - 5));
         }
 
         // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
@@ -565,7 +566,7 @@ public class MarketQuerySkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.success("市场暂无商品", dataMap));
         }
 
-        String sb = String.format("市场统计: 商品总数 %d 个, 卖家数量 %d 人", stats.getTotalItems(), stats.getTotalSellers());
+        String sb = I18nService.tr("市场统计: 商品总数 {} 个, 卖家数量 {} 人", stats.getTotalItems(), stats.getTotalSellers());
 
         // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
         Map<String, Object> dataMap = new LinkedHashMap<>();

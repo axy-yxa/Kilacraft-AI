@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.afktask.*;
@@ -124,7 +125,9 @@ public class CustomWatchTask extends AFKTask {
             JsonElement thresholdEl = obj.get("threshold");
             double thresholdValue = 0;
             String thresholdStr = null;
-            if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isBoolean()) {
+            if (thresholdEl == null) {
+                // threshold 缺失，保持默认值 0
+            } else if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isBoolean()) {
                 thresholdValue = thresholdEl.getAsBoolean() ? 1.0 : 0.0;
             } else if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isNumber()) {
                 thresholdValue = thresholdEl.getAsDouble();
@@ -140,7 +143,7 @@ public class CustomWatchTask extends AFKTask {
             }
             return new ConditionPlan(obj.get("condition_skill").getAsString(), obj.get("condition_action").getAsString(), obj.get("result_path").getAsString(), obj.get("operator").getAsString(), thresholdValue, thresholdStr, conditionParams);
         } catch (Exception e) {
-            PluginLogger.warn("挂机任务", "解析condition_plan JSON失败: " + e.getMessage(), e);
+            PluginLogger.warn("挂机任务", I18nService.tr("解析condition_plan JSON失败: {}", e.getMessage()), e);
             return null;
         }
     }
@@ -155,7 +158,7 @@ public class CustomWatchTask extends AFKTask {
         try {
             return GSON.fromJson(json, AFKTaskCallback.class);
         } catch (Exception e) {
-            PluginLogger.warn("挂机任务", "解析回调配置失败: " + e.getMessage(), e);
+            PluginLogger.warn("挂机任务", I18nService.tr("解析回调配置失败: {}", e.getMessage()), e);
             return new AFKTaskCallback();
         }
     }
@@ -169,7 +172,7 @@ public class CustomWatchTask extends AFKTask {
         }
 
         if (!conditionPlan.isValidOperator()) {
-            failStart("无效的比较操作符: " + conditionPlan.getOperator() + "。支持的操作符：less_than, less_than_or_equal, greater_than, greater_than_or_equal, equal, not_equal");
+            failStart(I18nService.tr("无效的比较操作符: {}。支持的操作符：less_than, less_than_or_equal, greater_than, greater_than_or_equal, equal, not_equal", conditionPlan.getOperator()));
             return;
         }
 
@@ -181,9 +184,9 @@ public class CustomWatchTask extends AFKTask {
 
             markRunning();
 
-            PluginLogger.debug("挂机任务", "CUSTOM任务已启动: " + getTaskId() + ", 条件: " + conditionPlan);
+            PluginLogger.debug("挂机任务", "CUSTOM任务已启动: {}, 条件: {}", getTaskId(), conditionPlan);
         } catch (Exception e) {
-            failStart("轮询任务启动失败: " + e.getMessage());
+            failStart(I18nService.tr("轮询任务启动失败: {}", e.getMessage()));
         }
     }
 
@@ -200,7 +203,7 @@ public class CustomWatchTask extends AFKTask {
             try {
                 pollTask.cancel();
             } catch (Exception e) {
-                PluginLogger.warn("挂机任务", "取消轮询任务失败: " + e.getMessage(), e);
+                PluginLogger.warn("挂机任务", I18nService.tr("取消轮询任务失败: {}", e.getMessage()), e);
             }
         }
     }
@@ -231,7 +234,7 @@ public class CustomWatchTask extends AFKTask {
             // 检查任务创建者是否在线
             Player creatorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (creatorPlayer == null || !creatorPlayer.isOnline()) {
-                complete("任务创建者不在线，任务已自动取消。");
+                complete(I18nService.tr("任务创建者不在线，任务已自动取消。"));
                 return;
             }
 
@@ -243,8 +246,8 @@ public class CustomWatchTask extends AFKTask {
                 int failures = consecutiveFailures.incrementAndGet();
                 int maxFailures = plugin.getConfigManager().getAfkTaskMaxConsecutiveFailures();
                 if (failures >= maxFailures) {
-                    notifyPlayer("§c§l挂机任务已自动取消\n\n§f连续 " + maxFailures + " 次条件评估失败（无法提取字段 " + conditionPlan.getResultPath() + "），任务可能配置有误，请重新创建。");
-                    complete("连续条件评估失败，任务自动取消。");
+                    notifyPlayer(I18nService.tr("§c§l挂机任务已自动取消\n\n§f连续 {} 次条件评估失败（无法提取字段 {}），任务可能配置有误，请重新创建。", maxFailures, conditionPlan.getResultPath()));
+                    complete(I18nService.tr("连续条件评估失败，任务自动取消。"));
                 }
                 // 未达上限，继续下次轮询
             } else {
@@ -262,7 +265,7 @@ public class CustomWatchTask extends AFKTask {
                         executeCallback(creatorPlayer);
                     } else {
                         notifyConditionMet(evalResult.actualValue());
-                        complete("条件满足，挂机任务完成。");
+                        complete(I18nService.tr("条件满足，挂机任务完成。"));
                     }
                 }
                 // NOT_MET：条件正常评估但不满足，继续下次轮询
@@ -302,21 +305,21 @@ public class CustomWatchTask extends AFKTask {
                 plugin.getLlmOutputCoordinator().outputAnalysisResult(creatorPlayer, summary, context, history, OutputScenario.AFK_CALLBACK, false);
 
                 // 完成任务
-                complete("条件满足，回调任务已执行。");
+                complete(I18nService.tr("条件满足，回调任务已执行。"));
             }).exceptionally(ex -> {
-                PluginLogger.error("挂机任务", "回调任务执行异常: " + ex.getMessage(), ex);
+                PluginLogger.error("挂机任务", I18nService.tr("回调任务执行异常: {}", ex.getMessage()), ex);
                 Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
                 if (errorPlayer != null && errorPlayer.isOnline()) {
-                    plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
+                    plugin.getLlmOutputCoordinator().outputError(errorPlayer, I18nService.tr("§c回调任务执行失败：{}", ex.getMessage()));
                 }
-                complete("回调任务执行异常。");
+                complete(I18nService.tr("回调任务执行异常。"));
                 return null;
             });
 
         } catch (Exception e) {
-            notifyPlayer("§c回调任务启动失败：" + e.getMessage());
-            PluginLogger.error("挂机任务", "回调任务启动异常: " + e.getMessage(), e);
-            complete("回调任务启动异常。");
+            notifyPlayer(I18nService.tr("§c回调任务启动失败：{}", e.getMessage()));
+            PluginLogger.error("挂机任务", I18nService.tr("回调任务启动异常: {}", e.getMessage()), e);
+            complete(I18nService.tr("回调任务启动异常。"));
         }
     }
 
@@ -327,21 +330,21 @@ public class CustomWatchTask extends AFKTask {
      */
     private void notifyConditionMet(Double actualValue) {
         // 构建丰富的条件描述（面向 LLM 二次分析，需包含足够上下文让 LLM 生成友好的通知）
-        String currentValueStr = actualValue != null ? String.valueOf(actualValue) : "未知";
+        String currentValueStr = actualValue != null ? String.valueOf(actualValue) : I18nService.tr("未知");
         // 字符串阈值场景：显示实际字符串值而非 numeric
         if (conditionPlan.getThresholdStr() != null) {
             currentValueStr = conditionPlan.getThresholdStr(); // 字符串匹配时，当前值就是阈值本身
         }
         String thresholdDisplay = conditionPlan.getThresholdStr() != null ? conditionPlan.getThresholdStr() : String.valueOf(conditionPlan.getThreshold());
         StringBuilder eventDesc = new StringBuilder();
-        eventDesc.append("挂机任务条件满足：");
+        eventDesc.append(I18nService.tr("挂机任务条件满足："));
         eventDesc.append(conditionPlan.getConditionSkill()).append(".").append(conditionPlan.getConditionAction());
-        eventDesc.append(" 返回的 ").append(conditionPlan.getResultPath());
+        eventDesc.append(" ").append(I18nService.tr("返回的")).append(" ").append(conditionPlan.getResultPath());
         eventDesc.append(" ").append(conditionPlan.getOperatorDescription()).append(" ").append(thresholdDisplay);
-        eventDesc.append("（当前值：").append(currentValueStr).append("）");
+        eventDesc.append(I18nService.tr("（当前值：{}）", currentValueStr));
         // 附加条件参数，让 LLM 知道监控的具体对象
         if (!conditionPlan.getConditionParams().isEmpty()) {
-            eventDesc.append("，监控参数：").append(conditionPlan.getConditionParams());
+            eventDesc.append(I18nService.tr("，监控参数：{}", conditionPlan.getConditionParams()));
         }
         notifyWithLLMAnalysis(eventDesc.toString());
     }
@@ -349,15 +352,15 @@ public class CustomWatchTask extends AFKTask {
     @Override
     public String getTaskDescription() {
         if (conditionPlan == null) {
-            return "自定义条件挂机任务";
+            return I18nService.tr("自定义条件挂机任务");
         }
 
         if (callback != null && callback.getCallbackTask() != null && callback.getCallbackTask().getSteps() != null && !callback.getCallbackTask().getSteps().isEmpty()) {
             String goal = callback.getCallbackTask().getGoal();
-            String goalDesc = (goal != null && !goal.isEmpty()) ? "，目标：" + goal : "";
-            return "监视条件：" + conditionPlan + "，触发回调任务（" + callback.getCallbackTask().getSteps().size() + "步）" + goalDesc;
+            String goalDesc = (goal != null && !goal.isEmpty()) ? I18nService.tr("，目标：{}", goal) : "";
+            return I18nService.tr("监视条件：{}，触发回调任务（{}步）{}", conditionPlan, callback.getCallbackTask().getSteps().size(), goalDesc);
         }
 
-        return "监视条件：" + conditionPlan + "，满足后通知创建者（纯通知）";
+        return I18nService.tr("监视条件：{}，满足后通知创建者（纯通知）", conditionPlan);
     }
 }

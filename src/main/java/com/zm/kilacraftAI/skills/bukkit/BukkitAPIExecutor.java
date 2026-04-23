@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.bukkit;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import org.bukkit.entity.Player;
 
@@ -41,7 +42,7 @@ public class BukkitAPIExecutor {
         // 权限检查
         if (api.getRequiredPermission() != null && !api.getRequiredPermission().isEmpty()) {
             if (player == null || !player.hasPermission(api.getRequiredPermission())) {
-                throw new IllegalStateException("你没有权限执行此操作：" + api.getRequiredPermission());
+                throw new IllegalStateException(I18nService.tr("你没有权限执行此操作：{}", api.getRequiredPermission()));
             }
         }
 
@@ -49,7 +50,7 @@ public class BukkitAPIExecutor {
         Object target = getTargetObject(api.getTargetType(), player);
 
         if (target == null) {
-            throw new IllegalStateException("无法获取目标对象：" + api.getTargetType());
+            throw new IllegalStateException(I18nService.tr("无法获取目标对象：{}", api.getTargetType()));
         }
 
         // 特殊处理：get_player_feet_block 需要获取脚下（Y-1）的方块
@@ -68,7 +69,7 @@ public class BukkitAPIExecutor {
             // 模式 2：additional_methods - 并行调用多个独立方法
             result = executeAdditionalMethods(target, api.getAdditionalMethods());
         } else {
-            throw new IllegalStateException("API 必须配置 method_chain 或 additional_methods");
+            throw new IllegalStateException(I18nService.tr("API 必须配置 method_chain 或 additional_methods"));
         }
 
         // Folia 端特殊处理：
@@ -176,7 +177,7 @@ public class BukkitAPIExecutor {
         Method method = findMethod(clazz, methodName);
 
         if (method == null) {
-            throw new NoSuchMethodException("方法不存在：" + methodName + " in " + clazz.getName());
+            throw new NoSuchMethodException(I18nService.tr("方法不存在：{} in {}", methodName, clazz.getName()));
         }
 
         // 设置可访问
@@ -529,7 +530,7 @@ public class BukkitAPIExecutor {
         }
 
         // 无法提供默认参数，抛出异常
-        throw new NoSuchMethodException("方法 " + methodName + " 需要参数但不支持无参调用，且没有配置默认参数");
+        throw new NoSuchMethodException(I18nService.tr("方法 {} 需要参数但不支持无参调用，且没有配置默认参数", methodName));
     }
 
     /**

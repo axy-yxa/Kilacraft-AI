@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.skills.bukkit;
 
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
@@ -91,7 +92,7 @@ public class GenericBukkitAPISkill implements Skill {
         // 查找对应的 API 元数据
         BukkitAPIMetadata api = configManager.getBukkitApiMap().get(action);
         if (api == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("未找到 API：" + action));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未找到 API：{}", action)));
         }
 
         try {
@@ -160,8 +161,8 @@ public class GenericBukkitAPISkill implements Skill {
 
             return CompletableFuture.completedFuture(SkillResult.success(formatted, dataMap));
         } catch (Exception e) {
-            PluginLogger.error("BukkitAPI", "执行 Bukkit API 失败：" + api.getId(), e);
-            return CompletableFuture.completedFuture(SkillResult.failure("执行失败：" + e.getMessage()));
+            PluginLogger.error("BukkitAPI", I18nService.tr("执行 Bukkit API 失败：{}", api.getId()), e);
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("执行失败：{}", e.getMessage())));
         }
     }
 
@@ -337,7 +338,7 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatResult(BukkitAPIMetadata api, Object result, org.bukkit.entity.Player player) {
         if (result == null) {
-            return "无结果";
+            return I18nService.tr("无结果");
         }
 
         // 特殊类型处理（lophine 优化：已在区域线程内提取为 Map/String）
@@ -397,27 +398,27 @@ public class GenericBukkitAPISkill implements Skill {
         }
         // 世界种子
         if (result instanceof Long seed && api.getId().equals("get_world_seed")) {
-            return "世界种子：" + seed;
+            return I18nService.tr("世界种子：{}", seed);
         }
         // 飞行速度/行走速度（Float 类型）
         if (result instanceof Float speed && api.getId().contains("speed")) {
-            return String.format("速度：%.2f", speed);
+            return I18nService.tr("速度：{}", String.format("%.2f", speed));
         }
         // 攻击冷却（Float 类型，0-1）
         if (result instanceof Float cooldown && api.getId().equals("get_player_attack_cooldown")) {
             int percentage = Math.round(cooldown * 100);
-            return "攻击冷却进度：" + percentage + "%";
+            return I18nService.tr("攻击冷却进度：{}%", percentage);
         }
         // 吸收之心（Double/Float 类型，结构化输出）
         if ((result instanceof Double || result instanceof Float) && api.getId().equals("get_player_absorption")) {
             double absorption = ((Number) result).doubleValue();
-            return "吸收之心：" + String.format("%.1f", absorption);
+            return I18nService.tr("吸收之心：{}", String.format("%.1f", absorption));
         }
         // 手持物品（单个 ItemStack，Spigot 路径）
         if (result instanceof org.bukkit.inventory.ItemStack itemStack && (api.getId().equals("get_player_hand_item") || api.getId().equals("get_player_offhand_item"))) {
-            String label = api.getId().equals("get_player_hand_item") ? "主手物品" : "副手物品";
+            String label = api.getId().equals("get_player_hand_item") ? I18nService.tr("主手物品") : I18nService.tr("副手物品");
             if (itemStack.getType() == org.bukkit.Material.AIR) {
-                return label + "：空手";
+                return label + I18nService.tr("：空手");
             }
             return formatSingleItemStack(label, itemStack);
         }
@@ -427,23 +428,23 @@ public class GenericBukkitAPISkill implements Skill {
         }
         // 背包占用格数（极轻量）
         if (result instanceof org.bukkit.inventory.ItemStack[] contents && api.getId().equals("get_player_inventory_usage")) {
-            return formatInventoryUsage(contents, "背包");
+            return formatInventoryUsage(contents, I18nService.tr("背包"));
         }
         // 背包物品摘要
         if (result instanceof org.bukkit.inventory.ItemStack[] contents && api.getId().equals("get_player_inventory")) {
-            return formatInventorySummary(contents, "背包");
+            return formatInventorySummary(contents, I18nService.tr("背包"));
         }
         // 末影箱物品摘要
         if (result instanceof org.bukkit.inventory.ItemStack[] contents && api.getId().equals("get_player_ender_chest")) {
-            return formatInventorySummary(contents, "末影箱");
+            return formatInventorySummary(contents, I18nService.tr("末影箱"));
         }
         // 打开的容器物品摘要
         if (result instanceof org.bukkit.inventory.ItemStack[] contents && api.getId().equals("get_player_open_container")) {
-            String containerLabel = "容器";
+            String containerLabel = I18nService.tr("容器");
             if (player != null) {
                 try {
                     var invType = player.getOpenInventory().getType();
-                    containerLabel = formatInventoryType(invType).replace("当前界面：", "");
+                    containerLabel = formatInventoryType(invType).replace(I18nService.tr("当前界面："), "");
                 } catch (Exception ignored) {
                 }
             }
@@ -460,7 +461,7 @@ public class GenericBukkitAPISkill implements Skill {
         // 脚下方块（Spigot Block 路径）
         if (result instanceof org.bukkit.block.Block block && api.getId().equals("get_player_feet_block")) {
             String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(block.getType().name());
-            return String.format("脚下方块：%s（位置：X=%d, Y=%d, Z=%d）", chineseName, block.getX(), block.getY(), block.getZ());
+            return I18nService.tr("脚下方块：{}（位置：X={}, Y={}, Z={}）", chineseName, block.getX(), block.getY(), block.getZ());
         }
         // 上次受伤原因（Folia Map 路径）
         if (result instanceof java.util.Map<?, ?> damageMap && api.getId().equals("get_player_last_damage")) {
@@ -488,16 +489,16 @@ public class GenericBukkitAPISkill implements Skill {
         }
         // Ping 延迟
         if (result instanceof Integer ping && api.getId().equals("get_player_ping")) {
-            String quality = ping < 100 ? "极好" : (ping < 200 ? "良好" : (ping < 300 ? "一般" : "较差"));
-            return "延迟：" + ping + "ms (" + quality + ")";
+            String quality = ping < 100 ? (I18nService.isZh() ? "极好" : "Excellent") : (ping < 200 ? (I18nService.isZh() ? "良好" : "Good") : (ping < 300 ? (I18nService.isZh() ? "一般" : "Fair") : (I18nService.isZh() ? "较差" : "Poor")));
+            return I18nService.tr("延迟：{}ms ({})", ping, quality);
         }
         // 升到下一级所需经验（Bukkit 原生方法）
         if (result instanceof Integer exp && api.getId().equals("get_player_exp_to_level")) {
-            return "升到下一级需要：" + exp + " 点经验";
+            return I18nService.tr("升到下一级需要：{} 点经验", exp);
         }
         // 身上的箭（Integer 类型，结构化输出）
         if (result instanceof Integer arrows && api.getId().equals("get_player_arrows_in_body")) {
-            return "身上的箭矢：" + arrows + " 支";
+            return I18nService.tr("身上的箭矢：{} 支", arrows);
         }
 
         // additional_methods 模式返回的 Map
@@ -576,7 +577,7 @@ public class GenericBukkitAPISkill implements Skill {
             return formatDifficulty(diff);
         }
         if (value instanceof Boolean bool) {
-            return bool ? "是" : "否";
+            return bool ? (I18nService.isZh() ? "是" : "Yes") : (I18nService.isZh() ? "否" : "No");
         }
         if (value instanceof Float || value instanceof Double) {
             return String.format("%.2f", ((Number) value).doubleValue());
@@ -592,11 +593,11 @@ public class GenericBukkitAPISkill implements Skill {
         Boolean isThundering = (Boolean) resultMap.get("is_thundering");
 
         if (hasStorm == null || !hasStorm) {
-            return "天气：晴朗";
+            return I18nService.tr("天气：晴朗");
         } else if (isThundering != null && isThundering) {
-            return "天气：雷暴";
+            return I18nService.tr("天气：雷暴");
         } else {
-            return "天气：雨天";
+            return I18nService.tr("天气：雨天");
         }
     }
 
@@ -612,7 +613,7 @@ public class GenericBukkitAPISkill implements Skill {
 
         // 将经验进度转为百分比
         int percentage = Math.round(expProgress * 100);
-        return String.format("等级：%d，经验进度：%d%%", level, percentage);
+        return I18nService.tr("等级：{}，经验进度：{}%", level, percentage);
     }
 
     /**
@@ -626,19 +627,19 @@ public class GenericBukkitAPISkill implements Skill {
         int maxFireTicks = maxFireTicksObj instanceof Number ? ((Number) maxFireTicksObj).intValue() : 200;
 
         if (fireTicks <= 0) {
-            return "着火状态：未着火";
+            return I18nService.tr("着火状态：未着火");
         }
 
         // 将 tick 转换为秒（20 tick = 1 秒）
         double seconds = fireTicks / 20.0;
-        return String.format("着火状态：正在燃烧！剩余 %.1f 秒 (%d/%d tick)", seconds, fireTicks, maxFireTicks);
+        return I18nService.tr("着火状态：正在燃烧！剩余 {} 秒 ({}{} tick)", String.format("%.1f", seconds), fireTicks, "/" + maxFireTicks);
     }
 
     /**
      * 格式化世界时间结果
      */
     private String formatTimeResult(java.util.Map<?, ?> resultMap) {
-        return "该 API 不应返回 Map 类型";
+        return I18nService.tr("该 API 不应返回 Map 类型");
     }
 
     /**
@@ -658,7 +659,7 @@ public class GenericBukkitAPISkill implements Skill {
         int hours = (int) ((dayTicks / 1000.0 + 6) % 24);  // +6 因为 0 刻 = 6:00
         int minutes = (int) ((dayTicks % 1000) * 60 / 1000.0);
 
-        return String.format("游戏时间：%02d:%02d", hours, minutes);
+        return I18nService.tr("游戏时间：{}", String.format("%02d:%02d", hours, minutes));
     }
 
     /**
@@ -668,9 +669,9 @@ public class GenericBukkitAPISkill implements Skill {
         if (collection == null || collection.isEmpty()) {
             // 根据API类型返回不同的空消息
             if (api.getId().equals("get_server_worlds")) {
-                return "服务器暂无已加载的世界";
+                return I18nService.tr("服务器暂无已加载的世界");
             }
-            return "当前没有玩家在线";
+            return I18nService.tr("当前没有玩家在线");
         }
 
         // 判断集合元素类型
@@ -691,11 +692,11 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatPlayerCollection(java.util.Collection<?> players) {
         if (players == null || players.isEmpty()) {
-            return "当前没有玩家在线";
+            return I18nService.tr("当前没有玩家在线");
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("在线玩家（").append(players.size()).append("人）：\n");
+        sb.append(I18nService.tr("在线玩家（{}人）：\n", players.size()));
 
         int count = 0;
         for (Object obj : players) {
@@ -707,7 +708,7 @@ public class GenericBukkitAPISkill implements Skill {
                 if (count >= 20) {
                     int remaining = players.size() - count;
                     if (remaining > 0) {
-                        sb.append(" ... 等 ").append(remaining).append(" 人");
+                        sb.append(I18nService.tr(" ... 等 {} 人", remaining));
                     }
                     break;
                 }
@@ -721,7 +722,7 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatWorldCollection(java.util.Collection<?> worlds) {
         StringBuilder sb = new StringBuilder();
-        sb.append("服务器世界列表（").append(worlds.size()).append("个）：\n");
+        sb.append(I18nService.tr("服务器世界列表（{}个）：\n", worlds.size()));
 
         int count = 0;
         for (Object obj : worlds) {
@@ -740,13 +741,13 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatLocationFromMap(java.util.Map<?, ?> locMap) {
         if (locMap == null || locMap.isEmpty()) {
-            return "位置：未知";
+            return I18nService.tr("位置：未知");
         }
         double x = locMap.containsKey("x") ? ((Number) locMap.get("x")).doubleValue() : 0;
         double y = locMap.containsKey("y") ? ((Number) locMap.get("y")).doubleValue() : 0;
         double z = locMap.containsKey("z") ? ((Number) locMap.get("z")).doubleValue() : 0;
         String world = locMap.containsKey("world") ? (String) locMap.get("world") : "未知";
-        return String.format("位置：X=%.2f, Y=%.2f, Z=%.2f, 世界=%s", x, y, z, world);
+        return I18nService.tr("位置：X={}, Y={}, Z={}, 世界={}", String.format("%.2f", x), String.format("%.2f", y), String.format("%.2f", z), world);
     }
 
     /**
@@ -773,7 +774,7 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatSingleItemStack(String label, org.bukkit.inventory.ItemStack item) {
         StringBuilder sb = new StringBuilder();
-        sb.append(label).append("：");
+        sb.append(label).append(I18nService.tr("："));
         // 优先使用自定义名称，否则使用中文翻译
         if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
             sb.append(item.getItemMeta().getDisplayName());
@@ -788,11 +789,11 @@ public class GenericBukkitAPISkill implements Skill {
         if (item.getType().getMaxDurability() > 0) {
             int max = item.getType().getMaxDurability();
             int remaining = max - item.getDurability();
-            sb.append(" [耐久:").append(remaining).append("/").append(max).append("]");
+            sb.append(I18nService.tr(" [耐久:{}/{}]", remaining, max));
         }
         // 附魔
         if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
-            sb.append(" [附魔:");
+            sb.append(I18nService.tr(" [附魔:"));
             boolean first = true;
             for (Map.Entry<org.bukkit.enchantments.Enchantment, Integer> entry : item.getItemMeta().getEnchants().entrySet()) {
                 if (!first) sb.append("; ");
@@ -812,22 +813,22 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatItemStackFromMap(BukkitAPIMetadata api, java.util.Map<?, ?> itemMap) {
         // 根据API类型确定标签
-        String label = "物品";
+        String label = I18nService.tr("物品");
         if (api != null) {
             if (api.getId().equals("get_player_hand_item")) {
-                label = "主手物品";
+                label = I18nService.tr("主手物品");
             } else if (api.getId().equals("get_player_offhand_item")) {
-                label = "副手物品";
+                label = I18nService.tr("副手物品");
             }
         }
         if (itemMap == null || itemMap.isEmpty()) {
-            return label + "：空手";
+            return label + I18nService.tr("：空手");
         }
 
         // 使用标准化字段名（与 extractThreadSafeData 和 extractDataFromResult 一致）
         String type = (String) itemMap.get("item_type");
         if (type == null || type.equals("AIR")) {
-            return label + "：空手";
+            return label + I18nService.tr("：空手");
         }
 
         int amount = itemMap.containsKey("item_amount") ? ((Number) itemMap.get("item_amount")).intValue() : 1;
@@ -850,16 +851,16 @@ public class GenericBukkitAPISkill implements Skill {
         if (itemMap.containsKey("remaining_durability") && itemMap.containsKey("max_durability")) {
             int remaining = ((Number) itemMap.get("remaining_durability")).intValue();
             int max = ((Number) itemMap.get("max_durability")).intValue();
-            sb.append(" [耐久:").append(remaining).append("/").append(max).append("]");
+            sb.append(I18nService.tr(" [耐久:{}/{}]", remaining, max));
         } else if (itemMap.containsKey("damage")) {
             // 只有 damage 没有 max_durability 的情况
             int damage = ((Number) itemMap.get("damage")).intValue();
-            sb.append(" [损伤:").append(damage).append("]");
+            sb.append(I18nService.tr(" [损伤:{}]", damage));
         }
 
         // 附魔
         if (itemMap.containsKey("enchantments") && itemMap.get("enchantments") instanceof Map<?, ?> enchantments) {
-            sb.append(" [附魔:");
+            sb.append(I18nService.tr(" [附魔:"));
             boolean first = true;
             for (Map.Entry<?, ?> entry : enchantments.entrySet()) {
                 if (!first) sb.append("; ");
@@ -874,13 +875,13 @@ public class GenericBukkitAPISkill implements Skill {
         // Lore（物品描述）
         if (itemMap.containsKey("lore") && itemMap.get("lore") instanceof java.util.List<?> lore) {
             if (!lore.isEmpty()) {
-                sb.append(" [描述:").append(lore.size()).append("行]");
+                sb.append(I18nService.tr(" [描述:{}行]", lore.size()));
             }
         }
 
         // 特殊属性（无法破坏）
         if (itemMap.containsKey("unbreakable") && Boolean.TRUE.equals(itemMap.get("unbreakable"))) {
-            sb.append(" [无法破坏]");
+            sb.append(I18nService.tr(" [无法破坏]"));
         }
 
         return sb.toString();
@@ -891,7 +892,7 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatVectorFromMap(java.util.Map<?, ?> vecMap) {
         if (vecMap == null || vecMap.isEmpty()) {
-            return "移动状态：未知";
+            return I18nService.tr("移动状态：未知");
         }
         double x = vecMap.containsKey("x") ? ((Number) vecMap.get("x")).doubleValue() : 0;
         double y = vecMap.containsKey("y") ? ((Number) vecMap.get("y")).doubleValue() : 0;
@@ -899,10 +900,10 @@ public class GenericBukkitAPISkill implements Skill {
         double speed = Math.sqrt(x * x + y * y + z * z);
 
         if (speed < 0.1) {
-            return "移动状态：静止";
+            return I18nService.tr("移动状态：静止");
         }
 
-        return String.format("移动状态：速度=%.2f (X=%.2f, Y=%.2f, Z=%.2f)", speed, x, y, z);
+        return I18nService.tr("移动状态：速度={} (X={}, Y={}, Z={})", String.format("%.2f", speed), String.format("%.2f", x), String.format("%.2f", y), String.format("%.2f", z));
     }
 
     /**
@@ -910,12 +911,12 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatGameMode(org.bukkit.GameMode gameMode) {
         String displayName = switch (gameMode) {
-            case SURVIVAL -> "生存模式";
-            case CREATIVE -> "创造模式";
-            case ADVENTURE -> "冒险模式";
-            case SPECTATOR -> "旁观模式";
+            case SURVIVAL -> I18nService.isZh() ? "生存模式" : "Survival";
+            case CREATIVE -> I18nService.isZh() ? "创造模式" : "Creative";
+            case ADVENTURE -> I18nService.isZh() ? "冒险模式" : "Adventure";
+            case SPECTATOR -> I18nService.isZh() ? "旁观模式" : "Spectator";
         };
-        return "游戏模式：" + displayName;
+        return I18nService.tr("游戏模式：{}", displayName);
     }
 
     /**
@@ -923,10 +924,10 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatEnvironment(org.bukkit.World.Environment environment) {
         return switch (environment) {
-            case NORMAL -> "主世界";
-            case NETHER -> "下界";
-            case THE_END -> "末地";
-            case CUSTOM -> "自定义";
+            case NORMAL -> I18nService.isZh() ? "主世界" : "Overworld";
+            case NETHER -> I18nService.isZh() ? "下界" : "Nether";
+            case THE_END -> I18nService.isZh() ? "末地" : "The End";
+            case CUSTOM -> I18nService.isZh() ? "自定义" : "Custom";
         };
     }
 
@@ -935,10 +936,10 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatDifficulty(org.bukkit.Difficulty difficulty) {
         return switch (difficulty) {
-            case PEACEFUL -> "和平";
-            case EASY -> "简单";
-            case NORMAL -> "普通";
-            case HARD -> "困难";
+            case PEACEFUL -> I18nService.isZh() ? "和平" : "Peaceful";
+            case EASY -> I18nService.isZh() ? "简单" : "Easy";
+            case NORMAL -> I18nService.isZh() ? "普通" : "Normal";
+            case HARD -> I18nService.isZh() ? "困难" : "Hard";
         };
     }
 
@@ -947,15 +948,15 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatPose(org.bukkit.entity.Pose pose) {
         String displayName = switch (pose) {
-            case STANDING -> "站立";
-            case FALL_FLYING -> "鞘翅飞行";
-            case SLEEPING -> "睡觉";
-            case SWIMMING -> "游泳";
-            case SPIN_ATTACK -> "旋转攻击";
-            case SNEAKING -> "潜行";
-            case DYING -> "死亡";
+            case STANDING -> I18nService.isZh() ? "站立" : "Standing";
+            case FALL_FLYING -> I18nService.isZh() ? "鞘翅飞行" : "Elytra flying";
+            case SLEEPING -> I18nService.isZh() ? "睡觉" : "Sleeping";
+            case SWIMMING -> I18nService.isZh() ? "游泳" : "Swimming";
+            case SPIN_ATTACK -> I18nService.isZh() ? "旋转攻击" : "Spin attack";
+            case SNEAKING -> I18nService.isZh() ? "潜行" : "Sneaking";
+            case DYING -> I18nService.isZh() ? "死亡" : "Dead";
         };
-        return "当前姿势：" + displayName;
+        return I18nService.tr("当前姿势：{}", displayName);
     }
 
     /**
@@ -963,10 +964,10 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatMainHand(org.bukkit.inventory.MainHand mainHand) {
         String displayName = switch (mainHand) {
-            case LEFT -> "左手（左撇子）";
-            case RIGHT -> "右手（右撇子）";
+            case LEFT -> I18nService.isZh() ? "左手（左撇子）" : "Left hand (Left-handed)";
+            case RIGHT -> I18nService.isZh() ? "右手（右撇子）" : "Right hand (Right-handed)";
         };
-        return "主手偏好：" + displayName;
+        return I18nService.tr("主手偏好：{}", displayName);
     }
 
     /**
@@ -974,11 +975,11 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatArmorContents(org.bukkit.inventory.ItemStack[] armor) {
         if (armor == null || armor.length == 0) {
-            return "盔甲：无";
+            return I18nService.tr("盔甲：无");
         }
 
         // Bukkit 盔甲数组顺序：[靴子, 护腿, 胸甲, 头盔]
-        String[] slotNames = {"靴子", "护腿", "胸甲", "头盔"};
+        String[] slotNames = {I18nService.tr("靴子"), I18nService.tr("护腿"), I18nService.tr("胸甲"), I18nService.tr("头盔")};
         StringBuilder sb = new StringBuilder();
         boolean hasArmor = false;
 
@@ -986,7 +987,7 @@ public class GenericBukkitAPISkill implements Skill {
             org.bukkit.inventory.ItemStack item = armor[i];
             if (item != null && item.getType() != org.bukkit.Material.AIR) {
                 if (hasArmor) sb.append("; ");
-                sb.append(slotNames[i]).append("：");
+                sb.append(slotNames[i]).append(I18nService.tr("："));
                 if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
                     sb.append(item.getItemMeta().getDisplayName());
                 } else {
@@ -1000,11 +1001,11 @@ public class GenericBukkitAPISkill implements Skill {
                 if (item.getType().getMaxDurability() > 0) {
                     int max = item.getType().getMaxDurability();
                     int remaining = max - item.getDurability();
-                    sb.append(" [耐久:").append(remaining).append("/").append(max).append("]");
+                    sb.append(I18nService.tr(" [耐久:{}/{}]", remaining, max));
                 }
                 // 附魔
                 if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
-                    sb.append(" [附魔:");
+                    sb.append(I18nService.tr(" [附魔:"));
                     boolean first = true;
                     for (Map.Entry<org.bukkit.enchantments.Enchantment, Integer> entry : item.getItemMeta().getEnchants().entrySet()) {
                         if (!first) sb.append("; ");
@@ -1017,7 +1018,7 @@ public class GenericBukkitAPISkill implements Skill {
             }
         }
 
-        return hasArmor ? "盔甲：" + sb : "盔甲：无";
+        return hasArmor ? I18nService.tr("盔甲：") + sb : I18nService.tr("盔甲：无");
     }
 
     /**
@@ -1025,11 +1026,11 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatPotionEffects(java.util.Collection<?> effects) {
         if (effects == null || effects.isEmpty()) {
-            return "药水效果：无";
+            return I18nService.tr("药水效果：无");
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("药水效果：");
+        sb.append(I18nService.tr("药水效果："));
         int count = 0;
 
         for (Object obj : effects) {
@@ -1042,16 +1043,16 @@ public class GenericBukkitAPISkill implements Skill {
 
                 // 等级（放大器 + 1，因为 0 = I）
                 int amplifier = effect.getAmplifier() + 1;
-                sb.append(" ").append(amplifier).append("级");
+                sb.append(I18nService.tr(" {}级", amplifier));
 
                 // 剩余时间（tick 转秒）
                 int seconds = effect.getDuration() / 20;
                 if (seconds >= 60) {
                     int minutes = seconds / 60;
                     int remainingSeconds = seconds % 60;
-                    sb.append(" (").append(minutes).append("分").append(remainingSeconds).append("秒)");
+                    sb.append(I18nService.tr(" ({}分{}秒)", minutes, remainingSeconds));
                 } else {
-                    sb.append(" (").append(seconds).append("秒)");
+                    sb.append(I18nService.tr(" ({}秒)", seconds));
                 }
 
                 count++;
@@ -1059,7 +1060,7 @@ public class GenericBukkitAPISkill implements Skill {
                 if (count >= 5) {
                     int remaining = effects.size() - count;
                     if (remaining > 0) {
-                        sb.append(" ... 等 ").append(remaining).append(" 个效果");
+                        sb.append(I18nService.tr(" ... 等 {} 个效果", remaining));
                     }
                     break;
                 }
@@ -1077,12 +1078,12 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatBlockFromMap(java.util.Map<?, ?> blockMap) {
         if (blockMap == null || blockMap.isEmpty()) {
-            return "瞄准方块：无（距离太远或没有方块）";
+            return I18nService.tr("瞄准方块：无（距离太远或没有方块）");
         }
 
         String materialName = (String) blockMap.get("block_type");
         if (materialName == null) {
-            return "瞄准方块：未知";
+            return I18nService.tr("瞄准方块：未知");
         }
 
         String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(materialName);
@@ -1090,7 +1091,7 @@ public class GenericBukkitAPISkill implements Skill {
         int y = blockMap.containsKey("y") ? ((Number) blockMap.get("y")).intValue() : 0;
         int z = blockMap.containsKey("z") ? ((Number) blockMap.get("z")).intValue() : 0;
 
-        return String.format("瞄准方块：%s（位置：X=%d, Y=%d, Z=%d）", chineseName, x, y, z);
+        return I18nService.tr("瞄准方块：{}（位置：X={}, Y={}, Z={}）", chineseName, x, y, z);
     }
 
     /**
@@ -1098,17 +1099,17 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatFeetBlockFromMap(java.util.Map<?, ?> blockMap) {
         if (blockMap == null || blockMap.isEmpty()) {
-            return "脚下方块：未知";
+            return I18nService.tr("脚下方块：未知");
         }
         String materialName = blockMap.get("block_type") != null ? blockMap.get("block_type").toString() : null;
         if (materialName == null) {
-            return "脚下方块：未知";
+            return I18nService.tr("脚下方块：未知");
         }
         String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(materialName);
         int x = blockMap.containsKey("x") ? ((Number) blockMap.get("x")).intValue() : 0;
         int y = blockMap.containsKey("y") ? ((Number) blockMap.get("y")).intValue() : 0;
         int z = blockMap.containsKey("z") ? ((Number) blockMap.get("z")).intValue() : 0;
-        return String.format("脚下方块：%s（位置：X=%d, Y=%d, Z=%d）", chineseName, x, y, z);
+        return I18nService.tr("脚下方块：{}（位置：X={}, Y={}, Z={}）", chineseName, x, y, z);
     }
 
     /**
@@ -1124,15 +1125,15 @@ public class GenericBukkitAPISkill implements Skill {
                 int count = armorMap.get("item_count") instanceof Number n ? n.intValue() : 0;
                 if (count > 0) {
                     // 有盔甲但旧格式无法提取详情，提示重新查询
-                    return "盔甲：有 " + count + " 件装备";
+                    return I18nService.tr("盔甲：有 {} 件装备", count);
                 }
             }
-            return "盔甲：无";
+            return I18nService.tr("盔甲：无");
         }
 
         // Bukkit 盔甲数组顺序：[靴子, 护腿, 胸甲, 头盔]
         String[] slotKeys = {"boots", "leggings", "chestplate", "helmet"};
-        String[] slotNames = {"靴子", "护腿", "胸甲", "头盔"};
+        String[] slotNames = {I18nService.tr("靴子"), I18nService.tr("护腿"), I18nService.tr("胸甲"), I18nService.tr("头盔")};
         StringBuilder sb = new StringBuilder();
         boolean hasArmor = false;
 
@@ -1141,7 +1142,7 @@ public class GenericBukkitAPISkill implements Skill {
             String nameKey = prefix + "_name";
             if (armorMap.containsKey(nameKey)) {
                 if (hasArmor) sb.append("; ");
-                sb.append(slotNames[i]).append("：");
+                sb.append(slotNames[i]).append(I18nService.tr("："));
 
                 // 名称
                 Object nameObj = armorMap.get(nameKey);
@@ -1153,13 +1154,13 @@ public class GenericBukkitAPISkill implements Skill {
                 if (armorMap.containsKey(remainingKey) && armorMap.containsKey(maxKey)) {
                     int remaining = armorMap.get(remainingKey) instanceof Number n ? n.intValue() : 0;
                     int max = armorMap.get(maxKey) instanceof Number n ? n.intValue() : 0;
-                    sb.append(" [耐久:").append(remaining).append("/").append(max).append("]");
+                    sb.append(I18nService.tr(" [耐久:{}/{}]", remaining, max));
                 }
 
                 // 附魔
                 String enchKey = prefix + "_enchantments";
                 if (armorMap.containsKey(enchKey) && armorMap.get(enchKey) instanceof Map<?, ?> enchants) {
-                    sb.append(" [附魔:");
+                    sb.append(I18nService.tr(" [附魔:"));
                     boolean first = true;
                     for (Map.Entry<?, ?> entry : enchants.entrySet()) {
                         if (!first) sb.append("; ");
@@ -1174,7 +1175,7 @@ public class GenericBukkitAPISkill implements Skill {
             }
         }
 
-        return hasArmor ? "盔甲：" + sb : "盔甲：无";
+        return hasArmor ? I18nService.tr("盔甲：") + sb : I18nService.tr("盔甲：无");
     }
 
     /**
@@ -1182,15 +1183,15 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatDamageFromMap(java.util.Map<?, ?> damageMap) {
         if (damageMap == null || damageMap.isEmpty()) {
-            return "无受伤记录";
+            return I18nService.tr("无受伤记录");
         }
         String causeName = damageMap.get("damage_cause") != null ? damageMap.get("damage_cause").toString() : "未知";
         String causeDisplay = formatDamageCauseByName(causeName);
         double amount = damageMap.containsKey("damage_amount") ? ((Number) damageMap.get("damage_amount")).doubleValue() : 0;
         StringBuilder sb = new StringBuilder();
-        sb.append("上次受伤：").append(causeDisplay).append(String.format("（%.1f 伤害）", amount));
+        sb.append(I18nService.tr("上次受伤：")).append(causeDisplay).append(I18nService.tr("（{} 伤害）", String.format("%.1f", amount)));
         if (damageMap.containsKey("damager_name")) {
-            sb.append("，攻击者：").append(damageMap.get("damager_name"));
+            sb.append(I18nService.tr("，攻击者：")).append(damageMap.get("damager_name"));
         }
         return sb.toString();
     }
@@ -1201,12 +1202,12 @@ public class GenericBukkitAPISkill implements Skill {
     private String formatDamageEvent(org.bukkit.event.entity.EntityDamageEvent damageEvent) {
         String causeDisplay = formatDamageCause(damageEvent.getCause());
         StringBuilder sb = new StringBuilder();
-        sb.append("上次受伤：").append(causeDisplay).append(String.format("（%.1f 伤害）", damageEvent.getDamage()));
+        sb.append(I18nService.tr("上次受伤：")).append(causeDisplay).append(I18nService.tr("（{} 伤害）", String.format("%.1f", damageEvent.getDamage())));
         if (damageEvent instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntityEvent) {
             org.bukkit.entity.Entity damager = byEntityEvent.getDamager();
             if (damager != null) {
                 String name = damager instanceof org.bukkit.entity.Player p ? p.getName() : (damager instanceof org.bukkit.entity.LivingEntity m ? (m.getName() != null ? m.getName() : m.getType().name()) : damager.getType().name());
-                sb.append("，攻击者：").append(name);
+                sb.append(I18nService.tr("，攻击者：")).append(name);
             }
         }
         return sb.toString();
@@ -1216,34 +1217,66 @@ public class GenericBukkitAPISkill implements Skill {
      * 将 DamageCause 枚举转为中文描述
      */
     private String formatDamageCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause cause) {
+        if (I18nService.isZh()) {
+            return switch (cause) {
+                case ENTITY_ATTACK -> "被实体攻击";
+                case ENTITY_SWEEP_ATTACK -> "被横扫攻击";
+                case PROJECTILE -> "被弹射物击中";
+                case SUFFOCATION -> "窒息（卡在方块中）";
+                case FALL -> "摔落伤害";
+                case FIRE -> "火焰伤害";
+                case FIRE_TICK -> "燃烧伤害";
+                case MELTING -> "融化伤害";
+                case LAVA -> "岩浆伤害";
+                case DROWNING -> "漏水";
+                case BLOCK_EXPLOSION -> "方块爆炸";
+                case ENTITY_EXPLOSION -> "实体爆炸（苦力怕/TNT）";
+                case VOID -> "掉入虚空";
+                case LIGHTNING -> "雷击";
+                case SUICIDE -> "自杀";
+                case STARVATION -> "饥饿";
+                case POISON -> "中毒";
+                case MAGIC -> "魔法伤害";
+                case WITHER -> "调零";
+                case FALLING_BLOCK -> "被掉落方块砸中";
+                case THORNS -> "荆棘反伤";
+                case DRAGON_BREATH -> "龙息";
+                case CUSTOM -> "自定义伤害";
+                case FLY_INTO_WALL -> "动能伤害（撞墙）";
+                case HOT_FLOOR -> "踩到热地板";
+                case CRAMMING -> "实体挤压";
+                case CONTACT -> "接触伤害（仙人掌/浆果丛）";
+                default -> cause.name();
+            };
+        }
         return switch (cause) {
-            case ENTITY_ATTACK -> "被实体攻击";
-            case ENTITY_SWEEP_ATTACK -> "被横扫攻击";
-            case PROJECTILE -> "被弹射物击中";
-            case SUFFOCATION -> "窒息（卡在方块中）";
-            case FALL -> "摔落伤害";
-            case FIRE -> "火焰伤害";
-            case FIRE_TICK -> "燃烧伤害";
-            case MELTING -> "融化伤害";
-            case LAVA -> "岩浆伤害";
-            case DROWNING -> "溺水";
-            case BLOCK_EXPLOSION -> "方块爆炸";
-            case ENTITY_EXPLOSION -> "实体爆炸（苦力怕/TNT）";
-            case VOID -> "掉入虚空";
-            case LIGHTNING -> "雷击";
-            case SUICIDE -> "自杀";
-            case STARVATION -> "饥饿";
-            case POISON -> "中毒";
-            case MAGIC -> "魔法伤害";
-            case WITHER -> "凋零";
-            case FALLING_BLOCK -> "被掉落方块砸中";
-            case THORNS -> "荆棘反伤";
-            case DRAGON_BREATH -> "龙息";
-            case CUSTOM -> "自定义伤害";
-            case FLY_INTO_WALL -> "动能伤害（撞墙）";
-            case HOT_FLOOR -> "踩到热地板";
-            case CRAMMING -> "实体挤压";
-            case CONTACT -> "接触伤害（仙人掌/浆果丛）";
+            case ENTITY_ATTACK -> "Attacked by entity";
+            case ENTITY_SWEEP_ATTACK -> "Hit by sweep attack";
+            case PROJECTILE -> "Hit by projectile";
+            case SUFFOCATION -> "Suffocation (stuck in block)";
+            case FALL -> "Fall damage";
+            case FIRE -> "Fire damage";
+            case FIRE_TICK -> "Burning damage";
+            case MELTING -> "Melting damage";
+            case LAVA -> "Lava damage";
+            case DROWNING -> "Drowning";
+            case BLOCK_EXPLOSION -> "Block explosion";
+            case ENTITY_EXPLOSION -> "Entity explosion (Creeper/TNT)";
+            case VOID -> "Fell into void";
+            case LIGHTNING -> "Lightning strike";
+            case SUICIDE -> "Suicide";
+            case STARVATION -> "Starvation";
+            case POISON -> "Poison";
+            case MAGIC -> "Magic damage";
+            case WITHER -> "Wither";
+            case FALLING_BLOCK -> "Hit by falling block";
+            case THORNS -> "Thorns damage";
+            case DRAGON_BREATH -> "Dragon breath";
+            case CUSTOM -> "Custom damage";
+            case FLY_INTO_WALL -> "Kinetic damage (hit wall)";
+            case HOT_FLOOR -> "Stepped on hot floor";
+            case CRAMMING -> "Entity cramming";
+            case CONTACT -> "Contact damage (cactus/sweet berry bush)";
             default -> cause.name();
         };
     }
@@ -1265,7 +1298,7 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatBiomeByName(String biomeName) {
         if (biomeName == null) {
-            return "未知群系";
+            return I18nService.tr("未知群系");
         }
 
         // 转换为更友好的显示格式
@@ -1274,7 +1307,7 @@ public class GenericBukkitAPISkill implements Skill {
         if (!displayName.isEmpty()) {
             displayName = Character.toUpperCase(displayName.charAt(0)) + displayName.substring(1);
         }
-        return "生物群系：" + displayName;
+        return I18nService.tr("生物群系：{}", displayName);
     }
 
     /**
@@ -1328,7 +1361,7 @@ public class GenericBukkitAPISkill implements Skill {
             }
         }
         int empty = contents.length - count;
-        return label + "占用：" + count + "/" + contents.length + " 格（空 " + empty + " 格）";
+        return I18nService.tr("{}占用：{}/{} 格（空 {} 格）", label, count, contents.length, empty);
     }
 
     /**
@@ -1347,7 +1380,7 @@ public class GenericBukkitAPISkill implements Skill {
                     for (org.bukkit.inventory.ItemStack c : contents) {
                         if (c != null && c.getType() != org.bukkit.Material.AIR) total++;
                     }
-                    sb.append(label).append("物品（已用 ").append(total).append("/").append(contents.length).append(" 格）：\n");
+                    sb.append(label).append(I18nService.tr("物品（已用 {}/{} 格）：\n", total, contents.length));
                 }
                 String itemName;
                 if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
@@ -1364,7 +1397,7 @@ public class GenericBukkitAPISkill implements Skill {
             }
         }
 
-        return count > 0 ? sb.toString().trim() : label + "：空";
+        return count > 0 ? sb.toString().trim() : label + I18nService.tr("：空");
     }
 
     /**
@@ -1372,33 +1405,33 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatInventoryType(org.bukkit.event.inventory.InventoryType type) {
         String displayName = switch (type.name()) {
-            case "CHEST" -> "箱子";
-            case "CRAFTING" -> "合成栏";
-            case "FURNACE" -> "熔炉";
-            case "WORKBENCH" -> "工作台";
-            case "ANVIL" -> "铁砧";
-            case "ENCHANTING" -> "附魔台";
-            case "BREWING" -> "酿造台";
-            case "PLAYER" -> "玩家背包";
-            case "CREATIVE" -> "创造模式背包";
-            case "MERCHANT" -> "村民交易";
-            case "ENDER_CHEST" -> "末影箱";
-            case "BEACON" -> "信标";
-            case "HOPPER" -> "漏斗";
-            case "DROPPER" -> "投掷器";
-            case "DISPENSER" -> "发射器";
-            case "SHULKER_BOX" -> "潜影盒";
-            case "SMITHING" -> "锻造台";
-            case "STONECUTTER" -> "切石机";
-            case "GRINDSTONE" -> "砂轮";
-            case "LECTERN" -> "讲台";
-            case "LOOM" -> "织布机";
-            case "BLAST_FURNACE" -> "高炉";
-            case "SMOKER" -> "烟熏炉";
-            case "CARTOGRAPHY" -> "制图台";
+            case "CHEST" -> I18nService.isZh() ? "箱子" : "Chest";
+            case "CRAFTING" -> I18nService.isZh() ? "合成栏" : "Crafting";
+            case "FURNACE" -> I18nService.isZh() ? "熔炉" : "Furnace";
+            case "WORKBENCH" -> I18nService.isZh() ? "工作台" : "Crafting table";
+            case "ANVIL" -> I18nService.isZh() ? "铁砧" : "Anvil";
+            case "ENCHANTING" -> I18nService.isZh() ? "附魔台" : "Enchanting table";
+            case "BREWING" -> I18nService.isZh() ? "酿造台" : "Brewing stand";
+            case "PLAYER" -> I18nService.isZh() ? "玩家背包" : "Player inventory";
+            case "CREATIVE" -> I18nService.isZh() ? "创造模式背包" : "Creative inventory";
+            case "MERCHANT" -> I18nService.isZh() ? "村民交易" : "Villager trade";
+            case "ENDER_CHEST" -> I18nService.isZh() ? "末影箱" : "Ender Chest";
+            case "BEACON" -> I18nService.isZh() ? "信标" : "Beacon";
+            case "HOPPER" -> I18nService.isZh() ? "漏斗" : "Hopper";
+            case "DROPPER" -> I18nService.isZh() ? "投掷器" : "Dropper";
+            case "DISPENSER" -> I18nService.isZh() ? "发射器" : "Dispenser";
+            case "SHULKER_BOX" -> I18nService.isZh() ? "潜影盒" : "Shulker box";
+            case "SMITHING" -> I18nService.isZh() ? "锻造台" : "Smithing table";
+            case "STONECUTTER" -> I18nService.isZh() ? "切石机" : "Stonecutter";
+            case "GRINDSTONE" -> I18nService.isZh() ? "砂轮" : "Grindstone";
+            case "LECTERN" -> I18nService.isZh() ? "讲台" : "Lectern";
+            case "LOOM" -> I18nService.isZh() ? "织布机" : "Loom";
+            case "BLAST_FURNACE" -> I18nService.isZh() ? "高炉" : "Blast furnace";
+            case "SMOKER" -> I18nService.isZh() ? "烟熏炉" : "Smoker";
+            case "CARTOGRAPHY" -> I18nService.isZh() ? "制图台" : "Cartography table";
             default -> type.name();
         };
-        return "当前界面：" + displayName;
+        return I18nService.tr("当前界面：{}", displayName);
     }
 
     /**
@@ -1407,10 +1440,10 @@ public class GenericBukkitAPISkill implements Skill {
      * <p>Map 结构：item_count, empty_slots, items(List<Map>，仅摘要模式)</p>
      */
     private String formatInventoryFromMap(BukkitAPIMetadata api, java.util.Map<?, ?> invMap) {
-        String label = api.getId().equals("get_player_ender_chest") ? "末影箱" : (api.getId().equals("get_player_open_container") ? "容器" : "背包");
+        String label = api.getId().equals("get_player_ender_chest") ? I18nService.tr("末影箱") : (api.getId().equals("get_player_open_container") ? I18nService.tr("容器") : I18nService.tr("背包"));
 
         if (invMap == null || invMap.isEmpty()) {
-            return label + "：空";
+            return label + I18nService.tr("：空");
         }
 
         int itemCount = invMap.containsKey("item_count") ? ((Number) invMap.get("item_count")).intValue() : 0;
@@ -1418,17 +1451,17 @@ public class GenericBukkitAPISkill implements Skill {
 
         // 极轻量模式：只显示格数
         if (api.getId().equals("get_player_inventory_usage")) {
-            return label + "占用：" + itemCount + "/" + totalSlots + " 格（空 " + (totalSlots - itemCount) + " 格）";
+            return I18nService.tr("{}占用：{}/{} 格（空 {} 格）", label, itemCount, totalSlots, totalSlots - itemCount);
         }
 
         // 摘要模式：显示物品列表
         Object itemsObj = invMap.get("items");
         if (!(itemsObj instanceof java.util.List<?> itemsList) || itemsList.isEmpty()) {
-            return label + "：空";
+            return label + I18nService.tr("：空");
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append(label).append("物品（已用 ").append(itemCount).append("/").append(totalSlots).append(" 格）：\n");
+        sb.append(label).append(I18nService.tr("物品（已用 {}/{} 格）：\n", itemCount, totalSlots));
 
         for (Object obj : itemsList) {
             if (obj instanceof java.util.Map<?, ?> itemData) {
@@ -1451,11 +1484,11 @@ public class GenericBukkitAPISkill implements Skill {
      */
     private String formatRaids(java.util.Collection<?> raids) {
         if (raids == null || raids.isEmpty()) {
-            return "袭击事件：无";
+            return I18nService.tr("袭击事件：无");
         }
 
         int raidCount = raids.size();
-        return "当前正在进行 " + raidCount + " 个袭击";
+        return I18nService.tr("当前正在进行 {} 个袭击", raidCount);
     }
 
     /**
@@ -1469,19 +1502,19 @@ public class GenericBukkitAPISkill implements Skill {
 
         if (apiId.equals("get_world_full_time")) {
             if (days > 0) {
-                return String.format("世界总时间：%d 天 %d 小时", days, hours % 24);
+                return I18nService.tr("世界总时间：{} 天 {} 小时", days, hours % 24);
             } else if (hours > 0) {
-                return String.format("世界总时间：%d 小时 %d 分钟", hours, minutes % 60);
+                return I18nService.tr("世界总时间：{} 小时 {} 分钟", hours, minutes % 60);
             } else {
-                return String.format("世界总时间：%d 分钟", minutes);
+                return I18nService.tr("世界总时间：{} 分钟", minutes);
             }
         } else {
             if (days > 0) {
-                return String.format("世界游戏时间：%d 天 %d 小时", days, hours % 24);
+                return I18nService.tr("世界游戏时间：{} 天 {} 小时", days, hours % 24);
             } else if (hours > 0) {
-                return String.format("世界游戏时间：%d 小时 %d 分钟", hours, minutes % 60);
+                return I18nService.tr("世界游戏时间：{} 小时 {} 分钟", hours, minutes % 60);
             } else {
-                return String.format("世界游戏时间：%d 分钟", minutes);
+                return I18nService.tr("世界游戏时间：{} 分钟", minutes);
             }
         }
     }
@@ -1492,15 +1525,15 @@ public class GenericBukkitAPISkill implements Skill {
     private String formatDuration(java.time.Duration duration) {
         long seconds = duration.getSeconds();
         if (seconds < 60) {
-            return "挂机时间：" + seconds + " 秒";
+            return I18nService.tr("挂机时间：{} 秒", seconds);
         } else if (seconds < 3600) {
             long minutes = seconds / 60;
             long remainingSeconds = seconds % 60;
-            return "挂机时间：" + minutes + " 分 " + remainingSeconds + " 秒";
+            return I18nService.tr("挂机时间：{} 分 {} 秒", minutes, remainingSeconds);
         } else {
             long hours = seconds / 3600;
             long minutes = (seconds % 3600) / 60;
-            return "挂机时间：" + hours + " 小时 " + minutes + " 分";
+            return I18nService.tr("挂机时间：{} 小时 {} 分", hours, minutes);
         }
     }
 
@@ -1512,46 +1545,46 @@ public class GenericBukkitAPISkill implements Skill {
 
         // 根据 API ID 提供语义化的描述
         if (apiId.contains("pvp")) {
-            return value ? "PVP 已开启：这个世界允许玩家互相攻击" : "PVP 已关闭：这个世界禁止玩家互相攻击";
+            return value ? I18nService.tr("PVP 已开启：这个世界允许玩家互相攻击") : I18nService.tr("PVP 已关闭：这个世界禁止玩家互相攻击");
         }
         if (apiId.contains("flight") || apiId.contains("fly")) {
-            return value ? "允许飞行" : "禁止飞行";
+            return value ? I18nService.tr("允许飞行") : I18nService.tr("禁止飞行");
         }
         if (apiId.contains("whitelist")) {
-            return value ? "白名单已开启" : "白名单已关闭";
+            return value ? I18nService.tr("白名单已开启") : I18nService.tr("白名单已关闭");
         }
         if (apiId.contains("hardcore")) {
-            return value ? "硬核模式已开启" : "硬核模式未开启";
+            return value ? I18nService.tr("硬核模式已开启") : I18nService.tr("硬核模式未开启");
         }
         if (apiId.contains("generate")) {
-            return value ? "已启用" : "未启用";
+            return value ? I18nService.tr("已启用") : I18nService.tr("未启用");
         }
         if (apiId.contains("autosave")) {
-            return value ? "自动保存已开启" : "自动保存已关闭";
+            return value ? I18nService.tr("自动保存已开启") : I18nService.tr("自动保存已关闭");
         }
         if (apiId.contains("sneak") || apiId.contains("sprinting")) {
-            return value ? "是" : "否";
+            return value ? I18nService.tr("是") : I18nService.tr("否");
         }
         if (apiId.contains("vehicle")) {
-            return value ? "玩家正在骑乘中" : "玩家未骑乘";
+            return value ? I18nService.tr("玩家正在骑乘中") : I18nService.tr("玩家未骑乘");
         }
         if (apiId.contains("op")) {
-            return value ? "是管理员（OP）" : "不是管理员";
+            return value ? I18nService.tr("是管理员（OP）") : I18nService.tr("不是管理员");
         }
         if (apiId.contains("sleep") || apiId.contains("sleeping")) {
-            return value ? "玩家正在睡觉" : "玩家未在睡觉";
+            return value ? I18nService.tr("玩家正在睡觉") : I18nService.tr("玩家未在睡觉");
         }
         if (apiId.contains("dead")) {
-            return value ? "玩家已死亡" : "玩家存活";
+            return value ? I18nService.tr("玩家已死亡") : I18nService.tr("玩家存活");
         }
 
         // 兜底：使用 API 的 displayName
         String displayName = api.getDisplayName();
         if (displayName != null && !displayName.isEmpty()) {
-            return displayName + "：" + (value ? "是" : "否");
+            return displayName + I18nService.tr("：") + (value ? I18nService.tr("是") : I18nService.tr("否"));
         }
 
-        return value ? "是" : "否";
+        return value ? I18nService.tr("是") : I18nService.tr("否");
     }
 
 }

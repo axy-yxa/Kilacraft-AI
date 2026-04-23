@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.afktask.impl;
 
 import com.google.gson.Gson;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTask;
@@ -106,7 +107,7 @@ public class PlayerChangedWorldWatchTask extends AFKTask implements Listener {
         try {
             return GSON.fromJson(json, AFKTaskCallback.class);
         } catch (Exception e) {
-            PluginLogger.warn("挂机任务", "解析回调配置失败: " + e.getMessage(), e);
+            PluginLogger.warn("挂机任务", I18nService.tr("解析回调配置失败: {}", e.getMessage()), e);
             return new AFKTaskCallback();
         }
     }
@@ -129,9 +130,9 @@ public class PlayerChangedWorldWatchTask extends AFKTask implements Listener {
 
             // 启动通知由上游 AIRequestHandler 通过 LLM 二次分析发送，此处不再重复通知玩家
 
-            PluginLogger.debug("挂机任务", "已启动: " + getTaskId() + ", 目标: " + targetPlayerName + ", 模式: " + (hasCallback ? "回调(" + callback.getCallbackTask().getSteps().size() + "步)" : "纯通知"));
+            PluginLogger.debug("挂机任务", "已启动: {}, 目标: {}, 模式: {}", getTaskId(), targetPlayerName, hasCallback ? "回调(" + callback.getCallbackTask().getSteps().size() + "步)" : "纯通知");
         } catch (Exception e) {
-            failStart("监听器注册失败: " + e.getMessage());
+            failStart(I18nService.tr("监听器注册失败: {}", e.getMessage()));
         }
     }
 
@@ -143,9 +144,9 @@ public class PlayerChangedWorldWatchTask extends AFKTask implements Listener {
                 HandlerList.unregisterAll(this);
                 listenerRegistered = false;
 
-                PluginLogger.debug("挂机任务", "已停止: " + getTaskId());
+                PluginLogger.debug("挂机任务", "已停止: {}", getTaskId());
             } catch (Exception e) {
-                PluginLogger.warn("挂机任务", "注销事件监听器失败: " + e.getMessage(), e);
+                PluginLogger.warn("挂机任务", I18nService.tr("注销事件监听器失败: {}", e.getMessage()), e);
             }
         }
     }
@@ -177,12 +178,12 @@ public class PlayerChangedWorldWatchTask extends AFKTask implements Listener {
 
         if (hasCallback) {
             // 先完成任务：立即注销事件监听器，防止异步回调期间新事件触发重复回调
-            complete("目标玩家 " + changedPlayerName + " 切换世界（" + fromWorld.getName() + " → " + toWorld.getName() + "），开始执行回调。");
+            complete(I18nService.tr("目标玩家 {} 切换世界（{} → {}），开始执行回调。", changedPlayerName, fromWorld.getName(), toWorld.getName()));
             executeCallback(changedPlayerName, fromWorld, toWorld);
         } else {
             // 纯通知模式：通过 LLM 二次分析通知
-            notifyWithLLMAnalysis("目标玩家 " + changedPlayerName + " 切换世界（" + fromWorld.getName() + " → " + toWorld.getName() + "）");
-            complete("目标玩家 " + changedPlayerName + " 切换世界（" + fromWorld.getName() + " → " + toWorld.getName() + "），挂机任务完成。");
+            notifyWithLLMAnalysis(I18nService.tr("目标玩家 {} 切换世界（{} → {}）", changedPlayerName, fromWorld.getName(), toWorld.getName()));
+            complete(I18nService.tr("目标玩家 {} 切换世界（{} → {}），挂机任务完成。", changedPlayerName, fromWorld.getName(), toWorld.getName()));
         }
     }
 
@@ -202,7 +203,7 @@ public class PlayerChangedWorldWatchTask extends AFKTask implements Listener {
             // 2. 获取任务创建者玩家对象
             Player creatorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (creatorPlayer == null || !creatorPlayer.isOnline()) {
-                PluginLogger.warn("挂机任务", "任务创建者不在线，无法执行回调: " + getTaskId());
+                PluginLogger.warn("挂机任务", I18nService.tr("任务创建者不在线，无法执行回调: {}", getTaskId()));
                 notifyPlayer("§c任务创建者不在线，回调任务已取消。");
                 return;
             }
@@ -226,17 +227,17 @@ public class PlayerChangedWorldWatchTask extends AFKTask implements Listener {
                         false
                 );
             }).exceptionally(ex -> {
-                PluginLogger.error("挂机任务", "回调任务执行异常: " + ex.getMessage(), ex);
+                PluginLogger.error("挂机任务", I18nService.tr("回调任务执行异常: {}", ex.getMessage()), ex);
                 Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
                 if (errorPlayer != null && errorPlayer.isOnline()) {
-                    plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
+                    plugin.getLlmOutputCoordinator().outputError(errorPlayer, I18nService.tr("§c回调任务执行失败：{}", ex.getMessage()));
                 }
                 return null;
             });
 
         } catch (Exception e) {
-            notifyPlayer("§c回调任务启动失败：" + e.getMessage());
-            PluginLogger.error("挂机任务", "回调任务启动异常: " + e.getMessage(), e);
+            notifyPlayer(I18nService.tr("§c回调任务启动失败：{}", e.getMessage()));
+            PluginLogger.error("挂机任务", I18nService.tr("回调任务启动异常: {}", e.getMessage()), e);
         }
     }
 
@@ -260,9 +261,9 @@ public class PlayerChangedWorldWatchTask extends AFKTask implements Listener {
     public String getTaskDescription() {
         if (callback != null && callback.getCallbackTask() != null && callback.getCallbackTask().getSteps() != null && !callback.getCallbackTask().getSteps().isEmpty()) {
             String goal = callback.getCallbackTask().getGoal();
-            String goalDesc = (goal != null && !goal.isEmpty()) ? "，目标：" + goal : "";
-            return "监视玩家 " + targetPlayerName + " 切换世界，触发回调任务（" + callback.getCallbackTask().getSteps().size() + "步）" + goalDesc;
+            String goalDesc = (goal != null && !goal.isEmpty()) ? I18nService.tr("，目标：{}", goal) : "";
+            return I18nService.tr("监视玩家 {} 切换世界，触发回调任务（{}步）{}", targetPlayerName, callback.getCallbackTask().getSteps().size(), goalDesc);
         }
-        return "监视玩家 " + targetPlayerName + " 切换世界，切换后通知创建者（纯通知）";
+        return I18nService.tr("监视玩家 {} 切换世界，切换后通知创建者（纯通知）", targetPlayerName);
     }
 }

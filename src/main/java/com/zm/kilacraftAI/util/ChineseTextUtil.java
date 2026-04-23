@@ -15,15 +15,18 @@ import java.util.stream.Collectors;
  * @author Zm_Mmm
  * @since 2026-04-06
  */
-public class ChineseTextUtil {
+public class ChineseTextUtil implements TextProcessor {
+
+    @Override
+    public void initCustomDictionary(List<String> customWords) {
+        initCustomDictionaryStatic(customWords);
+    }
 
     /**
      * 初始化自定义词典
-     * <p>在插件启动时调用，添加专业术语到 HanLP 词典</p>
-     *
-     * @param customWords 自定义词汇列表
+     * <p>添加专业术语到 HanLP 词典</p>
      */
-    public static void initCustomDictionary(List<String> customWords) {
+    private static void initCustomDictionaryStatic(List<String> customWords) {
         if (customWords == null || customWords.isEmpty()) {
             return;
         }
@@ -36,6 +39,23 @@ public class ChineseTextUtil {
         }
     }
 
+    // ==================== TextProcessor 接口实现 ====================
+
+    @Override
+    public List<String> segment(String text) {
+        return segmentStatic(text);
+    }
+
+    @Override
+    public List<String> extractKeywords(String text, int topK) {
+        return extractKeywordsStatic(text, topK);
+    }
+
+    @Override
+    public String toSearchQuery(String text, int topK) {
+        return toSearchQueryStatic(text, topK);
+    }
+
     /**
      * 对中文文本进行智能分词
      * <p>使用 HanLP 进行准确的中文分词，过滤无意义单字和停用词</p>
@@ -43,7 +63,7 @@ public class ChineseTextUtil {
      * @param text 待分词的文本
      * @return 分词结果列表
      */
-    public static List<String> segment(String text) {
+    private static List<String> segmentStatic(String text) {
         if (text == null || text.isEmpty()) {
             return List.of();
         }
@@ -64,7 +84,7 @@ public class ChineseTextUtil {
      * @param topK 返回前 K 个关键词
      * @return 关键词列表(去重保序)
      */
-    public static List<String> extractKeywords(String text, int topK) {
+    private static List<String> extractKeywordsStatic(String text, int topK) {
         if (text == null || text.isEmpty()) {
             return List.of();
         }
@@ -110,7 +130,7 @@ public class ChineseTextUtil {
 
         // 【第2层】分词结果(中等优先级,捕获复合词的组成部分)
         // 使用归一化文本，避免 HanLP 将换行符作为 token
-        List<String> segments = segment(normalizedText);
+        List<String> segments = segmentStatic(normalizedText);
         keywordSet.addAll(segments);
 
         // 【第2.5层】单字分词补充(捕获自定义词典中的单字词)
@@ -218,8 +238,8 @@ public class ChineseTextUtil {
      * @param topK 提取的关键词数量
      * @return 用空格分隔的关键词字符串，适合用于知识库检索
      */
-    public static String toSearchQuery(String text, int topK) {
-        List<String> keywords = extractKeywords(text, topK);
+    private static String toSearchQueryStatic(String text, int topK) {
+        List<String> keywords = extractKeywordsStatic(text, topK);
         return String.join(" ", keywords);
     }
 }

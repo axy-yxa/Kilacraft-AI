@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.core;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
@@ -109,6 +110,7 @@ public class KilacraftCommand implements CommandExecutor {
 
         try {
             plugin.getConfigManager().loadConfig();
+            plugin.getI18nService().reload();
             plugin.getLanguageManager().loadConfig();
 
             // 热重载技能配置（包括 Bukkit API 元数据）
@@ -128,6 +130,9 @@ public class KilacraftCommand implements CommandExecutor {
             if (plugin.getSoundEffectManager() != null) {
                 plugin.getSoundEffectManager().loadConfig();
             }
+
+            // 热重载文本处理器（语言变更后需要重建分词器）
+            com.zm.kilacraftAI.util.TextProcessorFactory.reset();
 
             sender.sendMessage(languageManager.getCommandReloadSuccess());
             PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogConfigReloaded(), "sender", getSenderName(sender)));
@@ -308,7 +313,7 @@ public class KilacraftCommand implements CommandExecutor {
         try {
             plugin.getPersonalitiesConfigManager().reload();
             sender.sendMessage(languageManager.getCommandPersonalitiesReloadSuccess());
-            sender.sendMessage("§7当前共加载 " + plugin.getPersonalitiesConfigManager().getAllPersonalities().size() + " 个人格");
+            sender.sendMessage(I18nService.tr("§7当前共加载 {} 个人格", plugin.getPersonalitiesConfigManager().getAllPersonalities().size()));
             PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogPersonalitiesReloaded(), "sender", getSenderName(sender)));
         } catch (Exception e) {
             sender.sendMessage(languageManager.getCommandPersonalitiesReloadFailure() + e.getMessage());
@@ -425,9 +430,9 @@ public class KilacraftCommand implements CommandExecutor {
         final String finalPersonality = personality;
         String personalityPrompt = personalitiesConfig.getPersonalityPrompt(personality).replace("{player}", targetPlayerName);
 
-        PluginLogger.debug("命令", "插件命令请求 - 人格：" + personality + ", 玩家：" + targetPlayerName + ", UUID: " + targetPlayerId);
-        PluginLogger.debug("命令", "人格提示词：" + personalityPrompt);
-        PluginLogger.debug("命令", "历史记录数量：" + pluginHistory.size());
+        PluginLogger.debug("命令", "插件命令请求 - 人格：{}, 玩家：{}, UUID: {}", personality, targetPlayerName, targetPlayerId);
+        PluginLogger.debug("命令", "人格提示词：{}", personalityPrompt);
+        PluginLogger.debug("命令", "历史记录数量：{}", pluginHistory.size());
 
         // 使用统一的 API 处理请求（传入人格提示词）
         plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt).thenAccept(fullResponse -> {
@@ -466,13 +471,13 @@ public class KilacraftCommand implements CommandExecutor {
                 } catch (CancellationException e) {
                     // 任务被取消（超时），已在上面记录日志，这里不重复打印
                 } catch (ExecutionException e) {
-                    PluginLogger.warn("命令", "回调命令执行失败: " + e.getCause().getMessage());
-                    PluginLogger.debug("命令", "原始命令: " + finalCallbackCommand);
+                    PluginLogger.warn("命令", I18nService.tr("回调命令执行失败: {}", e.getCause().getMessage()));
+                    PluginLogger.debug("命令", "原始命令: {}", finalCallbackCommand);
                 } catch (InterruptedException e) {
-                    PluginLogger.warn("命令", "回调命令执行被中断: " + e.getMessage(), e);
+                    PluginLogger.warn("命令", I18nService.tr("回调命令执行被中断: {}", e.getMessage()), e);
                     Thread.currentThread().interrupt(); // 恢复中断状态
                 } catch (Exception e) {
-                    PluginLogger.warn("命令", "回调命令执行异常: " + e.getMessage(), e);
+                    PluginLogger.warn("命令", I18nService.tr("回调命令执行异常: {}", e.getMessage()), e);
                 } finally {
                     // 立即删除缓存
                     plugin.getConversationManager().pollLatestAIResponse(targetPlayerId, finalPersonality);
@@ -484,7 +489,7 @@ public class KilacraftCommand implements CommandExecutor {
                 PluginLogger.debug("命令", "保留缓存供轮询获取");
             }
 
-            PluginLogger.debug("命令", "插件命令响应完成，响应长度：" + fullResponse.length());
+            PluginLogger.debug("命令", "插件命令响应完成，响应长度：{}", fullResponse.length());
         }).exceptionally(throwable -> {
             sender.sendMessage(languageManager.getPluginCommandError() + throwable.getMessage());
             PluginLogger.error("命令", languageManager.getLogPluginCommandAiError() + throwable.getMessage(), throwable);
@@ -514,7 +519,7 @@ public class KilacraftCommand implements CommandExecutor {
         // 替换占位符
         String finalCommand = callbackCommand.replace("{response}", response.replace("\"", "\\\""));
 
-        PluginLogger.debug("命令", "执行回调命令: " + finalCommand);
+        PluginLogger.debug("命令", "执行回调命令: {}", finalCommand);
 
         // 以控制台身份执行回调命令
         FoliaCompat.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
@@ -555,7 +560,7 @@ public class KilacraftCommand implements CommandExecutor {
         // 获取或创建历史记录
         Deque<ConversationManager.Message> playerHistory = getOrCreateHistory(playerId);
 
-        PluginLogger.debug("命令", "玩家 " + player.getName() + " 的历史记录数量：" + playerHistory.size());
+        PluginLogger.debug("命令", "玩家 {} 的历史记录数量：{}", player.getName(), playerHistory.size());
 
         // 构建消息
         String message = String.join(" ", args);
@@ -624,13 +629,13 @@ public class KilacraftCommand implements CommandExecutor {
     private boolean handleAfkCommand(CommandSender sender, String[] args) {
         // 仅限玩家使用
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§c挂机任务命令仅限玩家使用。");
+            sender.sendMessage(I18nService.tr("§c挂机任务命令仅限玩家使用。"));
             return true;
         }
 
         AFKTaskManager manager = plugin.getAfkTaskManager();
         if (manager == null) {
-            player.sendMessage("§c挂机任务系统未启用。");
+            player.sendMessage(I18nService.tr("§c挂机任务系统未启用。"));
             return true;
         }
 
@@ -640,31 +645,31 @@ public class KilacraftCommand implements CommandExecutor {
         switch (subAction) {
             case "cancel" -> {
                 if (!manager.hasTask(player.getUniqueId())) {
-                    player.sendMessage("§7你当前没有正在运行的挂机任务。");
+                    player.sendMessage(I18nService.tr("§7你当前没有正在运行的挂机任务。"));
                     return true;
                 }
                 AFKTask task = manager.getTask(player.getUniqueId());
                 manager.cancelTask(player.getUniqueId());
-                player.sendMessage("§a已取消挂机任务：§f" + task.getTaskDescription());
+                player.sendMessage(I18nService.tr("§a已取消挂机任务：§f") + task.getTaskDescription());
             }
             case "query", "" -> {
                 if (!manager.hasTask(player.getUniqueId())) {
-                    player.sendMessage("§7你当前没有正在运行的挂机任务。");
+                    player.sendMessage(I18nService.tr("§7你当前没有正在运行的挂机任务。"));
                     return true;
                 }
                 AFKTask task = manager.getTask(player.getUniqueId());
                 SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-                player.sendMessage("§f当前挂机任务：");
-                player.sendMessage("§f  任务ID：§e" + task.getTaskId());
-                player.sendMessage("§f  类型：§e" + task.getTaskType().getDescription());
-                player.sendMessage("§f  描述：§e" + task.getTaskDescription());
-                player.sendMessage("§f  状态：§e" + task.getStatusText());
-                player.sendMessage("§f  创建时间：§e" + sdf.format(new Date(task.getCreatedAt())));
-                player.sendMessage("§7使用 /kilacraft afk cancel 可取消此任务");
+                player.sendMessage(I18nService.tr("§f当前挂机任务："));
+                player.sendMessage(I18nService.tr("§f  任务ID：§e") + task.getTaskId());
+                player.sendMessage(I18nService.tr("§f  类型：§e") + task.getTaskType().getLocalizedDescription());
+                player.sendMessage(I18nService.tr("§f  描述：§e") + task.getTaskDescription());
+                player.sendMessage(I18nService.tr("§f  状态：§e") + task.getStatusText());
+                player.sendMessage(I18nService.tr("§f  创建时间：§e") + sdf.format(new Date(task.getCreatedAt())));
+                player.sendMessage(I18nService.tr("§7使用 /kilacraft afk cancel 可取消此任务"));
             }
             default -> {
-                player.sendMessage("§c未知的挂机任务子命令：" + subAction);
-                player.sendMessage("§7用法：/kilacraft afk [query|cancel]");
+                player.sendMessage(I18nService.tr("§c未知的挂机任务子命令：") + subAction);
+                player.sendMessage(I18nService.tr("§7用法：/kilacraft afk [query|cancel]"));
             }
         }
         return true;

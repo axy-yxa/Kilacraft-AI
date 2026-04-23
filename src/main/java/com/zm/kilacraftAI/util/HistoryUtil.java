@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.util;
 
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.manager.ConversationManager;
 
@@ -34,7 +35,7 @@ public class HistoryUtil {
         }
 
         StringBuilder historyBuilder = new StringBuilder();
-        historyBuilder.append("[对话历史]\n");
+        historyBuilder.append(I18nService.tr("[对话历史]\n"));
 
         int totalSize = history.size();
         int skipCount = Math.max(0, totalSize - maxMessages);
@@ -53,7 +54,7 @@ public class HistoryUtil {
 
             // 统一的角色显示格式
             String roleDisplay = switch (msg.getRole()) {
-                case "user" -> "用户";
+                case "user" -> I18nService.tr("用户");
                 case "assistant" -> "AI";
                 default -> msg.getRole();
             };

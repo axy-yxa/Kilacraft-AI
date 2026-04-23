@@ -35,11 +35,15 @@ public class PersonalitiesConfigManager {
 
     public PersonalitiesConfigManager(KilacraftAI plugin) {
         this.plugin = plugin;
-        this.personalitiesFile = new File(plugin.getDataFolder(), "personalities.yml");
+
+        // 根据当前语言选择配置文件（zh=personalities.yml, en=personalities_en.yml）
+        String lang = plugin.getConfigManager().getLanguage();
+        String fileName = "zh".equals(lang) ? "personalities.yml" : "personalities_" + lang + ".yml";
+        this.personalitiesFile = new File(plugin.getDataFolder(), fileName);
         this.personalitiesCache = new HashMap<>();
 
         // 复制默认配置
-        ConfigResourceUtil.saveDefaultResource(plugin, "personalities.yml", "人格配置");
+        ConfigResourceUtil.saveDefaultResource(plugin, fileName, "人格配置");
         loadConfig();
     }
 
@@ -82,9 +86,9 @@ public class PersonalitiesConfigManager {
                 }
             }
 
-            PluginLogger.info("人格配置", "人格配置加载完成，共 " + personalitiesCache.size() + " 个人格");
+            PluginLogger.info("人格配置", "人格配置加载完成，共 {} 个人格", personalitiesCache.size());
         } catch (Exception e) {
-            PluginLogger.error("人格配置", "加载人格配置文件失败：" + personalitiesFile.getAbsolutePath(), e);
+            PluginLogger.error("人格配置", I18nService.tr("加载人格配置文件失败：{}", personalitiesFile.getAbsolutePath()), e);
         }
     }
 

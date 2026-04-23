@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.knowledge;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.util.PluginLogger;
 
@@ -25,17 +26,28 @@ public class KnowledgeBaseManager {
 
     private final KilacraftAI plugin;
     private final Path knowledgeDir;
+    private final Path effectiveDir;                        // 实际加载的知识库目录（根据语言动态选择）
     private final Map<String, String> knowledgeCache;           // 原始文件内容缓存
     private final Map<String, List<String>> chunkCache;         // 分段后内容缓存
 
     public KnowledgeBaseManager(KilacraftAI plugin, String dataFolderPath) {
         this.plugin = plugin;
         this.knowledgeDir = Paths.get(dataFolderPath, "knowledge");
+
+        // 根据当前语言决定加载目录和拷贝资源
+        // zh: 只拷贝 knowledge 根目录文件（maxDepth=1，不递归 en/ 等子目录）
+        // 非 zh: 只拷贝 knowledge/{lang}/ 子目录文件
+        String lang = plugin.getConfigManager().getLanguage();
+        if ("zh".equals(lang)) {
+            this.effectiveDir = knowledgeDir;
+            ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge", "知识库", 1);
+        } else {
+            this.effectiveDir = knowledgeDir.resolve(lang);
+            ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge/" + lang, "知识库");
+        }
+
         this.knowledgeCache = new HashMap<>();
         this.chunkCache = new HashMap<>();
-
-        // 批量复制内置知识库文件（仅当目标文件不存在时才复制，不覆盖用户自定义）
-        ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge", "知识库");
     }
 
     /**
@@ -45,12 +57,12 @@ public class KnowledgeBaseManager {
         knowledgeCache.clear();
         chunkCache.clear();
 
-        if (!Files.exists(knowledgeDir)) {
-            PluginLogger.warn("知识库", "知识库目录不存在：" + knowledgeDir);
+        if (!Files.exists(effectiveDir)) {
+            PluginLogger.warn("知识库", "知识库目录不存在：{}", effectiveDir);
             return;
         }
 
-        try (var stream = Files.walk(knowledgeDir)) {
+        try (var stream = Files.walk(effectiveDir)) {
             List<Path> files = stream.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".md") || path.toString().endsWith(".txt")).toList();
 
             for (Path file : files) {
@@ -59,15 +71,15 @@ public class KnowledgeBaseManager {
                     // 使用文件名作为 key
                     String fileName = file.getFileName().toString();
                     knowledgeCache.put(fileName, content);
-                    PluginLogger.info("知识库", "已加载知识文件：" + fileName);
+                    PluginLogger.info("知识库", "已加载知识文件：{}", fileName);
                 } catch (IOException e) {
-                    PluginLogger.error("知识库", "加载知识文件失败: " + file + " - " + e.getMessage(), e);
+                    PluginLogger.error("知识库", I18nService.tr("加载知识文件失败: {}", file + " - " + e.getMessage()), e);
                 }
             }
 
-            PluginLogger.info("知识库", "共加载 " + knowledgeCache.size() + " 个知识文件");
+            PluginLogger.info("知识库", "共加载 {} 个知识文件", knowledgeCache.size());
         } catch (IOException e) {
-            PluginLogger.error("知识库", "遍历知识库目录失败: " + e.getMessage(), e);
+            PluginLogger.error("知识库", I18nService.tr("遍历知识库目录失败: {}", e.getMessage()), e);
         }
     }
 

@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.afktask;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
@@ -108,8 +109,8 @@ public abstract class AFKTask {
      * @param errorMessage 具体的错误描述（会传递给 AFKTaskManager 作为 SkillResult.failure 的消息）
      */
     protected void failStart(String errorMessage) {
-        this.startError = errorMessage;
-        complete("任务启动失败: " + errorMessage);
+        this.startError = I18nService.tr(errorMessage);
+        complete(I18nService.tr("任务启动失败: {}", this.startError));
     }
 
     /**
@@ -135,7 +136,7 @@ public abstract class AFKTask {
         this.status = AFKTaskStatus.COMPLETED;
         onStop();    // 释放子类资源（事件监听器、定时任务等）
         cleanup();
-        PluginLogger.debug("挂机任务", "任务终止: " + taskId + " - " + message);
+        PluginLogger.debug("挂机任务", "任务终止: {} - {}", taskId, message);
     }
 
     /**
@@ -147,7 +148,7 @@ public abstract class AFKTask {
         }
         this.status = AFKTaskStatus.CANCELLED;
         onStop();
-        PluginLogger.debug("挂机任务", "任务已取消: " + taskId);
+        PluginLogger.debug("挂机任务", "任务已取消: {}", taskId);
     }
 
     /**
@@ -170,7 +171,7 @@ public abstract class AFKTask {
         var player = plugin.getServer().getPlayer(playerUUID);
         if (player != null && player.isOnline()) {
             // 使用统一响应管线（挂机任务回调场景）
-            plugin.getResponsePipeline().send(player, message, OutputScenario.AFK_CALLBACK);
+            plugin.getResponsePipeline().send(player, I18nService.tr(message), OutputScenario.AFK_CALLBACK);
         }
     }
 
@@ -238,10 +239,10 @@ public abstract class AFKTask {
      */
     public String getStatusText() {
         return switch (status) {
-            case PENDING -> "等待启动";
-            case RUNNING -> "运行中";
-            case COMPLETED -> "已完成";
-            case CANCELLED -> "已取消";
+            case PENDING -> I18nService.tr("等待启动");
+            case RUNNING -> I18nService.tr("运行中");
+            case COMPLETED -> I18nService.tr("已完成");
+            case CANCELLED -> I18nService.tr("已取消");
         };
     }
 }

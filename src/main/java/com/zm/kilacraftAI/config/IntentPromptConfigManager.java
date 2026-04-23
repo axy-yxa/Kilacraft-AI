@@ -88,11 +88,13 @@ public class IntentPromptConfigManager {
      */
     public void loadConfig() {
         try {
-            // 配置文件路径
-            configFile = new File(plugin.getDataFolder(), "intent_prompts.yml");
+            // 根据当前语言选择配置文件（zh=intent_prompts.yml, en=intent_prompts_en.yml）
+            String lang = ((KilacraftAI) plugin).getConfigManager().getLanguage();
+            String fileName = "zh".equals(lang) ? "intent_prompts.yml" : "intent_prompts_" + lang + ".yml";
+            configFile = new File(plugin.getDataFolder(), fileName);
 
             // 复制默认配置
-            ConfigResourceUtil.saveDefaultResource((KilacraftAI) plugin, "intent_prompts.yml", "意图提示词");
+            ConfigResourceUtil.saveDefaultResource((KilacraftAI) plugin, fileName, "意图提示词");
 
             // 加载配置
             config = YamlConfiguration.loadConfiguration(configFile);
@@ -109,7 +111,7 @@ public class IntentPromptConfigManager {
      */
     private void loadPromptSections() {
         // 第一部分:角色定义
-        this.roleDefinition = config.getString("role_definition", "你是一个智能的技能意图识别助手.");
+        this.roleDefinition = config.getString("role_definition", I18nService.tr("你是一个智能的技能意图识别助手."));
 
         // 第二部分:响应格式规范
         this.singleIntentFormat = config.getString("response_format.single_intent", "");
@@ -148,7 +150,7 @@ public class IntentPromptConfigManager {
      */
     public void reload() {
         loadConfig();
-        PluginLogger.info("意图提示词", "意图识别提示词配置重载完成！");
+        PluginLogger.info("意图提示词", "意图识别提示词配置重载完成");
     }
 
     /**
@@ -162,24 +164,24 @@ public class IntentPromptConfigManager {
         StringBuilder sb = new StringBuilder();
 
         // 1. 角色定义
-        sb.append("【角色定义】\n");
+        sb.append(I18nService.tr("【角色定义】")).append("\n");
         sb.append(roleDefinition).append("\n\n");
 
         // 2. 可用技能列表（动态生成）
-        sb.append("【可用技能列表】\n");
+        sb.append(I18nService.tr("【可用技能列表】")).append("\n");
         sb.append(skillsDescription).append("\n\n");
 
         // 3. 响应格式规范
-        sb.append("【响应格式规范】\n");
-        sb.append("请严格按照以下 JSON 格式返回识别结果。\n\n");
+        sb.append(I18nService.tr("【响应格式规范】")).append("\n");
+        sb.append(I18nService.tr("请严格按照以下 JSON 格式返回识别结果。")).append("\n\n");
 
-        sb.append("### 单意图格式（简单任务）\n");
+        sb.append(I18nService.tr("### 单意图格式（简单任务）")).append("\n");
         sb.append(singleIntentFormat).append("\n\n");
 
-        sb.append("### 无效意图格式（无法识别时）\n");
+        sb.append(I18nService.tr("### 无效意图格式（无法识别时）")).append("\n");
         sb.append(invalidIntentFormat).append("\n\n");
 
-        sb.append("### 多步骤任务格式（复杂任务）\n");
+        sb.append(I18nService.tr("### 多步骤任务格式（复杂任务）")).append("\n");
         sb.append(multiStepTaskFormat).append("\n\n");
 
         // 输出格式强制要求
@@ -188,18 +190,18 @@ public class IntentPromptConfigManager {
         }
 
         // 4. 决策规则
-        sb.append("【决策规则】\n");
-        sb.append("### 何时使用单意图\n");
+        sb.append(I18nService.tr("【决策规则】")).append("\n");
+        sb.append(I18nService.tr("### 何时使用单意图")).append("\n");
         sb.append(whenUseSingleIntent).append("\n\n");
 
-        sb.append("### 何时使用多步骤任务\n");
+        sb.append(I18nService.tr("### 何时使用多步骤任务")).append("\n");
         sb.append(whenUseMultiStep).append("\n\n");
 
-        sb.append("### 何时返回无效意图\n");
+        sb.append(I18nService.tr("### 何时返回无效意图")).append("\n");
         sb.append(whenReturnInvalid).append("\n\n");
 
         // 5. 关键约束规则
-        sb.append("【关键约束规则】\n");
+        sb.append(I18nService.tr("【关键约束规则】")).append("\n");
         if (playerSecurityRule != null && !playerSecurityRule.isEmpty()) {
             sb.append(playerSecurityRule).append("\n\n");
         }
@@ -211,7 +213,7 @@ public class IntentPromptConfigManager {
         }
 
         // 6. 特殊场景处理指南
-        sb.append("【特殊场景处理指南】\n");
+        sb.append(I18nService.tr("【特殊场景处理指南】")).append("\n");
         sb.append(conflictingIntentsGuide).append("\n\n");
         sb.append(missingParametersGuide).append("\n\n");
         if (skillNameRestrictionRule != null && !skillNameRestrictionRule.isEmpty()) {
@@ -224,7 +226,7 @@ public class IntentPromptConfigManager {
         }
 
         // 8. 输出质量要求
-        sb.append("【输出质量要求】\n");
+        sb.append(I18nService.tr("【输出质量要求】")).append("\n");
         sb.append(outputQualityRequirements).append("\n");
 
         return sb.toString();

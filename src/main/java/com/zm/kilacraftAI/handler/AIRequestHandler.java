@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.handler;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.LanguageManager;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
@@ -101,7 +102,7 @@ public class AIRequestHandler {
     private void handleAIRequestInternal(String message, RequestContext ctx, boolean enableAgent) {
         // 校验 API Key 是否已配置
         if (!plugin.getConfigManager().isApiKeyConfigured()) {
-            String hint = "§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/config.yml 中的 llm.api_key 后重启服务器或执行 /kilacraft reload";
+            String hint = I18nService.tr("§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/config.yml 中的 llm.api_key 后重启服务器或执行 /kilacraft reload");
             ctx.sendError.accept(hint);
             PluginLogger.warn("AI请求", "拒绝请求：API Key 未配置");
             return;
@@ -114,7 +115,7 @@ public class AIRequestHandler {
             return;
         }
 
-        PluginLogger.debug("AI请求", "开始 LLM 意图识别，用户：" + ctx.name() + ", 消息：" + message);
+        PluginLogger.debug("AI请求", "开始 LLM 意图识别，用户：{}, 消息：{}", ctx.name(), message);
 
         var intentRecognizer = plugin.getIntentRecognizer();
         if (intentRecognizer == null) {
@@ -145,7 +146,7 @@ public class AIRequestHandler {
      * 处理任务计划（多步骤）
      */
     private void handleTaskPlan(TaskPlan taskPlan, String message, RequestContext ctx) {
-        PluginLogger.debug("AI请求", "识别到多步骤任务：" + taskPlan.getGoal());
+        PluginLogger.debug("AI请求", "识别到多步骤任务：{}", taskPlan.getGoal());
 
         TaskExecutor taskExecutor = new TaskExecutor(plugin.getSkillManager());
         SkillContext context = new SkillContext(ctx.player(), null, new HashMap<>());
@@ -173,7 +174,7 @@ public class AIRequestHandler {
      * 处理技能意图（单意图）
      */
     private void handleSkillIntent(SkillIntent intent, String message, RequestContext ctx) {
-        PluginLogger.debug("AI请求", "识别到单意图：" + intent.getAction());
+        PluginLogger.debug("AI请求", "识别到单意图：{}", intent.getAction());
 
         SkillContext context = new SkillContext(ctx.player(), intent.getAction(), intent.getEntities());
 
@@ -201,16 +202,16 @@ public class AIRequestHandler {
                 // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, finalResult.getMessage());
             } else {
-                PluginLogger.debug("技能执行", "技能执行失败：" + finalResult.getMessage());
+                PluginLogger.debug("技能执行", "技能执行失败：{}", finalResult.getMessage());
                 PluginLogger.debug("技能执行", "已回退到普通 AI 处理");
                 // 将技能失败信息注入消息上下文，回退到普通AI兜底
                 // LLM看到失败信息后可以理解原因并引导玩家（如提示取消旧的挂机任务）
-                String enrichedMessage = message + "\n[系统提示：技能执行失败 - " + finalResult.getMessage() + "]";
+                String enrichedMessage = message + "\n" + I18nService.tr("[系统提示：技能执行失败 - {}]", finalResult.getMessage());
                 handleNormalAIRequest(enrichedMessage, ctx);
             }
         }).exceptionally(throwable -> {
             ctx.sendError.accept(throwable.getMessage());
-            PluginLogger.error("技能执行", "技能执行异常: " + throwable.getMessage(), throwable);
+            PluginLogger.error("技能执行", I18nService.tr("技能执行异常: {}", throwable.getMessage()), throwable);
             return null;
         });
     }
@@ -219,7 +220,7 @@ public class AIRequestHandler {
      * 处理普通 AI 请求（无技能调用）
      */
     private void handleNormalAIRequest(String message, RequestContext ctx) {
-        PluginLogger.debug("AI请求", ctx.name() + " 的历史记录数量：" + ctx.history().size());
+        PluginLogger.debug("AI请求", "{} 的历史记录数量：{}", ctx.name(), ctx.history().size());
 
         AIResponseHandler handler;
         if (ctx.player() != null) {

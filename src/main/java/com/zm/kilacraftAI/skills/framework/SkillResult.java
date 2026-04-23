@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.skills.framework;
 
+import com.zm.kilacraftAI.config.I18nService;
 import lombok.Getter;
 
 import java.util.Map;
@@ -39,7 +40,7 @@ public class SkillResult {
      * @return 成功结果
      */
     public static SkillResult success(String message) {
-        return new SkillResult(true, message, null);
+        return new SkillResult(true, I18nService.tr(message), null);
     }
 
     /**
@@ -50,7 +51,7 @@ public class SkillResult {
      * @return 成功结果
      */
     public static SkillResult success(String message, Object data) {
-        return new SkillResult(true, message, data);
+        return new SkillResult(true, I18nService.tr(message), data);
     }
 
     /**
@@ -60,7 +61,7 @@ public class SkillResult {
      * @return 失败结果
      */
     public static SkillResult failure(String message) {
-        return new SkillResult(false, message, null);
+        return new SkillResult(false, I18nService.tr(message), null);
     }
 
     /**
@@ -71,7 +72,7 @@ public class SkillResult {
      * @return 失败结果
      */
     public static SkillResult failure(String message, Throwable error) {
-        return new SkillResult(false, message + " (" + error.getMessage() + ")", null);
+        return new SkillResult(false, I18nService.tr(message) + " (" + error.getMessage() + ")", null);
     }
 
     public SkillResult(boolean success, String message, Object data) {

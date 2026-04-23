@@ -87,7 +87,7 @@ public class SkillConfigManager {
         // 加载 Bukkit API 元数据
         loadBukkitAPIs();
 
-        PluginLogger.info("技能配置", "已加载 " + skillConfigs.size() + " 个技能配置");
+        PluginLogger.info("技能配置", "已加载 {} 个技能配置", skillConfigs.size());
     }
 
     /**
@@ -99,11 +99,23 @@ public class SkillConfigManager {
             return;
         }
 
+        String lang = plugin.getConfigManager().getLanguage();
+        boolean isZh = "zh".equals(lang);
+
         for (File packageFolder : packageFolders) {
             String packageName = packageFolder.getName();
 
-            // 跳过 apis.yml（由 loadBukkitAPIs 专门处理），但加载其他 .yml 文件
-            File[] configFiles = packageFolder.listFiles((dir, name) -> name.endsWith(".yml") && !name.equalsIgnoreCase("apis.yml"));
+            // 列出所有 .yml 文件，排除 apis.yml 和其他语言的配置文件
+            File[] configFiles = packageFolder.listFiles((dir, name) -> {
+                if (!name.endsWith(".yml") || name.equalsIgnoreCase("apis.yml")) return false;
+                // zh 模式：排除 _en.yml 等带语言后缀的文件
+                // 非 zh 模式：只加载 _{lang}.yml 文件
+                if (isZh) {
+                    return !name.matches(".*_[a-z]{2}\\.yml$");
+                } else {
+                    return name.endsWith("_" + lang + ".yml");
+                }
+            });
             if (configFiles == null) {
                 // 目录存在但无配置文件，配置文件将由具体 Skill 实例在构造时从 JAR 模板创建
                 continue;
@@ -111,6 +123,10 @@ public class SkillConfigManager {
 
             for (File configFile : configFiles) {
                 String skillName = configFile.getName().replace(".yml", "");
+                // 剥离语言后缀：AFKTaskSkill_en → AFKTaskSkill，确保缓存 key 不含语言后缀
+                if (!isZh) {
+                    skillName = skillName.replaceAll("_" + lang + "$", "");
+                }
                 loadSkillConfig(packageName, skillName, configFile);
             }
         }
@@ -123,11 +139,14 @@ public class SkillConfigManager {
         File bukkitFolder = new File(skillsFolder, "bukkit");
         if (!bukkitFolder.exists()) {
             bukkitFolder.mkdirs();
-            // 复制默认的 Bukkit API 配置
-            ConfigResourceUtil.saveDefaultResourceToDir(plugin, "skills/bukkit/apis.yml", bukkitFolder, "技能配置");
         }
 
-        File apisFile = new File(bukkitFolder, "apis.yml");
+        // 根据当前语言选择 apis.yml 或 apis_en.yml
+        String lang = plugin.getConfigManager().getLanguage();
+        String apisResourceName = "zh".equals(lang) ? "apis.yml" : "apis_" + lang + ".yml";
+        ConfigResourceUtil.saveDefaultResourceToDir(plugin, "skills/bukkit/" + apisResourceName, bukkitFolder, "技能配置");
+
+        File apisFile = new File(bukkitFolder, apisResourceName);
         if (apisFile.exists()) {
             try {
                 BukkitAPIConfigLoader loader = new BukkitAPIConfigLoader();
@@ -147,9 +166,9 @@ public class SkillConfigManager {
                     bukkitApiMap.put(api.getId(), api);
                 }
 
-                PluginLogger.info("技能配置", "已加载 " + loadedApis.size() + " 个 Bukkit API");
+                PluginLogger.info("技能配置", "已加载 {} 个 Bukkit API", loadedApis.size());
             } catch (Exception e) {
-                PluginLogger.error("技能配置", "加载 Bukkit API 配置失败：" + apisFile.getPath(), e);
+                PluginLogger.error("技能配置", I18nService.tr("加载 Bukkit API 配置失败：{}", apisFile.getPath()), e);
             }
         }
     }
@@ -166,7 +185,7 @@ public class SkillConfigManager {
             String key = packageName + "." + skillName;
             skillConfigs.put(key, skillConfig);
         } catch (Exception e) {
-            PluginLogger.error("技能配置", "加载技能配置失败：" + configFile.getPath(), e);
+            PluginLogger.error("技能配置", I18nService.tr("加载技能配置失败：{}", configFile.getPath()), e);
         }
     }
 
@@ -204,7 +223,9 @@ public class SkillConfigManager {
      * 保存默认技能配置文件 (如果不存在)
      */
     public void saveDefaultSkillConfig(String packageName, String skillName) {
-        String resourcePath = "skills/" + packageName + "/" + skillName + ".yml";
+        String lang = plugin.getConfigManager().getLanguage();
+        String fileName = "zh".equals(lang) ? skillName + ".yml" : skillName + "_" + lang + ".yml";
+        String resourcePath = "skills/" + packageName + "/" + fileName;
         ConfigResourceUtil.saveDefaultResource(plugin, resourcePath, "技能配置");
     }
 
@@ -225,7 +246,9 @@ public class SkillConfigManager {
      * @return 加载后的配置，失败返回 null
      */
     public SkillConfig loadSingleSkillConfig(String packageName, String skillName) {
-        File configFile = new File(skillsFolder, packageName + "/" + skillName + ".yml");
+        String lang = plugin.getConfigManager().getLanguage();
+        String fileName = "zh".equals(lang) ? skillName + ".yml" : skillName + "_" + lang + ".yml";
+        File configFile = new File(skillsFolder, packageName + "/" + fileName);
         if (!configFile.exists()) {
             return null;
         }
@@ -237,12 +260,9 @@ public class SkillConfigManager {
 
             String key = packageName + "." + skillName;
             skillConfigs.put(key, skillConfig);
-
-            PluginLogger.debug("技能配置", "已动态加载技能配置：" + key);
             return skillConfig;
-
         } catch (Exception e) {
-            PluginLogger.error("技能配置", "动态加载技能配置失败：" + configFile.getPath(), e);
+            PluginLogger.error("技能配置", I18nService.tr("动态加载技能配置失败：{}", configFile.getPath()), e);
             return null;
         }
     }
@@ -257,6 +277,6 @@ public class SkillConfigManager {
 
         loadAllSkillConfigs();
 
-        PluginLogger.info("技能配置", "技能配置重载完成！");
+        PluginLogger.info("技能配置", "技能配置重载完成");
     }
 }

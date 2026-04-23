@@ -1,6 +1,8 @@
 package com.zm.kilacraftAI.compat.folia;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -11,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Folia 兼容调度工具类（纯反射实现）
+ * Folia 兼容调度工具类
  *
  * <p>统一封装 Spigot/Paper 和 Folia 之间的调度 API 差异。
  * 运行时自动检测是否为 Folia 环境，选择正确的调度方式。
@@ -31,29 +33,34 @@ import java.util.concurrent.TimeoutException;
 public class FoliaCompat {
 
     /**
-     * 是否运行在 Folia 环境下
+     * 是否运行在 Folia 环境下（延迟初始化）
      */
-    private static final boolean FOLIA;
+    private static boolean FOLIA;
 
     /**
-     * 反射初始化结果（FOLIA=true 时非空）
+     * 反射初始化结果（FOLIA=true 时非空，延迟初始化）
      */
-    private static final FoliaReflection REFLECTION;
+    private static FoliaReflection REFLECTION;
 
-    static {
-        FoliaReflection reflection;
-        boolean folia;
+    /**
+     * 延迟初始化标记
+     */
+    private static boolean initialized = false;
+
+    /**
+     * 延迟初始化 Folia 检测（首次调用时执行，确保 I18nService 和 PluginLogger 已就绪）
+     */
+    private static synchronized void ensureInitialized() {
+        if (initialized) return;
+        initialized = true;
         try {
-            reflection = new FoliaReflection();
-            folia = true;
+            REFLECTION = new FoliaReflection();
+            FOLIA = true;
         } catch (ReflectiveOperationException e) {
-            reflection = null;
-            folia = false;
-            // 诊断日志：帮助排查 Folia 检测失败的原因
-            System.getLogger("Kilacraft-AI").log(System.Logger.Level.WARNING, "[FoliaCompat] Folia API 反射初始化失败，回退到 Spigot 模式: " + e.getMessage(), e);
+            REFLECTION = null;
+            FOLIA = false;
+            PluginLogger.warn("Folia兼容", I18nService.tr("Folia API 反射初始化失败，回退到 Spigot 模式: {}", e.getMessage()), e);
         }
-        FOLIA = folia;
-        REFLECTION = reflection;
     }
 
     private FoliaCompat() {
@@ -64,6 +71,7 @@ public class FoliaCompat {
      * 是否运行在 Folia 环境下
      */
     public static boolean isFolia() {
+        ensureInitialized();
         return FOLIA;
     }
 
@@ -73,6 +81,7 @@ public class FoliaCompat {
      * 在全局区域执行任务（相当于 Spigot 的 runTask）
      */
     public static void runTask(Plugin plugin, Runnable task) {
+        ensureInitialized();
         if (FOLIA) {
             REFLECTION.invokeGlobalRun(plugin, task);
         } else {
@@ -84,6 +93,7 @@ public class FoliaCompat {
      * 延迟执行任务（相当于 Spigot 的 runTaskLater）
      */
     public static void runTaskLater(Plugin plugin, Runnable task, long delay) {
+        ensureInitialized();
         if (FOLIA) {
             REFLECTION.invokeGlobalRunDelayed(plugin, task, delay);
         } else {
@@ -97,6 +107,7 @@ public class FoliaCompat {
      * @return 可取消的任务句柄
      */
     public static ScheduledTask runAsyncTimer(Plugin plugin, Runnable task, long delayTicks, long intervalTicks) {
+        ensureInitialized();
         if (FOLIA) {
             Object foliaTask = REFLECTION.scheduleAsyncAtFixedRate(plugin, task, delayTicks, intervalTicks);
             return new ScheduledTask(foliaTask);
@@ -114,6 +125,7 @@ public class FoliaCompat {
      * <p>lophine/Folia 特殊处理：如果 sender 是 Player，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      */
     public static void dispatchCommand(org.bukkit.command.CommandSender sender, String command) {
+        ensureInitialized();
         if (FOLIA) {
             // 如果 sender 是 Player，使用 EntityScheduler
             if (sender instanceof org.bukkit.entity.Player player) {
@@ -136,6 +148,7 @@ public class FoliaCompat {
      * <p>lophine/Folia 特殊处理：如果 sender 是 Player，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      */
     public static boolean dispatchCommandSync(org.bukkit.command.CommandSender sender, String command, long timeoutSeconds) {
+        ensureInitialized();
         if (FOLIA) {
             CompletableFuture<Boolean> future = new CompletableFuture<>();
 
@@ -157,7 +170,7 @@ public class FoliaCompat {
                     }
                 });
             }
-            return awaitFuture(future, timeoutSeconds, "命令执行超时: /" + command, "命令执行失败: /" + command);
+            return awaitFuture(future, timeoutSeconds, I18nService.tr("命令执行超时: /{}", command), I18nService.tr("命令执行失败: /{}", command));
         } else {
             if (Bukkit.isPrimaryThread()) {
                 return Bukkit.dispatchCommand(sender, command);
@@ -165,12 +178,12 @@ public class FoliaCompat {
             try {
                 return Bukkit.getScheduler().callSyncMethod(KilacraftAI.getInstance(), () -> Bukkit.dispatchCommand(sender, command)).get(timeoutSeconds, TimeUnit.SECONDS);
             } catch (ExecutionException e) {
-                return unwrapExecutionException(e, "命令执行失败: /" + command);
+                return unwrapExecutionException(e, I18nService.tr("命令执行失败: /{}", command));
             } catch (TimeoutException e) {
-                throw new RuntimeException("命令执行超时: /" + command, e);
+                throw new RuntimeException(I18nService.tr("命令执行超时: /{}", command), e);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("命令执行被中断: /" + command, e);
+                throw new RuntimeException(I18nService.tr("命令执行被中断: /{}", command), e);
             }
         }
     }
@@ -181,6 +194,7 @@ public class FoliaCompat {
      * <p>lophine/Folia 特殊处理：如果 sender 是 Player，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      */
     public static CompletableFuture<Boolean> dispatchCommandAsync(org.bukkit.command.CommandSender sender, String command) {
+        ensureInitialized();
         if (FOLIA) {
             CompletableFuture<Boolean> result = new CompletableFuture<>();
 
@@ -226,6 +240,7 @@ public class FoliaCompat {
      * 在主线程/全局区域同步执行 Supplier 并返回结果
      */
     public static <T> T callSync(Plugin plugin, java.util.function.Supplier<T> supplier, long timeoutSeconds) {
+        ensureInitialized();
         if (FOLIA) {
             CompletableFuture<T> future = new CompletableFuture<>();
             REFLECTION.invokeGlobalRun(plugin, () -> {
@@ -235,17 +250,17 @@ public class FoliaCompat {
                     future.completeExceptionally(e);
                 }
             });
-            return awaitFuture(future, timeoutSeconds, "同步调用超时", "同步调用失败");
+            return awaitFuture(future, timeoutSeconds, I18nService.tr("同步调用超时"), I18nService.tr("同步调用失败"));
         } else {
             try {
                 return Bukkit.getScheduler().callSyncMethod(plugin, supplier::get).get(timeoutSeconds, TimeUnit.SECONDS);
             } catch (ExecutionException e) {
-                return unwrapExecutionException(e, "同步调用失败");
+                return unwrapExecutionException(e, I18nService.tr("同步调用失败"));
             } catch (TimeoutException e) {
-                throw new RuntimeException("同步调用超时", e);
+                throw new RuntimeException(I18nService.tr("同步调用超时"), e);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("同步调用被中断", e);
+                throw new RuntimeException(I18nService.tr("同步调用被中断"), e);
             }
         }
     }
@@ -262,6 +277,7 @@ public class FoliaCompat {
      * @return 执行结果
      */
     public static <T> T callSyncOnEntity(org.bukkit.entity.Player player, java.util.function.Supplier<T> supplier, long timeoutSeconds) {
+        ensureInitialized();
         if (FOLIA) {
             CompletableFuture<T> future = new CompletableFuture<>();
             REFLECTION.invokeEntityRun(player, () -> {
@@ -271,18 +287,18 @@ public class FoliaCompat {
                     future.completeExceptionally(e);
                 }
             });
-            return awaitFuture(future, timeoutSeconds, "实体同步调用超时", "实体同步调用失败");
+            return awaitFuture(future, timeoutSeconds, I18nService.tr("实体同步调用超时"), I18nService.tr("实体同步调用失败"));
         } else {
             // Spigot/Paper: 直接调度到主线程
             try {
                 return Bukkit.getScheduler().callSyncMethod(KilacraftAI.getInstance(), supplier::get).get(timeoutSeconds, TimeUnit.SECONDS);
             } catch (ExecutionException e) {
-                return unwrapExecutionException(e, "实体同步调用失败");
+                return unwrapExecutionException(e, I18nService.tr("实体同步调用失败"));
             } catch (TimeoutException e) {
-                throw new RuntimeException("实体同步调用超时", e);
+                throw new RuntimeException(I18nService.tr("实体同步调用超时"), e);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("实体同步调用被中断", e);
+                throw new RuntimeException(I18nService.tr("实体同步调用被中断"), e);
             }
         }
     }
@@ -292,6 +308,7 @@ public class FoliaCompat {
      * <p>Folia 下始终返回 false（无全局主线程概念）</p>
      */
     public static boolean isPrimaryThread() {
+        ensureInitialized();
         if (FOLIA) {
             return false;
         }
@@ -348,7 +365,7 @@ public class FoliaCompat {
             return unwrapExecutionException(e, failMsg);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(failMsg + "（被中断）", e);
+            throw new RuntimeException(failMsg + I18nService.tr("（被中断）"), e);
         }
     }
 

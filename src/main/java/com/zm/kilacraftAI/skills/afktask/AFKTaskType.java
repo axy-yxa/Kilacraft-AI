@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.skills.afktask;
 
+import com.zm.kilacraftAI.config.I18nService;
 import lombok.Getter;
 
 /**
@@ -101,5 +102,14 @@ public enum AFKTaskType {
         } catch (IllegalArgumentException e) {
             return CUSTOM;
         }
+    }
+
+    /**
+     * 获取本地化描述
+     *
+     * @return 翻译后的描述文本
+     */
+    public String getLocalizedDescription() {
+        return I18nService.tr(description);
     }
 }

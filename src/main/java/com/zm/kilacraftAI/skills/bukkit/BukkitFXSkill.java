@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.skills.bukkit;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.skills.framework.Skill;
@@ -118,7 +119,7 @@ public class BukkitFXSkill implements Skill {
 
         // 权限检查
         if (!PluginPermissionEnum.BUKKIT_FX.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure("你没有权限使用此功能: " + PluginPermissionEnum.BUKKIT_FX.getNode()));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.BUKKIT_FX.getNode())));
         }
 
         Map<String, String> entities = context.getEntities();
@@ -134,14 +135,14 @@ public class BukkitFXSkill implements Skill {
                         SkillResult result = executeSync(action, player, entities);
                         future.complete(result);
                     } catch (Exception e) {
-                        future.complete(SkillResult.failure("执行失败: " + e.getMessage()));
+                        future.complete(SkillResult.failure(I18nService.tr("执行失败: {}", e.getMessage())));
                     }
                 });
                 return future;
             }
         } catch (Exception e) {
             PluginLogger.error("BukkitFX", "执行音效/粒子效果失败", e);
-            return CompletableFuture.completedFuture(SkillResult.failure("执行失败: " + e.getMessage()));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("执行失败: {}", e.getMessage())));
         }
     }
 
@@ -152,7 +153,7 @@ public class BukkitFXSkill implements Skill {
         return switch (action) {
             case ACTION_PLAY_SOUND -> playSound(player, entities);
             case ACTION_SPAWN_PARTICLE -> spawnParticle(player, entities);
-            default -> SkillResult.failure("未知动作: " + action);
+            default -> SkillResult.failure(I18nService.tr("未知动作: {}", action));
         };
     }
 
@@ -170,7 +171,7 @@ public class BukkitFXSkill implements Skill {
         try {
             sound = Sound.valueOf(soundName.toUpperCase());
         } catch (IllegalArgumentException e) {
-            return SkillResult.failure("无效的音效枚举名称: " + soundName);
+            return SkillResult.failure(I18nService.tr("无效的音效枚举名称: {}", soundName));
         }
 
         // 解析参数(带默认值)
@@ -185,7 +186,7 @@ public class BukkitFXSkill implements Skill {
         Location location = player.getLocation();
         player.playSound(location, sound, volume, pitch);
 
-        String result = String.format("音效播放成功: sound=%s, volume=%.1f, pitch=%.1f, location=(%.1f, %.1f, %.1f, %s)", soundName, volume, pitch, location.getX(), location.getY(), location.getZ(), location.getWorld().getName());
+        String result = I18nService.tr("音效播放成功: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})", soundName, String.format("%.1f", volume), String.format("%.1f", pitch), String.format("%.1f", location.getX()), String.format("%.1f", location.getY()), String.format("%.1f", location.getZ()), location.getWorld().getName());
         return SkillResult.success(result);
     }
 
@@ -203,7 +204,7 @@ public class BukkitFXSkill implements Skill {
         try {
             particle = Particle.valueOf(particleName.toUpperCase());
         } catch (IllegalArgumentException e) {
-            return SkillResult.failure("无效的粒子枚举名称: " + particleName);
+            return SkillResult.failure(I18nService.tr("无效的粒子枚举名称: {}", particleName));
         }
 
         // 解析参数(带默认值)
@@ -219,7 +220,7 @@ public class BukkitFXSkill implements Skill {
         Location location = player.getLocation();
         player.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ);
 
-        String result = String.format("粒子效果显示成功: particle=%s, count=%d, offset=(%.1f, %.1f, %.1f), location=(%.1f, %.1f, %.1f, %s)", particleName, count, offsetX, offsetY, offsetZ, location.getX(), location.getY(), location.getZ(), location.getWorld().getName());
+        String result = I18nService.tr("粒子效果显示成功: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})", particleName, count, String.format("%.1f", offsetX), String.format("%.1f", offsetY), String.format("%.1f", offsetZ), String.format("%.1f", location.getX()), String.format("%.1f", location.getY()), String.format("%.1f", location.getZ()), location.getWorld().getName());
         return SkillResult.success(result);
     }
 

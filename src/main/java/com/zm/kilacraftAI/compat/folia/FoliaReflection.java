@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.compat.folia;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -122,7 +123,7 @@ class FoliaReflection {
             Consumer<Object> consumer = t -> task.run();
             mhGlobalRun.invoke(scheduler, plugin, consumer);
         } catch (Throwable e) {
-            throw new RuntimeException("[FoliaCompat] GlobalRegionScheduler.run 调用失败", e);
+            throw new RuntimeException(I18nService.tr("[FoliaCompat] GlobalRegionScheduler.run 调用失败"), e);
         }
     }
 
@@ -133,7 +134,7 @@ class FoliaReflection {
                 mhGlobalExecute.invoke(scheduler, plugin, task);
                 return;
             } catch (Throwable e) {
-                throw new RuntimeException("[FoliaCompat] GlobalRegionScheduler.execute 调用失败", e);
+                throw new RuntimeException(I18nService.tr("[FoliaCompat] GlobalRegionScheduler.execute 调用失败"), e);
             }
         }
         // 回退：execute 不可用时使用 run（Consumer 包装）
@@ -146,7 +147,7 @@ class FoliaReflection {
             Consumer<Object> consumer = t -> task.run();
             mhGlobalRunDelayed.invoke(scheduler, plugin, consumer, delay);
         } catch (Throwable e) {
-            throw new RuntimeException("[FoliaCompat] GlobalRegionScheduler.runDelayed 调用失败", e);
+            throw new RuntimeException(I18nService.tr("[FoliaCompat] GlobalRegionScheduler.runDelayed 调用失败"), e);
         }
     }
 
@@ -158,7 +159,7 @@ class FoliaReflection {
             Consumer<Object> consumer = t -> task.run();
             return mhAsyncRunAtFixedRate.invoke(scheduler, plugin, consumer, delayTicks * TICK_TO_MS, intervalTicks * TICK_TO_MS, TimeUnit.MILLISECONDS);
         } catch (Throwable e) {
-            throw new RuntimeException("[FoliaCompat] AsyncScheduler.runAtFixedRate 调用失败", e);
+            throw new RuntimeException(I18nService.tr("[FoliaCompat] AsyncScheduler.runAtFixedRate 调用失败"), e);
         }
     }
 
@@ -178,7 +179,7 @@ class FoliaReflection {
             Consumer<Object> consumer = t -> task.run();
             mhEntityRun.invoke(entityScheduler, KilacraftAI.getInstance(), consumer, (Runnable) null);
         } catch (Throwable e) {
-            throw new RuntimeException("[FoliaCompat] EntityScheduler.run 调用失败", e);
+            throw new RuntimeException(I18nService.tr("[FoliaCompat] EntityScheduler.run 调用失败"), e);
         }
     }
 
@@ -189,7 +190,7 @@ class FoliaReflection {
             try {
                 mhTaskCancel.invoke(task); // 返回值忽略（CancelledState 或 void）
             } catch (Throwable e) {
-                PluginLogger.warn("Folia兼容", "取消任务失败: " + e.getMessage(), e);
+                PluginLogger.warn("Folia兼容", I18nService.tr("取消任务失败: {}", e.getMessage()), e);
             }
         }
     }

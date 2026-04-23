@@ -1,8 +1,9 @@
 package com.zm.kilacraftAI.knowledge;
 
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.BM25Scorer;
-import com.zm.kilacraftAI.util.ChineseTextUtil;
 import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.util.TextProcessorFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +24,7 @@ public class KnowledgeRetriever {
 
     private final KnowledgeBaseManager knowledgeBase;
     private final int maxRelevantChunks;
+    private final double minRelevanceScore;      // 最低相关性得分阈值
 
     // 关键词提取配置
     private final int keywordTopK;
@@ -36,9 +38,10 @@ public class KnowledgeRetriever {
     private final int MIN_CHUNK_SIZE;
     private final int CHUNK_OVERLAP;
 
-    public KnowledgeRetriever(KnowledgeBaseManager knowledgeBase, int maxRelevantChunks, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
+    public KnowledgeRetriever(KnowledgeBaseManager knowledgeBase, int maxRelevantChunks, double minRelevanceScore, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
         this.knowledgeBase = knowledgeBase;
         this.maxRelevantChunks = maxRelevantChunks;
+        this.minRelevanceScore = minRelevanceScore;
         this.keywordTopK = keywordTopK;
         this.bm25K1 = bm25K1;
         this.bm25B = bm25B;
@@ -64,7 +67,7 @@ public class KnowledgeRetriever {
         // HanLP TF-IDF 提取有意义的关键词
         List<String> keywords = extractKeywords(question);
 
-        PluginLogger.debug("知识库", "提取关键词：" + keywords);
+        PluginLogger.debug("知识库", "提取关键词：{}", keywords);
 
         // 存储所有片段及其得分
         List<KnowledgeChunk> chunkScores = new ArrayList<>();
@@ -83,9 +86,9 @@ public class KnowledgeRetriever {
                 chunks = splitIntoChunks(content, fileName);
                 knowledgeBase.setChunkCache(fileName, chunks);
 
-                PluginLogger.debug("知识库", "缓存文件：" + fileName + " - 首次分段并缓存，耗时 " + (System.currentTimeMillis() - cacheStartTime) + "ms");
+                PluginLogger.debug("知识库", "缓存文件：{} - 首次分段并缓存，耗时 {}ms", fileName, System.currentTimeMillis() - cacheStartTime);
             } else {
-                PluginLogger.debug("知识库", "缓存文件：" + fileName + " - 使用缓存的分段（" + chunks.size() + " 个片段）");
+                PluginLogger.debug("知识库", "缓存文件：{} - 使用缓存的分段（{} 个片段）", fileName, chunks.size());
             }
 
             totalChunks += chunks.size();
@@ -102,26 +105,31 @@ public class KnowledgeRetriever {
         // 按得分排序
         chunkScores.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
 
-        // 取前 N 个最相关的片段
+        // 取前 N 个最相关的片段，过滤掉低分噪声（低于阈值的片段与问题无关，注入反而干扰 LLM）
         List<String> relevantKnowledge = new ArrayList<>();
         int count = Math.min(chunkScores.size(), maxRelevantChunks);
 
         for (int i = 0; i < count; i++) {
-            relevantKnowledge.add(chunkScores.get(i).getContent());
+            KnowledgeChunk chunk = chunkScores.get(i);
+            if (chunk.getScore() < minRelevanceScore) {
+                PluginLogger.debug("知识库", "剩余片段得分过低（{}），停止返回", String.format("%.2f", chunk.getScore()));
+                break;
+            }
+            relevantKnowledge.add(chunk.getContent());
         }
 
         long endTime = System.currentTimeMillis();
 
         // 输出分段统计日志
-        PluginLogger.debug("知识库", "检索耗时：" + (endTime - startTime) + "ms");
-        PluginLogger.debug("知识库", "文件总数：" + allKnowledge.size() + ", 总片段数：" + totalChunks);
-        PluginLogger.debug("知识库", "匹配片段：" + chunkScores.size() + ", 返回得分最高的 " + count + " 条");
+        PluginLogger.debug("知识库", "检索耗时：{}ms", endTime - startTime);
+        PluginLogger.debug("知识库", "文件总数：{}, 总片段数：{}", allKnowledge.size(), totalChunks);
+        PluginLogger.debug("知识库", "匹配片段：{}, 返回得分最高的 {} 条", chunkScores.size(), relevantKnowledge.size());
 
         // 输出匹配的详细信息
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < relevantKnowledge.size(); i++) {
             KnowledgeChunk chunk = chunkScores.get(i);
+            PluginLogger.debug("知识库", "匹配 #{} - 文件：{}, 得分：{}, 长度：{} 字符", i + 1, chunk.getFileName(), String.format("%.2f", chunk.getScore()), chunk.getContent().length());
             String preview = chunk.getContent().length() > 100 ? chunk.getContent().substring(0, 100) + "..." : chunk.getContent();
-            PluginLogger.debug("知识库", "匹配 #" + (i + 1) + " - 文件：" + chunk.getFileName() + ", 得分：" + String.format("%.2f", chunk.getScore()) + ", 长度：" + chunk.getContent().length() + " 字符");
             PluginLogger.debug("知识库", preview.replace("\n", "\\n"));
         }
 
@@ -138,9 +146,11 @@ public class KnowledgeRetriever {
         if (question == null || question.trim().isEmpty()) {
             return Collections.emptyList();
         }
-
-        // TF-IDF 会自动过滤无意义词（如“执行”、“输入”），保留核心语义词
-        return ChineseTextUtil.extractKeywords(question, keywordTopK);
+    
+        // 统一通过 TextProcessorFactory 按语言提取关键词
+        // 中文：HanLP TF-IDF（自动过滤通用词和停用词）
+        // 英文：空格分词 + 停用词过滤 + 自定义词典匹配 + TF 评分
+        return TextProcessorFactory.get().extractKeywords(question, keywordTopK);
     }
 
     /**
@@ -222,7 +232,7 @@ public class KnowledgeRetriever {
                     }
                 }
 
-                PluginLogger.debug("知识库", "分段文件：" + fileName + " - 使用 Markdown 标题分割，得到 " + chunks.size() + " 个片段，耗时 " + (System.currentTimeMillis() - splitStartTime) + "ms");
+                PluginLogger.debug("知识库", "分段文件：{} - 使用 Markdown 标题分割，得到 {} 个片段，耗时 {}ms", fileName, chunks.size(), System.currentTimeMillis() - splitStartTime);
                 return chunks;
             }
         }
@@ -230,14 +240,14 @@ public class KnowledgeRetriever {
         // 策略 2: 按段落分割（空行分隔）
         chunks = splitByParagraphs(content);
         if (!chunks.isEmpty()) {
-            PluginLogger.debug("知识库", "分段文件：" + fileName + " - 使用段落分割，得到 " + chunks.size() + " 个片段，耗时 " + (System.currentTimeMillis() - splitStartTime) + "ms");
+            PluginLogger.debug("知识库", "分段文件：{} - 使用段落分割，得到 {} 个片段，耗时 {}ms", fileName, chunks.size(), System.currentTimeMillis() - splitStartTime);
             return chunks;
         }
 
         // 策略 3: 如果以上都失败，按固定大小分割
         chunks = splitByFixedSize(content);
 
-        PluginLogger.debug("知识库", "分段文件：" + fileName + " - 使用固定大小分割，得到 " + chunks.size() + " 个片段，耗时 " + (System.currentTimeMillis() - splitStartTime) + "ms");
+        PluginLogger.debug("知识库", "分段文件：{} - 使用固定大小分割，得到 {} 个片段，耗时 {}ms", fileName, chunks.size(), System.currentTimeMillis() - splitStartTime);
         return chunks;
     }
 
@@ -405,10 +415,10 @@ public class KnowledgeRetriever {
         }
 
         StringBuilder context = new StringBuilder();
-        context.append("\n\n=== 参考知识库 ===\n");
+        context.append("\n=== ").append(I18nService.tr("参考知识库")).append(" ===\n");
 
         for (int i = 0; i < knowledgeList.size(); i++) {
-            context.append("[知识片段 ").append(i + 1).append("]\n");
+            context.append("[").append(I18nService.tr("知识片段")).append(" ").append(i + 1).append("]\n");
             context.append(knowledgeList.get(i)).append("\n\n");
         }
 

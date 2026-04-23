@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.api.LLMProvider;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
@@ -39,7 +40,7 @@ public class SkillIntentRecognizer {
 
             // 如果技能有多个动作，自动列出
             if (!skill.getActions().isEmpty()) {
-                skillsDescription.append("  可用动作：\n");
+                skillsDescription.append(I18nService.tr("可用动作：")).append("\n");
                 for (Map.Entry<String, String> entry : skill.getActions().entrySet()) {
                     skillsDescription.append("    - ").append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
                 }
@@ -47,7 +48,7 @@ public class SkillIntentRecognizer {
 
             // 如果有额外提示，也加上
             if (!skill.getHints().isEmpty()) {
-                skillsDescription.append("  提示：\n");
+                skillsDescription.append(I18nService.tr("提示：")).append("\n");
                 for (String hint : skill.getHints()) {
                     skillsDescription.append("    - ").append(hint).append("\n");
                 }
@@ -102,7 +103,7 @@ public class SkillIntentRecognizer {
             @Override
             public void showResponse(String response) {
                 // 意图识别场景：仅 debug 日志
-                PluginLogger.debug("意图识别", "意图识别结果: " + response);
+                PluginLogger.debug("意图识别", "意图识别结果: {}", response);
             }
 
             @Override
@@ -112,7 +113,7 @@ public class SkillIntentRecognizer {
 
             @Override
             public void handleError(String errorMessage) {
-                PluginLogger.debug("意图识别", "意图识别错误: " + errorMessage);
+                PluginLogger.debug("意图识别", "意图识别错误: {}", errorMessage);
             }
 
             @Override
@@ -124,7 +125,8 @@ public class SkillIntentRecognizer {
         // 构建系统提示词（全量注入）
         String systemPrompt = buildSystemPrompt();
 
-//        PluginLogger.debug("意图识别", "动态构建系统提示词: " + systemPrompt);
+        // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
+//        PluginLogger.warn("意图识别", "动态构建系统提示词: {}", systemPrompt);
 
         // 调用 LLM 进行意图识别
         // 优化：启用知识检索，支持命令文档等定制知识
@@ -140,8 +142,8 @@ public class SkillIntentRecognizer {
 
         // 注入当前玩家上下文（供 LLM 识别"我"、"自己"等指向自身的语义）
         if (playerName != null && !playerName.isEmpty()) {
-            prompt.append("[当前玩家上下文]\n");
-            prompt.append("当前玩家名称：").append(playerName).append("\n\n");
+            prompt.append(I18nService.tr("[当前玩家上下文]\n"));
+            prompt.append(I18nService.tr("当前玩家名称：")).append(playerName).append("\n\n");
         }
 
         // 添加对话历史
@@ -150,12 +152,13 @@ public class SkillIntentRecognizer {
         }
 
         // 添加当前输入
-        prompt.append("[当前输入]\n");
-        prompt.append("用户说：").append(userInput).append("\n\n");
+        prompt.append(I18nService.tr("[当前输入]\n"));
+        prompt.append(I18nService.tr("用户说：")).append(userInput).append("\n\n");
 
         // 添加指令
-        prompt.append("请分析用户想要使用什么技能，并返回 JSON 格式的识别结果。\n");
-        prompt.append("**重要：只返回纯 JSON 对象，不要包含任何 Markdown 标记、注释或额外说明文本。**");
+        prompt.append(I18nService.tr("请分析用户想要使用什么技能，并返回 JSON 格式的识别结果。"));
+        prompt.append("\n");
+        prompt.append(I18nService.tr("**重要：只返回纯 JSON 对象，不要包含任何 Markdown 标记、注释或额外说明文本。**"));
         return prompt.toString();
     }
 
@@ -205,7 +208,7 @@ public class SkillIntentRecognizer {
             // 否则按单意图处理
             return parseSingleIntentFromResponse(json);
         } catch (Exception e) {
-            PluginLogger.debug("意图识别", "解析意图失败：" + e.getMessage());
+            PluginLogger.debug("意图识别", "解析意图失败：{}", e.getMessage());
             return createInvalidIntent("解析失败：" + e.getMessage());
         }
     }
@@ -299,7 +302,7 @@ public class SkillIntentRecognizer {
             return plan;
 
         } catch (Exception e) {
-            PluginLogger.debug("意图识别", "解析任务计划失败：" + e.getMessage());
+            PluginLogger.debug("意图识别", "解析任务计划失败：{}", e.getMessage());
             return null;
         }
     }
@@ -325,7 +328,7 @@ public class SkillIntentRecognizer {
      * 创建无效的意图
      */
     private SkillIntent createInvalidIntent(String reason) {
-        PluginLogger.debug("意图识别", "创建无效意图：" + reason);
+        PluginLogger.debug("意图识别", "创建无效意图：{}", reason);
         return new SkillIntent(null, null, new HashMap<>(), 0.0, reason);
     }
 

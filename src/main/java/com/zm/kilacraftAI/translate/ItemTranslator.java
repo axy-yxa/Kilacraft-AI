@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.translate;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -76,11 +77,11 @@ public class ItemTranslator {
                 }
             }
 
-            PluginLogger.info("物品翻译", "已加载 " + count + " 个物品翻译");
+            PluginLogger.info("物品翻译", "已加载 {} 个物品翻译", count);
             loaded = true;
 
         } catch (Exception e) {
-            PluginLogger.error("物品翻译", "加载物品翻译表失败: " + e.getMessage(), e);
+            PluginLogger.error("物品翻译", I18nService.tr("加载物品翻译表失败: {}", e.getMessage()), e);
         }
     }
 
@@ -115,11 +116,18 @@ public class ItemTranslator {
     /**
      * 将英文物品名称翻译成中文
      *
+     * <p>在英文模式下直接返回英文原名（英文不需要翻译为英文）</p>
+     *
      * @param englishName 英文名称
-     * @return 中文名称，如果找不到则返回原值
+     * @return 中文名称，如果找不到或英文模式则返回原值
      */
     public String translateToChinese(String englishName) {
         if (englishName == null || englishName.isEmpty()) {
+            return englishName;
+        }
+
+        // 英文模式下不需要翻译为中文，直接返回英文原名
+        if (!I18nService.isZh()) {
             return englishName;
         }
 

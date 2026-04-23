@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.skills.framework.task;
 
+import com.zm.kilacraftAI.config.I18nService;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ public class AnalysisSummary {
     public static final String MARKER_USER_INPUT = "[用户输入]";
     public static final String MARKER_RESULTS = "[执行结果]";
     public static final String MARKER_STATS = "[统计]";
+    public static final String MARKER_TASK_GOAL = "[任务目标]";
 
     private String userMessage;
     private String taskGoal;
@@ -79,16 +81,16 @@ public class AnalysisSummary {
         StringBuilder sb = new StringBuilder();
 
         if (userMessage != null && !userMessage.isEmpty()) {
-            sb.append(MARKER_USER_INPUT).append("\n");
+            sb.append(I18nService.tr(MARKER_USER_INPUT)).append("\n");
             sb.append(userMessage).append("\n\n");
         }
 
         if (taskGoal != null && !taskGoal.isEmpty()) {
-            sb.append("[任务目标]\n");
+            sb.append(I18nService.tr(MARKER_TASK_GOAL)).append("\n");
             sb.append(taskGoal).append("\n\n");
         }
 
-        sb.append(MARKER_RESULTS).append("\n");
+        sb.append(I18nService.tr(MARKER_RESULTS)).append("\n");
         for (StepResult result : results) {
             sb.append("- ");
             if (result.stepId() != null) {
@@ -98,7 +100,7 @@ public class AnalysisSummary {
             sb.append(result.message()).append("\n");
         }
 
-        sb.append("\n").append(MARKER_STATS).append(" 成功: ").append(successCount).append(", 失败: ").append(failureCount).append(", 跳过: ").append(skippedCount);
+        sb.append("\n").append(I18nService.tr(MARKER_STATS)).append(" ").append(I18nService.tr("成功")).append(": ").append(successCount).append(", ").append(I18nService.tr("失败")).append(": ").append(failureCount).append(", ").append(I18nService.tr("跳过")).append(": ").append(skippedCount);
 
         return sb.toString();
     }

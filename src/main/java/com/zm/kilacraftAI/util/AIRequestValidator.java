@@ -221,16 +221,16 @@ public class AIRequestValidator {
         while (history.size() > maxHistory * 2) {
             ConversationManager.Message removed = history.removeFirst();
 
-            PluginLogger.debug("历史管理", "移除最早的历史记录：" + removed.getContent().substring(0, Math.min(20, removed.getContent().length())) + "...");
+            PluginLogger.debug("历史管理", "移除最早的历史记录：{}", removed.getContent().substring(0, Math.min(20, removed.getContent().length())) + "...");
         }
 
         // 如果提供了 playerId 和 personality，保存到最新回复缓存
         if (playerId != null && personality != null) {
             plugin.getConversationManager().saveLatestAIResponse(playerId, personality, aiResponse);
-            PluginLogger.debug("历史管理", "已保存 AI 回复到最新回复缓存：" + playerId + "_" + personality);
+            PluginLogger.debug("历史管理", "已保存 AI 回复到最新回复缓存：{}_{}", playerId, personality);
         }
 
-        PluginLogger.debug("历史管理", "已保存新对话，当前历史记录数量：" + history.size());
+        PluginLogger.debug("历史管理", "已保存新对话，当前历史记录数量：{}", history.size());
     }
 
     /**

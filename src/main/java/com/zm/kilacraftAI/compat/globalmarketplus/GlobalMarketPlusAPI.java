@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.compat.globalmarketplus;
 
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
@@ -49,7 +50,7 @@ public class GlobalMarketPlusAPI {
         try {
             return GlobalMarket.getGlobalMarket();
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "获取GlobalMarket实例失败", e);
+            PluginLogger.error("市场插件", I18nService.tr("获取GlobalMarket实例失败"), e);
             return null;
         }
     }
@@ -84,7 +85,7 @@ public class GlobalMarketPlusAPI {
             }
             return -1;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "获取玩家余额失败: " + player.getName(), e);
+            PluginLogger.error("市场插件", I18nService.tr("获取玩家余额失败: {}", player.getName()), e);
             return -1;
         }
     }
@@ -149,7 +150,7 @@ public class GlobalMarketPlusAPI {
             result.sort(Comparator.comparingDouble(MarketItem::getPrice));
             return result;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "搜索市场商品失败: " + itemName, e);
+            PluginLogger.error("市场插件", I18nService.tr("搜索市场商品失败: {}", itemName), e);
             return new ArrayList<>();
         }
     }
@@ -206,7 +207,7 @@ public class GlobalMarketPlusAPI {
             result.sort(Comparator.comparingDouble(MarketItemDetail::getPrice));
             return result;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "获取商品详情失败: " + itemName, e);
+            PluginLogger.error("市场插件", I18nService.tr("获取商品详情失败: {}", itemName), e);
             return new ArrayList<>();
         }
     }
@@ -279,7 +280,7 @@ public class GlobalMarketPlusAPI {
             }).collect(Collectors.toList());
 
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "获取市场物品列表失败", e);
+            PluginLogger.error("市场插件", I18nService.tr("获取市场物品列表失败"), e);
             return null;
         }
     }
@@ -318,7 +319,7 @@ public class GlobalMarketPlusAPI {
             result.sort(Comparator.comparingDouble(MarketItemDetail::getPrice));
             return result;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "获取我的商品列表失败: " + player.getName(), e);
+            PluginLogger.error("市场插件", I18nService.tr("获取我的商品列表失败: {}", player.getName()), e);
             return new ArrayList<>();
         }
     }
@@ -363,7 +364,7 @@ public class GlobalMarketPlusAPI {
 
             return result;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "获取邮箱物品失败: " + player.getName(), e);
+            PluginLogger.error("市场插件", I18nService.tr("获取邮箱物品失败: {}", player.getName()), e);
             return new ArrayList<>();
         }
     }
@@ -402,7 +403,7 @@ public class GlobalMarketPlusAPI {
 
             return new MarketStats(totalItems, sellers.size());
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "获取市场统计信息失败", e);
+            PluginLogger.error("市场插件", I18nService.tr("获取市场统计信息失败"), e);
             return new MarketStats(0, 0);
         }
     }

@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.skills.afktask.impl;
 
 import com.google.gson.Gson;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTask;
@@ -106,7 +107,7 @@ public class PlayerBedEnterWatchTask extends AFKTask implements Listener {
         try {
             return GSON.fromJson(json, AFKTaskCallback.class);
         } catch (Exception e) {
-            PluginLogger.warn("挂机任务", "解析回调配置失败: " + e.getMessage(), e);
+            PluginLogger.warn("挂机任务", I18nService.tr("解析回调配置失败: {}", e.getMessage()), e);
             return new AFKTaskCallback();
         }
     }
@@ -151,11 +152,11 @@ public class PlayerBedEnterWatchTask extends AFKTask implements Listener {
         if (callback.getCallbackTask() == null || callback.getCallbackTask().getSteps() == null ||
                 callback.getCallbackTask().getSteps().isEmpty()) {
             // 纯通知模式：通过 LLM 二次分析通知
-            notifyWithLLMAnalysis("玩家 " + sleepingPlayerName + " 已进入床睡觉（坐标：" + bedLocation.getBlockX() + ", " + bedLocation.getBlockY() + ", " + bedLocation.getBlockZ() + "，世界：" + bedLocation.getWorld().getName() + "）");
-            complete("目标玩家 " + sleepingPlayerName + " 已进入床睡觉。");
+            notifyWithLLMAnalysis(I18nService.tr("玩家 {} 已进入床睡觉（坐标：{}, {}, {}，世界：{}）", sleepingPlayerName, bedLocation.getBlockX(), bedLocation.getBlockY(), bedLocation.getBlockZ(), bedLocation.getWorld().getName()));
+            complete(I18nService.tr("目标玩家 {} 已进入床睡觉。", sleepingPlayerName));
         } else {
             // 回调模式：先完成任务，再执行回调
-            complete("目标玩家 " + sleepingPlayerName + " 已进入床睡觉，开始执行回调。");
+            complete(I18nService.tr("目标玩家 {} 已进入床睡觉，开始执行回调。", sleepingPlayerName));
             executeCallback(sleepingPlayerName, bedLocation);
         }
     }
@@ -172,7 +173,7 @@ public class PlayerBedEnterWatchTask extends AFKTask implements Listener {
             // 2. 获取任务创建者玩家对象
             Player creatorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (creatorPlayer == null || !creatorPlayer.isOnline()) {
-                PluginLogger.warn("挂机任务", "任务创建者不在线，无法执行回调: " + getTaskId());
+                PluginLogger.warn("挂机任务", I18nService.tr("任务创建者不在线，无法执行回调: {}", getTaskId()));
                 notifyPlayer("§c任务创建者不在线，回调任务已取消。");
                 return;
             }
@@ -196,15 +197,15 @@ public class PlayerBedEnterWatchTask extends AFKTask implements Listener {
                         false
                 );
             }).exceptionally(ex -> {
-                PluginLogger.error("挂机任务", "回调任务执行异常: " + ex.getMessage(), ex);
+                PluginLogger.error("挂机任务", I18nService.tr("回调任务执行异常: {}", ex.getMessage()), ex);
                 Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
                 if (errorPlayer != null && errorPlayer.isOnline()) {
-                    plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务执行失败：" + ex.getMessage());
+                    plugin.getLlmOutputCoordinator().outputError(errorPlayer, I18nService.tr("§c回调任务执行失败：{}", ex.getMessage()));
                 }
                 return null;
             });
         } catch (Exception e) {
-            PluginLogger.error("挂机任务", "构建回调任务失败: " + e.getMessage(), e);
+            PluginLogger.error("挂机任务", I18nService.tr("构建回调任务失败: {}", e.getMessage()), e);
             Player errorPlayer = Bukkit.getPlayer(getPlayerUUID());
             if (errorPlayer != null && errorPlayer.isOnline()) {
                 plugin.getLlmOutputCoordinator().outputError(errorPlayer, "§c回调任务构建失败：" + e.getMessage());
@@ -245,15 +246,15 @@ public class PlayerBedEnterWatchTask extends AFKTask implements Listener {
 
     @Override
     public String getTaskDescription() {
-        String desc = "监视玩家 " + targetPlayerName + " 进入床";
+        String desc = I18nService.tr("监视玩家 {} 进入床", targetPlayerName);
         if (callback.getCallbackTask() != null && callback.getCallbackTask().getSteps() != null &&
                 !callback.getCallbackTask().getSteps().isEmpty()) {
             int stepCount = callback.getCallbackTask().getSteps().size();
             String goal = callback.getCallbackTask().getGoal();
             if (goal != null && !goal.isEmpty()) {
-                desc += "，触发回调任务（" + stepCount + "步），目标：" + goal;
+                desc = I18nService.tr("监视玩家 {} 进入床，触发回调任务（{}步），目标：{}", targetPlayerName, stepCount, goal);
             } else {
-                desc += "，触发回调任务（" + stepCount + "步）";
+                desc = I18nService.tr("监视玩家 {} 进入床，触发回调任务（{}步）", targetPlayerName, stepCount);
             }
         }
         return desc;

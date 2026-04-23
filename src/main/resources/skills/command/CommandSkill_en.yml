@@ -1,0 +1,13 @@
+# CommandSkill Configuration (English)
+# Execute server commands as the player, permission boundary equals the player's own permissions
+# Requires command_skill.enabled: true in config.yml to take effect
+
+description: "Command execution skill: execute any server command as the player (fallback skill). When no specialized skill can fulfill the user request, use this skill to execute the corresponding command. Permission boundary equals the player's own permissions."
+
+action_descriptions:
+  execute_command: 'Execute a server command as the player (fallback). Required parameter: command (the command to execute, without leading /). The command will be executed as the player, subject to server permission system constraints.'
+
+hints:
+  - '**Priority**: This skill is a fallback means. If a specialized skill can fulfill the user request, must prioritize using the specialized skill. Only use this skill when specialized skills cannot cover the need.'
+  - "**Security mechanism**: AI executes commands as the player, not bypassing any server permissions. Commands the player doesn't have permission for, AI acting on their behalf will also be rejected by the server."
+  - '**Parameter format**: command parameter fills in the complete command (without leading /), LLM should extract the command and parameters from the user message.'

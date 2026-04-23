@@ -153,16 +153,19 @@ public class LanguageManager {
      * 加载语言配置文件
      */
     public void loadConfig() {
-        // 复制默认配置
-        ConfigResourceUtil.saveDefaultResource((KilacraftAI) plugin, "language.yml", "语言配置");
+        // 根据当前语言选择配置文件（zh=language.yml, en=language_en.yml）
+        String lang = ((KilacraftAI) plugin).getConfigManager().getLanguage();
+        String fileName = "zh".equals(lang) ? "language.yml" : "language_" + lang + ".yml";
 
-        // 手动加载 language.yml 文件内容到内存
+        // 复制默认配置
+        ConfigResourceUtil.saveDefaultResource((KilacraftAI) plugin, fileName, "语言配置");
+
+        // 加载对应语言配置文件到内存
         try {
-            File languageFile = new File(plugin.getDataFolder(), "language.yml");
-            // 使用 YamlConfiguration 直接读取 language.yml
+            File languageFile = new File(plugin.getDataFolder(), fileName);
             this.config = YamlConfiguration.loadConfiguration(languageFile);
         } catch (Exception e) {
-            PluginLogger.error("语言配置", "加载 language.yml 失败", e);
+            PluginLogger.error("语言配置", "加载 " + fileName + " 失败", e);
         }
 
         // 加载语言配置
