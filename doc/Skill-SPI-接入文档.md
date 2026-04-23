@@ -1,7 +1,7 @@
-# Kilacraft-AI Skill SPI 接入文档
+# Kilacraft-AI - Skill SPI 接入文档  
 
-> 版本：1.0 | 最后更新：2026-04-19
-> 适用插件版本：Kilacraft-AI 1.4.5+
+> **最后更新**: 2026-04-23  
+> **说明**: 本文档指导插件开发者如何通过 Skill SPI 接口将自定义技能接入 Kilacraft-AI  
 
 ---
 
@@ -1236,8 +1236,4 @@ description: A custom skill for Kilacraft-AI
 - 🎯 **聚焦单一功能**：一个 Skill 只做一件事，并做好
 - 💬 **收集反馈**：关注用户 Issues，持续优化
 
----
 
-> **文档版本**：1.0  
-> **维护者**：Zm_Mmm  
-> **问题反馈**：请通过 GitHub Issues 或相关社区渠道联系

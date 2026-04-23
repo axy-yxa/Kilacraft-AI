@@ -1,6 +1,6 @@
 # Kilacraft-AI - Bukkit Event Listener Reference
 
-> **Version**: v1.4.5  
+> **Last Updated**: 2026-04-23  
 > **Description**: This document provides detailed information about all implemented Bukkit Event listeners (AFK Task System), including configuration examples and usage scenarios
 
 ---
@@ -593,7 +593,7 @@ hints:
 **Use Notification Mode**:
 - ✅ Only need simple reminder
 - ✅ No additional data needed
-- ✅追求 fast response
+- ✅ Pursues fast response
 
 **Use Callback Mode**:
 - ✅ Need to query additional information
@@ -634,8 +634,4 @@ entities:
 - [AFK Task System Guide](./AFK%20Task%20System%20Guide.md) - Complete guide to AFK task system
 - [Server Owner Guide](./Server%20Owner%20Guide.md) - Complete configuration and usage instructions
 
----
 
-> **Last Updated**: 2026-04-19  
-> **Plugin Version**: 1.4.5+  
-> **Implemented Listeners**: 11 (S-Tier 7 + A-Tier 4)

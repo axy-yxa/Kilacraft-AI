@@ -1,5 +1,6 @@
 # Kilacraft-AI - Known Bugs
 
+> **Last Updated**: 2026-04-23  
 > **Description**: Documents confirmed but unfixed bugs, including reproduction steps, root cause analysis, and planned fix approaches
 
 ---

@@ -1,7 +1,7 @@
-# Kilacraft-AI Plugin Command Mode Detailed Guide
+# Kilacraft-AI - Plugin Command Mode Detailed Guide
 
-> **Target Audience**: Third-party plugin developers, advanced server owners   
-> **Last Updated**: 2026-04-19
+> **Last Updated**: 2026-04-23  
+> **Description**: This document details how third-party plugins can interact with Kilacraft-AI through plugin command mode
 
 ---
 
@@ -619,7 +619,4 @@ if (player != null && player.isOnline()) {
 - [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide)
 - [System Architecture Details](./System%20Architecture%20Details)
 
----
 
-> **Last Updated**: 2026-04-19  
-> **Applicable Plugin Version**: Kilacraft-AI 1.4.6+

@@ -1,7 +1,8 @@
 # Kilacraft-AI Document Index
-> **Version**: v1.4.5  
-> **Language**: English  
-> **Last Updated**: 2026-04-19
+
+> **Last Updated**: 2026-04-23  
+> **Description**: This document provides a complete index of all Kilacraft-AI documentation, helping users quickly find the documentation they need
+
 ---
 ## 📚 Document Overview
 This document index lists all Chinese technical documents of the Kilacraft-AI project to help you quickly find the required information.
@@ -269,7 +270,7 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 - Chapter 6: Best Practices (Improve task efficiency)
 
 **Applicable Scenarios**:
-- Provide AFK挂机 functionality for players
+- Provide AFK task functionality for players
 - Automated resource collection
 - Server economy system assistance
 

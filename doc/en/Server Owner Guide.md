@@ -1,7 +1,7 @@
-# Kilacraft-AI - Lightweight AI Agent Built for Minecraft Servers
+# Kilacraft-AI - Server Owner Guide
 
-> **🚀 v1.4.6 Officially Released** | Zero Dependencies · Low Memory · High Performance · Easy to Extend · Fully Open Source  
-> Enable every Minecraft server to have an intelligent AI assistant
+> **Last Updated**: 2026-04-23  
+> **Description**: This document provides complete configuration and usage instructions for server administrators
 
 ---
 
@@ -212,13 +212,13 @@ knowledge:
   custom_dictionary:
     enabled: true  # Enable custom dictionary
     words:
-      - "圈地"  # claim land
-      - "领地"  # territory
-      - "红石"  # redstone
-      - "附魔"  # enchantment
-      - "村民交易"  # villager trading
-      - "刷怪塔"  # mob farm
-      - "末影龙"  # Ender Dragon
+      - "claim"  # claim land
+      - "territory"  # territory
+      - "redstone"  # redstone
+      - "enchantment"  # enchantment
+      - "villager_trading"  # villager trading
+      - "mob_farm"  # mob farm
+      - "ender_dragon"  # Ender Dragon
       # Add your server-specific terms...
 ```
 
@@ -1198,8 +1198,4 @@ We welcome community contributions! If you have any suggestions or discover prob
 
 This project uses **MIT License** - See [LICENSE](../LICENSE) file for details
 
----
 
-> **Last Updated**: 2026-04-19
-> **Applicable Plugin Version**: Kilacraft-AI 1.4.5+
-> **Open Source License**: MIT License

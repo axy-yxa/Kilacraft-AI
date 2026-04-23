@@ -1,7 +1,7 @@
 # Kilacraft-AI System Architecture Details
 
-> **This document provides detailed explanation of Kilacraft-AI's core architecture design, working principles of three interaction modes, call chains, and design philosophy.**  
-> Suitable for developers and technical personnel who need in-depth understanding of the system's internal mechanisms.
+> **Last Updated**: 2026-04-23  
+> **Description**: This document provides detailed explanation of Kilacraft-AI's core architecture design, working principles of three interaction modes, call chains, and design philosophy
 
 ---
 
@@ -262,7 +262,4 @@ Console: "/kilacraft plugins default Hello UUID callback_cmd"
 - History isolation
 - No complex parsing overhead
 
----
 
-> **Last Updated**: 2026-04-19  
-> **Compatible Version**: Kilacraft-AI v1.4.6+

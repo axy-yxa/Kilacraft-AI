@@ -1,6 +1,6 @@
 # Kilacraft-AI - AFK Task System Guide
 
-> **Version**: v1.4.6  
+> **Last Updated**: 2026-04-23  
 > **Description**: This document provides a comprehensive guide to the AFK Task System, including architecture, usage, call chains, and best practices
 
 ---
@@ -132,7 +132,7 @@ AFKTaskSkill.execute(context)
 handleCreateTask(context)
   ① Validate task_type parameter
   ② Check if task already exists (one task per player)
-  ③ Target online/offline合理性 check
+  ③ Target online/offline rationality check
      - ONLINE_WATCH + target already online → Fail, suggest using OFFLINE_WATCH
      - OFFLINE_WATCH + target offline → Fail, suggest using ONLINE_WATCH
   ④ getTaskFactory(taskType) get factory
@@ -438,7 +438,7 @@ hints:
   - '**Important: Output format must be single_intent**: All AFKTask actions (create_task, cancel_task, query_task) must be returned in single-intent JSON format, absolutely not in multi-step task format. callback is a parameter of entities, not an independent step.'
   - '**Task Type Description**: PLAYER_ONLINE_WATCH=Monitor player login, PLAYER_OFFLINE_WATCH=Monitor player logout, PLAYER_DEATH_WATCH=Monitor player death, PLAYER_TELEPORT_WATCH=Monitor player teleport, PLAYER_LEVEL_CHANGE_WATCH=Monitor player level change, PLAYER_CHANGED_WORLD_WATCH=Monitor player world change, WEATHER_CHANGE_WATCH=Monitor weather change, PLAYER_BED_ENTER_WATCH=Monitor player enter bed, PLAYER_BED_LEAVE_WATCH=Monitor player leave bed, PLAYER_RESPAWN_WATCH=Monitor player respawn, PLAYER_ITEM_BREAK_WATCH=Monitor player item break.'
   - '**One-time vs Long-term Tasks (Important)**: This skill only supports one-time tasks, i.e., trigger once and end. Does not accept long-term recurring tasks (e.g., "remind me every 1 hour", "tell me every day at noon"), if user requests such needs, should explain not supported in reasoning and explain reasons.'
-  - '**Concurrency Limit and Task Replacement**: Each player can only have one AFK task at a time. If task creation fails with提示 "already has a running AFK task", should inform player can use /kilacraft afk cancel command to cancel old task, then try creating new task.'
+  - '**Concurrency Limit and Task Replacement**: Each player can only have one AFK task at a time. If task creation fails with prompt "already has a running AFK task", should inform player can use /kilacraft afk cancel command to cancel old task, then try creating new task.'
 ```
 
 ---
@@ -515,14 +515,14 @@ entities:
 - ⚡ Listener itself has minimal performance overhead (only event filtering)
 - 🧠 Callback mode performance depends on task complexity
 - 📊 Recommended callback tasks should not exceed 3-5 steps
-- ⏱️ Avoid time-consuming operations in callbacks (e.g.,大量 database queries)
+- ⏱️ Avoid time-consuming operations in callbacks (e.g. heavy database queries)
 - 🔄 Timely cancel unneeded tasks (avoid resource waste)
 
 ---
 
 ## 🐛 FAQ
 
-### Q1: Why does it提示 "target player already online" when creating task?
+### Q1: Why does it prompt "target player already online" when creating task?
 
 **Reason**: You used `PLAYER_ONLINE_WATCH`, but target player is currently already online, task would trigger immediately, no monitoring significance.
 
@@ -656,9 +656,4 @@ CANCELLED (Cancelled)
 - [Server Owner Guide](./Server%20Owner%20Guide.md) - Complete configuration and usage instructions
 - [System Architecture Details](./System%20Architecture%20Details.md) - Overall plugin architecture
 
----
 
-> **Last Updated**: 2026-04-19  
-> **Plugin Version**: 1.4.6+  
-> **Implemented Listeners**: 11 (S-Tier 7 + A-Tier 4) + CUSTOM generic condition polling  
-> **Document Version**: v2.0

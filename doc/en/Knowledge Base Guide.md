@@ -1,8 +1,7 @@
 # Kilacraft-AI - Knowledge Base Enhancement Guide
 
-> **Version**: v1.4.5  
-> **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation  
-> **Plugin Version**: 1.4.6+
+> **Last Updated**: 2026-04-23  
+> **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation
 
 ---
 
@@ -638,8 +637,8 @@ Building a farm requires preparation:
 
 **Chinese Word Segmentation Optimization (v1.4.3 update)**：
 - **Three-layer keyword extraction strategy**: Original query + segmentation result + TF-IDF keywords, compatible with both short text and long documents
-- **Single-character query optimization**: Supports queries like "弓", "剑" through custom dictionary and stop word checks
-- **Intelligent stop word filtering**: Filters meaningless words like "的", "了", "吗", etc.
+- **Single-character query optimization**: Supports single-character queries like "bow", "sword" through custom dictionary and stop word checks
+- **Intelligent stop word filtering**: Filters meaningless words
 - **TF-IDF automatic important keyword extraction**: Based on HanLP TF-IDF algorithm to calculate keyword weights
 - **Built-in vocabulary support**: Loads built-in vocabulary from internal/vocabulary/ directory in JAR package, merges with custom vocabulary and automatically deduplicates
 
@@ -786,9 +785,9 @@ knowledge:
   custom_dictionary:
     enabled: true                    # Whether to enable custom dictionary
     words:
-      - "圈地"  # claim land
-      - "领地"  # territory
-      - "红石"  # redstone
+      - "claim"  # claim land
+      - "territory"  # territory
+      - "redstone"  # redstone
 ```
 
 ### Configuration Explanation
@@ -849,10 +848,10 @@ Custom dictionary for adding professional terminology and server-specific vocabu
 custom_dictionary:
   enabled: true
   words:
-    - "圈地"  # claim land
-    - "领地"  # territory
-    - "红石"  # redstone
-    - "刷怪塔"  # mob farm
+    - "claim"  # claim land
+    - "territory"  # territory
+    - "redstone"  # redstone
+    - "mob_farm"  # mob farm
 ```
 
 **Benefits**: Improves Chinese word segmentation accuracy, enhances retrieval effectiveness.
@@ -1060,8 +1059,4 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 - [Personality System Configuration Guide](./Personality%20System%20Guide) - How to make AI better utilize knowledge base
 - [Bukkit API Reference Manual](./Bukkit%20API%20Reference) - Advanced usage combining API and knowledge base
 
----
 
-> **Last Updated**: 2026-04-19  
-> **Plugin Version**: 1.4.5+  
-> **Tip**: Regularly update knowledge base to keep content synchronized with server

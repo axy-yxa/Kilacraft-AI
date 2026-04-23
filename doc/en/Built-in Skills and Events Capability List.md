@@ -1,6 +1,6 @@
 # Kilacraft-AI - Built-in Skills and Events Capability List
 
-> **Version**: v1.4.6
+> **Last Updated**: 2026-04-23  
 > **Description**: This document summarizes all built-in Skill actions and supported Bukkit Event listeners of Kilacraft-AI, helping server administrators and plugin developers quickly understand the plugin's capabilities, integrated third-party plugins, and security risks.
 
 ---

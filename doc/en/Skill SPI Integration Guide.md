@@ -1,7 +1,7 @@
-# Kilacraft-AI Skill SPI Integration Guide
+# Kilacraft-AI - Skill SPI Integration Guide
 
-> Version: 1.0 | Last Updated: 2026-04-19
-> Applicable Plugin Version: Kilacraft-AI 1.4.6+
+> **Last Updated**: 2026-04-23  
+> **Description**: This document guides plugin developers on how to integrate custom skills into Kilacraft-AI through the Skill SPI interface
 
 ---
 
@@ -1169,8 +1169,4 @@ For example, clearly state in description: `"Returned data contains item_name, p
 | `getData(Class<T>)` | `T` | Generic get data |
 | `toFuture()` | `CompletableFuture<SkillResult>` | Convert to Future |
 
----
 
-> **Document Version**: 1.0  
-> **Maintainer**: Zm_Mmm  
-> **Issue Reporting**: Please contact via GitHub Issues or related community channels

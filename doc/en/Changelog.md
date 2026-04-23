@@ -1,8 +1,7 @@
 # Kilacraft-AI Changelog
 
-## 📝 Version Notes
-
-This file records all important changes to the Kilacraft-AI plugin.
+> **Last Updated**: 2026-04-23  
+> **Description**: This file records all important changes to the Kilacraft-AI plugin
 
 ---
 
@@ -178,7 +177,7 @@ This file records all important changes to the Kilacraft-AI plugin.
   - Command integration: `/kilacraft afk` (query), `/kilacraft afk cancel` (cancel)
 - Built-in vocabulary loading: loads vocabulary files from internal/vocabulary/ directory in JAR package
 - Three-layer keyword extraction strategy: original query + segmentation result + TF-IDF keywords, compatible with both short text and long documents
-- Single-character query optimization: supports queries like "弓"、"剑" through custom dictionary and stop word checks
+- Single-character query optimization: supports single-character queries like "bow", "sword" through custom dictionary and stop word checks
 - Structured result output: step execution status marked as [SUCCESS]/[FAILURE]/[SKIPPED], facilitating LLM secondary analysis
 - AI response Markdown auto-conversion: LLM output in Markdown format (**bold**, *italic*, `code`) is automatically converted to Minecraft color codes
 - Enhanced continuous conversation rules: added [Real-time Data Re-fetch Rule] and [Multi-step Task Repetition Rule] to resolve pronoun reference and multi-step truncation issues
@@ -211,7 +210,7 @@ This file records all important changes to the Kilacraft-AI plugin.
 - AFK Task System optimization: factory pattern decoupling, context consistency optimization, delayed feedback without history injection
 
 ### 📚 Documentation Updates
-- **Server Owner Guide / 服主指南.md**: Added AFK Task System section (feature showcase, usage examples, command list)
+- **Server Owner Guide**: Added AFK Task System section (feature showcase, usage examples, command list)
 - **README.md / README.en.md**: Added AFK Task System to core features, added callback mode to usage examples
 - **AFK Task System Guide.md**: 658 lines system architecture documentation
 - **Bukkit Event Listener Reference Manual.md**: 642 lines detailed documentation

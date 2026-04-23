@@ -1,6 +1,6 @@
 # Kilacraft-AI - Personality System Configuration Guide
 
-> **Version**: v1.4.5  
+> **Last Updated**: 2026-04-23  
 > **Description**: This document details how to configure and manage multiple AI personalities, giving each AI assistant a unique character and style
 
 ---
@@ -489,13 +489,13 @@ common_prompt: |
 Personality names support both Chinese and English, just keep them consistent:
 
 ```yaml
-# Chinese names
-新手导师: "..."
-技术专家: "..."
-
 # English names (recommended for international servers)
 mentor: "..."
 tech_expert: "..."
+
+# Or any other names
+friendly_guide: "..."
+serious_mod: "..."
 ```
 
 Use correspondingly:
@@ -535,8 +535,4 @@ Use correspondingly:
 | **Multiple Instances** | Yes, can configure multiple personalities | No, globally unique rule set |
 | **Reload Command** | `/kilacraft personalities reload` | `/kilacraft reload` |
 
----
 
-> **Last Updated**: 2026-04-19  
-> **Plugin Version**: 1.4.6+  
-> **Tip**: Regularly update personality prompts to stay synchronized with server versions

@@ -1,13 +1,9 @@
-# Intent Recognition Prompt Configuration Guide
+# Kilacraft-AI - Intent Recognition Prompt Configuration Guide
 
-## 📋 Overview
+> **Last Updated**: 2026-04-23  
+> **Description**: This document details how to configure intent recognition prompts through intent_prompts.yml to guide LLM in understanding user input and identifying skill intents
 
-The intent recognition prompt system defines how LLM understands user input and identifies skill intents through the `intent_prompts.yml` configuration file.
-
-**Important Notes**: 
-- **Intent Recognition System** focuses on task step orchestration and Agent capability Skill selection
-- **Personality System** is an independent feature, used in plugin command mode, configured via `personalities.yml` with different personality prompts
-- Intent recognition prompts do **NOT** include multi-personality configurations; they only are responsible for identify what operations users want to execute
+---
 
 ## 📁 File Location
 
@@ -184,7 +180,7 @@ multi_step_mandatory: |
   - **Semantic Matching**: The skill's purpose must completely correspond to user's intent
   - Judgment method: Ask yourself "What is this skill's design purpose? Does the user's question exactly match what this skill is supposed to solve?"
   - Counter-example: User asks "crafting recipe", market_query's design purpose is "query market prices", not "query recipes", so no match
-  - Only use skill names explicitly listed,严禁编造
+  - Only use skill names explicitly listed, absolutely no fabrication
     
   **Step 3: Choose Output Format Based on Matching Results**
     
