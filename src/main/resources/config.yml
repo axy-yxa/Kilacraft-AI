@@ -74,7 +74,7 @@ settings:
   # Scope: log output, skill messages, LLM prompts, AFK task notifications, etc.
   # 修改后执行 /kilacraft reload 即时生效
   # Run /kilacraft reload to apply changes immediately
-  language: zh
+  language: en
 
   # 是否在控制台显示API请求日志
   # Whether to display API request logs in console
