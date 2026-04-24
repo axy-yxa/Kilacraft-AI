@@ -280,6 +280,11 @@ public class GenericLLMProvider implements LLMProvider {
 
     @Override
     public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String customSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog) {
+        return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false);
+    }
+
+    @Override
+    public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String customSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog, boolean enableJsonOutput) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 // 打印调试日志
@@ -317,6 +322,13 @@ public class GenericLLMProvider implements LLMProvider {
                 requestBody.addProperty("max_tokens", cachedMaxTokens);
                 // 始终使用流式请求
                 requestBody.addProperty("stream", true);
+                
+                // 启用 JSON 输出格式（仅意图识别阶段使用）
+                if (enableJsonOutput) {
+                    JsonObject responseFormat = new JsonObject();
+                    responseFormat.addProperty("type", "json_object");
+                    requestBody.add("response_format", responseFormat);
+                }
 
                 JsonArray messages = new JsonArray();
 
@@ -350,7 +362,14 @@ public class GenericLLMProvider implements LLMProvider {
                 // ========== 使用流式读取 ==========
                 try (Response response = httpClient.newCall(request).execute()) {
                     if (!response.isSuccessful()) {
-                        return "§c" + I18nService.tr("请求失败：{} - {}", String.valueOf(response.code()), response.message());
+                        // 检测是否为 response_format 不支持的错误
+                        String errorMsg = "§c" + I18nService.tr("请求失败：{} - {}", String.valueOf(response.code()), response.message());
+                        if (enableJsonOutput && response.code() == 400 && response.message().contains("response_format")) {
+                            // 自动降级：重新调用，不启用 JSON 输出
+                            PluginLogger.warn("LLM请求", "当前 LLM 不支持 response_format，自动降级为普通模式");
+                            return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false).join();
+                        }
+                        return errorMsg;
                     }
 
                     ResponseBody body = response.body();

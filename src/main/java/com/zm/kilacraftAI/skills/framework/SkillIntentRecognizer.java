@@ -131,7 +131,7 @@ public class SkillIntentRecognizer {
         // 调用 LLM 进行意图识别
         // 优化：启用知识检索，支持命令文档等定制知识
         // 注：经过优化，ChineseTextUtil 和 BM25 已支持短文本和英文命令名
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, systemPrompt, true, false).thenApply(this::parseIntentFromResponse);
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, systemPrompt, true, false, true).thenApply(this::parseIntentFromResponse);
     }
 
     /**

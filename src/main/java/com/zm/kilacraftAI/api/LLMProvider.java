@@ -54,6 +54,21 @@ public interface LLMProvider {
     CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String customSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog);
 
     /**
+     * 处理 AI 请求（支持自定义系统提示词、知识检索控制和 JSON 输出）
+     *
+     * @param userMessage              用户消息
+     * @param playerName               玩家名称
+     * @param history                  历史对话记录
+     * @param responseHandler          响应处理器
+     * @param customSystemPrompt       自定义系统提示词
+     * @param enableKnowledgeRetrieval 是否启用知识检索
+     * @param enableDebugLog           是否启用调试日志
+     * @param enableJsonOutput         是否启用 JSON 输出
+     * @return 完整的 AI 响应
+     */
+    CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String customSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog, boolean enableJsonOutput);
+
+    /**
      * 刷新配置缓存
      */
     void refreshConfigCache();

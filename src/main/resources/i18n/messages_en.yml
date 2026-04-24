@@ -488,6 +488,7 @@ messages:
   "API 响应为空": "API response is empty"
   "读取响应失败：{}": "Failed to read response: {}"
   "请求失败：{}": "Request failed: {}"
+  "当前 LLM 不支持 response_format，自动降级为普通模式": "The current LLM does not support responsive_format and will automatically downgrade to normal mode"
 
   # ==================== AIRequestHandler 补充 ====================
   # ==================== AIRequestHandler Supplementary ====================
