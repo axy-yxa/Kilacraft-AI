@@ -1,189 +1,133 @@
-# Kilacraft-AI - Server Owner Guide
+# Kilacraft-AI
 
-> **Last Updated**: 2026-04-23  
-> **Description**: This document provides complete configuration and usage instructions for server administrators
+> A Minecraft AI Agent plugin based on LLM intent recognition and skill execution framework, enabling natural language interaction with servers
 
----
-
-## 💎 Core Advantages
-
-- 🚀 **Modern Agent Architecture (Plan-and-Execute + Function Calling)**
-  - **Harness Engineering** design pattern
-  - **Plan Phase**: LLM intelligently plans tasks (single intent or multi-step)
-  - **Execute Phase**: Topological sorting + recursive serial execution
-  - **Function Calling**: Dynamic Skill registration and invocation mechanism
-  - **Error Tolerance**: Step failures don't interrupt entire flow, intelligent degradation
-  - **RAG-Enhanced Architecture**: HanLP TF-IDF + BM25 algorithm
-- **🚀 Zero Middleware Dependencies**: Only one JAR file, no database, Redis or other extra services needed
-- **💾 Extremely Low Memory Usage**: Small servers only need 8-12 MB, large servers about 30-50 MB (traditional solutions need 2-5 GB)
-- **⚡ Out of the Box**: Complete configuration in 5 minutes, ready to use immediately
-- **🔧 Highly Customizable**: Personality system, knowledge base, language configuration all customizable
-- **🌐 Ecosystem Friendly**: Open SPI interface, third-party plugins can seamlessly integrate
+[![GitHub Tag](https://img.shields.io/github/v/tag/axy-yxa/Kilacraft-AI?label=Release&color=blue)](https://github.com/axy-yxa/Kilacraft-AI/tags)
+[![MC](https://img.shields.io/badge/MC-1.16.5--1.21+-green.svg)](https://github.com/axy-yxa/Kilacraft-AI)
+[![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://adoptium.net/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/axy-yxa/Kilacraft-AI/blob/main/LICENSE)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Community-5865F2.svg)](https://discord.gg/nNmhcZHDxr)
 
 ---
 
-## 🌐 Project Links & Contact
+## Version Compatibility
 
-- **GitHub**: https://github.com/axy-yxa/Kilacraft-AI
-- **Gitee**: https://gitee.com/zm_mmm/kilacraft-ai
-- **Official Chinese Wiki**: [Click Here](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3%E7%B4%A2%E5%BC%95)
-- **Official English Wiki**: [Click Here](https://github.com/axy-yxa/Kilacraft-AI/wiki)
-- **Discord**: https://discord.gg/nNmhcZHDxr
-- **QQ Group**: 1094391147
-- **Email**: 1456133139@qq.com
+**Minimum Requirements: Minecraft 1.16.5 + Java 17**
 
-> 💡 **Welcome to Star ⭐, Fork 🔀 and submit Issues/Pull Requests!**
+| Minecraft Version | Java Requirement | Supported Servers | Notes |
+|:-:|:-:|:-:|:-:|
+| **1.16.5** | Java 17+ | Paper / Purpur / Leaf / Folia | CraftBukkit/Spigot require `-DPaper.IgnoreJavaVersion=true` |
+| **1.17 - 1.19** | Java 17+ | All | Spigot / Paper / Purpur / Leaf / Folia / CraftBukkit |
+| **1.20 - 1.21+** | Java 21+ | All | Server requires Java 21 |
 
----
-
-## 📦 Dependency Requirements & Compatibility
-
-### ✅ Version Compatibility
-
-**Minimum Compatible Version: Minecraft 1.16.5 + Java 17**
-
-Kilacraft-AI is developed based on Spigot 1.16.5 API. One JAR package compatible with all subsequent versions.
-
-| Minecraft Version | Java Required | Server Core Support | Description |
-|------------------|--------------|---------------------|-------------|
-| **1.16.x (1.16.1-1.16.4)** | - | ❌ Not Supported | Official cores don't support this range |
-| **1.16.5** | Java 17+ | ⚠️ Paper/Purpur/Leaf/Folia require `-DPaper.IgnoreJavaVersion=true` | CraftBukkit/Spigot don't support Java 17+ |
-| **1.17.x - 1.19.x** | Java 17+ | ✅ Fully Supported | Spigot/Paper/Purpur/Leaf/Folia/CraftBukkit |
-| **1.20.x - 1.21.x** | Java 21+ | ✅ Fully Supported | Server cores require Java 21 to start |
-
-### 🎁 Optional Dependencies
-
-When these plugins are not installed, corresponding features are automatically disabled, **core dialogue functionality remains unaffected**:
-
-| Plugin | Minimum Version | Features |
-|--------|----------------|----------|
-| **MythicMobs** | 5.12.0+ | NPC placeholders (let NPCs display AI replies) |
-| **GlobalMarketPlus** | 1.3.8.0+ | Economy system (balance, price, product queries) |
-| **Vault** | Latest | Multi-currency system support |
+One JAR package compatible with all versions, developed on Spigot 1.16.5 API, fully supporting Folia regional thread scheduling.
 
 ---
 
-## 🌟 Feature Showcase
+## Core Advantages
 
-### 1️⃣ Intelligent Dialogue System
+- **Zero Middleware** — One JAR file to run, no database, Redis or external services required
+- **Extremely Low Memory Usage** — 8-12 MB on small servers, 30-50 MB on large servers, async non-blocking design
+- **Out of the Box** — 5-minute setup, supports all OpenAI-standard LLM providers
+- **Highly Customizable** — Knowledge base, personality system, intent prompts, output channels all configurable
+- **Open Ecosystem** — SPI interface allows third-party plugins to register custom Skills in 5 minutes
+- **Bilingual Support** — Complete internationalization architecture, switch with `language: zh/en`
 
-#### Three Interaction Modes for All Scenarios
+---
 
-**Command Mode** (Suitable for occasional inquiries)
-```
-Player: /kila How do I get diamonds?
-AI: [Kilacraft-AI] You can obtain diamonds through the following methods:
-    1. Mine at Y=-58 to Y=-53 layers
-    2. Explore caves and ravines
-    3. Trade with other players
-```
+## Quick Start
 
-**Continuous Chat Mode** (Suitable for in-depth conversations)
-```
-Player: /kilacraft chat
-→ Entered continuous chat mode!
+### 1. Installation
 
-Player: I want to build a farm
-AI: Great idea! What crops would you like to grow? Wheat, carrots, or beetroots?
+Download the latest `Kilacraft-AI.jar`, place it in the server `plugins/` directory, and start the server.
 
-Player: Wheat, what tools do I need?
-AI: To plant wheat you need:
-    1. Hoe (to turn dirt into farmland)
-    2. Water bucket (to irrigate nearby land)
-    3. Seeds (obtained by breaking grass)
+### 2. Configure API
+
+Edit `plugins/Kilacraft-AI/config.yml` and enter your LLM API information:
+
+```yaml
+llm:
+  api_url: "https://api.deepseek.com/v1/chat/completions"
+  api_key: "your-api-key"
+  model: "deepseek-chat"
 ```
 
-**Keyword Trigger** (Suitable for public channels)
+Supports all OpenAI-standard providers (DeepSeek, Zhipu AI, Moonshot, OpenAI, Groq, SiliconFlow, Gemini, OpenRouter, etc.). Simply change `api_url` and `model` to switch.
+
+### 3. Test
+
 ```
-Player: @ai How do I do this?
-AI: [Kilacraft-AI] What specifically are you referring to? I can help you answer questions about game mechanics, crafting recipes, etc.
-```
-
-#### Stream Output (Real-time AI Generation Display)
-
-When stream output is enabled, AI replies are displayed **character by character in real-time**, rather than waiting for the complete response.
-
-**Effect Comparison:**
-
-**❌ Non-Stream Mode (Default)**
-```
-Player: How do I get diamonds?
-[Waiting 3-5 seconds...]
-AI: You can find diamonds at Y=-58 to Y=-53 by mining...
+/kila Hello
 ```
 
-**✅ Stream Mode**
+If you see an AI reply, configuration is successful.
+
+> Use `/kilacraft reload` to reload config, `/kilacraft knowledge reload` for knowledge base, and `/kilacraft personalities reload` for personalities.
+
+---
+
+## Intelligent Dialogue
+
+### Three Interaction Modes
+
 ```
-Player: How do I get diamonds?
-[Immediately shows] ✍️ AI is generating...
-[Real-time updates] You can find diamonds at Y=-58 to Y=-53 by mining...
+# Command Mode
+/kila How do I get diamonds?
+
+# Continuous Chat Mode
+/kilacraft chat
+> I want to build a farm
+> AI: Great idea! What crops would you like to grow?
+> Wheat please
+> AI: To plant wheat you'll need a hoe, water bucket, and seeds...
+
+# Keyword Trigger (Public Channel)
+@ai How to do this?
 ```
 
-**Configuration:**
+Command aliases: `/kilacraft`, `/kila`, `/ai`, `/zm`
+
+### Stream Output
+
+When enabled, AI replies display character by character in real-time:
+
 ```yaml
 output:
   stream:
-    enabled: true                      # Enable stream output
+    enabled: true
 ```
 
-**Channel Recommendations:**
-- ⭐⭐⭐⭐⭐ **SIDEBAR**: Right sidebar, doesn't block view, suitable for long text (best choice)
-- ⭐⭐⭐⭐ **BOSS_BAR**: Top bar display, suitable for medium-long text
-- ⭐⭐⭐ **ACTION_BAR**: Above hotbar, suitable for short text
-- ⭐⭐ **CHAT**: Not recommended, will cause spam
-- ⭐ **TITLE**: Not recommended, will flicker
+Supports 5 output channels, configurable per scenario:
 
-#### AI Response Sound Effect
+| Channel | Effect | Suitable For |
+|:-:|:-:|:-:|
+| **SIDEBAR** | Right sidebar, non-intrusive | Long text replies (recommended) |
+| **BOSS_BAR** | Top bar | Medium-length text |
+| **ACTION_BAR** | Above hotbar | Short text prompts |
+| **CHAT** | Chat channel | Default |
+| **TITLE** | Center screen | Short highlighted text |
 
-When enabled, AI automatically plays a sound effect **when starting to respond**, synchronized with text output for enhanced immersive experience.
+### AI Response Sound Effect
 
-**Key Features:**
-- ✅ **Synchronized Sound**: Plays immediately when AI starts responding, synchronized with text output
-- ✅ **Only Trigger Player Hears**: Uses `player.playSound()`, doesn't affect other players
-- ✅ **Full Scenario Coverage**: Supports normal chat/skill results/task results/AFK callbacks
-- ✅ **Configurable Toggle**: Can be enabled/disabled anytime, supports custom sound/volume/pitch
+Automatic sound effect when AI starts responding, only audible to the triggering player:
 
-**Configuration:**
 ```yaml
 output:
   sound:
-    enabled: true                      # Enable AI response sound effect (default ON)
-    sound_name: "ENTITY_PLAYER_LEVELUP" # Sound enum name
-    volume: 0.5                        # Volume (0.0-1.0)
-    pitch: 1.2                         # Pitch (0.5-2.0)
+    enabled: true
+    sound_name: "ENTITY_PLAYER_LEVELUP"
+    volume: 0.5
+    pitch: 1.2
 ```
-
-**Recommended Sounds:**
-- `ENTITY_PLAYER_LEVELUP`: Level up sound (default)
-- `ENTITY_EXPERIENCE_ORB_PICKUP`: Experience orb pickup
-- `BLOCK_NOTE_BLOCK_PLING`: Note block pling
-- `UI_TOAST_CHALLENGE_COMPLETE`: Challenge complete
 
 ---
 
-### 2️⃣ Knowledge Base Enhancement (RAG Retrieval)
+## Knowledge Base Enhancement
 
-Let AI understand your server rules, gameplay, FAQ!
+Teach AI about your server rules, gameplay, and FAQ. Simply place Markdown or TXT files in `plugins/Kilacraft-AI/knowledge/`:
 
-**How to Use:**
-1. Create `.md` or `.txt` files in `plugins/Kilacraft-AI/knowledge/`
-2. Write server-related knowledge (rules, tutorials, FAQ, etc.)
-3. Execute `/kilacraft knowledge reload` to reload
-
-**Example File (`server_rules.md`):**
-```
-# Server Rules
-
-## Basic Rules
-1. No cheating or using hacks
-2. Be friendly, no insulting others
-3. No destroying other players' builds
-
-## Economy System
-4. No using money duplication exploits
-5. Trading must follow market principles
-
-# Frequently Asked Questions
+```markdown
+# server_rules.md
 
 ## How to claim land?
 Use the /claim command to define your territory. Requires at least 10 gold coins.
@@ -192,1010 +136,399 @@ Use the /claim command to define your territory. Requires at least 10 gold coins
 You can earn money by mining, fishing, or selling items in player shops.
 ```
 
-**Intelligent Retrieval Effect:**
+Execute `/kilacraft knowledge reload` to load, and AI will automatically retrieve and reference when players ask questions:
+
 ```
 Player: How can I claim land?
-AI: [Kilacraft-AI] You can use the /claim command to define your territory. Requires at least 10 gold coins.
-    (Based on "Server Rules" document in knowledge base)
+AI: You can use the /claim command to define your territory. Requires at least 10 gold coins.
 ```
 
-**Technical Advantages:**
-- 📑 Markdown headings automatically segmented, precisely locate relevant content
-- 🔍 Comprehensive scoring algorithm: complete question matching + BM25 keyword scoring + position weighting + exact match bonus
-- 💾 Cache optimization: secondary retrieval speed improved by ~70%
-- 🇨🇳 Chinese word segmentation optimized: HanLP TF-IDF + intelligent stop word filtering
-- 📚 **Custom Dictionary Support**: Configure server-specific terminology (e.g., "claim land", "redstone", "villager trading") to significantly improve word segmentation accuracy and retrieval effectiveness
+Supports custom dictionary to add server-specific terms for significantly improved retrieval accuracy:
 
-**Custom Dictionary Configuration (`config.yml`):**
 ```yaml
 knowledge:
   custom_dictionary:
-    enabled: true  # Enable custom dictionary
+    enabled: true
     words:
-      - "claim"  # claim land
-      - "territory"  # territory
-      - "redstone"  # redstone
-      - "enchantment"  # enchantment
-      - "villager_trading"  # villager trading
-      - "mob_farm"  # mob farm
-      - "ender_dragon"  # Ender Dragon
-      # Add your server-specific terms...
+      - "claim land"
+      - "territory"
+      - "redstone"
+      - "mob farm"
 ```
-
-> 💡 **Tip**: Adding server-specific game terms and gameplay names to the custom dictionary can significantly improve AI's understanding accuracy of player questions.
 
 ---
 
-#### 📚 Detailed Documentation
+## Intent Recognition & Task Orchestration
 
-For more technical details, please check [Knowledge Base Enhancement Guide](./Knowledge%20Base%20Guide).
-
----
-
-### 3️⃣ LLM Intelligent Intent Recognition + Multi-Step Task Orchestration
-
-#### 🧠 What is Intelligent Intent Recognition?
-
-Kilacraft-AI doesn't simply "answer questions", but **understands your true intent** and automatically calls corresponding functions!
-
-This is the **brain** of the entire Skill system. Whether calling economy systems, Bukkit API, or third-party plugin Skills, all go through this intelligent engine.
+Kilacraft-AI doesn't just answer questions — it understands players' true intent and automatically calls corresponding functions:
 
 ```
-# Agent Workflow
-User Input → LLM Intent Recognition → Determine Task Type → Execute Skill/Task → Analyze Results → Generate Response
+User Input → LLM Intent Recognition → Execute Skill/Task → Analyze Results → Generate Natural Language Response
 ```
 
-**Core Advantages:**
-- 🎯 **Natural Language Understanding**: Players don't need to remember commands, just speak naturally
-- 🤖 **Automatic Routing**: AI automatically determines which Skill to call
-- 🔗 **Multi-Step Orchestration**: Complex tasks automatically decomposed into multiple ordered steps
-- 💡 **Intelligent Summary**: LLM comprehensively analyzes all results, generates friendly responses
+### Single Intent
 
----
-
-#### 📊 Two Task Modes
-
-**Mode 1: Single-Intent Fast Path** (Simple queries execute directly)
-
-Suitable for simple information queries, zero additional overhead:
+Simple queries execute directly:
 
 ```
 Player: How much are diamonds?
-    ↓
-AI Recognizes: Single intent → market_query.query_price
-    ↓
-Execute: Query price API
-    ↓
-Response: Diamond current price: $100.00
+AI: Diamond current price: $100.00 each
 ```
 
-Other common single-intent scenarios: query items, check status, get time, etc.
+### Multi-Step Task
+
+Complex requests automatically decompose into ordered steps:
+
+```
+Player: Check if someone is selling the item I'm holding and how much it costs
+  ↓
+Step 1: Query player held item → Diamond Sword
+Step 2: Query Diamond Sword market availability → Available, stock 2
+Step 3: Query Diamond Sword price → $500.00 each
+  ↓
+AI: You're holding a Diamond Sword. There are 2 available on the market at $500.00 each.
+```
+
+Steps support automatic data passing (`{step_1.item_name}`) and array indexing (`{step_1.homes[0].home_name}`).
+
+### Error Tolerance
+
+- Partial step failures don't interrupt the entire flow
+- Intent recognition failure automatically falls back to normal AI dialogue
 
 ---
 
-**Mode 2: Multi-Step Task Orchestration** (Complex tasks automatically decomposed)
+## Vanilla Data Query
 
-When user requests require multiple Skills to cooperate, AI automatically plans execution order:
+### Bukkit API (72 Built-in Interfaces)
+
+AI directly queries player status, world info, and server info without coding:
 
 ```
-Player: Check diamond price for me, if not over 100 then see if my balance is enough to buy 10
-    ↓
-AI Recognizes: Multi-step task
-├─ Step 1: market_query.query_price (Query diamond price)
-├─ Step 2: market_query.query_balance (Query player balance)
-└─ Step 3: LLM Comprehensive Analysis (Compare price and balance, give suggestions)
-    ↓
-Final Response:
-[Kilacraft-AI] 
-    Queried for you:
-    • Diamond price: $80.00 each
-    • Your balance: $12,580
-    
-    💡 Analysis: Buying 10 diamonds requires $800, your balance is sufficient, you can purchase!
-    Would you like me to place the order for you?
+Player: What am I holding?     → You're holding: Diamond Sword x1
+Player: How much health do I have? → Health: 18.5/20.0
+Player: What time is it?       → World time: 06:00 (Morning)
+Player: How's the weather?     → Current weather: Clear
+Player: How many people are online? → Online players: 15/100
 ```
+
+Coverage categories:
+
+| Category | Count | Examples |
+|:-:|:-:|:-:|
+| Player Inventory | 2 | Main hand/offhand, armor, backpack, ender chest |
+| Player Status | 10+ | Health, hunger, oxygen, experience, on fire, frozen, potion effects, sneaking/running... |
+| Player Info | 15+ | Location, game mode, flying, ping, death point, target block, locale... |
+| World Info | 20+ | Time, weather, biome, temperature, humidity, entity stats, raids... |
+| Server Info | 7+ | Online players, version, MOTD, world list, TPS... |
+| Environmental Awareness | 14+ | Block below, last damage cause, world border, invulnerability frames, fall distance... |
+
+All APIs are read-only operations, each category has independent permission nodes for fine-grained control via LuckPerms.
+
+### Vanilla Statistics
+
+Query players' Minecraft vanilla career statistics:
+
+```
+Player: How many times have I died?   → Total deaths: 42
+Player: How many zombies have I killed? → Killed entities (Zombie): 15
+Player: How far have I walked?       → Walking distance: 12.5 kilometers
+Player: How many diamond ores have I mined? → Mined blocks (Diamond Ore): 128
+```
+
+Supports 80+ statistic enums, with automatic unit conversion (centimeters→kilometers, ticks→readable time).
 
 ---
 
-#### 📐 Unified Structured Format
+## AFK Task System
 
-**AnalysisSummary Unified Format:**
+Let AI "keep an eye out" for you. Create background monitoring tasks through natural language, with automatic notifications or actions when conditions are met.
 
-Whether single-intent or multi-step tasks, LLM secondary analysis uses a unified structured output format:
+### Event Listeners (12 Types)
 
 ```
-[User Input]
-Is there anyone on the global market selling the item in my hand? How much is it?
+Player: Help me watch for Steve to come online
+AI: OK! I'll notify you as soon as Steve comes online.
 
-[Execution Results]
-- step_1: [SUCCESS] Item: Diamond
-- step_2: [SUCCESS] Diamond is for sale, stock: 2
-
-[Statistics] Success: 2, Failed: 0, Skipped: 0
+[30 minutes later...]
+🔔 Steve has joined the server!
 ```
 
-**Advantages:**
-- Unified format, easy for debugging and troubleshooting
-- Clearly displays execution status of each step
-- Statistics at a glance
+```
+Player: Watch for Steve to come online, then check what he's holding
+AI: OK! When Steve comes online, I'll automatically check his held item.
+
+[Steve comes online...]
+🔔 Steve is online! Detected him holding Diamond Sword x1 in main hand.
+```
+
+| Monitoring Type | Description |
+|:-:|:-:|
+| Player Join/Leave | Monitor specified player login/logout |
+| Player Death/Respawn | Monitor death events and respawn |
+| Player Teleport/World Switch | Monitor position changes |
+| Level Change | Monitor player level up/down |
+| Weather Change | Monitor world weather |
+| Sleep/Item Break | Enter bed, leave bed, item durability break |
+
+### Custom Condition Polling
+
+Monitor numerical conditions from any Skill:
+
+```
+Player: Tell me when my health drops below 10
+Player: Remind me when my balance drops below 1000
+Player: Check diamond price when I reach level 30
+```
+
+Management commands: `/kilacraft afk` to query, `/kilacraft afk cancel` to cancel. One task per player at a time.
 
 ---
 
-#### ⚙️ Flexible and Controllable Configuration
+## Personality System & NPC Dialogue
 
-```
-agent:
-  enabled: true                    # Master switch (highest priority)
-  enable_chat_listener: true       # Whether keyword trigger enables Agent
-  enable_command: true             # Whether /kilacraft command enables Agent
-  
-  # Historical conversation context configuration
-  intent_history_count: 5          # Use 5 rounds of history for intent recognition
-  analysis_history_count: 2        # Use 2 rounds of history for result analysis
-  
-  prompts:
-    system_prompt: "You are a professional Minecraft game assistant..."
-    analysis_prompt: "{results}\nPlease provide comprehensive analysis and suggestions based on the above conversation history, current input, and execution results."
-```
+### Personality Configuration
 
-**Configuration Explanation:**
-- `intent_history_count`: Helps LLM understand referential expressions like "check that item again"
-- `analysis_history_count`: Lets LLM reference conversation context when analyzing results, making responses more natural
-- Can disable Agent capability at specific entry points by turning off `enable_chat_listener` or `enable_command`
+Define different AI personalities in `personalities.yml`:
 
----
+```yaml
+common_prompt: "You are a Minecraft server NPC talking to player {player}."
 
-#### 🛡️ Failure Fallback Mechanism
+Fox:
+  You are a clever fox NPC who speaks playfully and cutely.
+  Like to end sentences with "~", often use emojis.
 
-The system implements a comprehensive error guarantee mechanism, so even if some steps fail, the entire flow won't be interrupted:
-
-**Fault Tolerance for Multi-Step Tasks:**
-- ✅ **Dependency Check**: When a preceding step fails, automatically skip tasks dependent on that step, continue executing other steps
-- ✅ **Placeholder Resolution Failure**: Record failure reason, skip this step, continue executing subsequent steps
-- ✅ **Skill Execution Failure**: Record failure reason, don't interrupt flow, continue to next step
-- ✅ **Intelligent Result Synthesis**: LLM answers user questions to the best of its ability based on all successful step results
-
-**Global Failure Fallback:**
-- When intent recognition fails, automatically convert to normal AI dialogue
-
-```
-Player: Help me check xxx (unrecognizable intent)
-    ↓
-Intent Recognition Failed
-    ↓
-Fallback to Normal AI Dialogue
-    ↓
-AI: Sorry, I don't quite understand what you mean. You can ask me:
-    • "How much are diamonds?"
-    • "How much health do I have?"
-    • "What products are on the market?"
+Strict Teacher:
+  You are a strict Minecraft teacher with high standards.
+  Speak concisely and directly, but patiently answer questions.
 ```
 
-**Technical Advantages:**
-- ✅ **Error Isolation**: Third-party Skill exceptions don't affect core processes
-- ✅ **Friendly Prompts**: Return meaningful error messages, not technical errors
-- ✅ **Detailed Logs**: Console records complete error information for troubleshooting
-- ✅ **Flow Resilience**: Step failures don't interrupt the entire flow, maximizing task success rate
+### NPC Intelligent Dialogue
 
----
+Two ways to give MythicMobs NPCs independent personalities:
 
-#### 📚 Detailed Documentation
+**Method 1: Callback Commands** (Recommended)
 
-For more technical details, please check [Intent Recognition Prompt Configuration Guide](./Intent%20Recognition%20Prompt%20Configuration%20Guide).
-
----
-
-### 4️⃣ Plugin Command Mode + Personality System (Advanced Features)
-
-Plugin command mode is a dedicated interface designed by Kilacraft-AI for **third-party plugin integration**, allowing other plugins to call AI from console with specified personalities.
-
-**Core Design Philosophy:**
-> Plugin command mode is not a command for server owners to execute manually, but an **API interface for third-party plugins to call in code or configuration**.
-
-#### 📋 Basic Usage
-
-```
-/kilacraft plugins <personality_name> <message_content> <player_uuid> [callback_commands...]
-```
-
-**Parameter Explanation:**
-- `<personality_name>`: Personality defined in `personalities.yml` (e.g., `Fox`, `StrictTeacher`)
-- `<message_content>`: Message to send to AI
-- `<player_uuid>`: Target player's UUID
-- `[callback_commands...]`: **Optional but strongly recommended**, commands automatically executed after AI completes (supports `{response}` placeholder)
-
-**Important Features:**
-- 🔒 **Console Only**: Players cannot use this command directly
-- 🌐 **Independent History Records**: Each `UUID_personality` combination is independent
-- ⏱️ **Dedicated Cooldown**: Uses `plugins_cooldown_seconds` configuration (default 3 seconds)
-- 💬 **Callback Command Support**: Automatically execute after AI completes, `{response}` replaced with actual reply
-
----
-
-#### 💡 Typical Application Scenario
-
-**NPC Intelligent Dialogue** (most common use): Give MythicMobs NPCs different personalities for natural player interaction.
-
-```
-# MythicMobs skill configuration example
+```yaml
+# MythicMobs skill configuration
 fox_npc_skill:
   Skills:
   - cmd{c="kilacraft plugins Fox What are the server rules <caster.uuid> myplugin handle_ai {response} <caster.name>"} @self
 ```
 
-**Workflow:**
-```
-Player right-clicks "Fox NPC"
-    ↓
-Plugin executes console command
-    ↓
-AI generates reply (async, about 2-5 seconds)
-    ↓
-Automatically executes callback: /myplugin handle_ai "Heehee~ Server rules are simple! ✨..." playerName
-    ↓
-Your plugin receives and displays:
-[NPC Fox] Heehee~ Server rules are simple! ✨
-```
+AI generates a reply and automatically executes the callback command. Your plugin receives and displays the response.
 
----
+**Method 2: MythicMobs Placeholder**
 
-#### 📚 Detailed Documentation
+Use the built-in placeholder `<caster.ai.answer{type=personality_name}>` to directly get AI replies:
 
-For more technical details, please check [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide).
-
----
-
-#### ⚠️ Quick Precautions
-
-1. **Strongly recommend using callback commands**: This is the only officially supported integration method
-2. **Callback handler should return immediately**: Put time-consuming operations in async thread to avoid blocking main thread
-3. **Personality must exist**: Used personality must be defined in `personalities.yml`
-4. **Player must exist**: Player corresponding to UUID must have records on server
-5. **Parameter parsing**: If your callback command parameters contain spaces, need proper parsing (see detailed guide)
-
-> 💡 **Tip**: If you're a third-party plugin developer, we recommend reading the [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) first to understand complete integration flow and best practices.
-
-### 5️⃣ Economy System Integration (GlobalMarketPlus) (Extended Feature)
-
-Make your market plugin "talk"! Query market information through natural language.
-
-```
-Player: How much are diamonds?
-AI: [Kilacraft-AI] Diamond current price: $100.00 each
-
-Player: How much balance do I have left?
-AI: [Kilacraft-AI] Your balance: $12,580
-
-Player: What products are on the market?
-AI: [Kilacraft-AI] Current products for sale list:
-    • Diamond x15 - $100.00 each
-    • Iron Ingot x32 - $20.00 each
-    • ...
-```
-
-**Special Features:**
-- ✅ Natural language understanding: "buy 5 sticks" automatically recognizes item and quantity
-- ✅ Multi-item joint query: "diamond:2,stick:1" query multiple at once
-- ✅ Optimal price calculation: Smart combination from cheap to expensive
-- ✅ Insufficient stock notification: Display all sale details
-
-**Security Notes:**
-- 📖 **Read-Only Operations**: MarketQuerySkill only queries information, won't consume items or money
-- 🔒 **Permission Control**: Each action has independent permission nodes
-- 🛡️ **Error Isolation**: Execution errors don't affect other features
-
----
-
-### 6️⃣ Bukkit API Dynamic Invocation (58 Built-in APIs) (Extended Feature)
-
-No coding required, AI directly calls vanilla APIs to query player status, world info, server info!
-
-**Core Features:**
-- ✅ **Data-driven configuration**: Define APIs in YAML, supports hot reload
-- ✅ **Multi-step data passing**: API return values automatically extracted to dataMap, subsequent steps can reference via `{step_x.field}`
-  - Supports array index access: `{step_x.warps[0].warp_name}` can reference specific elements in lists
-- ✅ **Permission control**: Independent permission nodes for each API
-- ✅ **Error isolation**: API execution failures don't affect other features
-
-```
-Player: What am I holding?
-AI: [Kilacraft-AI] You are holding in main hand: Diamond Sword x1
-
-Player: How much health do I have left?
-AI: [Kilacraft-AI] Health: 18.5/20.0
-
-Player: What time is it now?
-AI: [Kilacraft-AI] World time: 06:00 (Morning)
-
-Player: How's the weather?
-AI: [Kilacraft-AI] Current weather: Clear
-
-Player: How many people are online on the server?
-AI: [Kilacraft-AI] Online players: 15/100
-```
-
-**Supported API Categories:**
-- 📦 **Player Inventory**: Main hand/offhand items, full armor set
-- ❤️ **Player Status**: Health, hunger, oxygen, experience, sleep, attack cooldown, on fire, frozen, pose, sneak/sprint, potion effects
-- 📍 **Player Info**: Location coordinates, game mode, fly status, ping, vehicle, death point, target block, locale, display name, respawn point
-- 🌍 **World Info**: Time, weather, world type, seed, spawn point, height limit, mob spawning rules, PVP settings, biome, temperature, humidity, sea level, entity statistics, raids, weather duration
-- 🖥️ **Server Info**: Online players, max players, version, MOTD, world list
-
-**Fine-Grained Permission Control:**
-```
-# Can control access permissions for each player/group through permission plugins (like LuckPerms)
-kilacraft.api.player.inventory  # Inventory query
-kilacraft.api.player.status     # Status query
-kilacraft.api.player.info       # Basic info query
-kilacraft.api.world.info        # World info query
-kilacraft.api.server.info       # Server info query
-```
-
-**Security Notes:**
-- 📖 **Read-Only Operations**: GenericBukkitAPISkill only calls getter methods, doesn't modify any data
-- 🔒 **Permission Control**: Each API has independent permission nodes
-- 🛡️ **Error Isolation**: Execution errors don't affect other features
-
----
-
-#### 📚 Detailed Documentation
-
-For more technical details, please check [Bukkit API Reference Manual](./Bukkit%20API%20Reference).
-
----
-
-### 6️⃣ Command Execution Skill (Extended Feature)
-Let AI execute server commands on behalf of players (such as `/back`, `/spawn`, `/home`), serving as a universal fallback solution for dedicated Skills.
-
-**Security Mechanisms:**
-- AI executes commands as the player (`Bukkit.dispatchCommand(player, command)`), fully inheriting the server's native security mechanisms
-- If a player doesn't have command permissions, AI execution will also be rejected by the server (no privilege escalation risk)
-- All server security mechanisms (permission checks, cooldowns, safe areas, etc.) work normally
-
----
-
-### 7️⃣ Sound & Particle Effects (Extended Feature)
-Let AI play sounds or show particle effects for players, enhancing interaction experience.
-
-**Core Features:**
-- ✅ **Security Isolation**: Effects only visible/audible to the triggering player, no impact on others
-- ✅ **Natural Language Trigger**: Just tell AI "play level up sound", "show heart particles"
-- ✅ **Multi-Scenario Application**:
-  - Task completion celebration: Play `ENTITY_PLAYER_LEVELUP` sound
-  - Warning prompts: Show `VILLAGER_ANGRY` particles
-  - Atmosphere creation: Play ambient sounds or natural particles
-- ✅ **Controllable Parameters**: Volume, pitch, particle count all configurable
-- ✅ **YML Configuration Driven**: Supported sound/particle lists defined via config files
-
-**Usage Examples:**
-```
-Player: Play a level up sound to celebrate
-→ AI plays ENTITY_PLAYER_LEVELUP sound (only this player hears)
-
-Player: Show some heart particles
-→ AI shows HEART particles at player location (only this player sees)
-```
-
-**Configuration File:**
-- Location: `plugins/Kilacraft-AI/skills/bukkit/BukkitFXSkill.yml`
-- Supports hot reload: Execute `/kilacraft reload` after modification
-
----
-
-**Capability Boundaries:**
-- Only supports execution-type commands (no need to read command output), for example: `/back`, `/spawn`, `/home` home name
-- Query-type commands (such as `/bal`, `/whois`) should be implemented through dedicated Skills to ensure AI can correctly handle returned data
-
-**Configuration:**
-1. Edit `config.yml`:
 ```yaml
-skills:
-  command_skill:
-    enabled: false  # Disabled by default, requires manual enablement
+# MythicMobs skill configuration (first trigger AI generation, then read reply with placeholder)
+fox_npc_skill:
+  Skills:
+  - cmd{c="kilacraft plugins Fox What are the server rules <caster.uuid>"} @self
+  - message{msg="<caster.ai.answer{type=Fox}>"} @trigger
 ```
 
-2. Configure permission nodes:
-- Assign `kilacraft.command.execute` permission to trusted players or groups
-- Only OP has this permission by default (security consideration)
+The placeholder reads and consumes the cached AI reply, returning `UNDEFINED` if not ready. Supports dynamic parameters (e.g., `{type=<skill.puppet>}`).
 
-**Usage Example:**
-```
-Player: Help me return to my death point
-AI: Executed command for you: /back
-(CMI/Essentials directly sends teleport result to player)
-```
-
-> **💡 Design Philosophy**:
-- CommandSkill is a last resort: Prioritize using dedicated Skills (like CMI's teleport functionality)
-- Don't use this skill for query-type commands: It's more appropriate to integrate corresponding APIs via Skill SPI
-- Security first: If a player can't do something, AI can't do it either
-
-For more technical details, please check [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide).
----
-
-### 7️⃣ AFK Task System (11 Event Listeners) (Extended Feature)
-
-Let AI "keep an eye out" for you! Create background monitoring tasks through natural language, with automatic notification or action execution when conditions are met.
-
-**Core Features:**
-- ✅ **Natural Language Creation**: Just tell AI "help me watch for xxx to come online"
-- ✅ **Notification / Callback Dual Mode**: Simple reminder or automatic multi-step task execution
-- ✅ **11 Event Listeners**: Covering player online/offline, death, teleport, level change, world switch, weather, sleeping, respawn, item break
-- ✅ **Automatic Resource Management**: Tasks auto-cancel when player goes offline, auto-cleanup on completion
-
-#### Usage Examples
-
-**Notification Mode** (direct reminder when event triggers):
-```
-Player: Help me watch for Steve to come online
-AI: OK! Monitoring task created. You'll be notified as soon as Steve comes online.
-
-(After Steve comes online...)
-🔔 AFK Task Alert: Steve has come online!
-```
-
-**Callback Mode** (automatically execute actions when event triggers):
-```
-Player: Watch for Steve to come online, then check what he's holding
-AI: OK! Monitoring task created. When Steve comes online, his held item will be automatically checked.
-
-(After Steve comes online...)
-🔔 AFK Task Alert:
-Steve is online! Detected him holding Diamond Sword x1 in main hand.
-```
-
-**Supported Monitoring Events:**
-- 👤 **Player Activity**: Online, offline, death, teleport, level change, world switch
-- 🌙 **Life Events**: Enter bed, leave bed, respawn, item break
-- 🌦️ **Environment**: Weather change
-
-**Manual Task Management:**
-```
-/kilacraft afk          # Query current AFK task
-/kilacraft afk cancel   # Cancel current AFK task
-```
-
-> 💡 **Tip**: Each player can only have one AFK task at a time. Tasks can be created and managed through AI conversation or commands.
+> Plugin commands are console-only, each `UUID_personality` combination has independent history, and callback commands support `{response}` placeholder.
 
 ---
 
-#### 📚 Detailed Documentation
+## Plugin Integration
 
-For more technical details, please check [AFK Task System Guide](./AFK%20Task%20System%20Guide) and [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference).
+### GlobalMarketPlus (Economy System)
+
+```
+Player: How much are diamonds?       → Diamond current price: $100.00 each
+Player: How much balance do I have?  → Your balance: $12,580
+Player: What's on the market?       → Current products: Diamond x15, Iron Ingot x32...
+Player: Is diamond for sale?         → Diamond is available, stock 2
+```
+
+7 read-only query actions, no item or money consumption.
+
+### CMI (Teleport & Player Info)
+
+```
+Player: Take me home           → AI queries home list and teleports to specified home
+Player: Teleport to spawn      → AI queries warp list and teleports to specified warp
+Player: Teleport to Steve      → AI sends TPA request
+Player: Is Steve online?       → Steve is currently online, AFK: No
+Player: What warps are there?  → Current warps: Spawn, Resource Area, PVP Arena...
+```
+
+8 actions (5 queries + 3 teleports), teleport uses TPA request mode, AFK/vanish status automatically detected.
+
+### Sound & Particle Effects
+
+```
+Player: Play a level up sound   → Plays ENTITY_PLAYER_LEVELUP (only audible to you)
+Player: Show heart particles   → Shows HEART particles (only visible to you)
+```
+
+Effects are only visible/audible to the triggering player, triggered through natural language.
+
+### Command Execution
+
+AI executes server commands as the player, fully inheriting the server permission system:
+
+```
+Player: Help me return to my death point  → Executes /back
+```
+
+Disabled by default, requires manual enablement. AI cannot exceed player permissions.
+
+### Optional Dependencies
+
+| Plugin | Version | Features |
+|:-:|:-:|:-:|
+| **CMI** | 9.8.6.4+ | Teleport, homes, warps, enhanced player info, TPA |
+| **GlobalMarketPlus** | 1.3.8.0+ | Market queries, balance, prices, product lists |
+| **MythicMobs** | 5.12.0+ | NPC placeholders (let NPCs display AI replies) |
+| **Vault** | Latest | Multi-currency system support |
+
+Corresponding features automatically disable when not installed, core dialogue remains unaffected.
 
 ---
 
-## ⚙️ Quick Start (5 Minutes to Get Started)
+## Open SPI Interface
 
-### Step 1: Install Plugin
+Third-party plugin developers can expose their features to AI through the Skill SPI interface:
 
-1. Download `Kilacraft-AI-1.4.2.jar`
-2. Put into server `plugins/` directory
-3. Start server, wait for configuration files to generate
+- **API JAR** only 5 KB (compileOnly dependency)
+- Implement `SkillProvider` interface to register custom Skills
+- Automatic discovery and registration through Bukkit `ServicesManager`
+- Built-in error isolation, third-party Skill exceptions don't affect core processes
 
-### Step 2: Configure API Key
+Suitable for integrating territory systems, leaderboards, RPG systems, guild systems, achievement systems, world management, and more.
 
-Edit `plugins/Kilacraft-AI/config.yml`:
-
-```
-llm:
-  api_url: "https://api.deepseek.com/v1/chat/completions"
-  api_key: "your-api-key"  # ← Enter your API Key here
-  model: "deepseek-chat"
-  temperature: 0.7
-  max_tokens: 1000
-```
-
-**Get API Key:**
-- DeepSeek: https://platform.deepseek.com/
-- Zhipu AI: https://open.bigmodel.cn/
-- Moonshot: https://platform.moonshot.cn/
-
-> 💡 **Tip**: Just modify `api_url` and `model` to switch between different vendors, no code changes needed!
-
-### Step 3: Reload Configuration
-
-After modifying configuration, there are two ways to apply changes:
-
-**Method 1: Use reload command (Recommended)**
-```
-/kilacraft reload  # Reload main configuration and language configuration
-```
-
-**Method 2: Restart server**
-```
-/restart  # or fully restart server
-```
-
-> 💡 **Tip**: If you only modified `config.yml` or `language.yml`, use `/kilacraft reload`, no server restart needed. If you modified knowledge base or personality configuration, need to use corresponding dedicated reload commands (see command list below).
-
-### Step 4: Test Dialogue
-
-```
-/kila Hello
-```
-
-If you see AI reply, congratulations! Configuration successful! 🎉
+See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide).
 
 ---
 
-## 📊 Performance and Resource Usage
+## Commands & Permissions
 
-### Memory Usage Comparison
-
-| Solution | Memory Usage | Middleware Dependencies | Suitable Server Scale |
-|----------|--------------|------------------------|----------------------|
-| **Kilacraft-AI** | **8-50 MB** (dynamic) | **None** | **All scales** |
-| LangChain + Vector DB | 2-5 GB | Redis, PostgreSQL, Elasticsearch | Large commercial servers |
-| Self-built RAG System | 1-3 GB | MySQL, Redis | Medium-large servers |
-
-> 💡 **Note**: Kilacraft-AI's memory usage dynamically changes based on knowledge base size and online player count. Small servers typically only need 8-12 MB, large servers about 30-50 MB. See detailed evaluation below.
-
-### Conversation History Memory Evaluation
-
-```
-max_history: 10 (default)
-Each round of conversation ≈ 200 characters ≈ 0.2 KB
-Each message includes role + content fields, actually about 0.3-0.4 KB
-100 active players × 20 messages × 0.4 KB = 800 KB
-1000 active players × 20 messages × 0.4 KB = 8 MB
-```
-
-**Conclusion**: Even with thousands online, conversation history uses less than 10 MB!
-
-**Optimization Suggestions:**
-- ✅ Adjust `max_history` to control memory usage per player
-- ✅ Player exit history remains in memory (cleared on restart)
-- ✅ Use `/kilacraft clear` to manually clear history records
-
-**Memory Usage Explanation:**
-- 📦 **Plugin Core**: Only occupies about 3 MB (JAR file size)
-- 💾 **Total Memory Usage ~50 MB**: Includes runtime cache
-  - **Knowledge Base Cache** (depends on knowledge base size)
-    * Raw content cache: Complete text of each file, small servers typically 2-5 files, about 2-5 KB/file
-    * Segment cache: Fragments split by Markdown headings or paragraphs, each segment max 500 characters
-    * Typical scale: 10-20 files × average 10 segments × 500 characters ≈ 100-200 KB
-    * Large knowledge base (50+ files): About 500 KB - 1 MB
-  - **Conversation Context Cache** (depends on active player count)
-    * Each player saves up to 10 rounds of conversation (20 messages)
-    * Each message averages 200 characters ≈ 0.2 KB
-    * 100 active players × 20 messages × 0.2 KB = 400 KB
-    * 1000 active players × 20 messages × 0.2 KB = 4 MB
-  - **HTTP Connection Pool** (fixed overhead)
-    * OkHttpClient connection pool configuration: 10 idle connections, 5 minute timeout
-    * Each connection about 50-100 KB (including buffers, Socket, etc.)
-    * 10 connections × 100 KB = About 1 MB
-  - **Other Runtime Objects**
-    * Configuration objects (ConfigManager, LanguageManager, etc.): About 100-200 KB
-    * Skill metadata cache (Bukkit API definitions, MarketQuerySkill, etc.): About 50-100 KB
-    * JVM object headers, class loading and other basic overhead: About 2-3 MB
-  - **Actual Test Data**:
-    * Small server (10 knowledge base files + 50 online players): About 8-12 MB
-    * Medium server (30 knowledge base files + 200 online players): About 15-25 MB
-    * Large server (100+ knowledge base files + 500+ online players): About 30-50 MB
-
-### Performance Optimization Measures
-
-- ✅ **HTTP Connection Pool**: Reuse connections, reduce handshake overhead
-- ✅ **Asynchronous Non-Blocking**: API requests don't block main thread
-- ✅ **Configuration Caching**: Reduce repeated configuration reading overhead
-- ✅ **Smart Retry**: Automatic retry on network fluctuations, improve stability
-
----
-
-## 🎮 Complete Command List
+### Command List
 
 | Command | Permission | Description |
-|---------|------------|-------------|
-| `/kilacraft <message>` | None | Dialogue with AI |
-| `/kila <message>` | None | Shorthand command |
-| `/ai <message>` | None | Shorthand command |
-| `/zm <message>` | None | Shorthand command |
+|:-:|:-:|:-:|
+| `/kilacraft <message>` | None | Chat with AI |
+| `/kila` `/ai` `/zm` | None | Shorthand commands |
 | `/kilacraft chat` | None | Enter/exit continuous chat mode |
-| `/kilacraft clear` | `kilacraft.clear.self` | Clear your own conversation history |
+| `/kilacraft clear` | `kilacraft.clear.self` | Clear your own chat history |
 | `/kilacraft clear <player>` | `kilacraft.clear.other` | Clear specified player's history |
-| `/kilacraft reload` | `kilacraft.reload` | Reload main configuration and language configuration |
+| `/kilacraft reload` | `kilacraft.reload` | Reload configuration |
 | `/kilacraft knowledge reload` | `kilacraft.knowledge` | Reload knowledge base |
 | `/kilacraft personalities reload` | `kilacraft.personalities` | Reload personality configuration |
-| `/kilacraft plugins <personality> <content> <UUID> [callback]` | Console only | Third-party plugin call (supports callback commands) |
-| `/kilacraft afk` | `kilacraft.afk` (default: all players) | Query current AFK task |
-| `/kilacraft afk cancel` | `kilacraft.afk` (default: all players) | Cancel current AFK task |
+| `/kilacraft afk` | `kilacraft.afk` | Query AFK task |
+| `/kilacraft afk cancel` | `kilacraft.afk` | Cancel AFK task |
+| `/kilacraft plugins ...` | Console-only | Third-party plugin calls |
+
+### Skill Permissions
+
+| Permission Node | Default | Description |
+|:-:|:-:|:-:|
+| `kilacraft.api.player.inventory` | true | Query player inventory |
+| `kilacraft.api.player.status` | true | Query player status |
+| `kilacraft.api.player.info` | true | Query player info |
+| `kilacraft.api.world.info` | true | Query world info |
+| `kilacraft.api.server.info` | true | Query server info |
+| `kilacraft.cmi.query` | true | CMI info query |
+| `kilacraft.cmi.teleport` | true | CMI teleport functionality |
+| `kilacraft.bukkit_fx` | true | Sound and particle effects |
+| `kilacraft.bukkit_stats` | true | Vanilla statistics query |
+| `kilacraft.command.execute` | op | Command execution (OP only by default) |
+
+Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all corresponding sub-permissions.
 
 ---
 
-## 🔧 Advanced Configuration Details
+## Security Mechanisms
 
-### 1. Agent Capability Configuration
+### Player Data Isolation
 
-```
-agent:
-  enabled: true                    # Master switch (highest priority)
-  enable_chat_listener: true       # Whether keyword trigger enables Agent
-  enable_command: true             # Whether /kilacraft command enables Agent
-  
-  # Historical conversation context configuration
-  intent_history_count: 5          # Use 5 rounds of history for intent recognition
-  analysis_history_count: 2        # Use 2 rounds of history for result analysis
-  
-  prompts:
-    system_prompt: "You are a professional Minecraft game assistant..."
-    analysis_prompt: "{results}\nPlease provide comprehensive analysis and suggestions based on the above conversation history, current input, and execution results."
-```
+Built-in non-cooperative security filtering mechanism that automatically runs before every Skill execution:
 
-**Use Cases:**
-- **Enable All Entry Points**: Suitable for servers needing complex task processing
-- **Command Mode Only**: Only want to provide intelligent features in `/kilacraft`
-- **All Disabled**: Only need basic AI dialogue functionality
+- Scans all values in Skill parameters to detect if they contain other online player names
+- Non-self and not in whitelist → automatically replaced with current player name (sanitization), Skill continues execution
+- Whitelist mechanism: Skills requiring other player operations (CMI teleport requests, AFK tasks, command execution) are pre-whitelisted
 
-### 2. Knowledge Base Segmentation Configuration
+### Built-in Skill Security
 
-```
-knowledge:
-  enabled: true
-  max_relevant_chunks: 3           # Maximum 3 segments returned per retrieval
-  segment:
-    max_size: 500                  # Each segment max 500 characters
-    min_size: 25                   # Minimum 25 characters (ignore if smaller)
-    overlap: 30                    # Segment overlap 30 characters (maintain coherence)
-```
+| Skill | Security |
+|:-:|:-:|
+| Bukkit API Query | Read-only, only calls getter methods |
+| Vanilla Statistics | Read-only |
+| Market Query | Read-only, no item or money consumption |
+| CMI Teleport | TPA request mode, CMI handles permissions |
+| Command Execution | Executes as player, fully inherits server permissions |
+| Sound/Particles | Only visible/audible to caller |
+| AFK Tasks | Whitelist allowed, concurrency re-entry protection |
 
-**Best Practices:**
-- ✅ FAQ Q&A Style (Most Recommended): Each question one `##` heading
-- ✅ Rule List Style: Each rule one paragraph
-- ❌ Avoid large paragraphs: Entire paragraph exceeding 2000 characters
+### Third-Party Skill Protection
 
-### 3. Language Customization
-
-All system prompt texts can be customized in `language.yml`:
-
-```
-help:
-  messages:
-    - "§eUsage: /kilacraft <message>"
-    - "§eShorthand: /kila <message>"
-  
-features:
-  chat-mode-enter: "§aEntered continuous chat mode!"
-  
-commands:
-  reload-success: "§aConfiguration reloaded!"
-  cooldown-warning: "§cPlease wait {seconds} seconds before trying again!"
-```
-
-Supports color codes (`§`) and variable placeholders (`{player}`, `{seconds}`).
-
-### 4. Personality System Configuration
-
-Personality system allows you to customize AI's speaking style and behavioral characteristics, making AI better fit your server atmosphere.
-
-**Basic Usage:**
-```yaml
-# personalities.yml
-Fox: |
-  You are a clever fox NPC who speaks playfully and cutely.
-  Like to end sentences with "~", often use emojis.
-  Well-versed in server rules, answer player questions in interesting ways.
-```
-
-**Reload Personality Configuration:**
-```
-/kilacraft personalities reload
-```
+Even if third-party Skills attempt to operate on other players, the security filter automatically sanitizes. Review code sources before installation.
 
 ---
 
-#### 📚 Detailed Documentation
+## Frequently Asked Questions
 
-For more technical details, please check [Personality System Configuration Guide](./Personality%20System%20Guide).
+**Q: Are API costs high?**
+With DeepSeek, a single conversation costs about ¥0.001-0.002. Setting cooldown (default 5 seconds) effectively controls costs.
 
----
+**Q: Which LLMs are supported?**
+All OpenAI-standard providers: DeepSeek, Zhipu AI, Moonshot, OpenAI, Groq, SiliconFlow, Gemini, OpenRouter, etc. Reasoning models (like deepseek-reasoner, o1) are not supported.
 
-## ⚠️ Security and Permission Management
+**Q: Will it lag the server?**
+No. All API requests are asynchronous, memory usage 8-50 MB, HTTP connection pool reused, streaming response reduces latency.
 
-### Skill Security Interceptor
-
-Kilacraft-AI includes a **non-cooperative security filtering mechanism** (SkillSecurityFilter) that protects player data from being accessed or tampered with by malicious Skills.
-
-#### Core Design: Value Scanning + Sanitization
-
-The security interceptor **automatically runs before every Skill execution** and cannot be skipped. It does not rely on Skill's "cooperative declaration", but directly scans all values (Values) in Skill parameters to detect if they contain other online players' names:
-
-| Detection Scenario | Handling |
-|----------|----------|
-| Parameter value = current player's own name | ✅ Direct allow |
-| Parameter value = other online player name + in whitelist | ✅ Whitelist allow |
-| Parameter value = other online player name + not in whitelist | 🔄 Sanitize: auto-replace with current player name, Skill continues execution |
-
-**Why non-cooperative?** Malicious Skills may tamper with their parameter declarations to bypass checks. The non-cooperative approach directly scans actual transmitted data values — regardless of how the Skill declares, as long as the Value is an online player name, it will be detected.
-
-#### Whitelist Mechanism
-
-Some Skills need to operate on other players (such as CMI's TPA teleport requests, AFK monitoring tasks), and these Skills are allowed through the whitelist:
-
-```yaml
-# Configure in config.yml
-security:
-  player_isolation:
-    enabled: true                    # Master switch
-    allowed_actions:
-      - "cmi.send_tp_request"        # CMI teleport request (TPA)
-      - "AFKTask.create_task"        # AFK tasks (can monitor other players)
-      - "command.execute_command"    # Command execution (executes as player, permission boundary = player's own)
-```
-
-Whitelist supports two formats:
-- `"skill_name.action_name"`: Action-level whitelist (e.g., `cmi.send_tp_request`)
-- `"skill_name"`: Skill-level whitelist (allows all actions of that Skill)
-
-Supports `/kilacraft reload` hot update, no server restart required.
-
-#### Built-in Skill Security
-
-All Skills built into Kilacraft-AI have undergone strict security review:
-
-| Skill Name | Function | Security |
-|-----------|------|--------|
-| **MarketQuerySkill** | Query market info (balance, prices, product lists, etc.) | ✅ Read-only, won't consume items or money |
-| **GenericBukkitAPISkill** | Query player status, world info, server info | ✅ Read-only, only calls getter methods |
-| **AFKTaskSkill** | Create background monitoring tasks (online, offline, death, etc.) | ✅ Allowed through whitelist, CUSTOM type has concurrency re-entry protection |
-| **CMISkill** | CMI plugin feature integration (teleport, homes, warps, etc.) | ✅ Allowed through whitelist, teleport operations use TPA request mode |
-| **CommandSkill** | Execute server commands as player | ✅ Allowed through whitelist, fully inherits server permission system (permissions player doesn't have, AI cannot bypass) |
-| **BukkitFXSkill** | Play sound effects/show particle effects | ✅ Only visible/audible to caller, doesn't affect other players |
-
-#### Third-Party Skill Risk Warning
-
-If you install Skills developed by third-party plugins, please note:
-
-**Security Risk Sources:**
-- Third-party developers may implement **write operations** (such as transfers, teleports, giving items, etc.)
-- May have **logic vulnerabilities** leading to unexpected consequences
-- May **bypass permission checks** to execute sensitive operations
-
-**Protection Measures:**
-1. **Review Skill Source**: Only install plugins from trusted developers
-2. **Check Skill Description**: Carefully read Skill's function description and return values
-3. **Test Environment Verification**: First verify functionality is normal and safe on test server
-4. **Minimum Permissions**: Limit who can use which Skills through permission plugins
-5. **Monitor Logs**: Regularly check console logs, handle anomalies promptly
-6. **Security Interceptor Fallback**: Even if third-party Skill attempts to operate on other players, security filter will automatically sanitize (replace with current player name)
-
-**Advice for Developers:**
-If you're a plugin developer, please follow these principles when developing Skills:
-- ✅ Prioritize implementing **read-only query** functions
-- ⚠️ If implementing **write operations**, must clearly mark risks in documentation
-- 🔒 Perform **strict permission checks** in `execute()` method
-- 📝 Provide clear **usage instructions** and **precautions**
-- 🛡️ Implement proper **exception handling** to avoid crashes or data corruption
-
-See [SPI Integration Guide](./Skill%20SPI%20Integration%20Guide) Chapter 7 "Error Isolation and Exception Handling".
+**Q: How to update?**
+Backup `plugins/Kilacraft-AI/` directory to preserve config, replace JAR file, restart server.
 
 ---
 
-#### 📚 Related Technical Documentation
+## Community & Resources
 
-For in-depth understanding of internal mechanisms, please check [System Architecture Details](./System%20Architecture%20Details.md).
+<table>
+<tr>
+<td width="50%">
 
----
+**Source Code**
 
-## 🚀 Ecosystem Expansion: Invite Developers to Build AI Agent Ecosystem Together
+[![GitHub](https://img.shields.io/badge/GitHub-axy--yxa/Kilacraft--AI-181717?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
+[![Gitee](https://img.shields.io/badge/Gitee-zm__mmm/kilacraft--ai-C71D23?logo=gitee)](https://gitee.com/zm_mmm/kilacraft-ai)
 
-### 🌈 Vision
+</td>
+<td width="50%">
 
-We firmly believe: **Every Minecraft plugin should be able to converse with AI!**
+**Community**
 
-Kilacraft-AI through open **Skill SPI interface**, allows third-party plugin developers to easily expose their functionality to AI Agent, achieving:
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord)](https://discord.gg/nNmhcZHDxr)
+[![QQ Group](https://img.shields.io/badge/QQ%20Group-1094391147-12B7F5?logo=tencentqq)](https://qm.qq.com/q/1094391147)
 
-- 💬 **Natural Language Interaction**: Players don't need to remember complex commands, just describe needs in language
-- 🤖 **Intelligent Intent Recognition**: AI automatically understands player intent and calls corresponding functions
-- 🔗 **Multi-Step Task Orchestration**: Cross-plugin function combination, achieve complex workflows
+</td>
+</tr>
+<tr>
+<td>
 
-### 📚 Developer Resources
+**Documentation**
 
-- **SPI Integration Guide**: [Kilacraft-AI-Skill-SPI-Integration-Guide.md](Skill-SPI-Integration-Guide)
-- **API JAR**: `Kilacraft-Skill-API-1.4.2.jar` (only 5 KB, compileOnly dependency)
-- **Example Code**: Documentation includes complete Hello World and PlayerStats examples
+[![Wiki](https://img.shields.io/badge/Chinese_Wiki-View_Docs-0B8FDC)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3%E7%B4%A2%E5%BC%95)
+[![English Wiki](https://img.shields.io/badge/English_Wiki-View_Docs-0B8FDC)](https://github.com/axy-yxa/Kilacraft-AI/wiki)
+[![Skill Registry](https://img.shields.io/badge/Skill_Registry-View_Stats-4CAF50)](https://axy-yxa.github.io/Kilacraft-AI/skill-registry.html)
 
-### 🎯 Plugin Types Suitable for Integration
+</td>
+<td>
 
-| Plugin Type | Example Skill | User Scenario |
-|------------|---------------|---------------|
-| **Economy System** | Balance query, transfer, shop purchase | "Help me transfer 100 to Steve" |
-| **Land System** | Query land, create land, add members | "How big is my land?" |
-| **Leaderboards** | Wealth ranking, online time ranking | "Who is the server's richest?" |
-| **RPG System** | Query skill levels, quest progress | "What is my mining level?" |
-| **Guild System** | Guild info, member list | "How many people in our guild?" |
-| **Achievement System** | Achievement progress, incomplete achievements | "Which achievements haven't I completed?" |
-| **World Management** | Chunk info, teleport management | "Teleport to main city" |
+**Feedback & Contribution**
 
-### 🤝 Contact Us
+[![Issues](https://img.shields.io/badge/Submit_Issue-GitHub-orange)](https://github.com/axy-yxa/Kilacraft-AI/issues)
+[![PR](https://img.shields.io/badge/Submit_PR-Contributions_Welcome-brightgreen)](https://github.com/axy-yxa/Kilacraft-AI/pulls)
 
-If you're a plugin developer, welcome to:
+</td>
+</tr>
+</table>
 
-1. **Read SPI Documentation**, learn integration method (get started in 5 minutes)
-2. **Develop Skills for Your Plugin**, let players call your features with natural language
-3. **Provide Feedback**, help us improve Kilacraft-AI
-4. **Share in Community**, help more server owners understand AI Agent value
-
-### 🏆 Integrated Plugins
-
-- ✅ **GlobalMarketPlus**: Deep economy system integration (balance, price, product queries)
-- ✅ **CMI**: Deep teleport system integration (teleport to home, teleport to warp, teleport to player), enhanced player info queries (playtime, AFK status, vanish status, kits list, online players)
-- ✅ **MythicMobs**: Placeholder support (NPC displays AI replies)
-
-**Looking forward to your plugin being next!** 🎉
-
----
-
-## 🔍 Skill Global Registry & Review Process
-
-### 📊 Real-Time Skill Usage Statistics
-
-Kilacraft-AI provides a **Skill Global Registry page** that displays in real-time the Skill usage inventory, server counts, and security review status worldwide:
-
-👉 **View Registry**: https://axy-yxa.github.io/Kilacraft-AI/skill-registry.html
-
-**Registry Features:**
-- 📈 Real-time display of server usage count for each Skill
-- 🟢 Security status badges: Official / Verified / Unverified
-- 🔍 Distinguishes built-in Skills from third-party SPI Skills
-- 📋 Sorted by server count in descending order
-
-### 🛡️ Skill Review Process
-
-Want your Skill to be whitelisted? After review, users will see 🟢 Verified badge on the registry page.
-
-**How to submit**: Create a new Issue on [GitHub Issues](https://github.com/axy-yxa/Kilacraft-AI/issues) or [Gitee Issues](https://gitee.com/zm_mmm/kilacraft-ai/issues) with title `[Skill Review] Your Skill Name`
-
-**Required information:**
-1. **Skill name** (must match registration)
-2. **Source code or JAR** (required for security review)
-3. **Description** (brief explanation of what the Skill does)
-4. **Permissions** (Bukkit permissions needed or plugin dependencies)
-5. **Documentation** (optional, if you have usage docs or Wiki)
-
-**Review criteria:**
-- ✅ Does not manipulate other players' data (unless explicitly stated and justified)
-- ✅ Does not execute dangerous commands (op-level commands, file I/O, etc.)
-- ✅ No malicious network requests or data exfiltration
-- ✅ Proper resource cleanup (no memory leaks)
-
-Once approved, your Skill will be added to the whitelist and marked as 🟢 Verified on the registry page.
-
----
-
-## ❓ Frequently Asked Questions FAQ
-
-### Q1: Are API costs high?
-
-**A:** Depends on usage frequency. Taking DeepSeek as example:
-- `deepseek-chat` model: Input ¥0.5/million Tokens, Output ¥2/million Tokens
-- Single conversation consumes about 500-1000 Tokens (about ¥0.001-0.002)
-- Recommend setting reasonable `cooldown_seconds` to prevent abuse
-
-**Money-Saving Tips:**
-- Enable cooldown time (default 5 seconds)
-- Limit allowed worlds (avoid use in high-frequency scenarios like mob farms)
-- Adjust `max_tokens` to control reply length
-
-### Q2: Which LLM vendors are supported?
-
-**A:** Supports all vendors following **OpenAI standard API format**:
-
-| Vendor | API URL | Recommended Model |
-|--------|---------|------------------|
-| DeepSeek | `https://api.deepseek.com/v1/chat/completions` | `deepseek-chat` |
-| Zhipu AI | `https://open.bigmodel.cn/api/paas/v4/chat/completions` | `glm-4-plus` |
-| Moonshot | `https://api.moonshot.cn/v1/chat/completions` | `moonshot-v1-8k` |
-
-Just modify `api_url` and `model` in `config.yml` to switch, no code changes needed!
-
-### Q3: Will it lag the server?
-
-**A:** No. Plugin adopts multiple optimization measures:
-- **Extremely low memory usage**: Small servers only need 8-12 MB, large servers about 30-50 MB (far lower than traditional solutions' 2-5 GB)
-- **Asynchronous non-blocking execution**: API requests performed in background threads, don't block main thread
-- **HTTP connection pool reuse**: 10 idle connections reused, reduce handshake overhead
-- **Configurable cooldown**: Prevent high-frequency calls (default 5 seconds)
-- **Streaming response optional**: Reduce first-byte latency
-
-### Q4: How to ensure data security?
-
-**A:** 
-- API Key stored in local configuration file, won't upload to any server
-- Conversation history only saved in memory, cleared after restart
-- Support world restrictions, can disable AI features in sensitive areas
-- Fine-grained permission control, can limit who can use which features
-
-### Q5: Does it support offline player dialogue?
-
-**A:** 
-- **Normal dialogue mode**: Not supported, AI dialogue requires player online to receive replies.
-- **Plugin command mode**: Supported! Console can call via `/kilacraft plugins` command, even if player offline can generate AI replies (processed through callback commands).
-- **Application Scenario**: MythicMobs NPCs can pre-generate replies when player offline, display when player comes online.
-
-### Q6: How to update plugin?
-
-**A:** 
-1. Backup `plugins/Kilacraft-AI/` directory (preserve configuration)
-2. Replace `Kilacraft-AI.jar` file
-3. Restart server
-4. Check if new version configuration items have changed
-
-### Q7: What to do if encountering problems?
-
-**A:** 
-1. Enable debug mode: `settings.debug_mode: true`
-2. Check console logs, look for error messages
-3. Verify API Key is correct, network connection is stable
-4. Consult "Troubleshooting" chapter in this document
-5. Ask questions in community forums or contact author
-
----
-
-## 🐛 Troubleshooting
-
-### AI Not Replying
-
-**Possible Causes:**
-1. API Key incorrect or expired → Check `api_key` in `config.yml`
-2. Network connection issues → Check if server can access API address
-3. In disabled world → Check `banned_worlds` configuration
-4. Cooldown time not reached → Wait a few seconds and try again
-
-**Solution:**
-```
-# Enable debug mode to view detailed logs
-settings:
-  debug_mode: true
-```
-
-### Cooldown Time Too Long
-
-**Adjustment Method:**
-```
-settings:
-  cooldown_seconds: 2  # Change to 2 seconds
-```
-
-### Continuous Chat Mode Not Working
-
-**Check Items:**
-1. Whether `enable_chat_command: true` is enabled
-2. Whether player has corresponding permissions
-3. Check console for error logs
-
-### Knowledge Base Retrieval Not Accurate
-
-**Optimization Suggestions:**
-1. Use Markdown heading segmentation (`#`, `##`, `###`)
-2. Each knowledge point independent paragraph, avoid large blocks of text
-3. Adjust `max_relevant_chunks` to increase return count
-4. Use `/kilacraft knowledge reload` to reload
-
-### GlobalMarketPlus Features Unavailable
-
-**Check Items:**
-1. Whether GlobalMarketPlus plugin is installed
-2. Whether version is 1.3.8.0+
-3. Check console for integration failure logs
-
----
-
-## 🤝 Contributing & Community
-
-We welcome community contributions! If you have any suggestions or discover problems:
-
-1. **⭐ Star the Project**: Give us a Star on [GitHub](https://github.com/axy-yxa/Kilacraft-AI) or [Gitee](https://gitee.com/zm_mmm/kilacraft-ai)
-2. **📢 Share with Friends**: Recommend to other server owners and developers
-3. **🐛 Submit Issues**: Report problems or suggest improvements
-4. **💻 Submit PRs**: Fix bugs or add new features
-5. **🔧 Develop Skills**: Develop custom Skills for your plugins, enrich ecosystem
-
-- **📚 Complete Document Index**: [View all technical documents](./Document%20Index.md)
-- **DeepSeek API Documentation**: https://platform.deepseek.com/api-docs/
-- **Zhipu AI Documentation**: https://open.bigmodel.cn/dev/api
-- **Moonshot Documentation**: https://platform.moonshot.cn/docs
-
-This project uses **MIT License** - See [LICENSE](../LICENSE) file for details
-
-
+MIT License — If you find it useful, give it a ⭐ Star!
