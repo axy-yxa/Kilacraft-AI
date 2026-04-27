@@ -23,23 +23,45 @@ import java.util.regex.Pattern;
 public class KnowledgeRetriever {
 
     private final KnowledgeBaseManager knowledgeBase;
-    private final int maxRelevantChunks;
-    private final double minRelevanceScore;      // 最低相关性得分阈值
+    private int maxRelevantChunks;
+    private double minRelevanceScore;      // 最低相关性得分阈值
 
     // 关键词提取配置
-    private final int keywordTopK;
+    private int keywordTopK;
 
     // BM25 评分算法参数
-    private final double bm25K1;  // 词频饱和参数
-    private final double bm25B;   // 文档长度归一化参数
+    private double bm25K1;  // 词频饱和参数
+    private double bm25B;   // 文档长度归一化参数
 
     // 分段配置
-    private final int MAX_CHUNK_SIZE;
-    private final int MIN_CHUNK_SIZE;
-    private final int CHUNK_OVERLAP;
+    private int MAX_CHUNK_SIZE;
+    private int MIN_CHUNK_SIZE;
+    private int CHUNK_OVERLAP;
 
     public KnowledgeRetriever(KnowledgeBaseManager knowledgeBase, int maxRelevantChunks, double minRelevanceScore, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
         this.knowledgeBase = knowledgeBase;
+        applyConfig(maxRelevantChunks, minRelevanceScore, maxChunkSize, minChunkSize, chunkOverlap, keywordTopK, bm25K1, bm25B);
+    }
+
+    /**
+     * 刷新配置参数（热重载时由 reload 流程调用）
+     * <p>知识库内容的刷新由 {@link KnowledgeBaseManager#reload()} 处理，
+     * 此方法仅更新算法调优参数（分段大小、BM25、阈值等）。</p>
+     *
+     * @param maxRelevantChunks 最大返回片段数
+     * @param minRelevanceScore 最低相关性阈值
+     * @param maxChunkSize      最大分段大小
+     * @param minChunkSize      最小分段大小
+     * @param chunkOverlap      段间重叠字符数
+     * @param keywordTopK       关键词提取数量
+     * @param bm25K1            BM25 k1 参数
+     * @param bm25B             BM25 b 参数
+     */
+    public void refreshConfig(int maxRelevantChunks, double minRelevanceScore, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
+        applyConfig(maxRelevantChunks, minRelevanceScore, maxChunkSize, minChunkSize, chunkOverlap, keywordTopK, bm25K1, bm25B);
+    }
+
+    private void applyConfig(int maxRelevantChunks, double minRelevanceScore, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
         this.maxRelevantChunks = maxRelevantChunks;
         this.minRelevanceScore = minRelevanceScore;
         this.keywordTopK = keywordTopK;

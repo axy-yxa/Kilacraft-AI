@@ -59,6 +59,7 @@ public final class KilacraftAI extends JavaPlugin {
     private ChatListener chatListener;
     private ConversationManager conversationManager;
     private KnowledgeBaseManager knowledgeBase;
+    @Getter
     private KnowledgeRetriever knowledgeRetriever;
     private SkillManager skillManager;
     private SkillIntentRecognizer intentRecognizer;

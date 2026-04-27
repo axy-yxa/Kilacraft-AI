@@ -131,8 +131,32 @@ public class KilacraftCommand implements CommandExecutor {
                 plugin.getSoundEffectManager().loadConfig();
             }
 
+            // 热重载人格配置（语言变更后切换到对应语言的人格文件）
+            if (plugin.getPersonalitiesConfigManager() != null) {
+                plugin.getPersonalitiesConfigManager().reload();
+            }
+
+            // 热重载知识库（语言变更后切换到对应语言的知识库目录）
+            if (plugin.getKnowledgeBase() != null) {
+                plugin.getKnowledgeBase().reload();
+            }
+
+            // 刷新知识检索器的算法参数（分段大小、BM25、阈值等）
+            if (plugin.getKnowledgeRetriever() != null) {
+                ConfigManager cm = plugin.getConfigManager();
+                plugin.getKnowledgeRetriever().refreshConfig(
+                        cm.getMaxRelevantChunks(), cm.getMinRelevanceScore(),
+                        cm.getKnowledgeMaxChunkSize(), cm.getKnowledgeMinChunkSize(), cm.getKnowledgeChunkOverlap(),
+                        cm.getKeywordTopK(), cm.getBm25K1(), cm.getBm25B()
+                );
+            }
+
             // 热重载文本处理器（语言变更后需要重建分词器）
             com.zm.kilacraftAI.util.TextProcessorFactory.reset();
+            // 重新初始化分词词典（按新语言加载对应词典）
+            if (plugin.getConfigManager().isCustomDictionaryEnabled()) {
+                com.zm.kilacraftAI.util.TextProcessorFactory.initialize(plugin.getConfigManager().getAllDictionaryWords());
+            }
 
             sender.sendMessage(languageManager.getCommandReloadSuccess());
             PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogConfigReloaded(), "sender", getSenderName(sender)));

@@ -22,7 +22,7 @@ import java.util.Map;
 public class PersonalitiesConfigManager {
 
     private final KilacraftAI plugin;
-    private final File personalitiesFile;
+    private File personalitiesFile;
 
     // 人格缓存（人格中文名 -> 提示词）
     private final Map<String, String> personalitiesCache;
@@ -35,16 +35,21 @@ public class PersonalitiesConfigManager {
 
     public PersonalitiesConfigManager(KilacraftAI plugin) {
         this.plugin = plugin;
+        this.personalitiesCache = new HashMap<>();
 
-        // 根据当前语言选择配置文件（zh=personalities.yml, en=personalities_en.yml）
+        // 初始化语言相关的配置文件
+        updateConfigFile();
+        loadConfig();
+    }
+
+    /**
+     * 根据当前语言更新配置文件路径，并拷贝对应语言的默认配置
+     */
+    private void updateConfigFile() {
         String lang = plugin.getConfigManager().getLanguage();
         String fileName = "zh".equals(lang) ? "personalities.yml" : "personalities_" + lang + ".yml";
         this.personalitiesFile = new File(plugin.getDataFolder(), fileName);
-        this.personalitiesCache = new HashMap<>();
-
-        // 复制默认配置
         ConfigResourceUtil.saveDefaultResource(plugin, fileName, "人格配置");
-        loadConfig();
     }
 
     /**
@@ -132,10 +137,11 @@ public class PersonalitiesConfigManager {
     }
 
     /**
-     * 重新加载配置文件
+     * 重新加载配置文件（语言变更时同步切换文件）
      */
     public void reload() {
         PluginLogger.info("人格配置", "正在重新加载人格配置...");
+        updateConfigFile();
         loadConfig();
         PluginLogger.info("人格配置", "人格配置加载完成");
     }

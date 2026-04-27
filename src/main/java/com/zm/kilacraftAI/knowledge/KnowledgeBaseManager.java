@@ -26,17 +26,24 @@ public class KnowledgeBaseManager {
 
     private final KilacraftAI plugin;
     private final Path knowledgeDir;
-    private final Path effectiveDir;                        // 实际加载的知识库目录（根据语言动态选择）
+    private Path effectiveDir;                           // 实际加载的知识库目录（根据语言动态选择）
     private final Map<String, String> knowledgeCache;           // 原始文件内容缓存
     private final Map<String, List<String>> chunkCache;         // 分段后内容缓存
 
     public KnowledgeBaseManager(KilacraftAI plugin, String dataFolderPath) {
         this.plugin = plugin;
         this.knowledgeDir = Paths.get(dataFolderPath, "knowledge");
+        this.knowledgeCache = new HashMap<>();
+        this.chunkCache = new HashMap<>();
 
-        // 根据当前语言决定加载目录和拷贝资源
-        // zh: 只拷贝 knowledge 根目录文件（maxDepth=1，不递归 en/ 等子目录）
-        // 非 zh: 只拷贝 knowledge/{lang}/ 子目录文件
+        // 初始化语言相关目录
+        updateEffectiveDir();
+    }
+
+    /**
+     * 根据当前语言更新 effectiveDir，并拷贝对应语言的默认知识库资源
+     */
+    private void updateEffectiveDir() {
         String lang = plugin.getConfigManager().getLanguage();
         if ("zh".equals(lang)) {
             this.effectiveDir = knowledgeDir;
@@ -45,9 +52,6 @@ public class KnowledgeBaseManager {
             this.effectiveDir = knowledgeDir.resolve(lang);
             ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge/" + lang, "知识库");
         }
-
-        this.knowledgeCache = new HashMap<>();
-        this.chunkCache = new HashMap<>();
     }
 
     /**
@@ -113,10 +117,11 @@ public class KnowledgeBaseManager {
     }
 
     /**
-     * 重新加载知识库
+     * 重新加载知识库（语言变更时同步切换目录）
      */
     public void reload() {
         PluginLogger.info("知识库", "正在重新加载知识库...");
+        updateEffectiveDir();
         loadAllKnowledge();
         PluginLogger.info("知识库", "知识库加载完成");
     }
