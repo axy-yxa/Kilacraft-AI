@@ -6,6 +6,7 @@ dependency-reduced-pom.xml
 test/
 .qoder
 .qoderignore
+.trae
 .shelf
 lib/
 
