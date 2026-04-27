@@ -9,6 +9,7 @@ test/
 .trae
 .shelf
 lib/
+apis
 
 ### IntelliJ IDEA ###
 .idea
