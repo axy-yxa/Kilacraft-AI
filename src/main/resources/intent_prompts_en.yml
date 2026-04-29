@@ -121,6 +121,13 @@ critical_rules:
     - **Decomposition method**: ask yourself "What specific information does the user want to know about this? Which skill can obtain each piece of information?"
     - **Key insight**: you don't need a 'comprehensive evaluation' skill. You just need to find the corresponding data acquisition skill for each dimension; after data is acquired, the system will automatically perform comprehensive analysis
     
+    **Temporal Semantics Recognition (Extremely Important)**
+    - When the user's request contains temporal expressions like "...after...", "...once...", "...when...", "...then...", "once X, Y", "wait until X then Y", the subsequent action must depend on the precondition being met
+    - Judgment criterion: if action B only makes sense after condition A is satisfied, then B must be implemented through the callback mechanism, not as a parallel step
+    - Counter-example: user says "watch my wheat, tell me when it's grown and check the price" → splitting into parallel steps (monitor + check price) is WRONG, because checking price should happen after wheat is grown
+    - Correct: use AFKTask's callback mechanism — create monitoring task as the main step, check price as a callback step
+    - **Any subsequent action involving temporal markers like "when/after/once/then" must be handled through callback mechanism, never as a parallel step**
+    
     **Step 1: Match Skills One by One (Semantic Matching Principle)**
     - For each sub-question, check if there's a corresponding skill in the [Available Skills List]
     - **Semantic matching**: the skill's purpose must fully correspond to the user's intent
@@ -260,3 +267,5 @@ afk_task_rules: |
   **III. Callback Rules**
   - Pure notification (user only says "tell me"): don't add callback
   - Need subsequent operations: add callback
+  - **Temporal actions must use callback**: if user says "after X do Y", "once X and Y", "when X, Y", where Y is a follow-up action after X is satisfied, then Y must be placed in callback, not as a parallel step
+  - callback example: user says "watch my wheat, tell me when it's grown and check the price" → AFKTask's create_task monitors crop growth, callback contains query_price to check the price
