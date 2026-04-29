@@ -4,6 +4,8 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.*;
 import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
+import com.zm.kilacraftAI.knowledge.EmbeddingService;
+import com.zm.kilacraftAI.knowledge.InternalEnumRegistry;
 import com.zm.kilacraftAI.knowledge.KnowledgeBaseManager;
 import com.zm.kilacraftAI.knowledge.KnowledgeRetriever;
 import com.zm.kilacraftAI.listener.ChatListener;
@@ -27,6 +29,7 @@ import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
 import com.zm.kilacraftAI.skills.framework.spi.SkillRegistry;
 import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
+import com.zm.kilacraftAI.skills.globalmarketplus.MarketActionSkill;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import com.zm.kilacraftAI.util.PluginLogger;
@@ -58,9 +61,13 @@ public final class KilacraftAI extends JavaPlugin {
     private IntentPromptConfigManager intentPromptConfigManager;
     private ChatListener chatListener;
     private ConversationManager conversationManager;
+    @Getter
     private KnowledgeBaseManager knowledgeBase;
     @Getter
     private KnowledgeRetriever knowledgeRetriever;
+    @Getter
+    private EmbeddingService embeddingService;
+
     private SkillManager skillManager;
     private SkillIntentRecognizer intentRecognizer;
 
@@ -150,6 +157,22 @@ public final class KilacraftAI extends JavaPlugin {
         // 知识检索器（依赖 configManager + knowledgeBase）
         knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, configManager.getMaxRelevantChunks(), configManager.getMinRelevanceScore(), configManager.getKnowledgeMaxChunkSize(), configManager.getKnowledgeMinChunkSize(), configManager.getKnowledgeChunkOverlap(), configManager.getKeywordTopK(), configManager.getBm25K1(), configManager.getBm25B());
 
+        // Embedding 语义检索服务
+        if (configManager.isEmbeddingEnabled()) {
+            embeddingService = new EmbeddingService(configManager, knowledgeBase.getKnowledgeDir());
+            knowledgeRetriever.setEmbeddingService(embeddingService, true, configManager.getEmbeddingMinSimilarity());
+
+            // 同步分段 + 预计算（服务器启动阶段）
+            try {
+                knowledgeRetriever.buildChunkCache();
+                embeddingService.precomputeAllChunks(knowledgeBase.getAllChunkCache());
+            } catch (Exception e) {
+                PluginLogger.warn("知识库", "Embedding 预计算异常: {}", e.getMessage());
+            }
+
+            PluginLogger.info("知识库", "Embedding 语义检索已启用");
+        }
+
         // 自定义词典（依赖 configManager，通过工厂统一初始化）
         if (configManager.isCustomDictionaryEnabled()) {
             TextProcessorFactory.initialize(configManager.getAllDictionaryWords());
@@ -161,6 +184,10 @@ public final class KilacraftAI extends JavaPlugin {
         // 物品翻译器（无外部依赖）
         itemTranslator = new ItemTranslator();
         itemTranslator.loadTranslationTable();
+
+        // 内置枚举注册表（音效/粒子/统计）
+        InternalEnumRegistry enumRegistry = new InternalEnumRegistry();
+        enumRegistry.loadAll();
     }
 
     /**
@@ -296,9 +323,10 @@ public final class KilacraftAI extends JavaPlugin {
             skillManager.registerSkill(new CommandSkill());
         }
 
-        // 注册市场查询技能（条件注册：仅当 GlobalMarketPlus 插件存在时）
+        // 注册全球市场技能（条件注册：仅当 GlobalMarketPlus 插件存在时）
         if (getServer().getPluginManager().getPlugin("GlobalMarketPlus") != null) {
             skillManager.registerSkill(new MarketQuerySkill());
+            skillManager.registerSkill(new MarketActionSkill());
         }
 
         // 注册 CMI 技能（条件注册：仅当 CMI 插件存在时）
@@ -400,6 +428,11 @@ public final class KilacraftAI extends JavaPlugin {
         // 清理流式输出管理器（释放状态映射）
         if (streamOutputManager != null) {
             streamOutputManager.cleanup();
+        }
+
+        // 关闭 Embedding 服务
+        if (embeddingService != null) {
+            embeddingService.shutdown();
         }
 
         // 关闭挂机任务系统

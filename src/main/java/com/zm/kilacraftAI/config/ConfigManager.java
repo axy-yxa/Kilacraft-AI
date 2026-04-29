@@ -77,6 +77,24 @@ public class ConfigManager {
     @Getter
     private double bm25B;                    // b 参数：控制文档长度归一化
 
+    // Embedding 语义检索配置
+    @Getter
+    private boolean embeddingEnabled;         // 是否启用 Embedding 语义检索
+    @Getter
+    private String embeddingModel;            // Embedding 模型名称
+    @Getter
+    private String embeddingApiUrl;            // Embedding API 完整 URL
+    @Getter
+    private String embeddingApiKey;            // Embedding API Key
+    @Getter
+    private int embeddingDimensions;          // 向量维度
+    @Getter
+    private double embeddingMinSimilarity;    // 最低相似度阈值（余弦相似度）
+    @Getter
+    private int embeddingTimeoutSeconds;      // API 调用超时（秒）
+    @Getter
+    private boolean embeddingCacheEnabled;    // 是否启用向量缓存持久化
+
     // 自定义词典配置
     @Getter
     private boolean customDictionaryEnabled; // 是否启用自定义词典
@@ -220,6 +238,16 @@ public class ConfigManager {
         // BM25 评分算法配置
         this.bm25K1 = config.getDouble("knowledge.bm25.k1", 1.5);
         this.bm25B = config.getDouble("knowledge.bm25.b", 0.75);
+
+        // Embedding 语义检索配置
+        this.embeddingEnabled = config.getBoolean("knowledge.embedding.enabled", true);
+        this.embeddingModel = config.getString("knowledge.embedding.model", "");
+        this.embeddingApiUrl = config.getString("knowledge.embedding.api_url", "");
+        this.embeddingApiKey = config.getString("knowledge.embedding.api_key", "");
+        this.embeddingDimensions = config.getInt("knowledge.embedding.dimensions", 1024);
+        this.embeddingMinSimilarity = config.getDouble("knowledge.embedding.min_similarity", 0.5);
+        this.embeddingTimeoutSeconds = config.getInt("knowledge.embedding.timeout_seconds", 10);
+        this.embeddingCacheEnabled = config.getBoolean("knowledge.embedding.cache_enabled", true);
 
         // 自定义词典配置
         this.customDictionaryEnabled = config.getBoolean("knowledge.custom_dictionary.enabled", true);

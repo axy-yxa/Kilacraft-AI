@@ -24,7 +24,7 @@ public class KnowledgeRetriever {
 
     private final KnowledgeBaseManager knowledgeBase;
     private int maxRelevantChunks;
-    private double minRelevanceScore;      // 最低相关性得分阈值
+    private double minRelevanceScore;      // 最低相关性得分阈值（BM25 模式）
 
     // 关键词提取配置
     private int keywordTopK;
@@ -37,6 +37,11 @@ public class KnowledgeRetriever {
     private int MAX_CHUNK_SIZE;
     private int MIN_CHUNK_SIZE;
     private int CHUNK_OVERLAP;
+
+    // Embedding 语义检索（volatile: 主线程写配置，异步检索线程读）
+    private volatile EmbeddingService embeddingService;
+    private volatile boolean embeddingEnabled;
+    private volatile double embeddingMinSimilarity;
 
     public KnowledgeRetriever(KnowledgeBaseManager knowledgeBase, int maxRelevantChunks, double minRelevanceScore, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
         this.knowledgeBase = knowledgeBase;
@@ -61,6 +66,15 @@ public class KnowledgeRetriever {
         applyConfig(maxRelevantChunks, minRelevanceScore, maxChunkSize, minChunkSize, chunkOverlap, keywordTopK, bm25K1, bm25B);
     }
 
+    /**
+     * 设置 Embedding 服务
+     */
+    public void setEmbeddingService(EmbeddingService embeddingService, boolean embeddingEnabled, double embeddingMinSimilarity) {
+        this.embeddingService = embeddingService;
+        this.embeddingEnabled = embeddingEnabled;
+        this.embeddingMinSimilarity = embeddingMinSimilarity;
+    }
+
     private void applyConfig(int maxRelevantChunks, double minRelevanceScore, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
         this.maxRelevantChunks = maxRelevantChunks;
         this.minRelevanceScore = minRelevanceScore;
@@ -73,10 +87,19 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * 检索与问题相关的知识
+     * 预构建全部分段缓存
      *
-     * @param question 用户问题
-     * @return 相关知识片段列表
+     * <p>在 Embedding 预计算前调用，确保所有知识文件已完成分段。</p>
+     */
+    public void buildChunkCache() {
+        Map<String, String> allKnowledge = knowledgeBase.getAllKnowledge();
+        for (Map.Entry<String, String> entry : allKnowledge.entrySet()) {
+            getOrSplitChunks(entry.getValue(), entry.getKey());
+        }
+    }
+
+    /**
+     * 检索与问题相关的知识
      */
     public List<String> retrieveKnowledge(String question) {
         long startTime = System.currentTimeMillis();
@@ -84,6 +107,78 @@ public class KnowledgeRetriever {
 
         if (allKnowledge.isEmpty()) {
             return Collections.emptyList();
+        }
+
+        // Embedding 语义检索路径
+        if (embeddingEnabled && embeddingService != null && embeddingService.isAvailable()) {
+            return retrieveByEmbedding(question, allKnowledge, startTime);
+        }
+
+        // BM25 算法检索路径（默认 / 降级）
+        return retrieveByBM25(question, allKnowledge, startTime);
+    }
+
+    /**
+     * Embedding 语义检索路径
+     */
+    private List<String> retrieveByEmbedding(String question, Map<String, String> allKnowledge, long startTime) {
+        PluginLogger.debug("知识库", "使用 Embedding 语义检索");
+
+        float[] queryVec = embeddingService.getEmbedding(question);
+        if (queryVec == null) {
+            PluginLogger.warn("知识库", "获取问题 Embedding 失败，降级到 BM25");
+            return retrieveByBM25(question, allKnowledge, startTime);
+        }
+
+        // 遍历片段计算余弦相似度
+        List<KnowledgeChunk> chunkScores = new ArrayList<>();
+        int totalChunks = 0;
+
+        for (Map.Entry<String, String> entry : allKnowledge.entrySet()) {
+            String fileName = entry.getKey();
+            String content = entry.getValue();
+
+            List<String> chunks = getOrSplitChunks(content, fileName);
+            totalChunks += chunks.size();
+
+            for (String chunk : chunks) {
+                float[] chunkVec = embeddingService.getEmbedding(chunk);
+                if (chunkVec == null) continue;
+
+                double similarity = cosineSimilarity(queryVec, chunkVec);
+                if (similarity > 0) {
+                    chunkScores.add(new KnowledgeChunk(fileName, chunk, similarity));
+                }
+            }
+        }
+
+        // 按相似度排序
+        chunkScores.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
+
+        // 过滤低相似度 + 取前 N
+        List<String> relevantKnowledge = new ArrayList<>();
+        int count = Math.min(chunkScores.size(), maxRelevantChunks);
+        double threshold = embeddingMinSimilarity >= 0 ? embeddingMinSimilarity : 0.3;
+
+        for (int i = 0; i < count; i++) {
+            KnowledgeChunk chunk = chunkScores.get(i);
+            if (chunk.getScore() < threshold) {
+                PluginLogger.debug("知识库", "剩余片段相似度过低（{}），停止返回", String.format("%.4f", chunk.getScore()));
+                break;
+            }
+            relevantKnowledge.add(chunk.getContent());
+        }
+
+        logRetrievalStats(startTime, allKnowledge.size(), totalChunks, chunkScores.size(), relevantKnowledge.size(), chunkScores);
+        return relevantKnowledge;
+    }
+
+    /**
+     * BM25 算法检索路径（默认 / Embedding 降级）
+     */
+    private List<String> retrieveByBM25(String question, Map<String, String> allKnowledge, long startTime) {
+        if (embeddingEnabled) {
+            PluginLogger.debug("知识库", "Embedding 不可用，降级到 BM25");
         }
 
         // HanLP TF-IDF 提取有意义的关键词
@@ -99,20 +194,7 @@ public class KnowledgeRetriever {
             String fileName = entry.getKey();
             String content = entry.getValue();
 
-            // 尝试从缓存获取分段
-            List<String> chunks = knowledgeBase.getChunkCache(fileName);
-
-            // 如果缓存不存在，重新分段并缓存
-            if (chunks == null) {
-                long cacheStartTime = System.currentTimeMillis();
-                chunks = splitIntoChunks(content, fileName);
-                knowledgeBase.setChunkCache(fileName, chunks);
-
-                PluginLogger.debug("知识库", "缓存文件：{} - 首次分段并缓存，耗时 {}ms", fileName, System.currentTimeMillis() - cacheStartTime);
-            } else {
-                PluginLogger.debug("知识库", "缓存文件：{} - 使用缓存的分段（{} 个片段）", fileName, chunks.size());
-            }
-
+            List<String> chunks = getOrSplitChunks(content, fileName);
             totalChunks += chunks.size();
 
             // 计算每个片段与问题的相关性得分
@@ -127,7 +209,7 @@ public class KnowledgeRetriever {
         // 按得分排序
         chunkScores.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
 
-        // 取前 N 个最相关的片段，过滤掉低分噪声（低于阈值的片段与问题无关，注入反而干扰 LLM）
+        // 取前 N 个最相关的片段，过滤掉低分噪声
         List<String> relevantKnowledge = new ArrayList<>();
         int count = Math.min(chunkScores.size(), maxRelevantChunks);
 
@@ -140,48 +222,56 @@ public class KnowledgeRetriever {
             relevantKnowledge.add(chunk.getContent());
         }
 
-        long endTime = System.currentTimeMillis();
-
-        // 输出分段统计日志
-        PluginLogger.debug("知识库", "检索耗时：{}ms", endTime - startTime);
-        PluginLogger.debug("知识库", "文件总数：{}, 总片段数：{}", allKnowledge.size(), totalChunks);
-        PluginLogger.debug("知识库", "匹配片段：{}, 返回得分最高的 {} 条", chunkScores.size(), relevantKnowledge.size());
-
-        // 输出匹配的详细信息
-        for (int i = 0; i < relevantKnowledge.size(); i++) {
-            KnowledgeChunk chunk = chunkScores.get(i);
-            PluginLogger.debug("知识库", "匹配 #{} - 文件：{}, 得分：{}, 长度：{} 字符", i + 1, chunk.getFileName(), String.format("%.2f", chunk.getScore()), chunk.getContent().length());
-            String preview = chunk.getContent().length() > 100 ? chunk.getContent().substring(0, 100) + "..." : chunk.getContent();
-            PluginLogger.debug("知识库", preview.replace("\n", "\\n"));
-        }
-
+        logRetrievalStats(startTime, allKnowledge.size(), totalChunks, chunkScores.size(), relevantKnowledge.size(), chunkScores);
         return relevantKnowledge;
     }
 
     /**
-     * 从问题中提取关键词（使用 HanLP TF-IDF 算法）
-     *
-     * @param question 用户问题
-     * @return 关键词列表
+     * 获取或创建分段缓存
+     */
+    private List<String> getOrSplitChunks(String content, String fileName) {
+        List<String> chunks = knowledgeBase.getChunkCache(fileName);
+        if (chunks == null) {
+            long cacheStartTime = System.currentTimeMillis();
+            chunks = splitIntoChunks(content, fileName);
+            knowledgeBase.setChunkCache(fileName, chunks);
+            PluginLogger.debug("知识库", "缓存文件：{} - 首次分段并缓存，耗时 {}ms", fileName, System.currentTimeMillis() - cacheStartTime);
+        } else {
+            PluginLogger.debug("知识库", "缓存文件：{} - 使用缓存的分段（{} 个片段）", fileName, chunks.size());
+        }
+        return chunks;
+    }
+
+    /**
+     * 输出检索统计日志
+     */
+    private void logRetrievalStats(long startTime, int fileCount, int totalChunks, int matchedChunks, int returnedChunks, List<KnowledgeChunk> chunkScores) {
+        long endTime = System.currentTimeMillis();
+        PluginLogger.debug("知识库", "检索耗时：{}ms", endTime - startTime);
+        PluginLogger.debug("知识库", "文件总数：{}, 总片段数：{}", fileCount, totalChunks);
+        PluginLogger.debug("知识库", "匹配片段：{}, 返回得分最高的 {} 条", matchedChunks, returnedChunks);
+
+        for (int i = 0; i < Math.min(returnedChunks, chunkScores.size()); i++) {
+            KnowledgeChunk chunk = chunkScores.get(i);
+            PluginLogger.debug("知识库", "匹配 #{} - 文件：{}, 得分：{}, 长度：{} 字符", i + 1, chunk.getFileName(), String.format("%.4f", chunk.getScore()), chunk.getContent().length());
+            String preview = chunk.getContent().length() > 100 ? chunk.getContent().substring(0, 100) + "..." : chunk.getContent();
+            PluginLogger.debug("知识库", preview.replace("\n", "\\n"));
+        }
+    }
+
+    /**
+     * 从问题中提取关键词（中文 HanLP TF-IDF / 英文 TF + 停用词过滤）
      */
     private List<String> extractKeywords(String question) {
         if (question == null || question.trim().isEmpty()) {
             return Collections.emptyList();
         }
-    
-        // 统一通过 TextProcessorFactory 按语言提取关键词
-        // 中文：HanLP TF-IDF（自动过滤通用词和停用词）
-        // 英文：空格分词 + 停用词过滤 + 自定义词典匹配 + TF 评分
+
         return TextProcessorFactory.get().extractKeywords(question, keywordTopK);
     }
 
     /**
-     * 【BM25 算法】计算问题与内容的相关性得分
-     *
-     * @param question 用户问题
-     * @param content  知识内容
-     * @param keywords 提取的关键词
-     * @return 相关性得分
+     * BM25 相关性评分
      */
     private double calculateRelevance(String question, String content, List<String> keywords) {
         if (question == null || question.trim().isEmpty() || content == null || content.trim().isEmpty()) {
@@ -224,10 +314,6 @@ public class KnowledgeRetriever {
 
     /**
      * 将长文本分割成合适大小的片段
-     *
-     * @param content  原始内容
-     * @param fileName 文件名（用于日志）
-     * @return 片段列表
      */
     private List<String> splitIntoChunks(String content, String fileName) {
         List<String> chunks = new ArrayList<>();
@@ -274,10 +360,7 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * 按 Markdown 标题分割（优化版：包含标题和内容）
-     *
-     * <p><b>重要</b>：如果没有找到任何 Markdown 标题（#{1,6}），必须返回空列表，
-     * 让调用方降级使用策略 2（段落分割）。</p>
+     * 按 Markdown 标题分割。无标题时返回空列表，交由段落分割处理。
      */
     private List<String> splitByMarkdownHeaders(String content) {
         List<String> chunks = new ArrayList<>();
@@ -362,7 +445,7 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * 按段落分割（空行分隔）
+     * 按空行分割
      */
     private List<String> splitByParagraphs(String content) {
         List<String> chunks = new ArrayList<>();
@@ -381,7 +464,7 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * 按固定大小分割
+     * 按固定大小分割，优先在句子边界处切割
      */
     private List<String> splitByFixedSize(String content) {
         List<String> chunks = new ArrayList<>();
@@ -426,10 +509,27 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * 将检索到的知识格式化为上下文提示
-     *
-     * @param knowledgeList 知识片段列表
-     * @return 格式化后的上下文文本
+     * 余弦相似度（-1 ~ 1）
+     */
+    private double cosineSimilarity(float[] a, float[] b) {
+        if (a.length != b.length) return 0.0;
+
+        double dot = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+
+        for (int i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+            normA += a[i] * a[i];
+            normB += b[i] * b[i];
+        }
+
+        double denominator = Math.sqrt(normA) * Math.sqrt(normB);
+        return denominator == 0.0 ? 0.0 : dot / denominator;
+    }
+
+    /**
+     * 格式化为 LLM 上下文提示
      */
     public String formatAsContext(List<String> knowledgeList) {
         if (knowledgeList.isEmpty()) {

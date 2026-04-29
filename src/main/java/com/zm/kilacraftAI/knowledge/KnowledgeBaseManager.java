@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.util.PluginLogger;
+import lombok.Getter;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 本地知识库管理器
@@ -25,18 +27,19 @@ import java.util.Map;
 public class KnowledgeBaseManager {
 
     private final KilacraftAI plugin;
+    /**
+     *  知识库目录路径
+     */
+    @Getter
     private final Path knowledgeDir;
     private Path effectiveDir;                           // 实际加载的知识库目录（根据语言动态选择）
-    private final Map<String, String> knowledgeCache;           // 原始文件内容缓存
-    private final Map<String, List<String>> chunkCache;         // 分段后内容缓存
+    private final Map<String, String> knowledgeCache = new ConcurrentHashMap<>();
+    private final Map<String, List<String>> chunkCache = new ConcurrentHashMap<>();
 
     public KnowledgeBaseManager(KilacraftAI plugin, String dataFolderPath) {
         this.plugin = plugin;
         this.knowledgeDir = Paths.get(dataFolderPath, "knowledge");
-        this.knowledgeCache = new HashMap<>();
-        this.chunkCache = new HashMap<>();
 
-        // 初始化语言相关目录
         updateEffectiveDir();
     }
 
@@ -88,19 +91,21 @@ public class KnowledgeBaseManager {
     }
 
     /**
-     * 获取所有知识内容（用于检索）
-     *
-     * @return 所有知识的 Map（文件名 -> 内容）
+     * 获取所有知识内容（返回副本）
      */
     public Map<String, String> getAllKnowledge() {
         return new HashMap<>(knowledgeCache);
     }
 
     /**
-     * 获取或创建分段缓存
-     *
-     * @param fileName 文件名
-     * @param chunks   分段列表
+     * 获取所有分段缓存（返回副本，用于 Embedding 预计算）
+     */
+    public Map<String, List<String>> getAllChunkCache() {
+        return new HashMap<>(chunkCache);
+    }
+
+    /**
+     * 设置分段缓存
      */
     public void setChunkCache(String fileName, List<String> chunks) {
         chunkCache.put(fileName, chunks);
@@ -108,9 +113,6 @@ public class KnowledgeBaseManager {
 
     /**
      * 获取分段缓存
-     *
-     * @param fileName 文件名
-     * @return 分段列表，如果不存在则返回 null
      */
     public List<String> getChunkCache(String fileName) {
         return chunkCache.get(fileName);
@@ -128,8 +130,6 @@ public class KnowledgeBaseManager {
 
     /**
      * 获取知识库统计信息
-     *
-     * @return 统计信息字符串
      */
     public String getStatistics() {
         int fileCount = knowledgeCache.size();

@@ -10,6 +10,7 @@ import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.handler.AIRequestHandler;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
+import com.zm.kilacraftAI.knowledge.EmbeddingService;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTask;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
@@ -136,19 +137,15 @@ public class KilacraftCommand implements CommandExecutor {
                 plugin.getPersonalitiesConfigManager().reload();
             }
 
-            // 热重载知识库（语言变更后切换到对应语言的知识库目录）
-            if (plugin.getKnowledgeBase() != null) {
-                plugin.getKnowledgeBase().reload();
-            }
-
             // 刷新知识检索器的算法参数（分段大小、BM25、阈值等）
             if (plugin.getKnowledgeRetriever() != null) {
                 ConfigManager cm = plugin.getConfigManager();
-                plugin.getKnowledgeRetriever().refreshConfig(
-                        cm.getMaxRelevantChunks(), cm.getMinRelevanceScore(),
-                        cm.getKnowledgeMaxChunkSize(), cm.getKnowledgeMinChunkSize(), cm.getKnowledgeChunkOverlap(),
-                        cm.getKeywordTopK(), cm.getBm25K1(), cm.getBm25B()
-                );
+                plugin.getKnowledgeRetriever().refreshConfig(cm.getMaxRelevantChunks(), cm.getMinRelevanceScore(), cm.getKnowledgeMaxChunkSize(), cm.getKnowledgeMinChunkSize(), cm.getKnowledgeChunkOverlap(), cm.getKeywordTopK(), cm.getBm25K1(), cm.getBm25B());
+            }
+
+            // 刷新 Embedding 阈值（不重建实例，不碰缓存）
+            if (plugin.getEmbeddingService() != null && plugin.getConfigManager().isEmbeddingEnabled()) {
+                plugin.getKnowledgeRetriever().setEmbeddingService(plugin.getEmbeddingService(), true, plugin.getConfigManager().getEmbeddingMinSimilarity());
             }
 
             // 热重载文本处理器（语言变更后需要重建分词器）
@@ -286,6 +283,22 @@ public class KilacraftCommand implements CommandExecutor {
     private boolean handleKnowledgeReloadCommand(CommandSender sender) {
         try {
             plugin.getKnowledgeBase().reload();
+
+            // 知识库内容变更后，重新分段 + 异步预计算
+            EmbeddingService embeddingSvc = plugin.getEmbeddingService();
+            if (embeddingSvc != null && plugin.getConfigManager().isEmbeddingEnabled()) {
+                embeddingSvc.clearCache();
+                plugin.getKnowledgeRetriever().buildChunkCache();
+                Map<String, List<String>> asyncChunks = plugin.getKnowledgeBase().getAllChunkCache();
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        embeddingSvc.precomputeAllChunks(asyncChunks);
+                    } catch (Exception e) {
+                        PluginLogger.warn("知识库", "Embedding 异步预计算异常: {}", e.getMessage());
+                    }
+                });
+            }
+
             sender.sendMessage(languageManager.getCommandKnowledgeReloadSuccess());
             sender.sendMessage("§7" + plugin.getKnowledgeBase().getStatistics());
             PluginLogger.info("命令", languageManager.replacePlaceholders(languageManager.getLogKnowledgeReloaded(), "sender", getSenderName(sender)));
