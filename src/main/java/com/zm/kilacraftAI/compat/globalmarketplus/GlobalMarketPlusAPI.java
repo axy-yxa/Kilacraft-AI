@@ -1,10 +1,10 @@
 package com.zm.kilacraftAI.compat.globalmarketplus;
 
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
-import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -16,6 +16,7 @@ import studio.trc.bukkit.globalmarketplus.mailbox.ItemMail;
 import studio.trc.bukkit.globalmarketplus.merchandise.Merchandise;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -406,5 +407,57 @@ public class GlobalMarketPlusAPI {
             PluginLogger.error("市场插件", I18nService.tr("获取市场统计信息失败"), e);
             return new MarketStats(0, 0);
         }
+    }
+
+    // ==================== 写操作方法（代执行命令） ====================
+
+    /**
+     * 搜索商品（打开购买 GUI）
+     *
+     * <p>以玩家身份执行 /market search item:MATERIAL_NAME，
+     * 由 GlobalMarketPlus 插件处理 GUI 打开和安全校验。</p>
+     *
+     * @param player       玩家
+     * @param materialName 英文 Material 名（已通过 Material.matchMaterial 校验）
+     * @return CompletableFuture<Boolean> 命令执行结果
+     */
+    public static CompletableFuture<Boolean> searchItem(Player player, String materialName) {
+        String command = "market search item:" + materialName.toUpperCase();
+        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 搜索商品: /{}", player.getName(), command));
+        return com.zm.kilacraftAI.util.BukkitCommandUtil.dispatchAsync(player, command);
+    }
+
+    /**
+     * 上架玩家手中的商品
+     *
+     * <p>以玩家身份执行 /market sell [price] [quantity]，
+     * 由 GlobalMarketPlus 插件处理黑名单、税额、过期时间等校验。</p>
+     *
+     * @param player   玩家
+     * @param price    单价（必须 > 0）
+     * @param quantity 数量（必须 > 0）
+     * @return CompletableFuture<Boolean> 命令执行结果
+     */
+    public static CompletableFuture<Boolean> sellItem(Player player, double price, int quantity) {
+        String command = String.format("market sell %.2f %d", price, quantity);
+        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 上架商品: /{}", player.getName(), command));
+        return com.zm.kilacraftAI.util.BukkitCommandUtil.dispatchAsync(player, command);
+    }
+
+    /**
+     * 获取物品的市场参考价格（最低在售价）
+     *
+     * <p>复用已有的 getMatchingItems 方法，返回最低单价用于上架参考。</p>
+     *
+     * @param itemName 物品英文名
+     * @return 最低价格，无在售时返回 -1
+     */
+    public static double getItemReferencePrice(String itemName) {
+        List<MarketItem> items = getMatchingItems(itemName);
+        if (items == null || items.isEmpty()) {
+            return -1;
+        }
+        // getMatchingItems 已按价格升序排列
+        return items.get(0).getPrice();
     }
 }
