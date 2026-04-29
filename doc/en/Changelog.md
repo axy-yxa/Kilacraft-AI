@@ -1,7 +1,58 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-04-27  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin
+
+---
+
+## v1.5.1 - 8 New AFK Task Types, Global Market Action Skill, Embedding Semantic Retrieval, Smart AFK Callback
+
+### ✨ New Features
+- **8 Brand New AFK Task Types**: AFK tasks expanded from 12 to 20 types, covering more gameplay scenarios
+  - **Player Fish Watch**: Monitor your own fishing activity, automatically notify or trigger follow-up actions when you catch something
+    - Example: "Tell me when I catch a fish and check the market price"
+  - **Player Chat Watch**: Monitor your own chat messages, useful for codeword-triggered automation
+    - Example: "When I say 'start grinding', execute the mob farm toggle command for me"
+  - **Block Break Watch**: Monitor your own block breaking, trigger follow-up actions when mining specific ores
+    - Example: "Tell me how many diamonds are in my inventory when I mine one"
+  - **Entity Death Watch**: Monitor nearby entity deaths, useful for BOSS kill detection
+    - Example: "Tell me when the Wither dies"
+  - **Entity Spawn Watch**: Monitor nearby entity spawns, useful for mob farm efficiency monitoring
+    - Example: "Tell me when a zombie villager spawns in the mob farm"
+  - **Entity Explode Watch**: Monitor nearby explosions, useful for griefing alerts
+    - Example: "Tell me the coordinates when there's an explosion"
+  - **Furnace Smelt Watch**: Monitor furnace smelting completion, notify when all items are done smelting
+    - Example: "Tell me when the furnace is done"
+  - **Block Grow Watch**: Monitor crop maturity, useful for automated farm management
+    - Example: "Tell me when the wheat is grown and check the market price"
+  - All new task types support both notification-only and callback modes
+- **Global Market Action Skill (MarketActionSkill)**: Brand new skill enabling AI to execute global market trading operations on behalf of players
+  - Independent from the existing MarketQuerySkill (read-only queries), providing write-capable market operations
+  - Auto-registers only when GlobalMarketPlus plugin is present
+- **Knowledge Base Embedding Semantic Retrieval**: Uses Embedding API to obtain text vectors, replacing BM25 algorithm with cosine similarity for semantic retrieval
+  - Supports different Embedding providers (e.g. ZhipuAI, SiliconFlow, OpenAI), can differ from LLM provider
+  - Vector cache persistence, avoids recomputing on every startup
+  - Configurable minimum similarity threshold, vector dimensions, API timeout, etc.
+  - Automatically degrades to original BM25 algorithm when unconfigured
+
+### 🔧 Improvements
+- **Built-in Enum Registry Replaces Knowledge Base Files**: Sound, particle, and statistic game enum data migrated from knowledge base Markdown files to a dedicated enum registry, providing more accurate retrieval, freeing knowledge base space, and faster loading
+- **Smart AFK Task Callback Mechanism**: When callback tasks trigger, LLM can see the event trigger reason in the execution results area, producing more accurate responses
+- **AFK Task First-Person Perspective**: When monitoring themselves, AI responds in first person ("You said: OK"), no longer describing from a bystander's perspective
+- **Unified AFK Task Callback Event Description**: All 20 AFK task types use consistent event description format for both callback and notification paths
+- **Intent Recognition Temporal Semantics**: LLM can correctly understand temporal expressions like "check the price after the wheat is grown" and "tell me when he comes online", placing follow-up actions in callback instead of parallel steps
+- **AI Response Quality Optimization**:
+  - No longer addresses players by ID in responses, more natural conversations
+  - When skill execution fails, AI explains the failure naturally instead of triggering absolute prohibition
+  - AI no longer exposes internal technical details (step IDs, raw enum values, statistics counts, etc.), all converted to player-friendly natural language
+- **config.yml Comment Reading Experience**: All bilingual comments unified to "Chinese first, English second" continuous layout, more coherent reading regardless of language
+
+### ⚠️ Compatibility
+- config.yml adds Embedding semantic retrieval config section (knowledge.embedding.*) and updated system prompt content
+- intent_prompts.yml adds temporal semantics recognition rules and callback rules
+- AFK task types expanded from 12 to 20, all new types are automatically available
+- Built-in knowledge base removed sounds_particles.md and statistics.md, related data now auto-loaded by enum registry
+- Fully backward compatible, Embedding is enabled by default but requires api_url/api_key/model configuration to take effect, auto-degrades to BM25 when unconfigured
 
 ---
 
