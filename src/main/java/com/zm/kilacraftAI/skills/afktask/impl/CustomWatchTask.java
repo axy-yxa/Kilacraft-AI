@@ -17,7 +17,10 @@ import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -139,7 +142,8 @@ public class CustomWatchTask extends AFKTask {
             Map<String, String> conditionParams = Collections.emptyMap();
             JsonElement paramsEl = obj.get("condition_params");
             if (paramsEl != null && paramsEl.isJsonObject()) {
-                conditionParams = GSON.fromJson(paramsEl, new TypeToken<Map<String, String>>() {}.getType());
+                conditionParams = GSON.fromJson(paramsEl, new TypeToken<Map<String, String>>() {
+                }.getType());
             }
             return new ConditionPlan(obj.get("condition_skill").getAsString(), obj.get("condition_action").getAsString(), obj.get("result_path").getAsString(), obj.get("operator").getAsString(), thresholdValue, thresholdStr, conditionParams);
         } catch (Exception e) {
@@ -262,7 +266,8 @@ public class CustomWatchTask extends AFKTask {
 
                     if (hasCallback) {
                         enteredCallback = true;
-                        executeCallback(creatorPlayer);
+                        String conditionDesc = I18nService.tr("挂机任务条件满足：{}.{} {} {}（当前值：{}）", conditionPlan.getConditionSkill(), conditionPlan.getConditionAction(), conditionPlan.getOperatorDescription(), conditionPlan.getThresholdStr() != null ? conditionPlan.getThresholdStr() : String.valueOf(conditionPlan.getThreshold()), evalResult.actualValue() != null ? String.valueOf(evalResult.actualValue()) : I18nService.tr("未知"));
+                        executeCallback(creatorPlayer, conditionDesc);
                     } else {
                         notifyConditionMet(evalResult.actualValue());
                         complete(I18nService.tr("条件满足，挂机任务完成。"));
@@ -283,8 +288,9 @@ public class CustomWatchTask extends AFKTask {
      * 执行回调任务
      *
      * @param creatorPlayer 任务创建者
+     * @param conditionDesc 条件满足的事件描述，注入到 LLM 二次分析的上下文中
      */
-    private void executeCallback(Player creatorPlayer) {
+    private void executeCallback(Player creatorPlayer, String conditionDesc) {
         try {
             // 1. 构建 TaskPlan
             TaskPlan plan = callback.getCallbackTask().toTaskPlan();
@@ -298,10 +304,14 @@ public class CustomWatchTask extends AFKTask {
             // 4. 执行多步骤任务（TaskExecutor 返回 AnalysisSummary）
             TaskExecutor executor = new TaskExecutor(plugin.getSkillManager());
 
-            CompletableFuture<AnalysisSummary> future = executor.executeTask(plan, context, history, callback.getCallbackTask().getGoal());
+            // userMessage 仅保留 goal，事件描述通过 injectEventTrigger 注入到 [执行结果] 区域
+            String goal = callback.getCallbackTask().getGoal();
 
-            // 5. 处理执行结果：通过中间层进行LLM二次分析并输出
+            CompletableFuture<AnalysisSummary> future = executor.executeTask(plan, context, history, goal);
+
+            // 5. 处理执行结果：注入事件触发描述 + 通过中间层进行LLM二次分析并输出
             future.thenAccept(summary -> {
+                summary.injectEventTrigger(conditionDesc);
                 plugin.getLlmOutputCoordinator().outputAnalysisResult(creatorPlayer, summary, context, history, OutputScenario.AFK_CALLBACK, false);
 
                 // 完成任务

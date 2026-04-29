@@ -68,7 +68,47 @@ public enum AFKTaskType {
     PLAYER_ITEM_BREAK_WATCH("PLAYER_ITEM_BREAK_WATCH", "监视玩家物品损坏"),
 
     /**
-     * 自定义任务（通过定时轮询检查任意Skill的返回值）
+     * 监视玩家钓鱼
+     */
+    PLAYER_FISH_WATCH("PLAYER_FISH_WATCH", "监视玩家钓鱼"),
+
+    /**
+     * 监视玩家聊天
+     */
+    PLAYER_CHAT_WATCH("PLAYER_CHAT_WATCH", "监视玩家聊天"),
+
+    /**
+     * 监视方块破坏
+     */
+    BLOCK_BREAK_WATCH("BLOCK_BREAK_WATCH", "监视方块破坏"),
+
+    /**
+     * 监视实体死亡
+     */
+    ENTITY_DEATH_WATCH("ENTITY_DEATH_WATCH", "监视实体死亡"),
+
+    /**
+     * 监视实体生成
+     */
+    ENTITY_SPAWN_WATCH("ENTITY_SPAWN_WATCH", "监视实体生成"),
+
+    /**
+     * 监视实体爆炸
+     */
+    ENTITY_EXPLODE_WATCH("ENTITY_EXPLODE_WATCH", "监视实体爆炸"),
+
+    /**
+     * 监视熔炉烧炼
+     */
+    FURNACE_SMELT_WATCH("FURNACE_SMELT_WATCH", "监视熔炉烧炼"),
+
+    /**
+     * 监视作物生长
+     */
+    BLOCK_GROW_WATCH("BLOCK_GROW_WATCH", "监视作物生长"),
+
+    /**
+     * 自定义任务
      */
     CUSTOM("CUSTOM", "自定义任务");
 

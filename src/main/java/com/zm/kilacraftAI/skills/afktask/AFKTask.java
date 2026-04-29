@@ -114,6 +114,11 @@ public abstract class AFKTask {
     }
 
     /**
+     * 终态转换锁（保证 complete() 和 stop() 互斥，避免并发下 onStop() 被重复执行）
+     */
+    private final Object terminationLock = new Object();
+
+    /**
      * 终止任务并释放资源
      *
      * <p>将任务状态标记为 COMPLETED，调用子类资源清理并从管理器中移除引用。此方法适用场景包括：
@@ -130,11 +135,13 @@ public abstract class AFKTask {
      * @param message 终止原因描述（用于日志记录）
      */
     protected void complete(String message) {
-        if (this.status == AFKTaskStatus.COMPLETED || this.status == AFKTaskStatus.CANCELLED) {
-            return;
+        synchronized (terminationLock) {
+            if (this.status == AFKTaskStatus.COMPLETED || this.status == AFKTaskStatus.CANCELLED) {
+                return;
+            }
+            this.status = AFKTaskStatus.COMPLETED;
         }
-        this.status = AFKTaskStatus.COMPLETED;
-        onStop();    // 释放子类资源（事件监听器、定时任务等）
+        onStop();    // 释放子类资源（事件监听器、定时任务等）——在锁外执行，避免子类回调死锁
         cleanup();
         PluginLogger.debug("挂机任务", "任务终止: {} - {}", taskId, message);
     }
@@ -143,10 +150,12 @@ public abstract class AFKTask {
      * 停止任务（外部调用入口）
      */
     public final void stop() {
-        if (this.status == AFKTaskStatus.COMPLETED || this.status == AFKTaskStatus.CANCELLED) {
-            return;
+        synchronized (terminationLock) {
+            if (this.status == AFKTaskStatus.COMPLETED || this.status == AFKTaskStatus.CANCELLED) {
+                return;
+            }
+            this.status = AFKTaskStatus.CANCELLED;
         }
-        this.status = AFKTaskStatus.CANCELLED;
         onStop();
         PluginLogger.debug("挂机任务", "任务已取消: {}", taskId);
     }
@@ -190,7 +199,8 @@ public abstract class AFKTask {
         }
 
         // 构建结构化摘要（面向 LLM）
-        AnalysisSummary summary = new AnalysisSummary().userMessage(description).addResult("SUCCESS", eventDescription).statistics(1, 0, 0);
+        // userMessage 使用任务描述作为上下文，事件描述作为执行结果注入
+        AnalysisSummary summary = new AnalysisSummary().userMessage(description).injectEventTrigger(eventDescription);
 
         // 构建上下文
         SkillContext context = new SkillContext(player, description, params);

@@ -160,11 +160,10 @@ public class AFKTaskSkill implements Skill {
             }
         }
 
-        // 安全限制：CUSTOM 类型仅允许监控创建者自身（防止隐私侵犯和组合攻击）
-        // 第三方 SPI Skill 的行为不可控，框架层必须硬拦截
-        if (taskType == AFKTaskType.CUSTOM) {
+        // 安全限制：涉及玩家隐私的任务类型，仅允许监控创建者自身
+        if (isPlayerPrivacyType(taskType)) {
             if (targetPlayerName != null && !targetPlayerName.isEmpty() && !targetPlayerName.equalsIgnoreCase(player.getName())) {
-                return SkillResult.failure("安全限制：自定义条件监控任务仅支持监控自身数据（如自己的血量、等级等），不支持监控其他玩家。请用自然语言告知玩家此限制，并建议：如果需要监控自己的状态，可以说\"帮我监控我的血量\"等");
+                return SkillResult.failure("安全限制：该任务类型仅支持监控自身数据，不支持监控其他玩家。请用自然语言告知玩家此限制");
             }
         }
 
@@ -204,7 +203,38 @@ public class AFKTaskSkill implements Skill {
                     (id, uuid, name, type, desc, p) -> new PlayerRespawnWatchTask(id, uuid, name, desc, p);
             case PLAYER_ITEM_BREAK_WATCH ->
                     (id, uuid, name, type, desc, p) -> new PlayerItemBreakWatchTask(id, uuid, name, desc, p);
+            case PLAYER_FISH_WATCH ->
+                    (id, uuid, name, type, desc, p) -> new PlayerFishWatchTask(id, uuid, name, desc, p);
+            case PLAYER_CHAT_WATCH ->
+                    (id, uuid, name, type, desc, p) -> new PlayerChatWatchTask(id, uuid, name, desc, p);
+            case BLOCK_BREAK_WATCH ->
+                    (id, uuid, name, type, desc, p) -> new BlockBreakWatchTask(id, uuid, name, desc, p);
+            case ENTITY_DEATH_WATCH ->
+                    (id, uuid, name, type, desc, p) -> new EntityDeathWatchTask(id, uuid, name, desc, p);
+            case ENTITY_SPAWN_WATCH ->
+                    (id, uuid, name, type, desc, p) -> new EntitySpawnWatchTask(id, uuid, name, desc, p);
+            case ENTITY_EXPLODE_WATCH ->
+                    (id, uuid, name, type, desc, p) -> new EntityExplodeWatchTask(id, uuid, name, desc, p);
+            case FURNACE_SMELT_WATCH ->
+                    (id, uuid, name, type, desc, p) -> new FurnaceSmeltWatchTask(id, uuid, name, desc, p);
+            case BLOCK_GROW_WATCH -> (id, uuid, name, type, desc, p) -> new BlockGrowWatchTask(id, uuid, name, desc, p);
             case CUSTOM -> (id, uuid, name, type, desc, p) -> new CustomWatchTask(id, uuid, name, desc, p);
+        };
+    }
+
+    /**
+     * 判断任务类型是否涉及玩家隐私数据（需要跨玩家权限才能监控他人）
+     *
+     * <p>采用白名单制：只有明确允许跨玩家监控的类型才返回 false，
+     * 其余所有类型默认视为涉及隐私，仅允许监控创建者自身。</p>
+     *
+     * <p>当前允许跨玩家的类型：PLAYER_ONLINE_WATCH、PLAYER_OFFLINE_WATCH
+     * （在线/下线状态不属于隐私数据）。</p>
+     */
+    private boolean isPlayerPrivacyType(AFKTaskType taskType) {
+        return switch (taskType) {
+            case PLAYER_ONLINE_WATCH, PLAYER_OFFLINE_WATCH -> false;
+            default -> true;
         };
     }
 

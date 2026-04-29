@@ -75,6 +75,23 @@ public class AnalysisSummary {
     }
 
     /**
+     * 注入事件触发描述（挂机任务回调场景）
+     *
+     * 将事件触发描述作为第一条结果插入到 results 头部，
+     * 让 LLM 二次分析时能在 [执行结果] 区域看到事件触发原因，
+     *
+     * @param eventDescription 事件触发描述
+     * @return this
+     */
+    public AnalysisSummary injectEventTrigger(String eventDescription) {
+        if (eventDescription != null && !eventDescription.isEmpty()) {
+            this.results.add(0, new StepResult(null, "SUCCESS", eventDescription));
+            this.successCount++;
+        }
+        return this;
+    }
+
+    /**
      * 构建统一的提示词格式（发送给 LLM 二次分析）
      */
     public String buildPrompt() {
