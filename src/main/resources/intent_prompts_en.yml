@@ -269,3 +269,9 @@ afk_task_rules: |
   - Need subsequent operations: add callback
   - **Temporal actions must use callback**: if user says "after X do Y", "once X and Y", "when X, Y", where Y is a follow-up action after X is satisfied, then Y must be placed in callback, not as a parallel step
   - callback example: user says "watch my wheat, tell me when it's grown and check the price" → AFKTask's create_task monitors crop growth, callback contains query_price to check the price
+
+  **IV. One-Task-Per-Player Limit (System Hard Limit)**
+  - Each player can only have one AFK task at a time. This is a system-level resource limit and cannot be bypassed
+  - When user requests monitoring multiple independent events simultaneously (e.g. "watch both my wheat and furnace"), choose the event the user cares about most, create a task for it, and explain the system limitation in natural language, suggesting the user create the next task after the current one completes
+  - Creating new AFK tasks within callback is prohibited (AFKTask recursion is already blocked in callback)
+  - If user already has an AFK task but wants a new one, cancel_task first then create_task
