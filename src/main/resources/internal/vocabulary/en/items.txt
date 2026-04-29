@@ -1,138 +1,258 @@
 Acacia Boat
 Acacia Button
+Acacia Boat With Chest
 Acacia Door
 Acacia Fence
 Acacia Fence Gate
+Acacia Hanging Sign
 Acacia Leaves
 Acacia Log
 Acacia Planks
 Acacia Pressure Plate
 Acacia Sapling
+Acacia Display
+Acacia Sign
 Acacia Slab
 Acacia Stairs
 Acacia Trapdoor
+Acacia Wall Hanging Sign
+Acacia Wall Sign
 Acacia Wood
 Activator Rail
+Air
+Allay Spawn Egg
 Allium
+Amethyst Block
+Amethyst Cluster
+Amethyst Shard
+Ancient Debris
 Andesite
+Andesite Slab
+Andesite Stairs
+Andesite Wall
+Angler Pottery Sherd
 Anvil
 Apple
+Archer Pottery Sherd
+Armadillo Scute
+Armadillo Spawn Egg
 Armor Stand
+Arms Up Pottery Sherd
 Arrow
+Attached Melon Stem
+Attached Pumpkin Stem
+Axolotl Bucket
+Axolotl Spawn Egg
+Azalea
+Azalea Leaves
 Azure Bluet
 Baked Potato
+Bamboo
+Bamboo Block
+Bamboo Button
+Bamboo Chest Raft
+Bamboo Door
+Bamboo Fence
+Bamboo Fence Gate
+Bamboo Hanging Sign
+Bamboo Mosaic
+Bamboo Mosaic Slab
+Bamboo Mosaic Stairs
+Bamboo Planks
+Bamboo Pressure Plate
+Bamboo Raft
+Bamboo Shoot
+Bamboo Display
+Bamboo Sign
+Bamboo Slab
+Bamboo Stairs
+Bamboo Trapdoor
+Bamboo Wall Hanging Sign
+Bamboo Wall Sign
+Barrel
+Barrier
+Basalt
+Bat Spawn Egg
 Beacon
+Bedrock
 Beef
+Beehive
+Beetroot
 Beetroot
 Beetroot Seeds
 Beetroot Soup
+Bee Nest
+Bee Spawn Egg
+Bell
+Big Dripleaf
+Big Dripleaf Stem
 Birch Boat
 Birch Button
+Birch Boat With Chest
 Birch Door
 Birch Fence
 Birch Fence Gate
+Birch Hanging Sign
 Birch Leaves
 Birch Log
 Birch Planks
 Birch Pressure Plate
 Birch Sapling
+Birch Display
+Birch Sign
 Birch Slab
 Birch Stairs
 Birch Trapdoor
+Birch Wall Hanging Sign
+Birch Wall Sign
 Birch Wood
+Blackstone
+Blackstone Slab
+Blackstone Stairs
+Blackstone Wall
 Black Banner
 Black Bed
+Black Bundle
+Black Candle
+Black Candle Cake
 Black Carpet
 Black Concrete
 Black Concrete Powder
 Black Dye
 Black Glazed Terracotta
+Black Harness
 Black Shulker Box
 Black Stained Glass
 Black Stained Glass Pane
 Black Terracotta
+Black Banner
 Black Wool
-Blackstone
 Blade Pottery Sherd
 Blast Furnace
 Blaze Powder
 Blaze Rod
+Blaze Spawn Egg
 Blue Banner
 Blue Bed
+Blue Bundle
+Blue Candle
+Blue Candle Cake
 Blue Carpet
 Blue Concrete
 Blue Concrete Powder
 Blue Dye
+Blue Egg
 Blue Glazed Terracotta
+Blue Harness
 Blue Ice
 Blue Orchid
 Blue Shulker Box
 Blue Stained Glass
 Blue Stained Glass Pane
 Blue Terracotta
+Blue Banner
 Blue Wool
+Bogged Spawn Egg
+Bolt Armor Trim
 Bone
 Bone Block
+Bone Meal
 Book
 Bookshelf
+Bordure Indented Banner Pattern
 Bow
 Bowl
+Brain Coral
 Brain Coral Block
+Brain Coral Fan
+Brain Coral Wall Fan
 Bread
+Breeze Rod
+Breeze Spawn Egg
+Brewer Pottery Sherd
+Brewing Stand
 Brick
+Bricks
 Brick Slab
 Brick Stairs
 Brick Wall
 Brown Banner
 Brown Bed
+Brown Bundle
+Brown Candle
+Brown Candle Cake
 Brown Carpet
 Brown Concrete
 Brown Concrete Powder
 Brown Dye
+Brown Egg
 Brown Glazed Terracotta
+Brown Harness
 Brown Mushroom
 Brown Mushroom Block
 Brown Shulker Box
 Brown Stained Glass
 Brown Stained Glass Pane
 Brown Terracotta
+Brown Banner
 Brown Wool
 Brush
+Bubble Column
+Bubble Coral
+Bubble Coral Block
+Bubble Coral Fan
+Bubble Coral Wall Fan
 Bucket
 Budding Amethyst
 Bundle
+Burn Pottery Sherd
+Bush
 Cactus
+Cactus Flower
 Cake
 Calcite
 Calibrated Sculk Sensor
+Camel Husk Spawn Egg
 Camel Spawn Egg
 Campfire
 Candle
+Candle Cake
+Carrot
 Carrot
 Carrot On A Stick
 Cartography Table
 Carved Pumpkin
+Cat Spawn Egg
 Cauldron
-Chain
-Chain Command Block
+Cave Air
+Cave Spider Spawn Egg
+Cave Vines
+Cave Vines Plant
 Chainmail Boots
 Chainmail Chestplate
 Chainmail Helmet
 Chainmail Leggings
+Chain Command Block
 Charcoal
 Cherry Boat
 Cherry Button
+Cherry Boat With Chest
 Cherry Door
 Cherry Fence
 Cherry Fence Gate
+Cherry Hanging Sign
 Cherry Leaves
 Cherry Log
 Cherry Planks
 Cherry Pressure Plate
 Cherry Sapling
+Cherry Display
+Cherry Sign
 Cherry Slab
 Cherry Stairs
 Cherry Trapdoor
+Cherry Wall Hanging Sign
+Cherry Wall Sign
 Cherry Wood
 Chest
 Chest Minecart
@@ -140,23 +260,29 @@ Chicken
 Chicken Spawn Egg
 Chipped Anvil
 Chiseled Bookshelf
+Chiseled Copper
 Chiseled Deepslate
 Chiseled Nether Bricks
 Chiseled Polished Blackstone
 Chiseled Quartz Block
 Chiseled Red Sandstone
+Chiseled Resin Bricks
 Chiseled Sandstone
 Chiseled Stone Bricks
+Chiseled Tuff
+Chiseled Tuff Bricks
 Chorus Flower
 Chorus Fruit
 Chorus Plant
 Clay
 Clay Ball
 Clock
+Closed Eyeblossom
 Coal
 Coal Block
 Coal Ore
 Coarse Dirt
+Coast Armor Trim
 Cobbled Deepslate
 Cobbled Deepslate Slab
 Cobbled Deepslate Stairs
@@ -165,8 +291,15 @@ Cobblestone
 Cobblestone Slab
 Cobblestone Stairs
 Cobblestone Wall
+Cobweb
+Cocoa
 Cocoa Beans
+Cod
+Cod Bucket
+Cod Spawn Egg
 Command Block
+Command Block Minecart
+Comparator
 Compass
 Composter
 Conduit
@@ -178,9 +311,34 @@ Cooked Porkchop
 Cooked Rabbit
 Cooked Salmon
 Cookie
+Copper Axe
+Copper Bars
 Copper Block
+Copper Boots
+Copper Bulb
+Copper Chain
+Copper Chest
+Copper Chestplate
+Copper Door
+Copper Golem Spawn Egg
+Copper Golem Statue
+Copper Grate
+Copper Helmet
+Copper Hoe
+Copper Horse Armor
 Copper Ingot
+Copper Lantern
+Copper Leggings
+Copper Nautilus Armor
+Copper Nugget
 Copper Ore
+Copper Pickaxe
+Copper Shovel
+Copper Spear
+Copper Sword
+Copper Torch
+Copper Trapdoor
+Copper Wall Torch
 Cornflower
 Cow Spawn Egg
 Cracked Deepslate Bricks
@@ -188,24 +346,33 @@ Cracked Deepslate Tiles
 Cracked Nether Bricks
 Cracked Polished Blackstone Bricks
 Cracked Stone Bricks
+Crafter
 Crafting Table
+Creaking Heart
+Creaking Spawn Egg
+Creeper Charge
 Creeper Head
 Creeper Spawn Egg
+Creeper Wall Head
 Crimson Button
 Crimson Door
 Crimson Fence
 Crimson Fence Gate
 Crimson Fungus
+Crimson Hanging Sign
 Crimson Hyphae
 Crimson Nylium
 Crimson Planks
 Crimson Pressure Plate
 Crimson Roots
+Crimson Display
 Crimson Sign
 Crimson Slab
 Crimson Stairs
 Crimson Stem
 Crimson Trapdoor
+Crimson Wall Hanging Sign
+Crimson Wall Sign
 Crossbow
 Crying Obsidian
 Cut Copper
@@ -217,54 +384,91 @@ Cut Sandstone
 Cut Sandstone Slab
 Cyan Banner
 Cyan Bed
+Cyan Bundle
+Cyan Candle
+Cyan Candle Cake
 Cyan Carpet
 Cyan Concrete
 Cyan Concrete Powder
 Cyan Dye
 Cyan Glazed Terracotta
+Cyan Harness
 Cyan Shulker Box
 Cyan Stained Glass
 Cyan Stained Glass Pane
 Cyan Terracotta
+Cyan Banner
 Cyan Wool
 Damaged Anvil
 Dandelion
+Danger Pottery Sherd
 Dark Oak Boat
 Dark Oak Button
+Dark Oak Boat With Chest
 Dark Oak Door
 Dark Oak Fence
 Dark Oak Fence Gate
+Dark Oak Hanging Sign
 Dark Oak Leaves
 Dark Oak Log
 Dark Oak Planks
 Dark Oak Pressure Plate
 Dark Oak Sapling
+Dark Oak Display
+Dark Oak Sign
 Dark Oak Slab
 Dark Oak Stairs
 Dark Oak Trapdoor
+Dark Oak Wall Hanging Sign
+Dark Oak Wall Sign
 Dark Oak Wood
 Dark Prismarine
 Dark Prismarine Slab
 Dark Prismarine Stairs
 Daylight Detector
 Dead Brain Coral
+Dead Brain Coral Block
+Dead Brain Coral Fan
+Dead Brain Coral Wall Fan
 Dead Bubble Coral
+Dead Bubble Coral Block
+Dead Bubble Coral Fan
+Dead Bubble Coral Wall Fan
 Dead Bush
 Dead Fire Coral
+Dead Fire Coral Block
+Dead Fire Coral Fan
+Dead Fire Coral Wall Fan
 Dead Horn Coral
+Dead Horn Coral Block
+Dead Horn Coral Fan
+Dead Horn Coral Wall Fan
 Dead Tube Coral
+Dead Tube Coral Block
+Dead Tube Coral Fan
+Dead Tube Coral Wall Fan
 Debug Stick
+Decorated Pot
 Deepslate
 Deepslate Bricks
 Deepslate Brick Slab
 Deepslate Brick Stairs
 Deepslate Brick Wall
+Deepslate Coal Ore
+Deepslate Copper Ore
+Deepslate Diamond Ore
+Deepslate Emerald Ore
+Deepslate Gold Ore
+Deepslate Iron Ore
+Deepslate Lapis Ore
+Deepslate Redstone Ore
 Deepslate Tiles
 Deepslate Tile Slab
 Deepslate Tile Stairs
 Deepslate Tile Wall
 Detector Rail
 Diamond
+Diamond Axe
 Diamond Block
 Diamond Boots
 Diamond Chestplate
@@ -272,22 +476,33 @@ Diamond Helmet
 Diamond Hoe
 Diamond Horse Armor
 Diamond Leggings
+Diamond Nautilus Armor
 Diamond Ore
 Diamond Pickaxe
 Diamond Shovel
+Diamond Spear
 Diamond Sword
 Diorite
+Diorite Slab
+Diorite Stairs
+Diorite Wall
 Dirt
 Dirt Path
 Disc Fragment 5
+Dispenser
 Dolphin Spawn Egg
 Donkey Spawn Egg
 Dragon Breath
+Dragon Egg
+Dragon Head
+Dragon Wall Head
+Dried Ghast
 Dried Kelp
 Dried Kelp Block
 Dripstone Block
 Dropper
 Drowned Spawn Egg
+Dune Armor Trim
 Echo Shard
 Egg
 Elder Guardian Spawn Egg
@@ -298,60 +513,91 @@ Emerald Ore
 Enchanted Book
 Enchanted Golden Apple
 Enchanting Table
-End Crystal
-End Rod
-End Stone
-End Stone Brick Slab
-End Stone Brick Stairs
-End Stone Brick Wall
-End Stone Bricks
+Enderman Spawn Egg
+Endermite Spawn Egg
 Ender Chest
 Ender Dragon Spawn Egg
 Ender Eye
 Ender Pearl
-Enderman Spawn Egg
-Endermite Spawn Egg
+End Crystal
+End Gateway
+End Portal
+End Portal Frame
+End Rod
+End Stone
+End Stone Bricks
+End Stone Brick Slab
+End Stone Brick Stairs
+End Stone Brick Wall
 Evoker Spawn Egg
 Experience Bottle
 Explorer Pottery Sherd
+Exposed Chiseled Copper
 Exposed Copper
+Exposed Copper Bars
+Exposed Copper Bulb
+Exposed Copper Chain
+Exposed Copper Chest
+Exposed Copper Door
+Exposed Copper Golem Statue
+Exposed Copper Grate
+Exposed Copper Lantern
+Exposed Copper Trapdoor
 Exposed Cut Copper
+Exposed Cut Copper Slab
+Exposed Cut Copper Stairs
+Exposed Lightning Rod
 Eye Armor Trim
+Farmland
 Feather
 Fermented Spider Eye
 Fern
-Fire Charge
-Fire Coral Block
+Field Masoned Banner Pattern
+Filled Map
+Fire
+Firefly Bush
 Firework Rocket
 Firework Star
+Fire Charge
+Fire Coral
+Fire Coral Block
+Fire Coral Fan
+Fire Coral Wall Fan
 Fishing Rod
 Fletching Table
 Flint
 Flint And Steel
-Flower Banner Pattern
+Flowering Azalea
+Flowering Azalea Leaves
+Flower Charge
 Flower Pot
+Flow Armor Trim
+Flow
+Flow Pottery Sherd
 Fox Spawn Egg
+Friend Pottery Sherd
+Frogspawn
 Frog Spawn Egg
 Frosted Ice
 Furnace
 Furnace Minecart
 Ghast Spawn Egg
 Ghast Tear
+Gilded Blackstone
 Glass
 Glass Bottle
 Glass Pane
 Glistering Melon Slice
 Globe Banner Pattern
-Glow Berries
-Glow Ink Sac
-Glow Lichen
-Glow Squid Spawn Egg
 Glowstone
 Glowstone Dust
-Gold Block
-Gold Ingot
-Gold Nugget
-Gold Ore
+Glow Berries
+Glow Ink Sac
+Glow Item Frame
+Glow Lichen
+Glow Squid Spawn Egg
+Goat Horn
+Goat Spawn Egg
 Golden Apple
 Golden Axe
 Golden Boots
@@ -361,54 +607,82 @@ Golden Helmet
 Golden Hoe
 Golden Horse Armor
 Golden Leggings
+Golden Nautilus Armor
 Golden Pickaxe
 Golden Shovel
+Golden Spear
 Golden Sword
+Gold Block
+Gold Ingot
+Gold Nugget
+Gold Ore
 Granite
+Granite Slab
+Granite Stairs
+Granite Wall
 Grass Block
 Gravel
 Gray Banner
 Gray Bed
+Gray Bundle
+Gray Candle
+Gray Candle Cake
 Gray Carpet
 Gray Concrete
 Gray Concrete Powder
 Gray Dye
 Gray Glazed Terracotta
+Gray Harness
 Gray Shulker Box
 Gray Stained Glass
 Gray Stained Glass Pane
 Gray Terracotta
+Gray Banner
 Gray Wool
 Green Banner
 Green Bed
+Green Bundle
+Green Candle
+Green Candle Cake
 Green Carpet
 Green Concrete
 Green Concrete Powder
 Green Dye
 Green Glazed Terracotta
+Green Harness
 Green Shulker Box
 Green Stained Glass
 Green Stained Glass Pane
 Green Terracotta
+Green Banner
 Green Wool
 Grindstone
 Guardian Spawn Egg
 Gunpowder
+Gust
+Gust Pottery Sherd
 Hanging Roots
+Happy Ghast Spawn Egg
 Hay Bale
+Heartbreak Pottery Sherd
 Heart Of The Sea
 Heart Pottery Sherd
+Heavy Core
 Heavy Weighted Pressure Plate
 Hoglin Spawn Egg
-Honey Block
-Honey Bottle
 Honeycomb
 Honeycomb Block
+Honey Block
+Honey Bottle
 Hopper
 Hopper Minecart
+Horn Coral
 Horn Coral Block
+Horn Coral Fan
+Horn Coral Wall Fan
 Horse Spawn Egg
 Host Armor Trim
+Howl Pottery Sherd
 Husk Spawn Egg
 Ice
 Infested Chiseled Stone Bricks
@@ -423,17 +697,21 @@ Iron Axe
 Iron Bars
 Iron Block
 Iron Boots
+Iron Chain
 Iron Chestplate
 Iron Door
+Iron Golem Spawn Egg
 Iron Helmet
 Iron Hoe
 Iron Horse Armor
 Iron Ingot
 Iron Leggings
+Iron Nautilus Armor
 Iron Nugget
 Iron Ore
 Iron Pickaxe
 Iron Shovel
+Iron Spear
 Iron Sword
 Iron Trapdoor
 Item Frame
@@ -442,28 +720,39 @@ Jigsaw Block
 Jukebox
 Jungle Boat
 Jungle Button
+Jungle Boat With Chest
 Jungle Door
 Jungle Fence
 Jungle Fence Gate
+Jungle Hanging Sign
 Jungle Leaves
 Jungle Log
 Jungle Planks
 Jungle Pressure Plate
 Jungle Sapling
+Jungle Display
+Jungle Sign
 Jungle Slab
 Jungle Stairs
 Jungle Trapdoor
+Jungle Wall Hanging Sign
+Jungle Wall Sign
 Jungle Wood
 Kelp
+Kelp Plant
 Knowledge Book
 Ladder
 Lantern
 Lapis Block
 Lapis Lazuli
 Lapis Ore
+Large Amethyst Bud
 Large Fern
+Lava
 Lava Bucket
+Lava Cauldron
 Lead
+Leaf Litter
 Leather
 Leather Boots
 Leather Chestplate
@@ -472,76 +761,119 @@ Leather Horse Armor
 Leather Leggings
 Lectern
 Lever
+Light Block
+Lightning Rod
 Light Blue Banner
 Light Blue Bed
+Light Blue Bundle
+Light Blue Candle
+Light Blue Candle Cake
 Light Blue Carpet
 Light Blue Concrete
 Light Blue Concrete Powder
 Light Blue Dye
 Light Blue Glazed Terracotta
+Light Blue Harness
 Light Blue Shulker Box
 Light Blue Stained Glass
 Light Blue Stained Glass Pane
 Light Blue Terracotta
+Light Blue Banner
 Light Blue Wool
 Light Gray Banner
 Light Gray Bed
+Light Gray Bundle
+Light Gray Candle
+Light Gray Candle Cake
 Light Gray Carpet
 Light Gray Concrete
 Light Gray Concrete Powder
 Light Gray Dye
 Light Gray Glazed Terracotta
+Light Gray Harness
 Light Gray Shulker Box
 Light Gray Stained Glass
 Light Gray Stained Glass Pane
 Light Gray Terracotta
+Light Gray Banner
 Light Gray Wool
 Light Weighted Pressure Plate
-Lightning Rod
 Lilac
 Lily Of The Valley
 Lily Pad
+Lime Banner
+Lime Bed
+Lime Bundle
+Lime Candle
+Lime Candle Cake
+Lime Carpet
+Lime Concrete
+Lime Concrete Powder
+Lime Dye
+Lime Glazed Terracotta
+Lime Harness
+Lime Shulker Box
+Lime Stained Glass
+Lime Stained Glass Pane
+Lime Terracotta
+Lime Banner
+Lime Wool
 Lingering Potion
 Llama Spawn Egg
 Lodestone
 Loom
+Mace
 Magenta Banner
 Magenta Bed
+Magenta Bundle
+Magenta Candle
+Magenta Candle Cake
 Magenta Carpet
 Magenta Concrete
 Magenta Concrete Powder
 Magenta Dye
 Magenta Glazed Terracotta
+Magenta Harness
 Magenta Shulker Box
 Magenta Stained Glass
 Magenta Stained Glass Pane
 Magenta Terracotta
+Magenta Banner
 Magenta Wool
 Magma Block
 Magma Cream
 Magma Cube Spawn Egg
 Mangrove Boat
 Mangrove Button
+Mangrove Boat With Chest
 Mangrove Door
 Mangrove Fence
 Mangrove Fence Gate
+Mangrove Hanging Sign
 Mangrove Leaves
 Mangrove Log
 Mangrove Planks
 Mangrove Pressure Plate
 Mangrove Propagule
 Mangrove Roots
+Mangrove Display
 Mangrove Sign
 Mangrove Slab
 Mangrove Stairs
 Mangrove Trapdoor
+Mangrove Wall Hanging Sign
+Mangrove Wall Sign
 Mangrove Wood
+Empty Map
+Medium Amethyst Bud
 Melon
 Melon Seeds
 Melon Slice
+Melon Stem
 Milk Bucket
 Minecart
 Miner Pottery Sherd
+Mojang Banner Pattern
 Mooshroom Spawn Egg
 Moss Block
 Moss Carpet
@@ -555,114 +887,181 @@ Mossy Stone Brick Stairs
 Mossy Stone Brick Wall
 Mossy Stone Bricks
 Mourning Pottery Sherd
+Moving Piston
 Mud
+Muddy Mangrove Roots
+Mud Bricks
 Mud Brick Slab
 Mud Brick Stairs
 Mud Brick Wall
-Mud Bricks
-Muddy Mangrove Roots
 Mule Spawn Egg
 Mushroom Stem
 Mushroom Stew
-Music Disc 5
-Music Disc 11
-Music Disc 13
-Music Disc Blocks
-Music Disc Cat
-Music Disc Chirp
-Music Disc Far
-Music Disc Mall
-Music Disc Mellohi
-Music Disc Otherside
-Music Disc Pigstep
-Music Disc Relic
-Music Disc Stal
-Music Disc Strad
-Music Disc Wait
-Music Disc Ward
 Mutton
 Mycelium
 Name Tag
 Nautilus Shell
+Nautilus Spawn Egg
+Netherite Axe
+Netherite Block
+Netherite Boots
+Netherite Chestplate
+Netherite Helmet
+Netherite Hoe
+Netherite Horse Armor
+Netherite Ingot
+Netherite Leggings
+Netherite Nautilus Armor
+Netherite Pickaxe
+Netherite Scrap
+Netherite Shovel
+Netherite Spear
+Netherite Sword
+Netherite Upgrade
+Netherrack
 Nether Brick
+Nether Bricks
 Nether Brick Fence
 Nether Brick Slab
 Nether Brick Stairs
 Nether Brick Wall
-Nether Bricks
 Nether Gold Ore
-Nether Quartz
+Nether Portal
 Nether Quartz Ore
 Nether Sprouts
 Nether Star
 Nether Wart
 Nether Wart Block
-Netherrack
 Note Block
 Oak Boat
 Oak Button
+Oak Boat With Chest
 Oak Door
 Oak Fence
 Oak Fence Gate
+Oak Hanging Sign
 Oak Leaves
 Oak Log
 Oak Planks
 Oak Pressure Plate
 Oak Sapling
+Oak Display
+Oak Sign
 Oak Slab
 Oak Stairs
 Oak Trapdoor
+Oak Wall Hanging Sign
+Oak Wall Sign
 Oak Wood
 Observer
 Obsidian
 Ocelot Spawn Egg
+Ochre Froglight
+Ominous Bottle
+Ominous Trial Key
+Open Eyeblossom
 Orange Banner
 Orange Bed
+Orange Bundle
+Orange Candle
+Orange Candle Cake
 Orange Carpet
 Orange Concrete
 Orange Concrete Powder
 Orange Dye
 Orange Glazed Terracotta
+Orange Harness
 Orange Shulker Box
 Orange Stained Glass
 Orange Stained Glass Pane
 Orange Terracotta
 Orange Tulip
+Orange Banner
 Orange Wool
 Oxeye Daisy
+Oxidized Chiseled Copper
 Oxidized Copper
+Oxidized Copper Bars
+Oxidized Copper Bulb
+Oxidized Copper Chain
+Oxidized Copper Chest
+Oxidized Copper Door
+Oxidized Copper Golem Statue
+Oxidized Copper Grate
+Oxidized Copper Lantern
+Oxidized Copper Trapdoor
 Oxidized Cut Copper
+Oxidized Cut Copper Slab
+Oxidized Cut Copper Stairs
+Oxidized Lightning Rod
 Packed Ice
+Packed Mud
 Painting
+Pale Hanging Moss
+Pale Moss Block
+Pale Moss Carpet
+Pale Oak Boat
+Pale Oak Button
+Pale Oak Boat With Chest
+Pale Oak Door
+Pale Oak Fence
+Pale Oak Fence Gate
+Pale Oak Hanging Sign
+Pale Oak Leaves
+Pale Oak Log
+Pale Oak Planks
+Pale Oak Pressure Plate
+Pale Oak Sapling
+Pale Oak Display
+Pale Oak Sign
+Pale Oak Slab
+Pale Oak Stairs
+Pale Oak Trapdoor
+Pale Oak Wall Hanging Sign
+Pale Oak Wall Sign
+Pale Oak Wood
 Panda Spawn Egg
 Paper
+Charred Spawn Egg
 Parrot Spawn Egg
+Pearlescent Froglight
 Peony
 Petrified Oak Slab
 Phantom Membrane
 Phantom Spawn Egg
-Pig Spawn Egg
-Piglin Banner Pattern
-Piglin Spawn Egg
+Pig Snout
 Piglin Brute Spawn Egg
+Piglin Head
+Piglin Spawn Egg
+Piglin Wall Head
+Pig Spawn Egg
+Pillager Spawn Egg
 Pink Banner
 Pink Bed
+Pink Bundle
+Pink Candle
+Pink Candle Cake
 Pink Carpet
 Pink Concrete
 Pink Concrete Powder
 Pink Dye
 Pink Glazed Terracotta
+Pink Harness
 Pink Petals
 Pink Shulker Box
 Pink Stained Glass
 Pink Stained Glass Pane
 Pink Terracotta
 Pink Tulip
+Pink Banner
 Pink Wool
 Piston
+Piston Head
+Pitcher Crop
 Pitcher Plant
 Pitcher Pod
 Player Head
+Player Wall Head
 Plenty Pottery Sherd
 Podzol
 Pointed Dripstone
@@ -673,28 +1072,33 @@ Polished Andesite Slab
 Polished Andesite Stairs
 Polished Basalt
 Polished Blackstone
+Polished Blackstone Bricks
 Polished Blackstone Brick Slab
 Polished Blackstone Brick Stairs
 Polished Blackstone Brick Wall
-Polished Blackstone Bricks
 Polished Blackstone Button
 Polished Blackstone Pressure Plate
 Polished Blackstone Slab
 Polished Blackstone Stairs
 Polished Blackstone Wall
+Polished Deepslate
+Polished Deepslate Slab
+Polished Deepslate Stairs
+Polished Deepslate Wall
 Polished Diorite
 Polished Diorite Slab
 Polished Diorite Stairs
 Polished Granite
 Polished Granite Slab
 Polished Granite Stairs
-Polished Deepslate
-Polished Deepslate Slab
-Polished Deepslate Stairs
-Polished Deepslate Wall
+Polished Tuff
+Polished Tuff Slab
+Polished Tuff Stairs
+Polished Tuff Wall
 Popped Chorus Fruit
 Poppy
 Porkchop
+Potato
 Potato
 Potion
 Potted Acacia Sapling
@@ -707,6 +1111,7 @@ Potted Blue Orchid
 Potted Brown Mushroom
 Potted Cactus
 Potted Cherry Sapling
+Potted Closed Eyeblossom
 Potted Cornflower
 Potted Crimson Fungus
 Potted Crimson Roots
@@ -719,8 +1124,10 @@ Potted Jungle Sapling
 Potted Lily Of The Valley
 Potted Mangrove Propagule
 Potted Oak Sapling
+Potted Open Eyeblossom
 Potted Orange Tulip
 Potted Oxeye Daisy
+Potted Pale Oak Sapling
 Potted Pink Tulip
 Potted Poppy
 Potted Red Mushroom
@@ -733,40 +1140,48 @@ Potted White Tulip
 Potted Wither Rose
 Powder Snow
 Powder Snow Bucket
+Powder Snow Cauldron
 Powered Rail
 Prismarine
+Prismarine Bricks
 Prismarine Brick Slab
 Prismarine Brick Stairs
-Prismarine Bricks
 Prismarine Crystals
 Prismarine Shard
 Prismarine Slab
 Prismarine Stairs
 Prismarine Wall
+Prize Pottery Sherd
 Pufferfish
 Pufferfish Bucket
+Pufferfish Spawn Egg
 Pumpkin
 Pumpkin Pie
 Pumpkin Seeds
+Pumpkin Stem
 Purple Banner
 Purple Bed
+Purple Bundle
+Purple Candle
+Purple Candle Cake
 Purple Carpet
 Purple Concrete
 Purple Concrete Powder
 Purple Dye
 Purple Glazed Terracotta
+Purple Harness
 Purple Shulker Box
 Purple Stained Glass
 Purple Stained Glass Pane
 Purple Terracotta
+Purple Banner
 Purple Wool
 Purpur Block
 Purpur Pillar
 Purpur Slab
 Purpur Stairs
+Nether Quartz
 Quartz Block
-Quartz Brick Slab
-Quartz Brick Stairs
 Quartz Bricks
 Quartz Pillar
 Quartz Slab
@@ -780,21 +1195,36 @@ Rail
 Raiser Armor Trim
 Ravager Spawn Egg
 Raw Copper
+Raw Copper Block
 Raw Gold
+Raw Gold Block
 Raw Iron
+Raw Iron Block
+Recovery Compass
+Redstone
+Redstone Block
+Redstone Lamp
+Redstone Ore
+Redstone Torch
+Redstone Wall Torch
+Redstone Wire
 Red Banner
 Red Bed
+Red Bundle
+Red Candle
+Red Candle Cake
 Red Carpet
 Red Concrete
 Red Concrete Powder
 Red Dye
 Red Glazed Terracotta
+Red Harness
 Red Mushroom
 Red Mushroom Block
+Red Nether Bricks
 Red Nether Brick Slab
 Red Nether Brick Stairs
 Red Nether Brick Wall
-Red Nether Bricks
 Red Sand
 Red Sandstone
 Red Sandstone Slab
@@ -805,14 +1235,18 @@ Red Stained Glass
 Red Stained Glass Pane
 Red Terracotta
 Red Tulip
+Red Banner
 Red Wool
-Redstone
-Redstone Block
-Redstone Lamp
-Redstone Ore
-Redstone Torch
+Reinforced Deepslate
 Repeater
 Repeating Command Block
+Resin Block
+Resin Brick
+Resin Bricks
+Resin Brick Slab
+Resin Brick Stairs
+Resin Brick Wall
+Resin Clump
 Respawn Anchor
 Rib Armor Trim
 Rooted Dirt
@@ -828,20 +1262,25 @@ Sandstone Slab
 Sandstone Stairs
 Sandstone Wall
 Scaffolding
+Scrape Pottery Sherd
 Sculk
 Sculk Catalyst
 Sculk Sensor
 Sculk Shrieker
 Sculk Vein
-Scute
+Seagrass
 Sea Lantern
 Sea Pickle
-Seagrass
 Sentinel Armor Trim
+Shaper Armor Trim
+Sheaf Pottery Sherd
 Shears
 Sheep Spawn Egg
+Shelter Pottery Sherd
 Shield
-Shaper Armor Trim
+Short Dry Grass
+Short Grass
+Shroomlight
 Shulker Box
 Shulker Shell
 Shulker Spawn Egg
@@ -850,11 +1289,13 @@ Silverfish Spawn Egg
 Skeleton Horse Spawn Egg
 Skeleton Skull
 Skeleton Spawn Egg
-Skull Banner Pattern
+Skeleton Wall Skull
+Skull Charge
 Skull Pottery Sherd
 Slime Ball
 Slime Block
 Slime Spawn Egg
+Small Amethyst Bud
 Small Dripleaf
 Smithing Table
 Smoker
@@ -870,16 +1311,21 @@ Smooth Sandstone Slab
 Smooth Sandstone Stairs
 Smooth Stone
 Smooth Stone Slab
+Sniffer Egg
 Sniffer Spawn Egg
+Snort Pottery Sherd
+Snout Armor Trim
 Snow
+Snowball
 Snow Block
 Snow Golem Spawn Egg
-Snowball
 Soul Campfire
+Soul Fire
 Soul Lantern
 Soul Sand
 Soul Soil
 Soul Torch
+Soul Wall Torch
 Spawner
 Spectral Arrow
 Spider Eye
@@ -890,41 +1336,50 @@ Sponge
 Spore Blossom
 Spruce Boat
 Spruce Button
+Spruce Boat With Chest
 Spruce Door
 Spruce Fence
 Spruce Fence Gate
+Spruce Hanging Sign
 Spruce Leaves
 Spruce Log
 Spruce Planks
 Spruce Pressure Plate
 Spruce Sapling
+Spruce Display
+Spruce Sign
 Spruce Slab
 Spruce Stairs
 Spruce Trapdoor
+Spruce Wall Hanging Sign
+Spruce Wall Sign
 Spruce Wood
 Spyglass
+Squid Spawn Egg
 Stick
 Sticky Piston
 Stone
+Stonecutter
 Stone Axe
+Stone Bricks
 Stone Brick Slab
 Stone Brick Stairs
 Stone Brick Wall
-Stone Bricks
 Stone Button
 Stone Hoe
 Stone Pickaxe
 Stone Pressure Plate
 Stone Shovel
 Stone Slab
+Stone Spear
 Stone Stairs
 Stone Sword
-Stonecutter
 Stray Spawn Egg
 Strider Spawn Egg
 String
 Stripped Acacia Log
 Stripped Acacia Wood
+Stripped Bamboo Block
 Stripped Birch Log
 Stripped Birch Wood
 Stripped Cherry Log
@@ -939,6 +1394,8 @@ Stripped Mangrove Log
 Stripped Mangrove Wood
 Stripped Oak Log
 Stripped Oak Wood
+Stripped Pale Oak Log
+Stripped Pale Oak Wood
 Stripped Spruce Log
 Stripped Spruce Wood
 Stripped Warped Hyphae
@@ -952,112 +1409,230 @@ Suspicious Gravel
 Suspicious Sand
 Suspicious Stew
 Sweet Berries
+Sweet Berry Bush
 Tadpole Bucket
 Tadpole Spawn Egg
+Tall Dry Grass
+Tall Grass
+Tall Seagrass
 Target
 Terracotta
+Test Block
+Test Instance Block
+Tide Armor Trim
 Tinted Glass
 Tipped Arrow
 Tnt
 Tnt Minecart
 Torch
 Torchflower
+Torchflower Crop
 Torchflower Seeds
 Totem Of Undying
 Trader Llama Spawn Egg
 Trapped Chest
+Trial Key
+Trial Spawner
 Trident
+Tripwire
 Tripwire Hook
 Tropical Fish
 Tropical Fish Bucket
 Tropical Fish Spawn Egg
+Tube Coral
 Tube Coral Block
+Tube Coral Fan
+Tube Coral Wall Fan
 Tuff
+Tuff Bricks
+Tuff Brick Slab
+Tuff Brick Stairs
+Tuff Brick Wall
+Tuff Slab
+Tuff Stairs
+Tuff Wall
 Turtle Egg
 Turtle Helmet
 Turtle Scute
 Turtle Spawn Egg
 Twisting Vines
+Twisting Vines Plant
+Vault
+Verdant Froglight
 Vex Armor Trim
 Vex Spawn Egg
 Villager Spawn Egg
 Vindicator Spawn Egg
+Vine
+Void Air
+Wall Torch
 Wandering Trader Spawn Egg
-Ward Armor Trim
 Warden Spawn Egg
+Ward Armor Trim
 Warped Button
 Warped Door
 Warped Fence
 Warped Fence Gate
 Warped Fungus
 Warped Fungus On A Stick
+Warped Hanging Sign
 Warped Hyphae
 Warped Nylium
 Warped Planks
 Warped Pressure Plate
 Warped Roots
+Warped Display
 Warped Sign
 Warped Slab
 Warped Stairs
 Warped Stem
 Warped Trapdoor
+Warped Wall Hanging Sign
+Warped Wall Sign
 Warped Wart Block
+Water
 Water Bucket
-Wayfinder Armor Trim
+Water Cauldron
+Waxed Chiseled Copper
+Waxed Copper Bars
 Waxed Copper Block
+Waxed Copper Bulb
+Waxed Copper Chain
+Waxed Copper Chest
+Waxed Copper Door
+Waxed Copper Golem Statue
+Waxed Copper Grate
+Waxed Copper Lantern
+Waxed Copper Trapdoor
 Waxed Cut Copper
+Waxed Cut Copper Slab
+Waxed Cut Copper Stairs
+Waxed Exposed Chiseled Copper
 Waxed Exposed Copper
+Waxed Exposed Copper Bars
+Waxed Exposed Copper Bulb
+Waxed Exposed Copper Chain
+Waxed Exposed Copper Chest
+Waxed Exposed Copper Door
+Waxed Exposed Copper Golem Statue
+Waxed Exposed Copper Grate
+Waxed Exposed Copper Lantern
+Waxed Exposed Copper Trapdoor
 Waxed Exposed Cut Copper
+Waxed Exposed Cut Copper Slab
+Waxed Exposed Cut Copper Stairs
+Waxed Exposed Lightning Rod
+Waxed Lightning Rod
+Waxed Oxidized Chiseled Copper
 Waxed Oxidized Copper
+Waxed Oxidized Copper Bars
+Waxed Oxidized Copper Bulb
+Waxed Oxidized Copper Chain
+Waxed Oxidized Copper Chest
+Waxed Oxidized Copper Door
+Waxed Oxidized Copper Golem Statue
+Waxed Oxidized Copper Grate
+Waxed Oxidized Copper Lantern
+Waxed Oxidized Copper Trapdoor
 Waxed Oxidized Cut Copper
+Waxed Oxidized Cut Copper Slab
+Waxed Oxidized Cut Copper Stairs
+Waxed Oxidized Lightning Rod
+Waxed Weathered Chiseled Copper
 Waxed Weathered Copper
+Waxed Weathered Copper Bars
+Waxed Weathered Copper Bulb
+Waxed Weathered Copper Chain
+Waxed Weathered Copper Chest
+Waxed Weathered Copper Door
+Waxed Weathered Copper Golem Statue
+Waxed Weathered Copper Grate
+Waxed Weathered Copper Lantern
+Waxed Weathered Copper Trapdoor
 Waxed Weathered Cut Copper
+Waxed Weathered Cut Copper Slab
+Waxed Weathered Cut Copper Stairs
+Waxed Weathered Lightning Rod
+Wayfinder Armor Trim
+Weathered Chiseled Copper
 Weathered Copper
+Weathered Copper Bars
+Weathered Copper Bulb
+Weathered Copper Chain
+Weathered Copper Chest
+Weathered Copper Door
+Weathered Copper Golem Statue
+Weathered Copper Grate
+Weathered Copper Lantern
+Weathered Copper Trapdoor
 Weathered Cut Copper
+Weathered Cut Copper Slab
+Weathered Cut Copper Stairs
+Weathered Lightning Rod
+Weeping Vines
+Weeping Vines Plant
+Wet Sponge
 Wheat
 Wheat Seeds
 White Banner
 White Bed
+White Bundle
+White Candle
+White Candle Cake
 White Carpet
 White Concrete
 White Concrete Powder
 White Dye
 White Glazed Terracotta
+White Harness
 White Shulker Box
 White Stained Glass
 White Stained Glass Pane
 White Terracotta
 White Tulip
+White Banner
 White Wool
+Wildflowers
 Wilder Armor Trim
+Wind Charge
 Witch Spawn Egg
 Wither Rose
 Wither Skeleton Skull
 Wither Skeleton Spawn Egg
+Wither Skeleton Wall Skull
 Wither Spawn Egg
+Wolf Armor
 Wolf Spawn Egg
 Wooden Axe
 Wooden Hoe
 Wooden Pickaxe
 Wooden Shovel
+Wooden Spear
 Wooden Sword
 Writable Book
 Written Book
 Yellow Banner
 Yellow Bed
+Yellow Bundle
+Yellow Candle
+Yellow Candle Cake
 Yellow Carpet
 Yellow Concrete
 Yellow Concrete Powder
 Yellow Dye
 Yellow Glazed Terracotta
+Yellow Harness
 Yellow Shulker Box
 Yellow Stained Glass
 Yellow Stained Glass Pane
 Yellow Terracotta
+Yellow Banner
 Yellow Wool
 Zoglin Spawn Egg
 Zombie Head
 Zombie Horse Spawn Egg
+Zombie Nautilus Spawn Egg
 Zombie Spawn Egg
 Zombie Villager Spawn Egg
+Zombie Wall Head
 Zombified Piglin Spawn Egg
