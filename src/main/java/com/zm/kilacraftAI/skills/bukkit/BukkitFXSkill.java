@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.knowledge.InternalEnumRegistry;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
@@ -23,28 +24,6 @@ import java.util.concurrent.CompletableFuture;
  *
  * <p>播放音效或显示粒子效果(仅调用者听到/看到)</p>
  * <p>用于: 任务完成庆祝、警告提示、氛围营造</p>
- *
- * <h3>音效分类示例:</h3>
- * <ul>
- *   <li>环境音效: AMBIENT_CAVE(洞穴氛围)</li>
- *   <li>方块音效: BLOCK_ANVIL_BREAK(铁砧破坏)</li>
- *   <li>实体音效: ENTITY_PLAYER_LEVELUP(升级庆祝)</li>
- *   <li>物品音效: ITEM_ARMOR_EQUIP_DIAMOND(钻石盔甲)</li>
- * </ul>
- *
- * <h3>粒子分类示例:</h3>
- * <ul>
- *   <li>庆祝类: HEART(爱心), VILLAGER_HAPPY(村民开心)</li>
- *   <li>警告类: VILLAGER_ANGRY(村民愤怒), DAMAGE_INDICATOR(伤害指示)</li>
- *   <li>战斗类: CRIT(暴击), SWEEP_ATTACK(横扫攻击)</li>
- *   <li>魔法类: ENCHANTMENT_TABLE(附魔台), SPELL(药水)</li>
- *   <li>自然类: FLAME(火焰), SMOKE_NORMAL(烟雾)</li>
- *   <li>爆炸类: EXPLOSION_NORMAL(爆炸), EXPLOSION_LARGE(大爆炸)</li>
- *   <li>音符类: NOTE(音符)</li>
- *   <li>传送类: PORTAL(传送门), END_ROD(末地烛)</li>
- *   <li>水下类: WATER_BUBBLE(气泡), WATER_SPLASH(水花)</li>
- *   <li>灵魂类: SOUL(灵魂), SOUL_FIRE_FLAME(灵魂火焰)</li>
- * </ul>
  *
  * @author Zm_Mmm
  * @since 2026-04-17
@@ -114,7 +93,7 @@ public class BukkitFXSkill implements Skill {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("无法获取玩家对象"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("无法获取玩家对象")));
         }
 
         // 权限检查
@@ -163,31 +142,51 @@ public class BukkitFXSkill implements Skill {
     private SkillResult playSound(Player player, Map<String, String> entities) {
         String soundName = entities.get("sound");
         if (soundName == null || soundName.isEmpty()) {
-            return SkillResult.failure("缺少参数: sound(音效枚举名称)");
+            return SkillResult.failure(I18nService.tr("缺少参数: sound(音效枚举名称)"));
         }
 
-        // 解析音效
-        Sound sound;
-        try {
-            sound = Sound.valueOf(soundName.toUpperCase());
-        } catch (IllegalArgumentException e) {
+        // 解析音效：精确匹配 → 内置注册表模糊匹配
+        Sound sound = resolveSound(soundName);
+        if (sound == null) {
             return SkillResult.failure(I18nService.tr("无效的音效枚举名称: {}", soundName));
         }
 
-        // 解析参数(带默认值)
         float volume = parseFloat(entities.get("volume"), 1.0f);
         float pitch = parseFloat(entities.get("pitch"), 1.0f);
 
-        // 限制范围
         volume = Math.max(0.0f, Math.min(1.0f, volume));
         pitch = Math.max(0.5f, Math.min(2.0f, pitch));
 
-        // 播放音效
         Location location = player.getLocation();
         player.playSound(location, sound, volume, pitch);
 
-        String result = I18nService.tr("音效播放成功: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})", soundName, String.format("%.1f", volume), String.format("%.1f", pitch), String.format("%.1f", location.getX()), String.format("%.1f", location.getY()), String.format("%.1f", location.getZ()), location.getWorld().getName());
+        String result = I18nService.tr("音效播放成功: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})", sound.name(), String.format("%.1f", volume), String.format("%.1f", pitch), String.format("%.1f", location.getX()), String.format("%.1f", location.getY()), String.format("%.1f", location.getZ()), location.getWorld().getName());
         return SkillResult.success(result);
+    }
+
+    /**
+     * 解析音效枚举：精确 → 内置注册表模糊匹配
+     */
+    private Sound resolveSound(String input) {
+        // 1. 精确匹配
+        try {
+            return Sound.valueOf(input.toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        // 2. 内置注册表模糊匹配
+        InternalEnumRegistry registry = InternalEnumRegistry.getInstance();
+        if (registry != null) {
+            String matched = registry.resolveSound(input);
+            if (matched != null) {
+                try {
+                    return Sound.valueOf(matched);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -196,32 +195,50 @@ public class BukkitFXSkill implements Skill {
     private SkillResult spawnParticle(Player player, Map<String, String> entities) {
         String particleName = entities.get("particle");
         if (particleName == null || particleName.isEmpty()) {
-            return SkillResult.failure("缺少参数: particle(粒子枚举名称)");
+            return SkillResult.failure(I18nService.tr("缺少参数: particle(粒子枚举名称)"));
         }
 
-        // 解析粒子
-        Particle particle;
-        try {
-            particle = Particle.valueOf(particleName.toUpperCase());
-        } catch (IllegalArgumentException e) {
+        // 解析粒子：精确匹配 → 内置注册表模糊匹配
+        Particle particle = resolveParticle(particleName);
+        if (particle == null) {
             return SkillResult.failure(I18nService.tr("无效的粒子枚举名称: {}", particleName));
         }
 
-        // 解析参数(带默认值)
         int count = parseInt(entities.get("count"), 10);
         double offsetX = parseFloat(entities.get("offset_x"), 0.5f);
         double offsetY = parseFloat(entities.get("offset_y"), 0.5f);
         double offsetZ = parseFloat(entities.get("offset_z"), 0.5f);
 
-        // 限制范围
         count = Math.max(1, Math.min(100, count));
 
-        // 显示粒子
         Location location = player.getLocation();
         player.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ);
 
-        String result = I18nService.tr("粒子效果显示成功: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})", particleName, count, String.format("%.1f", offsetX), String.format("%.1f", offsetY), String.format("%.1f", offsetZ), String.format("%.1f", location.getX()), String.format("%.1f", location.getY()), String.format("%.1f", location.getZ()), location.getWorld().getName());
+        String result = I18nService.tr("粒子效果显示成功: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})", particle.name(), count, String.format("%.1f", offsetX), String.format("%.1f", offsetY), String.format("%.1f", offsetZ), String.format("%.1f", location.getX()), String.format("%.1f", location.getY()), String.format("%.1f", location.getZ()), location.getWorld().getName());
         return SkillResult.success(result);
+    }
+
+    /**
+     * 解析粒子枚举：精确 → 内置注册表模糊匹配
+     */
+    private Particle resolveParticle(String input) {
+        try {
+            return Particle.valueOf(input.toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        InternalEnumRegistry registry = InternalEnumRegistry.getInstance();
+        if (registry != null) {
+            String matched = registry.resolveParticle(input);
+            if (matched != null) {
+                try {
+                    return Particle.valueOf(matched);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

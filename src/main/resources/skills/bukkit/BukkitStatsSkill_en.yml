@@ -3,14 +3,12 @@
 # Used for: querying death count, kill count, walking distance, etc. historical cumulative data
 
 # This description is sent to the LLM to help it understand when to use this skill
-description: 'Query player Minecraft vanilla statistics (cumulative/lifetime records). Complete statistics list is written to the knowledge base, the system will automatically retrieve and provide reference during intent recognition. Used for querying historical cumulative data such as total deaths, total kills, total walking distance, mining count, etc. Note: this skill queries lifetime cumulative values, not current real-time status (e.g. health, hunger).'
+description: 'Query player Minecraft vanilla statistics (cumulative/lifetime records). Supports exact enum names and fuzzy description matching. Used for querying historical cumulative data such as total deaths, total kills, total walking distance, mining count, etc. Note: this skill queries lifetime cumulative values, not current real-time status (e.g. health, hunger).'
 
-# Action descriptions (Map format, key=action name, value=action description)
 action_descriptions:
-  query_statistic: 'Query the value of a specified statistic. Required parameters: statistic (statistic enum name, e.g. DEATHS, KILL_ENTITY, MINE_BLOCK). Some statistics require additional parameters: entity_type (entity type name, e.g. ZOMBIE, only needed for KILL_ENTITY/ENTITY_KILLED_BY), material (material name, e.g. DIAMOND_ORE, only needed for MINE_BLOCK/CRAFT_ITEM/USE_ITEM/BREAK_ITEM). Statistic enum names will be provided via knowledge base retrieval. Returned data contains statistic (statistic enum name), value (statistic value, int, distance in cm, time in ticks), statistic_type (statistic type: UNTYPED/ITEM/BLOCK/ENTITY) fields; ITEM/BLOCK types also contain material field, ENTITY types also contain entity_type field, available for subsequent step references.'
+  query_statistic: 'Query the value of a specified statistic. Required parameters: statistic (statistic enum name or description, e.g. deaths, kill count). Some statistics require additional parameters: entity_type (e.g. ZOMBIE), material (e.g. DIAMOND_ORE). Returned data contains statistic, value, statistic_type fields, available for subsequent step references.'
 
-# Additional hints (for guiding LLM to use skills correctly)
 hints:
-  - "**Cumulative stats vs current status**: This skill queries lifetime cumulative values (e.g. total deaths), not suitable for querying current real-time status (e.g. health/hunger/level), those should use corresponding status query Skills."
-  - "**Parameter types**: Statistics are divided into four types - no parameter (UNTYPED), needs material parameter (ITEM/BLOCK type), needs entity_type parameter (ENTITY type). Statistic enum names will be provided via knowledge base retrieval, please pass parameters according to the type description in the retrieval results."
-  - "**Distance and time units**: In the returned value field, movement distance statistics are in centimeters (CM, 1 block=100CM), time statistics are in ticks (20 ticks=1 second). When referencing {step_x.value} in multi-step task conditional expressions, note unit conversion, e.g. 100k blocks = 10000000 centimeters."
+  - "**Cumulative stats vs current status**: This skill queries lifetime cumulative values (e.g. total deaths), not suitable for current real-time status (e.g. health/hunger/level)."
+  - "**Parameter types**: Statistics are divided into four types - no parameter (UNTYPED), needs material parameter (ITEM/BLOCK type), needs entity_type parameter (ENTITY type)."
+  - "**Distance and time units**: Movement distance in centimeters (1 block=100CM), time in ticks (20 ticks=1 second)."

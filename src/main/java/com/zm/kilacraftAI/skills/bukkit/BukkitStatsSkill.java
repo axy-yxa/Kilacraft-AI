@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.knowledge.InternalEnumRegistry;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
@@ -21,16 +22,6 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Bukkit 原版统计数据查询 Skill
  *
- * <p>查询玩家的 Minecraft 原版累计统计数据（生涯记录）</p>
- * <p>支持四种统计类型：UNTYPED(无参数)、ITEM(物品)、BLOCK(方块)、ENTITY(实体)</p>
- *
- * <h3>参数说明：</h3>
- * <ul>
- *   <li>statistic: 统计枚举名称（必填），如 DEATHS、KILL_ENTITY、MINE_BLOCK</li>
- *   <li>entity_type: 实体类型名（仅 ENTITY 类型统计需要），如 ZOMBIE</li>
- *   <li>material: 材质名（仅 ITEM/BLOCK 类型统计需要），如 DIAMOND_ORE</li>
- * </ul>
- *
  * @author Zm_Mmm
  * @since 2026-04-19
  */
@@ -38,19 +29,15 @@ public class BukkitStatsSkill implements Skill {
 
     private static final String ACTION_QUERY_STATISTIC = "query_statistic";
 
-    /** 距离统计后缀（厘米），需要自动转换单位 */
-    private static final Set<String> DISTANCE_STATS = Set.of(
-            "WALK_ONE_CM", "WALK_ON_WATER_ONE_CM", "WALK_UNDER_WATER_ONE_CM",
-            "FALL_ONE_CM", "CLIMB_ONE_CM", "FLY_ONE_CM", "SPRINT_ONE_CM",
-            "CROUCH_ONE_CM", "SWIM_ONE_CM", "AVIATE_ONE_CM",
-            "MINECART_ONE_CM", "BOAT_ONE_CM", "PIG_ONE_CM",
-            "HORSE_ONE_CM", "STRIDER_ONE_CM"
-    );
+    /**
+     * 距离统计后缀（厘米），需要自动转换单位
+     */
+    private static final Set<String> DISTANCE_STATS = Set.of("WALK_ONE_CM", "WALK_ON_WATER_ONE_CM", "WALK_UNDER_WATER_ONE_CM", "FALL_ONE_CM", "CLIMB_ONE_CM", "FLY_ONE_CM", "SPRINT_ONE_CM", "CROUCH_ONE_CM", "SWIM_ONE_CM", "AVIATE_ONE_CM", "MINECART_ONE_CM", "BOAT_ONE_CM", "PIG_ONE_CM", "HORSE_ONE_CM", "STRIDER_ONE_CM");
 
-    /** 时长统计后缀（tick），需要自动转换时间单位 */
-    private static final Set<String> TIME_STATS = Set.of(
-            "PLAY_ONE_MINUTE", "TIME_SINCE_DEATH", "TIME_SINCE_REST", "SNEAK_TIME"
-    );
+    /**
+     * 时长统计后缀（tick），需要自动转换时间单位
+     */
+    private static final Set<String> TIME_STATS = Set.of("PLAY_ONE_MINUTE", "TIME_SINCE_DEATH", "TIME_SINCE_REST", "SNEAK_TIME");
 
     private final SkillConfigManager configManager;
 
@@ -108,7 +95,7 @@ public class BukkitStatsSkill implements Skill {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("无法获取玩家对象"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("无法获取玩家对象")));
         }
 
         if (!PluginPermissionEnum.BUKKIT_STATS.hasPermission(player)) {
@@ -152,14 +139,12 @@ public class BukkitStatsSkill implements Skill {
     private SkillResult queryStatistic(Player player, Map<String, String> entities) {
         String statisticName = entities.get("statistic");
         if (statisticName == null || statisticName.isEmpty()) {
-            return SkillResult.failure("缺少参数: statistic（统计枚举名称）");
+            return SkillResult.failure(I18nService.tr("缺少参数: statistic（统计枚举名称）"));
         }
 
-        // 解析统计枚举
-        Statistic statistic;
-        try {
-            statistic = Statistic.valueOf(statisticName.toUpperCase());
-        } catch (IllegalArgumentException e) {
+        // 解析统计枚举：精确匹配 → 内置注册表模糊匹配
+        Statistic statistic = resolveStatistic(statisticName);
+        if (statistic == null) {
             return SkillResult.failure(I18nService.tr("无效的统计枚举名称: {}", statisticName));
         }
 
@@ -522,6 +507,29 @@ public class BukkitStatsSkill implements Skill {
             case PLAYER -> "Player";
             default -> type.name().replace("_", " ").toLowerCase();
         };
+    }
+
+    /**
+     * 解析统计枚举：精确 → 内置注册表模糊匹配
+     */
+    private Statistic resolveStatistic(String input) {
+        try {
+            return Statistic.valueOf(input.toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        InternalEnumRegistry registry = InternalEnumRegistry.getInstance();
+        if (registry != null) {
+            String matched = registry.resolveStatistic(input);
+            if (matched != null) {
+                try {
+                    return Statistic.valueOf(matched);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
