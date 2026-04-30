@@ -7,10 +7,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Folia 兼容调度工具类
@@ -47,20 +45,103 @@ public class FoliaCompat {
      */
     private static boolean initialized = false;
 
+    // ==================== 自适应 I/O 线程池 ====================
+
+    /**
+     * 线程编号原子计数器（用于生成唯一线程名）
+     */
+    private static final AtomicInteger IO_THREAD_COUNTER = new AtomicInteger(0);
+
+    /**
+     * 插件全局异步 I/O 线程池，用于 LLM 调用、知识检索等 I/O 密集型异步操作
+     *
+     * <h3>容量推算示例：</h3>
+     * <pre>
+     *   核心线程 = CPU核数（不设下限）
+     *   最大线程 = min(CPU*4, 128)（弹性4倍，封顶128）
+     *   队列容量 = 最大线程数（与最大线程一致）
+     *   -------------------------------------------------
+     *   2核VPS:    核心=2,  最大=8,   队列=8   → 总容量 16
+     *   4核服务器:  核心=4,  最大=16,  队列=16  → 总容量 32
+     *   8核服务器:  核心=8,  最大=32,  队列=32  → 总容量 64
+     *   16核服务器: 核心=16, 最大=64,  队列=64  → 总容量 128
+     *   32核服务器: 核心=32, 最大=128, 队列=128 → 总容量 256
+     *   64核服务器: 核心=64, 最大=128, 队列=128 → 总容量 256（封顶）
+     * </pre>
+     * <pre>
+     *   超出后: 丢弃并记录警告（绝不允许阻塞 Bukkit 主线程）
+     * </pre>
+     */
+    private static final int CPU = Runtime.getRuntime().availableProcessors();
+    private static final int IO_MAX_THREADS = Math.min(CPU * 4, 128);
+    private static final ThreadPoolExecutor IO_POOL = new ThreadPoolExecutor(CPU, IO_MAX_THREADS, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(IO_MAX_THREADS), r -> {
+        Thread t = new Thread(r, "KilacraftAI-IO-" + IO_THREAD_COUNTER.incrementAndGet());
+        t.setDaemon(true);
+        return t;
+    }, (r, executor) -> {
+        PluginLogger.warn("I/O线程池", I18nService.tr("异步任务队列已满，丢弃任务（池状态: {}/{}，队列: {}）", executor.getActiveCount(), executor.getMaximumPoolSize(), executor.getQueue().size()));
+    });
+
+    /**
+     * 获取全局异步 I/O 线程池
+     */
+    public static ExecutorService getIOPool() {
+        return IO_POOL;
+    }
+
+    /**
+     * 关闭全局 I/O 线程池（仅在插件 onDisable 时调用）
+     */
+    public static void shutdownIOPool() {
+        PluginLogger.info("I/O线程池", I18nService.tr("正在关闭（活跃线程: {}，队列: {}）", IO_POOL.getActiveCount(), IO_POOL.getQueue().size()));
+        IO_POOL.shutdown();
+        try {
+            if (!IO_POOL.awaitTermination(5, TimeUnit.SECONDS)) {
+                int remaining = IO_POOL.shutdownNow().size();
+                PluginLogger.warn("I/O线程池", I18nService.tr("等待超时，强制关闭（残留任务: {}）", remaining));
+            } else {
+                PluginLogger.info("I/O线程池", I18nService.tr("已安全关闭"));
+            }
+        } catch (InterruptedException e) {
+            IO_POOL.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
     /**
      * 延迟初始化 Folia 检测（首次调用时执行，确保 I18nService 和 PluginLogger 已就绪）
      */
     private static synchronized void ensureInitialized() {
         if (initialized) return;
         initialized = true;
+
+        // 精确检测：优先探测 Folia 核心类 RegionizedServer（仅真正的 Folia/lophine 存在）
+        // Paper 系分支（Leaf、Purpur 等）已合并 Folia 调度器 API 接口，但不能仅凭接口判断
+        boolean hasFoliaCore = false;
         try {
-            REFLECTION = new FoliaReflection();
-            FOLIA = true;
-        } catch (ReflectiveOperationException e) {
-            REFLECTION = null;
-            FOLIA = false;
-            PluginLogger.warn("Folia兼容", I18nService.tr("Folia API 反射初始化失败，回退到 Spigot 模式: {}", e.getMessage()), e);
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            hasFoliaCore = true;
+        } catch (ClassNotFoundException ignored) {
+            // 非 Folia 环境
         }
+
+        if (hasFoliaCore) {
+            try {
+                REFLECTION = new FoliaReflection();
+                FOLIA = true;
+            } catch (ReflectiveOperationException e) {
+                REFLECTION = null;
+                FOLIA = false;
+                PluginLogger.warn("Folia兼容", I18nService.tr("Folia API 反射初始化失败，回退到 Spigot 模式: {}", e.getMessage()), e);
+            }
+        } else {
+            FOLIA = false;
+            REFLECTION = null;
+        }
+
+        // 输出 I/O 线程池初始化日志（此处 PluginLogger 和 I18nService 已就绪）
+        String serverName = Bukkit.getServer().getName();
+        PluginLogger.info("I/O线程池", I18nService.tr("已初始化（核心: {}，最大: {}，队列: {}，服务端: {}，Folia: {}）", IO_POOL.getCorePoolSize(), IO_POOL.getMaximumPoolSize(), IO_POOL.getQueue().remainingCapacity() + IO_POOL.getQueue().size(), serverName, FOLIA));
     }
 
     private FoliaCompat() {

@@ -1,12 +1,9 @@
 package com.zm.kilacraftAI.api.provider;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
+import com.google.gson.*;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.api.LLMProvider;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
@@ -59,8 +56,11 @@ public class GenericLLMProvider implements LLMProvider {
     public GenericLLMProvider() {
         this.configManager = plugin.getConfigManager();
 
-        // 配置连接池，复用 HTTP 连接
-        ConnectionPool connectionPool = new ConnectionPool(10, 5, TimeUnit.MINUTES);
+        // 连接池与 IO_POOL 配合：同步 execute() 每个线程需要一个连接
+        // 连接数 = IO_POOL 最大线程数 = min(CPU*4, 128)
+        // keepAlive 5分钟：LLM 请求间隔通常较短，复用连接减少 TCP 握手开销
+        int ioPoolMaxThreads = Math.min(Runtime.getRuntime().availableProcessors() * 4, 128);
+        ConnectionPool connectionPool = new ConnectionPool(ioPoolMaxThreads, 5, TimeUnit.MINUTES);
         // 自动重试失败的连接
         this.httpClient = new OkHttpClient.Builder().connectionPool(connectionPool).connectTimeout(30, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS).writeTimeout(30, TimeUnit.SECONDS).retryOnConnectionFailure(true).build();
         this.gson = new Gson();
@@ -322,7 +322,7 @@ public class GenericLLMProvider implements LLMProvider {
                 requestBody.addProperty("max_tokens", cachedMaxTokens);
                 // 始终使用流式请求
                 requestBody.addProperty("stream", true);
-                
+
                 // 启用 JSON 输出格式（仅意图识别阶段使用）
                 if (enableJsonOutput) {
                     JsonObject responseFormat = new JsonObject();
@@ -472,7 +472,7 @@ public class GenericLLMProvider implements LLMProvider {
                     PluginLogger.debug("LLM请求", "========== API 请求结束 ==========");
                 }
             }
-        });
+        }, FoliaCompat.getIOPool());
     }
 
     @Override

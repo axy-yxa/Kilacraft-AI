@@ -296,7 +296,7 @@ public class KilacraftCommand implements CommandExecutor {
                     } catch (Exception e) {
                         PluginLogger.warn("知识库", "Embedding 异步预计算异常: {}", e.getMessage());
                     }
-                });
+                }, FoliaCompat.getIOPool());
             }
 
             sender.sendMessage(languageManager.getCommandKnowledgeReloadSuccess());
