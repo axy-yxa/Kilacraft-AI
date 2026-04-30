@@ -2,7 +2,7 @@
 # 此文件由插件自动生成，可根据需要修改
 #
 # 此描述会发送给LLM，帮助其理解何时调用此技能
-description: '通用工具技能，提供延迟等待、主动中途通知和全服广播三个基础能力。delay_wait用于多步骤任务中步骤间的时序间隔。notify_player用于在多步骤任务的两个执行步骤之间插入一段AI输出。broadcast_message用于OP管理员将一段消息通过AI美化后全服广播给所有在线玩家。判定规则：notify_player必须在两个执行动作之间使用（模式：[执行动作] → notify_player → [更多执行动作]），且之后还有步骤要继续执行。如果“告诉我”出现在用户需求的末尾、或需求本身是单意图查询，系统会通过最终AI总结自动处理，不需要也不应使用notify_player。'
+description: '通用工具技能，提供三个基础能力：delay_wait（延迟等待）、notify_player（阶段性通知）、broadcast_message（全服广播）。delay_wait用于多步骤任务中步骤间的时序间隔。notify_player将前序步骤的执行结果通过独立LLM调用概括后主动通知玩家，必须夹在两个执行步骤之间使用（模式：[执行A] → notify_player → [执行B]）。broadcast_message是OP管理员专用的全服广播功能，将消息通过AI美化后发送给所有在线玩家，既可作为单意图使用也可在多步骤任务中编排。判定规则：如果"告诉我"出现在需求末尾或需求是单意图查询，由最终AI总结处理，不需要使用notify_player。'
 
 # 动作描述（Map 格式，key=动作名称，value=动作描述）
 action_descriptions:
