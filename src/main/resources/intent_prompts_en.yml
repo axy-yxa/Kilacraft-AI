@@ -127,6 +127,14 @@ critical_rules:
     - Counter-example: user says "watch my wheat, tell me when it's grown and check the price" → splitting into parallel steps (monitor + check price) is WRONG, because checking price should happen after wheat is grown
     - Correct: use AFKTask's callback mechanism — create monitoring task as the main step, check price as a callback step
     - **Any subsequent action involving temporal markers like "when/after/once/then" must be handled through callback mechanism, never as a parallel step**
+        
+        **Step Ordering Rules (Extremely Important)**
+        - In multi-step tasks, step ordering must strictly follow the user's described action sequence
+        - **delay_wait must be adjacent to its subsequent step**: delay_wait has the semantic meaning of "inserting a wait between two steps". Its position depends on "what to do AFTER waiting X seconds" — delay_wait's depends_on should be the action BEFORE the wait, and the action AFTER delay_wait should depends_on delay_wait
+        - Ordering principle: first analyze the user's described sequence ("first do A, then do B"), then arrange steps and dependencies in that order
+        - Correct: user says "check the market, tell me, then wait 10 seconds, broadcast to everyone" → step_0:query_items → step_1:notify_player(depends step_0) → step_2:delay_wait(depends step_1) → step_3:broadcast_message(depends step_2)
+        - Wrong: user says "check the market, tell me, then wait 10 seconds, broadcast to everyone" → step_0:query_items → step_1:delay_wait(depends step_0) → step_2:notify_player(depends step_1) → step_3:broadcast_message(depends step_2) ← WRONG! delay_wait placed before notify_player causes the user to wait 10 seconds before getting results
+        - **notify_player must immediately follow its dependent execution step**: notify_player has "immediate notification" semantics and should NOT be blocked by delay_wait
     
     **Step 1: Match Skills One by One (Semantic Matching Principle)**
     - For each sub-question, check if there's a corresponding skill in the [Available Skills List]
@@ -242,6 +250,8 @@ output_quality_requirements: |
   9. Avoid circular dependencies (step_a depends on step_b, step_b also depends on step_a)
   10. Step order should follow logical execution order
   11. **Step count limit**: multi-step tasks contain at most 8 steps. If decomposed sub-questions exceed 8, only keep the most core, important dimensions, omit secondary ones. The system will supplement answers through LLM secondary analysis based on execution results
+  12. **Delay waiting**: when user requests include temporal intervals like "wait N seconds then...", "after a while...", insert utility.delay_wait (parameter seconds=number) in the step chain
+  13. **Intermediate notification (strictly limited)**: utility.notify_player usage pattern is fixed: [action A] → notify_player → [action B], i.e. it must be inserted between two execution steps with steps continuing after it. Any "tell me" / "tell me the result" appearing at the end of the user request is handled by the final AI summary automatically. Single-intent queries should NOT be split into multi-step + notify_player
 
 # ============================================
 # Part 7: AFK Task Specific Rules

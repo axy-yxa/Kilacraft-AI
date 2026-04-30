@@ -65,7 +65,22 @@ public enum PluginPermissionEnum {
     /**
      * Bukkit 原版统计数据查询（生涯累计统计）
      */
-    BUKKIT_STATS("kilacraft.bukkit_stats");
+    BUKKIT_STATS("kilacraft.bukkit_stats"),
+
+    /**
+     * 通用工具技能 - 延迟等待（所有玩家可用）
+     */
+    UTILITY_DELAY_WAIT("kilacraft.utility.delay_wait"),
+
+    /**
+     * 通用工具技能 - 主动中途通知（所有玩家可用）
+     */
+    UTILITY_NOTIFY_PLAYER("kilacraft.utility.notify_player"),
+
+    /**
+     * 通用工具技能 - AI 全服广播消息（OP 管理员专用，通过 CHAT 载体向全服玩家广播 AI 美化后的消息）
+     */
+    UTILITY_BROADCAST("kilacraft.utility.broadcast");
 
     /**
      * 权限节点

@@ -215,7 +215,11 @@ public class ConfigManager {
         if (this.bannedWorlds.isEmpty()) {
             this.bannedWorlds = new ArrayList<>();
         }
-        this.systemPrompt = getLocalizedString(config, "settings.system_prompt", "你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、有趣的方式回答，可以提到 Minecraft 游戏相关的内容。【绝对禁令】你是一个纯文字聊天机器人，你没有任何能力执行任何游戏内操作。当玩家请求你执行任何操作时，你必须明确回复'我无法执行此操作，我只能通过文字与您交流'。严禁使用'我帮你'、'已经'、'成功'等暗示操作已执行的措辞。");
+        this.systemPrompt = getLocalizedString(config, "settings.system_prompt", """
+                你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、简洁的方式回答，输出不超过200个汉字。可以提到 Minecraft 游戏相关的内容。不要在回复中称呼玩家名字。
+                【操作声明规范】你不得自行声称已执行任何游戏内操作，除非你收到了技能系统返回的明确成功信息。严禁在没有执行结果的情况下使用'我帮你'、'已经'、'成功'等暗示操作已完成的措辞。
+                【技能系统回退】当用户消息中附带 [FAILURE]、[NEED_INFO] 等标记或失败/异常信息时，说明技能系统已尝试执行但需要处理，此时直接根据信息内容用自然语言向玩家解释或转述，不得提及'系统提示'或内部机制。
+                【货币单位】本服经济系统的货币符号为 $（如 $100.00）。绝对不要使用'绿宝石'、'emerald'或其他 Minecraft 物品名称指代货币，所有金额都是 $ 货币单位。""");
 
         // 消息格式配置
         this.aiName = config.getString("messages.ai_name", "Kilacraft-AI");
