@@ -11,10 +11,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -102,6 +99,9 @@ public class SkillConfigManager {
         String lang = plugin.getConfigManager().getLanguage();
         boolean isZh = "zh".equals(lang);
 
+        // 确保当前语言版本的配置文件已从 JAR 拷贝到磁盘（解决语言切换后文件缺失问题）
+        ensureLanguageConfigFiles(isZh, lang);
+
         for (File packageFolder : packageFolders) {
             String packageName = packageFolder.getName();
 
@@ -129,6 +129,56 @@ public class SkillConfigManager {
                 }
                 loadSkillConfig(packageName, skillName, configFile);
             }
+        }
+    }
+
+    /**
+     * 确保当前语言版本的配置文件已从 JAR 拷贝到磁盘
+     *
+     * <p>解决热重载时语言切换后，磁盘上只有旧语言版本配置文件、新语言版本文件缺失的问题。</p>
+     *
+     * @param isZh 当前是否为中文模式
+     * @param lang 当前语言代码
+     */
+    private void ensureLanguageConfigFiles(boolean isZh, String lang) {
+        try {
+            var resource = plugin.getClass().getClassLoader().getResource("skills");
+            if (resource == null) return;
+
+            java.net.URI uri = resource.toURI();
+            try (java.nio.file.FileSystem fs = java.nio.file.FileSystems.newFileSystem(uri, java.util.Collections.emptyMap())) {
+                java.nio.file.Path skillsPath = fs.getPath("skills");
+                try (java.util.stream.Stream<java.nio.file.Path> dirs = java.nio.file.Files.list(skillsPath)) {
+                    dirs.filter(java.nio.file.Files::isDirectory).forEach(pkgDir -> {
+                        String pkgName = pkgDir.getFileName().toString();
+                        try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files.list(pkgDir)) {
+                            files.filter(java.nio.file.Files::isRegularFile).filter(p -> p.toString().endsWith(".yml")).forEach(p -> {
+                                String fileName = p.getFileName().toString();
+                                // 跳过 apis.yml（由 loadBukkitAPIs 单独处理）
+                                if (fileName.equalsIgnoreCase("apis.yml")) return;
+
+                                // 判断该文件是否属于当前语言
+                                boolean isForCurrentLang;
+                                if (isZh) {
+                                    // zh 模式：不带语言后缀的文件（如 AFKTaskSkill.yml）
+                                    isForCurrentLang = !fileName.matches(".*_[a-z]{2}\\.yml$");
+                                } else {
+                                    // 非 zh 模式：带 _{lang}.yml 后缀的文件（如 AFKTaskSkill_en.yml）
+                                    isForCurrentLang = fileName.endsWith("_" + lang + ".yml");
+                                }
+
+                                if (isForCurrentLang) {
+                                    ConfigResourceUtil.saveDefaultResource(plugin, "skills/" + pkgName + "/" + fileName, "技能配置");
+                                }
+                            });
+                        } catch (Exception e) {
+                            PluginLogger.warn("技能配置", I18nService.tr("扫描 JAR 包技能目录失败: skills/{}", pkgName));
+                        }
+                    });
+                }
+            }
+        } catch (Exception e) {
+            PluginLogger.warn("技能配置", I18nService.tr("扫描 JAR 包技能配置目录失败: {}", e.getMessage()));
         }
     }
 
@@ -180,13 +230,36 @@ public class SkillConfigManager {
         try {
             FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
-            SkillConfig skillConfig = new SkillConfig(packageName, skillName, config.getString("description", ""), getActionDescriptions(config), getHints(config));
+            // 提取自定义字段（非标准字段：description / action_descriptions / hints 之外的所有字符串值字段）
+            Map<String, String> customFields = extractCustomFields(config);
+
+            SkillConfig skillConfig = new SkillConfig(packageName, skillName, config.getString("description", ""), getActionDescriptions(config), getHints(config), customFields);
 
             String key = packageName + "." + skillName;
             skillConfigs.put(key, skillConfig);
         } catch (Exception e) {
             PluginLogger.error("技能配置", I18nService.tr("加载技能配置失败：{}", configFile.getPath()), e);
         }
+    }
+
+    /**
+     * 提取自定义字段（排除标准字段 description / action_descriptions / hints）
+     */
+    private Map<String, String> extractCustomFields(FileConfiguration config) {
+        Map<String, String> custom = new LinkedHashMap<>();
+        Set<String> standardKeys = Set.of("description", "action_descriptions", "hints");
+
+        for (String key : config.getKeys(false)) {
+            if (standardKeys.contains(key)) continue;
+            // 只缓存字符串值字段（跳过 ConfigurationSection）
+            if (config.isString(key)) {
+                String value = config.getString(key);
+                if (value != null && !value.isEmpty()) {
+                    custom.put(key, value);
+                }
+            }
+        }
+        return custom;
     }
 
     /**
@@ -256,7 +329,7 @@ public class SkillConfigManager {
         try {
             FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
-            SkillConfig skillConfig = new SkillConfig(packageName, skillName, config.getString("description", ""), getActionDescriptions(config), getHints(config));
+            SkillConfig skillConfig = new SkillConfig(packageName, skillName, config.getString("description", ""), getActionDescriptions(config), getHints(config), extractCustomFields(config));
 
             String key = packageName + "." + skillName;
             skillConfigs.put(key, skillConfig);
