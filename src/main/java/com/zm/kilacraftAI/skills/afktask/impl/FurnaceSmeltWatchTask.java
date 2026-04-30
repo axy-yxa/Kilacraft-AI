@@ -86,16 +86,15 @@ public class FurnaceSmeltWatchTask extends AbstractEventWatchTask {
             return;
         }
 
-        String resultName = smeltedType;
         int resultAmount = event.getResult().getAmount();
 
         if (hasCallback()) {
-            String eventDesc = I18nService.tr("附近的熔炉已完成烧炼：{} x{}", resultName, resultAmount);
+            String eventDesc = I18nService.tr("附近的熔炉已完成烧炼：{} x{}", smeltedType, resultAmount);
             complete(eventDesc);
-            executeCallback(eventDesc, plan -> replacePlaceholdersInTaskPlan(plan, resultName, resultAmount));
+            executeCallback(eventDesc, plan -> replacePlaceholdersInTaskPlan(plan, smeltedType, resultAmount));
         } else {
-            notifyWithLLMAnalysis(I18nService.tr("附近的熔炉已完成烧炼：{} x{}", resultName, resultAmount));
-            complete(I18nService.tr("附近的熔炉已完成烧炼：{} x{}", resultName, resultAmount));
+            notifyWithLLMAnalysis(I18nService.tr("附近的熔炉已完成烧炼：{} x{}", smeltedType, resultAmount));
+            complete(I18nService.tr("附近的熔炉已完成烧炼：{} x{}", smeltedType, resultAmount));
         }
     }
 

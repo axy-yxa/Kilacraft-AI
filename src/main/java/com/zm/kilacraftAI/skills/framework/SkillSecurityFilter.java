@@ -10,9 +10,13 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 /**
  * 技能安全过滤器 - 基于 Value 扫描的玩家数据隔离
@@ -45,7 +49,7 @@ public class SkillSecurityFilter implements Listener {
     /**
      * Minecraft玩家名合法性正则：1-16字符，只允许a-z A-Z 0-9 _
      */
-    private static final java.util.regex.Pattern PLAYER_NAME_PATTERN = java.util.regex.Pattern.compile("^[a-zA-Z0-9_]{1,16}$");
+    private static final Pattern PLAYER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_]{1,16}$");
 
     private SkillSecurityFilter() {
         // 工具类禁止实例化（但实现了Listener，需由外部创建实例注册事件）
@@ -149,7 +153,7 @@ public class SkillSecurityFilter implements Listener {
 
                 // 消毒：替换为当前玩家名
                 if (sanitized == null) {
-                    sanitized = new java.util.HashMap<>(entities);
+                    sanitized = new HashMap<>(entities);
                 }
                 sanitized.put(entry.getKey(), playerName);
                 PluginLogger.warn("安全拦截", I18nService.tr("玩家数据隔离：entities[{}]={} 是其他在线玩家，已替换为当前玩家 {}", entry.getKey(), value, playerName));
@@ -183,10 +187,10 @@ public class SkillSecurityFilter implements Listener {
             return Set.of();
         }
 
-        java.util.List<String> configAllowed = plugin.getConfigManager().getSecurityAllowedActions();
+        List<String> configAllowed = plugin.getConfigManager().getSecurityAllowedActions();
         if (configAllowed == null || configAllowed.isEmpty()) {
             return Set.of();
         }
-        return new java.util.HashSet<>(configAllowed);
+        return new HashSet<>(configAllowed);
     }
 }
