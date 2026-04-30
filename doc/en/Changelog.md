@@ -5,7 +5,7 @@
 
 ---
 
-## v1.5.1 - 8 New AFK Task Types, Global Market Action Skill, Embedding Semantic Retrieval, Smart AFK Callback
+## v1.5.1 - 8 New AFK Task Types, Global Market Action Skill, Utility Skill, Embedding Semantic Retrieval, Smart AFK Callback
 
 ### ✨ New Features
 - **8 Brand New AFK Task Types**: AFK tasks expanded from 12 to 20 types, covering more gameplay scenarios
@@ -29,6 +29,25 @@
 - **Global Market Action Skill (MarketActionSkill)**: Brand new skill enabling AI to execute global market trading operations on behalf of players
   - Independent from the existing MarketQuerySkill (read-only queries), providing write-capable market operations
   - Auto-registers only when GlobalMarketPlus plugin is present
+  - Supports 9 market operations:
+    - **Search Item** (search_item): Search and open purchase GUI
+    - **Sell Item** (sell_item): List held item for sale, with guided price confirmation
+    - **Pickup Mail** (pickup_mail): Pick up all or specific mail items
+    - **Buy Item** (buy_item): Place a buy order at a specified unit price
+    - **Cancel Listing** (cancel_listing): Show active listings and delist selected items
+    - **Transfer Money** (transfer_money): Transfer money to other players, large amounts require confirmation
+    - **Auction Item** (auction_item): Auction held item with starting bid
+    - **Sell Inventory** (sell_inventory): Bulk list all items of the same type from inventory
+    - **Buy Inventory** (buy_inventory): Place bulk buy order at a specified unit price
+  - All write operations executed via Bukkit commands, with GlobalMarketPlus plugin ensuring atomicity
+- **UtilitySkill (Utility Skill)**: New utility skill providing three basic actions for flexible orchestration in multi-step tasks
+  - **delay_wait**: Non-blocking delay of 1-60 seconds, uses a dedicated scheduler without occupying the I/O thread pool
+    - Example: "Wait 10 seconds, then check the market price for me"
+  - **notify_player**: Proactively notifies the player with LLM-generated summary of stage results via independent LLM call, with timeout protection and respect for server's stream output config
+    - Example: "Check my balance and inventory first, then summarize the results to me, and then list the diamonds"
+  - **broadcast_message**: OP admin-only feature, broadcasts AI-beautified messages server-wide (CHAT carrier), supports both single-intent and multi-step task orchestration
+    - Example: "Help me write an announcement: Double XP weekend this week"
+    - Multi-step orchestration: "Check online player list first, then broadcast an event notification for me"
 - **Knowledge Base Embedding Semantic Retrieval**: Uses Embedding API to obtain text vectors, replacing BM25 algorithm with cosine similarity for semantic retrieval
   - Supports different Embedding providers (e.g. ZhipuAI, SiliconFlow, OpenAI), can differ from LLM provider
   - Vector cache persistence, avoids recomputing on every startup
@@ -37,6 +56,12 @@
 
 ### 🔧 Improvements
 - **Built-in Enum Registry Replaces Knowledge Base Files**: Sound, particle, and statistic game enum data migrated from knowledge base Markdown files to a dedicated enum registry, providing more accurate retrieval, freeing knowledge base space, and faster loading
+- **Custom I/O Thread Pool**: Replaces JDK's default ForkJoinPool.commonPool() with an adaptive bounded thread pool
+  - Core threads = CPU cores, max threads = min(CPU×4, 128), queue capacity aligned with max threads
+  - Safe rejection policy: discards tasks and logs warnings when full, never blocks the Bukkit main thread
+  - CPU-aware auto-scaling: reasonable configuration from 2-core VPS to 64-core servers
+  - Detailed initialization/shutdown logs (core/max/queue/server mode)
+- **HTTP Connection Pool Optimization**: OkHttp ConnectionPool size aligned with IO_POOL max threads, preventing threads from blocking while waiting for connections
 - **Smart AFK Task Callback Mechanism**: When callback tasks trigger, LLM can see the event trigger reason in the execution results area, producing more accurate responses
 - **AFK Task First-Person Perspective**: When monitoring themselves, AI responds in first person ("You said: OK"), no longer describing from a bystander's perspective
 - **Unified AFK Task Callback Event Description**: All 20 AFK task types use consistent event description format for both callback and notification paths
