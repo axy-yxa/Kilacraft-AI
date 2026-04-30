@@ -65,7 +65,12 @@ public class KnowledgeBaseManager {
         chunkCache.clear();
 
         if (!Files.exists(effectiveDir)) {
-            PluginLogger.warn("知识库", "知识库目录不存在：{}", effectiveDir);
+            // 目录不存在时静默创建空目录，允许服主自行添加知识库文件
+            try {
+                Files.createDirectories(effectiveDir);
+            } catch (IOException e) {
+                PluginLogger.warn("知识库", I18nService.tr("创建知识库目录失败: {}", e.getMessage()));
+            }
             return;
         }
 
