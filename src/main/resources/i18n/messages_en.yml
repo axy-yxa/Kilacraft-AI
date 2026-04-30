@@ -53,6 +53,9 @@ modules:
   "意图提示词": "Intent Prompt"
   "统计": "Statistics"
   "Folia兼容": "FoliaCompat"
+  "I/O线程池": "I/O Pool"
+  "工具技能": "Utility"
+  "市场插件": "Market"
 
 # ==================== 消息翻译 ====================
 # ==================== Message Translations ====================
@@ -64,6 +67,13 @@ messages:
   "HTTP客户端未能在5秒内完全关闭,强制关闭": "HTTP client failed to close within 5 seconds, forcing shutdown"
   "HTTP连接池已关闭": "HTTP connection pool closed"
   "关闭HTTP客户端时发生错误": "Error closing HTTP client"
+
+  # ==================== FoliaCompat - I/O线程池 ====================
+  "已初始化（核心: {}，最大: {}，队列: {}，服务端: {}，Folia: {}）": "Initialized (core: {}, max: {}, queue: {}, server: {}, Folia: {})"
+  "异步任务队列已满，丢弃任务（池状态: {}/{}，队列: {}）": "Async task queue full, discarding task (pool: {}/{}, queue: {})"
+  "正在关闭（活跃线程: {}，队列: {}）": "Shutting down (active threads: {}, queue: {})"
+  "等待超时，强制关闭（残留任务: {}）": "Wait timed out, forcing shutdown (remaining tasks: {})"
+  "已安全关闭": "Safely shut down"
   "加载内置词汇表时发生异常: {}": "Error loading internal vocabulary: {}"
   "无法找到插件 JAR 文件，跳过加载词汇表": "Plugin JAR file not found, skipping vocabulary loading"
   "无法解析 JAR 文件路径: {}，跳过加载": "Cannot parse JAR file path: {}, skipping"
@@ -93,6 +103,8 @@ messages:
   "加载技能配置失败：{}": "Failed to load skill config: {}"
   "动态加载技能配置失败：{}": "Failed to dynamically load skill config: {}"
   "技能配置重载完成": "Skill config reload complete"
+  "扫描 JAR 包技能目录失败: skills/{}": "Failed to scan skill directory in JAR: skills/{}"
+  "扫描 JAR 包技能配置目录失败: {}": "Failed to scan skill config directory in JAR: {}"
 
   # ==================== KilacraftAI (主类) ====================
   # ==================== KilacraftAI (Main Class) ====================
@@ -113,6 +125,7 @@ messages:
 
   # ==================== KnowledgeBaseManager ====================
   "知识库目录不存在：{}": "Knowledge base directory not found: {}"
+  "创建知识库目录失败: {}": "Failed to create knowledge base directory: {}"
   "已加载知识文件：{}": "Loaded knowledge file: {}"
   "加载知识文件失败: {}": "Failed to load knowledge file: {}"
   "共加载 {} 个知识文件": "Loaded {} knowledge files in total"
@@ -124,7 +137,7 @@ messages:
   # ==================== EmbeddingService ====================
   "Embedding API URL: {}": "Embedding API URL: {}"
   "Embedding 模型: {}": "Embedding model: {}"
-  "Embedding 配置不完整（api_url / api_key / model 不能为空），已降级到 BM25": "Embedding config incomplete (api_url / api_key / model must not be empty), falling back to BM25"
+  "Embedding 未配置，已降级到 BM25 检索": "Embedding not configured, falling back to BM25 search"
   "Embedding 预计算失败，后续请求将走 BM25 降级": "Embedding precomputation failed, subsequent requests will use BM25 fallback"
   "Embedding 预计算进度：已计算 {} / {} 个片段": "Embedding precomputation progress: computed {} / {} chunks"
   "Embedding 预计算完成：共 {} 个片段，缓存命中 {}，API 新计算 {}，耗时 {}ms": "Embedding precomputation complete: {} chunks total, {} cache hits, {} API computed, took {}ms"
@@ -286,14 +299,10 @@ messages:
   "[FAILURE] 缺少参数: target_player(目标玩家名称)": "[FAILURE] Missing parameter: target_player (target player name)"
 
   # ==================== SkillResult - MarketQuerySkill ====================
-  "[FAILURE] 不支持的市场查询操作": "[FAILURE] Unsupported market query operation"
-  "[FAILURE] 无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装": "[FAILURE] Cannot get balance info, please ensure GlobalMarketPlus plugin is properly installed"
   "[FAILURE] 缺少参数: item(物品名称)": "[FAILURE] Missing parameter: item (item name)"
   "[FAILURE] 未找到物品 '{}' 的价格信息": "[FAILURE] Price info not found for item '{}'"
-  "市场上暂无商品": "No items on the market"
-  "你没有在售的商品": "You have no items for sale"
-  "邮箱是空的": "Mailbox is empty"
-  "市场暂无商品": "No items on the market"
+  "[FAILURE] 不支持的市场查询操作": "[FAILURE] Unsupported market query operation"
+  "[FAILURE] 无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装": "[FAILURE] Unable to get balance info, please ensure GlobalMarketPlus plugin is properly installed"
 
   # ==================== SkillResult - MarketActionSkill ====================
   "[FAILURE] 未知的市场操作: {}": "[FAILURE] Unknown market operation: {}"
@@ -302,7 +311,6 @@ messages:
   "市场上没有找到 {} 的商品": "No {} items found on the market"
   "已为你打开 {} 的搜索页面，请在弹出的 GUI 中点击购买": "Opened search page for {}, please click to purchase in the GUI"
   "[FAILURE] 搜索失败，可能没有权限或命令不可用": "[FAILURE] Search failed, possibly no permission or command unavailable"
-  "[FAILURE] 搜索商品时发生异常: {}": "[FAILURE] Exception occurred while searching items: {}"
   "[FAILURE] 读取手持物品失败，请稍后重试": "[FAILURE] Failed to read held item, please try again later"
   "[NEED_INFO] 请先将需要上架的物品拿在主手中": "[NEED_INFO] Please hold the item you want to list in your main hand first"
   "[FAILURE] 价格必须大于 0": "[FAILURE] Price must be greater than 0"
@@ -312,14 +320,67 @@ messages:
   "[FAILURE] 数量格式不正确: {}": "[FAILURE] Invalid quantity format: {}"
   "已上架 {} x{}，单价: ${}": "Listed {} x{}, unit price: ${}"
   "[FAILURE] 上架失败，可能没有权限、物品在黑名单中或命令不可用": "[FAILURE] Listing failed, possibly no permission, item blacklisted, or command unavailable"
-  "[FAILURE] 上架商品时发生异常: {}": "[FAILURE] Exception occurred while listing item: {}"
   "[NEED_INFO] 你手中的 {} x{}，当前市场最低价为 ${}。请告诉我你希望以多少钱的单价上架？": "[NEED_INFO] Your {} x{}, current market lowest price is ${}. Please tell me the unit price you want to list at?"
   "[NEED_INFO] 你手中的 {} x{}，市场暂无参考价。请告诉我你希望以多少钱的单价上架？": "[NEED_INFO] Your {} x{}, no market reference price available. Please tell me the unit price you want to list at?"
 
-  # ==================== MarketActionSkill - 日志 ====================
-  "搜索商品异常: {} - {}": "Search item exception: {} - {}"
-  "读取玩家手持物品失败: {}": "Failed to read player held item: {}"
-  "上架商品异常: {} - {}": "Listing item exception: {} - {}"
+  # ==================== MarketActionSkill - pickup_mail ====================
+  "你的邮箱里没有待领取的物品": "You have no items to pick up in your mailbox"
+  "已成功领取邮箱中所有物品（共 {} 件）": "Successfully picked up all mailbox items ({} total)"
+  "[FAILURE] 领取邮件失败，可能背包已满或没有权限": "[FAILURE] Failed to pick up mail, inventory may be full or no permission"
+  "已成功领取指定邮件": "Successfully picked up the specified mail"
+  "[FAILURE] 领取邮件失败，请检查 UID 是否正确": "[FAILURE] Failed to pick up mail, please check if the UID is correct"
+
+  # ==================== MarketActionSkill - buy_item ====================
+  "[NEED_INFO] 请先将需要收购的物品拿在主手中": "[NEED_INFO] Please hold the item you want to buy in your main hand first"
+  "[NEED_INFO] 你想以多少的单价收购 {} x{}？市场当前参考价: ${}": "[NEED_INFO] At what unit price do you want to buy {} x{}? Current market reference price: ${}"
+  "[NEED_INFO] 你想以多少的单价收购 {} x{}？市场暂无参考价": "[NEED_INFO] At what unit price do you want to buy {} x{}? No market reference price available"
+  "[FAILURE] 余额不足，需要 ${} 但当前余额 ${}": "[FAILURE] Insufficient balance, need ${} but current balance is ${}"
+  "已发起收购: {} x{}，单价: ${}": "Buy order placed: {} x{}, unit price: ${}"
+  "[FAILURE] 发起收购失败，可能没有权限或命令不可用": "[FAILURE] Failed to place buy order, possibly no permission or command unavailable"
+
+  # ==================== MarketActionSkill - cancel_listing ====================
+  "你当前没有在售商品": "You have no items for sale"
+  "你当前在售以下商品，请告诉我要下架哪个（回复编号）：": "You have the following items for sale, please tell me which one to delist (reply with number):"
+  "[FAILURE] 编号超出范围，请输入 1-{} 之间的数字": "[FAILURE] Number out of range, please enter a number between 1-{}"
+  "[FAILURE] 无效的编号或 UID: {}": "[FAILURE] Invalid number or UID: {}"
+  "[FAILURE] 该商品不属于你，无法下架": "[FAILURE] This item does not belong to you, cannot delist"
+  "已成功下架商品: {}，物品已归还到你的邮箱": "Successfully delisted: {}. The item has been returned to your mailbox"
+  "[FAILURE] 下架失败，商品可能已过期或被购买": "[FAILURE] Delist failed, item may have expired or been purchased"
+  "[NEED_INFO] 请告诉我要转给谁？": "[NEED_INFO] Who do you want to transfer to?"
+  "[FAILURE] 不能向自己转账": "[FAILURE] Cannot transfer to yourself"
+  "[NEED_INFO] 你当前余额 ${}，要转多少给 {}？": "[NEED_INFO] Your current balance is ${}, how much do you want to transfer to {}?"
+  "[FAILURE] 转账金额必须大于 0": "[FAILURE] Transfer amount must be greater than 0"
+  "[FAILURE] 金额格式不正确: {}": "[FAILURE] Invalid amount format: {}"
+  "[FAILURE] 余额不足，当前余额 ${}，需要 ${}": "[FAILURE] Insufficient balance, current balance ${}, need ${}"
+  "[NEED_INFO] 即将向 {} 转账 ${}，占你余额的较大比例。确认转账吗？": "[NEED_INFO] About to transfer ${} to {}, which is a large portion of your balance. Confirm transfer?"
+  "已成功向 {} 转账 ${}": "Successfully transferred ${} to {}"
+  "[FAILURE] 转账失败，可能目标玩家不存在或余额不足": "[FAILURE] Transfer failed, target player may not exist or insufficient balance"
+
+  # ==================== MarketActionSkill - auction_item ====================
+  "[NEED_INFO] 请先将需要拍卖的物品拿在主手中": "[NEED_INFO] Please hold the item you want to auction in your main hand first"
+  "[NEED_INFO] 你想以多少起拍价拍卖 {} x{}？市场参考价: ${}": "[NEED_INFO] What starting bid do you want for auctioning {} x{}? Market reference price: ${}"
+  "[NEED_INFO] 你想以多少起拍价拍卖 {} x{}？市场暂无参考价": "[NEED_INFO] What starting bid do you want for auctioning {} x{}? No market reference price available"
+  "已发起拍卖: {} x{}，起拍价: ${}": "Auction started: {} x{}, starting bid: ${}"
+  "[FAILURE] 发起拍卖失败，可能没有权限或命令不可用": "[FAILURE] Failed to start auction, possibly no permission or command unavailable"
+
+  # ==================== MarketActionSkill - sell_inventory (GUI模式) ====================
+  "[FAILURE] 批量上架失败，可能没有权限或命令不可用": "[FAILURE] Bulk listing failed, possibly no permission or command unavailable"
+
+  # ==================== MarketActionSkill - buy_inventory (GUI模式) ====================
+  "[FAILURE] 余额不足，当前余额 ${}": "[FAILURE] Insufficient balance, current balance ${}"
+  "[FAILURE] 批量收购失败，可能没有权限或命令不可用": "[FAILURE] Bulk buy failed, possibly no permission or command unavailable"
+  "[FAILURE] 余额不足，发起拍卖需要缴纳税额，当前余额为 $0": "[FAILURE] Insufficient balance, auction requires tax payment, current balance is $0"
+  "[FAILURE] 余额不足，上架商品可能需要缴纳税额，当前余额为 $0": "[FAILURE] Insufficient balance, listing may require tax payment, current balance is $0"
+
+  # ==================== MarketActionSkill - GUI页面消息 ====================
+  "已为你打开批量上架页面，单价: ${}，请在 GUI 中放入物品并确认": "Opened bulk listing page, unit price: ${}. Please place items in the GUI and confirm"
+  "[NEED_INFO] 请告诉我要以多少单价批量上架？": "[NEED_INFO] At what unit price would you like to bulk list?"
+  "已为你打开批量收购页面，单价: ${}，请在 GUI 中放入物品并确认": "Opened bulk buy page, unit price: ${}. Please place items in the GUI and confirm"
+  "[NEED_INFO] 请告诉我要以多少单价批量收购？当前余额: ${}": "[NEED_INFO] At what unit price would you like to bulk buy? Current balance: ${}"
+
+  # ==================== MarketActionSkill - 异常模板（通用动态拼接） ====================
+  "{}异常: {}": "{} exception: {}"
+  "[FAILURE] {}时发生异常: {}": "[FAILURE] Exception occurred during {}: {}"
 
   # ==================== SkillResult - AFKTaskSkill ====================
   "未指定挂机任务动作。请用自然语言询问玩家想做什么": "No AFK task action specified. Please ask the player what they want to do in natural language"
@@ -673,7 +734,6 @@ messages:
   "目标玩家 {} 传送（从 X={}, Y={}, Z={}, 世界={} 到 X={}, Y={}, Z={}, 世界={}）": "Target player {} teleported (from X={}, Y={}, Z={}, World={} to X={}, Y={}, Z={}, World={})"
   "目标玩家 {} 等级变化（{} → {}，{}）": "Target player {} level changed ({} → {}, {})"
   "目标玩家 {} 切换世界（{} → {}）": "Target player {} switched world ({} → {})"
-  "世界 {} 天气变化（{}）": "World {} weather changed ({})"
   "玩家 {} 已进入床睡觉（坐标：{}, {}, {}，世界：{}）": "Player {} has entered bed to sleep (coords: {}, {}, {}, World: {})"
   "目标玩家 {} 已重生（坐标：{}, {}, {}，世界：{}）": "Target player {} has respawned (coords: {}, {}, {}, World: {})"
   "目标玩家 {} 的物品 {} 已损坏": "Target player {}'s item {} has broken"
@@ -726,6 +786,10 @@ messages:
   "系统": "System"
   "... 还有 {} 封邮件": "... and {} more mails"
   "市场统计: 商品总数 {} 个, 卖家数量 {} 人": "Market stats: {} total items, {} sellers"
+  "市场上暂无商品": "No items on the market"
+  "你没有在售的商品": "You have no items for sale"
+  "邮箱是空的": "Your mailbox is empty"
+  "市场暂无商品": "No items on the market currently"
   "{} x{}: 库存不足 (市场仅有 {} 个)": "{} x{}: Insufficient stock (only {} available on market)"
   "\n  在售信息:": "\n  Listing info:"
   "\n    [{}] ${} x {}个": "\n    [{}] ${} x {} pcs"
@@ -895,6 +959,16 @@ messages:
   "获取GlobalMarket实例失败": "Failed to get GlobalMarket instance"
   "获取市场物品列表失败": "Failed to get market item list"
   "获取市场统计信息失败": "Failed to get market statistics"
+  "代玩家 {} 搜索商品: /{}": "Searching items for player {}: /{}"
+  "代玩家 {} 上架商品: /{}": "Listing items for player {}: /{}"
+  "代玩家 {} 领取邮件: /{}": "Picking up mail for player {}: /{}"
+  "代玩家 {} 发起收购: /{}": "Placing buy order for player {}: /{}"
+  "代玩家 {} 下架商品: /{}": "Delisting item for player {}: /{}"
+  "代玩家 {} 转账: /{}": "Transferring money for player {}: /{}"
+  "代玩家 {} 发起拍卖: /{}": "Starting auction for player {}: /{}"
+  "代玩家 {} 批量出售: /{}": "Bulk selling for player {}: /{}"
+  "代玩家 {} 批量收购: /{}": "Bulk buying for player {}: /{}"
+  "统计背包物品失败: {}": "Failed to count inventory items: {}"
 
   # ==================== MythicMobsPlaceholderManager ====================
   "无法获取 MythicBukkit 实例": "Cannot get MythicBukkit instance"
@@ -928,3 +1002,32 @@ messages:
   "工具类不允许实例化": "Utility class cannot be instantiated"
   "技能不能为空": "Skill cannot be null"
   "技能已注册：{}": "Skill already registered: {}"
+
+  # ==================== UtilitySkill ====================
+  "未指定工具动作": "No utility action specified"
+  "工具技能仅支持在线玩家": "Utility skill is only available for online players"
+  "未知工具动作: {}": "Unknown utility action: {}"
+  "缺少 seconds 参数": "Missing seconds parameter"
+  "无效的秒数: {}": "Invalid seconds value: {}"
+  "延迟等待: {}秒": "Delaying: {} seconds"
+  "延迟完成: {}秒": "Delay complete: {} seconds"
+  "已等待{}秒": "Waited {} seconds"
+  "缺少 message 参数": "Missing message parameter"
+  "玩家不在线，无法通知": "Player is offline, cannot notify"
+  "主动通知玩家: {}": "Proactively notifying player: {}"
+  "通知玩家 {} 失败: {}": "Failed to notify player {}: {}"
+  "通知玩家失败: {}": "Failed to notify player: {}"
+  "通知完成: {}": "Notification complete: {}"
+  "已通知玩家": "Player notified"
+  "你没有权限使用全服广播功能: {}": "You do not have permission to use server-wide broadcast: {}"
+  "全服广播请求，发起者: {}, 消息长度: {}": "Server-wide broadcast request, initiator: {}, message length: {}"
+  "全服广播 LLM 分析失败，发起者: {}, 错误: {}": "Server-wide broadcast LLM analysis failed, initiator: {}, error: {}"
+  "全服广播失败: {}": "Server-wide broadcast failed: {}"
+  "全服广播完成，发起者: {}": "Server-wide broadcast complete, initiator: {}"
+  "已全服广播消息": "Server-wide message broadcast"
+  "阶段性通知摘要 - 玩家: {}, systemPrompt: [{}]": "Stage notification summary - player: {}, systemPrompt: [{}]"
+  "阶段性通知摘要 - 玩家: {}, userPromptTemplate: [{}]": "Stage notification summary - player: {}, userPromptTemplate: [{}]"
+  "阶段性通知摘要 - 玩家: {}, userPrompt: [{}]": "Stage notification summary - player: {}, userPrompt: [{}]"
+  "全服广播摘要 - 发起者: {}, systemPrompt: [{}]": "Broadcast summary - initiator: {}, systemPrompt: [{}]"
+  "全服广播摘要 - 发起者: {}, userPromptTemplate: [{}]": "Broadcast summary - initiator: {}, userPromptTemplate: [{}]"
+  "全服广播摘要 - 发起者: {}, userPrompt: [{}]": "Broadcast summary - initiator: {}, userPrompt: [{}]"
