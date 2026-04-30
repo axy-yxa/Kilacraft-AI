@@ -839,7 +839,7 @@ server:
   get_online_players:
     id: "get_online_players"
     display_name: "Get Online Player Count"
-    description: "Get the current online player count and list on the server, see who's online, online player count, which players are online. Returned data contains online_count field (online player count) for subsequent step references."
+    description: "Get the current online player count and list on the server. Returned data contains online_count field (online player count) and players field (comma-separated player names) for subsequent step references (e.g. {step_X.online_count}, {step_X.players})."
     target_type: "Server"
     required_permission: "kilacraft.api.server.info"
     data_field: "online_count"

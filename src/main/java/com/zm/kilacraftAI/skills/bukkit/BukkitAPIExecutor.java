@@ -6,7 +6,9 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -299,6 +301,22 @@ public class BukkitAPIExecutor {
         // Biome 对象：提取为 String
         if (result instanceof org.bukkit.block.Biome biome) {
             return biome.name();
+        }
+
+        // Collection<Player>：提取为玩家名字列表 + 数量（Folia 线程安全）
+        if (result instanceof java.util.Collection<?> collection) {
+            if (!collection.isEmpty() && collection.iterator().next() instanceof org.bukkit.entity.Player) {
+                List<String> names = new ArrayList<>();
+                for (Object p : collection) {
+                    names.add(((org.bukkit.entity.Player) p).getName());
+                }
+                Map<String, Object> data = new HashMap<>();
+                data.put("online_count", names.size());
+                data.put("players", String.join(", ", names));
+                return data;
+            }
+            // 非 Player 集合：返回元素数量
+            return collection.size();
         }
 
         // Location 对象：提取为 Map（包含 World 名称）

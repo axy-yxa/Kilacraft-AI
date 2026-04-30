@@ -900,7 +900,7 @@ server:
   get_online_players:
     id: "get_online_players"
     display_name: "获取在线玩家数量"
-    description: "获取当前服务器上的在线玩家数量和列表，查看谁在线、在线人数、有哪些玩家在线。返回的 data 中包含 online_count 字段（在线人数），可供后续步骤引用。"
+    description: "获取当前服务器上的在线玩家数量和列表，查看谁在线、在线人数、有哪些玩家在线。返回的 data 中包含 online_count 字段（在线人数）和 players 字段（玩家名字逗号分隔），可供后续步骤引用（如 {step_X.online_count}、{step_X.players}）。"
     target_type: "Server"
     required_permission: "kilacraft.api.server.info"
     data_field: "online_count"
