@@ -141,6 +141,14 @@ public class GenericBukkitAPISkill implements Skill {
                     } else if (result instanceof java.util.Collection<?> collection) {
                         // 集合类型注入元素数量（如在线玩家数、世界数）
                         dataMap.put(dataField, collection.size());
+                        // 在线玩家集合特殊处理：额外注入 players 字段（玩家名字逗号分隔）
+                        // 供 {step_x.players} 占位符引用
+                        if (!collection.isEmpty() && collection.iterator().next() instanceof org.bukkit.entity.Player) {
+                            String playerNames = collection.stream()
+                                    .map(p -> ((org.bukkit.entity.Player) p).getName())
+                                    .collect(java.util.stream.Collectors.joining(", "));
+                            dataMap.put("players", playerNames);
+                        }
                     } else {
                         // enum 等其他类型，转 String 注入
                         dataMap.put(dataField, result.toString());
