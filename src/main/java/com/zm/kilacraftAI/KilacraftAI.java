@@ -24,6 +24,7 @@ import com.zm.kilacraftAI.skills.bukkit.BukkitStatsSkill;
 import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
 import com.zm.kilacraftAI.skills.cmi.CMISkill;
 import com.zm.kilacraftAI.skills.command.CommandSkill;
+import com.zm.kilacraftAI.skills.utility.UtilitySkill;
 import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
@@ -160,17 +161,21 @@ public final class KilacraftAI extends JavaPlugin {
         // Embedding 语义检索服务
         if (configManager.isEmbeddingEnabled()) {
             embeddingService = new EmbeddingService(configManager, knowledgeBase.getKnowledgeDir());
-            knowledgeRetriever.setEmbeddingService(embeddingService, true, configManager.getEmbeddingMinSimilarity());
 
-            // 同步分段 + 预计算（服务器启动阶段）
-            try {
-                knowledgeRetriever.buildChunkCache();
-                embeddingService.precomputeAllChunks(knowledgeBase.getAllChunkCache());
-            } catch (Exception e) {
-                PluginLogger.warn("知识库", "Embedding 预计算异常: {}", e.getMessage());
+            // 仅在 Embedding 可用时（配置完整）执行预计算和启用
+            if (embeddingService.isAvailable()) {
+                knowledgeRetriever.setEmbeddingService(embeddingService, true, configManager.getEmbeddingMinSimilarity());
+
+                // 同步分段 + 预计算（服务器启动阶段）
+                try {
+                    knowledgeRetriever.buildChunkCache();
+                    embeddingService.precomputeAllChunks(knowledgeBase.getAllChunkCache());
+                } catch (Exception e) {
+                    PluginLogger.warn("知识库", "Embedding 预计算异常: {}", e.getMessage());
+                }
+
+                PluginLogger.info("知识库", "Embedding 语义检索已启用");
             }
-
-            PluginLogger.info("知识库", "Embedding 语义检索已启用");
         }
 
         // 自定义词典（依赖 configManager，通过工厂统一初始化）
@@ -313,6 +318,9 @@ public final class KilacraftAI extends JavaPlugin {
         // 注册原版统计数据查询技能
         skillManager.registerSkill(new BukkitStatsSkill());
 
+        // 注册通用工具技能（始终可用）
+        skillManager.registerSkill(new UtilitySkill());
+
         // 注册挂机任务技能
         if (configManager.isAfkTaskEnabled()) {
             skillManager.registerSkill(new AFKTaskSkill());
@@ -444,6 +452,9 @@ public final class KilacraftAI extends JavaPlugin {
         if (llmManager != null) {
             llmManager.shutdownAll();
         }
+
+        // 关闭全局 I/O 线程池
+        FoliaCompat.shutdownIOPool();
         PluginLogger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         PluginLogger.info("  Kilacraft-AI 已停止运行");
         PluginLogger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");

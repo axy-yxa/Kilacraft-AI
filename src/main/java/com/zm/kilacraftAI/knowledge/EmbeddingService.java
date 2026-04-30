@@ -48,10 +48,10 @@ public class EmbeddingService {
 
         this.httpClient = new OkHttpClient.Builder().connectTimeout(configManager.getEmbeddingTimeoutSeconds(), TimeUnit.SECONDS).readTimeout(configManager.getEmbeddingTimeoutSeconds(), TimeUnit.SECONDS).writeTimeout(configManager.getEmbeddingTimeoutSeconds(), TimeUnit.SECONDS).retryOnConnectionFailure(true).build();
 
-        // 检查必填配置，缺失则直接降级
+        // 检查必填配置，缺失则直接降级（配置允许为空，空值表示不使用 Embedding）
         if (isBlank(apiUrl) || isBlank(apiKey) || isBlank(model)) {
             available = false;
-            PluginLogger.warn("知识库", "Embedding 配置不完整（api_url / api_key / model 不能为空），已降级到 BM25");
+            PluginLogger.info("知识库", "Embedding 未配置，已降级到 BM25 检索");
         } else {
             PluginLogger.info("知识库", "Embedding API URL: {}", apiUrl);
             PluginLogger.info("知识库", "Embedding 模型: {}", model);
