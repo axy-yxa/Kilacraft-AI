@@ -14,10 +14,7 @@ import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -79,7 +76,7 @@ public class MarketQuerySkill implements Skill {
         if (config != null && config.getActionDescriptions() != null) {
             return new LinkedHashMap<>(config.getActionDescriptions());
         }
-        return java.util.Collections.emptyMap();
+        return Collections.emptyMap();
     }
 
     @Override
@@ -93,7 +90,7 @@ public class MarketQuerySkill implements Skill {
 
     @Override
     public boolean isAvailable(SkillContext context) {
-        return !GlobalMarketPlusAPI.isAvailable();
+        return GlobalMarketPlusAPI.isAvailable();
     }
 
     @Override
@@ -278,7 +275,7 @@ public class MarketQuerySkill implements Skill {
 
         // 构建响应消息
         StringBuilder sb = new StringBuilder();
-        sb.append("商品价格:\n");
+        sb.append(I18nService.tr("商品价格:\n"));
 
         for (String result : priceResults) {
             sb.append("- ").append(result).append("\n");
@@ -343,7 +340,7 @@ public class MarketQuerySkill implements Skill {
      */
     private CompletableFuture<SkillResult> queryMarketItems(SkillContext context) {
         // 使用 GlobalMarketPlus API
-        java.util.List<String> items = GlobalMarketPlusAPI.getAllMarketItems();
+        List<String> items = GlobalMarketPlusAPI.getAllMarketItems();
 
         if (items == null || items.isEmpty()) {
             return CompletableFuture.completedFuture(SkillResult.success("市场上暂无商品"));
@@ -423,7 +420,7 @@ public class MarketQuerySkill implements Skill {
         double maxPrice = details.get(details.size() - 1).getPrice();
 
         // 收集卖家名称（去重，保持顺序）
-        java.util.Set<String> uniqueSellers = new java.util.LinkedHashSet<>();
+        Set<String> uniqueSellers = new LinkedHashSet<>();
         for (MarketItemDetail detail : details) {
             uniqueSellers.add(detail.getSellerName());
         }
@@ -443,7 +440,7 @@ public class MarketQuerySkill implements Skill {
         sb.append(I18nService.tr("卖家: "));
 
         // 显示去重后的卖家名称
-        java.util.List<String> sellerList = new java.util.ArrayList<>(uniqueSellers);
+        List<String> sellerList = new ArrayList<>(uniqueSellers);
         int showCount = Math.min(5, sellerList.size());
         for (int i = 0; i < showCount; i++) {
             if (i > 0) sb.append(", ");

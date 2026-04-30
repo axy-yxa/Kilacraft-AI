@@ -19,3 +19,4 @@ hints:
   - "**Format specification**: entities.item must use English commas to separate multiple items, each format as 'item_name:quantity' (unspecified quantity defaults to :1), don't use 'and/with/&' to connect. E.g. 'diamond:2,stick:1'"
   - "**Key requirement**: When user mentions a specific item name, it must be extracted to entities.item field, cannot be empty. Use query_availability to check if for sale, not query_price"
   - "**Multi-step tasks**: If user asks 'how much is the item in my hand', need to first call bukkit_api.get_player_hand_item to get item name, then call query_price to check price"
+  - "**Currency unit**: This server's economy uses $ as the currency symbol (e.g. $100.00). Never use 'emerald' or any other Minecraft item name to refer to currency. All prices and amounts are in $ currency"
