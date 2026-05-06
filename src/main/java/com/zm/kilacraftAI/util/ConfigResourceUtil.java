@@ -23,6 +23,8 @@ import java.util.stream.Stream;
  */
 public class ConfigResourceUtil {
 
+    private static final String LOG_MODULE = "配置管理";
+
     /**
      * 私有构造函数,防止实例化
      */
@@ -37,9 +39,8 @@ public class ConfigResourceUtil {
      *
      * @param plugin       插件实例
      * @param resourcePath 资源文件路径(相对于resources目录)
-     * @param logModule    日志模块名称(如 "语言配置")
      */
-    public static void saveDefaultResource(KilacraftAI plugin, String resourcePath, String logModule) {
+    public static void saveDefaultResource(KilacraftAI plugin, String resourcePath) {
         // 计算目标文件路径
         File targetFile = new File(plugin.getDataFolder(), resourcePath);
 
@@ -57,9 +58,9 @@ public class ConfigResourceUtil {
         // 拷贝资源文件
         try {
             plugin.saveResource(resourcePath, false);
-            PluginLogger.info(logModule, "已创建默认配置文件: {}", targetFile.getName());
+            PluginLogger.info(LOG_MODULE, "已创建默认配置文件: {}", targetFile.getName());
         } catch (Exception e) {
-            PluginLogger.error(logModule, I18nService.tr("创建配置文件失败: {}", resourcePath), e);
+            PluginLogger.error(LOG_MODULE, I18nService.tr("创建配置文件失败: {}", resourcePath), e);
         }
     }
 
@@ -71,9 +72,8 @@ public class ConfigResourceUtil {
      * @param plugin       插件实例
      * @param resourcePath 资源文件路径(相对于resources目录)
      * @param targetDir    目标目录(如 skills/bukkit/)
-     * @param logModule    日志模块名称
      */
-    public static void saveDefaultResourceToDir(KilacraftAI plugin, String resourcePath, File targetDir, String logModule) {
+    public static void saveDefaultResourceToDir(KilacraftAI plugin, String resourcePath, File targetDir) {
         // 计算目标文件
         String fileName = resourcePath.contains("/") ? resourcePath.substring(resourcePath.lastIndexOf('/') + 1) : resourcePath;
         File targetFile = new File(targetDir, fileName);
@@ -91,9 +91,9 @@ public class ConfigResourceUtil {
         // 拷贝资源文件
         try {
             plugin.saveResource(resourcePath, false);
-            PluginLogger.info(logModule, "已创建默认配置文件: {}", targetFile.getName());
+            PluginLogger.info(LOG_MODULE, "已创建默认配置文件: {}", targetFile.getName());
         } catch (Exception e) {
-            PluginLogger.error(logModule, I18nService.tr("创建配置文件失败: {}", resourcePath), e);
+            PluginLogger.error(LOG_MODULE, I18nService.tr("创建配置文件失败: {}", resourcePath), e);
         }
     }
 
@@ -105,10 +105,9 @@ public class ConfigResourceUtil {
      *
      * @param plugin      插件实例
      * @param resourceDir 资源目录路径(如 "knowledge")
-     * @param logModule   日志模块名称
      */
-    public static void saveDefaultResourceDir(KilacraftAI plugin, String resourceDir, String logModule) {
-        saveDefaultResourceDir(plugin, resourceDir, logModule, Integer.MAX_VALUE);
+    public static void saveDefaultResourceDir(KilacraftAI plugin, String resourceDir) {
+        saveDefaultResourceDir(plugin, resourceDir, Integer.MAX_VALUE);
     }
 
     /**
@@ -119,10 +118,9 @@ public class ConfigResourceUtil {
      *
      * @param plugin      插件实例
      * @param resourceDir 资源目录路径(如 "knowledge")
-     * @param logModule   日志模块名称
      * @param maxDepth    最大递归深度（1=仅根目录文件）
      */
-    public static void saveDefaultResourceDir(KilacraftAI plugin, String resourceDir, String logModule, int maxDepth) {
+    public static void saveDefaultResourceDir(KilacraftAI plugin, String resourceDir, int maxDepth) {
         var resource = plugin.getClass().getClassLoader().getResource(resourceDir);
         if (resource == null) {
             return;
@@ -136,12 +134,12 @@ public class ConfigResourceUtil {
                     stream.filter(Files::isRegularFile).forEach(path -> {
                         String relative = jarDir.relativize(path).toString();
                         String resourcePath = resourceDir + "/" + relative.replace('\\', '/');
-                        saveDefaultResource(plugin, resourcePath, logModule);
+                        saveDefaultResource(plugin, resourcePath);
                     });
                 }
             }
         } catch (URISyntaxException | IOException e) {
-            PluginLogger.error(logModule, I18nService.tr("扫描内置资源目录失败: {}", resourceDir), e);
+            PluginLogger.error(LOG_MODULE, I18nService.tr("扫描内置资源目录失败: {}", resourceDir), e);
         }
     }
 }

@@ -10,11 +10,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
@@ -47,6 +43,11 @@ public class SkillSecurityFilter implements Listener {
     private static final Set<String> ONLINE_PLAYER_NAMES = ConcurrentHashMap.newKeySet();
 
     /**
+     * 在线玩家 UUID→名称 映射（线程安全，由事件驱动更新）
+     */
+    private static final Map<java.util.UUID, String> ONLINE_UUID_TO_NAME = new ConcurrentHashMap<>();
+
+    /**
      * Minecraft玩家名合法性正则：1-16字符，只允许a-z A-Z 0-9 _
      */
     private static final Pattern PLAYER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_]{1,16}$");
@@ -64,10 +65,11 @@ public class SkillSecurityFilter implements Listener {
      */
     public static SkillSecurityFilter createAndInit() {
         SkillSecurityFilter filter = new SkillSecurityFilter();
-        // 初始化：加载当前所有在线玩家
         ONLINE_PLAYER_NAMES.clear();
+        ONLINE_UUID_TO_NAME.clear();
         for (Player player : Bukkit.getOnlinePlayers()) {
             ONLINE_PLAYER_NAMES.add(player.getName());
+            ONLINE_UUID_TO_NAME.put(player.getUniqueId(), player.getName());
         }
         return filter;
     }
@@ -76,12 +78,16 @@ public class SkillSecurityFilter implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        ONLINE_PLAYER_NAMES.add(event.getPlayer().getName());
+        Player player = event.getPlayer();
+        ONLINE_PLAYER_NAMES.add(player.getName());
+        ONLINE_UUID_TO_NAME.put(player.getUniqueId(), player.getName());
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        ONLINE_PLAYER_NAMES.remove(event.getPlayer().getName());
+        Player player = event.getPlayer();
+        ONLINE_PLAYER_NAMES.remove(player.getName());
+        ONLINE_UUID_TO_NAME.remove(player.getUniqueId());
     }
 
     // ==================== 安全校验核心 ====================
@@ -161,6 +167,31 @@ public class SkillSecurityFilter implements Listener {
         }
 
         return sanitized != null ? sanitized : entities;
+    }
+
+    // ==================== 公开 API ====================
+
+    /**
+     * 获取当前在线玩家名集合（线程安全，只读视图）
+     *
+     * <p>供其他模块在异步线程安全地获取在线玩家名，避免直接调用 {@code Bukkit.getOnlinePlayers()}。</p>
+     * <p>由主线程事件驱动维护，异步线程只读，无并发问题。</p>
+     *
+     * @return 在线玩家名集合的快照（不可修改）
+     */
+    public static Set<String> getOnlinePlayerNames() {
+        return Set.copyOf(ONLINE_PLAYER_NAMES);
+    }
+
+    /**
+     * 获取当前在线玩家 UUID→名称映射（线程安全，只读视图）
+     *
+     * <p>供社交关系模块将 target_uuid 反查为在线玩家名。</p>
+     *
+     * @return 在线玩家 UUID→名称映射的快照（不可修改）
+     */
+    public static Map<java.util.UUID, String> getOnlineUuidToName() {
+        return Map.copyOf(ONLINE_UUID_TO_NAME);
     }
 
     // ==================== 工具方法 ====================

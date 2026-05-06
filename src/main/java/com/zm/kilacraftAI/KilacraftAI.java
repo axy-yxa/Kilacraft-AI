@@ -4,6 +4,16 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.*;
 import com.zm.kilacraftAI.core.KilacraftCommand;
 import com.zm.kilacraftAI.core.TabCompleter;
+import com.zm.kilacraftAI.db.ConversationPersistenceService;
+import com.zm.kilacraftAI.db.DataCleanupService;
+import com.zm.kilacraftAI.db.DatabaseConfig;
+import com.zm.kilacraftAI.db.DatabaseManager;
+import com.zm.kilacraftAI.event.EventCollector;
+import com.zm.kilacraftAI.event.MarketEventCollector;
+import com.zm.kilacraftAI.event.OfflineEventAggregator;
+import com.zm.kilacraftAI.event.PrivateChatListener;
+import com.zm.kilacraftAI.event.TpaListener;
+import com.zm.kilacraftAI.greeting.LoginGreetingHandler;
 import com.zm.kilacraftAI.knowledge.EmbeddingService;
 import com.zm.kilacraftAI.knowledge.InternalEnumRegistry;
 import com.zm.kilacraftAI.knowledge.KnowledgeBaseManager;
@@ -16,6 +26,9 @@ import com.zm.kilacraftAI.manager.StreamOutputManager;
 import com.zm.kilacraftAI.metrics.MetricsBootstrap;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.output.AIResponsePipeline;
+import com.zm.kilacraftAI.profile.*;
+import com.zm.kilacraftAI.scheduler.ManagedTask;
+import com.zm.kilacraftAI.scheduler.TaskScheduler;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskListener;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskManager;
 import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
@@ -24,7 +37,6 @@ import com.zm.kilacraftAI.skills.bukkit.BukkitStatsSkill;
 import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
 import com.zm.kilacraftAI.skills.cmi.CMISkill;
 import com.zm.kilacraftAI.skills.command.CommandSkill;
-import com.zm.kilacraftAI.skills.utility.UtilitySkill;
 import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
@@ -32,6 +44,7 @@ import com.zm.kilacraftAI.skills.framework.spi.SkillRegistry;
 import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketActionSkill;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
+import com.zm.kilacraftAI.skills.utility.UtilitySkill;
 import com.zm.kilacraftAI.translate.ItemTranslator;
 import com.zm.kilacraftAI.util.PluginLogger;
 import com.zm.kilacraftAI.util.TextProcessorFactory;
@@ -44,7 +57,7 @@ import java.util.List;
  * 插件入口
  *
  * @author Zm_Mmm
- * @since 2026-03-24 17:21:29
+ * @since 2026-03-24
  */
 @Getter
 public final class KilacraftAI extends JavaPlugin {
@@ -60,6 +73,53 @@ public final class KilacraftAI extends JavaPlugin {
     private SkillConfigManager skillConfigManager;
     @Getter
     private IntentPromptConfigManager intentPromptConfigManager;
+    @Getter
+    private DatabaseConfigManager databaseConfigManager;
+    @Getter
+    private DatabaseManager databaseManager;
+
+    /**
+     * 玩家画像管理器
+     */
+    @Getter
+    private ProfileManager profileManager;
+
+    /**
+     * 服务器事件采集器
+     */
+    @Getter
+    private EventCollector eventCollector;
+
+    /**
+     * 社交关系管理器
+     */
+    @Getter
+    private SocialGraph socialGraph;
+
+    /**
+     * 对话持久化服务
+     */
+    @Getter
+    private ConversationPersistenceService persistenceService;
+
+    /**
+     * 事件数据清理服务
+     */
+    @Getter
+    private DataCleanupService dataCleanupService;
+
+    /**
+     * 离线事件聚合器
+     */
+    @Getter
+    private OfflineEventAggregator offlineEventAggregator;
+
+    /**
+     * 画像分析服务
+     */
+    @Getter
+    private ProfileAnalysisService profileAnalysisService;
+
     private ChatListener chatListener;
     private ConversationManager conversationManager;
     @Getter
@@ -109,6 +169,12 @@ public final class KilacraftAI extends JavaPlugin {
     @Getter
     private LLMOutputCoordinator llmOutputCoordinator;
 
+    /**
+     * 统一定时任务调度器
+     */
+    @Getter
+    private TaskScheduler taskScheduler;
+
     @Override
     public void onEnable() {
         instance = this;
@@ -124,10 +190,10 @@ public final class KilacraftAI extends JavaPlugin {
         registerMythicMobsPlaceholders();
         initializeSkillsSystem();
         initializeAFKTaskSystem();
-        
+
         // 设置 MetricsCollector 的 SkillManager 引用（用于动态获取 Skill 列表）
         MetricsCollector.getInstance().setSkillManager(skillManager);
-        
+
         MetricsBootstrap.bootstrap(this);
         printStartupBanner();
     }
@@ -142,6 +208,67 @@ public final class KilacraftAI extends JavaPlugin {
         languageManager = new LanguageManager(this);
         personalitiesConfigManager = new PersonalitiesConfigManager(this);
         conversationManager = new ConversationManager();
+
+        // 初始化数据库（在所有管理器之后、知识库之前）
+        initializeDatabase();
+    }
+
+    /**
+     * 初始化数据库系统
+     *
+     * <p>数据库初始化失败不会阻止插件启动，仅记录错误日志。</p>
+     */
+    private void initializeDatabase() {
+        try {
+            databaseConfigManager = new DatabaseConfigManager(this);
+            databaseManager = new DatabaseManager();
+            databaseManager.initialize(databaseConfigManager);
+
+            // 初始化画像/事件/社交系统
+            // 创建顺序：EventCollector 先于 ProfileManager，因为 ProfileManager 需要注入 EventCollector
+            eventCollector = new EventCollector(this, databaseManager);
+            profileManager = new ProfileManager(this, databaseManager);
+            profileManager.setEventCollector(eventCollector);
+            socialGraph = new SocialGraph(this, databaseManager);
+
+            // 注册事件监听器
+            getServer().getPluginManager().registerEvents(eventCollector, this);
+            getServer().getPluginManager().registerEvents(new ProfileEventCollector(this, profileManager, eventCollector), this);
+
+            // 注册私聊监听器（最小依赖：仅注入 SocialGraph 和 DatabaseManager）
+            getServer().getPluginManager().registerEvents(new PrivateChatListener(socialGraph, databaseManager), this);
+
+            // 注册 TPA 传送监听器（与私聊监听器同模式，覆盖直接使用 /tpa、/tpahere 的场景）
+            getServer().getPluginManager().registerEvents(new TpaListener(socialGraph, databaseManager), this);
+
+            // 对话持久化服务初始化（不再自行启动定时任务）
+            initializePersistenceService();
+
+            // 初始化画像分析服务
+            profileAnalysisService = new ProfileAnalysisService(this, databaseManager, profileManager);
+
+            PluginLogger.info("数据库", "画像与事件采集系统已初始化");
+        } catch (Exception e) {
+            PluginLogger.error("数据库", "数据库初始化失败: {}", e.getMessage());
+            PluginLogger.warn("数据库", "插件将继续运行，但持久化功能不可用");
+            databaseManager = null;
+        }
+
+        // 初始化离线事件聚合器（数据库不可用时也能创建）
+        if (databaseManager != null) {
+            offlineEventAggregator = new OfflineEventAggregator(this, databaseManager);
+
+            // 条件注册 GlobalMarketPlus 事件采集器
+            if (getServer().getPluginManager().getPlugin("GlobalMarketPlus") != null) {
+                try {
+                    MarketEventCollector marketCollector = new MarketEventCollector(databaseManager);
+                    getServer().getPluginManager().registerEvents(marketCollector, this);
+                    PluginLogger.info("数据库", "GlobalMarketPlus 事件采集器已注册");
+                } catch (Exception e) {
+                    PluginLogger.warn("市场事件", "GMP 事件监听注册失败: {}", e.getMessage());
+                }
+            }
+        }
     }
 
     /**
@@ -224,6 +351,88 @@ public final class KilacraftAI extends JavaPlugin {
     }
 
     /**
+     * 初始化对话持久化服务
+     */
+    private void initializePersistenceService() {
+        DatabaseConfig dbConfig = databaseManager.getConfig();
+        int maxHistory = configManager.getMaxHistory();
+        int retentionDays = dbConfig.getConversationRetentionDays();
+        boolean loadHistoryEnabled = dbConfig.isLoadHistoryOnLogin();
+
+        persistenceService = new ConversationPersistenceService(this, databaseManager, conversationManager, maxHistory, retentionDays, loadHistoryEnabled);
+
+        // 注入到 ConversationManager（onPlayerQuit 时 flush）
+        conversationManager.setPersistenceService(persistenceService);
+
+        PluginLogger.info("数据库", "对话持久化服务已初始化（历史加载: {}, 保留天数: {}）", loadHistoryEnabled, retentionDays > 0 ? retentionDays : "永久");
+
+        // 初始化事件数据清理服务（不再自行启动定时任务）
+        int eventRetentionDays = dbConfig.getEventRetentionDays();
+        dataCleanupService = new DataCleanupService(databaseManager, eventRetentionDays, dbConfig.getSkillLogRetentionDays());
+
+        // ===== 统一注册所有定时任务到 TaskScheduler =====
+        initializeScheduledTasks();
+    }
+
+    /**
+     * 统一注册所有定时任务到 TaskScheduler
+     *
+     * <p>所有周期性任务通过 TaskScheduler 集中管理，统一获得 CAS 互斥保护、
+     * 结构化日志和生命周期管理。</p>
+     */
+    private void initializeScheduledTasks() {
+        taskScheduler = new TaskScheduler(this);
+
+        // 1. 对话刷盘（每 30 秒）
+        taskScheduler.register(new ManagedTask() {
+            @Override public String name() { return "对话刷盘"; }
+            @Override public String description() { return "定时批量写入对话记录"; }
+            @Override public long delayTicks() { return 600L; }
+            @Override public long intervalTicks() { return 600L; }
+            @Override public int execute() { return persistenceService.scheduledFlush(); }
+        });
+
+        // 2. 对话清理（每 6 小时，条件注册）
+        taskScheduler.register(new ManagedTask() {
+            @Override public String name() { return "对话清理"; }
+            @Override public String description() { return "清理过期对话记录"; }
+            @Override public long delayTicks() { return 1200L; }
+            @Override public long intervalTicks() { return 432000L; }
+            @Override public boolean enabled() { return persistenceService.getRetentionDays() > 0; }
+            @Override public int execute() { return persistenceService.scheduledCleanup(); }
+        });
+
+        // 3. 事件清理（每 6 小时，条件注册）
+        taskScheduler.register(new ManagedTask() {
+            @Override public String name() { return "事件清理"; }
+            @Override public String description() { return "清理过期事件和审计日志"; }
+            @Override public long delayTicks() { return 2400L; }
+            @Override public long intervalTicks() { return 432000L; }
+            @Override public boolean enabled() { return dataCleanupService.needsCleanup(); }
+            @Override public int execute() { return dataCleanupService.scheduledCleanup(); }
+        });
+
+        // 4. 社交关系每日衰减（每 24 小时）
+        taskScheduler.register(new ManagedTask() {
+            @Override public String name() { return "社交衰减"; }
+            @Override public String description() { return "每日衰减社交关系强度"; }
+            @Override public long delayTicks() { return 6000L; }
+            @Override public long intervalTicks() { return 1728000L; }
+            @Override public int execute() { return socialGraph.performDailyDecay(); }
+        });
+
+        // 5. 社交关系智能提取（每 30 分钟）
+        SocialRelationExtractor extractor = new SocialRelationExtractor(databaseManager, socialGraph);
+        taskScheduler.register(new ManagedTask() {
+            @Override public String name() { return "社交提取"; }
+            @Override public String description() { return "从Skill日志提取社交关系"; }
+            @Override public long delayTicks() { return 3600L; }
+            @Override public long intervalTicks() { return 36000L; }
+            @Override public int execute() { return extractor.extractNewRelations(); }
+        });
+    }
+
+    /**
      * 初始化聊天监听器和命令注册
      */
     private void initializeChatAndCommands() {
@@ -240,6 +449,16 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(chatListener, this);
+
+        // 注册 AI 登录问候监听器（始终注册，运行时由 LoginGreetingHandler 检查条件）
+        if (offlineEventAggregator != null) {
+            getServer().getPluginManager().registerEvents(new LoginGreetingHandler(this, offlineEventAggregator), this);
+            if (configManager.isGreetingEnabled() && configManager.isApiKeyConfigured()) {
+                PluginLogger.info("问候系统", "AI 登录问候系统已启用");
+            } else {
+                PluginLogger.info("问候系统", "AI 登录问候系统已注册（等待配置完成后自动生效）");
+            }
+        }
     }
 
     /**
@@ -448,13 +667,34 @@ public final class KilacraftAI extends JavaPlugin {
             afkTaskManager.shutdown();
         }
 
+        // 1. 统一取消所有定时任务（必须在 flushAll 之前）
+        if (taskScheduler != null) {
+            taskScheduler.shutdownAll();
+        }
+
+        // 1.5 刷盘对话持久化服务剩余消息（不再取消定时器，已由 TaskScheduler 取消）
+        if (persistenceService != null) {
+            persistenceService.shutdown();
+        }
+
+        // 2. 同步刷盘所有在线玩家画像
+        if (profileManager != null) {
+            profileManager.flushAllProfiles();
+        }
+
+        // 3. 等待 IO Pool 完成所有已提交的异步写入任务（flushPlayer 异步提交的 writeBatch 等）
+        //    必须在 databaseManager.shutdown() 之前，否则异步写入因连接池已关闭而失败导致消息丢失
+        FoliaCompat.shutdownIOPool();
+
+        // 4. 确认异步写入全部完成后，再关闭数据库连接池
+        if (databaseManager != null) {
+            databaseManager.shutdown();
+        }
+
         // 关闭 LLM 管理器（包含所有提供商的连接池）
         if (llmManager != null) {
             llmManager.shutdownAll();
         }
-
-        // 关闭全局 I/O 线程池
-        FoliaCompat.shutdownIOPool();
         PluginLogger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         PluginLogger.info("  Kilacraft-AI 已停止运行");
         PluginLogger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");

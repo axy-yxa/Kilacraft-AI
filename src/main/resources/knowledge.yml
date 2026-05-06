@@ -1,0 +1,192 @@
+# ==================== 知识库配置 ====================
+# Knowledge Base Configuration
+# 独立配置文件，修改后执行 /kilacraft reload 即时生效（除标注不可热重载的项外）
+# Standalone config file, run /kilacraft reload to apply changes (except items marked as non-hot-reloadable)
+
+# 知识库功能说明：
+# 1. 在插件目录/plugins/Kilacraft-AI/knowledge/下创建 Markdown 或 TXT 文件
+# 2. 将服务器特有的知识、规则、FAQ 等内容放入文件中
+# 3. AI 会自动检索相关知识并基于知识回答
+# 4. 使用 /kilacraft knowledge reload 命令重新加载知识库
+# Knowledge base feature description:
+# 1. Create Markdown or TXT files under /plugins/Kilacraft-AI/knowledge/
+# 2. Put server-specific knowledge, rules, FAQ, etc. into the files
+# 3. AI automatically retrieves relevant knowledge and answers based on it
+# 4. Use /kilacraft knowledge reload command to reload the knowledge base
+knowledge:
+  # 是否启用知识库检索（默认开启）
+  # Whether to enable knowledge base retrieval (default: on)
+  enabled: true
+  
+  # 每次检索最多返回的相关知识数量（建议 1-5）
+  # Maximum number of relevant knowledge chunks returned per retrieval (recommended 1-5)
+  max_relevant_chunks: 3
+  
+  # 最低相关性得分阈值（默认 30.0）
+  # 得分低于此值的片段视为噪声，不会注入到 AI 上下文
+  # 值越高过滤越严格，但可能漏掉一些相关的片段
+  # 建议范围：20.0 - 50.0
+  # Minimum relevance score threshold (default 30.0)
+  # Chunks scoring below this value are treated as noise and will not be injected into AI context
+  # Higher values = stricter filtering, but may miss some relevant chunks
+  # Recommended range: 20.0 - 50.0
+  min_relevance_score: 30.0
+  
+  # 知识库分段配置
+  # Knowledge base segmentation configuration
+  segment:
+    # 每个片段最大字符数（超过此值会继续分割）
+    # Max characters per chunk (chunks exceeding this will be further split)
+    max_size: 500
+    
+    # 每个片段最小字符数（小于此值的片段会被忽略）
+    # Min characters per chunk (chunks below this will be ignored)
+    min_size: 20
+    
+    # 片段重叠字符数（保持上下文连贯性）
+    # Chunk overlap characters (maintains context coherence)
+    overlap: 30
+  
+  # 关键词提取配置
+  # Keyword extraction configuration
+  keywords:
+    # 每次提取的关键词数量（建议 5-15）
+    # 值越大召回率越高，但可能引入噪音
+    # Number of keywords extracted per query (recommended 5-15)
+    # Higher values = higher recall rate, but may introduce noise
+    top_k: 10
+  
+  # BM25 评分算法配置
+  # BM25 scoring algorithm configuration
+  bm25:
+    # k1 参数：控制词频饱和点（建议 1.2-2.0）
+    # 值越小，词频影响越容易饱和
+    # k1 parameter: controls term frequency saturation point (recommended 1.2-2.0)
+    # Smaller values = term frequency saturates more easily
+    k1: 1.5
+    
+    # b 参数：控制文档长度归一化（建议 0.5-0.8）
+    # 值越大，长文档惩罚越重
+    # b parameter: controls document length normalization (recommended 0.5-0.8)
+    # Larger values = heavier penalty for long documents
+    b: 0.75
+
+  # Embedding 语义检索配置
+  # 通过调用 Embedding API 获取文本向量，用余弦相似度替代 BM25 算法进行语义检索
+  # Embedding 供应商可以与 LLM 供应商不同（如 LLM 用 DeepSeek，Embedding 用智谱AI）
+  # 如果供应商同时支持聊天和 Embedding，api_url 和 api_key 填与 LLM 相同的值即可
+  # 注意：api_url、api_key、model、dimensions、timeout_seconds 修改后必须重启服务器才能生效！
+  # 这些配置影响向量计算或需要重建实例，/kilacraft reload 不会重新计算向量缓存
+  # Embedding semantic retrieval configuration
+  # Uses Embedding API to get text vectors, replaces BM25 with cosine similarity for semantic retrieval
+  # Embedding provider can differ from LLM provider (e.g. DeepSeek for LLM, ZhipuAI for Embedding)
+  # If your provider supports both chat and embedding, just fill the same api_url and api_key as LLM
+  # WARNING: Changes to api_url, api_key, model, dimensions, or timeout_seconds require server restart!
+  # These configs affect vector computation or require instance rebuild, /kilacraft reload will NOT recompute vector cache
+  embedding:
+    # 是否启用 Embedding 语义检索（替换 BM25 算法检索）
+    # 设为 false 时使用原有的 BM25 算法检索
+    # 支持热重载 ✅
+    # Enable Embedding semantic retrieval (replaces BM25 algorithm)
+    # Set to false to use original BM25 algorithm retrieval
+    # Supports hot reload ✅
+    enabled: true
+
+    # Embedding 供应商 API URL（必填，完整 URL）
+    # 修改后必须重启服务器 ❌
+    # 示例：
+    #   智谱AI: https://open.bigmodel.cn/api/paas/v4/embeddings
+    #   硅基流动: https://api.siliconflow.cn/v1/embeddings
+    #   OpenAI: https://api.openai.com/v1/embeddings
+    # Embedding provider API URL (required, full URL)
+    # Requires server restart after modification ❌
+    # Examples:
+    #   ZhipuAI: https://open.bigmodel.cn/api/paas/v4/embeddings
+    #   SiliconFlow: https://api.siliconflow.cn/v1/embeddings
+    #   OpenAI: https://api.openai.com/v1/embeddings
+    api_url: ""
+
+    # Embedding 供应商 API Key（必填）
+    # 修改后必须重启服务器 ❌
+    # Embedding provider API Key (required)
+    # Requires server restart after modification ❌
+    api_key: ""
+
+    # Embedding 模型名称（必填，需与供应商支持的模型一致）
+    # 修改后必须重启服务器（不同模型的向量不兼容）❌
+    # 常见模型：
+    #   硅基流动 SiliconFlow: BAAI/bge-large-zh-v1.5, Pro/BAAI/bge-m3
+    #   OpenAI: text-embedding-3-small, text-embedding-3-large
+    #   智谱AI: embedding-3
+    # Embedding model name (required, must match provider-supported models)
+    # Requires server restart after modification (vectors from different models are incompatible) ❌
+    # Common models:
+    #   SiliconFlow: BAAI/bge-large-zh-v1.5, Pro/BAAI/bge-m3
+    #   OpenAI: text-embedding-3-small, text-embedding-3-large
+    #   ZhipuAI: embedding-3
+    model: ""
+
+    # 向量维度（不同模型维度不同，需与模型匹配）
+    # 修改后必须重启服务器（维度变化会导致缓存完全不兼容）❌
+    # embedding-3: 2048（最高精度）/ 1024（平衡）/ 512 / 256，text-embedding-3-small: 1536，bge-large-zh: 1024，bge-m3: 1024
+    # Vector dimensions (varies by model, must match the model)
+    # Requires server restart after modification (dimension change makes cache completely incompatible) ❌
+    # embedding-3: 2048 (highest precision) / 1024 (balanced) / 512 / 256, text-embedding-3-small: 1536, bge-large-zh: 1024, bge-m3: 1024
+    dimensions: 1024
+
+    # 最低相似度阈值（余弦相似度 0~1）
+    # 值越高过滤越严格，建议范围 0.45~0.65
+    # 支持热重载 ✅
+    # Minimum similarity threshold (cosine similarity 0~1)
+    # Higher values = stricter filtering, recommended range 0.45~0.65
+    # Supports hot reload ✅
+    min_similarity: 0.5
+
+    # Embedding API 调用超时（秒）
+    # 修改后必须重启服务器（需要重建 OkHttpClient 实例）❌
+    # Embedding API call timeout (seconds)
+    # Requires server restart after modification (requires rebuilding OkHttpClient instance) ❌
+    timeout_seconds: 10
+
+    # 是否启用向量缓存持久化（避免每次启动重新计算）
+    # 支持热重载 ✅
+    # Enable vector cache persistence (avoids recomputing on every startup)
+    # Supports hot reload ✅
+    cache_enabled: true
+  
+  # 自定义词典配置（仅在 BM25 检索模式下生效）
+  # 注意：当启用 Embedding 语义检索时（knowledge.embedding.enabled=true），
+  # 检索使用向量余弦相似度，不依赖分词和自定义词典，此配置不会生效。
+  # 此配置仅在 BM25 模式下（Embedding 未启用或降级时）用于提升关键词提取准确性。
+  # Custom dictionary configuration (only effective in BM25 retrieval mode)
+  # Note: When Embedding semantic search is enabled (knowledge.embedding.enabled=true),
+  # retrieval uses vector cosine similarity and does not depend on tokenization or
+  # custom dictionaries, so this configuration has no effect.
+  # This only improves keyword extraction accuracy under BM25 mode (Embedding disabled or degraded).
+  custom_dictionary:
+    # 是否启用自定义词典（仅 BM25 模式）
+    # Whether to enable custom dictionary (BM25 mode only)
+    enabled: true
+    
+    # 自定义词汇列表（每行一个词，仅 BM25 模式生效）
+    # 支持中文、英文、数字混合
+    # Custom vocabulary list (one word per line, BM25 mode only)
+    # Supports mixed Chinese, English, and numbers
+    words:
+      - "圈地"
+      - "领地"
+      - "红石"
+      - "附魔"
+      - "村民交易"
+      - "刷怪塔"
+      - "末影龙"
+    # 英文版自定义词汇（language=en 时生效，留空则使用中文版）
+    # English custom vocabulary (effective when language=en, leave empty to use Chinese version)
+    words_en:
+      - "redstone"
+      - "enchantment"
+      - "villager"
+      - "ender-dragon"
+      - "netherite"
+      - "mob-farm"
+      - "claim"

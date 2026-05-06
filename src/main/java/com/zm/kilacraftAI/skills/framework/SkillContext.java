@@ -31,12 +31,35 @@ public class SkillContext {
     private final Map<String, String> entities;
 
     /**
+     * 审计用：用户原始消息（可选，由调用方注入）
+     */
+    private String triggerMessage;
+
+    /**
+     * 审计用：触发来源（可选，如 "agent" / "afk_callback"）
+     */
+    private String executionSource;
+
+    /**
      * 创建 SkillContext
      */
     public SkillContext(Player player, String action, Map<String, String> entities) {
         this.player = player;
         this.action = action;
         this.entities = entities != null ? entities : new HashMap<>();
+    }
+
+    /**
+     * 设置审计上下文（链式调用）
+     *
+     * @param triggerMessage  用户原始消息
+     * @param executionSource 触发来源
+     * @return this
+     */
+    public SkillContext withAudit(String triggerMessage, String executionSource) {
+        this.triggerMessage = triggerMessage;
+        this.executionSource = executionSource;
+        return this;
     }
 
     /**

@@ -6,6 +6,8 @@ import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
+import com.zm.kilacraftAI.db.ConversationPersistenceService;
+import com.zm.kilacraftAI.db.ConversationSource;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.handler.AIRequestHandler;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
@@ -32,7 +34,7 @@ import java.util.concurrent.*;
  * 命令处理
  *
  * @author Zm_Mmm
- * @since 2026-03-24 17:51:48
+ * @since 2026-03-24
  */
 public class KilacraftCommand implements CommandExecutor {
 
@@ -68,6 +70,7 @@ public class KilacraftCommand implements CommandExecutor {
             case "plugins" -> handlePluginsCommand(sender, args);
             case "personalities" -> handlePersonalitiesCommand(sender, args);
             case "afk" -> handleAfkCommand(sender, args);
+            case "tasks" -> handleTasksCommand(sender);
             default -> handleNormalMessageCommand(sender, args);
         };
     }
@@ -137,13 +140,29 @@ public class KilacraftCommand implements CommandExecutor {
                 plugin.getPersonalitiesConfigManager().reload();
             }
 
+            // 热重载数据库配置（支持切换数据库类型，失败时自动回退旧连接池）
+            if (plugin.getDatabaseConfigManager() != null && plugin.getDatabaseManager() != null) {
+                try {
+                    plugin.getDatabaseConfigManager().reload();
+                    plugin.getDatabaseManager().reload(plugin.getDatabaseConfigManager().getConfig());
+                    // 数据库切换成功后，将在线玩家画像补录到新库，避免退服时 UPDATE 丢失
+                    if (plugin.getProfileManager() != null) {
+                        plugin.getProfileManager().reconcileOnlineProfiles();
+                    }
+                } catch (Exception dbEx) {
+                    PluginLogger.error("热重载", "数据库热重载失败，已回退到旧配置: {}", dbEx.getMessage());
+                }
+            }
+
             // 刷新知识检索器的算法参数（分段大小、BM25、阈值等）
             if (plugin.getKnowledgeRetriever() != null) {
                 ConfigManager cm = plugin.getConfigManager();
                 plugin.getKnowledgeRetriever().refreshConfig(cm.getMaxRelevantChunks(), cm.getMinRelevanceScore(), cm.getKnowledgeMaxChunkSize(), cm.getKnowledgeMinChunkSize(), cm.getKnowledgeChunkOverlap(), cm.getKeywordTopK(), cm.getBm25K1(), cm.getBm25B());
             }
 
-            // 刷新 Embedding 阈值（不重建实例，不碰缓存）
+            // 刷新 Embedding 阈值配置（仅 min_similarity，可热重载）
+            // 注意：api_url/api_key/model/dimensions 等核心配置修改后必须重启服务器
+            // 因为这些配置会影响向量计算，需要在启动时通过 precomputeAllChunks() 重新计算
             if (plugin.getEmbeddingService() != null && plugin.getConfigManager().isEmbeddingEnabled()) {
                 plugin.getKnowledgeRetriever().setEmbeddingService(plugin.getEmbeddingService(), true, plugin.getConfigManager().getEmbeddingMinSimilarity());
             }
@@ -420,10 +439,8 @@ public class KilacraftCommand implements CommandExecutor {
             targetPlayerName = targetPlayer.getName();
         } else {
             // 玩家不在线，尝试从离线数据获取
-            targetPlayerName = plugin.getServer().getOfflinePlayer(targetPlayerId).getName();
-            if (targetPlayerName == null) {
-                targetPlayerName = "Unknown";
-            }
+            String offlineName = plugin.getServer().getOfflinePlayer(targetPlayerId).getName();
+            targetPlayerName = offlineName != null ? offlineName : "Unknown";
         }
 
         // 检查人格是否存在
@@ -469,8 +486,28 @@ public class KilacraftCommand implements CommandExecutor {
 
         PluginLogger.debug("命令", "插件命令请求 - 人格：{}, 玩家：{}, UUID: {}", personality, targetPlayerName, targetPlayerId);
         PluginLogger.debug("命令", "人格提示词：{}", personalityPrompt);
-        PluginLogger.debug("命令", "历史记录数量：{}", pluginHistory.size());
 
+        // 异步加载历史（DB → 内存），然后发起 LLM 请求
+        ConversationPersistenceService persistenceService = plugin.getPersistenceService();
+        if (persistenceService != null) {
+            persistenceService.loadHistoryIfNeeded(targetPlayerId, personality, loadedHistory -> {
+                if (!loadedHistory.isEmpty() && pluginHistory.isEmpty()) {
+                    for (ConversationManager.Message msg : loadedHistory) {
+                        pluginHistory.addLast(msg);
+                    }
+                }
+                PluginLogger.debug("命令", "历史记录数量：{}", pluginHistory.size());
+
+                processPluginCommandLLMRequest(message, targetPlayerName, targetPlayerId, pluginHistory, handler, personalityPrompt, finalPersonality, finalCallbackCommand, sender);
+            }, ConversationSource.PLUGIN);
+        } else {
+            PluginLogger.debug("命令", "历史记录数量：{}", pluginHistory.size());
+            processPluginCommandLLMRequest(message, targetPlayerName, targetPlayerId, pluginHistory, handler, personalityPrompt, finalPersonality, finalCallbackCommand, sender);
+        }
+        return true;
+    }
+
+    private void processPluginCommandLLMRequest(String message, String targetPlayerName, UUID targetPlayerId, Deque<ConversationManager.Message> pluginHistory, AIResponseHandler handler, String personalityPrompt, String finalPersonality, String finalCallbackCommand, CommandSender sender) {
         // 使用统一的 API 处理请求（传入人格提示词）
         plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt).thenAccept(fullResponse -> {
             // 保存对话到历史记录（隔离的），并保存到最新回复缓存
@@ -532,8 +569,6 @@ public class KilacraftCommand implements CommandExecutor {
             PluginLogger.error("命令", languageManager.getLogPluginCommandAiError() + throwable.getMessage(), throwable);
             return null;
         });
-
-        return true;
     }
 
     /**
@@ -594,11 +629,6 @@ public class KilacraftCommand implements CommandExecutor {
             return true;
         }
 
-        // 获取或创建历史记录
-        Deque<ConversationManager.Message> playerHistory = getOrCreateHistory(playerId);
-
-        PluginLogger.debug("命令", "玩家 {} 的历史记录数量：{}", player.getName(), playerHistory.size());
-
         // 构建消息
         String message = String.join(" ", args);
 
@@ -607,9 +637,33 @@ public class KilacraftCommand implements CommandExecutor {
         // 立即更新冷却时间
         validator.startCooldown(playerId);
 
-        // 使用统一的 AI 请求处理器
-        boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableCommand();
-        aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent);
+        // 获取历史记录（支持从数据库加载）
+        ConversationPersistenceService persistenceService = plugin.getPersistenceService();
+        if (persistenceService != null) {
+            ConversationManager convManager = plugin.getConversationManager();
+            Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
+
+            persistenceService.loadHistoryIfNeeded(playerId, "", loadedHistory -> {
+                // 如果是从DB加载的，回填到内存缓存
+                if (!loadedHistory.isEmpty() && playerHistory.isEmpty()) {
+                    for (ConversationManager.Message msg : loadedHistory) {
+                        playerHistory.addLast(msg);
+                    }
+                }
+                PluginLogger.debug("命令", "玩家 {} 的历史记录数量：{}", player.getName(), playerHistory.size());
+
+                // 使用统一的 AI 请求处理器
+                boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableCommand();
+                aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, false, ConversationSource.COMMAND);
+            }, ConversationSource.COMMAND, ConversationSource.CHAT);
+        } else {
+            // 无持久化服务，使用原有同步逻辑
+            Deque<ConversationManager.Message> playerHistory = getOrCreateHistory(playerId);
+            PluginLogger.debug("命令", "玩家 {} 的历史记录数量：{}", player.getName(), playerHistory.size());
+
+            boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableCommand();
+            aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, false, ConversationSource.COMMAND);
+        }
         return true;
     }
 
@@ -648,6 +702,27 @@ public class KilacraftCommand implements CommandExecutor {
      */
     private String getSenderName(CommandSender sender) {
         return sender instanceof Player player ? player.getName() : "Console";
+    }
+
+    /**
+     * 处理 tasks 命令（查看定时任务运行状态）
+     */
+    private boolean handleTasksCommand(CommandSender sender) {
+        if (!PluginPermissionEnum.TASKS.hasPermission(sender)) {
+            sender.sendMessage("§c你没有权限查看定时任务状态。");
+            return true;
+        }
+
+        var scheduler = plugin.getTaskScheduler();
+        if (scheduler == null) {
+            sender.sendMessage("§cTaskScheduler 未初始化。");
+            return true;
+        }
+
+        for (String line : scheduler.getStatusSummary()) {
+            sender.sendMessage(line);
+        }
+        return true;
     }
 
     /**

@@ -1,6 +1,6 @@
 # Kilacraft-AI - 内置 Skill 与 Event 能力清单
 
-> **最后更新**: 2026-04-23  
+> **最后更新**: 2026-05-06  
 > **说明**: 本文档汇总了 Kilacraft-AI 内置的所有 Skill 动作和支持的 Bukkit Event 监听器，帮助服主和插件开发者快速了解插件的能力边界、集成的第三方插件以及安全风险。
 
 ---
@@ -31,7 +31,7 @@
 | `cancel_task` | 取消玩家当前的挂机任务 | 无 | 无 |
 | `query_task` | 查询玩家当前的挂机任务状态 | 无 | 无 |
 
-#### 支持的 11 种事件监听类型
+#### 支持的 19 种事件监听类型 + CUSTOM
 
 | 任务类型 | 监控目标 | 级别 | 依赖事件 |
 |---------|---------|------|---------|
@@ -46,6 +46,14 @@
 | `PLAYER_BED_LEAVE_WATCH` | 玩家离开床 | A级 | PlayerBedLeaveEvent |
 | `PLAYER_RESPAWN_WATCH` | 玩家重生 | A级 | PlayerRespawnEvent |
 | `PLAYER_ITEM_BREAK_WATCH` | 玩家物品损坏 | A级 | PlayerItemBreakEvent |
+| `PLAYER_FISHING_WATCH` | 玩家钓鱼 | A级 | PlayerFishEvent |
+| `PLAYER_CHAT_WATCH` | 玩家聊天 | A级 | AsyncPlayerChatEvent |
+| `BLOCK_BREAK_WATCH` | 方块破坏 | A级 | BlockBreakEvent |
+| `ENTITY_DEATH_WATCH` | 实体死亡 | A级 | EntityDeathEvent |
+| `ENTITY_SPAWN_WATCH` | 实体生成 | A级 | CreatureSpawnEvent |
+| `ENTITY_EXPLODE_WATCH` | 实体爆炸 | A级 | EntityExplodeEvent |
+| `FURNACE_EXTRACT_WATCH` | 熔炉烧炼完成 | A级 | FurnaceExtractEvent |
+| `CROP_GROWTH_WATCH` | 作物生长 | A级 | BlockGrowEvent |
 | `CUSTOM` | 自定义条件轮询 | A级 | 任意 Skill |
 
 #### 核心特性
@@ -414,6 +422,60 @@
 
 ---
 
+### 8. MarketActionSkill - 全球市场操作技能
+
+**能力类型**: 市场交易操作（写入类）  
+**依赖插件**: GlobalMarketPlus (v1.3.8.0+)  
+**文件位置**: `skills/globalmarketplus/MarketActionSkill.yml`  
+**实现类**: `MarketActionSkill.java`
+
+#### 支持的动作
+
+| 动作 | 说明 | 必需参数 |
+|------|------|----------|
+| `search_item` | 搜索商品并打开购买 GUI | `item` |
+| `sell_item` | 将手中物品上架 | `item`, `price` |
+| `pickup_mail` | 一键领取所有或指定邮件 | 无 |
+| `buy_item` | 以指定单价发起收购订单 | `item`, `price`, `amount` |
+| `cancel_listing` | 展示在售列表，选择后下架 | 无 |
+| `transfer_money` | 向其他玩家转账 | `target_player`, `amount` |
+| `auction_item` | 将手中物品发起拍卖 | `item` |
+| `sell_inventory` | 批量出售背包内所有同类物品 | `item`, `price` |
+| `buy_inventory` | 批量收购 | `item`, `price`, `amount` |
+
+#### 核心特性
+
+- ✅ **仅当 GlobalMarketPlus 存在时自动注册**
+- ✅ **命令代执行**：所有写操作通过 Bukkit 命令代执行，由 GMP 内部保证原子性
+- ✅ **引导式价格确认**：上架时 AI 引导玩家确认价格
+- ✅ **大额转账二次确认**：防止误操作
+
+---
+
+### 9. UtilitySkill - 通用工具技能
+
+**能力类型**: 延时等待 + 主动通知 + 全服广播  
+**依赖插件**: 纯 Bukkit 原生 API  
+**文件位置**: `skills/utility/UtilitySkill.yml`  
+**实现类**: `UtilitySkill.java`
+
+#### 支持的动作
+
+| 动作 | 说明 | 必需参数 | 可选参数 |
+|------|------|----------|----------|
+| `delay_wait` | 非阻塞延迟 1-60 秒 | `seconds` | 无 |
+| `notify_player` | 将阶段性结果通过 LLM 概括后主动通知玩家 | `message` | 无 |
+| `broadcast_message` | OP 管理员专用，将消息通过 AI 美化后全服广播 | `message` | 无 |
+
+#### 核心特性
+
+- ✅ **delay_wait**：使用专用调度器，不占用 I/O 线程池
+- ✅ **notify_player**：支持超时保护，尊重服主流式输出配置
+- ✅ **broadcast_message**：CHAT 载体全服广播，支持单意图和多步骤编排
+- ✅ 可在多步骤任务中灵活编排组合
+
+---
+
 ## 安全拦截器
 
 Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityFilter），在所有 Skill 执行前自动扫描参数中的玩家名，保护玩家数据不被恶意 Skill 访问或篡改。
@@ -453,7 +515,7 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 | `PLAYER_CHANGED_WORLD_WATCH` | PlayerChangedWorldEvent | 玩家切换世界 | 玩家在不同世界间传送时触发 |
 | `WEATHER_CHANGE_WATCH` | WeatherChangeEvent | 天气变化 | 世界天气变化时触发 |
 
-### A 级监听器（4 个）
+### A 级监听器（12 个 + CUSTOM）
 
 | 任务类型 | 监听事件 | 监控目标 | 触发时机 |
 |---------|---------|---------|---------|
@@ -461,6 +523,14 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 | `PLAYER_BED_LEAVE_WATCH` | PlayerBedLeaveEvent | 玩家离开床 | 玩家起床时触发 |
 | `PLAYER_RESPAWN_WATCH` | PlayerRespawnEvent | 玩家重生 | 玩家重生时触发 |
 | `PLAYER_ITEM_BREAK_WATCH` | PlayerItemBreakEvent | 玩家物品损坏 | 玩家物品损坏时触发 |
+| `PLAYER_FISHING_WATCH` | PlayerFishEvent | 玩家钓鱼 | 玩家钓到鱼时触发 |
+| `PLAYER_CHAT_WATCH` | AsyncPlayerChatEvent | 玩家聊天 | 玩家发送聊天消息时触发 |
+| `BLOCK_BREAK_WATCH` | BlockBreakEvent | 方块破坏 | 玩家破坏方块时触发 |
+| `ENTITY_DEATH_WATCH` | EntityDeathEvent | 实体死亡 | 实体死亡时触发 |
+| `ENTITY_SPAWN_WATCH` | CreatureSpawnEvent | 实体生成 | 实体生成时触发 |
+| `ENTITY_EXPLODE_WATCH` | EntityExplodeEvent | 实体爆炸 | 实体爆炸时触发 |
+| `FURNACE_EXTRACT_WATCH` | FurnaceExtractEvent | 熔炉烧炼 | 玩家从熔炉取出物品时触发 |
+| `CROP_GROWTH_WATCH` | BlockGrowEvent | 作物生长 | 作物生长时触发 |
 
 ### 自定义任务类型（1 个）
 
@@ -511,7 +581,7 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 
 ✅ **可以**:
 - 查询 Minecraft 原生 API 数据（玩家、世界、服务器状态）
-- 监听 11 种 Bukkit Event 事件（S 级 7 个 + A 级 4 个）
+- 监听 19 种 Bukkit Event 事件（S 级 7 个 + A 级 12 个）+ CUSTOM 条件轮询
 - 创建挂机任务（事件触发后自动执行多步骤回调）
 - 执行服务器命令（以玩家身份，受权限约束）
 - 查询第三方插件数据（CMI 传送/信息、GlobalMarketPlus 市场）
@@ -538,8 +608,8 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 | 服务器配置 | 只读 | 可查询版本、MOTD、世界列表，无法修改 |
 | 命令执行 | 写（间接） | 通过 dispatchCommand 执行，受权限约束 |
 | CMI 数据 | 只读 | 查询家、地标、玩家信息，无法直接修改 |
-| 市场数据 | 只读 | 查询价格、商品，无法直接修改 |
+| 市场数据 | 读写 | 查询价格/商品（只读 MarketQuerySkill）；交易操作（写入 MarketActionSkill，通过命令代执行） |
 
 
-> **API 动作总数**: 60+ 个（GenericBukkitAPI）+ 8 个（CMISkill）+ 2 个（BukkitFXSkill）+ 7 个（MarketQuerySkill）  
-> **Event 监听器总数**: 11 个（S 级 7 个 + A 级 4 个）
+> **API 动作总数**: 60+ 个（GenericBukkitAPI）+ 8 个（CMISkill）+ 2 个（BukkitFXSkill）+ 7 个（MarketQuerySkill）+ 9 个（MarketActionSkill）+ 3 个（UtilitySkill）  
+> **Event 监听器总数**: 19 个（S 级 7 个 + A 级 12 个）+ CUSTOM 条件轮询

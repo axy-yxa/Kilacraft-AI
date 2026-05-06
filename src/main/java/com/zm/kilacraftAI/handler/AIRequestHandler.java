@@ -1,8 +1,9 @@
 package com.zm.kilacraftAI.handler;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.config.LanguageManager;
+import com.zm.kilacraftAI.db.ConversationSource;
 import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
@@ -50,7 +51,7 @@ public class AIRequestHandler {
      * 处理玩家 AI 请求（默认私信回复）
      */
     public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent) {
-        handleAIRequest(player, message, playerHistory, enableAgent, false);
+        handleAIRequest(player, message, playerHistory, enableAgent, false, ConversationSource.CHAT);
     }
 
     /**
@@ -59,6 +60,16 @@ public class AIRequestHandler {
      * @param publicReply 是否将AI回复广播给所有在线玩家（公屏回复）
      */
     public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply) {
+        handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSource.CHAT);
+    }
+
+    /**
+     * 处理玩家 AI 请求（含 source 参数）
+     *
+     * @param publicReply 是否将AI回复广播给所有在线玩家（公屏回复）
+     * @param source      来源标识
+     */
+    public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply, ConversationSource source) {
         // 使用统一的响应管线
         AIResponsePipeline pipeline = plugin.getResponsePipeline();
 
@@ -81,7 +92,7 @@ public class AIRequestHandler {
         }
         sendError = error -> pipeline.sendError(player, languageManager.getPluginCommandError() + error);
 
-        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, sendError, OutputScenario.NORMAL_CHAT, publicReply);
+        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, sendError, OutputScenario.NORMAL_CHAT, publicReply, source);
         handleAIRequestInternal(message, ctx, enableAgent);
     }
 
@@ -92,7 +103,7 @@ public class AIRequestHandler {
         UUID consoleUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
         Deque<ConversationManager.Message> consoleHistory = getOrCreateHistory(consoleUUID);
 
-        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error), OutputScenario.NORMAL_CHAT, false);
+        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error), OutputScenario.NORMAL_CHAT, false, ConversationSource.CONSOLE);
         handleAIRequestInternal(message, ctx, enableAgent);
     }
 
@@ -158,7 +169,7 @@ public class AIRequestHandler {
             // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
             plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenario.TASK_RESULT, false).thenAccept(result -> {
                 // 保存历史记录
-                validator.saveToHistory(ctx.history(), message, result.getMessage());
+                validator.saveToHistory(ctx.history(), message, result.getMessage(), ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
 
                 // 公屏广播（outputAnalysisResult只输出给触发者，公屏需要额外广播）
                 // 如果场景载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
@@ -200,14 +211,14 @@ public class AIRequestHandler {
         }).thenAccept(finalResult -> {
             if (finalResult.isSuccess()) {
                 // 保存历史记录
-                validator.saveToHistory(ctx.history(), message, finalResult.getMessage());
+                validator.saveToHistory(ctx.history(), message, finalResult.getMessage(), ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
             } else {
                 PluginLogger.debug("技能执行", "技能执行失败：{}", finalResult.getMessage());
                 PluginLogger.debug("技能执行", "已回退到普通 AI 处理");
                 // 将技能失败信息注入消息上下文，回退到普通AI兜底
                 // LLM看到失败信息后可以理解原因并引导玩家（如提示取消旧的挂机任务）
                 String enrichedMessage = message + "\n" + I18nService.tr("[系统提示：技能执行失败 - {}]", finalResult.getMessage());
-                handleNormalAIRequest(enrichedMessage, ctx);
+                handleNormalAIRequest(enrichedMessage, ctx, message);
             }
         }).exceptionally(throwable -> {
             ctx.sendError.accept(throwable.getMessage());
@@ -220,7 +231,13 @@ public class AIRequestHandler {
      * 处理普通 AI 请求（无技能调用）
      */
     private void handleNormalAIRequest(String message, RequestContext ctx) {
+        handleNormalAIRequest(message, ctx, null);
+    }
+
+    private void handleNormalAIRequest(String message, RequestContext ctx, String originalMessage) {
         PluginLogger.debug("AI请求", "{} 的历史记录数量：{}", ctx.name(), ctx.history().size());
+
+        String historyMessage = (originalMessage != null) ? originalMessage : message;
 
         AIResponseHandler handler;
         if (ctx.player() != null) {
@@ -229,7 +246,19 @@ public class AIRequestHandler {
             handler = new ConsoleResponseHandler(getSenderFromContext(ctx));
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequest(message, ctx.name(), ctx.history(), handler).thenAccept(fullResponse -> validator.saveToHistory(ctx.history(), message, fullResponse)).exceptionally(throwable -> {
+        // 构建系统提示词（玩家时注入画像摘要，控制台不注入）
+        String systemPrompt = plugin.getConfigManager().getSystemPrompt();
+        if (ctx.player() != null && plugin.getConfigManager().isProfileInjectionEnabled()) {
+            var profileManager = plugin.getProfileManager();
+            if (profileManager != null) {
+                String profileSummary = profileManager.buildProfileSummary(ctx.player().getUniqueId());
+                if (!profileSummary.isEmpty()) {
+                    systemPrompt = systemPrompt + "\n\n" + profileSummary;
+                }
+            }
+        }
+
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt).thenAccept(fullResponse -> validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source())).exceptionally(throwable -> {
             ctx.sendError.accept(throwable.getMessage());
             return null;
         });
@@ -260,6 +289,6 @@ public class AIRequestHandler {
     private record RequestContext(String name, Player player, Deque<ConversationManager.Message> history,
                                   java.util.function.Consumer<String> sendResponse,
                                   java.util.function.Consumer<String> sendError, OutputScenario scenario,
-                                  boolean isBroadcast) {
+                                  boolean isBroadcast, ConversationSource source) {
     }
 }

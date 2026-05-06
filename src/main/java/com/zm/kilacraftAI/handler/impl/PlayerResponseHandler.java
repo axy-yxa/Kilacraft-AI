@@ -66,8 +66,7 @@ public class PlayerResponseHandler implements AIResponseHandler {
 
     @Override
     public void showStreamChunk(String chunk, String currentMessage) {
-        // 流式模式下每收到一个片段就显示（通过管线更新，使用 NORMAL_CHAT 场景的载体）
-        OutputChannel channel = plugin.getResponsePipeline().getChannelForScenario(OutputScenario.NORMAL_CHAT);
+        OutputChannel channel = plugin.getResponsePipeline().getChannelForScenario(scenario);
         plugin.getResponsePipeline().updateStream(player, chunk, currentMessage, channel);
     }
 

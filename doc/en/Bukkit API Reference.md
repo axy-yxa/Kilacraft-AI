@@ -1,6 +1,6 @@
 # Kilacraft-AI - Bukkit API Reference Manual
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-05-06  
 > **Description**: This document provides detailed explanations, configuration examples, and usage scenarios for all built-in Bukkit APIs
 
 ---

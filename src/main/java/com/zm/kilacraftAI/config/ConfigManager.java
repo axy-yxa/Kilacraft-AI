@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.config;
 
+import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -14,16 +15,29 @@ import java.util.*;
 /**
  * 配置管理
  *
+ * <p>主配置管理器，同时代理 LLM/Agent、输出管线、知识库、问候 4 个子 Manager 的 getter。</p>
+ * <p>消费方通过 {@code plugin.getConfigManager().getXxx()} 调用，无需感知底层拆分。</p>
+ *
  * @author Zm_Mmm
- * @since 2026-03-24 17:22:28
+ * @since 2026-03-24
  */
 public class ConfigManager {
 
     private final JavaPlugin plugin;
+
+    // ==================== 子 Manager（独立配置文件） ====================
+
     @Getter
-    private double temperature;
+    private final LLMConfigManager llmConfigManager;
     @Getter
-    private int maxTokens;
+    private final OutputConfigManager outputConfigManager;
+    @Getter
+    private final KnowledgeConfigManager knowledgeConfigManager;
+    @Getter
+    private final GreetingConfigManager greetingConfigManager;
+
+    // ==================== 主配置文件保留字段 ====================
+
     @Getter
     private boolean enableChatCommand;
     @Getter
@@ -31,7 +45,7 @@ public class ConfigManager {
     @Getter
     private int pluginsCooldownSeconds;
     @Getter
-    private int callbackTimeoutSeconds;  // 回调命令超时时间（秒）
+    private int callbackTimeoutSeconds;
     @Getter
     private boolean debugMode;
     @Getter
@@ -41,161 +55,249 @@ public class ConfigManager {
     @Getter
     private List<String> triggerKeywords;
     @Getter
-    private boolean publicReply;                 // 公屏回复开关（关键词触发时AI回复是否对所有玩家可见）
+    private boolean publicReply;
     @Getter
     private List<String> allowedWorlds;
     @Getter
     private List<String> bannedWorlds;
-    @Getter
-    private String systemPrompt;
     @Getter
     private String aiPrefix;
     @Getter
     private String aiName;
     @Getter
     private String thinkingMessage;
-    @Getter
-    private boolean knowledgeEnabled;
-    @Getter
-    private int maxRelevantChunks;
-    @Getter
-    private double minRelevanceScore;            // 最低相关性得分阈值
-    @Getter
-    private int knowledgeMaxChunkSize;      // 每个片段最大字符数
-    @Getter
-    private int knowledgeMinChunkSize;      // 每个片段最小字符数
-    @Getter
-    private int knowledgeChunkOverlap;      // 片段重叠字符数
-
-    // 关键词提取配置
-    @Getter
-    private int keywordTopK;                 // 每次提取的关键词数量
-
-    // BM25 评分算法配置
-    @Getter
-    private double bm25K1;                   // k1 参数：控制词频饱和点
-    @Getter
-    private double bm25B;                    // b 参数：控制文档长度归一化
-
-    // Embedding 语义检索配置
-    @Getter
-    private boolean embeddingEnabled;         // 是否启用 Embedding 语义检索
-    @Getter
-    private String embeddingModel;            // Embedding 模型名称
-    @Getter
-    private String embeddingApiUrl;            // Embedding API 完整 URL
-    @Getter
-    private String embeddingApiKey;            // Embedding API Key
-    @Getter
-    private int embeddingDimensions;          // 向量维度
-    @Getter
-    private double embeddingMinSimilarity;    // 最低相似度阈值（余弦相似度）
-    @Getter
-    private int embeddingTimeoutSeconds;      // API 调用超时（秒）
-    @Getter
-    private boolean embeddingCacheEnabled;    // 是否启用向量缓存持久化
-
-    // 自定义词典配置
-    @Getter
-    private boolean customDictionaryEnabled; // 是否启用自定义词典
-    @Getter
-    private List<String> customDictionaryWords; // 自定义词汇列表
-
-    @Getter
-    private List<String> internalDictionaryWords; // 内置词汇表
-
-    @Getter
-    private List<String> allDictionaryWords; // 所有词汇（内置+自定义，去重后）
-
-    // 内置词汇表加载状态：记录上次加载的语言，语言变化时重新加载
-    private String vocabularyLoadedLanguage = null;
-
-    // Agent 能力配置
-    @Getter
-    private boolean agentEnabled;           // Agent 总开关
-    @Getter
-    private boolean agentEnableChatListener;  // ChatListener 入口是否启用 Agent
-    @Getter
-    private boolean agentEnableCommand;       // KilacraftCommand 入口是否启用 Agent
-    @Getter
-    private int agentIntentHistoryCount;      // 意图识别时的历史对话数
-    @Getter
-    private int agentAnalysisHistoryCount;    // 二次分析时的历史对话数
-    @Getter
-    private String agentSystemPrompt;         // LLM 意图识别系统提示词
-    @Getter
-    private String agentAnalysisPromptSuffix; // LLM 分析提示词后缀（用于识别边界）
-
-    // 命令执行技能配置
-    @Getter
-    private boolean commandSkillEnabled;              // 命令执行技能开关
 
     // 语言配置
     @Getter
-    private String language;                        // 当前语言（zh、en 等，默认 zh）
+    private String language;
+
+    // 命令执行技能配置
+    @Getter
+    private boolean commandSkillEnabled;
 
     // 安全配置
     @Getter
-    private boolean securityPlayerIsolationEnabled;   // 玩家数据隔离开关
+    private boolean securityPlayerIsolationEnabled;
     @Getter
-    private List<String> securityAllowedActions;      // 允许操作其他玩家的白名单
+    private List<String> securityAllowedActions;
 
     // 挂机任务配置
     @Getter
-    private boolean afkTaskEnabled;            // 挂机任务总开关
+    private boolean afkTaskEnabled;
     @Getter
-    private int afkTaskMaxTasks;               // 最大并发任务数
+    private int afkTaskMaxTasks;
     @Getter
-    private int afkTaskCheckIntervalTicks;     // 定时轮询间隔（ticks）
+    private int afkTaskCheckIntervalTicks;
     @Getter
-    private int afkTaskMaxConsecutiveFailures; // 最大连续评估失败次数
+    private int afkTaskMaxConsecutiveFailures;
 
-    // AI 响应输出管线配置
+    // 社交关系配置
     @Getter
-    private final OutputConfigManager outputConfigManager = new OutputConfigManager();  // 输出载体配置
+    private List<String> socialSkillWhitelist;
 
-    // LLM 提供商配置（通用）
+    // 内置词汇表相关
     @Getter
-    private String llmApiKey;                  // LLM API 密钥
+    private List<String> internalDictionaryWords;
+    @Getter
+    private List<String> allDictionaryWords;
+    private String vocabularyLoadedLanguage = null;
 
-    /**
-     * 检查 API Key 是否已配置（非默认占位符）
-     *
-     * @return true=已配置，false=未配置仍是默认值
-     */
+    // ==================== 代理 getter（LLM/Agent） ====================
+
+    public double getTemperature() {
+        return llmConfigManager.getTemperature();
+    }
+
+    public int getMaxTokens() {
+        return llmConfigManager.getMaxTokens();
+    }
+
+    public String getSystemPrompt() {
+        return llmConfigManager.getSystemPromptByLanguage(isChinese(), getDefaultSystemPrompt());
+    }
+
+    public String getLlmApiKey() {
+        return llmConfigManager.getApiKey();
+    }
+
+    public String getLlmApiUrl() {
+        return llmConfigManager.getApiUrl();
+    }
+
+    public String getLlmModel() {
+        return llmConfigManager.getModel();
+    }
+
     public boolean isApiKeyConfigured() {
-        return llmApiKey != null && !llmApiKey.isEmpty() && !"your-api-key".equals(llmApiKey);
+        return llmConfigManager.isApiKeyConfigured();
     }
 
-    /**
-     * 检查当前语言是否为中文
-     *
-     * @return true=中文模式
-     */
-    public boolean isChinese() {
-        return "zh".equals(language);
+    // Agent 代理 getter
+    public boolean isAgentEnabled() {
+        return llmConfigManager.isAgentEnabled();
     }
 
-    @Getter
-    private String llmApiUrl;                  // LLM API 地址
-    @Getter
-    private String llmModel;                   // LLM 模型名称
+    public boolean isAgentEnableChatListener() {
+        return llmConfigManager.isAgentEnableChatListener();
+    }
+
+    public boolean isAgentEnableCommand() {
+        return llmConfigManager.isAgentEnableCommand();
+    }
+
+    public int getAgentIntentHistoryCount() {
+        return llmConfigManager.getAgentIntentHistoryCount();
+    }
+
+    public int getAgentAnalysisHistoryCount() {
+        return llmConfigManager.getAgentAnalysisHistoryCount();
+    }
+
+    public String getAgentSystemPrompt() {
+        return llmConfigManager.getAgentSystemPromptByLanguage(isChinese(), "");
+    }
+
+    public String getAgentAnalysisPromptSuffix() {
+        return llmConfigManager.getAgentAnalysisPromptSuffixByLanguage(isChinese(), "");
+    }
+
+    // ==================== 代理 getter（知识库） ====================
+
+    public boolean isKnowledgeEnabled() {
+        return knowledgeConfigManager.isEnabled();
+    }
+
+    public int getMaxRelevantChunks() {
+        return knowledgeConfigManager.getMaxRelevantChunks();
+    }
+
+    public double getMinRelevanceScore() {
+        return knowledgeConfigManager.getMinRelevanceScore();
+    }
+
+    public int getKnowledgeMaxChunkSize() {
+        return knowledgeConfigManager.getMaxChunkSize();
+    }
+
+    public int getKnowledgeMinChunkSize() {
+        return knowledgeConfigManager.getMinChunkSize();
+    }
+
+    public int getKnowledgeChunkOverlap() {
+        return knowledgeConfigManager.getChunkOverlap();
+    }
+
+    public int getKeywordTopK() {
+        return knowledgeConfigManager.getKeywordTopK();
+    }
+
+    public double getBm25K1() {
+        return knowledgeConfigManager.getBm25K1();
+    }
+
+    public double getBm25B() {
+        return knowledgeConfigManager.getBm25B();
+    }
+
+    public boolean isEmbeddingEnabled() {
+        return knowledgeConfigManager.isEmbeddingEnabled();
+    }
+
+    public String getEmbeddingModel() {
+        return knowledgeConfigManager.getEmbeddingModel();
+    }
+
+    public String getEmbeddingApiUrl() {
+        return knowledgeConfigManager.getEmbeddingApiUrl();
+    }
+
+    public String getEmbeddingApiKey() {
+        return knowledgeConfigManager.getEmbeddingApiKey();
+    }
+
+    public int getEmbeddingDimensions() {
+        return knowledgeConfigManager.getEmbeddingDimensions();
+    }
+
+    public double getEmbeddingMinSimilarity() {
+        return knowledgeConfigManager.getEmbeddingMinSimilarity();
+    }
+
+    public int getEmbeddingTimeoutSeconds() {
+        return knowledgeConfigManager.getEmbeddingTimeoutSeconds();
+    }
+
+    public boolean isEmbeddingCacheEnabled() {
+        return knowledgeConfigManager.isEmbeddingCacheEnabled();
+    }
+
+    public boolean isCustomDictionaryEnabled() {
+        return knowledgeConfigManager.isCustomDictionaryEnabled();
+    }
+
+    public List<String> getCustomDictionaryWords() {
+        return knowledgeConfigManager.getCustomDictionaryWords();
+    }
+
+    // ==================== 代理 getter（问候） ====================
+
+    public boolean isGreetingEnabled() {
+        return greetingConfigManager.isEnabled();
+    }
+
+    public int getGreetingDelayTicks() {
+        return greetingConfigManager.getDelayTicks();
+    }
+
+    public String getGreetingFirstLoginPrompt() {
+        return greetingConfigManager.getFirstLoginPrompt();
+    }
+
+    public String getGreetingReturningPrompt() {
+        return greetingConfigManager.getReturningLoginPrompt();
+    }
+
+    public int getGreetingMaxOwnOfflineEvents() {
+        return greetingConfigManager.getMaxOwnOfflineEvents();
+    }
+
+    public int getGreetingMaxFriendOfflineEvents() {
+        return greetingConfigManager.getMaxFriendOfflineEvents();
+    }
+
+    public int getGreetingMaxSummaryEvents() {
+        return greetingConfigManager.getMaxSummaryEvents();
+    }
+
+    public String getGreetingServerInfo() {
+        return greetingConfigManager.getServerInfo();
+    }
+
+    public int getGreetingCooldownMinutes() {
+        return greetingConfigManager.getGreetingCooldownMinutes();
+    }
+
+    public boolean isProfileInjectionEnabled() {
+        return greetingConfigManager.isProfileInjectionEnabled();
+    }
+
+    // ==================== 构造与加载 ====================
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
+        this.llmConfigManager = new LLMConfigManager((KilacraftAI) plugin);
+        this.knowledgeConfigManager = new KnowledgeConfigManager((KilacraftAI) plugin);
+        this.greetingConfigManager = new GreetingConfigManager((KilacraftAI) plugin);
+        this.outputConfigManager = new OutputConfigManager((KilacraftAI) plugin);
         loadConfig();
     }
 
     public void loadConfig() {
-        // 加载配置文件，配置项不存在时使用默认配置
+        // 加载主配置文件
         plugin.reloadConfig();
         FileConfiguration config = plugin.getConfig();
 
-        // 通用配置
-        this.temperature = config.getDouble("llm.temperature", 0.7);
-        this.maxTokens = config.getInt("llm.max_tokens", 1000);
-
-        // 插件设置
+        // 插件设置（主配置保留部分）
         this.debugMode = config.getBoolean("settings.debug_mode", false);
         this.language = config.getString("settings.language", "zh");
         this.enableChatCommand = config.getBoolean("settings.enable_chat_command", true);
@@ -215,86 +317,11 @@ public class ConfigManager {
         if (this.bannedWorlds.isEmpty()) {
             this.bannedWorlds = new ArrayList<>();
         }
-        this.systemPrompt = getLocalizedString(config, "settings.system_prompt", """
-                你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、简洁的方式回答，输出不超过200个汉字。可以提到 Minecraft 游戏相关的内容。不要在回复中称呼玩家名字。
-                【操作声明规范】你不得自行声称已执行任何游戏内操作，除非你收到了技能系统返回的明确成功信息。严禁在没有执行结果的情况下使用'我帮你'、'已经'、'成功'等暗示操作已完成的措辞。
-                【技能系统回退】当用户消息中附带 [FAILURE]、[NEED_INFO] 等标记或失败/异常信息时，说明技能系统已尝试执行但需要处理，此时直接根据信息内容用自然语言向玩家解释或转述，不得提及'系统提示'或内部机制。
-                【货币单位】本服经济系统的货币符号为 $（如 $100.00）。绝对不要使用'绿宝石'、'emerald'或其他 Minecraft 物品名称指代货币，所有金额都是 $ 货币单位。""");
 
         // 消息格式配置
         this.aiName = config.getString("messages.ai_name", "Kilacraft-AI");
         this.aiPrefix = config.getString("messages.ai_prefix", "§7[Kilacraft-AI] §f");
         this.thinkingMessage = getLocalizedString(config, "messages.thinking_message", "正在思考中...");
-
-        // 知识库配置
-        this.knowledgeEnabled = config.getBoolean("knowledge.enabled", true);
-        this.maxRelevantChunks = config.getInt("knowledge.max_relevant_chunks", 3);
-        this.minRelevanceScore = config.getDouble("knowledge.min_relevance_score", 30.0);
-
-        // 知识库分段配置
-        this.knowledgeMaxChunkSize = config.getInt("knowledge.segment.max_size", 500);
-        this.knowledgeMinChunkSize = config.getInt("knowledge.segment.min_size", 20);
-        this.knowledgeChunkOverlap = config.getInt("knowledge.segment.overlap", 30);
-
-        // 关键词提取配置
-        this.keywordTopK = config.getInt("knowledge.keywords.top_k", 10);
-
-        // BM25 评分算法配置
-        this.bm25K1 = config.getDouble("knowledge.bm25.k1", 1.5);
-        this.bm25B = config.getDouble("knowledge.bm25.b", 0.75);
-
-        // Embedding 语义检索配置
-        this.embeddingEnabled = config.getBoolean("knowledge.embedding.enabled", true);
-        this.embeddingModel = config.getString("knowledge.embedding.model", "");
-        this.embeddingApiUrl = config.getString("knowledge.embedding.api_url", "");
-        this.embeddingApiKey = config.getString("knowledge.embedding.api_key", "");
-        this.embeddingDimensions = config.getInt("knowledge.embedding.dimensions", 1024);
-        this.embeddingMinSimilarity = config.getDouble("knowledge.embedding.min_similarity", 0.5);
-        this.embeddingTimeoutSeconds = config.getInt("knowledge.embedding.timeout_seconds", 10);
-        this.embeddingCacheEnabled = config.getBoolean("knowledge.embedding.cache_enabled", true);
-
-        // 自定义词典配置
-        this.customDictionaryEnabled = config.getBoolean("knowledge.custom_dictionary.enabled", true);
-        // 按语言选择自定义词汇列表：en 模式优先读取 words_en，为空则回退到 words
-        if ("en".equals(this.language)) {
-            List<String> enWords = config.getStringList("knowledge.custom_dictionary.words_en");
-            this.customDictionaryWords = !enWords.isEmpty() ? enWords : config.getStringList("knowledge.custom_dictionary.words");
-        } else {
-            this.customDictionaryWords = config.getStringList("knowledge.custom_dictionary.words");
-        }
-
-        // 加载内置词汇表（语言变化时重新加载）
-        if (vocabularyLoadedLanguage == null || !vocabularyLoadedLanguage.equals(this.language)) {
-            this.internalDictionaryWords = loadInternalVocabulary();
-            vocabularyLoadedLanguage = this.language;
-        }
-
-        if (this.internalDictionaryWords == null) {
-            this.internalDictionaryWords = new ArrayList<>();
-        }
-
-        // 合并所有词汇（内置+自定义），自动去重
-        Set<String> allWords = new LinkedHashSet<>(internalDictionaryWords);
-        if (customDictionaryWords != null) {
-            allWords.addAll(customDictionaryWords);
-        }
-        this.allDictionaryWords = new ArrayList<>(allWords);
-
-        // Agent 能力配置
-        this.agentEnabled = config.getBoolean("agent.enabled", true);
-        this.agentEnableChatListener = config.getBoolean("agent.enable_chat_listener", true);
-        this.agentEnableCommand = config.getBoolean("agent.enable_command", true);
-        this.agentIntentHistoryCount = config.getInt("agent.intent_history_count", 5);
-        this.agentAnalysisHistoryCount = config.getInt("agent.analysis_history_count", 2);
-        this.agentSystemPrompt = getLocalizedString(config, "agent.prompts.system_prompt", "");
-
-        // 分析提示词后缀（用于识别业务内容边界）
-        this.agentAnalysisPromptSuffix = getLocalizedString(config, "agent.prompts.analysis_prompt_suffix", "");
-
-        // LLM 提供商配置（通用）
-        this.llmApiKey = config.getString("llm.api_key", "");
-        this.llmApiUrl = config.getString("llm.api_url", "https://api.deepseek.com/v1/chat/completions");
-        this.llmModel = config.getString("llm.model", "deepseek-chat");
 
         // 命令执行技能配置
         this.commandSkillEnabled = config.getBoolean("command_skill.enabled", false);
@@ -309,8 +336,30 @@ public class ConfigManager {
         this.afkTaskCheckIntervalTicks = config.getInt("afk_task.check_interval_ticks", 20);
         this.afkTaskMaxConsecutiveFailures = config.getInt("afk_task.max_consecutive_failures", 10);
 
-        // AI 响应输出管线配置
-        this.outputConfigManager.load(config);
+        // 社交关系配置
+        this.socialSkillWhitelist = config.getStringList("social.skill_whitelist");
+        if (this.socialSkillWhitelist.isEmpty()) {
+            this.socialSkillWhitelist = List.of("market_action", "cmi", "AFKTask");
+        }
+
+        // 加载子 Manager 配置（语言已从主配置读取，传递给需要语言感知的子 Manager）
+        llmConfigManager.loadConfig();
+        knowledgeConfigManager.loadConfig(this.language);
+        greetingConfigManager.loadConfig();
+        outputConfigManager.loadConfig();
+
+        // 加载内置词汇表（语言变化时重新加载）
+        if (vocabularyLoadedLanguage == null || !vocabularyLoadedLanguage.equals(this.language)) {
+            this.internalDictionaryWords = loadInternalVocabulary();
+            vocabularyLoadedLanguage = this.language;
+        }
+
+        if (this.internalDictionaryWords == null) {
+            this.internalDictionaryWords = new ArrayList<>();
+        }
+
+        // 合并所有词汇（内置+自定义），自动去重
+        this.allDictionaryWords = knowledgeConfigManager.mergeDictionaryWords(internalDictionaryWords);
 
         // 通知 LLM 管理器刷新配置缓存
         refreshLLMConfigCache();
@@ -321,55 +370,60 @@ public class ConfigManager {
      */
     public void refreshLLMConfigCache() {
         try {
-            com.zm.kilacraftAI.KilacraftAI plugin = com.zm.kilacraftAI.KilacraftAI.getInstance();
+            KilacraftAI plugin = KilacraftAI.getInstance();
             if (plugin != null && plugin.getLlmManager() != null) {
                 plugin.getLlmManager().refreshProviderConfig();
             }
         } catch (Exception e) {
-            // 忽略异常，避免配置加载失败导致插件崩溃
             PluginLogger.warn("配置管理", I18nService.tr("刷新 LLM 配置缓存时发生异常: {}", e.getMessage()), e);
         }
     }
 
     /**
      * 将配置的轮数转换为实际的消息数量（1轮=2条消息）
-     *
-     * @param rounds 轮数
-     * @return 实际消息数量
      */
     public int getHistoryMessageCount(int rounds) {
         return Math.max(0, rounds * 2);
     }
 
     /**
+     * 检查当前语言是否为中文
+     */
+    public boolean isChinese() {
+        return "zh".equals(language);
+    }
+
+    /**
+     * 获取默认系统提示词（当 llm.yml 未配置时的回退值）
+     */
+    private String getDefaultSystemPrompt() {
+        return """
+                你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、简洁的方式回答，输出不超过200个汉字。可以提到 Minecraft 游戏相关的内容。不要在回复中称呼玩家名字。
+                【操作声明规范】你不得自行声称已执行任何游戏内操作，除非你收到了技能系统返回的明确成功信息。严禁在没有执行结果的情况下使用'我帮你'、'已经'、'成功'等暗示操作已完成的措辞。
+                【技能系统回退】当用户消息中附带 [FAILURE]、[NEED_INFO] 等标记或失败/异常信息时，说明技能系统已尝试执行但需要处理，此时直接根据信息内容用自然语言向玩家解释或转述，不得提及'系统提示'或内部机制。
+                【货币单位】本服经济系统的货币符号为 $（如 $100.00）。绝对不要使用'绿宝石'、'emerald'或其他 Minecraft 物品名称指代货币，所有金额都是 $ 货币单位。""";
+    }
+
+    // ==================== 内置词汇表加载 ====================
+
+    /**
      * 加载内置词汇表
-     * 从 internal/vocabulary/ 目录加载所有 .txt 文件
-     *
-     * @return 内置词汇列表
      */
     private List<String> loadInternalVocabulary() {
         List<String> words = new ArrayList<>();
-
         try {
-            // 直接从 JAR 包中加载所有内置词汇文件
             loadVocabularyFromJar(words);
-
         } catch (Exception e) {
             PluginLogger.warn("配置管理", I18nService.tr("加载内置词汇表时发生异常: {}", e.getMessage()), e);
         }
-
         return words;
     }
 
     /**
      * 从 JAR 包中加载内置词汇表
-     * 按语言子目录加载：中文加载 internal/vocabulary/ 下的 .txt，英文加载 internal/vocabulary/en/ 下的 .txt
-     *
-     * @param words 词汇列表（会被填充）
      */
     private void loadVocabularyFromJar(List<String> words) {
         try {
-            // 获取插件的 JAR 文件路径
             java.io.File jarFile = new java.io.File(plugin.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
 
             if (!jarFile.exists()) {
@@ -377,7 +431,6 @@ public class ConfigManager {
                 return;
             }
 
-            // 按语言确定扫描前缀：中文默认目录，英文进 en/ 子目录
             String prefix = "en".equals(this.language) ? "internal/vocabulary/en/" : "internal/vocabulary/";
 
             try (java.util.jar.JarFile jar = new java.util.jar.JarFile(jarFile)) {
@@ -387,9 +440,7 @@ public class ConfigManager {
                     java.util.jar.JarEntry entry = entries.nextElement();
                     String name = entry.getName();
 
-                    // 只处理对应语言目录下的 .txt 文件（排除子目录）
                     if (name.startsWith(prefix) && name.endsWith(".txt") && !entry.isDirectory()) {
-                        // 确保文件在目标目录层级（排除更深层级的文件）
                         String relativePath = name.substring(prefix.length());
                         if (relativePath.contains("/")) continue;
 
@@ -414,13 +465,7 @@ public class ConfigManager {
 
     /**
      * 按语言读取配置中的本地化字符串
-     * <p>当 language=en 时，优先读取 {key}_en，如果为空则回退到 {key}；
-     * 当 language=zh 时，直接读取 {key}。</p>
-     *
-     * @param config          配置对象
-     * @param key             配置键名（如 "settings.system_prompt"）
-     * @param fallbackDefault 回退默认值（key 不存在时使用）
-     * @return 对应语言的配置值
+     * <p>用于主配置文件中仍需本地化的字段（如 messages.thinking_message）。</p>
      */
     private String getLocalizedString(FileConfiguration config, String key, String fallbackDefault) {
         String lang = this.language;

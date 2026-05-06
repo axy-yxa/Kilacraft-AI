@@ -1,0 +1,178 @@
+# ==================== AI 响应输出管线配置 ====================
+# AI Response Output Pipeline Configuration
+# 独立配置文件，修改后执行 /kilacraft reload 即时生效
+# Standalone config file, run /kilacraft reload to apply changes
+
+# 说明：统一控制所有 AI 回复的输出载体（聊天栏/ActionBar/BossBar/Title/Sidebar）
+# 默认使用 CHAT，可按场景精细化配置
+# Description: Unified control for all AI reply output channels (Chat/ActionBar/BossBar/Title/Sidebar)
+# Default is CHAT, can be fine-tuned per scenario
+output:
+  # 全局默认输出载体
+  # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
+  # Global default output channel
+  # Available values: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
+  default_channel: CHAT
+  
+  # "正在思考"提示消息的输出载体
+  # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
+  # 说明：默认为 default_channel，可独立配置
+  # 示例：default_channel=BOSS_BAR, thinking_channel=CHAT → 思考提示在聊天框，回复也在聊天框（如果 normal_chat=CHAT）
+  # Output channel for "thinking" prompt message
+  # Available values: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
+  # Description: Defaults to default_channel, can be configured independently
+  # Example: default_channel=BOSS_BAR, thinking_channel=CHAT → thinking prompt in chat, reply also in chat (if normal_chat=CHAT)
+  thinking_channel: ""
+  
+  # 流式输出配置（实时显示 AI 生成过程）
+  # 说明：
+  # 1. 启用后，AI 响应会逐字实时显示，而非等待完整响应
+  # 2. 窗口期管理：请求发起后立即显示"生成中..."占位符
+  # 3. 流式输出使用场景对应的载体（与最终结果一致）
+  # 4. 推荐载体：SIDEBAR（最佳体验，适合长文本）/ BOSS_BAR（中长文本）/ ACTION_BAR（短文本）
+  # 5. CHAT 载体不推荐（会刷屏），TITLE 载体不适合（会闪烁）
+  # Stream output configuration (real-time display of AI generation process)
+  # Description:
+  # 1. When enabled, AI response is displayed character by character in real-time instead of waiting for the full response
+  # 2. Window management: "Generating..." placeholder is displayed immediately after request is sent
+  # 3. Stream output uses the scenario's channel (same as final result)
+  # 4. Recommended channels: SIDEBAR (best experience, for long text) / BOSS_BAR (medium text) / ACTION_BAR (short text)
+  # 5. CHAT channel not recommended (screen flooding), TITLE channel not suitable (flickering)
+  stream:
+    # 是否启用流式输出（总开关）
+    # Whether to enable stream output (master switch)
+    enabled: false
+  
+  # AI 回复音效配置
+  # 说明：
+  # 1. 启用后，AI 开始回复时会播放提示音效（仅触发玩家听到）
+  # 2. 音效时机：思考完成/开始生成时播放，与输出内容同步
+  # 3. 适用场景：普通对话/技能结果/任务结果/挂机回调
+  # 4. 提升沉浸式体验：声音与文字同步出现
+  # AI reply sound effect configuration
+  # Description:
+  # 1. When enabled, a prompt sound plays when AI starts replying (only the triggering player hears it)
+  # 2. Sound timing: plays when thinking completes / generation starts, synchronized with output content
+  # 3. Applicable scenarios: normal chat / skill results / task results / AFK callback
+  # 4. Enhances immersive experience: sound and text appear simultaneously
+  sound:
+    # 是否启用 AI 回复音效（总开关，默认开启）
+    # Whether to enable AI reply sound effect (master switch, default: on)
+    enabled: true
+    # 音效枚举名称（Bukkit Sound 枚举）
+    # 推荐值：
+    # - ENTITY_PLAYER_LEVELUP（升级音效，默认）
+    # - ENTITY_EXPERIENCE_ORB_PICKUP（经验球拾取）
+    # - BLOCK_NOTE_BLOCK_PLING（音符方块）
+    # - UI_TOAST_CHALLENGE_COMPLETE（成就完成）
+    # Sound enum name (Bukkit Sound enum)
+    # Recommended values:
+    # - ENTITY_PLAYER_LEVELUP (level-up sound, default)
+    # - ENTITY_EXPERIENCE_ORB_PICKUP (experience orb pickup)
+    # - BLOCK_NOTE_BLOCK_PLING (note block)
+    # - UI_TOAST_CHALLENGE_COMPLETE (advancement complete)
+    sound_name: "ENTITY_PLAYER_LEVELUP"
+    # 音量（0.0-1.0）
+    # Volume (0.0-1.0)
+    volume: 0.5
+    # 音调（0.5-2.0）
+    # Pitch (0.5-2.0)
+    pitch: 1.2
+  
+  # 场景级覆盖配置（可选，留空则使用 default_channel）
+  # 场景说明：
+  # - normal_chat: 普通 AI 对话（无技能调用）
+  # - skill_result: 单意图技能执行结果（含 LLM 二次分析）
+  # - task_result: 多步骤任务执行结果（含 LLM 二次分析）
+  # - afk_callback: 挂机任务回调通知
+  # - greeting: AI 登录问候
+  # - error: 错误消息
+  # Scenario-level override configuration (optional, leave empty to use default_channel)
+  # Scenario descriptions:
+  # - normal_chat: Normal AI conversation (no skill invocation)
+  # - skill_result: Single-intent skill execution result (with LLM secondary analysis)
+  # - task_result: Multi-step task execution result (with LLM secondary analysis)
+  # - afk_callback: AFK task callback notification
+  # - greeting: AI login greeting
+  # - error: Error messages
+  scenarios:
+    normal_chat: ""
+    skill_result: ""
+    task_result: ""
+    afk_callback: ""
+    greeting: ""
+    error: ""
+  
+  # BossBar 专属配置（仅当载体为 BOSS_BAR 时生效）
+  # BossBar-specific configuration (only effective when channel is BOSS_BAR)
+  boss_bar:
+    # BossBar 颜色
+    # 可选值: PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
+    # BossBar color
+    # Available values: PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
+    color: PURPLE
+    # BossBar 样式
+    # 可选值: SOLID（实心）, SEGMENTED_6/10/12/20（分段）
+    # BossBar style
+    # Available values: SOLID (solid), SEGMENTED_6/10/12/20 (segmented)
+    style: SOLID
+    # 显示时长（秒），0=永久显示直到新消息覆盖
+    # Display duration (seconds), 0=persistent until new message overwrites
+    duration_seconds: 15
+  
+  # Title 专属配置（仅当载体为 TITLE 时生效）
+  # Title-specific configuration (only effective when channel is TITLE)
+  title:
+    # 主标题停留时间（ticks，20 ticks = 1秒）
+    # Main title stay duration (ticks, 20 ticks = 1 second)
+    stay_ticks: 60
+    # 淡入时间（ticks）
+    # Fade-in duration (ticks)
+    fade_in_ticks: 10
+    # 淡出时间（ticks）
+    # Fade-out duration (ticks)
+    fade_out_ticks: 10
+  
+  # Scoreboard Sidebar 专属配置（仅当载体为 SIDEBAR 时生效）
+  # 说明：
+  # - 自动分页：超过 max_lines_per_page 行时自动拆分多页
+  # - 持久显示：不遮挡游戏视野，适合长文本 AI 回复
+  # 注意：
+  # - 如果服务器有其他插件使用了 Scoreboard Sidebar（如计分板、排行榜等），可能会导致冲突
+  # - 冲突表现：两个插件的 Sidebar 会互相覆盖，只能显示最后一个
+  # - 解决方案：
+  #   1. 检查是否有其他插件使用 Sidebar（如 Essentials、Stats、Factions 等）
+  #   2. 如果有冲突，建议改用其他载体（CHAT/BOSS_BAR）
+  #   3. 或者联系其他插件作者，看是否支持配置到其他显示槽位
+  # Scoreboard Sidebar-specific configuration (only effective when channel is SIDEBAR)
+  # Description:
+  # - Auto-pagination: automatically splits into multiple pages when exceeding max_lines_per_page
+  # - Persistent display: does not obstruct game view, suitable for long AI replies
+  # Note:
+  # - If other plugins use Scoreboard Sidebar (e.g., scoreboards, leaderboards), conflicts may occur
+  # - Conflict behavior: Sidebars from two plugins will overwrite each other, only the last one is visible
+  # - Solutions:
+  #   1. Check if other plugins use Sidebar (e.g., Essentials, Stats, Factions)
+  #   2. If conflict exists, consider using other channels (CHAT/BOSS_BAR)
+  #   3. Or contact other plugin authors to see if they support configuring to other display slots
+  sidebar:
+    # 显示时长（秒），0=永久显示直到新消息覆盖
+    # Display duration (seconds), 0=persistent until new message overwrites
+    duration_seconds: 15
+    
+    # 每页最大行数（Minecraft Sidebar 上限为 15）
+    # 建议值：10-15，值越大单页显示内容越多，但太高会影响游戏体验
+    # Max lines per page (Minecraft Sidebar limit is 15)
+    # Recommended: 10-15, higher values show more content per page but may affect gameplay experience
+    max_lines_per_page: 15
+    
+    # 每行最大字符数
+    # 建议值：中文 26-32，英文 44-50
+    # 中文每个字视觉宽度约等于2个英文字符，所以中文需要更小的值
+    # Max characters per line
+    # Recommended: Chinese 26-32, English 44-50
+    # Each Chinese character has visual width of ~2 English characters, so Chinese needs a smaller value
+    max_chars_per_line: 30
+    # 英文版每行最大字符数（language=en 时生效，留空或设0则使用中文版）
+    # English max characters per line (effective when language=en, leave empty or 0 to use Chinese version)
+    max_chars_per_line_en: 64

@@ -49,7 +49,7 @@ public class PersonalitiesConfigManager {
         String lang = plugin.getConfigManager().getLanguage();
         String fileName = "zh".equals(lang) ? "personalities.yml" : "personalities_" + lang + ".yml";
         this.personalitiesFile = new File(plugin.getDataFolder(), fileName);
-        ConfigResourceUtil.saveDefaultResource(plugin, fileName, "人格配置");
+        ConfigResourceUtil.saveDefaultResource(plugin, fileName);
     }
 
     /**

@@ -50,10 +50,10 @@ public class KnowledgeBaseManager {
         String lang = plugin.getConfigManager().getLanguage();
         if ("zh".equals(lang)) {
             this.effectiveDir = knowledgeDir;
-            ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge", "知识库", 1);
+            ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge", 1);
         } else {
             this.effectiveDir = knowledgeDir.resolve(lang);
-            ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge/" + lang, "知识库");
+            ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge/" + lang);
         }
     }
 

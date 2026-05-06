@@ -1,6 +1,6 @@
 # Kilacraft-AI - Built-in Skills and Events Capability List
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-05-06  
 > **Description**: This document summarizes all built-in Skill actions and supported Bukkit Event listeners of Kilacraft-AI, helping server administrators and plugin developers quickly understand the plugin's capabilities, integrated third-party plugins, and security risks.
 
 ---
@@ -31,7 +31,7 @@
 | `cancel_task` | Cancel the player's current AFK task | None | None |
 | `query_task` | Query the player's current AFK task status | None | None |
 
-#### Supported 11 Event Listener Types
+#### Supported 19 Event Listener Types + CUSTOM
 
 | Task Type | Monitoring Target | Level | Dependent Event |
 |----------|-----------------|-------|-----------------|
@@ -46,6 +46,14 @@
 | `PLAYER_BED_LEAVE_WATCH` | Player leaves bed | A-level | PlayerBedLeaveEvent |
 | `PLAYER_RESPAWN_WATCH` | Player respawn | A-level | PlayerRespawnEvent |
 | `PLAYER_ITEM_BREAK_WATCH` | Player item break | A-level | PlayerItemBreakEvent |
+| `PLAYER_FISHING_WATCH` | Player fishing | A-level | PlayerFishEvent |
+| `PLAYER_CHAT_WATCH` | Player chat | A-level | AsyncPlayerChatEvent |
+| `BLOCK_BREAK_WATCH` | Block break | A-level | BlockBreakEvent |
+| `ENTITY_DEATH_WATCH` | Entity death | A-level | EntityDeathEvent |
+| `ENTITY_SPAWN_WATCH` | Entity spawn | A-level | CreatureSpawnEvent |
+| `ENTITY_EXPLODE_WATCH` | Entity explosion | A-level | EntityExplodeEvent |
+| `FURNACE_EXTRACT_WATCH` | Furnace smelt | A-level | FurnaceExtractEvent |
+| `CROP_GROWTH_WATCH` | Crop growth | A-level | BlockGrowEvent |
 | `CUSTOM` | Custom condition polling | A-level | Any Skill |
 
 #### Core Features
@@ -414,6 +422,50 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
+### 8. MarketActionSkill - GlobalMarket Write Operations
+
+**Capability Type**: Market Write Operations (Trade Delegation)  
+**Dependency Plugin**: GlobalMarketPlus (v1.3.8.0+)  
+**File Location**: `skills/globalmarketplus/MarketActionSkill.yml`  
+**Implementation Class**: `MarketActionSkill.java`
+
+#### Supported Actions (9)
+
+| Action | Description | Confirmation |
+|--------|-------------|-------------|
+| `search_item` | Search market for items | None |
+| `list_item` | List item on market | Confirm price & quantity |
+| `claim_all` | Claim all mailbox items | Confirm mailbox content |
+| `create_buy_order` | Create buy order | Confirm item & price |
+| `delist_item` | Delist market item | None |
+| `transfer_balance` | Transfer balance to player | Double confirm recipient & amount |
+| `create_auction` | Create auction listing | Confirm item & starting price |
+| `batch_sell` | Batch sell all items | Confirm total items |
+| `batch_buy` | Batch buy items | Confirm purchase list |
+
+#### Core Features
+- ✅ All write operations executed via Bukkit command delegation, atomicity guaranteed by GMP
+- ✅ Requires GlobalMarketPlus independent permission nodes
+
+---
+
+### 9. UtilitySkill - Generic Utility Actions
+
+**Capability Type**: Basic Utility Actions (Delay, Notification, Broadcast)  
+**Dependency Plugin**: Pure Bukkit Native API  
+**File Location**: `skills/utility/UtilitySkill.yml`  
+**Implementation Class**: `UtilitySkill.java`
+
+#### Supported Actions (3)
+
+| Action | Description | Key Feature |
+|--------|-------------|-------------|
+| `delay_wait` | Non-blocking delayed wait | Does not occupy IO thread pool |
+| `notify_player` | Proactively notify player of interim results | Summarizes partial results |
+| `broadcast_message` | Server-wide broadcast | AI beautifies message before broadcasting |
+
+---
+
 ## Security Interceptor
 
 Kilacraft-AI v1.4.5 introduces a **non-cooperative security filtering mechanism** (SkillSecurityFilter) that automatically scans player names in parameters before every Skill execution, protecting player data from being accessed or tampered with by malicious Skills.
@@ -453,7 +505,7 @@ Kilacraft-AI v1.4.5 introduces a **non-cooperative security filtering mechanism*
 | `PLAYER_CHANGED_WORLD_WATCH` | PlayerChangedWorldEvent | Player world change | Triggers when player teleports between worlds |
 | `WEATHER_CHANGE_WATCH` | WeatherChangeEvent | Weather change | Triggers when world weather changes |
 
-### A-Level Listeners (4)
+### A-Level Listeners (12)
 
 | Task Type | Listening Event | Monitoring Target | Trigger Timing |
 |----------|-----------------|-----------------|-----------------|
@@ -461,6 +513,14 @@ Kilacraft-AI v1.4.5 introduces a **non-cooperative security filtering mechanism*
 | `PLAYER_BED_LEAVE_WATCH` | PlayerBedLeaveEvent | Player leaves bed | Triggers when player gets up from bed |
 | `PLAYER_RESPAWN_WATCH` | PlayerRespawnEvent | Player respawn | Triggers when player respawns |
 | `PLAYER_ITEM_BREAK_WATCH` | PlayerItemBreakEvent | Player item break | Triggers when player item breaks |
+| `PLAYER_FISHING_WATCH` | PlayerFishEvent | Player fishing | Triggers when player catches fish |
+| `PLAYER_CHAT_WATCH` | AsyncPlayerChatEvent | Player chat | Triggers when player sends chat message |
+| `BLOCK_BREAK_WATCH` | BlockBreakEvent | Block break | Triggers when player breaks block |
+| `ENTITY_DEATH_WATCH` | EntityDeathEvent | Entity death | Triggers when entity dies |
+| `ENTITY_SPAWN_WATCH` | CreatureSpawnEvent | Entity spawn | Triggers when entity spawns |
+| `ENTITY_EXPLODE_WATCH` | EntityExplodeEvent | Entity explosion | Triggers when entity explodes |
+| `FURNACE_EXTRACT_WATCH` | FurnaceExtractEvent | Furnace smelt | Triggers when player extracts from furnace |
+| `CROP_GROWTH_WATCH` | BlockGrowEvent | Crop growth | Triggers when crop grows |
 
 ### Custom Task Type (1)
 
@@ -479,6 +539,14 @@ Kilacraft-AI v1.4.5 introduces a **non-cooperative security filtering mechanism*
 | WEATHER_CHANGE | `{world_name}`, `{weather_state}`, `{weather_type}` |
 | PLAYER_BED/RESPAWN | `{x}`, `{y}`, `{z}`, `{world}` |
 | PLAYER_ITEM_BREAK | `{item_name}`, `{item_type}` |
+| PLAYER_FISHING | `{item_name}`, `{item_type}`, `{fishing_state}` |
+| PLAYER_CHAT | `{message}`, `{triggered_player}` |
+| BLOCK_BREAK | `{block_type}`, `{x}`, `{y}`, `{z}`, `{world}` |
+| ENTITY_DEATH | `{entity_type}`, `{entity_name}`, `{x}`, `{y}`, `{z}` |
+| ENTITY_SPAWN | `{entity_type}`, `{entity_name}`, `{x}`, `{y}`, `{z}` |
+| ENTITY_EXPLODE | `{entity_type}`, `{x}`, `{y}`, `{z}`, `{block_list}` |
+| FURNACE_EXTRACT | `{item_type}`, `{item_amount}`, `{x}`, `{y}`, `{z}` |
+| CROP_GROWTH | `{block_type}`, `{x}`, `{y}`, `{z}`, `{world}` |
 
 ---
 
@@ -495,7 +563,7 @@ Kilacraft-AI v1.4.5 introduces a **non-cooperative security filtering mechanism*
 | Plugin Name | Version Requirement | Function | Provided Capabilities | Dependent Skill |
 |-------------|-------------------|-----------|----------------------|-------------------|
 | **CMI** | v9.8.6.4+ | Teleportation, homes, warps, kits, player enhancements, TPA | Teleportation, Player Info Query | CMISkill |
-| **GlobalMarketPlus** | v1.3.8.0+ | Global market, item trading, mailbox, kits | Market Query | MarketQuerySkill |
+| **GlobalMarketPlus** | v1.3.8.0+ | Global market, item trading, mailbox, kits | Market Query, Market Actions | MarketQuerySkill, MarketActionSkill |
 
 ### Compatibility Notes
 
@@ -511,7 +579,7 @@ Kilacraft-AI v1.4.5 introduces a **non-cooperative security filtering mechanism*
 
 ✅ **Can**:
 - Query Minecraft native API data (player, world, server status)
-- Listen to 11 Bukkit Event types (S-level 7 + A-level 4)
+- Listen to 19 Bukkit Event types (S-level 7 + A-level 12)
 - Create AFK tasks (automatically execute multi-step callbacks after event triggers)
 - Execute server commands (as player identity, constrained by permissions)
 - Query third-party plugin data (CMI teleportation/info, GlobalMarketPlus market)
@@ -538,12 +606,12 @@ Kilacraft-AI v1.4.5 introduces a **non-cooperative security filtering mechanism*
 | Server Config | Read-Only | Can query version, MOTD, world list, cannot modify |
 | Command Execution | Write (Indirect) | Execute via dispatchCommand, constrained by permissions |
 | CMI Data | Read-Only | Query homes, warps, player info, cannot directly modify |
-| Market Data | Read-Only | Query prices, items, cannot directly modify |
+| Market Data | Read/Write | Query prices and items, AI-delegated trading via command delegation |
 
 ---
 
-> **Last Updated**: 2026-04-19  
-> **Plugin Version**: 1.5.0+  
-> **Total Skills**: 6 (AFKTaskSkill, GenericBukkitAPI, CMISkill, CommandSkill, BukkitFXSkill, MarketQuerySkill)  
-> **Total API Actions**: 60+ (GenericBukkitAPI) + 8 (CMISkill) + 2 (BukkitFXSkill) + 7 (MarketQuerySkill)  
-> **Total Event Listeners**: 11 (S-level 7 + A-level 4)
+> **Last Updated**: 2026-05-06  
+> **Plugin Version**: 2.0.0+  
+> **Total Skills**: 9 (AFKTaskSkill, GenericBukkitAPI, CMISkill, CommandSkill, BukkitFXSkill, BukkitStatsSkill, MarketQuerySkill, MarketActionSkill, UtilitySkill)  
+> **Total API Actions**: 60+ (GenericBukkitAPI) + 8 (CMISkill) + 2 (BukkitFXSkill) + 7 (MarketQuerySkill) + 9 (MarketActionSkill) + 3 (UtilitySkill)  
+> **Total Event Listeners**: 19 (S-level 7 + A-level 12)

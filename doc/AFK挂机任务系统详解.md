@@ -1,6 +1,6 @@
 # Kilacraft-AI - AFK 挂机任务系统详解
 
-> **最后更新**: 2026-04-23  
+> **最后更新**: 2026-05-06  
 > **说明**: 本文档详细介绍 AFK 挂机任务系统的架构、使用方式、调用链路和最佳实践
 
 ---
@@ -13,7 +13,7 @@ AFK 挂机任务系统是 Kilacraft-AI 插件的核心功能之一，提供**异
 
 - ✅ **自然语言创建**：通过对话创建任务，无需记忆命令
 - ✅ **双模式支持**：纯通知模式（快速响应）和回调模式（智能分析）
-- ✅ **丰富的监听器**：11 种事件类型（S级 7 个 + A级 4 个）
+- ✅ **丰富的监听器**：19 种事件类型（S级 7 个 + A级 12 个）+ CUSTOM 通用条件轮询
 - ✅ **通用自定义任务**：CUSTOM 类型支持监控任意 Skill 返回的数值条件
 - ✅ **多步骤回调**：支持组合多个 API 完成复杂操作
 - ✅ **自动资源管理**：任务完成/取消后自动清理
@@ -44,7 +44,7 @@ skills/afktask/
 ├── AFKTaskManager.java             # 任务管理器（CRUD + 并发控制）
 ├── AFKTaskSkill.java               # 内置 Skill（LLM 路由入口）
 ├── AFKTaskCallback.java            # 回调配置（多步骤任务链）
-├── AFKTaskType.java                # 任务类型枚举（12 种：11 事件型 + CUSTOM）
+├── AFKTaskType.java                # 任务类型枚举（20 种：19 事件型 + CUSTOM）
 ├── AFKTaskStatus.java              # 状态枚举
 ├── AFKTaskListener.java            # 全局 Listener（创建者下线清理）
 ├── ConditionPlan.java              # 条件计划数据结构（CUSTOM 专用）
@@ -62,6 +62,14 @@ skills/afktask/
     ├── PlayerBedLeaveWatchTask.java        # A级 - 监视离开床
     ├── PlayerRespawnWatchTask.java         # A级 - 监视重生
     ├── PlayerItemBreakWatchTask.java       # A级 - 监视物品损坏
+    ├── PlayerFishingWatchTask.java         # A级 - 监视钓鱼
+    ├── PlayerChatWatchTask.java            # A级 - 监视聊天
+    ├── BlockBreakWatchTask.java            # A级 - 监视方块破坏
+    ├── EntityDeathWatchTask.java           # A级 - 监视实体死亡
+    ├── EntitySpawnWatchTask.java           # A级 - 监视实体生成
+    ├── EntityExplodeWatchTask.java         # A级 - 监视实体爆炸
+    ├── FurnaceExtractWatchTask.java        # A级 - 监视熔炉烧炼
+    ├── CropGrowthWatchTask.java            # A级 - 监视作物生长
     └── CustomWatchTask.java                # CUSTOM级 - 自定义条件轮询
 ```
 
@@ -80,6 +88,14 @@ AFKTask（抽象基类）
   ├── PlayerBedLeaveWatchTask（监听 PlayerBedLeaveEvent）
   ├── PlayerRespawnWatchTask（监听 PlayerRespawnEvent）
   ├── PlayerItemBreakWatchTask（监听 PlayerItemBreakEvent）
+  ├── PlayerFishingWatchTask（监听 PlayerFishEvent）
+  ├── PlayerChatWatchTask（监听 AsyncPlayerChatEvent）
+  ├── BlockBreakWatchTask（监听 BlockBreakEvent）
+  ├── EntityDeathWatchTask（监听 EntityDeathEvent）
+  ├── EntitySpawnWatchTask（监听 CreatureSpawnEvent）
+  ├── EntityExplodeWatchTask（监听 EntityExplodeEvent）
+  ├── FurnaceExtractWatchTask（监听 FurnaceExtractEvent）
+  ├── CropGrowthWatchTask（监听 BlockGrowEvent）
   └── CustomWatchTask（BukkitRunnable 定时轮询）
         ├── ConditionPlan（条件计划数据结构）
         └── ConditionEvaluator（条件评估器，静态方法）
@@ -398,7 +414,7 @@ private void executeCallback(String triggeredPlayerName) {
 | `PLAYER_CHANGED_WORLD_WATCH` | PlayerChangedWorldEvent | 玩家切换世界 | `{from_world}`, `{to_world}` |
 | `WEATHER_CHANGE_WATCH` | WeatherChangeEvent | 天气变化 | `{world_name}`, `{weather_state}`, `{weather_type}` |
 
-### A 级监听器（4 个）
+### A 级监听器（12 个）
 
 | 任务类型 | 监听事件 | 监控目标 | 特殊占位符 |
 |---------|---------|---------|-----------|
@@ -406,6 +422,14 @@ private void executeCallback(String triggeredPlayerName) {
 | `PLAYER_BED_LEAVE_WATCH` | PlayerBedLeaveEvent | 玩家离开床 | `{x}`, `{y}`, `{z}`, `{world}` |
 | `PLAYER_RESPAWN_WATCH` | PlayerRespawnEvent | 玩家重生 | `{x}`, `{y}`, `{z}`, `{world}` |
 | `PLAYER_ITEM_BREAK_WATCH` | PlayerItemBreakEvent | 玩家物品损坏 | `{item_name}`, `{item_type}` |
+| `PLAYER_FISHING_WATCH` | PlayerFishEvent | 玩家钓鱼 | `{item_name}`, `{item_type}`, `{fishing_state}` |
+| `PLAYER_CHAT_WATCH` | AsyncPlayerChatEvent | 玩家聊天 | `{message}`, `{triggered_player}` |
+| `BLOCK_BREAK_WATCH` | BlockBreakEvent | 方块破坏 | `{block_type}`, `{x}`, `{y}`, `{z}`, `{world}` |
+| `ENTITY_DEATH_WATCH` | EntityDeathEvent | 实体死亡 | `{entity_type}`, `{entity_name}`, `{x}`, `{y}`, `{z}` |
+| `ENTITY_SPAWN_WATCH` | CreatureSpawnEvent | 实体生成 | `{entity_type}`, `{entity_name}`, `{x}`, `{y}`, `{z}` |
+| `ENTITY_EXPLODE_WATCH` | EntityExplodeEvent | 实体爆炸 | `{entity_type}`, `{x}`, `{y}`, `{z}`, `{block_list}` |
+| `FURNACE_EXTRACT_WATCH` | FurnaceExtractEvent | 熔炉烧炼完成 | `{item_type}`, `{item_amount}`, `{x}`, `{y}`, `{z}` |
+| `CROP_GROWTH_WATCH` | BlockGrowEvent | 作物生长 | `{block_type}`, `{x}`, `{y}`, `{z}`, `{world}` |
 
 ### CUSTOM 级（通用条件轮询）
 
@@ -461,7 +485,7 @@ AI: 好的！已创建挂机任务：监视你的等级，达到30级时自动�
 
 #### CUSTOM 与事件型的区别
 
-| 维度 | 事件型（11种） | CUSTOM 型 |
+| 维度 | 事件型（19种） | CUSTOM 型 |
 |------|---------------|-----------|
 | 触发机制 | Bukkit EventListener | BukkitRunnable 定时轮询 |
 | 条件判断 | 硬编码在 onXxxEvent() 中 | 通用：Skill 执行 + 字段提取 + 数值比较 |
@@ -507,7 +531,7 @@ action_descriptions:
 
 hints:
   - '**重要：输出格式必须是单意图（single_intent）**：AFKTask的所有动作都必须以单意图JSON格式返回，绝对不能以多步骤任务格式返回。callback是entities的一个参数，不是独立的步骤。'
-  - '**任务类型说明**：PLAYER_ONLINE_WATCH=监视玩家上线, PLAYER_OFFLINE_WATCH=监视玩家下线, PLAYER_DEATH_WATCH=监视玩家死亡, PLAYER_TELEPORT_WATCH=监视玩家传送, PLAYER_LEVEL_CHANGE_WATCH=监视玩家等级变化, PLAYER_CHANGED_WORLD_WATCH=监视玩家切换世界, WEATHER_CHANGE_WATCH=监视天气变化, PLAYER_BED_ENTER_WATCH=监视玩家进入床, PLAYER_BED_LEAVE_WATCH=监视玩家离开床, PLAYER_RESPAWN_WATCH=监视玩家重生, PLAYER_ITEM_BREAK_WATCH=监视玩家物品损坏。'
+  - '**任务类型说明**：PLAYER_ONLINE_WATCH=监视玩家上线, PLAYER_OFFLINE_WATCH=监视玩家下线, PLAYER_DEATH_WATCH=监视玩家死亡, PLAYER_TELEPORT_WATCH=监视玩家传送, PLAYER_LEVEL_CHANGE_WATCH=监视玩家等级变化, PLAYER_CHANGED_WORLD_WATCH=监视玩家切换世界, WEATHER_CHANGE_WATCH=监视天气变化, PLAYER_BED_ENTER_WATCH=监视玩家进入床, PLAYER_BED_LEAVE_WATCH=监视玩家离开床, PLAYER_RESPAWN_WATCH=监视玩家重生, PLAYER_ITEM_BREAK_WATCH=监视玩家物品损坏, PLAYER_FISHING_WATCH=监视玩家钓鱼, PLAYER_CHAT_WATCH=监视玩家聊天, BLOCK_BREAK_WATCH=监视方块破坏, ENTITY_DEATH_WATCH=监视实体死亡, ENTITY_SPAWN_WATCH=监视实体生成, ENTITY_EXPLODE_WATCH=监视实体爆炸, FURNACE_EXTRACT_WATCH=监视熔炉烧炼, CROP_GROWTH_WATCH=监视作物生长。CUSTOM=自定义条件轮询。'
   - '**PLAYER_TELEPORT_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{from_world}/{to_world}/{from_x}/{from_y}/{from_z}/{to_x}/{to_y}/{to_z}占位符'
   - '**一次性 vs 长期任务（重要）**：本技能只支持一次性任务，即触发条件满足一次就结束。不接受长期循环任务。'
   - '**并发限制与任务替换**：每个玩家同时只能拥有一个挂机任务。如果创建任务时失败提示"已有一个正在运行的挂机任务"，应告知玩家可以使用 /kilacraft afk cancel 命令取消旧任务。'
@@ -528,7 +552,15 @@ hints:
 | 玩家睡觉 | `PLAYER_BED_ENTER_WATCH` / `PLAYER_BED_LEAVE_WATCH` | "监视 Steve 睡觉" |
 | 物品相关 | `PLAYER_ITEM_BREAK_WATCH` | "盯着 Steve 的工具坏了告诉我" |
 | 环境变化 | `WEATHER_CHANGE_WATCH` | "下雨了告诉我" |
-| **数值条件** | **`CUSTOM`** | **"当我的血量低于10时告诉我"、"当余额低于1000时提醒我"** |
+| **数值条件** | **`CUSTOM`** | **"当我的血量低于10时告诉我"** |
+| **钓鱼活动** | **`PLAYER_FISHING_WATCH`** | **"钓到鱼了告诉我并查市场价格"** |
+| **聊天消息** | **`PLAYER_CHAT_WATCH`** | **"我说'开始刷怪'时帮我执行命令"** |
+| **方块破坏** | **`BLOCK_BREAK_WATCH`** | **"我挖到钻石了告诉我"** |
+| **实体死亡** | **`ENTITY_DEATH_WATCH`** | **"凋灵死了告诉我"** |
+| **实体生成** | **`ENTITY_SPAWN_WATCH`** | **"刷怪塔生成僵尸村民了告诉我"** |
+| **实体爆炸** | **`ENTITY_EXPLODE_WATCH`** | **"有爆炸的时候告诉我坐标"** |
+| **熔炉烧炼** | **`FURNACE_EXTRACT_WATCH`** | **"熔炉烧完了告诉我"** |
+| **作物生长** | **`CROP_GROWTH_WATCH`** | **"小麦熟了告诉我并查市场价格"** |
 
 ### 2. 纯通知 vs 回调模式选择
 

@@ -8,7 +8,7 @@
 
 Plan-and-Execute Architecture · Natural Language · Zero Dependencies · Fully Open Source
 
-[![Version](https://img.shields.io/badge/Version-1.5.0-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
+[![Version](https://img.shields.io/badge/Version-2.0.0-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
@@ -18,29 +18,31 @@ Plan-and-Execute Architecture · Natural Language · Zero Dependencies · Fully 
 ---
 
 Players interact with AI through natural language — query game data, execute commands, and orchestrate multi-step tasks.  
-Built on Plan-and-Execute + Function Calling architecture. Single JAR, no database, no Redis, no middleware.
+Built on Plan-and-Execute + Function Calling architecture. Single JAR, supports both H2 embedded database (zero-config out of the box) and MySQL external database, no Redis or other external middleware.
 
 ## Features
 
 | | Feature | Description |
 |:---:|:---|:---|
-| 🤖 | **AI Engine** | LLM intent recognition · Multi-step task planning & execution · RAG knowledge base · 5 output carriers · Streaming output · Secondary analysis coordinator · Public broadcast · Response sound effects |
-| 💰 | **Economy** | GlobalMarketPlus integration · Natural language balance/price/listing queries · Multi-item search |
+| 🤖 | **AI Engine** | LLM intent recognition · Multi-step task planning & execution · RAG knowledge base · Embedding semantic search · 5 output carriers · Streaming output · Secondary analysis coordinator · Public broadcast · Response sound effects |
+| 💰 | **Economy** | GlobalMarketPlus integration · Natural language balance/price/listing queries · AI-powered trading (sell/buy/transfer/auction) · Multi-item search |
 | 🔍 | **Bukkit API** | 72 built-in read-only APIs · YAML data-driven · Multi-step data passing (with array indexing) · Fine-grained permissions |
 | 🎮 | **CMI Integration** | Teleport (home/warp/TPA) · Enhanced player info (playtime/AFK/vanish/armor/online list) |
 | 🔧 | **Command Execution** | Execute commands as player · Full server permission inheritance · Config toggle + permission node |
 | 🎨 | **Sound & Particles** | AI-triggered sounds/particles · Only caller perceives · YAML-driven config |
 | 📊 | **Vanilla Stats** | 80+ vanilla statistics query · Knowledge base BM25 retrieval · Distance/time auto-conversion · Multi-step condition monitoring |
-| 🔔 | **AFK Tasks** | 12 types (11 event listeners + CUSTOM polling) · Natural language creation · Notification/callback dual mode |
-| 🎭 | **Personalization** | Multi-personality system · RAG knowledge enhancement (HanLP + BM25) · Custom dictionary · Full language config |
+| 🔔 | **AFK Tasks** | 20 types (19 event listeners + CUSTOM polling) · Natural language creation · Notification/callback dual mode · Smart callback |
+| 💾 | **Data Persistence** | Conversation history saved (persists across restarts) · Player profiles (AI remembers preferences) · Social relation graph · Server event records · Skill audit logs |
+| 👋 | **Smart Greetings** | Personalized login welcome · Three-category data aggregation (own events/friend dynamics/summary milestones) · Cooldown mechanism |
+| 🎭 | **Personalization** | Multi-personality system · RAG knowledge enhancement (HanLP + BM25) · Embedding semantic search · Custom dictionary · Full language config |
 | 🔌 | **SPI Extension** | Third-party Skill registration · Plugin command mode · Complete dev docs · Global Skill registry |
 | 🛡️ | **Security** | Non-cooperative value scanning filter · Cross-player ops blocked unless whitelisted · Malicious Skills cannot bypass |
 
 ## Quick Start
 
-**1.** Download [Kilacraft-AI-1.5.0.jar](https://github.com/Zm-Mmm/Kilacraft-AI/releases) and place it in `plugins/`
+**1.** Download [Kilacraft-AI-2.0.0.jar](https://github.com/Zm-Mmm/Kilacraft-AI/releases) and place it in `plugins/`
 
-**2.** Edit `plugins/Kilacraft-AI/config.yml` with your API key:
+**2.** Edit `plugins/Kilacraft-AI/llm.yml` with your API key:
 
 ```yaml
 llm:
@@ -80,6 +82,7 @@ Player: Alert me when my health drops below 5
 | 1.20 - 1.21+ | 21+ | All major cores | ✅ |
 
 > Optional dependencies: MythicMobs 5.12+ (NPC placeholders) · GlobalMarketPlus 1.3.8+ (economy) · CMI (teleport/query) · Vault (multi-currency)  
+> New config files: `database.yml` (H2/MySQL database) · `greeting.yml` (AI login greetings) · `llm.yml`/`output.yml`/`knowledge.yml` (split from original config.yml)
 > Features auto-disable when plugins are missing — core chat remains unaffected.
 
 ## Commands
@@ -93,6 +96,7 @@ Player: Alert me when my health drops below 5
 | `/kilacraft knowledge reload` | OP | Reload knowledge base |
 | `/kilacraft personalities reload` | OP | Reload personality config |
 | `/kilacraft afk [cancel]` | None | View/cancel AFK tasks |
+| `/kilacraft tasks` | `kilacraft.tasks` | View scheduled task status (default OP) |
 | `/kilacraft plugins <personality> <message> <UUID> [callback]` | Console | Third-party plugin integration |
 
 ## Documentation

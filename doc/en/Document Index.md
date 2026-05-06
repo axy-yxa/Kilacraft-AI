@@ -1,6 +1,6 @@
 # Kilacraft-AI Document Index
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-05-06  
 > **Description**: This document provides a complete index of all Kilacraft-AI documentation, helping users quickly find the documentation they need
 
 ---
@@ -13,6 +13,8 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 |--------------|-------------|----------------|
 | [Server Owner's Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Complete installation, configuration, and usage guide | Server Administrators |
 | [Changelog](sslocal://flow/file_open?url=.%2FKilacraft-AI-Changelog.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Version history and change descriptions | Everyone |
+| [Database and Persistence Configuration Guide](./Database%20and%20Persistence%20Configuration%20Guide) | Database configuration, persistence content and data management | Server Administrators |
+| [Player Profile and Social Relations System Guide](./Player%20Profile%20and%20Social%20Relations%20System%20Guide) | Player profiles, social graph and event collection system | Server Owners, Developers |
 ### 🔌 Developer Documents
 | Document Name | Description | Target Audience |
 |--------------|-------------|----------------|
@@ -50,9 +52,9 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 ---
 ### 2. Changelog
 **File**: `Kilacraft-AI-Changelog.md`  
-**Size**: ~10 KB  
+**Size**: ~18 KB  
 **Content**:
-- ✅ Change records for all versions from v1.0.0 to v1.4.3
+- ✅ Change records for all versions from v1.0.0 to v2.0.0
 - ✅ New features, optimizations, and compatibility notes for each version
 - ✅ Packaging changes and breaking update warnings
   **Recommended Usage Scenarios**:
@@ -250,7 +252,7 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 **Content**:
 
 - ✅ AFK task system architecture design
-- ✅ Detailed task types (mining, fishing, mob grinding, etc. - 11 built-in tasks)
+- ✅ Detailed task types (20 built-in task types in 4 tiers)
 - ✅ Task configuration methods and parameter descriptions
 - ✅ Callback mechanism and task status management
 - ✅ Permission control and availability checks
@@ -258,11 +260,10 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 - ✅ Troubleshooting and performance optimization
 
 **Task Types**:
-- ⛏️ Mining Task: Automatically mine specified blocks
-- 🎣 Fishing Task: Automatically fish and collect items
-- ⚔️ Mob Grinding Task: Automatically attack nearby monsters
-- 🌾 Farming Task: Automatically plant and harvest
-- Plus 7 other task types
+- 🔵 S-Tier (7 types): Player online/offline/death/teleport/level/world change, weather change
+- 🟢 A-Tier (1 type): Custom condition polling
+- 🟡 B-Tier (4 types): Player inventory change, player damage, player kill entity, player interact entity
+- 🟠 C-Tier (8 types): Player fish, player chat, block break, entity death, entity spawn, player item consume, player join, player quit
 
 **Recommended Chapters**:
 - Chapter 2: Task Type Details (Learn all available tasks)
@@ -337,8 +338,8 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 |----------|--------------------|------------|
 | Server Owner Documents | 2 | ~55 KB |
 | Developer Documents | 2 | ~58 KB |
-| Technical Reference | 8 | ~140 KB |
-| **Total** | **12** | **~253 KB** |
+| Technical Reference | 10 | ~180 KB |
+| **Total** | **14** | **~293 KB** |
 ---
 ## 💡 Usage Suggestions
 ### New Users
@@ -358,7 +359,7 @@ This document index lists all Chinese technical documents of the Kilacraft-AI pr
 6. If developing AFK tasks, read the [AFK Task System Guide](./AFK%20Task%20System%20Guide)
 ---
 ## 📝 Document Maintenance
-- **Last Updated**: 2026-04-12
+- **Last Updated**: 2026-05-06
 - **Maintainer**: Zm_Mmm
 - **Feedback Channels**: [GitHub Issues](sslocal://flow/file_open?url=https%3A%2F%2Fgithub.com%2Faxy-yxa%2FKilacraft-AI%2Fissues&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | [Gitee Issues](sslocal://flow/file_open?url=https%3A%2F%2Fgitee.com%2Fzm_mmm%2Fkilacraft-ai%2Fissues&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
   If you find document errors or need to add content, please submit an Issue or Pull Request!

@@ -1,0 +1,130 @@
+package com.zm.kilacraftAI.db.dao;
+
+import com.zm.kilacraftAI.manager.ConversationManager;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
+
+/**
+ * 对话历史 DAO
+ *
+ * <p>提供 {@code kca_conversation} 表的 CRUD 操作。</p>
+ *
+ * @author Zm_Mmm
+ */
+public class ConversationDao {
+
+    private final String tablePrefix;
+
+    public ConversationDao(String tablePrefix) {
+        this.tablePrefix = tablePrefix;
+    }
+
+    /**
+     * 批量插入对话记录
+     *
+     * @param conn     数据库连接
+     * @param messages 待写入的消息列表，每个元素为 [playerUuid, role, content, personality, source, createdAt]
+     */
+    public void batchInsert(Connection conn, List<String[]> messages) throws SQLException {
+        if (messages == null || messages.isEmpty()) return;
+
+        String sql = "INSERT INTO " + tablePrefix + "conversation " + "(player_uuid, role, content, personality, source, created_at, server_id) " + "VALUES (?, ?, ?, ?, ?, ?, '')";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (String[] msg : messages) {
+                ps.setString(1, msg[0]); // playerUuid
+                ps.setString(2, msg[1]); // role
+                ps.setString(3, msg[2]); // content
+                ps.setString(4, msg[3]); // personality
+                ps.setString(5, msg[4]); // source
+                ps.setLong(6, Long.parseLong(msg[5])); // createdAt
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+    }
+
+    /**
+     * 加载对话历史（按来源过滤）
+     *
+     * @param conn         数据库连接
+     * @param playerUuid   玩家 UUID
+     * @param personality  人格标识（普通AI为空串）
+     * @param sourceFilter 来源过滤（IN 子句值，如 "'chat','command'"）
+     * @param limit        最大加载条数
+     * @return 消息列表（时间正序）
+     */
+    public Deque<ConversationManager.Message> loadHistory(Connection conn, String playerUuid, String personality, String sourceFilter, int limit) throws SQLException {
+        // 使用 id 作为二级排序，确保相同时间戳的记录按插入顺序排列
+        String sql = "SELECT role, content FROM " + tablePrefix + "conversation " + "WHERE player_uuid = ? AND personality = ? AND source IN (" + sourceFilter + ") " + "ORDER BY created_at DESC, id DESC LIMIT ?";
+
+        Deque<ConversationManager.Message> messages = new ArrayDeque<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, playerUuid);
+            ps.setString(2, personality);
+            ps.setInt(3, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<ConversationManager.Message> temp = new ArrayList<>();
+                while (rs.next()) {
+                    temp.add(new ConversationManager.Message(rs.getString("role"), rs.getString("content")));
+                }
+                // DESC → 反转为时间正序
+                Collections.reverse(temp);
+                for (ConversationManager.Message msg : temp) {
+                    messages.addLast(msg);
+                }
+            }
+        }
+        return messages;
+    }
+
+    /**
+     * 清理过期对话记录
+     *
+     * @param conn       数据库连接
+     * @param beforeTime 截止时间戳（ms）
+     * @param batchSize  单次删除上限
+     * @return 实际删除条数
+     */
+    public int cleanExpired(Connection conn, long beforeTime, int batchSize) throws SQLException {
+        String sql = "DELETE FROM " + tablePrefix + "conversation WHERE created_at < ? LIMIT ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, beforeTime);
+            ps.setInt(2, batchSize);
+            return ps.executeUpdate();
+        }
+    }
+
+    public int countMessagesSince(Connection conn, String playerUuid, String sourceFilter, long afterTimestamp) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM " + tablePrefix + "conversation " + "WHERE player_uuid = ? AND source IN (" + sourceFilter + ") AND created_at > ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, playerUuid);
+            ps.setLong(2, afterTimestamp);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
+    public List<ConversationManager.Message> loadMessagesForAnalysis(Connection conn, String playerUuid, String sourceFilter, long afterTimestamp) throws SQLException {
+        String sql = "SELECT role, content FROM " + tablePrefix + "conversation " + "WHERE player_uuid = ? AND source IN (" + sourceFilter + ") AND created_at > ? " + "ORDER BY created_at ASC, id ASC";
+        List<ConversationManager.Message> messages = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, playerUuid);
+            ps.setLong(2, afterTimestamp);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    messages.add(new ConversationManager.Message(rs.getString("role"), rs.getString("content")));
+                }
+            }
+        }
+        return messages;
+    }
+}

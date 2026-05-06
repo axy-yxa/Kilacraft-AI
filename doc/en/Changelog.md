@@ -1,11 +1,11 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-04-27  
-> **Description**: This file records all important changes to the Kilacraft-AI plugin
+> **Last Updated**: 2026-05-06  
+> **Description**: This file records all important changes to the Kilacraft-AI plugin  
 
 ---
 
-## v1.5.1 - 8 New AFK Task Types, Global Market Action Skill, Utility Skill, Embedding Semantic Retrieval, Smart AFK Callback
+## v2.0.0 - Database Persistence & Conversation History, Player Profiles & Social Relations, AI Login Greeting, Config Architecture Refactor, 8 New AFK Task Types, Global Market Action Skill, Utility Skill, Embedding Semantic Retrieval, Smart AFK Callback
 
 ### ✨ New Features
 - **8 Brand New AFK Task Types**: AFK tasks expanded from 12 to 20 types, covering more gameplay scenarios
@@ -53,6 +53,50 @@
   - Vector cache persistence, avoids recomputing on every startup
   - Configurable minimum similarity threshold, vector dimensions, API timeout, etc.
   - Automatically degrades to original BM25 algorithm when unconfigured
+- **Database Persistence Layer**: Supports both H2 embedded database (zero-config, works out of the box) and MySQL external database (multi-server data sharing)
+  - HikariCP connection pool, supports `/kilacraft reload` hot-reload database type switching (auto-rollback on failure)
+  - `database.yml` standalone config file (type/connection params/table prefix/data retention days)
+  - Schema auto-migration, supports both H2 and MySQL dialects
+- **Conversation History Persistence Service**: Player conversations automatically saved to database, persistent across restarts
+  - Write-Behind async flushing: in-memory message queue → batch write every 30 seconds, threshold (≥20 messages) triggers immediate flush
+  - Lazy Loading history: automatically loads conversation history from DB to memory on first message, seamless context continuation
+  - Flush on player quit, ensures no data loss; expired data periodically cleaned (configurable retention days)
+- **Player Profile System**: AI remembers each player's behavioral preferences and playstyle, providing more personalized service
+  - Login stats (first login, total playtime, login count), behavioral preferences, playstyle, LLM analysis results all persisted
+  - In-memory cache + DB async read/write + version-stamped anti-race, sub-second response
+  - Auto-triggers LLM profile analysis on login/logout (triple gate: time interval + message count + sliding window)
+  - Five profile dimensions: Playstyle, Personality, Preferences, Communication Style, Notes
+  - Profile summary can be dynamically injected into AI system prompts, making AI understand players better
+  - Example: "AI will remember a PvP-loving player and adjust its response style accordingly"
+- **Social Relation Graph**: AI automatically tracks relationship strength between players, forming a social network
+  - Three interaction sources auto-weighted: Private Chat (+0.01), TPA Teleport (+0.02), Skill Interaction (+0.005)
+  - Daily relationship decay (5%) + weak relation auto-cleanup, keeping data fresh
+  - Smart Skill log extraction: periodically scans whitelisted Skill player interactions, auto-enhances social relations
+  - Watermark-based distributed safety mechanism (DB row lock `SELECT FOR UPDATE`), safe across multiple sub-servers
+  - Example: AI greeting at login can mention "Your friend Steve is also online"
+- **Server Event Collection System**: Automatically records milestone events on the server, reviewable after going offline
+  - Player death, advancement completion, level-up automatically recorded to `kca_server_event` table
+  - GlobalMarketPlus trade events (listing, sold, payment received) auto-recorded (seller's perspective)
+  - Private chat and TPA commands auto-enhance social relations without extra config
+  - Offline event aggregator: players can review server happenings during their absence on login
+- **AI Login Greeting System**: AI automatically sends personalized greetings when players log in
+  - First login: welcomes new players, introduces AI assistant capabilities and server info
+  - Returning login: three-category data aggregation architecture
+    - **Category 1**: Player's own offline events (market trades, achievements, level-ups, etc.)
+    - **Category 2**: Friend dynamics during offline (JOIN player_profile for names, shows friends' milestone events)
+    - **Category 3**: Summary stats (playtime/login count/days since join — only mentioned at significant milestones; last session highlights)
+    - Example: "Welcome back! You've been offline for 3 days. Steve completed 2 achievements, and your diamonds sold out"
+  - Cooldown mechanism (configurable), avoids spamming
+  - `greeting.yml` standalone config file (toggle/prompt templates/cooldown/three-category event counts/server info)
+  - New `OutputScenario.GREETING` scenario, output carrier independently configurable
+- **Unified Task Scheduler**: All periodic background tasks centrally managed
+  - `ManagedTask` interface + `TaskScheduler` unified manager, 5 managed tasks
+  - CAS mutual exclusion + structured logging + runtime statistics
+  - `/kilacraft tasks` command to view task status (requires `kilacraft.tasks` permission, default OP)
+- **Skill Execution Audit Log**: All skill executions automatically recorded for retrospective analysis
+  - Records: player UUID, skill name, action, parameters, execution result, elapsed time, trigger source
+  - Async writes to `kca_skill_log` table, no impact on skill execution performance
+  - Social relation extractor consumes this log table, auto-discovers player Skill interactions
 
 ### 🔧 Improvements
 - **Built-in Enum Registry Replaces Knowledge Base Files**: Sound, particle, and statistic game enum data migrated from knowledge base Markdown files to a dedicated enum registry, providing more accurate retrieval, freeing knowledge base space, and faster loading
@@ -71,13 +115,75 @@
   - When skill execution fails, AI explains the failure naturally instead of triggering absolute prohibition
   - AI no longer exposes internal technical details (step IDs, raw enum values, statistics counts, etc.), all converted to player-friendly natural language
 - **config.yml Comment Reading Experience**: All bilingual comments unified to "Chinese first, English second" continuous layout, more coherent reading regardless of language
+- **Config Architecture Refactor**: 4 new independent config Managers replace the 847-line `config.yml`
+  - `LLMConfigManager` → `llm.yml` (temperature/tokens/system prompt/Agent capabilities)
+  - `OutputConfigManager` → `output.yml` (output pipeline/stream/sound effects/5 carrier scenario configs)
+  - `KnowledgeConfigManager` → `knowledge.yml` (segmentation/BM25/Embedding/custom dictionary)
+  - `GreetingConfigManager` → `greeting.yml` (AI greeting system config)
+  - `ConfigManager` refactored to proxy pattern, consumers are unaware of the underlying split
+- **Conversation Source Tagging**: All conversation records carry source identification
+  - Supports 6 sources: Chat Listener, `/ai` Command, Plugin (console), Console, Login Greeting, AFK Callback
+  - Auto-tags source when persisting AI responses, facilitating data analysis and troubleshooting
+- **Hot-Reload Database Config**: `/kilacraft reload` supports hot-reloading database config (including H2/MySQL type switching), auto-rollback on failure
+- **Shutdown Sequence Refactor**: Optimized plugin unloading flow to ensure zero data loss
+  - New order: cancel scheduled tasks → flush remaining messages → write all player profiles → wait for IO pool completion → close database pool
+- **Thread Safety Enhancement**: `ConversationManager.chatMode` upgraded from `HashMap` to `ConcurrentHashMap`
+- **Stream Output Fix**: Fixed stream output carrier being hardcoded to `NORMAL_CHAT` for special scenarios, ensuring correct stream output for greetings etc.
+- **SkillSecurityFilter Enhancement**: Added `getOnlinePlayerNames()` / `getOnlineUuidToName()` public APIs for social relation modules to safely access online player info from async threads
+- **pom.xml New Dependencies**: HikariCP 5.1.0 (connection pool), H2 2.2.224 (embedded database), MySQL Connector/J 8.4.0 (provided), all relocated via Maven Shade to avoid conflicts
 
-### ⚠️ Compatibility
-- config.yml adds Embedding semantic retrieval config section (knowledge.embedding.*) and updated system prompt content
-- intent_prompts.yml adds temporal semantics recognition rules and callback rules
-- AFK task types expanded from 12 to 20, all new types are automatically available
-- Built-in knowledge base removed sounds_particles.md and statistics.md, related data now auto-loaded by enum registry
-- Fully backward compatible, Embedding is enabled by default but requires api_url/api_key/model configuration to take effect, auto-degrades to BM25 when unconfigured
+### ⚠️ Compatibility — Config Migration Guide
+
+> **IMPORTANT: Fully backup your `plugins/Kilacraft-AI/` directory before upgrading!**
+
+This version splits the 847-line `config.yml` into 6 independent files by config domain for better maintainability. On first startup, the plugin will automatically generate the following new files (with built-in defaults):
+- `database.yml` (Database config, default H2 embedded, also supports MySQL external database)
+- `llm.yml` (LLM API config + Agent capability config)
+- `output.yml` (Output pipeline config, including sound effects)
+- `knowledge.yml` (Knowledge base retrieval/segmentation/BM25/Embedding/custom dictionary)
+- `greeting.yml` (AI greeting system config, disabled by default)
+
+**Migration steps:**
+1. Backup the entire `plugins/Kilacraft-AI/` directory
+2. Start the server to let the plugin generate new config files
+3. Refer to the table below and copy your custom config values from the old `config.yml` to the corresponding new files
+4. Run `/kilacraft reload` to apply the migrated config
+5. After migration, the `llm:`, `agent:`, `output:`, `knowledge:` sections in the old `config.yml` can be deleted (keeping them has no effect, the plugin no longer reads them)
+
+**Config Migration Mapping Table:**
+
+| Old Location (config.yml) | New File | New Location (key path unchanged) |
+|---|---|---|
+| `llm:` entire section | `llm.yml` | `llm:` |
+| `agent:` entire section | `llm.yml` | `agent:` |
+| `output:` entire section | `output.yml` | `output:` |
+| `knowledge:` entire section | `knowledge.yml` | `knowledge:` |
+| (New, no old config) | `database.yml` | `database:` |
+| (New, no old config) | `greeting.yml` | `greeting:` |
+
+**Remaining in config.yml (unchanged):**
+- `settings:` (language, debug mode)
+- `messages:` (AI message prefixes)
+- `command_skill:` (command Skill security control)
+- `afk_task:` (AFK tasks)
+- `security:` (security config)
+
+**New Database Tables (auto-created on first startup):**
+- `kca_conversation`: Conversation history persistence
+- `kca_player_profile`: Player profile data
+- `kca_server_event`: Server event records
+- `kca_social_relation`: Social relation strength
+- `kca_skill_log`: Skill execution audit log
+- `kca_watermark`: Watermark (distributed mutual exclusion)
+
+**New Permission Node:**
+- `kilacraft.tasks`: View scheduled task running status (default OP)
+
+**New Dependencies (bundled in JAR):**
+- HikariCP 5.1.0 (database connection pool)
+- H2 2.2.224 (embedded database)
+
+**Fully backward compatible**: Defaults to H2 embedded database (zero config), while also supporting MySQL external database. Existing functionality requires no changes.
 
 ---
 
@@ -649,5 +755,3 @@
 - Rate limiting, world restriction checks
 
 ---
-
-**Last Updated**: 2026-04-19

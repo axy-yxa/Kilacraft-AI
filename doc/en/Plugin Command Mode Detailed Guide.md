@@ -1,6 +1,6 @@
 # Kilacraft-AI - Plugin Command Mode Detailed Guide
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-05-06  
 > **Description**: This document details how third-party plugins can interact with Kilacraft-AI through plugin command mode
 
 ---

@@ -1,6 +1,6 @@
 # Kilacraft-AI - Skill SPI Integration Guide
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-05-06  
 > **Description**: This document guides plugin developers on how to integrate custom skills into Kilacraft-AI through the Skill SPI interface
 
 ---

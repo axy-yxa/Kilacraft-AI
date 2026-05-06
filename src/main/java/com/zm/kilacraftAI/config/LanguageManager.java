@@ -158,7 +158,7 @@ public class LanguageManager {
         String fileName = "zh".equals(lang) ? "language.yml" : "language_" + lang + ".yml";
 
         // 复制默认配置
-        ConfigResourceUtil.saveDefaultResource((KilacraftAI) plugin, fileName, "语言配置");
+        ConfigResourceUtil.saveDefaultResource((KilacraftAI) plugin, fileName);
 
         // 加载对应语言配置文件到内存
         try {

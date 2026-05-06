@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.manager;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.Sound;
@@ -38,14 +39,15 @@ public class SoundEffectManager {
      * 加载音效配置
      */
     public void loadConfig() {
-        this.enabled = plugin.getConfig().getBoolean("output.sound.enabled", true);
+        OutputConfigManager outputConfig = plugin.getConfigManager().getOutputConfigManager();
+        this.enabled = outputConfig.isSoundEnabled();
 
         // 不启用则直接返回，不加载音效配置
         if (!enabled) {
             return;
         }
 
-        String soundName = plugin.getConfig().getString("output.sound.sound_name", "ENTITY_PLAYER_LEVELUP");
+        String soundName = outputConfig.getSoundName();
         try {
             this.sound = Sound.valueOf(soundName.toUpperCase());
         } catch (IllegalArgumentException e) {
@@ -53,8 +55,8 @@ public class SoundEffectManager {
             this.sound = Sound.ENTITY_PLAYER_LEVELUP;
         }
 
-        this.volume = (float) plugin.getConfig().getDouble("output.sound.volume", 0.5);
-        this.pitch = (float) plugin.getConfig().getDouble("output.sound.pitch", 1.2);
+        this.volume = outputConfig.getSoundVolume();
+        this.pitch = outputConfig.getSoundPitch();
 
         // 限制范围
         this.volume = Math.max(0.0f, Math.min(1.0f, this.volume));

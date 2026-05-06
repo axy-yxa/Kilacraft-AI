@@ -1,6 +1,6 @@
 # Kilacraft-AI System Architecture Details
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-05-06  
 > **Description**: This document provides detailed explanation of Kilacraft-AI's core architecture design, working principles of three interaction modes, call chains, and design philosophy
 
 ---
@@ -262,4 +262,105 @@ Console: "/kilacraft plugins default Hello UUID callback_cmd"
 - History isolation
 - No complex parsing overhead
 
+---
 
+## 🆕 v2.0.0 New Subsystem Architecture
+
+### 1. Database Persistence Layer
+
+```
+DatabaseManager (HikariCP connection pool)
+  ├── H2Provider (embedded, zero-config)
+  ├── MySQLProvider (multi-server sharing)
+  ├── SchemaManager (auto DDL migration)
+  ├── ConversationPersistenceService (30s batch flush)
+  ├── DataCleanupService (configurable retention)
+  └── DAOs (PlayerProfileDAO, SocialRelationDAO, SkillAuditDAO, etc.)
+
+/database.yml → hot-reload via /kilacraft reload
+```
+
+### 2. Player Profile System
+
+```
+LoginEvent / ChatEvent / GoalEvent
+  ↓
+EventCollector → ServerEvent (type + data)
+  ↓
+OfflineEventAggregator (compresses offline events)
+  ↓
+ProfileAnalyzer → PlayerProfileDAO → DB
+  ↓
+AI Context Injection: "This player likes building, often trades..."
+```
+
+### 3. Social Relationship Graph
+
+```
+recordInteraction(playerA, playerB, weight)
+  ↓
+SocialGraph (ConcurrentHashMap + volatile lastDecayDate)
+  ├── incrementInteraction() (real-time, memory-only)
+  ├── performDailyDecay() (daily, direct SQL on async timer)
+  └── SocialRelationExtractor
+       ├── extractNewRelations() (periodic, direct SQL)
+       └── SocialRelationDAO → DB
+
+Two-layer mutual exclusion:
+  Layer 1: TaskScheduler CAS (within server, prevent duplicate submission)
+  Layer 2: SELECT FOR UPDATE row lock (cross-server, SocialGraph managed)
+```
+
+### 4. Server Event Collection System
+
+```
+Bukkit Events (PlayerDeath/PlayerJoin/AsyncChat/etc.)
+  ↓
+EventCollector.onEvent()
+  ├── Type classification (ServerEventType enum)
+  ├── Data extraction (relevant fields)
+  └── Async write to DB (offline events aggregated on next login)
+```
+
+### 5. Unified Task Scheduler
+
+```
+TaskScheduler (CAS mutual exclusion protection)
+  ├── Conversation flush (30s)
+  ├── Data cleanup (configurable)
+  ├── Social relation decay (daily)
+  ├── Social relation extraction (periodic)
+  └── Profile analysis trigger (on login/logout)
+
+/kilacraft tasks → View all managed task statuses
+```
+
+### 6. AI Login Greeting System
+
+```
+PlayerJoinEvent → LoginGreetingHandler
+  ├── First login → Welcome new player
+  ├── Returning login → Three-category data aggregation
+  │     ├── Category 1: Player's own offline events (death/advancement/level-up/market)
+  │     ├── Category 2: Friend dynamics during offline (JOIN player_profile for names)
+  │     └── Category 3: Summary stats (total playtime/login count/last session highlights)
+  └── Cooldown check (greeting.yml)
+       ↓
+  GreetingPromptBuilder → LLM → AIResponsePipeline
+```
+
+### 7. Embedding Semantic Retrieval
+
+```
+Knowledge Base documents
+  ↓
+EmbeddingService (batch API call)
+  ├── Vector embedding generation (via LLM embedding API)
+  ├── EmbeddingCache (JSON file persistent)
+  └── Query-time: similarity search + TF-IDF hybrid ranking
+       ↓
+  Top-K relevant chunks → injected into LLM context
+```
+
+> - [SPI Integration Guide](./Skill%20SPI%20Integration%20Guide)
+> - [Changelog](./Changelog)

@@ -26,7 +26,7 @@ One JAR package compatible with all versions, developed on Spigot 1.16.5 API, fu
 
 ## Core Advantages
 
-- **Zero Middleware** — One JAR file to run, no database, Redis or external services required
+- **Zero Middleware** — One JAR file to run, supports both H2 embedded database (zero-config out of the box) and MySQL external database (multi-server data sharing), no Redis or other middleware required
 - **Extremely Low Memory Usage** — 8-12 MB on small servers, 30-50 MB on large servers, async non-blocking design
 - **Out of the Box** — 5-minute setup, supports all OpenAI-standard LLM providers
 - **Highly Customizable** — Knowledge base, personality system, intent prompts, output channels all configurable
@@ -43,7 +43,7 @@ Download the latest `Kilacraft-AI.jar`, place it in the server `plugins/` direct
 
 ### 2. Configure API
 
-Edit `plugins/Kilacraft-AI/config.yml` and enter your LLM API information:
+Edit `plugins/Kilacraft-AI/llm.yml` and enter your LLM API information:
 
 ```yaml
 llm:
@@ -51,6 +51,8 @@ llm:
   api_key: "your-api-key"
   model: "deepseek-chat"
 ```
+
+> On first startup, all config files are auto-generated. Starting from v2.0.0, configuration is split into 6 independent files (`llm.yml`/`output.yml`/`knowledge.yml`/`database.yml`/`greeting.yml`/`config.yml`). See [Changelog](./Changelog) for migration guide.
 
 Supports all OpenAI-standard providers (DeepSeek, Zhipu AI, Moonshot, OpenAI, Groq, SiliconFlow, Gemini, OpenRouter, etc.). Simply change `api_url` and `model` to switch.
 
@@ -62,7 +64,7 @@ Supports all OpenAI-standard providers (DeepSeek, Zhipu AI, Moonshot, OpenAI, Gr
 
 If you see an AI reply, configuration is successful.
 
-> Use `/kilacraft reload` to reload config, `/kilacraft knowledge reload` for knowledge base, and `/kilacraft personalities reload` for personalities.
+> Use `/kilacraft reload` to reload config (supports hot-reload database config and H2/MySQL switching), `/kilacraft knowledge reload` for knowledge base, and `/kilacraft personalities reload` for personalities. Check scheduled task status with `/kilacraft tasks`.
 
 ---
 
@@ -244,7 +246,7 @@ Supports 80+ statistic enums, with automatic unit conversion (centimeters→kilo
 
 Let AI "keep an eye out" for you. Create background monitoring tasks through natural language, with automatic notifications or actions when conditions are met.
 
-### Event Listeners (12 Types)
+### Event Listeners (19 Types)
 
 ```
 Player: Help me watch for Steve to come online
@@ -270,6 +272,14 @@ AI: OK! When Steve comes online, I'll automatically check his held item.
 | Level Change | Monitor player level up/down |
 | Weather Change | Monitor world weather |
 | Sleep/Item Break | Enter bed, leave bed, item durability break |
+| **Fish Watch** | **Notify or trigger follow-up when catching fish** |
+| **Chat Watch** | **Codeword-triggered automation** |
+| **Block Break Watch** | **Trigger follow-up when mining specific ores** |
+| **Entity Death Watch** | **BOSS kill detection** |
+| **Entity Spawn Watch** | **Mob farm efficiency monitoring** |
+| **Entity Explosion Watch** | **Anti-grief alert** |
+| **Furnace Smelt Watch** | **Notify when items finish smelting** |
+| **Crop Growth Watch** | **Notify or auto-act when crops mature** |
 
 ### Custom Condition Polling
 
@@ -282,6 +292,112 @@ Player: Check diamond price when I reach level 30
 ```
 
 Management commands: `/kilacraft afk` to query, `/kilacraft afk cancel` to cancel. One task per player at a time.
+
+---
+
+## Database Persistence
+
+Starting from v2.0.0, a database persistence layer is introduced. Supports both H2 and MySQL databases, preserving conversations, profiles, events, and other important data across restarts.
+
+### H2 Embedded Database (Default)
+
+Zero-config, works out of the box. No external services needed, auto-creates table structure on first startup. Database files stored in `plugins/Kilacraft-AI/data/`.
+
+### MySQL External Database
+
+Recommended for multi-server data sharing. Edit `database.yml`:
+
+```yaml
+database:
+  type: mysql
+  host: localhost
+  port: 3306
+  database: kilacraft
+  username: root
+  password: your-password
+```
+
+Run `/kilacraft reload` for hot-switching, auto-fallback to old connection pool on failure.
+
+### Persistent Content
+
+| Data | Description |
+|------|-------------|
+| Chat History | All player-AI conversations automatically saved, batch flushed every 30 seconds |
+| Player Profiles | AI remembers each player's playstyle and behavioral preferences |
+| Social Relations | Player interactions automatically tracked, forming a social relationship graph |
+| Server Events | Deaths, achievements, trades, and other milestone events auto-recorded |
+| Skill Audit | All Skill executions auto-logged for retrospective analysis |
+
+Data retention days configurable in `database.yml`, expired data auto-cleaned.
+
+---
+
+## AI Login Greeting
+
+AI automatically sends personalized greetings when players log in, supporting first-time welcome and returning player greetings. The returning greeting uses a three-category data aggregation architecture to give AI richer context about what the player missed while offline.
+
+```yaml
+# greeting.yml
+greeting:
+  enabled: true
+  delay_ticks: 100               # Delay before greeting (ticks)
+  max_own_offline_events: 10     # Max own offline events (Category 1)
+  max_friend_offline_events: 5   # Max friend dynamics (Category 2)
+  max_summary_events: 3          # Max last session highlights (Category 3)
+  greeting_cooldown_minutes: 30  # Greeting cooldown (minutes)
+  profile_injection_enabled: true
+```
+
+**First Login**: Welcome new players, introduce AI assistant features.
+
+**Returning Login** (three-category data aggregation):
+- **Category 1**: Player's own offline events (market trades, achievements, level-ups, etc.)
+- **Category 2**: Friend dynamics during offline (friends' achievements, boss kills, etc.)
+- **Category 3**: Summary stats (only mentioned when hitting milestones: integer thousands of hours, hundreds of logins, yearly anniversaries, last session highlights)
+
+For example:
+
+```
+Welcome back! You've been offline for 3 days. During this time,
+your diamonds sold out. Your friend Steve completed 2 achievements.
+Alex is currently online.
+```
+
+New players have their profiles automatically analyzed and created on first login — AI gets smarter about your players over time.
+
+---
+
+## Global Market Actions (MarketActionSkill)
+
+v2.0.0 introduces write-capable market operation skills, allowing AI to execute trading operations on behalf of players:
+
+```
+Player: List my diamonds at 100 each       → AI guides confirmation then lists
+Player: Claim all my mailbox items          → AI one-click claim
+Player: Create a buy order for 50 diamonds  → AI creates purchase order
+Player: Delist all my market items          → AI shows list, confirms, then delists
+Player: Transfer 500 to Steve               → AI double-confirms then transfers
+```
+
+Supports 9 operations (search/list/claim/buy-order/delist/transfer/auction/batch-sell/batch-buy), all write operations executed via Bukkit commands delegated by GlobalMarketPlus's internal atomicity guarantees. Requires GlobalMarketPlus plugin.
+
+---
+
+## Utility Skill (UtilitySkill)
+
+Provides three basic actions — delayed wait, proactive notification, and server-wide broadcast — flexibly orchestratable in multi-step tasks:
+
+```
+Player: Check my inventory first, wait 10 seconds, then list my diamonds
+  → delay_wait implements non-blocking delay, doesn't occupy IO thread pool
+
+Player: Check online players and server status, then summarize for me
+  → notify_player proactively notifies after summarizing partial results
+
+Admin: Write a server announcement for double XP this weekend
+  → broadcast_message beautifies the message via AI then broadcasts server-wide
+```
 
 ---
 
@@ -347,7 +463,7 @@ Player: What's on the market?       → Current products: Diamond x15, Iron Ingo
 Player: Is diamond for sale?         → Diamond is available, stock 2
 ```
 
-7 read-only query actions, no item or money consumption.
+7 read-only query actions + 9 write operation actions (MarketActionSkill). Write operations require GlobalMarketPlus independent permissions. See [Built-in Skills and Events Capability List](./Built-in%20Skills%20and%20Events%20Capability%20List).
 
 ### CMI (Teleport & Player Info)
 
@@ -424,6 +540,7 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide).
 | `/kilacraft personalities reload` | `kilacraft.personalities` | Reload personality configuration |
 | `/kilacraft afk` | `kilacraft.afk` | Query AFK task |
 | `/kilacraft afk cancel` | `kilacraft.afk` | Cancel AFK task |
+| `/kilacraft tasks` | `kilacraft.tasks` | View scheduled task status (OP by default) |
 | `/kilacraft plugins ...` | Console-only | Third-party plugin calls |
 
 ### Skill Permissions
@@ -440,6 +557,7 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide).
 | `kilacraft.bukkit_fx` | true | Sound and particle effects |
 | `kilacraft.bukkit_stats` | true | Vanilla statistics query |
 | `kilacraft.command.execute` | op | Command execution (OP only by default) |
+| `kilacraft.tasks` | op | View scheduled task status (OP by default) |
 
 Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all corresponding sub-permissions.
 
@@ -462,6 +580,7 @@ Built-in non-cooperative security filtering mechanism that automatically runs be
 | Bukkit API Query | Read-only, only calls getter methods |
 | Vanilla Statistics | Read-only |
 | Market Query | Read-only, no item or money consumption |
+| Market Actions | Write ops via Bukkit command delegation, atomicity guaranteed by GMP |
 | CMI Teleport | TPA request mode, CMI handles permissions |
 | Command Execution | Executes as player, fully inherits server permissions |
 | Sound/Particles | Only visible/audible to caller |

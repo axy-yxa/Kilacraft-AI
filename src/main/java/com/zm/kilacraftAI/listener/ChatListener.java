@@ -2,6 +2,8 @@ package com.zm.kilacraftAI.listener;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.LanguageManager;
+import com.zm.kilacraftAI.db.ConversationPersistenceService;
+import com.zm.kilacraftAI.db.ConversationSource;
 import com.zm.kilacraftAI.handler.AIRequestHandler;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.util.AIRequestValidator;
@@ -22,7 +24,7 @@ import java.util.UUID;
  * <p>仅负责监听和处理聊天事件，对话状态管理由 ConversationManager 负责</p>
  *
  * @author Zm_Mmm
- * @since 2026-03-24 17:22:06
+ * @since 2026-03-24
  */
 public class ChatListener implements Listener {
 
@@ -108,15 +110,33 @@ public class ChatListener implements Listener {
         // 立即更新冷却时间
         validator.startCooldown(playerId);
 
-        // 获取或创建历史记录
-        ConversationManager convManager = plugin.getConversationManager();
-        Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
-
-        PluginLogger.debug("聊天监听", "玩家 {} 的历史记录数量：{}", player.getName(), playerHistory.size());
+        PluginLogger.debug("聊天监听", "玩家 {} 的历史记录数量：{}", player.getName(), plugin.getConversationManager().getHistory(playerId) != null ? plugin.getConversationManager().getHistory(playerId).size() : 0);
 
         // 使用统一的 AI 请求处理器
         boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableChatListener();
-        aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, publicReply);
+
+        // 异步加载历史记录（Lazy Loading）
+        ConversationPersistenceService persistenceService = plugin.getPersistenceService();
+        if (persistenceService != null) {
+            // 获取或创建内存历史（如果已有则跳过DB加载）
+            ConversationManager convManager = plugin.getConversationManager();
+            Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
+
+            persistenceService.loadHistoryIfNeeded(playerId, "", loadedHistory -> {
+                // 如果是从DB加载的，回填到内存缓存
+                if (!loadedHistory.isEmpty() && playerHistory.isEmpty()) {
+                    for (ConversationManager.Message msg : loadedHistory) {
+                        playerHistory.addLast(msg);
+                    }
+                }
+                aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSource.CHAT);
+            }, ConversationSource.CHAT, ConversationSource.COMMAND);
+        } else {
+            // 无持久化服务，使用原有同步逻辑
+            ConversationManager convManager = plugin.getConversationManager();
+            Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
+            aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSource.CHAT);
+        }
     }
 
     /**

@@ -36,13 +36,16 @@ public class LLMManager {
 
     /**
      * 刷新当前提供商的配置缓存
+     *
+     * <p>仅更新 volatile 缓存字段（API Key、URL、Model 等），不重建 HTTP 连接池。</p>
+     * <p>连接池参数在构造时确定，热重载时不应销毁重建（会中断正在进行的 LLM 请求）。</p>
      */
     public void refreshProviderConfig() {
         if (currentProvider != null) {
-            currentProvider.shutdown();
-            currentProvider = null;
+            currentProvider.refreshConfigCache();
+        } else {
+            this.currentProvider = new GenericLLMProvider();
         }
-        this.currentProvider = new GenericLLMProvider();
     }
 
     /**

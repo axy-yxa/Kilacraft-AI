@@ -33,7 +33,6 @@ modules:
   "技能管理": "Skill Mgr"
   "技能执行": "Skill Exec"
   "任务执行": "Task Exec"
-  "LLM提供商": "LLM Provider"
   "LLM分析": "LLM Analysis"
   "LLM请求": "LLM Request"
   "意图识别": "Intent"
@@ -56,6 +55,11 @@ modules:
   "I/O线程池": "I/O Pool"
   "工具技能": "Utility"
   "市场插件": "Market"
+  "数据库": "Database"
+  "问候系统": "Greeting"
+  "定时任务": "Scheduler"
+  "市场事件": "Market Event"
+  "枚举注册": "Enum Reg"
 
 # ==================== 消息翻译 ====================
 # ==================== Message Translations ====================

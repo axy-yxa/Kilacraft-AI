@@ -12,7 +12,7 @@ import java.util.List;
  * Tab 补全
  *
  * @author Zm_Mmm
- * @since 2026-03-24 17:21:04
+ * @since 2026-03-24
  */
 public class TabCompleter implements org.bukkit.command.TabCompleter {
 
@@ -48,6 +48,11 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             // afk 命令（需要权限）
             if (PluginPermissionEnum.AFK.hasPermission(sender)) {
                 completions.add("afk");
+            }
+
+            // tasks 命令（需要权限）
+            if (PluginPermissionEnum.TASKS.hasPermission(sender)) {
+                completions.add("tasks");
             }
 
             return getCompletions(args[0], completions);

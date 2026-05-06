@@ -80,7 +80,12 @@ public enum PluginPermissionEnum {
     /**
      * 通用工具技能 - AI 全服广播消息（OP 管理员专用，通过 CHAT 载体向全服玩家广播 AI 美化后的消息）
      */
-    UTILITY_BROADCAST("kilacraft.utility.broadcast");
+    UTILITY_BROADCAST("kilacraft.utility.broadcast"),
+
+    /**
+     * 查看定时任务运行状态
+     */
+    TASKS("kilacraft.tasks");
 
     /**
      * 权限节点

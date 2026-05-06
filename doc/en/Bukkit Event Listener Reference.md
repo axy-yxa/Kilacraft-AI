@@ -1,13 +1,13 @@
 # Kilacraft-AI - Bukkit Event Listener Reference
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-05-06  
 > **Description**: This document provides detailed information about all implemented Bukkit Event listeners (AFK Task System), including configuration examples and usage scenarios
 
 ---
 
 ## 📊 Bukkit Event Listener Quick Reference
 
-### ✅ Implemented Listeners (11)
+### ✅ Implemented Listeners (19)
 
 | Task Type | Event | Monitor Target | Level | Status |
 |-----------|-------|----------------|-------|--------|
@@ -22,8 +22,16 @@
 | `PLAYER_BED_LEAVE_WATCH` | PlayerBedLeaveEvent | Player leave bed | A-Tier | ✅ Implemented |
 | `PLAYER_RESPAWN_WATCH` | PlayerRespawnEvent | Player respawn | A-Tier | ✅ Implemented |
 | `PLAYER_ITEM_BREAK_WATCH` | PlayerItemBreakEvent | Player item break | A-Tier | ✅ Implemented |
+| `PLAYER_FISHING_WATCH` | PlayerFishEvent | Player fishing | A-Tier | ✅ Implemented |
+| `PLAYER_CHAT_WATCH` | AsyncPlayerChatEvent | Player chat | A-Tier | ✅ Implemented |
+| `BLOCK_BREAK_WATCH` | BlockBreakEvent | Block break | A-Tier | ✅ Implemented |
+| `ENTITY_DEATH_WATCH` | EntityDeathEvent | Entity death | A-Tier | ✅ Implemented |
+| `ENTITY_SPAWN_WATCH` | CreatureSpawnEvent | Entity spawn | A-Tier | ✅ Implemented |
+| `ENTITY_EXPLODE_WATCH` | EntityExplodeEvent | Entity explosion | A-Tier | ✅ Implemented |
+| `FURNACE_EXTRACT_WATCH` | FurnaceExtractEvent | Furnace smelt | A-Tier | ✅ Implemented |
+| `CROP_GROWTH_WATCH` | BlockGrowEvent | Crop growth | A-Tier | ✅ Implemented |
 
-**Statistics**: **11** implemented listeners (S-Tier 7 + A-Tier 4)
+**Statistics**: **19** implemented listeners (S-Tier 7 + A-Tier 12)
 
 ---
 
@@ -461,6 +469,143 @@ steps:
 
 ---
 
+### 12. PLAYER_FISHING_WATCH - Monitor Player Fishing
+
+**Event**: `PlayerFishEvent`  
+**Tier**: A-Tier  
+**File**: `skills/afktask/impl/PlayerFishingWatchTask.java`
+
+#### Description
+Monitors your own fishing activity. Triggers notification or callback task when you catch a fish.
+
+#### Use Cases
+- "Tell me when I catch a fish and check the market price"
+- "Monitor my fishing, tell me what I caught"
+
+#### Available Placeholders
+- `{triggered_player}` / `{creator}` / `{item_name}` / `{item_type}` / `{fishing_state}`
+
+---
+
+### 13. PLAYER_CHAT_WATCH - Monitor Player Chat
+
+**Event**: `AsyncPlayerChatEvent`  
+**Tier**: A-Tier  
+**File**: `skills/afktask/impl/PlayerChatWatchTask.java`
+
+#### Description
+Monitors your own chat messages. Useful for codeword-triggered automation.
+
+#### Use Cases
+- "When I say 'start grinding', execute the mob farm toggle command for me"
+
+#### Available Placeholders
+- `{triggered_player}` / `{creator}` / `{message}`
+
+---
+
+### 14. BLOCK_BREAK_WATCH - Monitor Block Break
+
+**Event**: `BlockBreakEvent`  
+**Tier**: A-Tier  
+**File**: `skills/afktask/impl/BlockBreakWatchTask.java`
+
+#### Description
+Monitors your own block breaking. Triggers follow-up actions when mining specific ores.
+
+#### Use Cases
+- "Tell me how many diamonds are in my inventory when I mine one"
+
+#### Available Placeholders
+- `{triggered_player}` / `{creator}` / `{block_type}` / `{x}` / `{y}` / `{z}` / `{world}`
+
+---
+
+### 15. ENTITY_DEATH_WATCH - Monitor Entity Death
+
+**Event**: `EntityDeathEvent`  
+**Tier**: A-Tier  
+**File**: `skills/afktask/impl/EntityDeathWatchTask.java`
+
+#### Description
+Monitors nearby entity deaths. Useful for BOSS kill detection.
+
+#### Use Cases
+- "Tell me when the Wither dies"
+
+#### Available Placeholders
+- `{triggered_player}` / `{creator}` / `{entity_type}` / `{entity_name}` / `{x}` / `{y}` / `{z}`
+
+---
+
+### 16. ENTITY_SPAWN_WATCH - Monitor Entity Spawn
+
+**Event**: `CreatureSpawnEvent`  
+**Tier**: A-Tier  
+**File**: `skills/afktask/impl/EntitySpawnWatchTask.java`
+
+#### Description
+Monitors nearby entity spawns. Useful for mob farm efficiency monitoring.
+
+#### Use Cases
+- "Tell me when a zombie villager spawns in the mob farm"
+
+#### Available Placeholders
+- `{triggered_player}` / `{creator}` / `{entity_type}` / `{entity_name}` / `{x}` / `{y}` / `{z}`
+
+---
+
+### 17. ENTITY_EXPLODE_WATCH - Monitor Entity Explosion
+
+**Event**: `EntityExplodeEvent`  
+**Tier**: A-Tier  
+**File**: `skills/afktask/impl/EntityExplodeWatchTask.java`
+
+#### Description
+Monitors entity explosions. Useful for anti-grief alerts.
+
+#### Use Cases
+- "Tell me the coordinates when there's an explosion"
+
+#### Available Placeholders
+- `{triggered_player}` / `{creator}` / `{entity_type}` / `{x}` / `{y}` / `{z}` / `{block_list}`
+
+---
+
+### 18. FURNACE_EXTRACT_WATCH - Monitor Furnace Smelt
+
+**Event**: `FurnaceExtractEvent`  
+**Tier**: A-Tier  
+**File**: `skills/afktask/impl/FurnaceExtractWatchTask.java`
+
+#### Description
+Monitors furnace smelting completion. Notifies when items finish smelting.
+
+#### Use Cases
+- "Tell me when the furnace finishes"
+
+#### Available Placeholders
+- `{triggered_player}` / `{creator}` / `{item_type}` / `{item_amount}` / `{x}` / `{y}` / `{z}`
+
+---
+
+### 19. CROP_GROWTH_WATCH - Monitor Crop Growth
+
+**Event**: `BlockGrowEvent`  
+**Tier**: A-Tier  
+**File**: `skills/afktask/impl/CropGrowthWatchTask.java`
+
+#### Description
+Monitors crop growth. Notifies or auto-acts when crops mature.
+
+#### Use Cases
+- "Tell me when wheat matures and check the market price"
+
+#### Available Placeholders
+- `{triggered_player}` / `{creator}` / `{block_type}` / `{x}` / `{y}` / `{z}` / `{world}`
+
+---
+
 ## 🔧 Common Listener Features
 
 ### Dual Mode Support
@@ -561,7 +706,7 @@ action_descriptions:
   query_task: 'Query player''s current AFK task status.'
 
 hints:
-  - '**Task Type Description**: PLAYER_ONLINE_WATCH=Monitor player login, PLAYER_OFFLINE_WATCH=Monitor player logout, PLAYER_DEATH_WATCH=Monitor player death, PLAYER_TELEPORT_WATCH=Monitor player teleport, PLAYER_LEVEL_CHANGE_WATCH=Monitor player level change, PLAYER_CHANGED_WORLD_WATCH=Monitor player world change, WEATHER_CHANGE_WATCH=Monitor weather change, PLAYER_BED_ENTER_WATCH=Monitor player enter bed, PLAYER_BED_LEAVE_WATCH=Monitor player leave bed, PLAYER_RESPAWN_WATCH=Monitor player respawn, PLAYER_ITEM_BREAK_WATCH=Monitor player item break.'
+  - '**Task Type Description**: PLAYER_ONLINE_WATCH=Monitor player login, PLAYER_OFFLINE_WATCH=Monitor player logout, PLAYER_DEATH_WATCH=Monitor player death, PLAYER_TELEPORT_WATCH=Monitor player teleport, PLAYER_LEVEL_CHANGE_WATCH=Monitor player level change, PLAYER_CHANGED_WORLD_WATCH=Monitor player world change, WEATHER_CHANGE_WATCH=Monitor weather change, PLAYER_BED_ENTER_WATCH=Monitor player enter bed, PLAYER_BED_LEAVE_WATCH=Monitor player leave bed, PLAYER_RESPAWN_WATCH=Monitor player respawn, PLAYER_ITEM_BREAK_WATCH=Monitor player item break, PLAYER_FISHING_WATCH=Monitor player fishing, PLAYER_CHAT_WATCH=Monitor player chat, BLOCK_BREAK_WATCH=Monitor block break, ENTITY_DEATH_WATCH=Monitor entity death, ENTITY_SPAWN_WATCH=Monitor entity spawn, ENTITY_EXPLODE_WATCH=Monitor entity explosion, FURNACE_EXTRACT_WATCH=Monitor furnace smelt, CROP_GROWTH_WATCH=Monitor crop growth.'
   - '**PLAYER_TELEPORT_WATCH Required Parameters**: target_player (target player name). callback is optional, placeholders available in callback: {from_world}/{to_world}/{from_x}/{from_y}/{from_z}/{to_x}/{to_y}/{to_z}'
   - '**PLAYER_LEVEL_CHANGE_WATCH Required Parameters**: target_player (target player name). callback is optional, placeholders available in callback: {old_level}/{new_level}/{direction}'
   - '**PLAYER_CHANGED_WORLD_WATCH Required Parameters**: target_player (target player name). callback is optional, placeholders available in callback: {from_world}/{to_world}'
@@ -587,6 +732,15 @@ hints:
 | Player sleeping | `PLAYER_BED_ENTER_WATCH` / `PLAYER_BED_LEAVE_WATCH` |
 | Item related | `PLAYER_ITEM_BREAK_WATCH` |
 | Environment change | `WEATHER_CHANGE_WATCH` |
+| **Numeric conditions** | **`CUSTOM`** |
+| **Fishing activity** | **`PLAYER_FISHING_WATCH`** |
+| **Chat messages** | **`PLAYER_CHAT_WATCH`** |
+| **Block breaking** | **`BLOCK_BREAK_WATCH`** |
+| **Entity death** | **`ENTITY_DEATH_WATCH`** |
+| **Entity spawn** | **`ENTITY_SPAWN_WATCH`** |
+| **Entity explosion** | **`ENTITY_EXPLODE_WATCH`** |
+| **Furnace smelting** | **`FURNACE_EXTRACT_WATCH`** |
+| **Crop growth** | **`CROP_GROWTH_WATCH`** |
 
 ### 2. Notification Mode vs Callback Mode
 

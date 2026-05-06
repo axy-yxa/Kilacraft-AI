@@ -1,9 +1,13 @@
 package com.zm.kilacraftAI.manager;
 
+import com.zm.kilacraftAI.db.ConversationPersistenceService;
 import lombok.Getter;
 import org.bukkit.entity.Player;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -15,9 +19,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ConversationManager {
 
     /**
-     * 玩家连续对话模式状态
+     * 对话持久化服务（可选，由 KilacraftAI 注入）
      */
-    private final Map<UUID, Boolean> chatMode = new HashMap<>();
+    private ConversationPersistenceService persistenceService;
+
+    /**
+     * 玩家连续对话模式状态（线程安全，ChatListener 异步线程 + 主线程并发访问）
+     */
+    private final Map<UUID, Boolean> chatMode = new ConcurrentHashMap<>();
 
     /**
      * 玩家历史对话记录（普通命令和聊天模式）
@@ -173,20 +182,36 @@ public class ConversationManager {
     }
 
     /**
+     * 注入对话持久化服务
+     *
+     * @param persistenceService 持久化服务（可为 null，表示不持久化）
+     */
+    public void setPersistenceService(ConversationPersistenceService persistenceService) {
+        this.persistenceService = persistenceService;
+    }
+
+    /**
      * 玩家退出游戏时清理相关状态
+     *
+     * <p>改造后流程：先 flush 持久化 → 再清理内存，确保不丢数据</p>
      *
      * @param player 退出游戏的玩家
      */
     public void onPlayerQuit(Player player) {
         UUID playerId = player.getUniqueId();
 
-        // 退出连续对话模式
+        // 1. 先将内存中的历史异步写入 DB（新增）
+        if (persistenceService != null) {
+            persistenceService.flushPlayer(playerId);
+        }
+
+        // 2. 退出连续对话模式
         chatMode.remove(playerId);
 
-        // 清理离线玩家的历史记录，释放内存
+        // 3. 清理离线玩家的历史记录，释放内存
         clearAllHistory(playerId);
 
-        // 清理最新AI回复缓存
+        // 4. 清理最新AI回复缓存
         latestAIResponses.keySet().removeIf(key -> key.startsWith(playerId.toString()));
     }
 }

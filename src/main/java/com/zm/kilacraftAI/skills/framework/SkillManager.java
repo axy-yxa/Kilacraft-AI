@@ -162,6 +162,8 @@ public class SkillManager {
         SkillContext executionContext = context;
         if (sanitizedEntities != context.getEntities()) {
             executionContext = new SkillContext(context.getPlayer(), context.getAction(), sanitizedEntities);
+            // 保留审计字段
+            executionContext.withAudit(context.getTriggerMessage(), context.getExecutionSource());
         }
 
         PluginLogger.debug("技能管理", "开始执行技能：{}, action={}", skillName, intent.getAction());
@@ -170,15 +172,50 @@ public class SkillManager {
         MetricsCollector.getInstance().recordSkillAction(skillName, intent.getAction());
         MetricsCollector.getInstance().recordSkillSource(skill);
 
+        // 审计埋点：记录技能执行
+        String playerUuid = context.getPlayer() != null ? context.getPlayer().getUniqueId().toString() : null;
+        String triggerMessage = context.getTriggerMessage();
+        String executionSource = context.getExecutionSource() != null ? context.getExecutionSource() : "agent";
+        long startTime = System.currentTimeMillis();
+
         // 执行技能（带错误隔离，第三方 Skill 异常不影响核心流程）
         try {
-            return skill.execute(executionContext).exceptionally(ex -> {
+            return skill.execute(executionContext).thenApply(result -> {
+                submitSkillLog(playerUuid, skillName, intent.getAction(), sanitizedEntities, result, System.currentTimeMillis() - startTime, triggerMessage, executionSource);
+                return result;
+            }).exceptionally(ex -> {
                 PluginLogger.error("技能管理", I18nService.tr("技能执行异常（可能为第三方技能）：{} - {}", skillName, ex.getMessage()), ex);
+                submitSkillLog(playerUuid, skillName, intent.getAction(), sanitizedEntities, SkillResult.failure(ex.getMessage()), System.currentTimeMillis() - startTime, triggerMessage, executionSource);
                 return SkillResult.failure(I18nService.tr("技能执行出错，请联系管理员"));
             });
         } catch (Exception e) {
             PluginLogger.error("技能管理", I18nService.tr("技能执行失败：{} - {}", skillName, e.getMessage()), e);
+            submitSkillLog(playerUuid, skillName, intent.getAction(), sanitizedEntities, SkillResult.failure(e.getMessage()), System.currentTimeMillis() - startTime, triggerMessage, executionSource);
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("技能执行出错，请联系管理员")));
+        }
+    }
+
+    /**
+     * 提交技能执行审计日志（异步写入 DB）
+     */
+    private void submitSkillLog(String playerUuid, String skillName, String action, Map<String, String> entities, SkillResult result, long elapsedMs, String triggerMessage, String executionSource) {
+        if (plugin.getDatabaseManager() == null || playerUuid == null) return;
+
+        try {
+            var gson = new com.google.gson.Gson();
+            String entitiesJson = entities != null ? gson.toJson(entities) : null;
+
+            com.zm.kilacraftAI.compat.folia.FoliaCompat.getIOPool().submit(() -> {
+                try (var conn = plugin.getDatabaseManager().getConnection()) {
+                    var skillLogDao = new com.zm.kilacraftAI.db.dao.SkillLogDao(plugin.getDatabaseManager().getTablePrefix());
+                    skillLogDao.insert(conn, playerUuid, skillName, action, entitiesJson, result.isSuccess(), result.getMessage(), triggerMessage, elapsedMs, executionSource);
+                } catch (Exception e) {
+                    PluginLogger.debug("技能管理", "写入审计日志失败: {}", e.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            // 审计日志不应影响技能执行
+            PluginLogger.debug("技能管理", "提交审计日志失败: {}", e.getMessage());
         }
     }
 

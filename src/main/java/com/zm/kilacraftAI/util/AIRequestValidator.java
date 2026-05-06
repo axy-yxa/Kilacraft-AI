@@ -2,11 +2,11 @@ package com.zm.kilacraftAI.util;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.db.ConversationPersistenceService;
+import com.zm.kilacraftAI.db.ConversationSource;
 import com.zm.kilacraftAI.manager.ConversationManager;
-import lombok.Getter;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.UUID;
@@ -29,8 +29,6 @@ public class AIRequestValidator {
 
     private final KilacraftAI plugin;
 
-    // 冷却时间存储（如果外部需要自己管理冷却）
-    @Getter
     private final Map<UUID, Long> cooldowns;
 
     public AIRequestValidator(KilacraftAI plugin) {
@@ -175,28 +173,6 @@ public class AIRequestValidator {
     }
 
     /**
-     * 获取或创建历史记录队列
-     *
-     * @param historyMap 存储历史记录的 Map
-     * @param playerId   玩家 UUID
-     * @return 历史记录队列
-     */
-    public Deque<ConversationManager.Message> getOrCreateHistory(Map<UUID, Deque<ConversationManager.Message>> historyMap, UUID playerId) {
-        return historyMap.computeIfAbsent(playerId, k -> new ArrayDeque<>());
-    }
-
-    /**
-     * 保存对话到历史记录
-     *
-     * @param history     历史记录队列
-     * @param userMessage 用户消息
-     * @param aiResponse  AI 响应
-     */
-    public void saveToHistory(Deque<ConversationManager.Message> history, String userMessage, String aiResponse) {
-        saveToHistory(history, userMessage, aiResponse, null, null);
-    }
-
-    /**
      * 保存对话到历史记录（支持保存到最新回复缓存）
      *
      * @param history     历史记录队列
@@ -206,6 +182,21 @@ public class AIRequestValidator {
      * @param personality 人格名称（用于保存到最新回复缓存，如果为 null 则不保存）
      */
     public void saveToHistory(Deque<ConversationManager.Message> history, String userMessage, String aiResponse, UUID playerId, String personality) {
+        saveToHistory(history, userMessage, aiResponse, playerId, personality, ConversationSource.PLUGIN);
+    }
+
+    /**
+     * 保存对话到历史记录（完整版本，含持久化）
+     *
+     * @param history     历史记录队列
+     * @param userMessage 用户消息
+     * @param aiResponse  AI 响应
+     * @param playerId    玩家 UUID（用于持久化和最新回复缓存）
+     * @param personality 人格名称（用于持久化和最新回复缓存，null 视为空串）
+     * @param source      来源标识（null 则不持久化）
+     */
+    public void saveToHistory(Deque<ConversationManager.Message> history, String userMessage, String aiResponse,
+                              UUID playerId, String personality, ConversationSource source) {
         int maxHistory = plugin.getConfigManager().getMaxHistory();
 
         if (maxHistory <= 0 || history == null) {
@@ -230,6 +221,14 @@ public class AIRequestValidator {
             PluginLogger.debug("历史管理", "已保存 AI 回复到最新回复缓存：{}_{}", playerId, personality);
         }
 
+        // 异步提交到持久化队列（从 plugin 获取，避免未注入问题）
+        ConversationPersistenceService persistence = plugin.getPersistenceService();
+        if (persistence != null && playerId != null && source != null) {
+            String personalityValue = (personality != null && !personality.isEmpty()) ? personality : "";
+            persistence.submit(playerId, "user", userMessage, personalityValue, source.getValue());
+            persistence.submit(playerId, "assistant", aiResponse, personalityValue, source.getValue());
+        }
+
         PluginLogger.debug("历史管理", "已保存新对话，当前历史记录数量：{}", history.size());
     }
 
@@ -245,25 +244,6 @@ public class AIRequestValidator {
      */
     public String getPluginCommandHistoryKey(UUID playerId, String personality) {
         return playerId.toString() + "_" + personality;
-    }
-
-    /**
-     * 从插件命令历史记录 key 中解析玩家 UUID
-     *
-     * @param key 历史记录 key（格式：UUID_人格名称）
-     * @return 玩家 UUID，如果格式不正确则返回 null
-     */
-    public UUID parsePlayerIdFromKey(String key) {
-        if (key == null || !key.contains("_")) {
-            return null;
-        }
-        try {
-            int lastUnderscore = key.lastIndexOf('_');
-            String uuidPart = key.substring(0, lastUnderscore);
-            return UUID.fromString(uuidPart);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
     }
 
 }

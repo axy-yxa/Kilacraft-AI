@@ -94,7 +94,7 @@ public class IntentPromptConfigManager {
             configFile = new File(plugin.getDataFolder(), fileName);
 
             // 复制默认配置
-            ConfigResourceUtil.saveDefaultResource((KilacraftAI) plugin, fileName, "意图提示词");
+            ConfigResourceUtil.saveDefaultResource((KilacraftAI) plugin, fileName);
 
             // 加载配置
             config = YamlConfiguration.loadConfiguration(configFile);

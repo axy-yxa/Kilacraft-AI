@@ -1,13 +1,13 @@
 # Kilacraft-AI - Bukkit Event 监听器参考手册
 
-> **最后更新**: 2026-04-23  
+> **最后更新**: 2026-05-06  
 > **说明**: 本文档提供所有已实现的 Bukkit Event 监听器（AFK 挂机任务）的详细说明、配置示例和使用场景
 
 ---
 
 ## 📊 Bukkit Event 监听器快速参考表
 
-### ✅ 已实现的监听器（11 个）
+### ✅ 已实现的监听器（19 个）
 
 | 任务类型 | 监听事件 | 监控目标 | 级别 | 状态 |
 |---------|---------|---------|------|------|
@@ -22,8 +22,16 @@
 | `PLAYER_BED_LEAVE_WATCH` | PlayerBedLeaveEvent | 玩家离开床 | A级 | ✅ 已实现 |
 | `PLAYER_RESPAWN_WATCH` | PlayerRespawnEvent | 玩家重生 | A级 | ✅ 已实现 |
 | `PLAYER_ITEM_BREAK_WATCH` | PlayerItemBreakEvent | 玩家物品损坏 | A级 | ✅ 已实现 |
+| `PLAYER_FISHING_WATCH` | PlayerFishEvent | 玩家钓鱼 | A级 | ✅ 已实现 |
+| `PLAYER_CHAT_WATCH` | AsyncPlayerChatEvent | 玩家聊天 | A级 | ✅ 已实现 |
+| `BLOCK_BREAK_WATCH` | BlockBreakEvent | 方块破坏 | A级 | ✅ 已实现 |
+| `ENTITY_DEATH_WATCH` | EntityDeathEvent | 实体死亡 | A级 | ✅ 已实现 |
+| `ENTITY_SPAWN_WATCH` | CreatureSpawnEvent | 实体生成 | A级 | ✅ 已实现 |
+| `ENTITY_EXPLODE_WATCH` | EntityExplodeEvent | 实体爆炸 | A级 | ✅ 已实现 |
+| `FURNACE_EXTRACT_WATCH` | FurnaceExtractEvent | 熔炉烧炼 | A级 | ✅ 已实现 |
+| `CROP_GROWTH_WATCH` | BlockGrowEvent | 作物生长 | A级 | ✅ 已实现 |
 
-**统计**：已实现 **11 个**监听器（S级 7 个 + A级 4 个）
+**统计**：已实现 **19 个**监听器（S级 7 个 + A级 12 个）
 
 ---
 
@@ -461,6 +469,214 @@ steps:
 
 ---
 
+### 12. PLAYER_FISHING_WATCH - 监视玩家钓鱼
+
+**事件**: `PlayerFishEvent`  
+**级别**: A级  
+**文件**: `skills/afktask/impl/PlayerFishingWatchTask.java`
+
+#### 功能说明
+监视自己的钓鱼活动，当钓到鱼时触发通知或回调任务。
+
+#### 使用场景
+- "钓到鱼了告诉我"
+- "钓到鱼了帮我查市场价格"
+
+#### 配置参数
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `target_player` | String | ✅ | 目标玩家名称 |
+| `callback` | JSON | ❌ | 回调配置 |
+
+#### 可用占位符
+- `{triggered_player}` - 触发事件的玩家名称
+- `{item_name}` - 钓到的物品名称
+- `{item_type}` - 物品类型
+- `{fishing_state}` - 钓鱼状态
+
+---
+
+### 13. PLAYER_CHAT_WATCH - 监视玩家聊天
+
+**事件**: `AsyncPlayerChatEvent`  
+**级别**: A级  
+**文件**: `skills/afktask/impl/PlayerChatWatchTask.java`
+
+#### 功能说明
+监视自己发送的聊天消息，可用于暗号触发自动化流程。
+
+#### 使用场景
+- "我说'开始刷怪'的时候帮我执行刷怪塔开关命令"
+- "我说'回家'的时候帮我传送到家"
+
+#### 配置参数
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `target_player` | String | ✅ | 目标玩家名称 |
+| `callback` | JSON | ❌ | 回调配置 |
+
+#### 可用占位符
+- `{triggered_player}` - 触发事件的玩家名称
+- `{message}` - 玩家发送的聊天消息内容
+
+---
+
+### 14. BLOCK_BREAK_WATCH - 监视方块破坏
+
+**事件**: `BlockBreakEvent`  
+**级别**: A级  
+**文件**: `skills/afktask/impl/BlockBreakWatchTask.java`
+
+#### 功能说明
+监视自己破坏方块，挖到指定矿物时触发后续动作。
+
+#### 使用场景
+- "我挖到钻石了告诉我背包里有多少钻石"
+- "我挖到远古残骸了通知我"
+
+#### 配置参数
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `target_player` | String | ✅ | 目标玩家名称 |
+| `callback` | JSON | ❌ | 回调配置 |
+
+#### 可用占位符
+- `{block_type}` - 破坏的方块类型
+- `{x}` / `{y}` / `{z}` - 破坏位置坐标
+- `{world}` - 所在世界名称
+
+---
+
+### 15. ENTITY_DEATH_WATCH - 监视实体死亡
+
+**事件**: `EntityDeathEvent`  
+**级别**: A级  
+**文件**: `skills/afktask/impl/EntityDeathWatchTask.java`
+
+#### 功能说明
+监视附近的实体死亡，可用于 BOSS 击杀检测。
+
+#### 使用场景
+- "凋灵死了告诉我"
+- "末影龙被击杀了通知我"
+
+#### 配置参数
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `target_player` | String | ✅ | 目标玩家名称 |
+| `callback` | JSON | ❌ | 回调配置 |
+
+#### 可用占位符
+- `{entity_type}` - 实体类型
+- `{entity_name}` - 实体名称
+- `{x}` / `{y}` / `{z}` - 死亡位置坐标
+
+---
+
+### 16. ENTITY_SPAWN_WATCH - 监视实体生成
+
+**事件**: `CreatureSpawnEvent`  
+**级别**: A级  
+**文件**: `skills/afktask/impl/EntitySpawnWatchTask.java`
+
+#### 功能说明
+监视附近的实体生成，可用于刷怪塔效率监控。
+
+#### 使用场景
+- "刷怪塔生成僵尸村民了告诉我"
+- "有苦力怕生成提醒我"
+
+#### 配置参数
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `target_player` | String | ✅ | 目标玩家名称 |
+| `callback` | JSON | ❌ | 回调配置 |
+
+#### 可用占位符
+- `{entity_type}` - 实体类型
+- `{entity_name}` - 实体名称
+- `{x}` / `{y}` / `{z}` - 生成位置坐标
+
+---
+
+### 17. ENTITY_EXPLODE_WATCH - 监视实体爆炸
+
+**事件**: `EntityExplodeEvent`  
+**级别**: A级  
+**文件**: `skills/afktask/impl/EntityExplodeWatchTask.java`
+
+#### 功能说明
+监视附近的爆炸事件，可用于防炸服预警。
+
+#### 使用场景
+- "有爆炸的时候告诉我坐标"
+- "苦力怕爆炸了提醒我"
+
+#### 配置参数
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `target_player` | String | ✅ | 目标玩家名称 |
+| `callback` | JSON | ❌ | 回调配置 |
+
+#### 可用占位符
+- `{entity_type}` - 爆炸源实体类型
+- `{x}` / `{y}` / `{z}` - 爆炸位置坐标
+- `{block_list}` - 被破坏方块列表
+
+---
+
+### 18. FURNACE_EXTRACT_WATCH - 监视熔炉烧炼
+
+**事件**: `FurnaceExtractEvent`  
+**级别**: A级  
+**文件**: `skills/afktask/impl/FurnaceExtractWatchTask.java`
+
+#### 功能说明
+监视熔炉烧炼完成，当炉内物品全部烧完时通知。
+
+#### 使用场景
+- "熔炉烧完了告诉我"
+- "熔炉烧完铁锭了通知我"
+
+#### 配置参数
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `target_player` | String | ✅ | 目标玩家名称 |
+| `callback` | JSON | ❌ | 回调配置 |
+
+#### 可用占位符
+- `{item_type}` - 烧炼产物类型
+- `{item_amount}` - 烧炼产物数量
+- `{x}` / `{y}` / `{z}` - 熔炉位置坐标
+
+---
+
+### 19. CROP_GROWTH_WATCH - 监视作物生长
+
+**事件**: `BlockGrowEvent`  
+**级别**: A级  
+**文件**: `skills/afktask/impl/CropGrowthWatchTask.java`
+
+#### 功能说明
+监视作物成熟，可用于自动化农场管理。
+
+#### 使用场景
+- "小麦熟了告诉我并查市场价格"
+- "胡萝卜熟了通知我"
+
+#### 配置参数
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `target_player` | String | ✅ | 目标玩家名称 |
+| `callback` | JSON | ❌ | 回调配置 |
+
+#### 可用占位符
+- `{block_type}` - 作物方块类型
+- `{x}` / `{y}` / `{z}` - 作物位置坐标
+- `{world}` - 所在世界名称
+
+---
+
 ## 🔧 监听器通用特性
 
 ### 双模式支持
@@ -561,7 +777,7 @@ action_descriptions:
   query_task: '查询玩家当前的挂机任务状态。'
 
 hints:
-  - '**任务类型说明**：PLAYER_ONLINE_WATCH=监视玩家上线, PLAYER_OFFLINE_WATCH=监视玩家下线, PLAYER_DEATH_WATCH=监视玩家死亡, PLAYER_TELEPORT_WATCH=监视玩家传送, PLAYER_LEVEL_CHANGE_WATCH=监视玩家等级变化, PLAYER_CHANGED_WORLD_WATCH=监视玩家切换世界, WEATHER_CHANGE_WATCH=监视天气变化, PLAYER_BED_ENTER_WATCH=监视玩家进入床, PLAYER_BED_LEAVE_WATCH=监视玩家离开床, PLAYER_RESPAWN_WATCH=监视玩家重生, PLAYER_ITEM_BREAK_WATCH=监视玩家物品损坏。'
+  - '**任务类型说明**：PLAYER_ONLINE_WATCH=监视玩家上线, PLAYER_OFFLINE_WATCH=监视玩家下线, PLAYER_DEATH_WATCH=监视玩家死亡, PLAYER_TELEPORT_WATCH=监视玩家传送, PLAYER_LEVEL_CHANGE_WATCH=监视玩家等级变化, PLAYER_CHANGED_WORLD_WATCH=监视玩家切换世界, WEATHER_CHANGE_WATCH=监视天气变化, PLAYER_BED_ENTER_WATCH=监视玩家进入床, PLAYER_BED_LEAVE_WATCH=监视玩家离开床, PLAYER_RESPAWN_WATCH=监视玩家重生, PLAYER_ITEM_BREAK_WATCH=监视玩家物品损坏, PLAYER_FISHING_WATCH=监视玩家钓鱼, PLAYER_CHAT_WATCH=监视玩家聊天, BLOCK_BREAK_WATCH=监视方块破坏, ENTITY_DEATH_WATCH=监视实体死亡, ENTITY_SPAWN_WATCH=监视实体生成, ENTITY_EXPLODE_WATCH=监视实体爆炸, FURNACE_EXTRACT_WATCH=监视熔炉烧炼, CROP_GROWTH_WATCH=监视作物生长。'
   - '**PLAYER_TELEPORT_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{from_world}/{to_world}/{from_x}/{from_y}/{from_z}/{to_x}/{to_y}/{to_z}占位符'
   - '**PLAYER_LEVEL_CHANGE_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{old_level}/{new_level}/{direction}占位符'
   - '**PLAYER_CHANGED_WORLD_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{from_world}/{to_world}占位符'
@@ -587,6 +803,14 @@ hints:
 | 玩家睡觉 | `PLAYER_BED_ENTER_WATCH` / `PLAYER_BED_LEAVE_WATCH` |
 | 物品相关 | `PLAYER_ITEM_BREAK_WATCH` |
 | 环境变化 | `WEATHER_CHANGE_WATCH` |
+| **钓鱼活动** | **`PLAYER_FISHING_WATCH`** |
+| **聊天消息** | **`PLAYER_CHAT_WATCH`** |
+| **方块破坏** | **`BLOCK_BREAK_WATCH`** |
+| **实体死亡** | **`ENTITY_DEATH_WATCH`** |
+| **实体生成** | **`ENTITY_SPAWN_WATCH`** |
+| **实体爆炸** | **`ENTITY_EXPLODE_WATCH`** |
+| **熔炉烧炼** | **`FURNACE_EXTRACT_WATCH`** |
+| **作物生长** | **`CROP_GROWTH_WATCH`** |
 
 ### 2. 纯通知 vs 回调模式
 

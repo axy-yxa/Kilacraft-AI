@@ -1,0 +1,197 @@
+# ==================== Kilacraft-AI LLM 与 Agent 配置 ====================
+# Kilacraft-AI LLM & Agent Configuration
+# 独立配置文件，修改后执行 /kilacraft reload 即时生效（除标注不可热重载的项外）
+# Standalone config file, run /kilacraft reload to apply changes (except items marked as non-hot-reloadable)
+
+llm:
+  # LLM API 配置（通用，支持所有 OpenAI 标准格式的厂商）
+  # 可用厂商示例（均兼容 OpenAI Chat Completions API，仅支持非思考模式）：
+  # 注意：不支持思考/推理模型（如 deepseek-reasoner、o1、o3 等），MC 场景无法展示大段思考内容
+  # LLM API Configuration (Universal, supports all OpenAI standard format providers)
+  # Available provider examples (all compatible with OpenAI Chat Completions API, non-thinking mode only):
+  # Note: Reasoning/thinking models (e.g. deepseek-reasoner, o1, o3) are NOT supported — MC cannot display long reasoning content
+  # - OpenAI: https://api.openai.com/v1/chat/completions
+  #   Models: gpt-4o-mini, gpt-4o
+  # - DeepSeek: https://api.deepseek.com/v1/chat/completions
+  #   Models: deepseek-chat
+  # - ZhipuAI (智谱AI): https://open.bigmodel.cn/api/paas/v4/chat/completions
+  #   Models: glm-4-flash, glm-4-plus
+  # - Moonshot: https://api.moonshot.cn/v1/chat/completions
+  #   Models: moonshot-v1-8k, moonshot-v1-32k
+  # - Groq: https://api.groq.com/openai/v1/chat/completions
+  #   Models: llama-3.3-70b-versatile, llama-3.1-8b-instant
+  # - Together AI: https://api.together.xyz/v1/chat/completions
+  #   Models: meta-llama/Llama-3.3-70B-Instruct-Turbo
+  # - Mistral AI: https://api.mistral.ai/v1/chat/completions
+  #   Models: mistral-small-latest, mistral-large-latest
+  # - Perplexity: https://api.perplexity.ai/chat/completions
+  #   Models: sonar, sonar-pro
+  # - Fireworks AI: https://api.fireworks.ai/inference/v1/chat/completions
+  #   Models: accounts/fireworks/models/llama-v3p3-70b-instruct
+  # - SiliconFlow (硅基流动): https://api.siliconflow.cn/v1/chat/completions
+  #   Models: Qwen/Qwen3-8B, deepseek-ai/DeepSeek-V3
+  # - Google Gemini: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+  #   Models: gemini-2.0-flash
+  # - OpenRouter: https://openrouter.ai/api/v1/chat/completions
+  #   Models: openai/gpt-4o-mini, meta-llama/llama-3.3-70b-instruct
+  api_url: "https://api.deepseek.com/v1/chat/completions"
+  
+  # API 密钥（从对应厂商获取）
+  # API key (obtained from the corresponding provider)
+  api_key: "your-api-key"
+  
+  # 模型名称（根据厂商配置）
+  # Model name (configure according to provider)
+  # DeepSeek: deepseek-chat
+  # 智谱AI: glm-4-plus, glm-4-flash
+  # Moonshot: moonshot-v1-8k, moonshot-v1-32k
+  model: "deepseek-chat"
+  
+  # 通用配置（覆盖各个提供商的默认值）
+  # 温度参数（0-2之间）
+  # 值越高回答越有创意和随机性
+  # 值越低回答越保守和确定性
+  # 0.7是平衡点，适合一般对话
+  # General configuration (overrides default values for each provider)
+  # Temperature parameter (between 0-2)
+  # Higher values = more creative and random responses
+  # Lower values = more conservative and deterministic responses
+  # 0.7 is the balance point, suitable for general conversation
+  temperature: 0.7
+
+  # 最大返回token数
+  # 控制AI回复的最大长度（约1token≈0.75个中文）
+  # 1000约等于750个中文字符
+  # Maximum response tokens
+  # Controls max length of AI response (approx. 1 token ≈ 0.75 Chinese characters)
+  # 1000 ≈ 750 Chinese characters
+  max_tokens: 600
+
+  # 系统提示词（AI 的默认回答方式和风格）
+  # 使用 {player} 占位符，会被自动替换为实际玩家名称
+  # System prompt (AI's default response style and behavior)
+  # Uses {player} placeholder, auto-replaced with actual player name
+  system_prompt: |
+    你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用友好、简洁的方式回答，输出不超过200个汉字。可以提到 Minecraft 游戏相关的内容。不要在回复中称呼玩家名字。
+    【操作声明规范】你不得自行声称已执行任何游戏内操作，除非你收到了技能系统返回的明确成功信息。严禁在没有执行结果的情况下使用'我帮你'、'已经'、'成功'等暗示操作已完成的措辞。
+    【技能系统回退】当用户消息中附带 [FAILURE]、[NEED_INFO] 等标记或失败/异常信息时，说明技能系统已尝试执行但需要处理，此时直接根据信息内容用自然语言向玩家解释或转述，不得提及'系统提示'或内部机制。
+    【货币单位】本服经济系统的货币符号为 $（如 $100.00）。绝对不要使用'绿宝石'、'emerald'或其他 Minecraft 物品名称指代货币，所有金额都是 $ 货币单位。
+  # 英文版系统提示词（language=en 时生效，留空则使用中文版）
+  # English system prompt (effective when language=en, leave empty to use Chinese version)
+  system_prompt_en: |
+    You are a Minecraft game assistant, chatting with player {player}. Please respond in a friendly and concise manner, no more than 80 words. Feel free to mention Minecraft-related content. Do not address the player by name in your replies.
+    [ACTION CLAIM RULES] You must NOT claim to have performed any in-game action unless you have received explicit success information from the skill system. NEVER use phrases like 'I'll help you', 'done', 'successfully' that imply an action was completed without confirmed execution results.
+    [SKILL SYSTEM FALLBACK] When the user message contains [FAILURE], [NEED_INFO] markers or failure/error information, explain or relay the information to the player naturally in your own words. Never mention 'system prompt' or any internal mechanism.
+    [CURRENCY UNIT] This server's economy uses $ as the currency symbol (e.g. $100.00). NEVER use 'emerald' or any other Minecraft item name to refer to currency. All prices and amounts are in $ currency.
+
+# ==================== Agent 能力配置 ====================
+# Agent Capability Configuration
+# Agent 能力说明：
+# 1. 启用后，AI 会先进行意图识别，判断是否需要调用技能（单意图或多步骤任务）
+# 2. 意图识别失败或技能执行失败时，回退到普通 AI 对话
+# 3. 关闭后，直接进入普通 AI 对话，不进行意图分析
+# Agent capability description:
+# 1. When enabled, AI performs intent recognition first to determine if skill invocation is needed (single-intent or multi-step task)
+# 2. Falls back to normal AI conversation when intent recognition fails or skill execution fails
+# 3. When disabled, goes directly to normal AI conversation without intent analysis
+agent:
+  # 是否启用 Agent 能力（总开关，优先级高于以下两个独立配置）
+  # Whether to enable Agent capability (master switch, higher priority than the two individual configs below)
+  enabled: true
+  
+  # ChatListener 入口是否启用 Agent 能力（关键词触发、连续对话模式）
+  # true: 玩家通过@ai 等关键词触发时，会先进行意图识别
+  # false: 玩家通过关键词触发时，直接进入普通 AI 对话
+  # Whether to enable Agent capability for ChatListener entry (keyword trigger, continuous conversation mode)
+  # true: Intent recognition is performed first when triggered by keywords like @ai
+  # false: Goes directly to normal AI conversation when triggered by keywords
+  enable_chat_listener: true
+  
+  # KilacraftCommand 入口是否启用 Agent 能力（/kilacraft 命令）
+  # true: 玩家使用/kilacraft 命令时，会先进行意图识别
+  # false: 玩家使用/kilacraft 命令时，直接进入普通 AI 对话
+  # Whether to enable Agent capability for KilacraftCommand entry (/kilacraft command)
+  # true: Intent recognition is performed first when using /kilacraft command
+  # false: Goes directly to normal AI conversation when using /kilacraft command
+  enable_command: true
+  
+  # 意图识别时的历史对话上下文数量(轮数)
+  # 用于帮助 LLM 理解用户的连续对话意图
+  # 例如：用户说"再查一下那个物品"，LLM 需要历史来理解"那个物品"指什么
+  # 建议值：3-5，值越大上下文越丰富，但 token 消耗也越高
+  # Number of history conversation context rounds for intent recognition
+  # Helps LLM understand the user's continuous conversation intent
+  # Example: User says "check that item again", LLM needs history to understand what "that item" refers to
+  # Recommended: 3-5, higher values provide richer context but consume more tokens
+  intent_history_count: 5
+  
+  # 二次分析时的历史对话上下文数量(轮数)
+  # 用于让 LLM 在分析 Skill 执行结果时参考对话上下文
+  # 使最终回复更自然、能关联上下文
+  # 建议值：1-2，精简历史即可满足大部分场景
+  # Number of history conversation context rounds for secondary analysis
+  # Allows LLM to reference conversation context when analyzing Skill execution results
+  # Makes the final reply more natural and context-aware
+  # Recommended: 1-2, concise history is sufficient for most scenarios
+  analysis_history_count: 2
+  
+  # LLM 分析执行结果并生成最终回复提示词配置
+  # LLM analysis of execution results and final reply prompt configuration
+  prompts:
+    # 系统提示词
+    # System prompt
+    system_prompt: "你是一个热情有趣的 Minecraft 游戏助手，正在为玩家分析任务执行结果。优先根据执行结果数据回答问题，如果上下文中有知识库提供的相关信息，也可以适当补充。"
+    # 英文版系统提示词（language=en 时生效，留空则使用中文版）
+    # English system prompt (effective when language=en, leave empty to use Chinese version)
+    system_prompt_en: "You are an enthusiastic Minecraft game assistant, analyzing task execution results for the player. Prioritize answering questions based on execution result data. If relevant knowledge base information is available in the context, you may supplement your answer appropriately."
+    
+    # 分析提示词后缀
+    # 用途：
+    # 1. 作为提示词后缀：用于单意图和多步骤任务的 LLM 二次分析
+    # 2. 作为关键词提取边界：用于知识库检索时排除提示词干扰
+    # 注意：普通 AI 对话不使用此后缀作为提示词，但会用于关键词提取边界
+    # Analysis prompt suffix
+    # Purpose:
+    # 1. As prompt suffix: for LLM secondary analysis of single-intent and multi-step tasks
+    # 2. As keyword extraction boundary: to exclude prompt interference during knowledge base retrieval
+    # Note: Normal AI conversation does not use this suffix as a prompt, but it is used for keyword extraction boundary
+    analysis_prompt_suffix: |
+      
+      【回复要求】
+      1. 用简洁友好的自然语言直接回答玩家的问题，像朋友聊天一样自然
+      2. 执行结果中的数据是核心事实，必须准确呈现，数值（如耐久度、生命值、数量、坐标等）必须使用原始数据，不得四舍五入、近似或概括（如479/481不得说成"满耐久"）
+      3. 如果上下文中包含知识库检索到的相关信息，可以适当融入回答中作为补充。但执行结果是核心事实，知识库只是补充，不得用知识库信息替代或覆盖执行结果中的实际数据
+      4. 但不要编造执行结果和知识库中都不存在的数据，也不要凭空捏造游戏操作指南
+      5. **严格约束：只描述执行结果中实际完成的操作，不要提及执行结果中未包含的功能（如音效、粒子效果、传送等），即使知识库或技能描述中有相关说明**
+      6. **操作与查询区分：如果执行结果只包含查询数据（如坐标、状态），不得声称执行了动作（如传送、给予、生成）。查询到坐标不等于传送到了该位置，查询到物品不等于给予了物品**
+      7. 不要使用任何固定标题或模板（禁止"分析与建议"、"简要分析"、"当前市场情况"、"后续操作建议"等标题）
+      8. 输出不超过400个汉字
+      9. **禁止暴露内部机制：不要在回复中提及执行结果的统计计数（如"成功: 1, 失败: 0"）、步骤ID、技能名称、枚举原始值（如WHEAT、DIAMOND）等系统内部信息。应转换为玩家可理解的自然语言（如WHEAT→小麦，DIAMOND→钻石）**
+            
+      【关于部分失败的处理】
+      - 如果执行结果中包含 [FAILURE] 标记，表示该步骤执行失败
+      - 如果执行结果中包含 [SKIPPED] 标记，表示该步骤因依赖未满足或参数解析失败而被跳过
+      - 请基于所有成功的步骤结果，尽可能形成对用户有用的回答
+      - 对于失败或跳过的步骤，请明确指出哪些部分因何原因未能完成，并提供建议
+      - 不要因为部分失败而完全拒绝回答，要充分利用已获取的信息
+    # 英文版分析提示词后缀（language=en 时生效，留空则使用中文版）
+    # English analysis prompt suffix (effective when language=en, leave empty to use Chinese version)
+    analysis_prompt_suffix_en: |
+      
+      [Response Requirements]
+      1. Answer the player's question directly in concise and friendly natural language, like chatting with a friend
+      2. Data in execution results is core fact and must be presented accurately. Numeric values (e.g. durability, health, quantity, coordinates) must use raw data without rounding, approximation, or generalization (e.g. 479/481 must not be described as "full durability")
+      3. If relevant knowledge base information is available in the context, you may incorporate it as a supplement. However, execution results are the core facts — knowledge base is only a supplement. Do NOT use knowledge base information to replace or override actual data from execution results
+      4. Do not fabricate data that does not exist in either the execution results or the knowledge base, and do not invent game guides out of thin air
+      5. **Strict constraint: only describe operations actually completed in the execution results. Do not mention features not included in the results (e.g. sounds, particle effects, teleportation), even if they are described in the knowledge base or skill documentation**
+      6. **Query vs Action distinction: if execution results only contain query data (e.g. coordinates, status), you must NOT claim an action was performed (e.g. teleportation, giving items, spawning). Retrieving coordinates does NOT mean teleporting to that location. Retrieving item info does NOT mean giving that item**
+      7. Do not use any fixed titles or templates (no "Analysis & Suggestions", "Brief Analysis", "Current Market Status", "Next Steps", etc.)
+      8. Output no more than 150 words
+      9. **No internal details: never mention execution statistics (e.g. "success: 1, failure: 0"), step IDs, skill names, or raw enum values (e.g. WHEAT, DIAMOND). Convert them to player-friendly language (e.g. WHEAT→Wheat, DIAMOND→Diamond)**
+      
+      [Handling Partial Failures]
+      - If execution results contain [FAILURE] markers, it means that step failed
+      - If execution results contain [SKIPPED] markers, it means that step was skipped due to unmet dependencies or parameter parsing failures
+      - Please form as useful an answer as possible based on all successful step results
+      - For failed or skipped steps, clearly indicate which parts failed and why, and provide suggestions
+      - Do not completely refuse to answer due to partial failure; make full use of the information already obtained

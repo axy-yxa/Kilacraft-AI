@@ -1,0 +1,88 @@
+# ==================== Kilacraft-AI 数据库配置 ====================
+# ==================== Kilacraft-AI Database Configuration
+# 独立配置文件，修改后执行 /kilacraft reload 即时生效
+# Standalone config file, run /kilacraft reload to apply changes
+
+# 数据库类型: H2, MYSQL
+# Database type: H2, MYSQL
+type: H2
+
+# H2 配置（type=H2 时生效）
+# H2 Configuration (effective when type=H2)
+h2:
+  # 数据文件存储路径（相对于插件目录）
+  # Data file storage path (relative to plugin directory)
+  file: "data/kilacraft"
+
+# MySQL 配置（type=MYSQL 时生效）
+# MySQL Configuration (effective when type=MYSQL)
+mysql:
+  host: "localhost"
+  port: 3306
+  database: "kilacraft_ai"
+  username: "root"
+  password: "password"
+  # 表名前缀（群组服多插件共用DB时区分）
+  # Table name prefix (for distinguishing when multiple plugins share the same DB)
+  table_prefix: "kca_"
+
+# 连接池配置（HikariCP，自适应策略）
+# 不配置时自动根据 CPU 核数和服务端类型计算最优值
+# Connection pool (HikariCP, adaptive strategy)
+# Leave unset to auto-calculate based on CPU cores and server type
+pool:
+  # 最大连接数（0=自适应，H2 自动 max(2,CPU), MySQL 自动 min(max(4,CPU*2),20)）
+  # Maximum pool size (0=adaptive, H2 auto max(2,CPU), MySQL auto min(max(4,CPU*2),20))
+  maximum_pool_size: 0
+  # 最小空闲连接数（0=自适应，H2 自动 1, MySQL 自动 max(2,CPU/2)）
+  # Minimum idle connections (0=adaptive, H2 auto 1, MySQL auto max(2,CPU/2))
+  minimum_idle: 0
+  # 连接超时（毫秒）
+  # Connection timeout (milliseconds)
+  connection_timeout: 10000
+  # 空闲超时（毫秒）
+  # Idle timeout (milliseconds)
+  idle_timeout: 300000
+  # 最大存活时间（毫秒）
+  # Maximum lifetime (milliseconds)
+  max_lifetime: 1800000
+
+# ==================== 数据保留策略 ====================
+# ==================== Data Retention Policy ====================
+retention:
+  # 对话历史保留天数（0=永久保留，建议30-90）
+  # Conversation history retention days (0=keep forever, recommended 30-90)
+  conversation_retention_days: 60
+  # 服务器事件保留天数（0=永久保留，建议30-180）
+  # Server event retention days (0=keep forever, recommended 30-180)
+  event_retention_days: 90
+  # 技能审计日志保留天数（0=永久保留，建议30-90）
+  # Skill audit log retention days (0=keep forever, recommended 30-90)
+  skill_log_retention_days: 60
+
+# ==================== 对话历史加载策略 ====================
+# ==================== Conversation History Loading Strategy ====================
+conversation:
+  # 是否在玩家触发AI对话时从数据库加载历史到缓存
+  # true: 玩家每次登录后首次对话会恢复最近N条历史（体验好，但每次对话携带历史，token消耗增加）
+  # false: 每次登录从零开始，不加载历史（节省token，适合token预算有限的服务器）
+  # 无论此开关如何设置，对话记录始终会写入数据库（持久化不中断）
+  # Whether to load conversation history from database to cache when player triggers AI
+  # true: Restores recent N history entries on first chat after login (better experience, higher token usage)
+  # false: Starts fresh each login, no history loaded (saves tokens, suitable for budget-limited servers)
+  # 无论此开关如何设置，对话记录始终会写入数据库（持久化不中断）
+  # Regardless of this setting, conversation records are always persisted to database
+  load_history_on_login: true
+
+# ==================== 玩家画像分析配置 ====================
+# ==================== Player Profile Analysis Configuration ====================
+profile:
+  # 分析触发间隔天数（玩家距离上次分析至少间隔N天才再次触发）
+  # Minimum days between profile analyses (trigger only if N days passed since last analysis)
+  analysis_interval_days: 1
+  # 触发分析所需最少消息数（新消息数低于此值不触发）
+  # Minimum number of new messages required to trigger analysis
+  min_messages_to_trigger: 10
+  # LLM 分析超时时间（秒）
+  # LLM analysis timeout in seconds
+  analysis_timeout_seconds: 60

@@ -1,6 +1,6 @@
 # Kilacraft-AI - Knowledge Base Enhancement Guide
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-05-06  
 > **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation
 
 ---
@@ -855,6 +855,58 @@ custom_dictionary:
 ```
 
 **Benefits**: Improves Chinese word segmentation accuracy, enhances retrieval effectiveness.
+
+---
+
+## 🧠 Embedding Semantic Retrieval (v2.0.0)
+
+In addition to the HanLP TF-IDF + BM25 keyword-based retrieval, v2.0.0 introduces **Embedding-based semantic retrieval** for improved recall on semantically similar but lexically different queries.
+
+### How It Works
+
+```
+Knowledge Base documents
+  ↓
+EmbeddingService.generateEmbeddings()
+  ├── Chunk text → LLM Embedding API → Vector
+  ├── Store in EmbeddingCache (JSON file, persistent)
+  └── Query time:
+       ├── Generate query embedding vector
+       ├── Cosine similarity search across cached vectors
+       └── Hybrid ranking: TF-IDF score + similarity score
+            ↓
+       Top-K relevant chunks → LLM context injection
+```
+
+### Configuration
+
+```yaml
+# knowledge.yml
+knowledge:
+  embedding:
+    enabled: true                     # Enable embedding retrieval
+    api_url: ""                       # Embedding API endpoint (uses llm config if empty)
+    api_key: ""                       # API key (uses llm config if empty)
+    model: "text-embedding-3-small"   # Embedding model
+    similarity_threshold: 0.7         # Minimum similarity score (0.0-1.0)
+    max_results: 5                    # Max chunks from embedding search
+```
+
+### Key Features
+
+- ✅ **Hybrid Retrieval**: Combines TF-IDF keyword matching with Embedding semantic matching
+- ✅ **Persistent Cache**: Embedding vectors cached to JSON file, no re-computation on restart
+- ✅ **Incremental Update**: Only re-computes embeddings for new/changed documents
+- ✅ **Auto-Fallback**: Falls back to pure TF-IDF if embedding API is unavailable
+
+### When Embedding Helps
+
+| Query Type | TF-IDF Alone | With Embedding |
+|------------|-------------|----------------|
+| Exact keyword match | ✅ Good | ✅ Good |
+| Semantic paraphrase | ❌ May miss | ✅ Catches |
+| Synonym variation | ⚠️ Partial | ✅ Better |
+| Cross-language query | ❌ Misses | ✅ Matches |
 
 ---
 

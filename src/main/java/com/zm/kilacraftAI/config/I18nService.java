@@ -97,7 +97,7 @@ public final class I18nService {
 
             // 翻译表已加载，现在可以输出翻译后的日志
             if (justCreated) {
-                PluginLogger.info("国际化", "已创建默认配置文件: {}", externalFile.getName());
+                PluginLogger.info("配置管理", "已创建默认配置文件: {}", externalFile.getName());
             }
         } else {
             PluginLogger.warn("国际化", "翻译包不存在: {}，将回退为中文原文", fileName);

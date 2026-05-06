@@ -168,7 +168,7 @@ public class SkillConfigManager {
                                 }
 
                                 if (isForCurrentLang) {
-                                    ConfigResourceUtil.saveDefaultResource(plugin, "skills/" + pkgName + "/" + fileName, "技能配置");
+                                    ConfigResourceUtil.saveDefaultResource(plugin, "skills/" + pkgName + "/" + fileName);
                                 }
                             });
                         } catch (Exception e) {
@@ -194,7 +194,7 @@ public class SkillConfigManager {
         // 根据当前语言选择 apis.yml 或 apis_en.yml
         String lang = plugin.getConfigManager().getLanguage();
         String apisResourceName = "zh".equals(lang) ? "apis.yml" : "apis_" + lang + ".yml";
-        ConfigResourceUtil.saveDefaultResourceToDir(plugin, "skills/bukkit/" + apisResourceName, bukkitFolder, "技能配置");
+        ConfigResourceUtil.saveDefaultResourceToDir(plugin, "skills/bukkit/" + apisResourceName, bukkitFolder);
 
         File apisFile = new File(bukkitFolder, apisResourceName);
         if (apisFile.exists()) {
@@ -299,7 +299,7 @@ public class SkillConfigManager {
         String lang = plugin.getConfigManager().getLanguage();
         String fileName = "zh".equals(lang) ? skillName + ".yml" : skillName + "_" + lang + ".yml";
         String resourcePath = "skills/" + packageName + "/" + fileName;
-        ConfigResourceUtil.saveDefaultResource(plugin, resourcePath, "技能配置");
+        ConfigResourceUtil.saveDefaultResource(plugin, resourcePath);
     }
 
     /**

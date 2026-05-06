@@ -1,6 +1,6 @@
 # Kilacraft-AI - Intent Recognition Prompt Configuration Guide
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-05-06  
 > **Description**: This document details how to configure intent recognition prompts through intent_prompts.yml to guide LLM in understanding user input and identifying skill intents
 
 ---

@@ -8,7 +8,7 @@
 
 Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 
-[![Version](https://img.shields.io/badge/Version-1.5.0-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
+[![Version](https://img.shields.io/badge/Version-2.0.0-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
@@ -19,29 +19,31 @@ Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 ---
 
 玩家通过自然语言与 AI 对话，查询游戏数据、执行命令、编排多步骤任务。
-基于 Plan-and-Execute + Function Calling 架构，一个 JAR 文件，无需数据库、Redis 等任何中间件。
+基于 Plan-and-Execute + Function Calling 架构，一个 JAR 文件，同时支持 H2 嵌入式数据库（零配置开箱即用）和 MySQL 外挂数据库，无需 Redis 等外部中间件。
 
 ## 特性一览
 
 | | 功能 | 说明 |
 |:---:|:---|:---|
-| 🤖 | **AI 智能引擎** | LLM 意图识别 · 多步骤任务规划与执行 · RAG 知识库 · 5 种输出载体 · 流式输出 · 二次分析协调器 · 公屏广播 · 回复音效 |
-| 💰 | **经济系统** | GlobalMarketPlus 深度集成 · 自然语言查询余额/价格/在售 · 多物品联合查询 |
+| 🤖 | **AI 智能引擎** | LLM 意图识别 · 多步骤任务规划与执行 · RAG 知识库 · Embedding 语义检索 · 5 种输出载体 · 流式输出 · 二次分析协调器 · 公屏广播 · 回复音效 |
+| 💰 | **经济系统** | GlobalMarketPlus 深度集成 · 自然语言查询余额/价格/在售 · AI 代玩家上架/购买/转账/拍卖 · 多物品联合查询 |
 | 🔍 | **Bukkit API** | 72 个内置只读 API · YAML 数据驱动 · 多步骤数据传递（含数组索引）· 细粒度权限 |
 | 🎮 | **CMI 集成** | 传送（家/地标/TPA）· 玩家增强信息（时长/AFK/隐身/套装/在线列表） |
 | 🔧 | **命令执行** | 以玩家身份执行命令 · 完全继承服务器权限 · config 开关 + 权限节点双重保护 |
 | 🎨 | **音效与粒子** | AI 触发音效/粒子效果 · 仅调用者感知 · YML 配置驱动 |
 | 📊 | **原版统计** | 80+ 原版统计数据查询 · 知识库驱动 BM25 检索 · 距离/时长自动换算 · 多步骤条件监控 |
-| 🔔 | **挂机任务** | 12 种类型（11 事件监听 + CUSTOM 轮询）· 自然语言创建 · 通知/回调双模式 |
-| 🎭 | **个性化** | 多人格系统 · RAG 知识库增强（HanLP + BM25）· 自定义词典 · 全语言可配置 |
+| 🔔 | **挂机任务** | 20 种类型（19 事件监听 + CUSTOM 轮询）· 自然语言创建 · 通知/回调双模式 · 智能回调 |
+| 💾 | **数据持久化** | 对话历史保存（重启不丢失）· 玩家画像（AI 记住偏好）· 社交关系图谱 · 服务器事件记录 · 技能审计日志 |
+| 👋 | **智能问候** | 玩家登录个性化欢迎 · 三大分类数据聚合（自有事件/好友动态/摘要里程碑）· 冷却机制 |
+| 🎭 | **个性化** | 多人格系统 · RAG 知识库增强（HanLP + BM25）· Embedding 语义检索 · 自定义词典 · 全语言可配置 |
 | 🔌 | **SPI 扩展** | 第三方 Skill 注册 · 插件命令模式 · 完整开发文档 · 全球 Skill 台账监管 |
 | 🛡️ | **安全隔离** | 非合作式 Value 扫描拦截器 · 除白名单 Skill 外禁止跨玩家操作 · 恶意 Skill 无法绕过 |
 
 ## 快速开始
 
-**1.** 下载 [Kilacraft-AI-1.5.0.jar](https://gitee.com/zm_mmm/kilacraft-ai/releases) 放入 `plugins/`
+**1.** 下载 [Kilacraft-AI-2.0.0.jar](https://gitee.com/zm_mmm/kilacraft-ai/releases) 放入 `plugins/`
 
-**2.** 编辑 `plugins/Kilacraft-AI/config.yml`，填入 API 密钥：
+**2.** 编辑 `plugins/Kilacraft-AI/llm.yml`，填入 API 密钥：
 
 ```yaml
 llm:
@@ -81,6 +83,7 @@ llm:
 | 1.20 - 1.21+ | 21+ | 全部主流 | ✅ |
 
 > 可选依赖：MythicMobs 5.12+（NPC 占位符）· GlobalMarketPlus 1.3.8+（经济）· CMI（传送/查询）· Vault（多货币）
+> 新增配置：`database.yml`（H2/MySQL 数据库）· `greeting.yml`（AI 登录问候）· `llm.yml`/`output.yml`/`knowledge.yml`（拆分自原 config.yml）
 > 未安装时对应功能自动禁用，不影响核心对话。
 
 ## 命令
@@ -94,6 +97,7 @@ llm:
 | `/kilacraft knowledge reload` | OP | 重载知识库 |
 | `/kilacraft personalities reload` | OP | 重载人格配置 |
 | `/kilacraft afk [cancel]` | 无 | 查看/取消挂机任务 |
+| `/kilacraft tasks` | `kilacraft.tasks` | 查看定时任务运行状态（默认 OP） |
 | `/kilacraft plugins <人格> <内容> <UUID> [回调]` | 控制台 | 第三方插件集成 |
 
 ## 文档

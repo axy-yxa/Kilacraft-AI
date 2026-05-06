@@ -44,6 +44,12 @@ public enum OutputScenario {
     AFK_CALLBACK,
 
     /**
+     * AI 登录问候
+     * <p>来源：LoginGreetingHandler</p>
+     */
+    GREETING,
+
+    /**
      * 错误消息
      * <p>来源：所有异常处理路径</p>
      */

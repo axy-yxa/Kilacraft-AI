@@ -69,7 +69,7 @@ public class GenericLLMProvider implements LLMProvider {
         refreshConfigCache();
 
         // 输出 HTTP 连接池配置日志
-        PluginLogger.info("LLM提供商", "初始化HTTP连接池");
+        PluginLogger.info("I/O线程池", "初始化HTTP连接池");
     }
 
     @Override
@@ -486,16 +486,16 @@ public class GenericLLMProvider implements LLMProvider {
 
             // 等待任务终止(最多5秒)
             if (!httpClient.dispatcher().executorService().awaitTermination(5, TimeUnit.SECONDS)) {
-                PluginLogger.warn("LLM提供商", "HTTP客户端未能在5秒内完全关闭,强制关闭");
+                PluginLogger.warn("I/O线程池", "HTTP客户端未能在5秒内完全关闭,强制关闭");
                 httpClient.dispatcher().executorService().shutdownNow();
             }
 
             // 清空连接池
             httpClient.connectionPool().evictAll();
 
-            PluginLogger.info("LLM提供商", "HTTP连接池已关闭");
+            PluginLogger.info("I/O线程池", "HTTP连接池已关闭");
         } catch (Exception e) {
-            PluginLogger.error("LLM提供商", "关闭HTTP客户端时发生错误", e);
+            PluginLogger.error("I/O线程池", "关闭HTTP客户端时发生错误", e);
         }
     }
 }

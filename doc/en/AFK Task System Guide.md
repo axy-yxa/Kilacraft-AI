@@ -1,6 +1,6 @@
 # Kilacraft-AI - AFK Task System Guide
 
-> **Last Updated**: 2026-04-23  
+> **Last Updated**: 2026-05-06  
 > **Description**: This document provides a comprehensive guide to the AFK Task System, including architecture, usage, call chains, and best practices
 
 ---
@@ -13,7 +13,7 @@ The AFK Task System is a core feature of the Kilacraft-AI plugin, providing **as
 
 - ✅ **Natural Language Creation**: Create tasks through conversation, no need to memorize commands
 - ✅ **Dual Mode Support**: Notification mode (fast response) and callback mode (intelligent analysis)
-- ✅ **Rich Listeners**: 11 event types (S-Tier 7 + A-Tier 4)
+- ✅ **Rich Listeners**: 19 event types (S-Tier 7 + A-Tier 12) + CUSTOM generic condition polling
 - ✅ **Custom Condition Polling**: CUSTOM type supports monitoring any Skill's numeric return value
 - ✅ **Multi-Step Callbacks**: Support combining multiple APIs for complex operations
 - ✅ **Automatic Resource Management**: Auto-cleanup after task completion/cancellation
@@ -44,7 +44,7 @@ skills/afktask/
 ├── AFKTaskManager.java             # Task manager (CRUD + concurrency control)
 ├── AFKTaskSkill.java               # Built-in Skill (LLM routing entry)
 ├── AFKTaskCallback.java            # Callback configuration (multi-step task chain)
-├── AFKTaskType.java                # Task type enum (12 types: 11 event-based + CUSTOM)
+├── AFKTaskType.java                # Task type enum (20 types: 19 event-based + CUSTOM)
 ├── AFKTaskStatus.java              # Status enum
 ├── AFKTaskListener.java            # Global listener (creator offline cleanup)
 ├── ConditionPlan.java              # Condition plan data structure (for CUSTOM)
@@ -62,6 +62,14 @@ skills/afktask/
     ├── PlayerBedLeaveWatchTask.java        # A-Tier - Monitor leave bed
     ├── PlayerRespawnWatchTask.java         # A-Tier - Monitor respawn
     ├── PlayerItemBreakWatchTask.java       # A-Tier - Monitor item break
+    ├── PlayerFishingWatchTask.java         # A-Tier - Monitor fishing
+    ├── PlayerChatWatchTask.java            # A-Tier - Monitor chat
+    ├── BlockBreakWatchTask.java            # A-Tier - Monitor block break
+    ├── EntityDeathWatchTask.java           # A-Tier - Monitor entity death
+    ├── EntitySpawnWatchTask.java           # A-Tier - Monitor entity spawn
+    ├── EntityExplodeWatchTask.java         # A-Tier - Monitor entity explosion
+    ├── FurnaceExtractWatchTask.java        # A-Tier - Monitor furnace smelt
+    ├── CropGrowthWatchTask.java            # A-Tier - Monitor crop growth
     └── CustomWatchTask.java                # CUSTOM-Tier - Custom condition polling
 ```
 
@@ -79,7 +87,15 @@ AFKTask (Abstract Base Class)
   ├── PlayerBedEnterWatchTask (listens to PlayerBedEnterEvent)
   ├── PlayerBedLeaveWatchTask (listens to PlayerBedLeaveEvent)
   ├── PlayerRespawnWatchTask (listens to PlayerRespawnEvent)
-  └── PlayerItemBreakWatchTask (listens to PlayerItemBreakEvent)
+  ├── PlayerItemBreakWatchTask (listens to PlayerItemBreakEvent)
+  ├── PlayerFishingWatchTask (listens to PlayerFishEvent)
+  ├── PlayerChatWatchTask (listens to AsyncPlayerChatEvent)
+  ├── BlockBreakWatchTask (listens to BlockBreakEvent)
+  ├── EntityDeathWatchTask (listens to EntityDeathEvent)
+  ├── EntitySpawnWatchTask (listens to CreatureSpawnEvent)
+  ├── EntityExplodeWatchTask (listens to EntityExplodeEvent)
+  ├── FurnaceExtractWatchTask (listens to FurnaceExtractEvent)
+  └── CropGrowthWatchTask (listens to BlockGrowEvent)
 
 AFKTaskSkill (implements Skill interface)
   └── Creates concrete tasks via AFKTaskManager.AFKTaskFactory
@@ -399,7 +415,7 @@ private void executeCallback(String triggeredPlayerName) {
 | `PLAYER_CHANGED_WORLD_WATCH` | PlayerChangedWorldEvent | Player world change | `{from_world}`, `{to_world}` |
 | `WEATHER_CHANGE_WATCH` | WeatherChangeEvent | Weather change | `{world_name}`, `{weather_state}`, `{weather_type}` |
 
-### A-Tier Listeners (4)
+### A-Tier Listeners (12)
 
 | Task Type | Event | Monitor Target | Special Placeholders |
 |-----------|-------|----------------|---------------------|
@@ -407,6 +423,65 @@ private void executeCallback(String triggeredPlayerName) {
 | `PLAYER_BED_LEAVE_WATCH` | PlayerBedLeaveEvent | Player leave bed | `{x}`, `{y}`, `{z}`, `{world}` |
 | `PLAYER_RESPAWN_WATCH` | PlayerRespawnEvent | Player respawn | `{x}`, `{y}`, `{z}`, `{world}` |
 | `PLAYER_ITEM_BREAK_WATCH` | PlayerItemBreakEvent | Player item break | `{item_name}`, `{item_type}` |
+| `PLAYER_FISHING_WATCH` | PlayerFishEvent | Player fishing | `{item_name}`, `{item_type}`, `{fishing_state}` |
+| `PLAYER_CHAT_WATCH` | AsyncPlayerChatEvent | Player chat | `{message}`, `{triggered_player}` |
+| `BLOCK_BREAK_WATCH` | BlockBreakEvent | Block break | `{block_type}`, `{x}`, `{y}`, `{z}`, `{world}` |
+| `ENTITY_DEATH_WATCH` | EntityDeathEvent | Entity death | `{entity_type}`, `{entity_name}`, `{x}`, `{y}`, `{z}` |
+| `ENTITY_SPAWN_WATCH` | CreatureSpawnEvent | Entity spawn | `{entity_type}`, `{entity_name}`, `{x}`, `{y}`, `{z}` |
+| `ENTITY_EXPLODE_WATCH` | EntityExplodeEvent | Entity explosion | `{entity_type}`, `{x}`, `{y}`, `{z}`, `{block_list}` |
+| `FURNACE_EXTRACT_WATCH` | FurnaceExtractEvent | Furnace smelt complete | `{item_type}`, `{item_amount}`, `{x}`, `{y}`, `{z}` |
+| `CROP_GROWTH_WATCH` | BlockGrowEvent | Crop growth | `{block_type}`, `{x}`, `{y}`, `{z}`, `{world}` |
+
+### CUSTOM Tier (Generic Condition Polling)
+
+| Task Type | Trigger Mechanism | Monitor Target | Key Parameters |
+|-----------|-------------------|----------------|----------------|
+| `CUSTOM` | BukkitRunnable periodic polling | Numeric field from any Skill | `condition_plan` JSON + optional `callback` |
+
+**CUSTOM type** does not rely on Bukkit events, but determines if conditions are met by periodically polling any Skill's return value. As long as a Skill's action returns data containing numeric fields, it can be used for condition monitoring.
+
+#### condition_plan JSON Format
+
+```json
+{
+  "condition_skill": "bukkit_api",
+  "condition_action": "get_player_health",
+  "result_path": "health",
+  "operator": "less_than",
+  "threshold": 10.0
+}
+```
+
+**Field Descriptions**:
+
+| Field | Description | Example |
+|------|-------------|---------|
+| `condition_skill` | Skill name for condition checking | `"bukkit_api"`, `"market_query"` |
+| `condition_action` | Action name of the Skill | `"get_player_health"`, `"query_balance"` |
+| `result_path` | Field name in SkillResult.data | `"health"`, `"balance"`, `"level"` |
+| `operator` | Comparison operator | `"less_than"`, `"greater_than"`, etc. |
+| `threshold` | Threshold value (double) | `10.0`, `1000.0`, `30.0` |
+
+**Supported operators**: `less_than`, `less_than_or_equal`, `greater_than`, `greater_than_or_equal`, `equal`, `not_equal`
+
+#### CUSTOM vs Event-Based Comparison
+
+| Dimension | Event-Based (19 types) | CUSTOM Type |
+|-----------|------------------------|-------------|
+| Trigger Mechanism | Bukkit EventListener | BukkitRunnable periodic polling |
+| Condition Logic | Hardcoded in onXxxEvent() | Generic: Skill execution + field extraction + numeric comparison |
+| Resource Usage | Event-driven, zero CPU overhead | Periodic polling, executes Skill every N ticks |
+| Extensibility | Requires new Java class | YML config supports new scenarios |
+| Callback Placeholders | Event-specific (e.g., {from_world}) | No special placeholders |
+
+#### CUSTOM Core Design Constraints
+
+1. **Single Condition**: Only supports one numeric condition, no AND/OR multi-condition combinations
+2. **Async Re-entry Prevention**: Calls stopPolling() before callback execution to prevent duplicate triggers during async callback
+3. **Timeout Protection**: ConditionEvaluator sets 5-second timeout per Skill execution
+4. **Creator Online Check**: Checks if creator is online each poll, auto-cancels if offline
+5. **Configurable Polling Interval**: `check_interval_ticks` in config.yml, default 100 ticks (5 seconds)
+6. **Fault Tolerance**: Skill execution failure or timeout does not interrupt the task, continues next poll
 
 > 📖 **Complete Event List**: See [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference.md) for detailed descriptions and configuration examples of all listeners.
 
@@ -422,6 +497,7 @@ afk-task:
   enabled: true                    # Enable AFK task system
   max-tasks: 100                   # Global max tasks (reserved extension point)
   max-tasks-per-player: 1          # Max tasks per player (currently fixed at 1)
+  check-interval-ticks: 100        # CUSTOM task polling interval (ticks, 20tick=1sec, default 5sec)
 ```
 
 ### AFKTaskSkill.yml Configuration
@@ -436,7 +512,7 @@ action_descriptions:
 
 hints:
   - '**Important: Output format must be single_intent**: All AFKTask actions (create_task, cancel_task, query_task) must be returned in single-intent JSON format, absolutely not in multi-step task format. callback is a parameter of entities, not an independent step.'
-  - '**Task Type Description**: PLAYER_ONLINE_WATCH=Monitor player login, PLAYER_OFFLINE_WATCH=Monitor player logout, PLAYER_DEATH_WATCH=Monitor player death, PLAYER_TELEPORT_WATCH=Monitor player teleport, PLAYER_LEVEL_CHANGE_WATCH=Monitor player level change, PLAYER_CHANGED_WORLD_WATCH=Monitor player world change, WEATHER_CHANGE_WATCH=Monitor weather change, PLAYER_BED_ENTER_WATCH=Monitor player enter bed, PLAYER_BED_LEAVE_WATCH=Monitor player leave bed, PLAYER_RESPAWN_WATCH=Monitor player respawn, PLAYER_ITEM_BREAK_WATCH=Monitor player item break.'
+  - '**Task Type Description**: PLAYER_ONLINE_WATCH=Monitor player login, PLAYER_OFFLINE_WATCH=Monitor player logout, PLAYER_DEATH_WATCH=Monitor player death, PLAYER_TELEPORT_WATCH=Monitor player teleport, PLAYER_LEVEL_CHANGE_WATCH=Monitor player level change, PLAYER_CHANGED_WORLD_WATCH=Monitor player world change, WEATHER_CHANGE_WATCH=Monitor weather change, PLAYER_BED_ENTER_WATCH=Monitor player enter bed, PLAYER_BED_LEAVE_WATCH=Monitor player leave bed, PLAYER_RESPAWN_WATCH=Monitor player respawn, PLAYER_ITEM_BREAK_WATCH=Monitor player item break, PLAYER_FISHING_WATCH=Monitor player fishing, PLAYER_CHAT_WATCH=Monitor player chat, BLOCK_BREAK_WATCH=Monitor block break, ENTITY_DEATH_WATCH=Monitor entity death, ENTITY_SPAWN_WATCH=Monitor entity spawn, ENTITY_EXPLODE_WATCH=Monitor entity explosion, FURNACE_EXTRACT_WATCH=Monitor furnace smelt, CROP_GROWTH_WATCH=Monitor crop growth. CUSTOM=Custom condition polling.'
   - '**One-time vs Long-term Tasks (Important)**: This skill only supports one-time tasks, i.e., trigger once and end. Does not accept long-term recurring tasks (e.g., "remind me every 1 hour", "tell me every day at noon"), if user requests such needs, should explain not supported in reasoning and explain reasons.'
   - '**Concurrency Limit and Task Replacement**: Each player can only have one AFK task at a time. If task creation fails with prompt "already has a running AFK task", should inform player can use /kilacraft afk cancel command to cancel old task, then try creating new task.'
 ```
@@ -456,6 +532,15 @@ hints:
 | Player sleeping | `PLAYER_BED_ENTER_WATCH` / `PLAYER_BED_LEAVE_WATCH` | "Monitor Steve sleep" |
 | Item related | `PLAYER_ITEM_BREAK_WATCH` | "Watch Steve's tool break" |
 | Environment change | `WEATHER_CHANGE_WATCH` | "Tell me when it rains" |
+| **Numeric conditions** | **`CUSTOM`** | **"Tell me when my health drops below 10"** |
+| **Fishing activity** | **`PLAYER_FISHING_WATCH`** | **"Tell me when I catch a fish and check market price"** |
+| **Chat messages** | **`PLAYER_CHAT_WATCH`** | **"When I say 'start grinding' execute the command"** |
+| **Block breaking** | **`BLOCK_BREAK_WATCH`** | **"Tell me when I mine diamonds"** |
+| **Entity death** | **`ENTITY_DEATH_WATCH`** | **"Tell me when the Wither dies"** |
+| **Entity spawn** | **`ENTITY_SPAWN_WATCH`** | **"Tell me when a zombie villager spawns in the mob farm"** |
+| **Entity explosion** | **`ENTITY_EXPLODE_WATCH`** | **"Tell me the coordinates when there's an explosion"** |
+| **Furnace smelting** | **`FURNACE_EXTRACT_WATCH`** | **"Tell me when the furnace finishes"** |
+| **Crop growth** | **`CROP_GROWTH_WATCH`** | **"Tell me when wheat matures and check market price"** |
 
 ### 2. Notification Mode vs Callback Mode Selection
 
