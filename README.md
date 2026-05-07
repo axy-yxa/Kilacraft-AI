@@ -6,7 +6,7 @@
 
 **Lightweight AI Agent Plugin for Minecraft**
 
-Plan-and-Execute Architecture · Natural Language · Zero Dependencies · Fully Open Source
+Remember each player's AI assistant - Dialogue as a Service, the more you use it, the better you understand
 
 [![Version](https://img.shields.io/badge/Version-2.0.0-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
@@ -16,9 +16,6 @@ Plan-and-Execute Architecture · Natural Language · Zero Dependencies · Fully 
 </div>
 
 ---
-
-Players interact with AI through natural language — query game data, execute commands, and orchestrate multi-step tasks.  
-Built on Plan-and-Execute + Function Calling architecture. Single JAR, supports both H2 embedded database (zero-config out of the box) and MySQL external database, no Redis or other external middleware.
 
 ## Features
 

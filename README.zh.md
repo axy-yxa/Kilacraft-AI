@@ -6,7 +6,7 @@
 
 **轻量级 Minecraft AI Agent 插件**
 
-Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
+会记住每个玩家的 AI 助手 — 对话即服务，越用越懂你
 
 [![Version](https://img.shields.io/badge/Version-2.0.0-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
@@ -17,9 +17,6 @@ Plan-and-Execute 架构 · 自然语言交互 · 零依赖 · 完全开源
 </div>
 
 ---
-
-玩家通过自然语言与 AI 对话，查询游戏数据、执行命令、编排多步骤任务。
-基于 Plan-and-Execute + Function Calling 架构，一个 JAR 文件，同时支持 H2 嵌入式数据库（零配置开箱即用）和 MySQL 外挂数据库，无需 Redis 等外部中间件。
 
 ## 特性一览
 
