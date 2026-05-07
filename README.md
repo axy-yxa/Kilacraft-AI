@@ -25,16 +25,18 @@ Built on Plan-and-Execute + Function Calling architecture. Single JAR, supports 
 | | Feature | Description |
 |:---:|:---|:---|
 | 🤖 | **AI Engine** | LLM intent recognition · Multi-step task planning & execution · RAG knowledge base · Embedding semantic search · 5 output carriers · Streaming output · Secondary analysis coordinator · Public broadcast · Response sound effects |
+| 🧠 | **Player Profile** | 5-dimension behavioral analysis (style/personality/preferences/communication/observations) · Auto-analysis from conversations · Dynamic prompt injection · AI gets smarter about each player |
+| 🕸️ | **Social Relations** | Auto-track private messages/TPA/skill interactions · Diminishing incremental strength · Daily decay · Friend milestone cross-promotion |
+| 👋 | **Smart Greetings** | Personalized login greetings · Three-category aggregation (own events/friend dynamics/session highlights) · Profile-aware · First-time/returning dual mode |
+| 💾 | **Data Persistence** | Conversation history · Player profiles · Social graph · Server events · Skill audit · H2 zero-config / MySQL hot-swap |
 | 💰 | **Economy** | GlobalMarketPlus integration · Natural language balance/price/listing queries · AI-powered trading (sell/buy/transfer/auction) · Multi-item search |
 | 🔍 | **Bukkit API** | 72 built-in read-only APIs · YAML data-driven · Multi-step data passing (with array indexing) · Fine-grained permissions |
 | 🎮 | **CMI Integration** | Teleport (home/warp/TPA) · Enhanced player info (playtime/AFK/vanish/armor/online list) |
+| 🔔 | **AFK Tasks** | 20 types (19 event listeners + CUSTOM polling) · Natural language creation · Notification/callback dual mode · Smart callback |
+| 📊 | **Vanilla Stats** | 80+ vanilla statistics query · Knowledge base BM25 retrieval · Distance/time auto-conversion · Multi-step condition monitoring |
+| 🎭 | **Personalization** | Multi-personality system · RAG knowledge enhancement (HanLP + BM25) · Embedding semantic search · Custom dictionary · Full language config |
 | 🔧 | **Command Execution** | Execute commands as player · Full server permission inheritance · Config toggle + permission node |
 | 🎨 | **Sound & Particles** | AI-triggered sounds/particles · Only caller perceives · YAML-driven config |
-| 📊 | **Vanilla Stats** | 80+ vanilla statistics query · Knowledge base BM25 retrieval · Distance/time auto-conversion · Multi-step condition monitoring |
-| 🔔 | **AFK Tasks** | 20 types (19 event listeners + CUSTOM polling) · Natural language creation · Notification/callback dual mode · Smart callback |
-| 💾 | **Data Persistence** | Conversation history saved (persists across restarts) · Player profiles (AI remembers preferences) · Social relation graph · Server event records · Skill audit logs |
-| 👋 | **Smart Greetings** | Personalized login welcome · Three-category data aggregation (own events/friend dynamics/summary milestones) · Cooldown mechanism |
-| 🎭 | **Personalization** | Multi-personality system · RAG knowledge enhancement (HanLP + BM25) · Embedding semantic search · Custom dictionary · Full language config |
 | 🔌 | **SPI Extension** | Third-party Skill registration · Plugin command mode · Complete dev docs · Global Skill registry |
 | 🛡️ | **Security** | Non-cooperative value scanning filter · Cross-player ops blocked unless whitelisted · Malicious Skills cannot bypass |
 
@@ -81,8 +83,7 @@ Player: Alert me when my health drops below 5
 | 1.17 - 1.19 | 17+ | All major cores | ✅ |
 | 1.20 - 1.21+ | 21+ | All major cores | ✅ |
 
-> Optional dependencies: MythicMobs 5.12+ (NPC placeholders) · GlobalMarketPlus 1.3.8+ (economy) · CMI (teleport/query) · Vault (multi-currency)  
-> New config files: `database.yml` (H2/MySQL database) · `greeting.yml` (AI login greetings) · `llm.yml`/`output.yml`/`knowledge.yml` (split from original config.yml)
+> Optional dependencies: MythicMobs 5.12+ (NPC placeholders) · GlobalMarketPlus 1.3.8+ (economy) · CMI (teleport/query) · Vault (multi-currency)
 > Features auto-disable when plugins are missing — core chat remains unaffected.
 
 ## Commands
