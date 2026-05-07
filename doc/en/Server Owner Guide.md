@@ -20,7 +20,7 @@
 | **1.17 - 1.19** | Java 17+ | All |
 | **1.20 - 1.21+** | Java 21+ | All |
 
-One JAR compatible with all versions. Developed on Spigot 1.16.5 API, fully supports Folia regional thread scheduling.
+> One JAR compatible with all versions. Developed on Spigot 1.16.5 API, fully supports Folia regional thread scheduling.
 
 ### Optional Dependencies
 
@@ -31,7 +31,7 @@ One JAR compatible with all versions. Developed on Spigot 1.16.5 API, fully supp
 | **MythicMobs** | 5.12.0+ | NPC placeholders (display AI responses) |
 | **Vault** | Latest | Multi-currency support |
 
-Features auto-disable when plugins are missing. Core chat remains unaffected.
+> Features auto-disable when plugins are missing. Core chat remains unaffected.
 
 ---
 
@@ -281,7 +281,7 @@ Run `/kilacraft reload` for hot-switching. Auto-fallback on failure.
 | Server Events | Milestone events like deaths, achievements, trades |
 | Skill Audit | All Skill execution logs |
 
-Data retention days configurable in `database.yml`. Expired data is automatically cleaned up.
+> Data retention days configurable in `database.yml`. Expired data is automatically cleaned up.
 
 ---
 
@@ -497,7 +497,7 @@ Effects visible/audible only to the triggering player. Triggered via natural lan
 | `kilacraft.command.execute` | op | Command execution (OP only by default) |
 | `kilacraft.tasks` | op | View scheduled task status (OP by default) |
 
-Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions.
+> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions.
 
 ---
 
@@ -536,15 +536,19 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 ## FAQ
 
 **Q: Is the API expensive?**
+
 With DeepSeek as an example, a single conversation costs approximately ¥0.001-0.002. Setting cooldown time (default 5 seconds) effectively controls costs.
 
 **Q: Which LLMs are supported?**
+
 All OpenAI-compatible providers. Thinking/reasoning models (like deepseek-reasoner, o1) are not supported.
 
 **Q: Will it lag the server?**
+
 No. All API requests are async. Memory usage 8-50 MB, HTTP connection pool reuse, supports streaming to reduce latency.
 
 **Q: How to update?**
+
 Back up `plugins/Kilacraft-AI/` to preserve configs, replace the JAR, restart the server.
 
 ---
