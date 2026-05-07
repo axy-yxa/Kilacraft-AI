@@ -15,7 +15,7 @@ settings:
   # zh = Chinese (default), en = English
   # Scope: log output, skill messages, LLM prompts, AFK task notifications, etc.
   # Run /kilacraft reload to apply changes immediately
-  language: zh
+  language: en
 
   # 是否在控制台显示API请求日志
   # 调试时开启，正常使用建议关闭
