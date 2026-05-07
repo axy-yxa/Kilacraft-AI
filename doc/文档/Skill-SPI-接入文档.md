@@ -1,6 +1,6 @@
 # Kilacraft-AI - Skill SPI 接入文档  
 
-> **最后更新**: 2026-04-23  
+> **最后更新**: 2026-05-06  
 > **说明**: 本文档指导插件开发者如何通过 Skill SPI 接口将自定义技能接入 Kilacraft-AI  
 
 ---
@@ -18,11 +18,12 @@
 9. [安全拦截器（重要）](#9-安全拦截器重要)
 10. [命名规范与冲突处理](#10-命名规范与冲突处理)
 11. [配置化支持（可选）](#11-配置化支持可选)
-12. [完整示例：玩家状态查询插件](#12-完整示例玩家状态查询插件)
+12. [完整示例](#12-完整示例)
 13. [开发依赖配置](#13-开发依赖配置)
 14. [生命周期与加载顺序](#14-生命周期与加载顺序)
 15. [常见问题 FAQ](#15-常见问题-faq)
 16. [API 参考](#16-api-参考)
+17. [发布与审查](#17-发布与审查)
 
 ---
 
@@ -102,9 +103,9 @@ Kilacraft-AI 通过 **SPI（Service Provider Interface）** 机制，允许第�
 <dependency>
     <groupId>com.zm</groupId>
     <artifactId>Kilacraft-Skill-API</artifactId>
-    <version>1.4.3</version>
+        <version>2.0.0</version>
     <scope>system</scope>
-    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-1.4.3.jar</systemPath>
+    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-2.0.0.jar</systemPath>
 </dependency>
 ```
 
@@ -743,7 +744,7 @@ security:
 
 ---
 
-## 10. 配置化支持（可选）
+## 11. 配置化支持（可选）
 
 Kilacraft-AI 内置 Skill 使用 `SkillConfig` 进行配置化管理（描述、action、提示信息等均可配置）。但第三方 Skill **不需要**遵循这一机制，你完全可以用自己的配置方式。
 
@@ -789,11 +790,11 @@ public List<Skill> getSkills() {
 
 ---
 
-## 11. 完整示例：玩家状态查询插件
+## 12. 完整示例
 
 以下是一个完整的第三方插件示例，查询玩家的生命值、饥饿值和经验等级。
 
-### Skill 实现
+### 12.1 玩家状态查询插件
 
 ```java
 package com.example.statsplugin.skills;
@@ -939,7 +940,7 @@ softdepend:
   - Kilacraft-AI
 ```
 
-### 12. 完整示例：命令执行插件
+### 12.2 命令执行插件（内置示例）
 
 以下是一个完整的第三方插件示例，通过 CommandSkill 执行服务器命令。
 
@@ -971,7 +972,7 @@ AI：你的等级是 15，总经验：3200。饱食度：18/20。
 
 ---
 
-## 12. 开发依赖配置
+## 13. 开发依赖配置
 
 ### Maven
 
@@ -981,7 +982,7 @@ AI：你的等级是 15，总经验：3200。饱食度：18/20。
     <dependency>
         <groupId>com.zm.kilacraftAI</groupId>
         <artifactId>kilacraft-skill-api</artifactId>
-        <version>1.3.6</version>
+                <version>2.0.0</version>
         <scope>system</scope>
         <systemPath>${project.basedir}/libs/kilacraft-skill-api.jar</systemPath>
     </dependency>
@@ -1025,7 +1026,7 @@ com.zm.kilacraftAI.skills.framework.spi.SkillRegistry
 
 ---
 
-## 13. 生命周期与加载顺序
+## 14. 生命周期与加载顺序
 
 ```
 服务器启动
@@ -1060,7 +1061,7 @@ com.zm.kilacraftAI.skills.framework.spi.SkillRegistry
 
 ---
 
-## 14. 常见问题 FAQ
+## 15. 常见问题 FAQ
 
 ### Q: 我的插件先加载还是 Kilacraft-AI 先加载？
 
@@ -1118,7 +1119,7 @@ A: 不建议。请使用小写英文 + 下划线格式，确保兼容性和可�
 
 ---
 
-## 15. API 参考
+## 16. API 参考
 
 ### Skill 接口方法
 
@@ -1167,11 +1168,13 @@ A: 不建议。请使用小写英文 + 下划线格式，确保兼容性和可�
 
 ---
 
-## 16. 分享你的 Skill
+## 17. 发布与审查
 
-当你开发完成一个 Skill 后，可以通过以下方式分享给社区：
+开发完成一个 Skill 后，你需要选择分发方式，并**必须提交安全审查**。
 
-### 方式一：集成到你的插件中（推荐）
+### 17.1 分发方式
+
+**方式一：集成到你的插件中（推荐）**
 
 如果你的插件已经有用户基础，直接将 Skill 集成到插件中是最简单的方式：
 
@@ -1204,7 +1207,7 @@ public class MyPlugin extends JavaPlugin implements SkillProvider {
 1. 创建一个独立的 Bukkit 插件项目
 2. 实现 `SkillProvider` 接口
 3. 发布到 MineBBS/SpigotMC/GitHub
-4. 在 README 中标注 "Requires Kilacraft-AI 1.4.3+"
+4. 在 README 中标注 "Requires Kilacraft-AI 2.0+"
 
 **示例 plugin.yml：**
 ```yaml
@@ -1217,18 +1220,28 @@ authors: [YourName]
 description: A custom skill for Kilacraft-AI
 ```
 
-### 方式三：提交到社区索引（未来）
+### 17.2 安全审查（必做）
 
-当 Kilacraft-AI 用户基数增长后，我们将建立社区 Skill 索引平台，届时你可以：
+**所有第三方 Skill 必须提交安全审查**，无论选择哪种分发方式。审查通过后会在 [Skill 全球台账](https://axy-yxa.github.io/Kilacraft-AI/skill-registry.html) 标记为 🟢 已审查，服主据此判断是否信任。
 
-1. 将 Skill 发布到 GitHub/Gitee
-2. 提交 PR 到社区索引仓库
-3. 通过审核后获得 "Verified" 徽章
-4. 在官方文档中被推荐
+**提交方式**：在 [GitHub Issues](https://github.com/axy-yxa/Kilacraft-AI/issues) 创建新 Issue，标题格式 `[Skill 审查] 你的 Skill 名称`
 
-> **注意**：社区索引平台尚在规划中，预计 3-6 个月后上线。当前阶段建议采用方式一或方式二。
+**需要提供**：
+1. **Skill 名称**（与 `getName()` 返回值一致）
+2. **源码或 JAR 文件**（必须，用于安全审查）
+3. **功能描述**（简要说明 Skill 做什么）
+4. **权限说明**（需要哪些 Bukkit 权限或依赖哪些插件）
+5. **文档链接**（可选，如有使用文档或 Wiki）
 
-### 最佳实践
+**审查标准**：
+- ✅ 不直接操作其他玩家数据（除非明确声明且合理）
+- ✅ 不执行危险命令（op 级别命令、文件读写等）
+- ✅ 无恶意网络请求或数据外传
+- ✅ 资源释放正确（无内存泄漏）
+
+审查通过后，你的 Skill 会被加入 `verified-skills.json` 白名单，并在台账页面标记为 🟢 已审查。
+
+### 17.3 最佳实践
 
 - 📝 **完善文档**：提供清晰的使用说明和配置示例
 - 🧪 **充分测试**：确保在不同场景下都能正常工作

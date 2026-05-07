@@ -755,8 +755,3 @@ If you encounter problems or have improvement suggestions during usage:
 2. Check if configuration file format is correct
 3. Try restoring to default configuration, confirm if it's a configuration problem
 4. Collect relevant logs and configuration snippets, provide feedback to developers
-
----
-
-**Last Updated**: 2026-04-19
-**Compatible Version**: Kilacraft-AI v1.5.0+

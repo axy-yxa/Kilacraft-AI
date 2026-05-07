@@ -18,11 +18,12 @@
 9. [Security Interceptor (Important)](#9-security-interceptor-important)
 10. [Naming Conventions and Conflict Resolution](#10-naming-conventions-and-conflict-resolution)
 11. [Configuration Support (Optional)](#11-configuration-support-optional)
-12. [Complete Example: Player Stats Query Plugin](#12-complete-example-player-stats-query-plugin)
+12. [Complete Examples](#12-complete-examples)
 13. [Development Dependency Configuration](#13-development-dependency-configuration)
 14. [Lifecycle and Loading Order](#14-lifecycle-and-loading-order)
 15. [FAQ](#15-faq)
 16. [API Reference](#16-api-reference)
+17. [Publish & Review](#17-publish--review)
 
 ---
 
@@ -749,7 +750,7 @@ When third-party Skill names conflict with already registered Skills (built-in o
 
 ---
 
-## 10. Configuration Support (Optional)
+## 11. Configuration Support (Optional)
 
 Kilacraft-AI built-in Skills use `SkillConfig` for configuration management (description, actions, hints, etc. are all configurable). But third-party Skills **don't need** to follow this mechanism, you can use your own configuration approach.
 
@@ -795,11 +796,11 @@ public List<Skill> getSkills() {
 
 ---
 
-## 11. Complete Example: Player Stats Query Plugin
+## 12. Complete Examples
 
 Here's a complete third-party plugin example that queries player health, hunger, and experience level.
 
-### Skill Implementation
+### 12.1 Player Stats Query Plugin
 
 ```java
 package com.example.statsplugin.skills;
@@ -945,7 +946,7 @@ softdepend:
   - Kilacraft-AI
 ```
 
-### 12. Complete Example: Command Execution Plugin
+### 12.2 Command Execution Plugin (Built-in Example)
 
 Following is a complete example showing how CommandSkill works. Note: CommandSkill is a built-in skill of Kilacraft-AI, available for all users.
 
@@ -975,7 +976,7 @@ AI: Your level is 15, total XP: 3200. Hunger: 18/20.
 
 ---
 
-## 12. Development Dependency Configuration
+## 13. Development Dependency Configuration
 
 ### Maven
 
@@ -1029,7 +1030,7 @@ com.zm.kilacraftAI.skills.framework.spi.SkillRegistry
 
 ---
 
-## 13. Lifecycle and Loading Order
+## 14. Lifecycle and Loading Order
 
 ```
 Server Startup
@@ -1064,7 +1065,7 @@ Ensures all third-party plugins have completed SkillProvider registration in `on
 
 ---
 
-## 14. FAQ
+## 15. FAQ
 
 ### Q: Does my plugin load first or does Kilacraft-AI load first?
 
@@ -1122,7 +1123,7 @@ For example, clearly state in description: `"Returned data contains item_name, p
 
 ---
 
-## 15. API Reference
+## 16. API Reference
 
 ### Skill Interface Methods
 
@@ -1169,4 +1170,85 @@ For example, clearly state in description: `"Returned data contains item_name, p
 | `getData(Class<T>)` | `T` | Generic get data |
 | `toFuture()` | `CompletableFuture<SkillResult>` | Convert to Future |
 
+---
 
+## 17. Publish & Review
+
+Once you've developed a Skill, you need to choose a distribution method and **must submit it for security review**.
+
+### 17.1 Distribution Methods
+
+**Method 1: Integrate into Your Plugin (Recommended)**
+
+If your plugin already has a user base, integrating the Skill directly is the simplest approach:
+
+```java
+// Implement SkillProvider in your plugin main class
+public class MyPlugin extends JavaPlugin implements SkillProvider {
+    @Override
+    public void onEnable() {
+        getServer().getServicesManager().register(
+            SkillProvider.class, this, this, ServicePriority.Normal
+        );
+    }
+    
+    @Override
+    public List<Skill> getSkills() {
+        return List.of(new MyCustomSkill());
+    }
+}
+```
+
+**Advantages:**
+- ✅ No extra installation for users
+- ✅ Auto-registers via SPI
+- ✅ Low maintenance cost
+
+### Method 2: Create a Standalone Skill Plugin
+
+If you want to distribute the Skill independently:
+
+1. Create an independent Bukkit plugin project
+2. Implement the `SkillProvider` interface
+3. Publish to SpigotMC/GitHub
+4. Mark "Requires Kilacraft-AI 2.0+" in README
+
+**Example plugin.yml:**
+```yaml
+name: MyAwesomeSkill
+version: 1.0.0
+main: com.example.MySkillPlugin
+api-version: 1.21
+softdepend: [Kilacraft-AI]  # Soft dependency
+authors: [YourName]
+description: A custom skill for Kilacraft-AI
+```
+
+### 17.2 Security Review 
+
+**All third-party Skills must submit for security review**, regardless of distribution method. After approval, your Skill will be marked with a 🟢 Verified badge on the [Skill Global Registry](https://axy-yxa.github.io/Kilacraft-AI/skill-registry.html), helping server owners decide whether to trust it.
+
+**How to submit**: Create a new Issue on [GitHub Issues](https://github.com/axy-yxa/Kilacraft-AI/issues) with the title format `[Skill Review] Your Skill Name`
+
+**Required information**:
+1. **Skill name** (must match `getName()` return value)
+2. **Source code or JAR file** (required for security review)
+3. **Feature description** (brief explanation of what the Skill does)
+4. **Permission requirements** (Bukkit permissions or plugin dependencies)
+5. **Documentation link** (optional, usage docs or Wiki)
+
+**Review criteria**:
+- ✅ No direct manipulation of other player data (unless explicitly declared and justified)
+- ✅ No dangerous commands (OP-level commands, file I/O, etc.)
+- ✅ No malicious network requests or data exfiltration
+- ✅ Proper resource cleanup (no memory leaks)
+
+Once approved, your Skill will be added to the `verified-skills.json` whitelist and marked with a 🟢 badge on the registry page.
+
+### 17.3 Best Practices
+
+- 📝 **Document thoroughly**: Provide clear usage instructions and configuration examples
+- 🧪 **Test thoroughly**: Ensure it works correctly in different scenarios
+- 🔒 **Mind security**: Don't perform dangerous operations, implement proper permission checks
+- 🎯 **Single responsibility**: One Skill does one thing, and does it well
+- 💬 **Collect feedback**: Watch for user Issues, continuously improve
