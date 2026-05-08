@@ -44,12 +44,16 @@ public class GreetingPromptBuilder {
             要求：
             1. 根据离线事件自然地提及重要的事，没有则跳过，不要编造
             2. 根据好友动态提及好友的重要动态（如好友击杀了BOSS、完成了袭击、宠物战死、被雷劈等趣事），没有则跳过
-            3. 在线好友列表为空时，绝对不要提及任何好友相关内容，不要说"好友们在忙"之类的话
-            4. 玩家数据中只有出现有趣的数值（如666、888等吉利数字、整数里程碑、顺子数字）时才提及，无意义的零值（如0小时、0天）必须忽略；上次游玩亮点若有则提及，没有则跳过
-            5. 如果离线时间很短（如"刚刚"），不要说"好久不见"或"休息了很久"之类的话，简单打招呼即可
-            6. 不超过 200 个汉字，像朋友聊天一样自然
-            7. 不要列举所有事件，挑选最有价值的 1-5 件提及
-            8. 上次位置仅供参考，除非在特殊世界（末地/下界），否则不要提及""";
+            3. 在线好友和离线好友列表均为空时，不要提及任何好友在线状态相关内容，不要说“好友们在忙”之类的话。注意：好友动态和好友登录频次是独立数据，不受此条限制
+            4. 玩家数据中，原版统计数值在以下情况可以提及：有意义的里程碑（如1000小时、10000次击杀、第100次睡觉等整数）、和离线事件有关联的数字（如刚死了但累计被末影龙杀了99次）、特别突出或反常的数值（如挖了上万钻石）。不需要逐个列举，挑最有意思的1-3个即可。无意义的零值必须忽略
+            5. 如果离线时间很短（如“刚刚”），不要说“好久不见”或“休息了很久”之类的话，用轻松的语气打招呼即可，但如果有有价值的数据仍应正常提及
+            6. 充分利用上面提供的数据，尽量多提及有价值的信息，让问候内容丰富充实，不要只说一两句话就结束；控制在 300 个汉字以内，像朋友聊天一样自然
+            7. 四大分类（离线事件、好友动态、在线好友、玩家数据）中有实际内容的都要提及，不要遗漏某个分类。“都要提及”是指分类级别不能跳过，分类内的具体数据项不需要逐个列举，挑最有价值的即可
+            8. 上次位置仅供参考，除非在特殊世界（末地/下界），否则不要提及
+            9. 死亡消息为Minecraft原版死亡消息（英文），需翻译为自然的中文描述（如“was slain by Zombie”→“被僵尸打死了”）；成就名为原版命名空间格式（如minecraft:story/mine_diamond），需翻译为玩家易懂的中文描述
+            10. 数据中的时间单位统一为分钟，距离单位为格（1格=1米），伤害单位为半心（2半心=1颗心），均需自行换算为更自然的表达（如“120分钟”→“2小时”、“离线好友180分钟前下线”→“3小时前”）
+            11. 好友所在世界名为服务器原始世界名，常见的有 world（主世界）、world_nether（下界）、world_the_end（末地），但也可能是服务器自定义的世界名。非标准世界名直接使用原名即可
+            12. 好友在线时长、离线好友下线时间、好友登录频次、全服事件数等辅助数据，不需要逐项提及，选择最有价值的即可""";
 
     /**
      * 构建问候提示词
@@ -85,21 +89,28 @@ public class GreetingPromptBuilder {
      */
     private String buildReturningPrompt(GreetingContext context, String customPrompt, String playerName) {
         String offlineDuration = formatDuration(context.getOfflineDurationMs());
-        String ownEventsSection = buildOfflineEventsSection(context.getOfflineEvents());
-        String friendEventsSection = buildFriendEventsSection(context.getFriendEvents());
-        String onlineFriendsSection = buildOnlineFriendsSection(context.getOnlineFriends());
+        String ownEventsSection = buildOfflineEventsSection(context.getOfflineEvents(), context.getGlobalEventCount());
+        String friendEventsSection = buildFriendEventsSection(context.getFriendEvents(), context.getFriendLoginCounts());
+        String onlineFriendsSection = buildOnlineFriendsSection(context.getOnlineFriends(), context.getOfflineFriends());
         String lastLocationSection = buildLastLocationSection(context.getProfile());
-        String summarySection = buildSummarySection(context.getSummaryStats());
+        String summarySection = buildSummarySection(context.getSummaryStats(), context.getVanillaStats());
 
         return customPrompt.replace("{player}", playerName).replace("{offline_duration}", offlineDuration).replace("{own_events_section}", ownEventsSection).replace("{friend_events_section}", friendEventsSection).replace("{online_friends_section}", onlineFriendsSection).replace("{last_location}", lastLocationSection).replace("{summary_section}", summarySection);
     }
 
     /**
      * 构建离线事件文本段落
+     *
+     * @param events           离线事件列表
+     * @param globalEventCount 离线期间全服事件总数
      */
-    public String buildOfflineEventsSection(List<ServerEvent> events) {
+    public String buildOfflineEventsSection(List<ServerEvent> events, int globalEventCount) {
         if (events == null || events.isEmpty()) {
-            return "【离线期间发生的事】\n没有特别的事情发生。";
+            StringBuilder emptySb = new StringBuilder("【离线期间发生的事】\n没有特别的事情发生。");
+            if (globalEventCount > 0) {
+                emptySb.append("\n你不在的时候，全服共发生了 ").append(globalEventCount).append(" 件事");
+            }
+            return emptySb.toString();
         }
 
         Map<ServerEventType, List<ServerEvent>> grouped = events.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
@@ -110,6 +121,11 @@ public class GreetingPromptBuilder {
         for (Map.Entry<ServerEventType, List<ServerEvent>> entry : grouped.entrySet()) {
             String summary = summarizeEventType(entry.getKey(), entry.getValue());
             joiner.add(summary);
+        }
+
+        // 追加全服事件总数
+        if (globalEventCount > 0) {
+            joiner.add("你不在的时候，全服共发生了 " + globalEventCount + " 件事");
         }
 
         return joiner.toString();
@@ -127,22 +143,87 @@ public class GreetingPromptBuilder {
             }
             case MARKET_MONEY_RECEIVED -> {
                 int count = events.size();
-                yield count == 1 ? "你收到了一笔款项" + appendDataSuffix(events.get(0)) : "你收到了 " + count + " 笔款项";
+                String amountStr = formatMoneyAmount(events.get(0).getData());
+                yield count == 1 ? "你收到了 " + amountStr + " 收入" : "你收到了 " + count + " 笔款项（共 " + sumMoneyAmounts(events) + "）";
             }
-            case PLAYER_DEATH -> "你挂了 " + events.size() + " 次";
-            case PLAYER_ADVANCEMENT -> "你达成了 " + events.size() + " 个成就";
-            case PLAYER_LEVEL_UP -> "你升了 " + events.size() + " 级";
-            case PLAYER_USE_TOTEM -> "你触发了不死图腾" + (data.isEmpty() ? "" : "（" + formatDamageCause(data) + "）");
-            case PLAYER_DEFEAT_BOSS -> "你击杀了 " + formatEntityName(data);
+            case PLAYER_DEATH -> {
+                int count = events.size();
+                if (count == 1) {
+                    yield "你挂了 1 次" + (data.isEmpty() ? "" : "（" + data + "）");
+                } else {
+                    // 多次死亡：按死亡消息分组，输出原文（LLM自行归纳）
+                    Map<String, Long> deathMsgCount = events.stream().collect(Collectors.groupingBy(e -> e.getData() != null ? e.getData() : "未知", Collectors.counting()));
+                    StringJoiner dj = new StringJoiner("、");
+                    deathMsgCount.forEach((msg, cnt) -> dj.add(msg + (cnt > 1 ? " x" + cnt : "")));
+                    yield "你挂了 " + count + " 次（" + dj + "）";
+                }
+            }
+            case PLAYER_ADVANCEMENT -> {
+                int count = events.size();
+                if (count == 1) {
+                    yield "你达成了成就 " + data;
+                } else {
+                    // 多个成就：逐条输出成就 key（LLM自行判断有趣程度）
+                    StringJoiner aj = new StringJoiner(", ");
+                    for (ServerEvent e : events) {
+                        aj.add(e.getData() != null ? e.getData() : "未知");
+                    }
+                    yield "你达成了 " + count + " 个成就（" + aj + "）";
+                }
+            }
+            case PLAYER_LEVEL_UP -> "你升了 " + events.size() + " 级" + (data.isEmpty() ? "" : "（" + data + "）");
+            case PLAYER_USE_TOTEM ->
+                    "你触发了不死图腾" + (events.size() > 1 ? " " + events.size() + " 次" : "") + (data.isEmpty() ? "" : "（" + formatDamageCause(data) + "）");
+            case PLAYER_DEFEAT_BOSS ->
+                    "你击杀了 " + formatEntityName(data) + (events.size() > 1 ? " " + events.size() + " 次" : "");
             case PLAYER_COMPLETE_RAID -> "你完成了袭击（" + data + "）";
             case PLAYER_PET_DEATH -> "你的宠物战死了（" + formatPetDeathData(data) + "）";
-            case PLAYER_PVP_KILL -> "你在PVP中击杀了 " + data;
+            case PLAYER_PVP_KILL -> "你在PVP中击杀了 " + data + (events.size() > 1 ? " " + events.size() + " 次" : "");
+            case PLAYER_PVP_DEATH ->
+                    "你在PVP中被 " + data + " 击杀了" + (events.size() > 1 ? " " + events.size() + " 次" : "");
             case PLAYER_TOOL_BREAK -> "你的" + formatMaterialName(data) + " 断了";
             case PLAYER_CATCH_TREASURE -> "你钓到了 " + formatMaterialName(data);
-            case PLAYER_LIGHTNING_STRIKE -> "你被雷劈了";
-            case PLAYER_CURE_VILLAGER -> "你救了一个僵尸村民";
+            case PLAYER_LIGHTNING_STRIKE -> "你被雷劈了" + (events.size() > 1 ? " " + events.size() + " 次" : "");
+            case PLAYER_CURE_VILLAGER -> "你救了一个僵尸村民" + (events.size() > 1 ? " " + events.size() + " 次" : "");
+            case PLAYER_MINE_ANCIENT_DEBRIS ->
+                    "你挖到了远古残骸" + (events.size() > 1 ? " " + events.size() + " 块" : "");
+            case PLAYER_TAME_ANIMAL -> "你驯服了" + formatPetEntityName(data);
+            case PLAYER_CRAFT_ENCHANTED_GOLDEN_APPLE ->
+                    "你合成了附魔金苹果" + (events.size() > 1 ? " " + events.size() + " 个" : "");
+            case PLAYER_BUILD_WITHER -> "你召唤了凋零" + (events.size() > 1 ? " " + events.size() + " 次" : "");
             default -> type.getDescription() + " x" + events.size();
         };
+    }
+
+    /**
+     * 格式化金额（data 存储的是 price 字符串，如 "50.0" 或 "-1.0"）
+     */
+    private String formatMoneyAmount(String data) {
+        if (data == null || data.isEmpty()) return "一笔款项";
+        try {
+            double amount = Double.parseDouble(data);
+            if (amount < 0) {
+                // 负数表示扣费/税收，取绝对值展示
+                return String.format("%.1f", Math.abs(amount));
+            }
+            return String.format("%.1f", amount);
+        } catch (NumberFormatException e) {
+            return data;
+        }
+    }
+
+    /**
+     * 汇总多笔款项的总金额
+     */
+    private String sumMoneyAmounts(List<ServerEvent> events) {
+        double total = 0;
+        for (ServerEvent e : events) {
+            try {
+                total += Double.parseDouble(e.getData() != null ? e.getData() : "0");
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return String.format("%.1f", Math.abs(total));
     }
 
     /**
@@ -176,43 +257,114 @@ public class GreetingPromptBuilder {
 
     /**
      * 构建在线好友文本段落
+     *
+     * @param onlineFriends  在线好友状态列表
+     * @param offlineFriends 离线好友状态列表
      */
-    public String buildOnlineFriendsSection(List<String> onlineFriends) {
-        if (onlineFriends == null || onlineFriends.isEmpty()) {
+    public String buildOnlineFriendsSection(List<FriendStatus> onlineFriends, List<FriendStatus> offlineFriends) {
+        boolean hasOnline = onlineFriends != null && !onlineFriends.isEmpty();
+        boolean hasOffline = offlineFriends != null && !offlineFriends.isEmpty();
+
+        if (!hasOnline && !hasOffline) {
             return "【目前在线的好友】\n暂无好友在线。";
         }
-        return "【目前在线的好友】\n" + String.join("、", onlineFriends);
+
+        int onlineCount = org.bukkit.Bukkit.getOnlinePlayers().size();
+        StringBuilder sb = new StringBuilder("【目前在线的好友】\n");
+
+        // 在线好友：名称 + 世界信息
+        if (hasOnline) {
+            StringJoiner joiner = new StringJoiner("、");
+            for (FriendStatus f : onlineFriends) {
+                StringBuilder desc = new StringBuilder(f.name());
+                if (f.world() != null && !f.world().isEmpty()) {
+                    desc.append("（").append(f.world()).append("）");
+                }
+                joiner.add(desc);
+            }
+            sb.append(joiner);
+        }
+
+        // 在线人数
+        sb.append("\n（服务器当前在线 ").append(onlineCount).append(" 人）");
+
+        // 在线好友会话时长（原始分钟数）
+        if (hasOnline) {
+            boolean hasSession = false;
+            StringBuilder sessionSb = new StringBuilder();
+            for (FriendStatus f : onlineFriends) {
+                if (f.sessionMinutes() > 0) {
+                    sessionSb.append(f.name()).append(" 在线 ").append(f.sessionMinutes()).append(" 分钟; ");
+                    hasSession = true;
+                }
+            }
+            if (hasSession) {
+                sb.append("\n").append(sessionSb);
+            }
+        }
+
+        // 离线好友最后在线时间
+        if (hasOffline) {
+            sb.append("\n离线好友：");
+            StringJoiner offlineJoiner = new StringJoiner("、");
+            for (FriendStatus f : offlineFriends) {
+                if (f.sessionMinutes() > 0) {
+                    offlineJoiner.add(f.name() + "（" + f.sessionMinutes() + " 分钟前下线）");
+                }
+            }
+            sb.append(offlineJoiner);
+        }
+
+        return sb.toString();
     }
 
     /**
-     * 构建好友动态文本段落（分类二：好友动态）
+     * 构建好友动态文本段落
+     *
+     * @param friendEvents      好友事件列表
+     * @param friendLoginCounts 离线期间好友登录次数
      */
-    public String buildFriendEventsSection(List<ServerEvent> friendEvents) {
-        if (friendEvents == null || friendEvents.isEmpty()) {
-            return "【好友动态】\n好友们最近没什么特别的事。";
-        }
+    public String buildFriendEventsSection(List<ServerEvent> friendEvents, Map<String, Integer> friendLoginCounts) {
+        boolean hasEvents = friendEvents != null && !friendEvents.isEmpty();
+        boolean hasLogins = friendLoginCounts != null && !friendLoginCounts.isEmpty();
 
-        // 按玩家名分组
-        Map<String, List<ServerEvent>> byPlayer = new LinkedHashMap<>();
-        for (ServerEvent e : friendEvents) {
-            String name = e.getPlayerName() != null ? e.getPlayerName() : "某位好友";
-            byPlayer.computeIfAbsent(name, k -> new ArrayList<>()).add(e);
+        if (!hasEvents && !hasLogins) {
+            return "【好友动态】\n好友们最近没什么特别的事。";
         }
 
         StringJoiner joiner = new StringJoiner("\n");
         joiner.add("【好友动态】");
-        for (Map.Entry<String, List<ServerEvent>> entry : byPlayer.entrySet()) {
-            String playerName = entry.getKey();
-            List<ServerEvent> events = entry.getValue();
 
-            // 按事件类型分组后生成摘要
-            Map<ServerEventType, List<ServerEvent>> grouped = events.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
+        // 好友事件摘要
+        if (hasEvents) {
+            // 按玩家名分组
+            Map<String, List<ServerEvent>> byPlayer = new LinkedHashMap<>();
+            for (ServerEvent e : friendEvents) {
+                String name = e.getPlayerName() != null ? e.getPlayerName() : "某位好友";
+                byPlayer.computeIfAbsent(name, k -> new ArrayList<>()).add(e);
+            }
 
-            for (Map.Entry<ServerEventType, List<ServerEvent>> ge : grouped.entrySet()) {
-                String summary = summarizeFriendEvent(playerName, ge.getKey(), ge.getValue());
-                joiner.add(summary);
+            for (Map.Entry<String, List<ServerEvent>> entry : byPlayer.entrySet()) {
+                String playerName = entry.getKey();
+                List<ServerEvent> events = entry.getValue();
+
+                // 按事件类型分组后生成摘要
+                Map<ServerEventType, List<ServerEvent>> grouped = events.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
+
+                for (Map.Entry<ServerEventType, List<ServerEvent>> ge : grouped.entrySet()) {
+                    String summary = summarizeFriendEvent(playerName, ge.getKey(), ge.getValue());
+                    joiner.add(summary);
+                }
             }
         }
+
+        // 好友登录频次
+        if (hasLogins) {
+            StringJoiner loginJoiner = new StringJoiner("、");
+            friendLoginCounts.forEach((name, count) -> loginJoiner.add(name + " " + count + " 次"));
+            joiner.add("好友登录频次：" + loginJoiner);
+        }
+
         return joiner.toString();
     }
 
@@ -223,24 +375,60 @@ public class GreetingPromptBuilder {
         // 大多数好友动态事件只有1条，取第一条的 data 作为详情
         String data = events.get(0).getData() != null ? events.get(0).getData() : "";
         return switch (type) {
-            case PLAYER_DEATH -> playerName + " 挂了 " + events.size() + " 次";
-            case PLAYER_ADVANCEMENT -> playerName + " 达成了 " + events.size() + " 个成就";
-            case PLAYER_LEVEL_UP -> playerName + " 升了 " + events.size() + " 级";
-            case PLAYER_USE_TOTEM -> playerName + " 触发了不死图腾（" + data + "）";
-            case PLAYER_DEFEAT_BOSS -> playerName + " 击杀了 " + formatEntityName(data);
+            case PLAYER_DEATH -> {
+                int count = events.size();
+                if (count == 1) {
+                    yield playerName + " 挂了 1 次" + (data.isEmpty() ? "" : "（" + data + "）");
+                } else {
+                    Map<String, Long> deathMsgCount = events.stream().collect(Collectors.groupingBy(e -> e.getData() != null ? e.getData() : "未知", Collectors.counting()));
+                    StringJoiner dj = new StringJoiner("、");
+                    deathMsgCount.forEach((msg, cnt) -> dj.add(msg + (cnt > 1 ? " x" + cnt : "")));
+                    yield playerName + " 挂了 " + count + " 次（" + dj + "）";
+                }
+            }
+            case PLAYER_ADVANCEMENT -> {
+                int count = events.size();
+                if (count == 1) {
+                    yield playerName + " 达成了成就 " + data;
+                } else {
+                    StringJoiner aj = new StringJoiner(", ");
+                    for (ServerEvent e : events) {
+                        aj.add(e.getData() != null ? e.getData() : "未知");
+                    }
+                    yield playerName + " 达成了 " + count + " 个成就（" + aj + "）";
+                }
+            }
+            case PLAYER_LEVEL_UP ->
+                    playerName + " 升了 " + events.size() + " 级" + (data.isEmpty() ? "" : "（" + data + "）");
+            case PLAYER_USE_TOTEM ->
+                    playerName + " 触发了不死图腾" + (events.size() > 1 ? " " + events.size() + " 次" : "") + (data.isEmpty() ? "" : "（" + formatDamageCause(data) + "）");
+            case PLAYER_DEFEAT_BOSS ->
+                    playerName + " 击杀了 " + formatEntityName(data) + (events.size() > 1 ? " " + events.size() + " 次" : "");
             case PLAYER_COMPLETE_RAID -> playerName + " 完成了袭击（" + data + "）";
             case PLAYER_PET_DEATH -> playerName + " 的宠物战死了（" + formatPetDeathData(data) + "）";
-            case PLAYER_PVP_KILL -> playerName + " 在PVP中击杀了 " + data;
+            case PLAYER_PVP_KILL ->
+                    playerName + " 在PVP中击杀了 " + data + (events.size() > 1 ? " " + events.size() + " 次" : "");
+            case PLAYER_PVP_DEATH ->
+                    playerName + " 在PVP中被 " + data + " 击杀了" + (events.size() > 1 ? " " + events.size() + " 次" : "");
             case PLAYER_TOOL_BREAK -> playerName + " 的" + formatMaterialName(data) + " 断了";
             case PLAYER_CATCH_TREASURE -> playerName + " 钓到了 " + formatMaterialName(data);
-            case PLAYER_LIGHTNING_STRIKE -> playerName + " 被雷劈了";
-            case PLAYER_CURE_VILLAGER -> playerName + " 救了一个僵尸村民";
+            case PLAYER_LIGHTNING_STRIKE ->
+                    playerName + " 被雷劈了" + (events.size() > 1 ? " " + events.size() + " 次" : "");
+            case PLAYER_CURE_VILLAGER ->
+                    playerName + " 救了一个僵尸村民" + (events.size() > 1 ? " " + events.size() + " 次" : "");
+            case PLAYER_MINE_ANCIENT_DEBRIS ->
+                    playerName + " 挖到了远古残骸" + (events.size() > 1 ? " " + events.size() + " 块" : "");
+            case PLAYER_TAME_ANIMAL -> playerName + " 驯服了" + formatPetEntityName(data);
+            case PLAYER_CRAFT_ENCHANTED_GOLDEN_APPLE ->
+                    playerName + " 合成了附魔金苹果" + (events.size() > 1 ? " " + events.size() + " 个" : "");
+            case PLAYER_BUILD_WITHER ->
+                    playerName + " 召唤了凋零" + (events.size() > 1 ? " " + events.size() + " 次" : "");
             default -> playerName + " 触发了 " + events.size() + " 次 " + type.getDescription();
         };
     }
 
     /**
-     * 实体类型名称友好化（如 ENDER_DRAGON → 末影龙）
+     * 实体类型名称友好化
      */
     private String formatEntityName(String entityType) {
         if (entityType == null || entityType.isEmpty()) return "未知生物";
@@ -265,7 +453,7 @@ public class GreetingPromptBuilder {
         String entityType = data;
         String cause = "";
 
-        // 提取杀手信息 [...]
+        // 提取杀手信息
         int bracketStart = data.indexOf('[');
         if (bracketStart > 0) {
             int bracketEnd = data.indexOf(']', bracketStart);
@@ -339,7 +527,7 @@ public class GreetingPromptBuilder {
     }
 
     /**
-     * 物品类型名称友好化（如 DIAMOND_PICKAXE → 钻石镐）
+     * 物品类型名称友好化
      */
     private String formatMaterialName(String material) {
         if (material == null || material.isEmpty()) return "未知物品";
@@ -373,20 +561,120 @@ public class GreetingPromptBuilder {
     }
 
     /**
-     * 构建玩家数据文本段落（分类三：其他摘要）
+     * 构建玩家数据文本段落
      */
-    public String buildSummarySection(SummaryStats stats) {
-        if (stats == null) return "";
-
-        long totalHours = TimeUnit.MILLISECONDS.toHours(stats.totalPlaytimeMs());
-
+    public String buildSummarySection(SummaryStats stats, PlayerVanillaStats vanillaStats) {
         StringBuilder sb = new StringBuilder("【玩家数据】");
-        sb.append("\n累计在线时长: ").append(totalHours).append(" 小时");
-        sb.append("\n累计登录: ").append(stats.loginCount()).append(" 次");
-        sb.append("\n加入服务器: ").append(stats.daysSinceFirstLogin()).append(" 天前");
+
+        if (vanillaStats != null) {
+            // === 基础/战斗 ===
+            sb.append("\n游戏时长: ").append(vanillaStats.playMinutes()).append(" 分钟");
+            sb.append("\n死亡: ").append(vanillaStats.deaths()).append(" 次");
+            sb.append("\n击杀生物: ").append(vanillaStats.mobKills()).append(" 只");
+            if (vanillaStats.playerKills() > 0) {
+                sb.append("\n击杀玩家: ").append(vanillaStats.playerKills()).append(" 人");
+            }
+            if (vanillaStats.damageDealt() > 0) {
+                sb.append("\n造成伤害: ").append(vanillaStats.damageDealt()).append(" 半心");
+            }
+            if (vanillaStats.damageTaken() > 0) {
+                sb.append("\n承受伤害: ").append(vanillaStats.damageTaken()).append(" 半心");
+            }
+            if (vanillaStats.damageShielded() > 0) {
+                sb.append("\n盾牌格挡: ").append(vanillaStats.damageShielded()).append(" 半心");
+            }
+            if (vanillaStats.animalsBred() > 0) {
+                sb.append("\n繁殖动物: ").append(vanillaStats.animalsBred()).append(" 次");
+            }
+            if (vanillaStats.jumps() > 0) {
+                sb.append("\n跳跃: ").append(vanillaStats.jumps()).append(" 次");
+            }
+            if (vanillaStats.sleepCount() > 0) {
+                sb.append("\n睡觉: ").append(vanillaStats.sleepCount()).append(" 次");
+            }
+
+            // === 稀有BOSS（只在有数据时输出） ===
+            if (vanillaStats.dragonKills() > 0 || vanillaStats.dragonDeaths() > 0) {
+                sb.append("\n击杀末影龙: ").append(vanillaStats.dragonKills()).append(" 次，被末影龙击杀: ").append(vanillaStats.dragonDeaths()).append(" 次");
+            }
+            if (vanillaStats.witherKills() > 0 || vanillaStats.witherDeaths() > 0) {
+                sb.append("\n击杀凋零: ").append(vanillaStats.witherKills()).append(" 次，被凋零击杀: ").append(vanillaStats.witherDeaths()).append(" 次");
+            }
+            if (vanillaStats.elderGuardianKills() > 0) {
+                sb.append("\n击杀远古守卫者: ").append(vanillaStats.elderGuardianKills()).append(" 次");
+            }
+            if (vanillaStats.wardenKills() > 0) {
+                sb.append("\n击杀监守者: ").append(vanillaStats.wardenKills()).append(" 次");
+            }
+            if (vanillaStats.ironGolemKills() > 0) {
+                sb.append("\n击杀铁傀儡: ").append(vanillaStats.ironGolemKills()).append(" 次");
+            }
+
+            // === 探索/距离（统一输出格数：1格 = 100cm） ===
+            if (vanillaStats.walkCm() > 0) {
+                sb.append("\n行走距离: ").append(vanillaStats.walkCm() / 100).append(" 格");
+            }
+            if (vanillaStats.sprintCm() > 0) {
+                sb.append("\n疾跑距离: ").append(vanillaStats.sprintCm() / 100).append(" 格");
+            }
+            if (vanillaStats.flyCm() > 0) {
+                sb.append("\n飞行距离: ").append(vanillaStats.flyCm() / 100).append(" 格");
+            }
+            if (vanillaStats.elytraCm() > 0) {
+                sb.append("\n鞘翅飞行距离: ").append(vanillaStats.elytraCm() / 100).append(" 格");
+            }
+            if (vanillaStats.swimCm() > 0) {
+                sb.append("\n游泳距离: ").append(vanillaStats.swimCm() / 100).append(" 格");
+            }
+            if (vanillaStats.boatCm() > 0) {
+                sb.append("\n划船距离: ").append(vanillaStats.boatCm() / 100).append(" 格");
+            }
+            if (vanillaStats.minecartCm() > 0) {
+                sb.append("\n矿车行驶距离: ").append(vanillaStats.minecartCm() / 100).append(" 格");
+            }
+            if (vanillaStats.horseCm() > 0) {
+                sb.append("\n骑马距离: ").append(vanillaStats.horseCm() / 100).append(" 格");
+            }
+            if (vanillaStats.climbCm() > 0) {
+                sb.append("\n攀爬距离: ").append(vanillaStats.climbCm() / 100).append(" 格");
+            }
+            if (vanillaStats.fallCm() > 0) {
+                sb.append("\n摔落距离: ").append(vanillaStats.fallCm() / 100).append(" 格");
+            }
+
+            // === 生活/趣味 ===
+            if (vanillaStats.fishCaught() > 0) {
+                sb.append("\n钓鱼: ").append(vanillaStats.fishCaught()).append(" 次");
+            }
+            if (vanillaStats.enchantCount() > 0) {
+                sb.append("\n附魔: ").append(vanillaStats.enchantCount()).append(" 次");
+            }
+            if (vanillaStats.raidTriggered() > 0) {
+                sb.append("\n触发袭击: ").append(vanillaStats.raidTriggered()).append(" 次");
+            }
+            if (vanillaStats.raidWon() > 0) {
+                sb.append("\n袭击胜利: ").append(vanillaStats.raidWon()).append(" 次");
+            }
+            if (vanillaStats.diamondOreMined() > 0) {
+                sb.append("\n挖钻石矿: ").append(vanillaStats.diamondOreMined()).append(" 个");
+            }
+        }
+
+        // 加入天数（来自 profile，Bukkit Stats 无对应项）
+        if (stats != null && stats.daysSinceFirstLogin() > 0) {
+            sb.append("\n加入服务器: ").append(stats.daysSinceFirstLogin()).append(" 天前");
+        }
+
+        // 上次游玩时长（原始分钟数，LLM自行换算）
+        if (stats != null && stats.lastSessionDurationMs() > 0) {
+            long lastSessionMin = TimeUnit.MILLISECONDS.toMinutes(stats.lastSessionDurationMs());
+            if (lastSessionMin > 0) {
+                sb.append("\n上次游玩时长: ").append(lastSessionMin).append(" 分钟");
+            }
+        }
 
         // 上次游玩亮点
-        List<ServerEvent> highlights = stats.lastSessionHighlights();
+        List<ServerEvent> highlights = stats != null ? stats.lastSessionHighlights() : null;
         if (highlights != null && !highlights.isEmpty()) {
             Map<ServerEventType, List<ServerEvent>> grouped = highlights.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
             StringJoiner hj = new StringJoiner("，");

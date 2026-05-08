@@ -10,7 +10,9 @@ import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.*;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerItemBreakEvent;
@@ -152,10 +154,10 @@ public class EventCollector implements Listener {
     }
 
     /**
-     * PVP 击杀（从击杀者角度记录）
+     * PVP 击杀（双向记录）
      *
      * <p>PlayerDeathEvent.getEntity().getKiller() 返回造成最后一击的玩家。
-     * 被击杀者记录为 target_uuid，用于"Steve 击杀了 Notch"的场景。</p>
+     * 同时记录杀手侧（PLAYER_PVP_KILL）和受害者侧（PLAYER_PVP_DEATH）。</p>
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPvpKill(PlayerDeathEvent event) {
@@ -164,7 +166,10 @@ public class EventCollector implements Listener {
         if (killer == null) return;
         // 排除自杀（虽然理论上不会发生，防御性判断）
         if (killer.getUniqueId().equals(victim.getUniqueId())) return;
+        // 杀手侧：击杀了谁
         submitEvent(ServerEvent.of(ServerEventType.PLAYER_PVP_KILL, killer.getUniqueId(), victim.getUniqueId(), victim.getName()));
+        // 受害者侧：被谁击杀
+        submitEvent(ServerEvent.of(ServerEventType.PLAYER_PVP_DEATH, victim.getUniqueId(), killer.getUniqueId(), killer.getName()));
     }
 
     /**
@@ -217,6 +222,61 @@ public class EventCollector implements Listener {
         Player nearest = getNearestPlayer(event.getEntity(), 10.0);
         if (nearest == null) return;
         submitEvent(ServerEvent.of(ServerEventType.PLAYER_CURE_VILLAGER, nearest.getUniqueId(), ""));
+    }
+
+    // ==================== 稀有事件 ====================
+
+    /**
+     * 挖到远古残骸
+     *
+     * <p>BlockBreakEvent 中被破坏方块为 ANCIENT_DEBRIS 时触发。
+     * 远古残骸是下界最稀有矿物，仅在 y=8-22 层生成，单区块最多 5 个。</p>
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMineAncientDebris(BlockBreakEvent event) {
+        if (event.getBlock().getType() != Material.ANCIENT_DEBRIS) return;
+        submitEvent(ServerEvent.of(ServerEventType.PLAYER_MINE_ANCIENT_DEBRIS, event.getPlayer().getUniqueId(), ""));
+    }
+
+    /**
+     * 驯服动物
+     *
+     * <p>EntityTameEvent 在动物被成功驯服时触发（非每次交互，仅最终成功时）。</p>
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onTameAnimal(EntityTameEvent event) {
+        if (!(event.getOwner() instanceof Player player)) return;
+        String entityType = event.getEntityType().name();
+        submitEvent(ServerEvent.of(ServerEventType.PLAYER_TAME_ANIMAL, player.getUniqueId(), entityType));
+    }
+
+    /**
+     * 合成附魔金苹果
+     *
+     * <p>CraftItemEvent 中结果物品为 ENCHANTED_GOLDEN_APPLE 时触发。</p>
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onCraftEnchantedGoldenApple(CraftItemEvent event) {
+        var recipe = event.getRecipe();
+        recipe.getResult();
+        if (recipe.getResult().getType() != Material.ENCHANTED_GOLDEN_APPLE) return;
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        submitEvent(ServerEvent.of(ServerEventType.PLAYER_CRAFT_ENCHANTED_GOLDEN_APPLE, player.getUniqueId(), ""));
+    }
+
+    /**
+     * 召唤凋零
+     *
+     * <p>CreatureSpawnEvent 中实体类型为 WITHER 且 SpawnReason 为 BUILD_WITHER 时触发。
+     * 凋零生成事件本身没有玩家引用，通过距离最近玩家归属（同治愈僵尸村民策略）。</p>
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBuildWither(CreatureSpawnEvent event) {
+        if (event.getEntityType() != EntityType.WITHER) return;
+        if (event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.BUILD_WITHER) return;
+        Player nearest = getNearestPlayer(event.getEntity(), 10.0);
+        if (nearest == null) return;
+        submitEvent(ServerEvent.of(ServerEventType.PLAYER_BUILD_WITHER, nearest.getUniqueId(), ""));
     }
 
     /**

@@ -3,15 +3,20 @@ package com.zm.kilacraftAI.event;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.db.DatabaseManager;
+import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.db.dao.SocialRelationDao;
 import com.zm.kilacraftAI.db.dao.SocialRelationDao.SocialRelation;
+import com.zm.kilacraftAI.greeting.FriendStatus;
+import com.zm.kilacraftAI.profile.PlayerProfile;
+import com.zm.kilacraftAI.profile.ProfileManager;
 import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
 import com.zm.kilacraftAI.util.PluginLogger;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
@@ -30,22 +35,20 @@ public class OfflineEventAggregator {
     private final DatabaseManager databaseManager;
     private final ServerEventDao serverEventDao;
     private final SocialRelationDao socialRelationDao;
+    private final PlayerProfileDao playerProfileDao;
 
     public OfflineEventAggregator(KilacraftAI plugin, DatabaseManager databaseManager) {
         this.plugin = plugin;
         this.databaseManager = databaseManager;
         this.serverEventDao = new ServerEventDao(databaseManager.getTablePrefix());
         this.socialRelationDao = new SocialRelationDao(databaseManager.getTablePrefix());
+        this.playerProfileDao = new PlayerProfileDao(databaseManager.getTablePrefix());
     }
 
     /**
-     * 三路查询合并为单次 IO 任务，共享一个数据库连接
-     *
-     * <p>在单个 IO 线程内顺序执行三路查询 + 在线好友查询，
-     * 通过单个回调返回所有结果，避免连接池浪费和嵌套回调开销。</p>
+     * 聚合查询
      *
      * @param playerUuid       目标玩家 UUID
-     * @param playerName       目标玩家名
      * @param afterTime        上次登出时间戳（ms）
      * @param lastGreetingTime 上次问候时间戳（ms），0 表示从未问候过
      * @param maxOwnEvents     分类一最大条数
@@ -53,7 +56,7 @@ public class OfflineEventAggregator {
      * @param maxSummaryEvents 分类三最大条数
      * @param callback         完成回调（在 IO 线程执行）
      */
-    public void loadAllOfflineDataForGreeting(UUID playerUuid, String playerName, long afterTime, long lastGreetingTime, int maxOwnEvents, int maxFriendEvents, int maxSummaryEvents, Consumer<GreetingOfflineData> callback) {
+    public void loadAllOfflineDataForGreeting(UUID playerUuid, long afterTime, long lastGreetingTime, int maxOwnEvents, int maxFriendEvents, int maxSummaryEvents, Consumer<GreetingOfflineData> callback) {
         if (databaseManager == null) {
             callback.accept(GreetingOfflineData.empty());
             return;
@@ -61,19 +64,36 @@ public class OfflineEventAggregator {
 
         FoliaCompat.getIOPool().submit(() -> {
             try (Connection conn = databaseManager.getConnection()) {
-                // 分类一：玩家自己的离线事件
+                // 玩家自己的离线事件
                 List<ServerEvent> ownEvents = serverEventDao.loadEventsAfter(conn, playerUuid, afterTime, maxOwnEvents);
 
-                // 分类二：好友离线期间的动态
-                List<ServerEvent> friendEvents = loadFriendEventsWithConn(conn, playerUuid, afterTime, maxFriendEvents);
+                // 好友离线期间的动态
+                // 先加载社交关系
+                List<SocialRelation> relations = socialRelationDao.loadRelationsAbove(conn, playerUuid, FRIEND_STRENGTH_THRESHOLD, 50);
+                List<UUID> friendUuids = new ArrayList<>();
+                for (SocialRelation r : relations) {
+                    friendUuids.add(r.targetUuid());
+                }
+                List<ServerEvent> friendEvents = friendUuids.isEmpty() ? Collections.emptyList() : serverEventDao.loadEventsForPlayers(conn, friendUuids, afterTime, maxFriendEvents);
 
-                // 分类三：上次游玩亮点（仅取上次问候之后到本次登出之间的事件）
+                // 上次游玩亮点
                 List<ServerEvent> highlights = serverEventDao.loadEventsBetween(conn, playerUuid, lastGreetingTime, afterTime, maxSummaryEvents);
 
-                // 在线好友（复用同一连接）
-                List<String> onlineFriends = getOnlineFriendsWithConn(conn, playerUuid);
+                // 上次会话时长
+                long lastSessionDurationMs = serverEventDao.loadLastSessionDuration(conn, playerUuid);
 
-                callback.accept(new GreetingOfflineData(ownEvents, friendEvents, highlights, onlineFriends));
+                // 离线期间全服热度
+                int globalEventCount = serverEventDao.countGlobalEventsBetween(conn, afterTime, System.currentTimeMillis());
+
+                // 好友离线期间登录次数
+                Map<String, Integer> friendLoginCounts = serverEventDao.countFriendLogins(conn, friendUuids, afterTime);
+
+                // 在线好友（带世界+会话时长） + 离线好友最后在线时间
+                List<FriendStatus> onlineFriends = new ArrayList<>();
+                List<FriendStatus> offlineFriends = new ArrayList<>();
+                loadAllFriendsWithStatus(conn, relations, onlineFriends, offlineFriends);
+
+                callback.accept(new GreetingOfflineData(ownEvents, friendEvents, highlights, onlineFriends, offlineFriends, lastSessionDurationMs, globalEventCount, friendLoginCounts));
             } catch (SQLException e) {
                 PluginLogger.warn("数据库", "离线数据聚合失败: {}", e.getMessage());
                 callback.accept(GreetingOfflineData.empty());
@@ -82,48 +102,74 @@ public class OfflineEventAggregator {
     }
 
     /**
-     * 使用已有连接加载好友事件（不独立获取连接）
+     * 加载所有好友（在线+离线）
+     *
+     * <p>复用已加载的社交关系列表，避免重复查询 social_relation 表。</p>
+     * <p>在线好友：构建 FriendStatus（含世界名+会话时长）</p>
+     * <p>离线好友：批量查询 last_logout 构建带时间差的 FriendStatus</p>
      */
-    private List<ServerEvent> loadFriendEventsWithConn(Connection conn, UUID playerUuid, long afterTime, int maxEvents) throws SQLException {
-        List<SocialRelation> relations = socialRelationDao.loadRelationsAbove(conn, playerUuid, FRIEND_STRENGTH_THRESHOLD, 50);
-        if (relations.isEmpty()) {
-            return Collections.emptyList();
+    private void loadAllFriendsWithStatus(Connection conn, List<SocialRelation> relations, List<FriendStatus> outOnlineFriends, List<FriendStatus> outOfflineFriends) throws SQLException {
+        if (relations.isEmpty()) return;
+        Map<UUID, String> onlineUuidToName = SkillSecurityFilter.getOnlineUuidToName();
+
+        List<UUID> offlineUuids = new ArrayList<>();
+
+        for (SocialRelation relation : relations) {
+            UUID targetUuid = relation.targetUuid();
+            String onlineName = onlineUuidToName.get(targetUuid);
+            if (onlineName != null) {
+                // 在线好友
+                String world = getFriendWorld(targetUuid);
+                long sessionMinutes = getFriendSessionMinutes(targetUuid);
+                outOnlineFriends.add(new FriendStatus(onlineName, world, sessionMinutes));
+            } else {
+                // 离线好友
+                offlineUuids.add(targetUuid);
+            }
         }
-        List<UUID> friendUuids = new ArrayList<>();
-        for (SocialRelation r : relations) {
-            friendUuids.add(r.targetUuid());
+
+        if (!offlineUuids.isEmpty()) {
+            List<PlayerProfileDao.OfflineFriendData> offlineData = playerProfileDao.batchLoadLastLogout(conn, offlineUuids);
+            long now = System.currentTimeMillis();
+            for (PlayerProfileDao.OfflineFriendData data : offlineData) {
+                long minutesAgo = TimeUnit.MILLISECONDS.toMinutes(now - data.lastLogout());
+                if (minutesAgo > 0) {
+                    outOfflineFriends.add(new FriendStatus(data.name(), "", minutesAgo));
+                }
+            }
         }
-        return serverEventDao.loadEventsForPlayers(conn, friendUuids, afterTime, maxEvents);
     }
 
     /**
-     * 使用已有连接获取在线好友（不独立获取连接）
+     * 获取好友当前世界名
      */
-    private List<String> getOnlineFriendsWithConn(Connection conn, UUID playerUuid) throws SQLException {
-        Map<UUID, String> onlineUuidToName = SkillSecurityFilter.getOnlineUuidToName();
-        if (onlineUuidToName.isEmpty()) {
-            return Collections.emptyList();
-        }
+    private String getFriendWorld(UUID uuid) {
+        var player = org.bukkit.Bukkit.getPlayer(uuid);
+        if (player == null) return "";
+        return player.getWorld().getName();
+    }
 
-        List<SocialRelation> relations = socialRelationDao.loadRelationsAbove(conn, playerUuid, FRIEND_STRENGTH_THRESHOLD, 50);
-        List<String> friends = new ArrayList<>();
-        for (SocialRelation relation : relations) {
-            UUID targetUuid = relation.targetUuid();
-            String targetName = onlineUuidToName.get(targetUuid);
-            if (targetName != null) {
-                friends.add(targetName);
-            }
-        }
-        return friends;
+    /**
+     * 获取好友当前会话时长（分钟）
+     */
+    private long getFriendSessionMinutes(UUID uuid) {
+        ProfileManager pm = plugin.getProfileManager();
+        if (pm == null) return 0;
+        PlayerProfile profile = pm.getCachedProfile(uuid);
+        if (profile == null || profile.getLastLogin() <= 0) return 0;
+        long sessionMs = System.currentTimeMillis() - profile.getLastLogin();
+        return TimeUnit.MILLISECONDS.toMinutes(sessionMs);
     }
 
     /**
      * 问候离线数据聚合结果
      */
     public record GreetingOfflineData(List<ServerEvent> ownEvents, List<ServerEvent> friendEvents,
-                                      List<ServerEvent> highlights, List<String> onlineFriends) {
+                                      List<ServerEvent> highlights, List<FriendStatus> onlineFriends,
+                                      List<FriendStatus> offlineFriends, long lastSessionDurationMs,
+                                      int globalEventCount, Map<String, Integer> friendLoginCounts) {
         public static GreetingOfflineData empty() {
-            return new GreetingOfflineData(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+            return new GreetingOfflineData(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, 0, Collections.emptyMap());
         }
     }
 }

@@ -10,8 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 玩家画像 DAO
@@ -128,19 +127,6 @@ public class PlayerProfileDao {
     }
 
     /**
-     * 更新问候时间
-     */
-    public void updateGreetingTime(Connection conn, UUID uuid) throws SQLException {
-        String sql = "UPDATE " + tablePrefix + "player_profile SET " + "last_greeting_time = ?, updated_at = ? WHERE uuid = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setLong(1, System.currentTimeMillis());
-            ps.setLong(2, System.currentTimeMillis());
-            ps.setString(3, uuid.toString());
-            ps.executeUpdate();
-        }
-    }
-
-    /**
      * 更新画像数据和分析时间戳（画像分析服务专用）
      *
      * @param conn         数据库连接
@@ -177,6 +163,39 @@ public class PlayerProfileDao {
             }
         }
         return null;
+    }
+
+    /**
+     * 批量查询多个玩家的最后登出时间
+     *
+     * @param conn  数据库连接
+     * @param uuids 玩家 UUID 列表
+     * @return 离线好友数据列表（lastLogout > 0 的记录）
+     */
+    public List<OfflineFriendData> batchLoadLastLogout(Connection conn, List<UUID> uuids) throws SQLException {
+        if (uuids == null || uuids.isEmpty()) return Collections.emptyList();
+
+        StringJoiner placeholders = new StringJoiner(",");
+        for (int i = 0; i < uuids.size(); i++) placeholders.add("?");
+
+        String sql = "SELECT uuid, name, last_logout FROM " + tablePrefix + "player_profile " + "WHERE uuid IN (" + placeholders + ") AND last_logout > 0";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int idx = 1;
+            for (UUID uuid : uuids) ps.setString(idx++, uuid.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                List<OfflineFriendData> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add(new OfflineFriendData(UUID.fromString(rs.getString("uuid")), rs.getString("name"), rs.getLong("last_logout")));
+                }
+                return result;
+            }
+        }
+    }
+
+    /**
+     * 离线好友数据（UUID + 名称 + 最后登出时间）
+     */
+    public record OfflineFriendData(UUID uuid, String name, long lastLogout) {
     }
 
     private PlayerProfile mapRow(ResultSet rs) throws SQLException {

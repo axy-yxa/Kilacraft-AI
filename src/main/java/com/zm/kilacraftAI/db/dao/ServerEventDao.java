@@ -7,11 +7,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 服务器事件 DAO
@@ -71,15 +67,6 @@ public class ServerEventDao {
     }
 
     /**
-     * 查询指定玩家在某个时间点之前的事件（用于"上次游玩亮点"摘要）
-     *
-     * @param conn       数据库连接
-     * @param playerUuid 玩家 UUID
-     * @param beforeTime 截止时间戳（ms，不含此时间点）
-     * @param limit      最大条数
-     * @return 事件列表（时间倒序，最新的在前）
-     */
-    /**
      * 查询指定玩家在两个时间点之间的事件（用于上次游玩亮点）
      *
      * @param conn       数据库连接
@@ -92,15 +79,9 @@ public class ServerEventDao {
     public List<ServerEvent> loadEventsBetween(Connection conn, UUID playerUuid, long afterTime, long beforeTime, int limit) throws SQLException {
         String sql;
         if (afterTime > 0) {
-            sql = "SELECT * FROM " + tablePrefix + "server_event "
-                    + "WHERE player_uuid = ? AND created_at > ? AND created_at < ? "
-                    + "AND event_type NOT IN ('PLAYER_LOGIN', 'PLAYER_LOGOUT', 'PLAYER_FIRST_JOIN') "
-                    + "ORDER BY created_at DESC LIMIT ?";
+            sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND created_at > ? AND created_at < ? " + "AND event_type NOT IN ('PLAYER_LOGIN', 'PLAYER_LOGOUT', 'PLAYER_FIRST_JOIN') " + "ORDER BY created_at DESC LIMIT ?";
         } else {
-            sql = "SELECT * FROM " + tablePrefix + "server_event "
-                    + "WHERE player_uuid = ? AND created_at < ? "
-                    + "AND event_type NOT IN ('PLAYER_LOGIN', 'PLAYER_LOGOUT', 'PLAYER_FIRST_JOIN') "
-                    + "ORDER BY created_at DESC LIMIT ?";
+            sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND created_at < ? " + "AND event_type NOT IN ('PLAYER_LOGIN', 'PLAYER_LOGOUT', 'PLAYER_FIRST_JOIN') " + "ORDER BY created_at DESC LIMIT ?";
         }
 
         List<ServerEvent> events = new ArrayList<>();
@@ -124,12 +105,12 @@ public class ServerEventDao {
     }
 
     /**
-     * 查询多个玩家在某个时间点之后的事件（用于好友动态），JOIN player_profile 获取玩家名
+     * 查询多个玩家在某个时间点之后的事件（用于好友动态）
      *
-     * @param conn       数据库连接
+     * @param conn        数据库连接
      * @param playerUuids 目标玩家 UUID 列表（好友）
-     * @param afterTime  起始时间戳（ms）
-     * @param limit      最大条数
+     * @param afterTime   起始时间戳（ms）
+     * @param limit       最大条数
      * @return 事件列表（时间倒序，最新的在前，playerName 已填充）
      */
     public List<ServerEvent> loadEventsForPlayers(Connection conn, List<UUID> playerUuids, long afterTime, int limit) throws SQLException {
@@ -143,7 +124,7 @@ public class ServerEventDao {
             placeholders.add("?");
         }
 
-        // LEFT JOIN player_profile 获取玩家名，排除市场事件（隐私）和生命周期事件
+        // 排除市场事件（隐私）和生命周期事件
         String sql = "SELECT se.*, pp.name AS player_name FROM " + tablePrefix + "server_event se " + "LEFT JOIN " + tablePrefix + "player_profile pp ON se.player_uuid = pp.uuid " + "WHERE se.player_uuid IN (" + placeholders + ") " + "AND se.created_at > ? " + "AND se.event_type NOT IN ('PLAYER_LOGIN', 'PLAYER_LOGOUT', 'PLAYER_FIRST_JOIN', " + "'MARKET_ITEM_SOLD', 'MARKET_ITEM_LISTED', 'MARKET_MONEY_RECEIVED') " + "ORDER BY se.created_at DESC LIMIT ?";
 
         List<ServerEvent> events = new ArrayList<>();
@@ -161,6 +142,88 @@ public class ServerEventDao {
             }
         }
         return events;
+    }
+
+    /**
+     * 查询玩家上次会话时长（上次 LOGOUT - 上上次 LOGIN）
+     *
+     * @param conn       数据库连接
+     * @param playerUuid 玩家 UUID
+     * @return 会话时长 ms，0 表示无法计算
+     */
+    public long loadLastSessionDuration(Connection conn, UUID playerUuid) throws SQLException {
+        Long lastLogout = queryLastEventTime(conn, playerUuid, "PLAYER_LOGOUT", 0);
+        if (lastLogout == null || lastLogout <= 0) return 0;
+        Long prevLogin = queryLastEventTime(conn, playerUuid, "PLAYER_LOGIN", lastLogout);
+        if (prevLogin == null || prevLogin <= 0) return 0;
+        long duration = lastLogout - prevLogin;
+        return duration > 0 ? duration : 0;
+    }
+
+    private Long queryLastEventTime(Connection conn, UUID playerUuid, String eventType, long beforeTime) throws SQLException {
+        String sql;
+        if (beforeTime > 0) {
+            sql = "SELECT created_at FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND event_type = ? AND created_at < ? " + "ORDER BY created_at DESC LIMIT 1";
+        } else {
+            sql = "SELECT created_at FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND event_type = ? " + "ORDER BY created_at DESC LIMIT 1";
+        }
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, playerUuid.toString());
+            ps.setString(2, eventType);
+            if (beforeTime > 0) ps.setLong(3, beforeTime);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : null;
+            }
+        }
+    }
+
+    /**
+     * 统计指定时间窗口内全服事件数（排除生命周期和市场事件）
+     *
+     * @param conn       数据库连接
+     * @param afterTime  起始时间戳（ms，不含）
+     * @param beforeTime 截止时间戳（ms，含）
+     * @return 事件总数
+     */
+    public int countGlobalEventsBetween(Connection conn, long afterTime, long beforeTime) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM " + tablePrefix + "server_event " + "WHERE created_at > ? AND created_at <= ? " + "AND event_type NOT IN ('PLAYER_LOGIN','PLAYER_LOGOUT','PLAYER_FIRST_JOIN'," + "'MARKET_ITEM_SOLD','MARKET_ITEM_LISTED','MARKET_MONEY_RECEIVED')";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, afterTime);
+            ps.setLong(2, beforeTime);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    /**
+     * 统计多个好友在指定时间之后的登录次数
+     *
+     * @param conn        数据库连接
+     * @param friendUuids 好友 UUID 列表
+     * @param afterTime   起始时间戳（ms）
+     * @return Map<玩家名, 登录次数>（按次数降序，LinkedHashMap 保序）
+     */
+    public Map<String, Integer> countFriendLogins(Connection conn, List<UUID> friendUuids, long afterTime) throws SQLException {
+        if (friendUuids == null || friendUuids.isEmpty()) return Collections.emptyMap();
+
+        StringJoiner placeholders = new StringJoiner(",");
+        for (int i = 0; i < friendUuids.size(); i++) placeholders.add("?");
+
+        String sql = "SELECT pp.name, COUNT(*) as cnt FROM " + tablePrefix + "server_event se " + "JOIN " + tablePrefix + "player_profile pp ON se.player_uuid = pp.uuid " + "WHERE se.player_uuid IN (" + placeholders + ") " + "AND se.event_type = 'PLAYER_LOGIN' AND se.created_at > ? " + "GROUP BY se.player_uuid, pp.name ORDER BY cnt DESC";
+
+        Map<String, Integer> result = new LinkedHashMap<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int idx = 1;
+            for (UUID uuid : friendUuids) ps.setString(idx++, uuid.toString());
+            ps.setLong(idx, afterTime);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.put(rs.getString("name"), rs.getInt("cnt"));
+                }
+            }
+        }
+        return result;
     }
 
     /**

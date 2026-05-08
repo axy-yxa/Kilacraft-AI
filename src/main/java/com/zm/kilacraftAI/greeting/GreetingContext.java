@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 问候上下文数据
@@ -56,12 +57,34 @@ public class GreetingContext {
     private final SummaryStats summaryStats;
 
     /**
-     * 目前在线的好友名称列表（可为空）
+     * 目前在线的好友状态列表（可为空）
+     * 每项包含好友名、所在世界名、当前会话时长（分钟）
      */
-    private final List<String> onlineFriends;
+    private final List<FriendStatus> onlineFriends;
+
+    /**
+     * 离线好友状态列表（可为空）
+     * 每项包含好友名、world为空、sessionMinutes 为距下线的分钟数
+     */
+    private final List<FriendStatus> offlineFriends;
+
+    /**
+     * 离线期间全服事件总数
+     */
+    private final int globalEventCount;
+
+    /**
+     * 离线期间好友登录次数 玩家名 → 登录次数
+     */
+    private final Map<String, Integer> friendLoginCounts;
 
     /**
      * 服务器信息（来自知识库，可为 null）
      */
     private final String serverInfo;
+
+    /**
+     * Bukkit 原版统计数据（主线程采集，可为 null 表示采集失败）
+     */
+    private final PlayerVanillaStats vanillaStats;
 }
