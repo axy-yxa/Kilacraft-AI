@@ -104,7 +104,7 @@ public class MarketQuerySkill implements Skill {
     }
 
     // 初始化映射关系
-    private final Map<String, Function<SkillContext, CompletableFuture<SkillResult>>> actionToHandler = Map.ofEntries(entry("query_balance", this::queryBalance), entry("query_price", this::queryPrices), entry("query_items", this::queryMarketItems), entry("query_availability", this::queryAvailability), entry("query_my_items", this::queryMyItems), entry("query_mailbox", this::queryMailbox), entry("query_market_stats", this::queryMarketStats));
+    private final Map<String, Function<SkillContext, CompletableFuture<SkillResult>>> actionToHandler = Map.ofEntries(entry("query_balance", this::queryBalance), entry("query_price", this::queryPrices), entry("query_items", this::queryMarketItems), entry("query_availability", this::queryAvailability), entry("query_my_items", this::queryMyItems), entry("query_seller_items", this::querySellerItems), entry("query_mailbox", this::queryMailbox), entry("query_market_stats", this::queryMarketStats));
 
     private CompletableFuture<SkillResult> handleUnknownAction(SkillContext context) {
         return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 不支持的市场查询操作"));
@@ -498,6 +498,53 @@ public class MarketQuerySkill implements Skill {
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("my_items", myItemsData);
         dataMap.put("count", myItems.size());
+
+        return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
+    }
+
+    /**
+     * 查询指定卖家的在售商品
+     */
+    private CompletableFuture<SkillResult> querySellerItems(SkillContext context) {
+        String sellerName = context.getEntity("seller_name");
+
+        if (sellerName == null || sellerName.isEmpty()) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 缺少参数: seller_name(卖家名称)")));
+        }
+
+        List<MarketItemDetail> sellerItems = GlobalMarketPlusAPI.getSellerMerchandises(sellerName);
+
+        if (sellerItems.isEmpty()) {
+            return CompletableFuture.completedFuture(SkillResult.success(I18nService.tr("{} 目前没有在售商品", sellerName)));
+        }
+
+        ItemTranslator translator = ItemTranslator.getInstance();
+        StringBuilder sb = new StringBuilder();
+        sb.append(I18nService.tr("{} 的在售商品 (共 {} 个):\n", sellerName, sellerItems.size()));
+
+        List<Map<String, Object>> itemsData = new ArrayList<>();
+        int showCount = Math.min(10, sellerItems.size());
+        for (int i = 0; i < showCount; i++) {
+            MarketItemDetail item = sellerItems.get(i);
+            String displayName = translator.translateToChinese(item.getItemName());
+            sb.append(String.format("[%d] %s x %d - $%.2f\n", i + 1, displayName, item.getAmount(), item.getPrice()));
+
+            Map<String, Object> itemData = new LinkedHashMap<>();
+            itemData.put("item_name", displayName);
+            itemData.put("english_name", item.getItemName());
+            itemData.put("amount", item.getAmount());
+            itemData.put("price", item.getPrice());
+            itemData.put("seller_name", item.getSellerName());
+            itemsData.add(itemData);
+        }
+
+        if (sellerItems.size() > 10) {
+            sb.append(I18nService.tr("... 还有 {} 个商品", sellerItems.size() - 10));
+        }
+
+        Map<String, Object> dataMap = new LinkedHashMap<>();
+        dataMap.put("seller_items", itemsData);
+        dataMap.put("count", sellerItems.size());
 
         return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
     }

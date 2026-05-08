@@ -8,7 +8,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import studio.trc.bukkit.globalmarketplus.api.event.MerchandiseSellEvent;
-import studio.trc.bukkit.globalmarketplus.api.event.TransactionEvent;
+import studio.trc.bukkit.globalmarketplus.api.event.TransactionResultEvent;
+import studio.trc.bukkit.globalmarketplus.merchandise.TransactionResultType;
 
 import java.util.UUID;
 
@@ -40,17 +41,24 @@ public class MarketEventCollector implements Listener {
     }
 
     /**
-     * 交易完成 → MARKET_ITEM_SOLD + MARKET_MONEY_RECEIVED（均关联卖家）
+     * 交易完成后 → MARKET_ITEM_SOLD + MARKET_MONEY_RECEIVED（均关联卖家）
      *
-     * <p>TransactionEvent 在交易完成时触发（MONITOR 优先级 + ignoreCancelled
-     * 确保只记录成功完成的交易）。卖家通过离线事件聚合看到这两条通知。</p>
+     * <p>使用 TransactionResultEvent（交易确认后触发），从 TransactionResult 获取真实的价格和数量。</p>
+     * <p>只记录成功的交易（resultType == SUCCESSFUL），过滤掉余额不足、过期、不存在等失败情况。</p>
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onTransaction(TransactionEvent event) {
+    public void onTransactionResult(TransactionResultEvent event) {
+        var result = event.getResult();
+
+        // 只记录成功的交易
+        if (result.getResultType() != TransactionResultType.SUCCESSFUL) {
+            return;
+        }
+
         var merchandise = event.getMerchandise();
         UUID sellerUuid = merchandise.getOwnerUUID();
-        String itemDesc = merchandise.getItem().getType().name() + " x" + event.getAmount();
-        String priceDesc = String.format("%.1f", event.getPrice());
+        String itemDesc = merchandise.getItem().getType().name() + " x" + result.getAmount();
+        String priceDesc = String.format("%.1f", result.getPrice());
 
         // 商品售出（卖家视角）
         submitEvent(ServerEventType.MARKET_ITEM_SOLD, sellerUuid, itemDesc);

@@ -12,6 +12,7 @@ action_descriptions:
   query_items: "查询市场上架的商品列表。返回的 data 中包含 items 字段（商品名称列表）和 count 字段（商品数量），可供后续步骤引用。当用户问'市场上有什么'、'列出所有商品'、'市场商品列表'时使用"
   query_availability: "查询指定物品是否在售、在售数量和卖家信息。需要参数：item（物品名称）。返回的 data 中包含 available（布尔：是否在售）、total_stock（在售总数量）、min_price（最低价）、max_price（最高价）、seller_count（卖家数）字段，可供后续步骤引用或作为挂机任务 condition_plan 的 result_path。当用户问'这个物品有人卖吗'、'市场上有没有xxx'、'我手上的东西市场有卖吗'时使用"
   query_my_items: "查询玩家自己在售的商品。返回的 data 中包含 my_items 字段（商品数组，每个商品包含 item_name、english_name、amount、price、seller_name 字段）和 count 字段（商品数量），可供后续步骤引用。当用户问'我在卖什么'、'我的商品'、'我上架了什么'时使用"
+  query_seller_items: "查询指定卖家在售的商品。需要参数：seller_name（卖家玩家名称）。返回的 data 中包含 seller_items 字段（商品数组，每个商品包含 item_name、english_name、amount、price、seller_name 字段）和 count 字段（商品数量），可供后续步骤引用。当用户问'xxx在卖什么'、'xxx的商店'、'xxx卖什么呢'时使用"
   query_mailbox: "查询玩家邮箱待领取邮件。返回的 data 中包含 mails 字段（邮件数组，每封邮件包含 item_name、english_name、amount、sender_name 字段）和 count 字段（邮件数量），可供后续步骤引用。当用户问'我有邮件吗'、'邮箱里有什么'、'查邮箱'时使用"
   query_market_stats: "查询市场统计信息。返回的 data 中包含 total_items 字段（商品总数）和 total_sellers 字段（卖家总数），可供后续步骤引用或作为挂机任务 condition_plan 的 result_path。当用户问'市场有多少商品'、'市场统计'、'市场总数'时使用"
 
@@ -20,4 +21,5 @@ hints:
   - "**格式规范**：entities.item 必须用英文逗号分隔多个物品，每个格式为'物品名:数量'（未指定数量默认:1），不要用'和/与/及'连接。如'钻石:2,木棍:1'"
   - "**关键要求**：用户提到具体物品名时必须提取到 entities.item 字段，不能为空。查询是否在售用 query_availability 而非 query_price"
   - "**多步骤任务**：如果用户问'我手上的东西多少钱'，需要先调用 bukkit_api.get_player_hand_item 获取物品名，再调用 query_price 查询价格"
+  - "**余额实时查询（强制）**：任何时候涉及到余额（包括'我能买什么'、'我够不够钱'、'我还有多少钱'等），都必须通过 query_balance 实时查询，严禁从历史对话中读取旧余额进行推算。余额在买卖、上下架、转账后都会变化，历史数据已经失效。如果用户的问题需要结合余额和商品信息，必须用多步骤任务：step_0 查询余额，step_1 查询商品"
   - "**货币单位**：本服经济系统的货币符号为 $（如 $100.00）。绝对不要使用'绿宝石'、'emerald'或其他 Minecraft 物品名称指代货币，所有金额都是 $ 货币单位"

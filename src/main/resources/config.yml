@@ -220,6 +220,8 @@ security:
     allowed_actions:
       - "cmi.send_tp_request"        # TPA传送请求：target_player是传送目的地
       # TPA request: target_player is the teleport destination
+      - "market_query.query_seller_items" # 市场查询：查看指定卖家在售商品（公开市场信息）
+      # Market query: view a specific seller's listed items (public market info)
       - "AFKTask.create_task"        # 挂机任务：允许监控其他玩家（如"帮我盯着xxx"）
       # AFK task: allows monitoring other players (e.g., "keep an eye on xxx for me")
       - "command.execute_command"    # 命令执行：以玩家身份执行命令，权限边界等于玩家自身权限

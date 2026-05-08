@@ -304,6 +304,7 @@ messages:
 
   # ==================== SkillResult - MarketQuerySkill ====================
   "[FAILURE] 缺少参数: item(物品名称)": "[FAILURE] Missing parameter: item (item name)"
+  "[FAILURE] 缺少参数: seller_name(卖家名称)": "[FAILURE] Missing parameter: seller_name (seller name)"
   "[FAILURE] 未找到物品 '{}' 的价格信息": "[FAILURE] Price info not found for item '{}'"
   "[FAILURE] 不支持的市场查询操作": "[FAILURE] Unsupported market query operation"
   "[FAILURE] 无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装": "[FAILURE] Unable to get balance info, please ensure GlobalMarketPlus plugin is properly installed"
@@ -464,6 +465,7 @@ messages:
   "搜索市场商品失败: {}": "Failed to search market items: {}"
   "获取商品详情失败: {}": "Failed to get item details: {}"
   "获取我的商品列表失败: {}": "Failed to get my listings: {}"
+  "获取卖家商品列表失败: {}": "Failed to get seller listings: {}"
   "获取邮箱物品失败: {}": "Failed to get mailbox items: {}"
   "无效的音效枚举: {}，使用默认值 ENTITY_PLAYER_LEVELUP": "Invalid sound enum: {}, using default ENTITY_PLAYER_LEVELUP"
   "占位符注册失败: {}": "Placeholder registration failed: {}"
@@ -784,6 +786,8 @@ messages:
   "卖家: ": "Sellers: "
   " ... 等{}人": " ... and {} more"
   "你在售的商品 (共 {} 个):\n": "Your items for sale ({} total):\n"
+  "{} 的在售商品 (共 {} 个):\n": "{}'s items for sale ({} total):\n"
+  "{} 目前没有在售商品": "{} currently has no items for sale"
   "... 还有 {} 个商品": "... and {} more items"
   "邮箱待领取 (共 {} 封):\n": "Mailbox pending ({} total):\n"
   "来自: {}": "From: {}"

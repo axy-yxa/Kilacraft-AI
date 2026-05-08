@@ -326,6 +326,49 @@ public class GlobalMarketPlusAPI {
     }
 
     /**
+     * 获取指定卖家在售的商品
+     *
+     * <p>通过 {@link Merchant#getMerchant(String)} 按玩家名获取商家实例，
+     * 再调用 {@link Merchant#getMerchandises()} 获取该商家的全部商品。</p>
+     *
+     * @param sellerName 卖家玩家名
+     * @return 卖家的商品列表（按价格排序），无商品或异常时返回空列表
+     */
+    public static List<MarketItemDetail> getSellerMerchandises(String sellerName) {
+        if (!isAvailable() || sellerName == null || sellerName.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        try {
+            Merchant merchant = Merchant.getMerchant(sellerName);
+            if (merchant == null) {
+                return new ArrayList<>();
+            }
+
+            List<Merchandise> items = merchant.getMerchandises();
+            if (items == null || items.isEmpty()) {
+                return new ArrayList<>();
+            }
+
+            List<MarketItemDetail> result = new ArrayList<>();
+            for (Merchandise merch : items) {
+                if (merch.getItem() == null) continue;
+                String rawItemName = merch.getItem().hasItemMeta() && merch.getItem().getItemMeta().hasDisplayName()
+                        ? merch.getItem().getItemMeta().getDisplayName()
+                        : merch.getItem().getType().name();
+                int amount = merch.getInitialAmount();
+                result.add(new MarketItemDetail(rawItemName, rawItemName, merch.getPrice(), amount, merch.getOwnerName(), merch.getMerchandiseUID()));
+            }
+
+            result.sort(Comparator.comparingDouble(MarketItemDetail::getPrice));
+            return result;
+        } catch (Exception e) {
+            PluginLogger.error("市场插件", I18nService.tr("获取卖家商品列表失败: {}", sellerName), e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
      * 获取玩家邮箱待领取邮件
      *
      * @param player 玩家对象

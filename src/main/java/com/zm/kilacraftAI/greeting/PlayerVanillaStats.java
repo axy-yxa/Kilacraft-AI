@@ -11,7 +11,9 @@ import org.bukkit.entity.Player;
  * <ul>
  *     <li>Bukkit Stats 为累计统计的权威来源（替代 player_profile 的 totalPlaytimeMs/loginCount）</li>
  *     <li>player_profile 仅用于内部逻辑（last_login/last_logout），不用于统计展示</li>
- *     <li>距离单位统一为"格"（1格=100cm），伤害单位为"半心"（2半心=1颗心）</li>
+ *     <li>游戏时长单位：分钟（采集时从 tick 自动换算，1200 tick = 1 分钟）</li>
+ *     <li>距离单位统一为"格"（采集时从 cm 换算，1格=100cm）</li>
+ *     <li>伤害单位为"半心"（展示层由 GreetingPromptBuilder 转为"颗心"）</li>
  * </ul>
  *
  * @author Zm_Mmm
@@ -75,13 +77,17 @@ public record PlayerVanillaStats(
     public static PlayerVanillaStats collect(Player player) {
         return new PlayerVanillaStats(
                 // 基础/战斗
-                safeGet(player, Statistic.PLAY_ONE_MINUTE), safeGet(player, Statistic.DEATHS), safeGet(player, Statistic.MOB_KILLS), safeGet(player, Statistic.PLAYER_KILLS), safeGet(player, Statistic.DAMAGE_DEALT), safeGet(player, Statistic.DAMAGE_TAKEN), safeGet(player, Statistic.DAMAGE_BLOCKED_BY_SHIELD), safeGet(player, Statistic.ANIMALS_BRED), safeGet(player, Statistic.JUMP), safeGet(player, Statistic.SLEEP_IN_BED),
+                tickToMinutes(safeGet(player, Statistic.PLAY_ONE_MINUTE)), safeGet(player, Statistic.DEATHS), safeGet(player, Statistic.MOB_KILLS), safeGet(player, Statistic.PLAYER_KILLS), safeGet(player, Statistic.DAMAGE_DEALT), safeGet(player, Statistic.DAMAGE_TAKEN), safeGet(player, Statistic.DAMAGE_BLOCKED_BY_SHIELD), safeGet(player, Statistic.ANIMALS_BRED), safeGet(player, Statistic.JUMP), safeGet(player, Statistic.SLEEP_IN_BED),
                 // 稀有BOSS
                 safeGetEntity(player, Statistic.KILL_ENTITY, EntityType.ENDER_DRAGON), safeGetEntity(player, Statistic.ENTITY_KILLED_BY, EntityType.ENDER_DRAGON), safeGetEntity(player, Statistic.KILL_ENTITY, EntityType.WITHER), safeGetEntity(player, Statistic.ENTITY_KILLED_BY, EntityType.WITHER), safeGetEntityByName(player, Statistic.KILL_ENTITY, "ELDER_GUARDIAN"), safeGetEntityByName(player, Statistic.KILL_ENTITY, "WARDEN"), safeGetEntityByName(player, Statistic.KILL_ENTITY, "IRON_GOLEM"),
                 // 探索/距离
                 safeGet(player, Statistic.WALK_ONE_CM), safeGet(player, Statistic.SPRINT_ONE_CM), safeGet(player, Statistic.FLY_ONE_CM), safeGet(player, Statistic.AVIATE_ONE_CM), safeGet(player, Statistic.SWIM_ONE_CM), safeGet(player, Statistic.BOAT_ONE_CM), safeGet(player, Statistic.MINECART_ONE_CM), safeGet(player, Statistic.HORSE_ONE_CM), safeGet(player, Statistic.CLIMB_ONE_CM), safeGet(player, Statistic.FALL_ONE_CM),
                 // 生活/趣味
                 safeGet(player, Statistic.FISH_CAUGHT), safeGet(player, Statistic.ITEM_ENCHANTED), safeGet(player, Statistic.RAID_TRIGGER), safeGet(player, Statistic.RAID_WIN), safeGetBlock(player, Statistic.MINE_BLOCK, Material.DIAMOND_ORE));
+    }
+
+    private static int tickToMinutes(int ticks) {
+        return ticks / 1200;
     }
 
     private static int safeGet(Player p, Statistic stat) {

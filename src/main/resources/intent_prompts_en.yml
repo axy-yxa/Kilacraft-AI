@@ -95,6 +95,7 @@ critical_rules:
        - Core reason: real-time data may have changed, specific values in history may be outdated
        - Counter-example: last round got diamond via "get held item" → this round "what about this one" → should re-fetch held item, not directly use "diamond"
        - Correct example: last round user explicitly specified "how much is diamond" → this round "what about iron ingot" → understand intent from history is to check price, parameter obtained from "iron ingot", no need to re-fetch held item
+       - **Balance absolute prohibition**: Balance is high-frequency changing data (changes after buying, selling, listing, delisting, transfers). Any scenario involving balance ("what can I afford", "do I have enough", "how much left"), MUST query via query_balance in real-time, strictly forbidden to read old balance from conversation history for inference. If combining balance and item info, must use multi-step task: query balance first, then query items
     5. [Multi-step Task Repeat Rule]
        If the previous round was a multi-step task and this round the user's intent is the same (just with different real-time data), the same structure multi-step task must be returned, not just the first step
        - Judgment method: if the user's pronoun/vague instruction refers to the same object as the previous round's task starting point, the previous round's complete task structure should be repeated

@@ -42,18 +42,17 @@ public class GreetingPromptBuilder {
             {summary_section}
             
             要求：
-            1. 根据离线事件自然地提及重要的事，没有则跳过，不要编造
-            2. 根据好友动态提及好友的重要动态（如好友击杀了BOSS、完成了袭击、宠物战死、被雷劈等趣事），没有则跳过
-            3. 在线好友和离线好友列表均为空时，不要提及任何好友在线状态相关内容，不要说“好友们在忙”之类的话。注意：好友动态和好友登录频次是独立数据，不受此条限制
-            4. 玩家数据中，原版统计数值在以下情况可以提及：有意义的里程碑（如1000小时、10000次击杀、第100次睡觉等整数）、和离线事件有关联的数字（如刚死了但累计被末影龙杀了99次）、特别突出或反常的数值（如挖了上万钻石）。不需要逐个列举，挑最有意思的1-3个即可。无意义的零值必须忽略
-            5. 如果离线时间很短（如“刚刚”），不要说“好久不见”或“休息了很久”之类的话，用轻松的语气打招呼即可，但如果有有价值的数据仍应正常提及
-            6. 充分利用上面提供的数据，尽量多提及有价值的信息，让问候内容丰富充实，不要只说一两句话就结束；控制在 300 个汉字以内，像朋友聊天一样自然
-            7. 四大分类（离线事件、好友动态、在线好友、玩家数据）中有实际内容的都要提及，不要遗漏某个分类。“都要提及”是指分类级别不能跳过，分类内的具体数据项不需要逐个列举，挑最有价值的即可
-            8. 上次位置仅供参考，除非在特殊世界（末地/下界），否则不要提及
-            9. 死亡消息为Minecraft原版死亡消息（英文），需翻译为自然的中文描述（如“was slain by Zombie”→“被僵尸打死了”）；成就名为原版命名空间格式（如minecraft:story/mine_diamond），需翻译为玩家易懂的中文描述
-            10. 数据中的时间单位统一为分钟，距离单位为格（1格=1米），伤害单位为半心（2半心=1颗心），均需自行换算为更自然的表达（如“120分钟”→“2小时”、“离线好友180分钟前下线”→“3小时前”）
-            11. 好友所在世界名为服务器原始世界名，常见的有 world（主世界）、world_nether（下界）、world_the_end（末地），但也可能是服务器自定义的世界名。非标准世界名直接使用原名即可
-            12. 好友在线时长、离线好友下线时间、好友登录频次、全服事件数等辅助数据，不需要逐项提及，选择最有价值的即可""";
+            1. 离线事件、好友动态、在线好友三个分类有实际内容的都要提及。玩家数据分类受规则3约束，不满足条件则整个分类跳过不提
+            2. 在线好友列表和离线好友列表均为空时，绝对不要提及任何好友在线状态，不要说"好友们在忙"之类的话。好友动态和登录频次是独立数据，不受此限制。好友状态最多提1个离线最久的，不要逐人报告
+            3. 【绝对禁令】玩家数据是生涯累计统计。只有满足以下条件之一的数据才能向玩家提及：(a)整数里程碑（如游戏满1000小时、击杀满10000）；(b)与本次离线事件有关联的数字。不满足这两个条件的普通数值，无论你觉得多有趣，都绝对不能提。如果没有任何数据满足条件，整个玩家数据分类跳过，不要勉强找一个来提。零值忽略
+            4. 数据后附的单位（分钟、颗心、格等）仅供你理解数据含义。向玩家描述时，禁止直接报出带单位的原始数值（如"75万颗心""14万格"），必须换算为日常说法（如"挨了不少打""飞了好远"）
+            5. 如果离线时间很短（如"刚刚"），不要说"好久不见"，轻松打招呼即可
+            6. 语气平实自然，像平时朋友说话，不要用"哟""嘿兄弟""欢迎回来！"等夸张热情的语气，不要堆砌感叹号，不要"——"破折号过多。输出示例参考："zmjiushizhemoz，你不在的时候被雷劈了，还挺倒霉的。zmjiushizhemoz那边也挺热闹，他的狼被苦力怕炸死了。其他没啥事，服务器现在就你俩在线。"内容丰富充实但不要只说一两句话就结束；控制在 300 个汉字以内
+            7. 上次位置仅供参考，除非在特殊世界（末地/下界），否则不要提及
+            8. 死亡消息为Minecraft原版英文消息，需翻译为自然中文（如"was slain by Zombie"→"被僵尸打死了"）；成就名为命名空间格式，需翻译为玩家易懂的中文
+            9. 好友世界名为服务器原始名（world=主世界、world_nether=下界、world_the_end=末地），非标准名直接使用原名
+            10. 不要从玩家画像推断社交叙事（如"他不在你自己玩吧"），画像仅用于调整语气风格
+            11. 提到【上次游玩亮点】中的事件时，必须说"你上次在线的时候"，不能只说"你上次"，避免玩家不知道"上次"指什么时候""";
 
     /**
      * 构建问候提示词
@@ -171,7 +170,25 @@ public class GreetingPromptBuilder {
                     yield "你达成了 " + count + " 个成就（" + aj + "）";
                 }
             }
-            case PLAYER_LEVEL_UP -> "你升了 " + events.size() + " 级" + (data.isEmpty() ? "" : "（" + data + "）");
+            case PLAYER_LEVEL_UP -> {
+                int count = events.size();
+                if (count == 1) {
+                    // 单次升级：解析 "13 → 14" 格式
+                    String levelDesc = formatLevelChange(data);
+                    yield "你升级了" + (levelDesc.isEmpty() ? "" : "（" + levelDesc + "）");
+                } else {
+                    // 多次升级：events 按 created_at DESC（最新在前）
+                    // 取最早事件的起始等级 → 最新事件的结束等级
+                    String oldestData = events.get(events.size() - 1).getData();
+                    String startLevel = extractStartLevel(oldestData);
+                    String endLevel = extractEndLevel(data); // data = events.get(0)，即最新事件
+                    if (!startLevel.isEmpty() && !endLevel.isEmpty()) {
+                        yield "你从 " + startLevel + " 级升到了 " + endLevel + " 级（共" + count + "级）";
+                    } else {
+                        yield "你升级 " + count + " 次";
+                    }
+                }
+            }
             case PLAYER_USE_TOTEM ->
                     "你触发了不死图腾" + (events.size() > 1 ? " " + events.size() + " 次" : "") + (data.isEmpty() ? "" : "（" + formatDamageCause(data) + "）");
             case PLAYER_DEFEAT_BOSS ->
@@ -193,6 +210,30 @@ public class GreetingPromptBuilder {
             case PLAYER_BUILD_WITHER -> "你召唤了凋零" + (events.size() > 1 ? " " + events.size() + " 次" : "");
             default -> type.getDescription() + " x" + events.size();
         };
+    }
+
+    /**
+     * 解析等级变化描述（如 "13 → 14" → "13级→14级"）
+     */
+    private String formatLevelChange(String data) {
+        if (data == null || data.isEmpty()) return "";
+        String[] parts = data.split("\\s*→\\s*");
+        if (parts.length == 2) {
+            return parts[0].trim() + "级→" + parts[1].trim() + "级";
+        }
+        return data;
+    }
+
+    private String extractStartLevel(String data) {
+        if (data == null || data.isEmpty()) return "";
+        String[] parts = data.split("\\s*→\\s*");
+        return parts.length >= 1 ? parts[0].trim() : "";
+    }
+
+    private String extractEndLevel(String data) {
+        if (data == null || data.isEmpty()) return "";
+        String[] parts = data.split("\\s*→\\s*");
+        return parts.length >= 2 ? parts[1].trim() : "";
     }
 
     /**
@@ -266,11 +307,11 @@ public class GreetingPromptBuilder {
         boolean hasOffline = offlineFriends != null && !offlineFriends.isEmpty();
 
         if (!hasOnline && !hasOffline) {
-            return "【目前在线的好友】\n暂无好友在线。";
+            return "【好友在线状态】\n暂无好友。";
         }
 
         int onlineCount = org.bukkit.Bukkit.getOnlinePlayers().size();
-        StringBuilder sb = new StringBuilder("【目前在线的好友】\n");
+        StringBuilder sb = new StringBuilder("【好友在线状态】\n");
 
         // 在线好友：名称 + 世界信息
         if (hasOnline) {
@@ -278,23 +319,25 @@ public class GreetingPromptBuilder {
             for (FriendStatus f : onlineFriends) {
                 StringBuilder desc = new StringBuilder(f.name());
                 if (f.world() != null && !f.world().isEmpty()) {
-                    desc.append("（").append(f.world()).append("）");
+                    desc.append("（").append(f.world()).append(")");
                 }
                 joiner.add(desc);
             }
             sb.append(joiner);
+        } else {
+            sb.append("没有好友在线");
         }
 
         // 在线人数
         sb.append("\n（服务器当前在线 ").append(onlineCount).append(" 人）");
 
-        // 在线好友会话时长（原始分钟数）
+        // 在线好友会话时长
         if (hasOnline) {
             boolean hasSession = false;
             StringBuilder sessionSb = new StringBuilder();
             for (FriendStatus f : onlineFriends) {
                 if (f.sessionMinutes() > 0) {
-                    sessionSb.append(f.name()).append(" 在线 ").append(f.sessionMinutes()).append(" 分钟; ");
+                    sessionSb.append(f.name()).append(" 已在线 ").append(formatSessionDuration(f.sessionMinutes())).append("; ");
                     hasSession = true;
                 }
             }
@@ -309,7 +352,7 @@ public class GreetingPromptBuilder {
             StringJoiner offlineJoiner = new StringJoiner("、");
             for (FriendStatus f : offlineFriends) {
                 if (f.sessionMinutes() > 0) {
-                    offlineJoiner.add(f.name() + "（" + f.sessionMinutes() + " 分钟前下线）");
+                    offlineJoiner.add(f.name() + "（" + formatSessionDuration(f.sessionMinutes()) + "前下线）");
                 }
             }
             sb.append(offlineJoiner);
@@ -398,8 +441,23 @@ public class GreetingPromptBuilder {
                     yield playerName + " 达成了 " + count + " 个成就（" + aj + "）";
                 }
             }
-            case PLAYER_LEVEL_UP ->
-                    playerName + " 升了 " + events.size() + " 级" + (data.isEmpty() ? "" : "（" + data + "）");
+            case PLAYER_LEVEL_UP -> {
+                int count = events.size();
+                if (count == 1) {
+                    String levelDesc = formatLevelChange(data);
+                    yield playerName + " 升级了" + (levelDesc.isEmpty() ? "" : "（" + levelDesc + "）");
+                } else {
+                    // events 按 created_at DESC（最新在前）
+                    String oldestData = events.get(events.size() - 1).getData();
+                    String startLevel = extractStartLevel(oldestData);
+                    String endLevel = extractEndLevel(data); // data = events.get(0)，即最新事件
+                    if (!startLevel.isEmpty() && !endLevel.isEmpty()) {
+                        yield playerName + " 从 " + startLevel + " 级升到了 " + endLevel + " 级";
+                    } else {
+                        yield playerName + " 升了 " + count + " 级";
+                    }
+                }
+            }
             case PLAYER_USE_TOTEM ->
                     playerName + " 触发了不死图腾" + (events.size() > 1 ? " " + events.size() + " 次" : "") + (data.isEmpty() ? "" : "（" + formatDamageCause(data) + "）");
             case PLAYER_DEFEAT_BOSS ->
@@ -575,13 +633,13 @@ public class GreetingPromptBuilder {
                 sb.append("\n击杀玩家: ").append(vanillaStats.playerKills()).append(" 人");
             }
             if (vanillaStats.damageDealt() > 0) {
-                sb.append("\n造成伤害: ").append(vanillaStats.damageDealt()).append(" 半心");
+                sb.append("\n造成伤害: ").append(vanillaStats.damageDealt() / 2).append(" 颗心");
             }
             if (vanillaStats.damageTaken() > 0) {
-                sb.append("\n承受伤害: ").append(vanillaStats.damageTaken()).append(" 半心");
+                sb.append("\n承受伤害: ").append(vanillaStats.damageTaken() / 2).append(" 颗心");
             }
             if (vanillaStats.damageShielded() > 0) {
-                sb.append("\n盾牌格挡: ").append(vanillaStats.damageShielded()).append(" 半心");
+                sb.append("\n盾牌格挡: ").append(vanillaStats.damageShielded() / 2).append(" 颗心");
             }
             if (vanillaStats.animalsBred() > 0) {
                 sb.append("\n繁殖动物: ").append(vanillaStats.animalsBred()).append(" 次");
@@ -705,6 +763,23 @@ public class GreetingPromptBuilder {
             return minutes + " 分钟";
         } else {
             return "刚刚";
+        }
+    }
+
+    /**
+     * 格式化会话时长（分钟 → 可读，不附带“分钟”字样）
+     */
+    private String formatSessionDuration(long totalMinutes) {
+        if (totalMinutes <= 0) return "";
+        long hours = totalMinutes / 60;
+        long mins = totalMinutes % 60;
+        if (hours >= 24) {
+            long days = hours / 24;
+            return days + " 天";
+        } else if (hours > 0) {
+            return hours + " 小时" + (mins > 0 ? " " + mins + " 分钟" : "");
+        } else {
+            return mins + " 分钟";
         }
     }
 }
