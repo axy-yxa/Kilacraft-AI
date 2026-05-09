@@ -39,7 +39,7 @@ public class WeatherChangeWatchTask extends AbstractEventWatchTask {
             registerListener();
             markRunning();
             String worldDesc = (targetWorldName != null && !targetWorldName.isEmpty()) ? targetWorldName : "玩家当前世界";
-            PluginLogger.debug("挂机任务", "已启动: {}, 目标世界: {}, 模式: {}", getTaskId(), worldDesc, hasCallback() ? "回调(" + getCallback().getCallbackTask().getSteps().size() + "步)" : "纯通知");
+            PluginLogger.debug("挂机任务", "已启动: {}, 目标世界: {}, 模式: {}", getTaskId(), worldDesc, hasCallback() ? I18nService.tr("回调({}步)", getCallback().getCallbackTask().getSteps().size()) : I18nService.tr("纯通知"));
         } catch (Exception e) {
             failStart(I18nService.tr("监听器注册失败: {}", e.getMessage()));
         }

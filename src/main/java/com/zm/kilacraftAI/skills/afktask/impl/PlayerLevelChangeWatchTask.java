@@ -40,7 +40,7 @@ public class PlayerLevelChangeWatchTask extends AbstractEventWatchTask {
         try {
             registerListener();
             markRunning();
-            PluginLogger.debug("挂机任务", "已启动: {}, 目标: {}, 模式: {}", getTaskId(), targetPlayerName, hasCallback() ? "回调(" + getCallback().getCallbackTask().getSteps().size() + "步)" : "纯通知");
+            PluginLogger.debug("挂机任务", "已启动: {}, 目标: {}, 模式: {}", getTaskId(), targetPlayerName, hasCallback() ? I18nService.tr("回调({}步)", getCallback().getCallbackTask().getSteps().size()) : I18nService.tr("纯通知"));
         } catch (Exception e) {
             failStart(I18nService.tr("监听器注册失败: {}", e.getMessage()));
         }

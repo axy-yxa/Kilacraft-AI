@@ -385,8 +385,8 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 1. 对话刷盘（每 30 秒）
         taskScheduler.register(new ManagedTask() {
-            @Override public String name() { return "对话刷盘"; }
-            @Override public String description() { return "定时批量写入对话记录"; }
+            @Override public String name() { return I18nService.tr("对话刷盘"); }
+            @Override public String description() { return I18nService.tr("定时批量写入对话记录"); }
             @Override public long delayTicks() { return 600L; }
             @Override public long intervalTicks() { return 600L; }
             @Override public int execute() { return persistenceService.scheduledFlush(); }
@@ -394,8 +394,8 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 2. 对话清理（每 6 小时，条件注册）
         taskScheduler.register(new ManagedTask() {
-            @Override public String name() { return "对话清理"; }
-            @Override public String description() { return "清理过期对话记录"; }
+            @Override public String name() { return I18nService.tr("对话清理"); }
+            @Override public String description() { return I18nService.tr("清理过期对话记录"); }
             @Override public long delayTicks() { return 1200L; }
             @Override public long intervalTicks() { return 432000L; }
             @Override public boolean enabled() { return persistenceService.getRetentionDays() > 0; }
@@ -404,8 +404,8 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 3. 事件清理（每 6 小时，条件注册）
         taskScheduler.register(new ManagedTask() {
-            @Override public String name() { return "事件清理"; }
-            @Override public String description() { return "清理过期事件和审计日志"; }
+            @Override public String name() { return I18nService.tr("事件清理"); }
+            @Override public String description() { return I18nService.tr("清理过期事件和审计日志"); }
             @Override public long delayTicks() { return 2400L; }
             @Override public long intervalTicks() { return 432000L; }
             @Override public boolean enabled() { return dataCleanupService.needsCleanup(); }
@@ -414,8 +414,8 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 4. 社交关系每日衰减（每 24 小时）
         taskScheduler.register(new ManagedTask() {
-            @Override public String name() { return "社交衰减"; }
-            @Override public String description() { return "每日衰减社交关系强度"; }
+            @Override public String name() { return I18nService.tr("社交衰减"); }
+            @Override public String description() { return I18nService.tr("每日衰减社交关系强度"); }
             @Override public long delayTicks() { return 6000L; }
             @Override public long intervalTicks() { return 1728000L; }
             @Override public int execute() { return socialGraph.performDailyDecay(); }
@@ -424,8 +424,8 @@ public final class KilacraftAI extends JavaPlugin {
         // 5. 社交关系智能提取（每 30 分钟）
         SocialRelationExtractor extractor = new SocialRelationExtractor(databaseManager, socialGraph);
         taskScheduler.register(new ManagedTask() {
-            @Override public String name() { return "社交提取"; }
-            @Override public String description() { return "从Skill日志提取社交关系"; }
+            @Override public String name() { return I18nService.tr("社交提取"); }
+            @Override public String description() { return I18nService.tr("从Skill日志提取社交关系"); }
             @Override public long delayTicks() { return 3600L; }
             @Override public long intervalTicks() { return 36000L; }
             @Override public int execute() { return extractor.extractNewRelations(); }

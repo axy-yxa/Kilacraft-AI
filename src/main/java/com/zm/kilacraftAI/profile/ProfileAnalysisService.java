@@ -212,7 +212,7 @@ public class ProfileAnalysisService {
         sb.append(I18nService.tr("以下是玩家的对话历史，请分析其行为特征：\n\n"));
 
         for (ConversationManager.Message msg : messages) {
-            String role = "user".equals(msg.getRole()) ? I18nService.tr("玩家") : I18nService.tr("AI");
+            String role = "user".equals(msg.getRole()) ? I18nService.tr("玩家") : "AI";
             sb.append(role).append(": ").append(msg.getContent()).append("\n");
         }
 

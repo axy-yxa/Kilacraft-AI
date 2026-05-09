@@ -142,6 +142,11 @@ messages:
   "对话清理": "Conversation Cleanup"
   "清理过期对话记录": "Clean up expired conversation records"
   "事件清理": "Event Cleanup"
+  "清理过期事件和审计日志": "Clean up expired events and audit logs"
+  "社交衰减": "Social Decay"
+  "每日衰减社交关系强度": "Daily decay of social relation strength"
+  "社交提取": "Social Extract"
+  "从Skill日志提取社交关系": "Extract social relations from Skill logs"
 
   # ==================== KnowledgeBaseManager ====================
   "知识库目录不存在：{}": "Knowledge base directory not found: {}"
@@ -173,6 +178,9 @@ messages:
   "关闭 Embedding HTTP 客户端异常: {}": "Error closing Embedding HTTP client: {}"
   "获取问题 Embedding 失败，降级到 BM25": "Failed to get question embedding, falling back to BM25"
   "Embedding 不可用，降级到 BM25": "Embedding unavailable, falling back to BM25"
+  "使用 Embedding 语义检索": "Using Embedding semantic retrieval"
+  "剩余片段相似度过低（{}），停止返回": "Remaining chunk similarity too low ({}), stopping retrieval"
+  "Embedding 已关闭，降级到 BM25 检索": "Embedding disabled, falling back to BM25 retrieval"
 
   # ==================== EmbeddingCache ====================
   "Embedding 缓存文件不存在，将全量计算": "Embedding cache file not found, will compute all"
@@ -566,6 +574,8 @@ messages:
   "正在关闭 {} 个活跃任务...": "Shutting down {} active tasks..."
 
   # ==================== AFK Task 实现 ====================
+  "纯通知": "Notification only"
+  "回调({}步)": "Callback({} steps)"
   "解析回调配置失败: {}": "Failed to parse callback config: {}"
   "解析condition_plan JSON失败: {}": "Failed to parse condition_plan JSON: {}"
   "取消轮询任务失败: {}": "Failed to cancel polling task: {}"
@@ -819,6 +829,7 @@ messages:
   "§cTaskScheduler 未初始化。": "§cTaskScheduler not initialized."
   "§7当前共加载 {} 个人格": "§7Currently loaded {} personalities"
   "数据库热重载失败，已回退到旧配置: {}": "Database hot reload failed, rolled back to old config: {}"
+  "热重载失败，回退到旧配置: {}": "Hot reload failed, rolled back to old config: {}"
   "[当前玩家上下文]\n": "[Current Player Context]\n"
   "当前玩家名称：": "Current player name: "
   "[当前输入]\n": "[Current Input]\n"
@@ -999,6 +1010,13 @@ messages:
   "创建新玩家画像: {} ({})": "Creating new player profile: {} ({})"
   "解析 profile_data 失败: {}": "Failed to parse profile_data: {}"
 
+  # ==================== DatabaseManager ====================
+  "数据库初始化完成，类型: {}": "Database initialized, type: {}"
+  "热重载跳过，配置未变化（类型: {}）": "Hot reload skipped, config unchanged (type: {})"
+  "开始热重载，旧类型: {}，新类型: {}": "Starting hot reload, old type: {}, new type: {}"
+  "热重载完成，新类型: {}": "Hot reload complete, new type: {}"
+  "数据库管理器已关闭": "Database manager shut down"
+
   # ==================== H2Provider ====================
   "H2 数据库已初始化": "H2 database initialized"
   "连接池配置: maxPoolSize={}, minIdle={}": "Connection pool config: maxPoolSize={}, minIdle={}"
@@ -1030,6 +1048,19 @@ messages:
   "沟通风格": "Communication style"
   "特别观察": "Special observations"
   "\n请根据以上画像调整你的沟通风格，让回复更贴合玩家个性。": "\nPlease adjust your communication style based on the above profile to better match the player's personality."
+
+  # ==================== ProfileAnalysisService ====================
+  "玩家画像分析异常: {} - {}": "Player profile analysis error: {} - {}"
+  "玩家 {} 新消息数 {} < 最低阈值 {}，跳过分析": "Player {} new messages {} < min threshold {}, skipping analysis"
+  "加载对话历史失败: {} - {}": "Failed to load conversation history: {} - {}"
+  "LLM Provider 未初始化，跳过分析": "LLM Provider not initialized, skipping analysis"
+  "LLM 分析失败: {} - {}": "LLM analysis failed: {} - {}"
+  "以下是玩家的对话历史，请分析其行为特征：\n\n": "Here is the player's conversation history, please analyze their behavioral characteristics:\n\n"
+  "玩家": "Player"
+  "LLM 返回空响应，跳过更新": "LLM returned empty response, skipping update"
+  "解析 LLM 响应 JSON 失败: {}": "Failed to parse LLM response JSON: {}"
+  "解析结果为空，跳过更新": "Parse result is empty, skipping update"
+  "玩家 {} 画像分析完成，字段: {}": "Player {} profile analysis complete, fields: {}"
 
   # ==================== SocialGraph ====================
   "提交交互记录: {} ↔ {}, type={}, weight={}": "Submitting interaction: {} ↔ {}, type={}, weight={}"

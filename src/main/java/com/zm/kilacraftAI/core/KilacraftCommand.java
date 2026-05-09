@@ -160,11 +160,15 @@ public class KilacraftCommand implements CommandExecutor {
                 plugin.getKnowledgeRetriever().refreshConfig(cm.getMaxRelevantChunks(), cm.getMinRelevanceScore(), cm.getKnowledgeMaxChunkSize(), cm.getKnowledgeMinChunkSize(), cm.getKnowledgeChunkOverlap(), cm.getKeywordTopK(), cm.getBm25K1(), cm.getBm25B());
             }
 
-            // 刷新 Embedding 阈值配置（仅 min_similarity，可热重载）
+            // 刷新 Embedding 配置（min_similarity 可热重载）
             // 注意：api_url/api_key/model/dimensions 等核心配置修改后必须重启服务器
             // 因为这些配置会影响向量计算，需要在启动时通过 precomputeAllChunks() 重新计算
-            if (plugin.getEmbeddingService() != null && plugin.getConfigManager().isEmbeddingEnabled()) {
-                plugin.getKnowledgeRetriever().setEmbeddingService(plugin.getEmbeddingService(), true, plugin.getConfigManager().getEmbeddingMinSimilarity());
+            if (plugin.getEmbeddingService() != null) {
+                boolean enabled = plugin.getConfigManager().isEmbeddingEnabled();
+                plugin.getKnowledgeRetriever().setEmbeddingService(plugin.getEmbeddingService(), enabled, plugin.getConfigManager().getEmbeddingMinSimilarity());
+                if (!enabled) {
+                    PluginLogger.info("热重载", "Embedding 已关闭，降级到 BM25 检索");
+                }
             }
 
             // 热重载文本处理器（语言变更后需要重建分词器）
