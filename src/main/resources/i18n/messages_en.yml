@@ -1005,6 +1005,14 @@ messages:
   "关闭时刷盘失败，丢失 {} 条消息: {}": "Shutdown flush failed, lost {} messages: {}"
   "批量写入失败，重试一次: {}": "Batch write failed, retrying once: {}"
   "重试写入仍失败，丢弃 {} 条消息: {}": "Retry write still failed, discarding {} messages: {}"
+  "加载历史记录失败，使用空历史: {}": "Failed to load history, using empty history: {}"
+  "过期清理失败: {}": "Expired cleanup failed: {}"
+  "已清理 {} 条过期对话记录（保留天数: {}）": "Cleaned {} expired conversation records (retention days: {})"
+  "对话持久化服务已关闭": "Conversation persistence service shut down"
+  "事件数据清理失败: {}": "Event data cleanup failed: {}"
+  "已清理 {} 条过期事件数据": "Cleaned {} expired event records"
+  "清理 {} 表 {} 条过期记录": "Cleaned {} expired records from table {}"
+  "离线数据聚合失败: {}": "Offline data aggregation failed: {}"
 
   # ==================== PlayerProfileDao ====================
   "创建新玩家画像: {} ({})": "Creating new player profile: {} ({})"
