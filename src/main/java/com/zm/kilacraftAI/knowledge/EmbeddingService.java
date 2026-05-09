@@ -53,6 +53,7 @@ public class EmbeddingService {
             available = false;
             PluginLogger.info("知识库", "Embedding 未配置，已降级到 BM25 检索");
         } else {
+            available = true;
             PluginLogger.info("知识库", "Embedding API URL: {}", apiUrl);
             PluginLogger.info("知识库", "Embedding 模型: {}", model);
         }
