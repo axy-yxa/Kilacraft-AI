@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.event;
 
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.util.PluginLogger;
@@ -84,6 +85,6 @@ public class MarketEventCollector implements Listener {
         String itemName = event.getItem().getType().name();
         int amount = event.getAmount();
         String price = String.format("%.1f", event.getPrice());
-        return itemName + " x" + amount + " 价格" + price;
+        return I18nService.tr("{} x{} 价格{}", itemName, amount, price);
     }
 }

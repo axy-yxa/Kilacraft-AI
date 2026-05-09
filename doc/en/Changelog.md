@@ -1,7 +1,32 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-05-06  
+> **Last Updated**: 2026-05-08  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
+
+---
+
+## v2.0.1 - AI Greeting Enhancement, Rare Event Collection, Global Market Query Expansion & Prompt Governance
+
+### ✨ New Features
+- **AI Returning Greeting Enhancement**
+  - Added Bukkit vanilla stats collection (32 items), covering Basic/Combat, Rare Bosses, Exploration/Distance, Life/Fun categories
+  - Greeting data dimensions expanded: online/offline friend status (with world name & logout time), last session duration, global event activity, friend login frequency
+  - Friend dynamics add PVP death perspective (PLAYER_PVP_DEATH); offline event descriptions enhanced (death grouping, per-achievement listing, money summary, repeat counting)
+  - Greeting prompt requirements refined from 8 to 12 rules, with clear integer milestone trigger conditions for player stats
+- **Server Event Collection Additions**: 4 new rare events (Ancient Debris, Tame Animal, Craft Enchanted Golden Apple, Build Wither) + PVP kill bidirectional recording
+- **Global Market Query New `query_seller_items` Action**: Query items by seller name using GMP dedicated API, added to security isolation whitelist
+
+### 🐛 Bug Fixes
+- **Fixed global market transaction amount recorded as -1.0**: `TransactionEvent.getPrice()` returns default value, switched to `TransactionResultEvent` for real transaction data
+- **Fixed player level-up info format reversal**: Events sorted by `created_at DESC`, original code reversed causing "leveled from 13 to 1"
+- **Fixed Bukkit stats damage unit display error**: Half-hearts → hearts (values divided by 2)
+
+### 🔧 Improvements
+- **Global Market Skill Prompt Governance**: Transfer action adds formula prohibition; fixed ghost reference `bukkit_api.get_player_balance` → `market_query.query_balance`; hints add mandatory balance real-time query rule
+- **Global Intent Recognition Prompt Optimization**: `continuous_conversation` rule 4 adds balance absolute prohibition sub-rule
+- **Greeting Format Optimization**: Session duration/logout time auto-converted to readable format; death messages require Chinese translation; unit conversion rules (minutes→hours, blocks→meters, half-hearts→hearts)
+- **Offline Data Aggregation Architecture Upgrade**: `OfflineEventAggregator` expanded to multi-dimensional aggregation; `ServerEventDao` adds 3 new query methods; `PlayerProfileDao` adds batch offline friend query; `FriendStatus` expanded to record with world name and session duration
+- **Internationalization (i18n) Overhaul**: All hardcoded Chinese strings migrated to `I18nService.tr()` + `messages_en.yml` translation system; PluginLogger exception overload compatibility hardened; event count and time format concatenations consolidated into complete templates; standalone English config files (greeting_en.yml etc.) — removed redundant English comments from Chinese source files
 
 ---
 

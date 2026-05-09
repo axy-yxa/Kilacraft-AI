@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.scheduler;
 
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.PluginLogger;
 import org.bukkit.plugin.Plugin;
 
@@ -74,15 +75,17 @@ public class TaskScheduler {
      */
     public List<String> getStatusSummary() {
         List<String> lines = new ArrayList<>();
-        lines.add("§f[TaskScheduler] §7已注册 §e" + tasks.size() + " §7个定时任务:");
+        lines.add(I18nService.tr("§f[TaskScheduler] §7已注册 §e{} §7个定时任务:", tasks.size()));
 
         for (ManagedTaskHandle h : tasks) {
             String intervalStr = formatInterval(h.task.intervalTicks());
-            String processed = "§f" + h.totalProcessed + "条";
-            String lastExec = h.lastExecuteTime > 0 ? "§f" + formatElapsed(System.currentTimeMillis() - h.lastExecuteTime) + "前" : "§8未执行";
-            String status = h.lastError != null ? "§c异常: " + truncate(h.lastError, 30) : h.lastExecuteTime == 0 ? "§7等待首次" : "§a正常";
+            String processed = I18nService.tr("§f{}条", h.totalProcessed);
+            String lastExec = h.lastExecuteTime > 0 ? I18nService.tr("§f{}前", formatElapsed(System.currentTimeMillis() - h.lastExecuteTime)) : I18nService.tr("§8未执行");
+            String status = h.lastError != null ? I18nService.tr("§c异常: {}", truncate(h.lastError, 30)) : h.lastExecuteTime == 0 ? I18nService.tr("§7等待首次") : I18nService.tr("§a正常");
 
-            lines.add(String.format("  §f%-8s §7| §e%-5s §7| 累计 §e%s §7| 上次: %s §7| %s", h.task.name(), intervalStr, processed, lastExec, status));
+            String name = String.format("%-8s", h.task.name());
+            String interval = String.format("%-5s", intervalStr);
+            lines.add(I18nService.tr("  §f{} §7| §e{} §7| 累计 §e{} §7| 上次: {} §7| {}", name, interval, processed, lastExec, status));
         }
         return lines;
     }
@@ -112,7 +115,7 @@ public class TaskScheduler {
         } catch (Exception e) {
             handle.lastErrorTime = System.currentTimeMillis();
             handle.lastError = e.getMessage();
-            PluginLogger.error(LOG_MODULE, "[{}] 执行失败: {}", handle.task.name(), e.getMessage(), e);
+            PluginLogger.error(LOG_MODULE, I18nService.tr("[{}] 执行失败: {}", handle.task.name(), e.getMessage()), e);
         } finally {
             handle.running.set(false);
         }

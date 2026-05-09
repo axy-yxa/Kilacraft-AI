@@ -86,7 +86,7 @@ public final class I18nService {
                 plugin.saveResource(fileName, false);
                 justCreated = true;
             } catch (Exception e) {
-                PluginLogger.error("国际化", "创建配置文件失败: " + fileName, e);
+                PluginLogger.error("国际化", I18nService.tr("创建配置文件失败: {}", fileName), e);
             }
         }
 

@@ -85,7 +85,7 @@ public class KnowledgeBaseManager {
                     knowledgeCache.put(fileName, content);
                     PluginLogger.info("知识库", "已加载知识文件：{}", fileName);
                 } catch (IOException e) {
-                    PluginLogger.error("知识库", I18nService.tr("加载知识文件失败: {}", file + " - " + e.getMessage()), e);
+                    PluginLogger.error("知识库", I18nService.tr("加载知识文件失败: {} - {}", file, e.getMessage()), e);
                 }
             }
 
@@ -140,6 +140,6 @@ public class KnowledgeBaseManager {
         int fileCount = knowledgeCache.size();
         int totalChars = knowledgeCache.values().stream().mapToInt(String::length).sum();
 
-        return String.format("知识库：%d 个文件，共 %d 字符", fileCount, totalChars);
+        return I18nService.tr("知识库：{} 个文件，共 {} 字符", fileCount, totalChars);
     }
 }

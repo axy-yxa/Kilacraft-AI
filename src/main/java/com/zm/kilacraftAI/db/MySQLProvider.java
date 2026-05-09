@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.db;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.util.PluginLogger;
 
 import java.sql.Connection;
@@ -51,7 +52,7 @@ public class MySQLProvider implements DatabaseProvider {
         try {
             this.dataSource = new HikariDataSource(hc);
         } catch (Exception e) {
-            throw new SQLException("MySQL 连接池初始化失败: " + e.getMessage(), e);
+            throw new SQLException(I18nService.tr("MySQL 连接池初始化失败: {}", e.getMessage()), e);
         }
 
         PluginLogger.info("数据库", "MySQL 数据库已初始化，地址: {}:{}", config.getMysqlHost(), config.getMysqlPort());

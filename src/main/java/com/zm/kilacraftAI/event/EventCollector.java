@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.event;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.util.PluginLogger;
@@ -60,7 +61,7 @@ public class EventCollector implements Listener {
     public void onPlayerLevelChange(PlayerLevelChangeEvent event) {
         // 仅记录升级（不记录降级）
         if (event.getNewLevel() > event.getOldLevel()) {
-            submitEvent(ServerEvent.of(ServerEventType.PLAYER_LEVEL_UP, event.getPlayer().getUniqueId(), event.getOldLevel() + " \u2192 " + event.getNewLevel()));
+            submitEvent(ServerEvent.of(ServerEventType.PLAYER_LEVEL_UP, event.getPlayer().getUniqueId(), event.getOldLevel() + " → " + event.getNewLevel()));
         }
     }
 
@@ -116,7 +117,7 @@ public class EventCollector implements Listener {
         if (winners.isEmpty()) return;
         String waveInfo = String.valueOf(event.getRaid().getTotalWaves());
         for (Player winner : winners) {
-            submitEvent(ServerEvent.of(ServerEventType.PLAYER_COMPLETE_RAID, winner.getUniqueId(), waveInfo + " 波"));
+            submitEvent(ServerEvent.of(ServerEventType.PLAYER_COMPLETE_RAID, winner.getUniqueId(), I18nService.tr("{} 波", waveInfo)));
         }
     }
 

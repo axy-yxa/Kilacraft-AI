@@ -72,7 +72,10 @@ public class SkillResult {
      * @return 失败结果
      */
     public static SkillResult failure(String message, Throwable error) {
-        return new SkillResult(false, I18nService.tr(message) + " (" + error.getMessage() + ")", null);
+        if (error != null && error.getMessage() != null) {
+            return new SkillResult(false, I18nService.tr("{} ({})", I18nService.tr(message), error.getMessage()), null);
+        }
+        return new SkillResult(false, I18nService.tr(message), null);
     }
 
     public SkillResult(boolean success, String message, Object data) {

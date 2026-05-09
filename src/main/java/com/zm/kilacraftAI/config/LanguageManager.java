@@ -165,7 +165,7 @@ public class LanguageManager {
             File languageFile = new File(plugin.getDataFolder(), fileName);
             this.config = YamlConfiguration.loadConfiguration(languageFile);
         } catch (Exception e) {
-            PluginLogger.error("语言配置", "加载 " + fileName + " 失败", e);
+            PluginLogger.error("语言配置", I18nService.tr("加载 {} 失败", fileName), e);
         }
 
         // 加载语言配置

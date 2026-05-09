@@ -709,13 +709,13 @@ public class KilacraftCommand implements CommandExecutor {
      */
     private boolean handleTasksCommand(CommandSender sender) {
         if (!PluginPermissionEnum.TASKS.hasPermission(sender)) {
-            sender.sendMessage("§c你没有权限查看定时任务状态。");
+            sender.sendMessage(I18nService.tr("§c你没有权限查看定时任务状态。"));
             return true;
         }
 
         var scheduler = plugin.getTaskScheduler();
         if (scheduler == null) {
-            sender.sendMessage("§cTaskScheduler 未初始化。");
+            sender.sendMessage(I18nService.tr("§cTaskScheduler 未初始化。"));
             return true;
         }
 
@@ -762,7 +762,7 @@ public class KilacraftCommand implements CommandExecutor {
                 }
                 AFKTask task = manager.getTask(player.getUniqueId());
                 manager.cancelTask(player.getUniqueId());
-                player.sendMessage(I18nService.tr("§a已取消挂机任务：§f") + task.getTaskDescription());
+                player.sendMessage(I18nService.tr("§a已取消挂机任务：§f{}", task.getTaskDescription()));
             }
             case "query", "" -> {
                 if (!manager.hasTask(player.getUniqueId())) {
@@ -772,15 +772,15 @@ public class KilacraftCommand implements CommandExecutor {
                 AFKTask task = manager.getTask(player.getUniqueId());
                 SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
                 player.sendMessage(I18nService.tr("§f当前挂机任务："));
-                player.sendMessage(I18nService.tr("§f  任务ID：§e") + task.getTaskId());
-                player.sendMessage(I18nService.tr("§f  类型：§e") + task.getTaskType().getLocalizedDescription());
-                player.sendMessage(I18nService.tr("§f  描述：§e") + task.getTaskDescription());
-                player.sendMessage(I18nService.tr("§f  状态：§e") + task.getStatusText());
-                player.sendMessage(I18nService.tr("§f  创建时间：§e") + sdf.format(new Date(task.getCreatedAt())));
+                player.sendMessage(I18nService.tr("§f  任务ID：§e{}", task.getTaskId()));
+                player.sendMessage(I18nService.tr("§f  类型：§e{}", task.getTaskType().getLocalizedDescription()));
+                player.sendMessage(I18nService.tr("§f  描述：§e{}", task.getTaskDescription()));
+                player.sendMessage(I18nService.tr("§f  状态：§e{}", task.getStatusText()));
+                player.sendMessage(I18nService.tr("§f  创建时间：§e{}", sdf.format(new Date(task.getCreatedAt()))));
                 player.sendMessage(I18nService.tr("§7使用 /kilacraft afk cancel 可取消此任务"));
             }
             default -> {
-                player.sendMessage(I18nService.tr("§c未知的挂机任务子命令：") + subAction);
+                player.sendMessage(I18nService.tr("§c未知的挂机任务子命令：{}", subAction));
                 player.sendMessage(I18nService.tr("§7用法：/kilacraft afk [query|cancel]"));
             }
         }

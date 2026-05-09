@@ -170,7 +170,7 @@ public class SkillIntentRecognizer {
             // 提取 JSON 部分
             String jsonStr = extractJson(response);
             if (jsonStr == null) {
-                return createInvalidIntent("无法解析响应为 JSON");
+                return createInvalidIntent(I18nService.tr("无法解析响应为 JSON"));
             }
 
             JsonObject json = gson.fromJson(jsonStr, JsonObject.class);
@@ -209,7 +209,7 @@ public class SkillIntentRecognizer {
             return parseSingleIntentFromResponse(json);
         } catch (Exception e) {
             PluginLogger.debug("意图识别", "解析意图失败：{}", e.getMessage());
-            return createInvalidIntent("解析失败：" + e.getMessage());
+            return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()));
         }
     }
 

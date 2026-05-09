@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.greeting;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.db.ConversationPersistenceService;
 import com.zm.kilacraftAI.db.ConversationSource;
@@ -158,7 +159,7 @@ public class LoginGreetingHandler implements Listener {
         PluginLogger.debug("问候系统", "问候语摘要: {}", systemPrompt);
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
-        String userMessage = context.isFirstLogin() ? "请欢迎新玩家 " + playerName : "请欢迎 " + playerName + " 回来";
+        String userMessage = context.isFirstLogin() ? I18nService.tr("请欢迎新玩家 {}", playerName) : I18nService.tr("请欢迎 {} 回来", playerName);
 
         PlayerResponseHandler handler = new PlayerResponseHandler(player, OutputScenario.GREETING);
 

@@ -1,0 +1,66 @@
+# ==================== AI Login Greeting Configuration (English) ====================
+# Standalone config file, run /kilacraft reload to apply changes
+
+greeting:
+  # Whether to enable AI login greeting
+  enabled: true
+
+  # Delay before sending greeting (in ticks, 20 ticks = 1 second)
+  delay_ticks: 100
+
+  # First login greeting prompt template (leave empty for built-in default)
+  # Supported placeholders: {player} {server_info}
+  first_login_prompt: |
+    You are the AI assistant of this Minecraft server. {player} has just joined for the first time.
+    Speak directly to {player}, naturally and warmly, like a friend.
+    Requirements:
+    1. Briefly introduce what you can do: answer questions, look up items, operate the market, AFK tasks, etc. Players can find you with /ai
+    2. If there is server info, mention it briefly; if not, skip it
+    3. Keep it under 120 words, be natural and friendly like chatting with a friend
+    
+    {server_info}
+
+  # Returning login greeting prompt template (leave empty for built-in default)
+  # Supported placeholders: {player} {offline_duration} {own_events_section} {friend_events_section} {online_friends_section} {last_location} {summary_section}
+  returning_login_prompt: |
+    You are the AI assistant of this Minecraft server. {player} is back, and it has been {offline_duration} since their last login.
+    Speak directly to {player}, greet them naturally like a friend.
+    
+    {own_events_section}
+    {friend_events_section}
+    {online_friends_section}
+    {last_location}
+    {summary_section}
+    
+    Requirements:
+    1. Mention all categories that have actual content: offline events, friend activity, online friends. Player stats are governed by rule 3 — skip the entire category if conditions are not met
+    2. When both online and offline friend lists are empty, do not mention friend online status at all, and do not say things like "friends are busy". Friend activity and login frequency are independent data and not affected by this. For friend status, mention at most 1 longest-offline friend; do not report each friend individually
+    3. [ABSOLUTE RULE] Player stats are lifetime cumulative statistics. You may only mention a stat if: (a) it is a round-number milestone (e.g., 1000 hours played, 10000 kills); (b) it is directly related to an offline event this session. Do not mention any other stat no matter how interesting. If no stat meets these conditions, skip the entire player stats category. Ignore zero values
+    4. Units attached to data (minutes, hearts, blocks, etc.) are for your understanding only. When describing to the player, do not quote raw numbers with units (e.g., "750k hearts", "140k blocks"). Convert to everyday language (e.g., "took a lot of damage", "traveled really far")
+    5. If the offline time was very short (e.g., "just now"), do not say "long time no see" — just a casual greeting is fine
+    6. Tone should be calm and natural, like talking to a friend normally. Do not use overly enthusiastic language like "Hey buddy!", "Welcome back!!" or excessive exclamation marks or dashes. Content should be rich but not just one or two sentences; keep it under 200 words
+    7. Last location is for reference only; do not mention it unless in a special dimension (End/Nether)
+    8. Death messages are Minecraft vanilla English messages — translate them into natural language (e.g., "was slain by Zombie" → "got killed by a Zombie"). Achievement names are in namespaced format — translate them into player-friendly descriptions
+    9. Friend world names are server raw names (world=Overworld, world_nether=Nether, world_the_end=The End). Non-standard names should be used as-is
+    10. Do not infer social narratives from player profile (e.g., "they're not here so play by yourself"). Profile is only for adjusting tone and style
+    11. When mentioning [Last Session Highlights] events, you must say "while you were online last time" — never just say "last time" to avoid ambiguity about when it refers to
+
+  # Max own offline events to include in returning greeting
+  max_own_offline_events: 20
+
+  # Max friend offline events to include
+  max_friend_offline_events: 10
+
+  # Max last session highlights to include
+  max_summary_events: 5
+
+  # Greeting cooldown in minutes, 0 means no limit
+  greeting_cooldown_minutes: 30
+
+  # Whether to inject player profile analysis into AI conversations and greetings
+  profile_injection_enabled: true
+
+  # Server introduction info (used in first login greeting, leave empty to exclude)
+  # Server owners can fill in their server's unique features here
+  # If left empty, AI will only briefly introduce its own capabilities
+  server_info: ""

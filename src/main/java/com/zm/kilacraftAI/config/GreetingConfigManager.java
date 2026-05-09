@@ -12,13 +12,14 @@ import java.io.File;
 /**
  * AI 登录问候配置管理器
  *
- * <p>管理独立的 greeting.yml 配置文件，支持热重载。</p>
+ * <p>管理独立的 greeting.yml 配置文件，支持热重载和语言切换。</p>
+ * <p>按当前语言选择配置文件：zh=greeting.yml，其他语言=greeting_{lang}.yml</p>
  *
  * @author Zm_Mmm
  */
 public class GreetingConfigManager {
 
-    private static final String CONFIG_FILE = "greeting.yml";
+    private static final String CONFIG_FILE_ZH = "greeting.yml";
 
     private final KilacraftAI plugin;
     private File configFile;
@@ -46,11 +47,22 @@ public class GreetingConfigManager {
 
     public GreetingConfigManager(KilacraftAI plugin) {
         this.plugin = plugin;
-        ConfigResourceUtil.saveDefaultResource(plugin, CONFIG_FILE);
+        ConfigResourceUtil.saveDefaultResource(plugin, CONFIG_FILE_ZH);
+    }
+
+    /**
+     * 根据当前语言更新配置文件路径，并拷贝对应语言的默认配置
+     */
+    private void updateConfigFile() {
+        String lang = plugin.getConfigManager().getLanguage();
+        String fileName = "zh".equals(lang) ? CONFIG_FILE_ZH : "greeting_" + lang + ".yml";
+        this.configFile = new File(plugin.getDataFolder(), fileName);
+        ConfigResourceUtil.saveDefaultResource(plugin, fileName);
     }
 
     public void loadConfig() {
-        this.configFile = new File(plugin.getDataFolder(), CONFIG_FILE);
+        updateConfigFile();
+
         if (!configFile.exists()) {
             return;
         }
@@ -59,8 +71,8 @@ public class GreetingConfigManager {
 
         this.enabled = yaml.getBoolean("greeting.enabled", true);
         this.delayTicks = yaml.getInt("greeting.delay_ticks", 100);
-        this.firstLoginPrompt = yaml.getString("greeting.first_login_prompt", GreetingPromptBuilder.DEFAULT_FIRST_LOGIN_PROMPT);
-        this.returningLoginPrompt = yaml.getString("greeting.returning_login_prompt", GreetingPromptBuilder.DEFAULT_RETURNING_PROMPT);
+        this.firstLoginPrompt = yaml.getString("greeting.first_login_prompt", GreetingPromptBuilder.getDefaultFirstLoginPrompt());
+        this.returningLoginPrompt = yaml.getString("greeting.returning_login_prompt", GreetingPromptBuilder.getDefaultReturningPrompt());
         this.maxOwnOfflineEvents = yaml.getInt("greeting.max_own_offline_events", 10);
         this.maxFriendOfflineEvents = yaml.getInt("greeting.max_friend_offline_events", 5);
         this.maxSummaryEvents = yaml.getInt("greeting.max_summary_events", 3);
@@ -73,7 +85,6 @@ public class GreetingConfigManager {
      * 热重载配置
      */
     public void reload() {
-        this.configFile = new File(plugin.getDataFolder(), CONFIG_FILE);
         loadConfig();
     }
 }

@@ -1,23 +1,23 @@
 # ========================================
-# ⚠ 请勿随意修改此文件！不正确的修改可能导致不可控的影响。
-# ⚠ Do NOT modify this file carelessly! Incorrect changes may cause unpredictable effects.
+# 请勿随意修改此文件！不正确的修改可能导致不可控的影响。
 # 如发现问题，请通过 GitHub 提交 Issue: https://github.com/axy-yxa/Kilacraft-AI/issues
-# If you find issues, please submit via GitHub Issues: https://github.com/axy-yxa/Kilacraft-AI/issues
 # 或在 Discord 反馈: https://discord.gg/nNmhcZHDxr
+# Do NOT modify this file carelessly! Incorrect changes may cause unpredictable effects.
+# If you find issues, please submit via GitHub Issues: https://github.com/axy-yxa/Kilacraft-AI/issues
 # Or report on Discord: https://discord.gg/nNmhcZHDxr
 # ========================================
 # Kilacraft-AI 英文翻译包 (messages_en.yml)
-# Kilacraft-AI English Translation Pack (messages_en.yml)
 # Key = 中文原文，Value = 英文翻译
-# Key = Chinese original text, Value = English translation
 # {} = 动态内容占位符（SLF4J 风格）
-# {} = Dynamic content placeholder (SLF4J style)
 # 条目按模块分组，各模块内与代码调用位置顺序一致
+# Kilacraft-AI English Translation Pack (messages_en.yml)
+# Key = Chinese original text, Value = English translation
+# {} = Dynamic content placeholder (SLF4J style)
 # Entries grouped by module, within each module in the same order as code call locations
 # ========================================
 
 # ==================== 模块名映射 ====================
-# ==================== Module Name Mapping ====================
+# Module Name Mapping
 # PluginLogger 使用的模块标签名
 # Module label names used by PluginLogger
 modules:
@@ -60,9 +60,13 @@ modules:
   "定时任务": "Scheduler"
   "市场事件": "Market Event"
   "枚举注册": "Enum Reg"
+  "私聊监听": "Private Chat"
+  "传送监听": "TPA Monitor"
+  "画像分析": "Profile Analysis"
+  "社交关系": "Social Relation"
 
 # ==================== 消息翻译 ====================
-# ==================== Message Translations ====================
+# Message Translations
 messages:
 
   # ==================== ConfigManager ====================
@@ -72,7 +76,7 @@ messages:
   "HTTP连接池已关闭": "HTTP connection pool closed"
   "关闭HTTP客户端时发生错误": "Error closing HTTP client"
 
-  # ==================== FoliaCompat - I/O线程池 ====================
+  # ==================== FoliaCompat ====================
   "已初始化（核心: {}，最大: {}，队列: {}，服务端: {}，Folia: {}）": "Initialized (core: {}, max: {}, queue: {}, server: {}, Folia: {})"
   "异步任务队列已满，丢弃任务（池状态: {}/{}，队列: {}）": "Async task queue full, discarding task (pool: {}/{}, queue: {})"
   "正在关闭（活跃线程: {}，队列: {}）": "Shutting down (active threads: {}, queue: {})"
@@ -94,11 +98,14 @@ messages:
   "人格配置文件为空": "Personality config file is empty"
   "人格配置加载完成，共 {} 个人格": "Personality config loaded, {} personalities in total"
   "加载人格配置文件失败：{}": "Failed to load personality config file: {}"
+  "正在重新加载人格配置...": "Reloading personality config..."
+  "人格配置加载完成": "Personality config loading complete"
 
   # ==================== ConfigResourceUtil ====================
   "已创建默认配置文件: {}": "Created default config file: {}"
   "创建配置文件失败: {}": "Failed to create config file: {}"
   "扫描内置资源目录失败: {}": "Failed to scan internal resource directory: {}"
+  "工具类不允许实例化": "Utility class cannot be instantiated"
 
   # ==================== SkillConfigManager ====================
   "已加载 {} 个技能配置": "Loaded {} skill configs"
@@ -110,8 +117,7 @@ messages:
   "扫描 JAR 包技能目录失败: skills/{}": "Failed to scan skill directory in JAR: skills/{}"
   "扫描 JAR 包技能配置目录失败: {}": "Failed to scan skill config directory in JAR: {}"
 
-  # ==================== KilacraftAI (主类) ====================
-  # ==================== KilacraftAI (Main Class) ====================
+  # ==================== KilacraftAI ====================
   "已加载 {} 个内置词汇": "Loaded {} internal vocabulary words"
   "已加载 {} 个自定义词汇": "Loaded {} custom vocabulary words"
   "无法注册命令：kilacraft，请检查 plugin.yml 配置": "Cannot register command: kilacraft, check plugin.yml config"
@@ -125,18 +131,29 @@ messages:
   "挂机任务系统已初始化": "AFK task system initialized"
   "挂机任务系统已关闭": "AFK task system shut down"
   "  Kilacraft-AI 已停止运行": "  Kilacraft-AI has stopped"
-  "作者：Zm_Mmm": "Author: Zm_Mmm"
+  "画像与事件采集系统已初始化": "Profile and event collection system initialized"
+  "数据库初始化失败: {}": "Database initialization failed: {}"
+  "插件将继续运行，但持久化功能不可用": "Plugin will continue running, but persistence features are unavailable"
+  "GlobalMarketPlus 事件采集器已注册": "GlobalMarketPlus event collector registered"
+  "GMP 事件监听注册失败: {}": "GMP event listener registration failed: {}"
+  "对话持久化服务已初始化（历史加载: {}, 保留天数: {}）": "Conversation persistence service initialized (history loading: {}, retention days: {})"
+  "对话刷盘": "Conversation Flush"
+  "定时批量写入对话记录": "Periodically batch write conversation records"
+  "对话清理": "Conversation Cleanup"
+  "清理过期对话记录": "Clean up expired conversation records"
+  "事件清理": "Event Cleanup"
 
   # ==================== KnowledgeBaseManager ====================
   "知识库目录不存在：{}": "Knowledge base directory not found: {}"
   "创建知识库目录失败: {}": "Failed to create knowledge base directory: {}"
   "已加载知识文件：{}": "Loaded knowledge file: {}"
-  "加载知识文件失败: {}": "Failed to load knowledge file: {}"
+  "加载知识文件失败: {} - {}": "Failed to load knowledge file: {} - {}"
   "共加载 {} 个知识文件": "Loaded {} knowledge files in total"
   "遍历知识库目录失败: {}": "Failed to traverse knowledge base directory: {}"
   "正在重新加载知识库...": "Reloading knowledge base..."
   "知识库加载完成": "Knowledge base loading complete"
   "剩余片段得分过低（{}），停止返回": "Remaining chunk score too low ({}), stopping retrieval"
+  "知识库：{} 个文件，共 {} 字符": "Knowledge base: {} files, {} characters total"
 
   # ==================== EmbeddingService ====================
   "Embedding API URL: {}": "Embedding API URL: {}"
@@ -187,12 +204,15 @@ messages:
   "已回退到普通 AI 处理": "Fell back to normal AI processing"
   "技能执行异常: {}": "Skill execution exception: {}"
   "{} 的历史记录数量：{}": "History count for {}: {}"
+  "[系统提示：技能执行失败 - {}]": "[System notice: Skill execution failed - {}]"
 
   # ==================== SkillManager ====================
   "检查技能可用性时异常：{} - {}": "Error checking skill availability: {} - {}"
   "开始执行技能：{}, action={}": "Starting skill execution: {}, action={}"
   "技能执行异常（可能为第三方技能）：{} - {}": "Skill execution error (possibly third-party): {} - {}"
   "技能执行失败：{} - {}": "Skill execution failed: {} - {}"
+  "技能不能为空": "Skill cannot be null"
+  "技能已注册：{}": "Skill already registered: {}"
 
   # ==================== TaskExecutor ====================
   "共 {} 个步骤": "Total {} steps"
@@ -204,6 +224,10 @@ messages:
   "占位符宽松保留：{} (外层步骤 {} 无 {} 字段，将留给内层解析)": "Placeholder lenient keep: {} (outer step {} has no {} field, left for inner parsing)"
   "占位符解析失败：{} (步骤 {} 不存在或路径 {} 无效)": "Placeholder resolution failed: {} (step {} not found or path {} invalid)"
   "所有步骤执行完成，开始汇总结果...": "All steps completed, summarizing results..."
+  "任务计划存在循环依赖，无法执行": "Task plan has circular dependency, cannot execute"
+  "依赖步骤 {} 尚未执行": "Dependency step {} has not been executed"
+  "依赖步骤 {} 执行失败": "Dependency step {} execution failed"
+  "步骤 {} 的参数 '{}' 解析失败：找不到 {}": "Step {} param '{}' resolution failed: {} not found"
 
   # ==================== LLMAnalysisService ====================
   "LLM 二次分析 - 结果摘要:\n{}": "LLM secondary analysis - result summary:\n{}"
@@ -216,6 +240,8 @@ messages:
   "解析意图失败：{}": "Intent parsing failed: {}"
   "解析任务计划失败：{}": "Task plan parsing failed: {}"
   "创建无效意图：{}": "Created invalid intent: {}"
+  "无法解析响应为 JSON": "Failed to parse response as JSON"
+  "解析失败：{}": "Parsing failed: {}"
 
   # ==================== SkillRegistry ====================
   "未发现第三方 SkillProvider": "No third-party SkillProvider found"
@@ -231,8 +257,7 @@ messages:
   # ==================== ChatListener ====================
   "玩家 {} 的历史记录数量：{}": "History count for player {}: {}"
 
-  # ==================== SkillResult - 通用框架 ====================
-  # ==================== SkillResult - Common Framework ====================
+  # ==================== SkillResult ====================
   "无法识别你的意图，请详细描述你的需求": "Cannot recognize your intent, please describe your needs in detail"
   "抱歉，我没有找到名为 '{}' 的技能": "Sorry, I couldn't find a skill named '{}'"
   "抱歉，该功能暂时不可用": "Sorry, this feature is temporarily unavailable"
@@ -243,7 +268,7 @@ messages:
   "[依赖未满足] {}": "[Dependency not met] {}"
   "[参数解析失败] {}": "[Param parsing failed] {}"
 
-  # ==================== SkillResult - BukkitStatsSkill ====================
+  # ==================== BukkitStatsSkill ====================
   "无法获取玩家对象": "Cannot get player object"
   "你没有权限使用此功能: {}": "You do not have permission to use this feature: {}"
   "执行 Bukkit API 失败：{}": "Failed to execute Bukkit API: {}"
@@ -259,17 +284,121 @@ messages:
   "无效的实体类型名: {}": "Invalid entity type name: {}"
   "不支持的统计类型: {}": "Unsupported statistic type: {}"
   "查询统计失败: {}": "Failed to query statistic: {}"
+  "{}: {} 公里": "{}: {} km"
+  "{}: {} 米": "{}: {} m"
+  "{}: {} 秒": "{}: {} sec"
+  "{}: {} 分 {} 秒": "{}: {} min {} sec"
+  "{}: {} 小时 {} 分": "{}: {} hr {} min"
 
-  # ==================== SkillResult - BukkitFXSkill ====================
+  # ==================== BukkitFXSkill ====================
   "缺少参数: sound(音效枚举名称)": "Missing parameter: sound (sound enum name)"
   "无效的音效枚举名称: {}": "Invalid sound enum name: {}"
   "缺少参数: particle(粒子枚举名称)": "Missing parameter: particle (particle enum name)"
   "无效的粒子枚举名称: {}": "Invalid particle enum name: {}"
+  "音效播放成功: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})": "Sound played successfully: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})"
+  "粒子效果显示成功: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})": "Particle effect displayed successfully: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})"
 
-  # ==================== SkillResult - GenericBukkitAPISkill ====================
+  # ==================== GenericBukkitAPISkill ====================
   "SkillConfigManager 未初始化": "SkillConfigManager not initialized"
   "未找到 API：{}": "API not found: {}"
-  # ==================== SkillResult - CommandSkill ====================
+  "无结果": "No result"
+  "世界种子：{}": "World seed: {}"
+  "速度：{}": "Speed: {}"
+  "攻击冷却进度：{}%": "Attack cooldown progress: {}%"
+  "吸收之心：{}": "Absorption hearts: {}"
+  "主手物品": "Main hand item"
+  "副手物品": "Off hand item"
+  "物品": "Item"
+  "背包": "Inventory"
+  "末影箱": "Ender Chest"
+  "容器": "Container"
+  "：空手": ": Empty hand"
+  "：空": ": Empty"
+  "脚下方块：{}（位置：X={}, Y={}, Z={}）": "Feet block: {} (Position: X={}, Y={}, Z={})"
+  "延迟：{}ms ({})": "Ping: {}ms ({})"
+  "升到下一级需要：{} 点经验": "Experience needed for next level: {} XP"
+  "身上的箭矢：{} 支": "Arrows in body: {}"
+  "天气：晴朗": "Weather: Clear"
+  "天气：雷暴": "Weather: Thunderstorm"
+  "天气：雨天": "Weather: Rain"
+  "等级：{}，经验进度：{}%": "Level: {}, Exp progress: {}%"
+  "着火状态：未着火": "Fire status: Not on fire"
+  "着火状态：正在燃烧！剩余 {} 秒 ({}{} tick)": "Fire status: Burning! {} sec remaining ({}{} tick)"
+  "该 API 不应返回 Map 类型": "This API should not return Map type"
+  "游戏时间：{}": "Game time: {}"
+  "服务器暂无已加载的世界": "Server has no loaded worlds"
+  "当前没有玩家在线": "No players currently online"
+  "在线玩家（{}人）：\n": "Online players ({} players):\n"
+  " ... 等 {} 人": " ... and {} more"
+  "服务器世界列表（{}个）：\n": "Server world list ({} worlds):\n"
+  "位置：未知": "Location: Unknown"
+  "位置：X={}, Y={}, Z={}, 世界={}": "Location: X={}, Y={}, Z={}, World={}"
+  "移动状态：未知": "Movement: Unknown"
+  "移动状态：静止": "Movement: Stationary"
+  "移动状态：速度={} (X={}, Y={}, Z={})": "Movement: Speed={} (X={}, Y={}, Z={})"
+  "游戏模式：{}": "Game mode: {}"
+  "当前姿势：{}": "Current pose: {}"
+  "主手偏好：{}": "Main hand: {}"
+  "当前界面：{}": "Current UI: {}"
+  "盔甲：无": "Armor: None"
+  "盔甲：": "Armor: "
+  "盔甲：有 {} 件装备": "Armor: {} pieces equipped"
+  " [耐久:{}/{}]": " [Durability:{}/{}]"
+  " [附魔:": " [Ench:"
+  " [损伤:{}]": " [Damage:{}]"
+  " [描述:{}行]": " [Lore:{} lines]"
+  " [无法破坏]": " [Unbreakable]"
+  "药水效果：无": "Potion effects: None"
+  "药水效果：": "Potion effects: "
+  " {}级": " Lv{}"
+  " ({}分{}秒)": " ({}min {}sec)"
+  " ({}秒)": " ({}sec)"
+  " ... 等 {} 个效果": " ... and {} more effects"
+  "瞄准方块：无（距离太远或没有方块）": "Target block: None (too far or no block)"
+  "瞄准方块：未知": "Target block: Unknown"
+  "瞄准方块：{}（位置：X={}, Y={}, Z={}）": "Target block: {} (Position: X={}, Y={}, Z={})"
+  "脚下方块：未知": "Feet block: Unknown"
+  "无受伤记录": "No damage record"
+  "上次受伤：": "Last damage: "
+  "（{} 伤害）": "({} damage)"
+  "，攻击者：": ", Attacker: "
+  "未知群系": "Unknown biome"
+  "生物群系：{}": "Biome: {}"
+  "{}占用：{}/{} 格（空 {} 格）": "{} used: {}/{} slots ({} empty)"
+  "物品（已用 {}/{} 格）：\n": "Items ({}/{} slots used):\n"
+  "袭击事件：无": "Raids: None"
+  "当前正在进行 {} 个袭击": "{} raids currently in progress"
+  "世界总时间：{} 天 {} 小时": "World total time: {} days {} hours"
+  "世界总时间：{} 小时 {} 分钟": "World total time: {} hours {} minutes"
+  "世界总时间：{} 分钟": "World total time: {} minutes"
+  "世界游戏时间：{} 天 {} 小时": "World game time: {} days {} hours"
+  "世界游戏时间：{} 小时 {} 分钟": "World game time: {} hours {} minutes"
+  "世界游戏时间：{} 分钟": "World game time: {} minutes"
+  "挂机时间：{} 秒": "AFK time: {} sec"
+  "挂机时间：{} 分 {} 秒": "AFK time: {} min {} sec"
+  "挂机时间：{} 小时 {} 分": "AFK time: {} hr {} min"
+  "PVP 已开启：这个世界允许玩家互相攻击": "PVP enabled: Players can attack each other in this world"
+  "PVP 已关闭：这个世界禁止玩家互相攻击": "PVP disabled: Players cannot attack each other in this world"
+  "允许飞行": "Flight allowed"
+  "禁止飞行": "Flight disabled"
+  "白名单已开启": "Whitelist enabled"
+  "白名单已关闭": "Whitelist disabled"
+  "硬核模式已开启": "Hardcore mode enabled"
+  "硬核模式未开启": "Hardcore mode disabled"
+  "已启用": "Enabled"
+  "未启用": "Disabled"
+  "自动保存已开启": "Auto-save enabled"
+  "自动保存已关闭": "Auto-save disabled"
+  "玩家正在骑乘中": "Player is riding"
+  "玩家未骑乘": "Player is not riding"
+  "是管理员（OP）": "Is operator (OP)"
+  "不是管理员": "Is not operator"
+  "玩家正在睡觉": "Player is sleeping"
+  "玩家未在睡觉": "Player is not sleeping"
+  "玩家已死亡": "Player is dead"
+  "玩家存活": "Player is alive"
+
+  # ==================== CommandSkill ====================
   "命令执行仅支持在线玩家使用": "Command execution is only available to online players"
   "命令执行功能当前未启用": "Command execution feature is currently disabled"
   "你没有使用 AI 命令执行的权限": "You do not have permission to use AI command execution"
@@ -280,8 +409,9 @@ messages:
   "已执行命令: /{}": "Executed command: /{}"
   "[FAILURE] 命令执行失败，可能没有权限或命令不存在: /{}": "[FAILURE] Command execution failed, possibly no permission or command does not exist: /{}"
   "命令执行异常: /{}": "Command execution exception: /{}"
+  "命令执行异常: /{} - {}": "Command execution exception: /{} - {}"
 
-  # ==================== SkillResult - CMISkill ====================
+  # ==================== CMISkill ====================
   "[FAILURE] 查询失败: {}": "[FAILURE] Query failed: {}"
   "[FAILURE] 不支持的CMI操作，可用的操作：query_homes, query_warps, query_player_info, query_kits, query_online_players, teleport_home, teleport_to_warp, send_tp_request": "[FAILURE] Unsupported CMI operation, available: query_homes, query_warps, query_player_info, query_kits, query_online_players, teleport_home, teleport_to_warp, send_tp_request"
   "[FAILURE] 仅限在线玩家使用": "[FAILURE] Only available to online players"
@@ -301,15 +431,48 @@ messages:
   "[FAILURE] 缺少参数: home_name(家名称)": "[FAILURE] Missing parameter: home_name (home name)"
   "[FAILURE] 缺少参数: warp_name(地标名称)": "[FAILURE] Missing parameter: warp_name (warp name)"
   "[FAILURE] 缺少参数: target_player(目标玩家名称)": "[FAILURE] Missing parameter: target_player (target player name)"
+  "玩家有 {} 个家:": "Player has {} homes:"
+  "服务器有 {} 个公共地标:": "Server has {} public warps:"
+  "玩家信息: name={}, display_name={}, playtime={}, afk={}, vanished={}, fly={}, game_mode={}": "Player info: name={}, display_name={}, playtime={}, afk={}, vanished={}, fly={}, game_mode={}"
+  "可用套装列表 ({}): {}": "Available kits list ({}): {}"
+  "在线玩家 ({}):": "Online players ({}):"
+  "隐身": "Vanished"
 
-  # ==================== SkillResult - MarketQuerySkill ====================
+  # ==================== MarketQuerySkill ====================
   "[FAILURE] 缺少参数: item(物品名称)": "[FAILURE] Missing parameter: item (item name)"
   "[FAILURE] 缺少参数: seller_name(卖家名称)": "[FAILURE] Missing parameter: seller_name (seller name)"
   "[FAILURE] 未找到物品 '{}' 的价格信息": "[FAILURE] Price info not found for item '{}'"
   "[FAILURE] 不支持的市场查询操作": "[FAILURE] Unsupported market query operation"
   "[FAILURE] 无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装": "[FAILURE] Unable to get balance info, please ensure GlobalMarketPlus plugin is properly installed"
+  "余额: ${}": "Balance: ${}"
+  "{}: 未找到价格": "{}: Price not found"
+  "商品价格:\n": "Item prices:\n"
+  "\n总计: ${}": "\nTotal: ${}"
+  "市场商品列表:\n": "Market item list:\n"
+  "{} 目前市场上没有在售": "{} is currently not for sale on the market"
+  "{} 有在售\n": "{} is for sale\n"
+  "库存: {} 个\n": "Stock: {}\n"
+  "价格: ${} - ${}\n": "Price: ${} - ${}\n"
+  "卖家: ": "Sellers: "
+  " ... 等{}人": " ... and {} more"
+  "你在售的商品 (共 {} 个):\n": "Your items for sale ({} total):\n"
+  "{} 的在售商品 (共 {} 个):\n": "{}'s items for sale ({} total):\n"
+  "{} 目前没有在售商品": "{} currently has no items for sale"
+  "... 还有 {} 个商品": "... and {} more items"
+  "邮箱待领取 (共 {} 封):\n": "Mailbox pending ({} total):\n"
+  "来自: {}": "From: {}"
+  "系统": "System"
+  "... 还有 {} 封邮件": "... and {} more mails"
+  "市场统计: 商品总数 {} 个, 卖家数量 {} 人": "Market stats: {} total items, {} sellers"
+  "市场上暂无商品": "No items on the market"
+  "你没有在售的商品": "You have no items for sale"
+  "邮箱是空的": "Your mailbox is empty"
+  "市场暂无商品": "No items on the market currently"
+  "{} x{}: 库存不足 (市场仅有 {} 个)": "{} x{}: Insufficient stock (only {} available on market)"
+  "\n  在售信息:": "\n  Listing info:"
+  "\n    [{}] ${} x {}个": "\n    [{}] ${} x {} pcs"
 
-  # ==================== SkillResult - MarketActionSkill ====================
+  # ==================== MarketActionSkill ====================
   "[FAILURE] 未知的市场操作: {}": "[FAILURE] Unknown market operation: {}"
   "[FAILURE] 市场操作失败: {}": "[FAILURE] Market operation failed: {}"
   "[FAILURE] 无法识别的物品: {}，请使用标准的物品名称": "[FAILURE] Unrecognized item: {}, please use standard item name"
@@ -327,23 +490,17 @@ messages:
   "[FAILURE] 上架失败，可能没有权限、物品在黑名单中或命令不可用": "[FAILURE] Listing failed, possibly no permission, item blacklisted, or command unavailable"
   "[NEED_INFO] 你手中的 {} x{}，当前市场最低价为 ${}。请告诉我你希望以多少钱的单价上架？": "[NEED_INFO] Your {} x{}, current market lowest price is ${}. Please tell me the unit price you want to list at?"
   "[NEED_INFO] 你手中的 {} x{}，市场暂无参考价。请告诉我你希望以多少钱的单价上架？": "[NEED_INFO] Your {} x{}, no market reference price available. Please tell me the unit price you want to list at?"
-
-  # ==================== MarketActionSkill - pickup_mail ====================
   "你的邮箱里没有待领取的物品": "You have no items to pick up in your mailbox"
   "已成功领取邮箱中所有物品（共 {} 件）": "Successfully picked up all mailbox items ({} total)"
   "[FAILURE] 领取邮件失败，可能背包已满或没有权限": "[FAILURE] Failed to pick up mail, inventory may be full or no permission"
   "已成功领取指定邮件": "Successfully picked up the specified mail"
   "[FAILURE] 领取邮件失败，请检查 UID 是否正确": "[FAILURE] Failed to pick up mail, please check if the UID is correct"
-
-  # ==================== MarketActionSkill - buy_item ====================
   "[NEED_INFO] 请先将需要收购的物品拿在主手中": "[NEED_INFO] Please hold the item you want to buy in your main hand first"
   "[NEED_INFO] 你想以多少的单价收购 {} x{}？市场当前参考价: ${}": "[NEED_INFO] At what unit price do you want to buy {} x{}? Current market reference price: ${}"
   "[NEED_INFO] 你想以多少的单价收购 {} x{}？市场暂无参考价": "[NEED_INFO] At what unit price do you want to buy {} x{}? No market reference price available"
   "[FAILURE] 余额不足，需要 ${} 但当前余额 ${}": "[FAILURE] Insufficient balance, need ${} but current balance is ${}"
   "已发起收购: {} x{}，单价: ${}": "Buy order placed: {} x{}, unit price: ${}"
   "[FAILURE] 发起收购失败，可能没有权限或命令不可用": "[FAILURE] Failed to place buy order, possibly no permission or command unavailable"
-
-  # ==================== MarketActionSkill - cancel_listing ====================
   "你当前没有在售商品": "You have no items for sale"
   "你当前在售以下商品，请告诉我要下架哪个（回复编号）：": "You have the following items for sale, please tell me which one to delist (reply with number):"
   "[FAILURE] 编号超出范围，请输入 1-{} 之间的数字": "[FAILURE] Number out of range, please enter a number between 1-{}"
@@ -360,34 +517,24 @@ messages:
   "[NEED_INFO] 即将向 {} 转账 ${}，占你余额的较大比例。确认转账吗？": "[NEED_INFO] About to transfer ${} to {}, which is a large portion of your balance. Confirm transfer?"
   "已成功向 {} 转账 ${}": "Successfully transferred ${} to {}"
   "[FAILURE] 转账失败，可能目标玩家不存在或余额不足": "[FAILURE] Transfer failed, target player may not exist or insufficient balance"
-
-  # ==================== MarketActionSkill - auction_item ====================
   "[NEED_INFO] 请先将需要拍卖的物品拿在主手中": "[NEED_INFO] Please hold the item you want to auction in your main hand first"
   "[NEED_INFO] 你想以多少起拍价拍卖 {} x{}？市场参考价: ${}": "[NEED_INFO] What starting bid do you want for auctioning {} x{}? Market reference price: ${}"
   "[NEED_INFO] 你想以多少起拍价拍卖 {} x{}？市场暂无参考价": "[NEED_INFO] What starting bid do you want for auctioning {} x{}? No market reference price available"
   "已发起拍卖: {} x{}，起拍价: ${}": "Auction started: {} x{}, starting bid: ${}"
   "[FAILURE] 发起拍卖失败，可能没有权限或命令不可用": "[FAILURE] Failed to start auction, possibly no permission or command unavailable"
-
-  # ==================== MarketActionSkill - sell_inventory (GUI模式) ====================
   "[FAILURE] 批量上架失败，可能没有权限或命令不可用": "[FAILURE] Bulk listing failed, possibly no permission or command unavailable"
-
-  # ==================== MarketActionSkill - buy_inventory (GUI模式) ====================
   "[FAILURE] 余额不足，当前余额 ${}": "[FAILURE] Insufficient balance, current balance ${}"
   "[FAILURE] 批量收购失败，可能没有权限或命令不可用": "[FAILURE] Bulk buy failed, possibly no permission or command unavailable"
   "[FAILURE] 余额不足，发起拍卖需要缴纳税额，当前余额为 $0": "[FAILURE] Insufficient balance, auction requires tax payment, current balance is $0"
   "[FAILURE] 余额不足，上架商品可能需要缴纳税额，当前余额为 $0": "[FAILURE] Insufficient balance, listing may require tax payment, current balance is $0"
-
-  # ==================== MarketActionSkill - GUI页面消息 ====================
   "已为你打开批量上架页面，单价: ${}，请在 GUI 中放入物品并确认": "Opened bulk listing page, unit price: ${}. Please place items in the GUI and confirm"
   "[NEED_INFO] 请告诉我要以多少单价批量上架？": "[NEED_INFO] At what unit price would you like to bulk list?"
   "已为你打开批量收购页面，单价: ${}，请在 GUI 中放入物品并确认": "Opened bulk buy page, unit price: ${}. Please place items in the GUI and confirm"
   "[NEED_INFO] 请告诉我要以多少单价批量收购？当前余额: ${}": "[NEED_INFO] At what unit price would you like to bulk buy? Current balance: ${}"
-
-  # ==================== MarketActionSkill - 异常模板（通用动态拼接） ====================
   "{}异常: {}": "{} exception: {}"
   "[FAILURE] {}时发生异常: {}": "[FAILURE] Exception occurred during {}: {}"
 
-  # ==================== SkillResult - AFKTaskSkill ====================
+  # ==================== AFKTaskSkill ====================
   "未指定挂机任务动作。请用自然语言询问玩家想做什么": "No AFK task action specified. Please ask the player what they want to do in natural language"
   "挂机任务仅支持在线玩家使用": "AFK tasks are only available to online players"
   "挂机任务功能当前未启用": "AFK task feature is currently disabled"
@@ -400,8 +547,9 @@ messages:
   "目标玩家 {} 当前不在线，PLAYER_OFFLINE_WATCH 任务无意义。请用自然语言告知玩家目标不在线，并建议：如果需要监视 TA 上线，可以说\"帮我盯着{}上线\"": "Target player {} is currently offline, PLAYER_OFFLINE_WATCH task is meaningless. Please inform the player and suggest: if they want to monitor the target coming online, say \"help me watch {} come online\""
   "安全限制：该任务类型仅支持监控自身数据，不支持监控其他玩家。请用自然语言告知玩家此限制": "Security restriction: This task type only supports monitoring yourself. Cannot monitor other players. Please inform the player of this restriction"
   "玩家当前没有正在运行的挂机任务。请用自然语言告知玩家": "Player currently has no running AFK tasks. Please inform the player in natural language"
+  "玩家当前挂机任务信息：任务ID={}, 类型={}, 描述={}, 状态={}, 创建时间={}。请基于这些信息用自然语言告知玩家当前任务状态": "Player's current AFK task: Task ID={}, Type={}, Description={}, Status={}, Created={}. Please inform the player about the current task status in natural language"
 
-  # ==================== SkillResult - AFKTaskManager ====================
+  # ==================== AFKTaskManager ====================
   "玩家已有一个正在运行的挂机任务：{}。请用自然语言告知玩家当前有任务在运行，并建议：可以使用 /kilacraft afk cancel 命令取消旧任务后再创建新的，或使用 /kilacraft afk query 查询详情。": "Player already has a running AFK task: {}. Please inform the player in natural language and suggest: use /kilacraft afk cancel to cancel the old task before creating a new one, or /kilacraft afk query to check details."
   "挂机任务队列已满（当前 {}/{}），暂时无法创建新任务。请用自然语言告知玩家稍后再试。": "AFK task queue is full (current {}/{}), temporarily unable to create new tasks. Please inform the player to try again later in natural language."
   "无法创建该类型的挂机任务，请检查任务参数是否正确。": "Cannot create this type of AFK task, please check if task parameters are correct."
@@ -410,16 +558,14 @@ messages:
   "你当前没有正在运行的挂机任务。": "You currently have no running AFK tasks."
   "挂机任务已取消：{}": "AFK task cancelled: {}"
 
-  # ==================== AFK Task (基类) ====================
-  # ==================== AFK Task (Base Class) ====================
+  # ==================== AFKTask ====================
   "任务终止: {} - {}": "Task terminated: {} - {}"
   "任务已取消: {}": "Task cancelled: {}"
   "已创建: {}, {}, {}, 总数: {}": "Created: {}, {}, {}, total: {}"
   "玩家下线，自动取消任务: {}, 玩家: {}": "Player offline, auto-cancelling task: {}, player: {}"
   "正在关闭 {} 个活跃任务...": "Shutting down {} active tasks..."
 
-  # ==================== AFK Task impl - 通用日志 ====================
-  # ==================== AFK Task impl - General Logs ====================
+  # ==================== AFK Task 实现 ====================
   "解析回调配置失败: {}": "Failed to parse callback config: {}"
   "解析condition_plan JSON失败: {}": "Failed to parse condition_plan JSON: {}"
   "取消轮询任务失败: {}": "Failed to cancel polling task: {}"
@@ -507,24 +653,15 @@ messages:
   "请分析": "Please analyze"
   "请分析用户想要使用什么技能，并返回 JSON 格式的识别结果。": "Please analyze what skill the user wants to use and return the recognition result in JSON format."
   "**重要：只返回纯 JSON 对象，不要包含任何 Markdown 标记、注释或额外说明文本。**": "**IMPORTANT: Only return a pure JSON object, do not include any Markdown formatting, comments, or additional explanatory text.**"
-
-  # ==================== AFK Task 通知消息 (notifyPlayer) ====================
-  # ==================== AFK Task Notification Messages (notifyPlayer) ====================
   "§c任务创建者不在线，回调任务已取消。": "§cTask creator is offline, callback task cancelled."
   "§c回调任务执行失败：{}": "§cCallback task execution failed: {}"
   "§c回调任务启动失败：{}": "§cCallback task startup failed: {}"
   "§c回调任务构建失败：{}": "§cCallback task build failed: {}"
   "§c§l挂机任务已自动取消\n\n§f连续 {} 次条件评估失败（无法提取字段 {}），任务可能配置有误，请重新创建。": "§c§lAFK task auto-cancelled\n\n§f{} consecutive evaluation failures (unable to extract field {}), task may be misconfigured, please recreate."
-
-  # ==================== AFK Task 状态文本 ====================
-  # ==================== AFK Task Status Text ====================
   "等待启动": "Pending"
   "运行中": "Running"
   "已完成": "Completed"
   "已取消": "Cancelled"
-
-  # ==================== AFK Task 类型描述 ====================
-  # ==================== AFK Task Type Descriptions ====================
   "监视玩家上线": "Monitor player online"
   "监视玩家下线": "Monitor player offline"
   "监视玩家死亡": "Monitor player death"
@@ -545,9 +682,6 @@ messages:
   "监视附近熔炉烧炼": "Monitor nearby furnace smelting"
   "监视附近作物/方块生长": "Monitor nearby crop/block growth"
   "自定义任务": "Custom task"
-
-  # ==================== AFK Task 事件描述 ====================
-  # ==================== AFK Task Event Descriptions ====================
   "你": "you"
   "{} 已上线": "{} has come online"
   "{} 已下线": "{} has gone offline"
@@ -589,91 +723,6 @@ messages:
   "监视附近作物/方块生长{}，半径：{}格": "Monitoring nearby crop/block growth{}, radius: {} blocks"
   "熔炉烧炼完成：{}": "Furnace smelting complete: {}"
   "方块 {} 生长完成": "Block {} growth complete"
-
-  # ==================== KilacraftCommand (AFK 子命令) ====================
-  # ==================== KilacraftCommand (AFK Subcommands) ====================
-  "§c挂机任务命令仅限玩家使用。": "§cAFK task commands are only available to players."
-  "§c挂机任务系统未启用。": "§cAFK task system is not enabled."
-  "§7你当前没有正在运行的挂机任务。": "§7You have no running AFK tasks."
-  "§a已取消挂机任务：§f": "§aCancelled AFK task: §f"
-  "§f当前挂机任务：": "§fCurrent AFK task:"
-  "§f  任务ID：§e": "§f  Task ID: §e"
-  "§f  类型：§e": "§f  Type: §e"
-  "§f  描述：§e": "§f  Description: §e"
-  "§f  状态：§e": "§f  Status: §e"
-  "§f  创建时间：§e": "§f  Created: §e"
-  "§7使用 /kilacraft afk cancel 可取消此任务": "§7Use /kilacraft afk cancel to cancel this task"
-  "§c未知的挂机任务子命令：": "§cUnknown AFK task subcommand: "
-  "§7用法：/kilacraft afk [query|cancel]": "§7Usage: /kilacraft afk [query|cancel]"
-  "§7当前共加载 {} 个人格": "§7Currently loaded {} personalities"
-
-  # ==================== 提示词标记 (LLM Prompt) ====================
-  # ==================== Prompt Markers (LLM Prompt) ====================
-  "[当前玩家上下文]\n": "[Current Player Context]\n"
-  "当前玩家名称：": "Current player name: "
-  "[当前输入]\n": "[Current Input]\n"
-  "用户说：": "User says: "
-  "[对话历史]\n": "[Conversation History]\n"
-  "用户": "User"
-  "助手": "Assistant"
-
-  # ==================== IntentPromptConfigManager 提示词标题 ====================
-  # ==================== IntentPromptConfigManager Prompt Titles ====================
-  "【角色定义】": "[Role Definition]"
-  "【可用技能列表】": "[Available Skills]"
-  "【响应格式规范】": "[Response Format Specification]"
-  "请严格按照以下 JSON 格式返回识别结果。": "Please strictly return the recognition result in the following JSON format."
-  "### 单意图格式（简单任务）": "### Single Intent Format (Simple Task)"
-  "### 无效意图格式（无法识别时）": "### Invalid Intent Format (Unrecognized)"
-  "### 多步骤任务格式（复杂任务）": "### Multi-Step Task Format (Complex Task)"
-  "【决策规则】": "[Decision Rules]"
-  "### 何时使用单意图": "### When to Use Single Intent"
-  "### 何时使用多步骤任务": "### When to Use Multi-Step Task"
-  "### 何时返回无效意图": "### When to Return Invalid Intent"
-  "【关键约束规则】": "[Critical Constraint Rules]"
-  "【特殊场景处理指南】": "[Special Scenario Handling Guide]"
-  "【输出质量要求】": "[Output Quality Requirements]"
-  "意图识别提示词配置重载完成": "Intent recognition prompt config reload complete"
-  "加载意图识别提示词配置失败": "Failed to load intent recognition prompt config"
-  "你是一个智能的技能意图识别助手.": "You are an intelligent skill intent recognition assistant."
-  "可用动作：": "Available actions:"
-  "提示：": "Hints:"
-
-  # ==================== AnalysisSummary 标记 ====================
-  # ==================== AnalysisSummary Markers ====================
-  "[用户输入]": "[User Input]"
-  "[执行结果]": "[Execution Results]"
-  "[统计]": "[Statistics]"
-  "[任务目标]": "[Task Goal]"
-  "成功": "Success"
-  "失败": "Failed"
-  "跳过": "Skipped"
-
-  # ==================== LLM Provider 错误返回 ====================
-  # ==================== LLM Provider Error Returns ====================
-  "请求失败：{} - {}": "Request failed: {} - {}"
-  "API 响应为空": "API response is empty"
-  "读取响应失败：{}": "Failed to read response: {}"
-  "请求失败：{}": "Request failed: {}"
-  "当前 LLM 不支持 response_format，自动降级为普通模式": "The current LLM does not support responsive_format and will automatically downgrade to normal mode"
-
-  # ==================== AIRequestHandler 补充 ====================
-  # ==================== AIRequestHandler Supplementary ====================
-  "[系统提示：技能执行失败 - {}]": "[System notice: Skill execution failed - {}]"
-
-  # ==================== TaskExecutor 补充 ====================
-  # ==================== TaskExecutor Supplementary ====================
-  "任务计划存在循环依赖，无法执行": "Task plan has circular dependency, cannot execute"
-  "依赖步骤 {} 尚未执行": "Dependency step {} has not been executed"
-  "依赖步骤 {} 执行失败": "Dependency step {} execution failed"
-  "步骤 {} 的参数 '{}' 解析失败：找不到 {}": "Step {} param '{}' resolution failed: {} not found"
-
-  # ==================== AFKTaskSkill 补充 ====================
-  # ==================== AFKTaskSkill Supplementary ====================
-  "玩家当前挂机任务信息：任务ID={}, 类型={}, 描述={}, 状态={}, 创建时间={}。请基于这些信息用自然语言告知玩家当前任务状态": "Player's current AFK task: Task ID={}, Type={}, Description={}, Status={}, Created={}. Please inform the player about the current task status in natural language"
-
-  # ==================== AFK impl - complete() 消息 ====================
-  # ==================== AFK impl - complete() Messages ====================
   "目标玩家 {} 已上线，开始执行回调。": "Target player {} has come online, starting callback."
   "目标玩家 {} 已上线，挂机任务完成。": "Target player {} has come online, AFK task completed."
   "目标玩家 {} 已下线，开始执行回调。": "Target player {} has gone offline, starting callback."
@@ -702,8 +751,6 @@ messages:
   "条件满足，回调任务已执行。": "Condition met, callback task executed."
   "回调任务执行异常。": "Callback task execution error."
   "回调任务启动异常。": "Callback task startup error."
-
-  # ==================== AFK impl - getTaskDescription() ====================
   "监视玩家 {} 上线，触发回调任务（{}步）{}": "Monitor player {} online, trigger callback task ({} steps){}"
   "监视玩家 {} 上线，上线后通知创建者（纯通知）": "Monitor player {} online, notify creator when online (notification only)"
   "监视玩家 {} 下线，触发回调任务（{}步）{}": "Monitor player {} offline, trigger callback task ({} steps){}"
@@ -734,9 +781,6 @@ messages:
   "监视条件：{}，触发回调任务（{}步）{}": "Monitor condition: {}, trigger callback task ({} steps){}"
   "监视条件：{}，满足后通知创建者（纯通知）": "Monitor condition: {}, notify creator when met (notification only)"
   "，目标：{}": ", goal: {}"
-
-  # ==================== AFK impl - notifyWithLLMAnalysis() 补充 ====================
-  # ==================== AFK impl - notifyWithLLMAnalysis() Supplementary ====================
   "目标玩家 {} 传送（从 X={}, Y={}, Z={}, 世界={} 到 X={}, Y={}, Z={}, 世界={}）": "Target player {} teleported (from X={}, Y={}, Z={}, World={} to X={}, Y={}, Z={}, World={})"
   "目标玩家 {} 等级变化（{} → {}，{}）": "Target player {} level changed ({} → {}, {})"
   "目标玩家 {} 切换世界（{} → {}）": "Target player {} switched world ({} → {})"
@@ -748,204 +792,76 @@ messages:
   "（当前值：{}）": "(current value: {})"
   "，监控参数：{}": ", monitor params: {}"
   "未知": "Unknown"
-
-  # ==================== AFK impl - 通用日志补充 ====================
-  # ==================== AFK impl - General Log Supplementary ====================
   "作物 {} 生长中（新age={}/{}），跳过": "Crop {} growing (new age={}/{}), skipping"
   "开始下雨/雷暴": "Rain/Thunderstorm starting"
   "天气转晴": "Weather clearing up"
   "雨天/雷暴": "Rainy/Thunderstorm"
   "晴天": "Clear"
-
-  # ==================== AFK impl - 通用补充 ====================
-  # ==================== AFK impl - General Supplementary ====================
   "当前世界": "Current world"
   "升级": "Level up"
   "降级": "Level down"
 
-  # ==================== CMISkill - 动态拼接 ====================
-  # ==================== CMISkill - Dynamic Assembly ====================
-  "玩家有 {} 个家:": "Player has {} homes:"
-  "服务器有 {} 个公共地标:": "Server has {} public warps:"
-  "玩家信息: name={}, display_name={}, playtime={}, afk={}, vanished={}, fly={}, game_mode={}": "Player info: name={}, display_name={}, playtime={}, afk={}, vanished={}, fly={}, game_mode={}"
-  "可用套装列表 ({}): {}": "Available kits list ({}): {}"
-  "在线玩家 ({}):": "Online players ({}):"
-  "隐身": "Vanished"
+  # ==================== KilacraftCommand ====================
+  "§c挂机任务命令仅限玩家使用。": "§cAFK task commands are only available to players."
+  "§c挂机任务系统未启用。": "§cAFK task system is not enabled."
+  "§7你当前没有正在运行的挂机任务。": "§7You have no running AFK tasks."
+  "§a已取消挂机任务：§f{}": "§aCancelled AFK task: §f{}"
+  "§f当前挂机任务：": "§fCurrent AFK task:"
+  "§f  任务ID：§e{}": "§f  Task ID: §e{}"
+  "§f  类型：§e{}": "§f  Type: §e{}"
+  "§f  描述：§e{}": "§f  Description: §e{}"
+  "§f  状态：§e{}": "§f  Status: §e{}"
+  "§f  创建时间：§e{}": "§f  Created: §e{}"
+  "§7使用 /kilacraft afk cancel 可取消此任务": "§7Use /kilacraft afk cancel to cancel this task"
+  "§c未知的挂机任务子命令：{}": "§cUnknown AFK task subcommand: {}"
+  "§7用法：/kilacraft afk [query|cancel]": "§7Usage: /kilacraft afk [query|cancel]"
+  "§c你没有权限查看定时任务状态。": "§cYou do not have permission to view scheduled task status."
+  "§cTaskScheduler 未初始化。": "§cTaskScheduler not initialized."
+  "§7当前共加载 {} 个人格": "§7Currently loaded {} personalities"
+  "数据库热重载失败，已回退到旧配置: {}": "Database hot reload failed, rolled back to old config: {}"
+  "[当前玩家上下文]\n": "[Current Player Context]\n"
+  "当前玩家名称：": "Current player name: "
+  "[当前输入]\n": "[Current Input]\n"
+  "用户说：": "User says: "
+  "[对话历史]\n": "[Conversation History]\n"
+  "用户": "User"
+  "助手": "Assistant"
 
-  # ==================== MarketQuerySkill - 动态拼接 ====================
-  # ==================== MarketQuerySkill - Dynamic Assembly ====================
-  "余额: ${}": "Balance: ${}"
-  "{}: 未找到价格": "{}: Price not found"
-  "商品价格:\n": "Item prices:\n"
-  "\n总计: ${}": "\nTotal: ${}"
-  "市场商品列表:\n": "Market item list:\n"
-  "{} 目前市场上没有在售": "{} is currently not for sale on the market"
-  "{} 有在售\n": "{} is for sale\n"
-  "库存: {} 个\n": "Stock: {}\n"
-  "价格: ${} - ${}\n": "Price: ${} - ${}\n"
-  "卖家: ": "Sellers: "
-  " ... 等{}人": " ... and {} more"
-  "你在售的商品 (共 {} 个):\n": "Your items for sale ({} total):\n"
-  "{} 的在售商品 (共 {} 个):\n": "{}'s items for sale ({} total):\n"
-  "{} 目前没有在售商品": "{} currently has no items for sale"
-  "... 还有 {} 个商品": "... and {} more items"
-  "邮箱待领取 (共 {} 封):\n": "Mailbox pending ({} total):\n"
-  "来自: {}": "From: {}"
-  "系统": "System"
-  "... 还有 {} 封邮件": "... and {} more mails"
-  "市场统计: 商品总数 {} 个, 卖家数量 {} 人": "Market stats: {} total items, {} sellers"
-  "市场上暂无商品": "No items on the market"
-  "你没有在售的商品": "You have no items for sale"
-  "邮箱是空的": "Your mailbox is empty"
-  "市场暂无商品": "No items on the market currently"
-  "{} x{}: 库存不足 (市场仅有 {} 个)": "{} x{}: Insufficient stock (only {} available on market)"
-  "\n  在售信息:": "\n  Listing info:"
-  "\n    [{}] ${} x {}个": "\n    [{}] ${} x {} pcs"
+  # ==================== IntentPromptConfigManager ====================
+  "【角色定义】": "[Role Definition]"
+  "【可用技能列表】": "[Available Skills]"
+  "【响应格式规范】": "[Response Format Specification]"
+  "请严格按照以下 JSON 格式返回识别结果。": "Please strictly return the recognition result in the following JSON format."
+  "### 单意图格式（简单任务）": "### Single Intent Format (Simple Task)"
+  "### 无效意图格式（无法识别时）": "### Invalid Intent Format (Unrecognized)"
+  "### 多步骤任务格式（复杂任务）": "### Multi-Step Task Format (Complex Task)"
+  "【决策规则】": "[Decision Rules]"
+  "### 何时使用单意图": "### When to Use Single Intent"
+  "### 何时使用多步骤任务": "### When to Use Multi-Step Task"
+  "### 何时返回无效意图": "### When to Return Invalid Intent"
+  "【关键约束规则】": "[Critical Constraint Rules]"
+  "【特殊场景处理指南】": "[Special Scenario Handling Guide]"
+  "【输出质量要求】": "[Output Quality Requirements]"
+  "意图识别提示词配置重载完成": "Intent recognition prompt config reload complete"
+  "加载意图识别提示词配置失败": "Failed to load intent recognition prompt config"
+  "你是一个智能的技能意图识别助手.": "You are an intelligent skill intent recognition assistant."
+  "可用动作：": "Available actions:"
+  "提示：": "Hints:"
+  "[用户输入]": "[User Input]"
+  "[执行结果]": "[Execution Results]"
+  "[统计]": "[Statistics]"
+  "[任务目标]": "[Task Goal]"
+  "成功": "Success"
+  "失败": "Failed"
+  "跳过": "Skipped"
 
-  # ==================== BukkitFXSkill - 动态拼接 ====================
-  # ==================== BukkitFXSkill - Dynamic Assembly ====================
-  "音效播放成功: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})": "Sound played successfully: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})"
-  "粒子效果显示成功: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})": "Particle effect displayed successfully: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})"
-
-  # ==================== BukkitStatsSkill - 格式化模板 ====================
-  # ==================== BukkitStatsSkill - Format Templates ====================
-  "{}: {} 公里": "{}: {} km"
-  "{}: {} 米": "{}: {} m"
-  "{}: {} 秒": "{}: {} sec"
-  "{}: {} 分 {} 秒": "{}: {} min {} sec"
-  "{}: {} 小时 {} 分": "{}: {} hr {} min"
-
-  # ==================== GenericBukkitAPISkill - 通用格式 ====================
-  # ==================== GenericBukkitAPISkill - General Format ====================
-  "无结果": "No result"
-  "世界种子：{}": "World seed: {}"
-  "速度：{}": "Speed: {}"
-  "攻击冷却进度：{}%": "Attack cooldown progress: {}%"
-  "吸收之心：{}": "Absorption hearts: {}"
-  "主手物品": "Main hand item"
-  "副手物品": "Off hand item"
-  "物品": "Item"
-  "背包": "Inventory"
-  "末影箱": "Ender Chest"
-  "容器": "Container"
-  "：空手": ": Empty hand"
-  "：空": ": Empty"
-
-  "脚下方块：{}（位置：X={}, Y={}, Z={}）": "Feet block: {} (Position: X={}, Y={}, Z={})"
-  "延迟：{}ms ({})": "Ping: {}ms ({})"
-  "升到下一级需要：{} 点经验": "Experience needed for next level: {} XP"
-  "身上的箭矢：{} 支": "Arrows in body: {}"
-
-  # ==================== GenericBukkitAPISkill - 天气/经验/着火 ====================
-  # ==================== GenericBukkitAPISkill - Weather/Exp/Fire ====================
-  "天气：晴朗": "Weather: Clear"
-  "天气：雷暴": "Weather: Thunderstorm"
-  "天气：雨天": "Weather: Rain"
-  "等级：{}，经验进度：{}%": "Level: {}, Exp progress: {}%"
-  "着火状态：未着火": "Fire status: Not on fire"
-  "着火状态：正在燃烧！剩余 {} 秒 ({}{} tick)": "Fire status: Burning! {} sec remaining ({}{} tick)"
-  "该 API 不应返回 Map 类型": "This API should not return Map type"
-  "游戏时间：{}": "Game time: {}"
-
-  # ==================== GenericBukkitAPISkill - 集合 ====================
-  # ==================== GenericBukkitAPISkill - Collections ====================
-  "服务器暂无已加载的世界": "Server has no loaded worlds"
-  "当前没有玩家在线": "No players currently online"
-  "在线玩家（{}人）：\n": "Online players ({} players):\n"
-  " ... 等 {} 人": " ... and {} more"
-  "服务器世界列表（{}个）：\n": "Server world list ({} worlds):\n"
-
-  # ==================== GenericBukkitAPISkill - 位置/移动 ====================
-  # ==================== GenericBukkitAPISkill - Location/Movement ====================
-  "位置：未知": "Location: Unknown"
-  "位置：X={}, Y={}, Z={}, 世界={}": "Location: X={}, Y={}, Z={}, World={}"
-  "移动状态：未知": "Movement: Unknown"
-  "移动状态：静止": "Movement: Stationary"
-  "移动状态：速度={} (X={}, Y={}, Z={})": "Movement: Speed={} (X={}, Y={}, Z={})"
-
-
-  "游戏模式：{}": "Game mode: {}"
-  "当前姿势：{}": "Current pose: {}"
-  "主手偏好：{}": "Main hand: {}"
-  "当前界面：{}": "Current UI: {}"
-
-  # ==================== GenericBukkitAPISkill - 盔甲 ====================
-  # ==================== GenericBukkitAPISkill - Armor ====================
-  "盔甲：无": "Armor: None"
-  "盔甲：": "Armor: "
-  "盔甲：有 {} 件装备": "Armor: {} pieces equipped"
-  " [耐久:{}/{}]": " [Durability:{}/{}]"
-  " [附魔:": " [Ench:"
-  " [损伤:{}]": " [Damage:{}]"
-  " [描述:{}行]": " [Lore:{} lines]"
-  " [无法破坏]": " [Unbreakable]"
-
-  # ==================== GenericBukkitAPISkill - 药水效果 ====================
-  # ==================== GenericBukkitAPISkill - Potion Effects ====================
-  "药水效果：无": "Potion effects: None"
-  "药水效果：": "Potion effects: "
-  " {}级": " Lv{}"
-  " ({}分{}秒)": " ({}min {}sec)"
-  " ({}秒)": " ({}sec)"
-  " ... 等 {} 个效果": " ... and {} more effects"
-
-  # ==================== GenericBukkitAPISkill - 方块/伤害 ====================
-  # ==================== GenericBukkitAPISkill - Block/Damage ====================
-  "瞄准方块：无（距离太远或没有方块）": "Target block: None (too far or no block)"
-  "瞄准方块：未知": "Target block: Unknown"
-  "瞄准方块：{}（位置：X={}, Y={}, Z={}）": "Target block: {} (Position: X={}, Y={}, Z={})"
-  "脚下方块：未知": "Feet block: Unknown"
-  "无受伤记录": "No damage record"
-  "上次受伤：": "Last damage: "
-  "（{} 伤害）": "({} damage)"
-  "，攻击者：": ", Attacker: "
-
-  # ==================== GenericBukkitAPISkill - 生物群系 ====================
-  # ==================== GenericBukkitAPISkill - Biomes ====================
-  "未知群系": "Unknown biome"
-  "生物群系：{}": "Biome: {}"
-
-  # ==================== GenericBukkitAPISkill - 背包格式 ====================
-  # ==================== GenericBukkitAPISkill - Inventory Format ====================
-  "{}占用：{}/{} 格（空 {} 格）": "{} used: {}/{} slots ({} empty)"
-  "物品（已用 {}/{} 格）：\n": "Items ({}/{} slots used):\n"
-  "袭击事件：无": "Raids: None"
-  "当前正在进行 {} 个袭击": "{} raids currently in progress"
-
-  # ==================== GenericBukkitAPISkill - 时间 ====================
-  # ==================== GenericBukkitAPISkill - Time ====================
-  "世界总时间：{} 天 {} 小时": "World total time: {} days {} hours"
-  "世界总时间：{} 小时 {} 分钟": "World total time: {} hours {} minutes"
-  "世界总时间：{} 分钟": "World total time: {} minutes"
-  "世界游戏时间：{} 天 {} 小时": "World game time: {} days {} hours"
-  "世界游戏时间：{} 小时 {} 分钟": "World game time: {} hours {} minutes"
-  "世界游戏时间：{} 分钟": "World game time: {} minutes"
-  "挂机时间：{} 秒": "AFK time: {} sec"
-  "挂机时间：{} 分 {} 秒": "AFK time: {} min {} sec"
-  "挂机时间：{} 小时 {} 分": "AFK time: {} hr {} min"
-
-  # ==================== GenericBukkitAPISkill - Boolean 语义描述 ====================
-  # ==================== GenericBukkitAPISkill - Boolean Semantic Descriptions ====================
-  "PVP 已开启：这个世界允许玩家互相攻击": "PVP enabled: Players can attack each other in this world"
-  "PVP 已关闭：这个世界禁止玩家互相攻击": "PVP disabled: Players cannot attack each other in this world"
-  "允许飞行": "Flight allowed"
-  "禁止飞行": "Flight disabled"
-  "白名单已开启": "Whitelist enabled"
-  "白名单已关闭": "Whitelist disabled"
-  "硬核模式已开启": "Hardcore mode enabled"
-  "硬核模式未开启": "Hardcore mode disabled"
-  "已启用": "Enabled"
-  "未启用": "Disabled"
-  "自动保存已开启": "Auto-save enabled"
-  "自动保存已关闭": "Auto-save disabled"
-  "玩家正在骑乘中": "Player is riding"
-  "玩家未骑乘": "Player is not riding"
-  "是管理员（OP）": "Is operator (OP)"
-  "不是管理员": "Is not operator"
-  "玩家正在睡觉": "Player is sleeping"
-  "玩家未在睡觉": "Player is not sleeping"
-  "玩家已死亡": "Player is dead"
-  "玩家存活": "Player is alive"
+  # ==================== LLMProvider ====================
+  "请求失败：{} - {}": "Request failed: {} - {}"
+  "API 响应为空": "API response is empty"
+  "读取响应失败：{}": "Failed to read response: {}"
+  "请求失败：{}": "Request failed: {}"
+  "当前 LLM 不支持 response_format，自动降级为普通模式": "The current LLM does not support responsive_format and will automatically downgrade to normal mode"
+  "... (共{} 字符)": "... ({} chars total)"
 
   # ==================== CMIAPI ====================
   "{}小时{}分钟": "{}hr {}min"
@@ -1005,12 +921,6 @@ messages:
   # ==================== BukkitAPIConfigLoader ====================
   "配置文件不存在：{}": "Config file not found: {}"
 
-  # ==================== 工具类防护异常 ====================
-  # ============= Utility class protection exception =============
-  "工具类不允许实例化": "Utility class cannot be instantiated"
-  "技能不能为空": "Skill cannot be null"
-  "技能已注册：{}": "Skill already registered: {}"
-
   # ==================== UtilitySkill ====================
   "未指定工具动作": "No utility action specified"
   "工具技能仅支持在线玩家": "Utility skill is only available for online players"
@@ -1039,3 +949,334 @@ messages:
   "全服广播摘要 - 发起者: {}, systemPrompt: [{}]": "Broadcast summary - initiator: {}, systemPrompt: [{}]"
   "全服广播摘要 - 发起者: {}, userPromptTemplate: [{}]": "Broadcast summary - initiator: {}, userPromptTemplate: [{}]"
   "全服广播摘要 - 发起者: {}, userPrompt: [{}]": "Broadcast summary - initiator: {}, userPrompt: [{}]"
+
+  # ==================== EventCollector ====================
+  "写入服务器事件失败: {}": "Failed to write server event: {}"
+  "{} 波": "{} waves"
+
+  # ==================== MarketEventCollector ====================
+  "写入市场事件失败: {}": "Failed to write market event: {}"
+  "{} x{} 价格{}": "{} x{} price {}"
+
+  # ==================== PrivateChatListener ====================
+  "{} → {}, 解析到目标玩家: {}": "{} → {}, parsed target player: {}"
+  "目标玩家 {} 不在画像数据库中，跳过社交关系记录": "Target player {} not in profile database, skipping social relation record"
+  "记录社交关系: {} → {} (private_chat)": "Recorded social relation: {} → {} (private_chat)"
+  "发送者和目标相同，跳过: {}": "Sender and target are the same, skipping: {}"
+  "解析目标玩家失败: {}": "Failed to parse target player: {}"
+
+  # ==================== TpaListener ====================
+  "记录社交关系: {} → {} (tpa_interaction)": "Recorded social relation: {} → {} (tpa_interaction)"
+
+  # ==================== LoginGreetingHandler ====================
+  "玩家 {} 在冷却期内，跳过问候": "Player {} is in cooldown period, skipping greeting"
+  "Bukkit Stats 采集失败，降级跳过: {}": "Bukkit Stats collection failed, degraded skip: {}"
+  "玩家画像加载失败，跳过问候: {}": "Player profile load failed, skipping greeting: {}"
+  "问候语摘要: {}": "Greeting summary: {}"
+  "生成问候语失败: {}": "Failed to generate greeting: {}"
+  "请欢迎新玩家 {}": "Please welcome new player {}"
+  "请欢迎 {} 回来": "Please welcome {} back"
+
+  # ==================== DatabaseConfigManager ====================
+  "数据库配置文件不存在，使用默认 H2 配置": "Database config file not found, using default H2 config"
+  "数据库配置已加载，类型: {}": "Database config loaded, type: {}"
+  "数据库配置解析失败，使用默认 H2 配置: {}": "Database config parse failed, using default H2 config: {}"
+  "未知的数据库类型: {}，回退到 H2": "Unknown database type: {}, falling back to H2"
+
+  # ==================== SchemaManager ====================
+  "Schema 版本: 当前={}, 期望={}": "Schema version: current={}, expected={}" 
+  "Schema 已迁移到版本 {}": "Schema migrated to version {}"
+  "Schema v1 建表完成（6张表）": "Schema v1 table creation complete (6 tables)"
+
+  # ==================== ConversationPersistenceService ====================
+  "已刷盘玩家 {} 的 {} 条待写入消息": "Flushed {} pending messages for player {}"
+  "已刷盘全部 {} 条待写入消息": "Flushed all {} pending messages"
+  "关闭时刷盘失败，丢失 {} 条消息: {}": "Shutdown flush failed, lost {} messages: {}"
+  "批量写入失败，重试一次: {}": "Batch write failed, retrying once: {}"
+  "重试写入仍失败，丢弃 {} 条消息: {}": "Retry write still failed, discarding {} messages: {}"
+
+  # ==================== PlayerProfileDao ====================
+  "创建新玩家画像: {} ({})": "Creating new player profile: {} ({})"
+  "解析 profile_data 失败: {}": "Failed to parse profile_data: {}"
+
+  # ==================== H2Provider ====================
+  "H2 数据库已初始化，文件: {}": "H2 database initialized, file: {}"
+  "连接池配置: maxPoolSize={}, minIdle={}": "Connection pool config: maxPoolSize={}, minIdle={}"
+  "H2 连接池已关闭": "H2 connection pool closed"
+  "H2 连接测试失败: {}": "H2 connection test failed: {}"
+  "H2 TCP Server 已启动，端口: {}（DBeaver 可通过 jdbc:h2:tcp://localhost:{}/{} 连接）": "H2 TCP Server started on port: {} (DBeaver can connect via jdbc:h2:tcp://localhost:{}/{})"
+  "H2 TCP Server 启动失败（端口 {} 可能被占用）: {}": "H2 TCP Server start failed (port {} may be in use): {}"
+  "H2 TCP Server 已关闭": "H2 TCP Server stopped"
+
+  # ==================== MySQLProvider ====================
+  "MySQL 连接池初始化失败: {}": "MySQL connection pool initialization failed: {}"
+  "MySQL 数据库已初始化，地址: {}:{}": "MySQL database initialized, address: {}:{}"
+  "MySQL 连接池已关闭": "MySQL connection pool closed"
+  "MySQL 连接测试失败: {}": "MySQL connection test failed: {}"
+
+  # ==================== ProfileManager ====================
+  "加载玩家画像失败: {} - {}": "Failed to load player profile: {} - {}"
+  "保存玩家画像失败: {} - {}": "Failed to save player profile: {} - {}"
+  "加载画像失败: {} - {}": "Failed to load profile: {} - {}"
+  "flush 画像失败: {} - {}": "Failed to flush profile: {} - {}"
+  "已刷盘 {} 个玩家画像": "Flushed {} player profiles"
+  "更新画像数据失败: {} - {}": "Failed to update profile data: {} - {}"
+  "热重载后补录画像失败: {} - {}": "Failed to backfill profile after hot reload: {} - {}"
+  "热重载后补录 {} 个在线玩家画像": "Backfilled {} online player profiles after hot reload"
+  "【玩家画像】\n（注：描述中若包含具体英文词，请结合上下文语义判断是否为玩家名称）": "[Player Profile]\n(Note: if English words appear in the description, judge by context whether they are player names)"
+  "游戏风格": "Playstyle"
+  "性格特征": "Personality"
+  "偏好": "Preferences"
+  "沟通风格": "Communication style"
+  "特别观察": "Special observations"
+  "\n请根据以上画像调整你的沟通风格，让回复更贴合玩家个性。": "\nPlease adjust your communication style based on the above profile to better match the player's personality."
+
+  # ==================== SocialGraph ====================
+  "提交交互记录: {} ↔ {}, type={}, weight={}": "Submitting interaction: {} ↔ {}, type={}, weight={}"
+  "交互记录成功: {} ↔ {} ({})": "Interaction recorded: {} ↔ {} ({})"
+  "记录社交交互失败: {}": "Failed to record social interaction: {}"
+  "社交关系衰减完成，清理 {} 条弱关系": "Social relation decay complete, cleaned {} weak relations"
+  "社交关系衰减失败: {}": "Social relation decay failed: {}"
+
+  # ==================== SocialRelationExtractor ====================
+  "社交关系提取失败: {}": "Social relation extraction failed: {}"
+
+  # ==================== TaskScheduler ====================
+  "跳过注册（已禁用）: {} ({})": "Skipped registration (disabled): {} ({})"
+  "已启动: {} ({})": "Started: {} ({})"
+  "已关闭 {} 个定时任务": "Shut down {} scheduled tasks"
+  "[{}] 上次尚未完成，跳过本次": "[{}] Previous execution not yet complete, skipping this round"
+  "[{}] 执行完成 (耗时{}ms, 本轮{}条, 累计{}条)": "[{}] Execution complete ({}ms, {} this round, {} total)"
+  "[{}] 执行完成 (耗时{}ms, 无新数据)": "[{}] Execution complete ({}ms, no new data)"
+  "[{}] 执行失败: {}": "[{}] Execution failed: {}"
+  "§f[TaskScheduler] §7已注册 §e{} §7个定时任务:": "§f[TaskScheduler] §7Registered §e{} §7scheduled tasks:"
+  "§f{}条": "§f{} items"
+  "§f{}前": "§f{} ago"
+  "§8未执行": "§8Not executed"
+  "§c异常: {}": "§cError: {}"
+  "§7等待首次": "§7Awaiting first"
+  "§a正常": "§aOK"
+  "  §f{} §7| §e{} §7| 累计 §e{} §7| 上次: {} §7| {}": "  §f{} §7| §e{} §7| Total §e{} §7| Last: {} §7| {}"
+
+  # ==================== SoundEffectManager ====================
+  "播放音效失败": "Failed to play sound"
+
+  # ==================== LanguageManager ====================
+  "加载 {} 失败": "Failed to load {}"
+
+  # ==================== GreetingPromptBuilder ====================
+  "【离线期间发生的事】\n没有特别的事情发生。": "[What happened while you were offline]\nNothing special happened."
+  "【离线期间发生的事】": "[What happened while you were offline]"
+  "你不在的时候，全服共发生了 {} 件事": "While you were away, {} server events occurred in total"
+  "【上次位置】\n你上次在 {}，坐标 ({}, {}, {})": "[Last Location]\nYou were last at {}, coordinates ({}, {}, {})"
+  "【好友在线状态】\n暂无好友。": "[Friends Online Status]\nNo friends yet."
+  "【好友在线状态】\n": "[Friends Online Status]\n"
+  "没有好友在线": "No friends online"
+  "（服务器当前在线 {} 人）": "({} players currently online on the server)"
+  "{} 已在线 {}": "{} has been online for {}"
+  "离线好友：": "Offline friends:"
+  "前下线）": " ago went offline)"
+  "【好友动态】\n好友们最近没什么特别的事。": "[Friends Activity]\nNothing special happened with friends recently."
+  "【好友动态】": "[Friends Activity]"
+  "某位好友": "a friend"
+  "好友登录频次：{}": "Friend login frequency: {}"
+  "{} {} 次": "{} {} times"
+  "【玩家数据】": "[Player Stats]"
+  "【上次游玩亮点】\n": "[Last Session Highlights]\n"
+  "你上架的商品已卖出": "An item you listed has been sold"
+  "你上架的 {} 件商品已卖出": "{} items you listed have been sold"
+  "你收到了 {} 收入": "You received {} in income"
+  "你收到了 {} 笔款项（共 {}）": "You received {} payments (totaling {})"
+  "你挂了 1 次": "You died once"
+  "你挂了 {} 次（{}）": "You died {} times ({})"
+  "你达成了成就 {}": "You earned the achievement {}"
+  "你达成了 {} 个成就（{}）": "You earned {} achievements ({})"
+  "你升级了": "You leveled up"
+  "你从 {} 级升到了 {} 级（共{}级）": "You leveled from {} to {} ({} levels total)"
+  "你升级 {} 次": "You leveled up {} times"
+  "你触发了不死图腾": "You activated a Totem of Undying"
+  "你触发了 {} 次不死图腾": "You activated a Totem of Undying {} times"
+  "（{}）": "({})"
+  "你挂了 1 次（{}）": "You died once ({})"
+  "你击杀了 {} 共 {} 次": "You killed {} {} times"
+  "你击杀了 {}": "You killed {}"
+  "你完成了袭击（{}）": "You completed a raid ({})"
+  "你的宠物战死了（{}）": "Your pet died in battle ({})"
+  "你在PVP中击杀了 {}": "You killed {} in PVP"
+  "你在PVP中被 {} 击杀了": "You were killed by {} in PVP"
+  "你的{} 断了": "Your {} broke"
+  "你钓到了 {}": "You caught {}"
+  "你被雷劈了": "You were struck by lightning"
+  "你被雷劈了 {} 次": "You were struck by lightning {} times"
+  "你救了一个僵尸村民": "You cured a zombie villager"
+  "你救了 {} 个僵尸村民": "You cured {} zombie villagers"
+  "你挖到了远古残骸": "You mined ancient debris"
+  "你挖到了 {} 块远古残骸": "You mined {} ancient debris"
+  "你驯服了{}": "You tamed {}"
+  "你合成了附魔金苹果": "You crafted an enchanted golden apple"
+  "你合成了 {} 个附魔金苹果": "You crafted {} enchanted golden apples"
+  "你召唤了凋零": "You summoned the Wither"
+  "你召唤了 {} 次凋零": "You summoned the Wither {} times"
+  "你在PVP中击杀了 {} 共 {} 次": "You killed {} in PVP {} times"
+  "你在PVP中被 {} 击杀了 {} 次": "You were killed by {} in PVP {} times"
+  "{} 挂了 1 次": "{} died once"
+  "{} 挂了 {} 次（{}）": "{} died {} times ({})"
+  "{} 挂了 1 次（{}）": "{} died once ({})"
+  "{} 达成了成就 {}": "{} earned the achievement {}"
+  "{} 达成了 {} 个成就（{}）": "{} earned {} achievements ({})"
+  "{} 升级了": "{} leveled up"
+  "{} 从 {} 级升到了 {} 级": "{} leveled from {} to {}"
+  "{} 升了 {} 级": "{} leveled up {} times"
+  "{} 触发了不死图腾": "{} activated a Totem of Undying"
+  "{} 触发了 {} 次不死图腾": "{} activated a Totem of Undying {} times"
+  "{} 击杀了 {}": "{} killed {}"
+  "{} 击杀了 {} 共 {} 次": "{} killed {} {} times"
+  "{} 完成了袭击（{}）": "{} completed a raid ({})"
+  "{} 的宠物战死了（{}）": "{}'s pet died in battle ({})"
+  "{} 在PVP中击杀了 {}": "{} killed {} in PVP"
+  "{} 在PVP中击杀了 {} 共 {} 次": "{} killed {} in PVP {} times"
+  "{} 在PVP中被 {} 击杀了": "{} was killed by {} in PVP"
+  "{} 在PVP中被 {} 击杀了 {} 次": "{} was killed by {} in PVP {} times"
+  "{} 的{} 断了": "{}'s {} broke"
+  "{} 钓到了 {}": "{} caught {}"
+  "{} 被雷劈了": "{} was struck by lightning"
+  "{} 被雷劈了 {} 次": "{} was struck by lightning {} times"
+  "{} 救了一个僵尸村民": "{} cured a zombie villager"
+  "{} 救了 {} 个僵尸村民": "{} cured {} zombie villagers"
+  "{} 挖到了远古残骸": "{} mined ancient debris"
+  "{} 挖到了 {} 块远古残骸": "{} mined {} ancient debris"
+  "{} 驯服了{}": "{} tamed {}"
+  "{} 合成了附魔金苹果": "{} crafted an enchanted golden apple"
+  "{} 合成了 {} 个附魔金苹果": "{} crafted {} enchanted golden apples"
+  "{} 召唤了凋零": "{} summoned the Wither"
+  "{} 召唤了 {} 次凋零": "{} summoned the Wither {} times"
+  "{} 触发了 {} 次 {}": "{} triggered {} {}"
+  "游戏时长: {} 分钟": "Playtime: {} minutes"
+  "死亡: {} 次": "Deaths: {} times"
+  "击杀生物: {} 只": "Mobs killed: {}"
+  "击杀玩家: {} 人": "Players killed: {}"
+  "造成伤害: {} 颗心": "Damage dealt: {} hearts"
+  "承受伤害: {} 颗心": "Damage taken: {} hearts"
+  "盾牌格挡: {} 颗心": "Damage shielded: {} hearts"
+  "繁殖动物: {} 次": "Animals bred: {} times"
+  "跳跃: {} 次": "Jumps: {} times"
+  "睡觉: {} 次": "Times slept: {} times"
+  "击杀末影龙: {} 次，被末影龙击杀: {} 次": "Ender Dragons killed: {}, killed by Ender Dragon: {}"
+  "击杀凋零: {} 次，被凋零击杀: {} 次": "Withers killed: {}, killed by Wither: {}"
+  "击杀远古守卫者: {} 次": "Elder Guardians killed: {}"
+  "击杀监守者: {} 次": "Wardens killed: {}"
+  "击杀铁傀儡: {} 次": "Iron Golems killed: {}"
+  "行走距离: {} 格": "Distance walked: {} blocks"
+  "疾跑距离: {} 格": "Distance sprinted: {} blocks"
+  "飞行距离: {} 格": "Distance flown: {} blocks"
+  "鞘翅飞行距离: {} 格": "Elytra flight distance: {} blocks"
+  "游泳距离: {} 格": "Distance swum: {} blocks"
+  "划船距离: {} 格": "Distance boated: {} blocks"
+  "矿车行驶距离: {} 格": "Distance by minecart: {} blocks"
+  "骑马距离: {} 格": "Distance on horseback: {} blocks"
+  "攀爬距离: {} 格": "Distance climbed: {} blocks"
+  "摔落距离: {} 格": "Distance fallen: {} blocks"
+  "钓鱼: {} 次": "Fish caught: {} times"
+  "附魔: {} 次": "Items enchanted: {} times"
+  "触发袭击: {} 次": "Raids triggered: {} times"
+  "袭击胜利: {} 次": "Raids won: {} times"
+  "挖钻石矿: {} 个": "Diamond ores mined: {}"
+  "加入服务器: {} 天前": "Joined server: {} days ago"
+  "上次游玩时长: {} 分钟": "Last session duration: {} minutes"
+  "刚刚": "just now"
+  "{} 天": "{} days"
+  "{} 小时": "{} hours"
+  "{} 小时 {} 分钟": "{} hours {} minutes"
+  "{} 分钟": "{} minutes"
+  "主世界": "Overworld"
+  "下界": "Nether"
+  "末地": "The End"
+  "一笔款项": "a sum of money"
+  "未知生物": "Unknown entity"
+  "末影龙": "Ender Dragon"
+  "凋零": "Wither"
+  "远古守卫者": "Elder Guardian"
+  "监守者": "Warden"
+  "未知宠物": "Unknown pet"
+  "狼": "Wolf"
+  "猫": "Cat"
+  "马": "Horse"
+  "驴": "Donkey"
+  "骡": "Mule"
+  "鹦鹉": "Parrot"
+  "狐狸": "Fox"
+  "被攻击": "Attacked"
+  "爆炸": "Explosion"
+  "方块爆炸": "Block explosion"
+  "摔落": "Falling"
+  "火焰": "Fire"
+  "燃烧": "Burning"
+  "岩浆": "Lava"
+  "溺水": "Drowning"
+  "窒息": "Suffocation"
+  "雷击": "Lightning"
+  "中毒": "Poison"
+  "凋零效果": "Wither effect"
+  "魔法": "Magic"
+  "虚空": "Void"
+  "挤压": "Cramming"
+  "干涸": "Dryout"
+  "饥饿": "Starvation"
+  "投射物": "Projectile"
+  "荆棘": "Thorns"
+  "，死因: ": ", cause of death: "
+  "，被 ": ", killed by "
+  " 击杀": ""
+  "未知物品": "Unknown item"
+  "钻石镐": "Diamond Pickaxe"
+  "钻石剑": "Diamond Sword"
+  "钻石斧": "Diamond Axe"
+  "钻石锹": "Diamond Shovel"
+  "钻石锄": "Diamond Hoe"
+  "下界合金剑": "Netherite Sword"
+  "下界合金镐": "Netherite Pickaxe"
+  "下界合金斧": "Netherite Axe"
+  "下界合金锹": "Netherite Shovel"
+  "下界合金锄": "Netherite Hoe"
+  "铁剑": "Iron Sword"
+  "铁镐": "Iron Pickaxe"
+  "铁斧": "Iron Axe"
+  "铁锹": "Iron Shovel"
+  "附魔书": "Enchanted Book"
+  "命名牌": "Name Tag"
+  "鞍": "Saddle"
+  "鹦鹉螺壳": "Nautilus Shell"
+  "睡莲": "Lily Pad"
+  "弓": "Bow"
+  "钓鱼竿": "Fishing Rod"
+  "鞘翅": "Elytra"
+  "三叉戟": "Trident"
+  "盾牌": "Shield"
+  "{}级→{}级": "Lv.{}→Lv.{}"
+  "你升级了（{}）": "You leveled up ({})"
+  "{} 升级了（{}）": "{} leveled up ({})"
+
+  # ==================== ServerEventType ====================
+  "玩家登录": "Player Login"
+  "玩家登出": "Player Logout"
+  "首次加入": "First Join"
+  "商品售出": "Item Sold"
+  "商品上架": "Item Listed"
+  "收到钱款": "Money Received"
+  "玩家死亡": "Player Death"
+  "达成成就": "Achievement Earned"
+  "玩家升级": "Player Level Up"
+  "触发不死图腾": "Totem Activated"
+  "击杀BOSS": "Boss Killed"
+  "完成袭击": "Raid Completed"
+  "宠物死亡": "Pet Death"
+  "PVP击杀": "PVP Kill"
+  "被玩家击杀": "Killed by Player"
+  "工具断裂": "Tool Broken"
+  "钓到宝藏": "Treasure Fished"
+  "被雷劈": "Struck by Lightning"
+  "治愈僵尸村民": "Zombie Villager Cured"
+  "挖到远古残骸": "Ancient Debris Mined"
+  "驯服动物": "Animal Tamed"
+  "合成附魔金苹果": "Enchanted Golden Apple Crafted"
+  "召唤凋零": "Wither Summoned"

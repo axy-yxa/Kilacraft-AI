@@ -51,7 +51,7 @@ public class AIResponsePipeline {
         }
 
         // 统一打印DEBUG日志（所有场景的最终回复都从这里输出）
-        PluginLogger.debug("AI响应", player.getName() + " 收到AI回复 [" + scenario.name() + "]：" + rawMessage);
+        PluginLogger.debug("AI响应", "{} 收到AI回复 [{}]：{}", player.getName(), scenario.name(), rawMessage);
 
         // 播放 AI 回复音效（与输出同步）
         if (soundEffectManager != null) {

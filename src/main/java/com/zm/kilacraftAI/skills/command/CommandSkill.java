@@ -156,7 +156,7 @@ public class CommandSkill implements Skill {
                 return SkillResult.failure(I18nService.tr("[FAILURE] 命令执行失败，可能没有权限或命令不存在: /{}", finalCommand));
             }
         }).exceptionally(ex -> {
-            PluginLogger.warn("命令技能", I18nService.tr("命令执行异常: /{}", finalCommand + " - " + ex.getMessage()), ex);
+            PluginLogger.warn("命令技能", I18nService.tr("命令执行异常: /{} - {}", finalCommand, ex.getMessage()), ex);
             return SkillResult.failure(I18nService.tr("命令执行异常: /{}", finalCommand));
         });
     }

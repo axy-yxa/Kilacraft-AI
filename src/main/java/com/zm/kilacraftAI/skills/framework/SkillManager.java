@@ -148,7 +148,7 @@ public class SkillManager {
                 return CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
             }
         } catch (Exception e) {
-            PluginLogger.warn("技能管理", "检查技能可用性时异常：{} - {}", skillName, e.getMessage(), e);
+            PluginLogger.warn("技能管理", I18nService.tr("检查技能可用性时异常：{} - {}", skillName, e.getMessage()), e);
             return CompletableFuture.completedFuture(SkillResult.failure("抱歉，该功能暂时不可用"));
         }
 

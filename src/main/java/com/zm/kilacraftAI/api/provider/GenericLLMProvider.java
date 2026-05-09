@@ -259,7 +259,7 @@ public class GenericLLMProvider implements LLMProvider {
                 String content = msg.getContent();
                 // AI 回答的历史记录只打印前若干个字符，避免日志过长
                 if (ROLE_ASSISTANT.equals(msg.getRole()) && content.length() > LOG_TRUNCATE_LENGTH) {
-                    content = content.substring(0, LOG_TRUNCATE_LENGTH) + "... (共" + msg.getContent().length() + " 字符)";
+                    content = content.substring(0, LOG_TRUNCATE_LENGTH) + I18nService.tr("... (共{} 字符)", msg.getContent().length());
                 }
                 PluginLogger.debug("LLM请求", "历史 [{}] ({}): {}", index, msg.getRole(), content);
             }

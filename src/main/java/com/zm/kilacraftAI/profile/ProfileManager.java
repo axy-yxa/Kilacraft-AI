@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.profile;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
 import com.zm.kilacraftAI.event.EventCollector;
@@ -253,20 +254,20 @@ public class ProfileManager {
         if (data == null || data.isEmpty()) return "";
 
         StringBuilder sb = new StringBuilder();
-        sb.append("【玩家画像】\n（注：描述中若包含具体英文词，请结合上下文语义判断是否为玩家名称）");
+        String header = I18nService.tr("【玩家画像】\n（注：描述中若包含具体英文词，请结合上下文语义判断是否为玩家名称）");
+        sb.append(header);
 
-        appendIfPresent(sb, "游戏风格", data.get("playstyle"));
-        appendIfPresent(sb, "性格特征", data.get("personality"));
-        appendIfPresent(sb, "偏好", data.get("preferences"));
-        appendIfPresent(sb, "沟通风格", data.get("communication_style"));
-        appendIfPresent(sb, "特别观察", data.get("notes"));
+        appendIfPresent(sb, I18nService.tr("游戏风格"), data.get("playstyle"));
+        appendIfPresent(sb, I18nService.tr("性格特征"), data.get("personality"));
+        appendIfPresent(sb, I18nService.tr("偏好"), data.get("preferences"));
+        appendIfPresent(sb, I18nService.tr("沟通风格"), data.get("communication_style"));
+        appendIfPresent(sb, I18nService.tr("特别观察"), data.get("notes"));
 
-        if (sb.length() == "【玩家画像】".length()) {
-            // 所有字段都为空，不输出段落标题
+        if (sb.length() == header.length()) {
             return "";
         }
 
-        sb.append("\n请根据以上画像调整你的沟通风格，让回复更贴合玩家个性。");
+        sb.append(I18nService.tr("\n请根据以上画像调整你的沟通风格，让回复更贴合玩家个性。"));
 
         return sb.toString();
     }
