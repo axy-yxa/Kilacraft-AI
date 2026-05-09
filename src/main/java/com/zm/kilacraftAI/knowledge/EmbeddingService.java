@@ -86,6 +86,11 @@ public class EmbeddingService {
      * <p>收集未缓存片段，按批次调用 API（每批最多 64 条），失败时保存已计算部分并退出。</p>
      */
     public void precomputeAllChunks(Map<String, List<String>> allChunkCache) {
+        // 未配置 Embedding API 时跳过（available 在构造函数中检测空配置后设为 false）
+        if (!available && (isBlank(apiUrl) || isBlank(apiKey) || isBlank(model))) {
+            return;
+        }
+
         long startTime = System.currentTimeMillis();
 
         if (configManager.isEmbeddingCacheEnabled()) {

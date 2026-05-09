@@ -303,9 +303,9 @@ public class KilacraftCommand implements CommandExecutor {
         try {
             plugin.getKnowledgeBase().reload();
 
-            // 知识库内容变更后，重新分段 + 异步预计算
+            // 知识库内容变更后，重新分段 + 异步预计算（仅当 Embedding API 已配置时）
             EmbeddingService embeddingSvc = plugin.getEmbeddingService();
-            if (embeddingSvc != null && plugin.getConfigManager().isEmbeddingEnabled()) {
+            if (embeddingSvc != null && embeddingSvc.isAvailable()) {
                 embeddingSvc.clearCache();
                 plugin.getKnowledgeRetriever().buildChunkCache();
                 Map<String, List<String>> asyncChunks = plugin.getKnowledgeBase().getAllChunkCache();

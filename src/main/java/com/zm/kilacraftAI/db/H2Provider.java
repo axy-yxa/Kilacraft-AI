@@ -27,11 +27,6 @@ public class H2Provider implements DatabaseProvider {
     private Server tcpServer;
 
     /**
-     * 数据库文件绝对路径（不含后缀）
-     */
-    private String dbPath;
-
-    /**
      * H2 TCP 端口
      */
     private static final int DEFAULT_TCP_PORT = 9092;
@@ -45,10 +40,8 @@ public class H2Provider implements DatabaseProvider {
             parentDir.mkdirs();
         }
 
-        this.dbPath = dataDir.getAbsolutePath();
-
         HikariConfig hc = new HikariConfig();
-        hc.setJdbcUrl("jdbc:h2:" + dbPath + ";AUTO_SERVER=TRUE;MODE=MySQL");
+        hc.setJdbcUrl("jdbc:h2:" + dataDir.getAbsolutePath() + ";AUTO_SERVER=TRUE;MODE=MySQL");
         hc.setDriverClassName("org.h2.Driver");
         hc.setPoolName("KilacraftAI-H2");
 
@@ -72,7 +65,7 @@ public class H2Provider implements DatabaseProvider {
         // 启动 H2 TCP Server（允许 DBeaver 等外部工具在不停服时连接）
         startTcpServer();
 
-        PluginLogger.info("数据库", "H2 数据库已初始化，文件: {}", dbPath);
+        PluginLogger.info("数据库", "H2 数据库已初始化");
         PluginLogger.info("数据库", "连接池配置: maxPoolSize={}, minIdle={}", maxPool, minIdle);
     }
 
@@ -115,7 +108,7 @@ public class H2Provider implements DatabaseProvider {
     private void startTcpServer() {
         try {
             tcpServer = Server.createTcpServer("-tcpPort", String.valueOf(DEFAULT_TCP_PORT), "-tcpAllowOthers", "-tcpDaemon").start();
-            PluginLogger.info("数据库", "H2 TCP Server 已启动，端口: {}（DBeaver 可通过 jdbc:h2:tcp://localhost:{}/{} 连接）", DEFAULT_TCP_PORT, DEFAULT_TCP_PORT, dbPath);
+            PluginLogger.info("数据库", "H2 TCP Server 已启动，端口: {}", DEFAULT_TCP_PORT);
         } catch (SQLException e) {
             PluginLogger.warn("数据库", "H2 TCP Server 启动失败（端口 {} 可能被占用）: {}", DEFAULT_TCP_PORT, e.getMessage());
         }

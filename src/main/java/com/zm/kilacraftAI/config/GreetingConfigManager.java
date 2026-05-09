@@ -53,15 +53,22 @@ public class GreetingConfigManager {
     /**
      * 根据当前语言更新配置文件路径，并拷贝对应语言的默认配置
      */
-    private void updateConfigFile() {
-        String lang = plugin.getConfigManager().getLanguage();
+    private void updateConfigFile(String lang) {
         String fileName = "zh".equals(lang) ? CONFIG_FILE_ZH : "greeting_" + lang + ".yml";
         this.configFile = new File(plugin.getDataFolder(), fileName);
         ConfigResourceUtil.saveDefaultResource(plugin, fileName);
     }
 
     public void loadConfig() {
-        updateConfigFile();
+        String lang = plugin.getConfigManager() != null ? plugin.getConfigManager().getLanguage() : "zh";
+        loadConfig(lang);
+    }
+
+    /**
+     * 带语言参数加载配置（由 ConfigManager 在知道语言后调用）
+     */
+    public void loadConfig(String language) {
+        updateConfigFile(language);
 
         if (!configFile.exists()) {
             return;

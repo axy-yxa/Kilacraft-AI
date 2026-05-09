@@ -345,7 +345,7 @@ public class ConfigManager {
         // 加载子 Manager 配置（语言已从主配置读取，传递给需要语言感知的子 Manager）
         llmConfigManager.loadConfig();
         knowledgeConfigManager.loadConfig(this.language);
-        greetingConfigManager.loadConfig();
+        greetingConfigManager.loadConfig(this.language);
         outputConfigManager.loadConfig();
 
         // 加载内置词汇表（语言变化时重新加载）

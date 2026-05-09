@@ -1000,11 +1000,11 @@ messages:
   "解析 profile_data 失败: {}": "Failed to parse profile_data: {}"
 
   # ==================== H2Provider ====================
-  "H2 数据库已初始化，文件: {}": "H2 database initialized, file: {}"
+  "H2 数据库已初始化": "H2 database initialized"
   "连接池配置: maxPoolSize={}, minIdle={}": "Connection pool config: maxPoolSize={}, minIdle={}"
   "H2 连接池已关闭": "H2 connection pool closed"
   "H2 连接测试失败: {}": "H2 connection test failed: {}"
-  "H2 TCP Server 已启动，端口: {}（DBeaver 可通过 jdbc:h2:tcp://localhost:{}/{} 连接）": "H2 TCP Server started on port: {} (DBeaver can connect via jdbc:h2:tcp://localhost:{}/{})"
+  "H2 TCP Server 已启动，端口: {}": "H2 TCP Server started on port: {}"
   "H2 TCP Server 启动失败（端口 {} 可能被占用）: {}": "H2 TCP Server start failed (port {} may be in use): {}"
   "H2 TCP Server 已关闭": "H2 TCP Server stopped"
 
