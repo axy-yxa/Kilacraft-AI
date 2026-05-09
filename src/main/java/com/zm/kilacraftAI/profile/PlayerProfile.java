@@ -81,9 +81,6 @@ public class PlayerProfile {
 
     /**
      * 最近一次 AI 问候时间戳（ms）
-     * <p>
-     * TODO 目前仅做写入记录，未来可用于问候频率控制（如：距上次问候不满N小时则跳过），
-     *      或基于历史问候数据做更细粒度的玩家体验策略。
      */
     @Builder.Default
     private long lastGreetingTime = 0;
