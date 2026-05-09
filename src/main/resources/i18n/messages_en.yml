@@ -88,7 +88,7 @@ messages:
   "加载内置词汇表失败: {}": "Failed to load internal vocabulary: {}"
 
   # ==================== I18nService ====================
-  "当前语言：中文（默认语言，无需翻译包）": "Current language: Chinese (default, no translation pack needed)"
+  "当前语言：中文": "Current language: Chinese"
   "翻译包不存在: {}，将回退为中文原文": "Translation pack not found: {}, falling back to Chinese"
   "当前语言：{}": "Current language: {}"
   "加载翻译包失败: {}": "Failed to load translation pack: {}"
@@ -121,6 +121,7 @@ messages:
   "已加载 {} 个内置词汇": "Loaded {} internal vocabulary words"
   "已加载 {} 个自定义词汇": "Loaded {} custom vocabulary words"
   "无法注册命令：kilacraft，请检查 plugin.yml 配置": "Cannot register command: kilacraft, check plugin.yml config"
+  "AI 登录问候系统已启用": "AI login greeting system enabled"
   "当前 JDK 版本为 {}，MythicMobs 需要 Java 21+，跳过占位符注册": "Current JDK version: {}, MythicMobs requires Java 21+, skipping placeholder registration"
   "MythicMobs 兼容模块缺失，请检查 JAR 包完整性": "MythicMobs compat module missing, check JAR integrity"
   "MythicMobs 占位符注册失败：{}": "MythicMobs placeholder registration failed: {}"

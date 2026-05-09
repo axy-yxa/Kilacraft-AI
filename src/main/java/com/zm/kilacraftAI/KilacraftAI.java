@@ -455,8 +455,6 @@ public final class KilacraftAI extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new LoginGreetingHandler(this, offlineEventAggregator), this);
             if (configManager.isGreetingEnabled() && configManager.isApiKeyConfigured()) {
                 PluginLogger.info("问候系统", "AI 登录问候系统已启用");
-            } else {
-                PluginLogger.info("问候系统", "AI 登录问候系统已注册（等待配置完成后自动生效）");
             }
         }
     }

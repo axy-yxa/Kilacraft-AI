@@ -67,7 +67,7 @@ public final class I18nService {
             // 中文模式：清空翻译表，所有 t() 直接返回原文
             this.moduleMap = Collections.emptyMap();
             this.messageMap = Collections.emptyMap();
-            PluginLogger.info("国际化", "当前语言：中文（默认语言，无需翻译包）");
+            PluginLogger.info("国际化", "当前语言：中文");
             return;
         }
 

@@ -47,7 +47,6 @@ public class GreetingConfigManager {
 
     public GreetingConfigManager(KilacraftAI plugin) {
         this.plugin = plugin;
-        ConfigResourceUtil.saveDefaultResource(plugin, CONFIG_FILE_ZH);
     }
 
     /**
