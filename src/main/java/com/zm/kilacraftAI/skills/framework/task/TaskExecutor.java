@@ -283,7 +283,62 @@ public class TaskExecutor {
             return new PlaceholderResolveResult(null, placeholder);
         }
         matcher.appendTail(sb);
-        return new PlaceholderResolveResult(sb.toString(), null);
+        String resolved = sb.toString();
+
+        // 简单算术求值：占位符替换后可能残留运算表达式（如 {step_0.balance}/2 → 2623.25/2）
+        resolved = evaluateSimpleArithmetic(resolved);
+
+        return new PlaceholderResolveResult(resolved, null);
+    }
+
+    /**
+     * 简单算术表达式求值
+     * <p>
+     * 占位符替换后可能残留运算表达式（如 {step_0.balance}/2 → 2623.25/2），
+     * 下游技能通常用 Double.parseDouble() 无法解析此类表达式。
+     * 本方法仅支持单次二元运算（A op B），不引入脚本引擎，安全无注入风险。
+     * </p>
+     *
+     * @param value 可能包含算术表达式的字符串
+     * @return 求值后的字符串，或不匹配时的原始值
+     */
+    private String evaluateSimpleArithmetic(String value) {
+        if (value == null || value.isEmpty()) return value;
+
+        // 匹配 "数字 运算符 数字" 模式（整个字符串）
+        java.util.regex.Pattern arithPattern = java.util.regex.Pattern.compile("^\\s*(-?\\d+(?:\\.\\d+)?)\\s*([+\\-*/])\\s*(-?\\d+(?:\\.\\d+)?)\\s*$");
+        java.util.regex.Matcher m = arithPattern.matcher(value);
+        if (!m.find()) return value;
+
+        try {
+            double a = Double.parseDouble(m.group(1));
+            String op = m.group(2);
+            double b = Double.parseDouble(m.group(3));
+
+            // 除零保护
+            if ("/".equals(op) && b == 0) {
+                return value;
+            }
+
+            double result = switch (op) {
+                case "+" -> a + b;
+                case "-" -> a - b;
+                case "*" -> a * b;
+                case "/" -> a / b;
+                default -> a;
+            };
+
+            // 格式化：最多2位小数，去掉多余尾零
+            String formatted = String.format("%.2f", result);
+            if (formatted.contains(".")) {
+                formatted = formatted.replaceAll("\\.?0+$", "");
+                if (formatted.isEmpty()) formatted = "0";
+            }
+            return formatted;
+        } catch (NumberFormatException e) {
+            // 理论上不会触发（正则已限定数字格式），但安全起见保留原值
+            return value;
+        }
     }
 
     /**
