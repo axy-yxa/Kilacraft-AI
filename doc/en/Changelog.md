@@ -5,7 +5,7 @@
 
 ---
 
-## v2.0.1 - AI Greeting Enhancement, Rare Event Collection, Global Market Query Expansion & Prompt Governance
+## v2.0.1 - AI Greeting Enhancement, Rare Event Collection, Global Market Query Expansion, Prompt Governance & Comprehensive i18n Upgrade
 
 ### ✨ New Features
 - **AI Returning Greeting Enhancement**
@@ -16,17 +16,45 @@
 - **Server Event Collection Additions**: 4 new rare events (Ancient Debris, Tame Animal, Craft Enchanted Golden Apple, Build Wither) + PVP kill bidirectional recording
 - **Global Market Query New `query_seller_items` Action**: Query items by seller name using GMP dedicated API, added to security isolation whitelist
 
+- **Global Language Directive for AI**: Automatically injects language constraint directives into all LLM calls, preventing third-party SPI Skill multilingual data from interfering with AI output language consistency
+- **Configurable Profile Analysis Prompt**: Profile analysis system prompt migrated from hardcoded to `database.yml` config file, supports Chinese/English bilingual, supports hot-reload (instant via `/kilacraft reload`)
+
 ### 🐛 Bug Fixes
 - **Fixed global market transaction amount recorded as -1.0**: `TransactionEvent.getPrice()` returns default value, switched to `TransactionResultEvent` for real transaction data
 - **Fixed player level-up info format reversal**: Events sorted by `created_at DESC`, original code reversed causing "leveled from 13 to 1"
 - **Fixed Bukkit stats damage unit display error**: Half-hearts → hearts (values divided by 2)
+- **Fixed Embedding initialization state anomaly**: Config was complete but `available` was not set to `true`, causing Embedding semantic retrieval to always downgrade to BM25
+- **Fixed Embedding hot-reload disable not working**: When hot-reload set `enabled` to `false`, `KnowledgeRetriever` did not receive the disable signal and continued using Embedding retrieval
+- **Fixed Chinese greeting.yml created during English mode startup**: Constructor unconditionally extracted Chinese config file, changed to language-aware delayed extraction
+- **Fixed phantom profile reconciliation of offline players after hot-reload**: `reconcileOnlineProfiles()` only checked memory cache without verifying actual online status, causing offline players' stale profiles to be incorrectly reconciled
 
 ### 🔧 Improvements
 - **Global Market Skill Prompt Governance**: Transfer action adds formula prohibition; fixed ghost reference `bukkit_api.get_player_balance` → `market_query.query_balance`; hints add mandatory balance real-time query rule
 - **Global Intent Recognition Prompt Optimization**: `continuous_conversation` rule 4 adds balance absolute prohibition sub-rule
 - **Greeting Format Optimization**: Session duration/logout time auto-converted to readable format; death messages require Chinese translation; unit conversion rules (minutes→hours, blocks→meters, half-hearts→hearts)
+- **Greeting System Prompt Multilingual Support**: Greeting system default prompts migrated from hardcoded to dynamic retrieval, returning language-appropriate defaults; config loading changed to language-aware delayed extraction
 - **Offline Data Aggregation Architecture Upgrade**: `OfflineEventAggregator` expanded to multi-dimensional aggregation; `ServerEventDao` adds 3 new query methods; `PlayerProfileDao` adds batch offline friend query; `FriendStatus` expanded to record with world name and session duration
-- **Internationalization (i18n) Overhaul**: All hardcoded Chinese strings migrated to `I18nService.tr()` + `messages_en.yml` translation system; PluginLogger exception overload compatibility hardened; event count and time format concatenations consolidated into complete templates; standalone English config files (greeting_en.yml etc.) — removed redundant English comments from Chinese source files
+- **Internationalization (i18n) Comprehensive Upgrade**: All hardcoded Chinese strings migrated to `I18nService.tr()` + `messages_en.yml` translation system, expanded coverage to: greeting prompt builder (265+ lines), 7 AFK task implementations, all 5 scheduled task execution logic, DatabaseManager, KilacraftAI, KnowledgeRetriever, ProfileAnalysisService, ProfileManager, TaskScheduler, SkillResult, CommandSkill, etc.; PluginLogger exception overload compatibility hardened; event count and time format concatenations consolidated into complete templates; standalone English config files (greeting_en.yml etc.) — removed redundant English comments from Chinese source files
+
+### ⚠️ Compatibility
+
+#### Upgrading from v2.0.0
+1. **Stop server** and replace `Kilacraft-AI.jar` with the new version
+2. **Start the server** — all new config entries have default values, the plugin uses built-in default prompts automatically
+3. To customize profile analysis prompts, back up the current `database.yml` and delete it, then restart the server to let the plugin regenerate a new config file with the full default template, then modify as needed
+4. If using English mode (`language: en`), a `greeting_en.yml` English greeting config file will be auto-generated on first startup
+5. No database schema changes (version remains v1), **no database migration needed**
+
+#### Upgrading from versions before v2.0.0
+1. **You must read the v2.0.0 changelog first** — that version introduced database persistence, config architecture refactoring, and other major changes
+2. v2.0.0 introduced a standalone config file system (`database.yml`, `llm.yml`, `greeting.yml`, etc.), some settings from the old `config.yml` have been migrated
+3. Upgrade steps:
+   - **Stop server and backup** the entire `plugins/Kilacraft-AI/` directory
+   - Replace `Kilacraft-AI.jar` with the new version
+   - On **first startup**, the plugin will auto-create new config files and database tables (Schema v1); old config files will not be deleted
+   - Follow log prompts to manually migrate custom settings from the old `config.yml` to new config files
+   - If using MySQL, create the database in advance and configure `database.yml`
+4. Conversation history in versions <2.0.0 was stored in memory only — there is no historical data to migrate, data accumulation starts fresh after upgrade
 
 ---
 
