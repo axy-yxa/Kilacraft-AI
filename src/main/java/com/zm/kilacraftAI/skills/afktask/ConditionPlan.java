@@ -144,13 +144,13 @@ public class ConditionPlan {
      */
     public String getOperatorDescription() {
         return switch (operator != null ? operator : "") {
-            case "less_than" -> I18nService.isZh() ? "小于" : "less than";
-            case "less_than_or_equal" -> I18nService.isZh() ? "小于等于" : "less than or equal";
-            case "greater_than" -> I18nService.isZh() ? "大于" : "greater than";
-            case "greater_than_or_equal" -> I18nService.isZh() ? "大于等于" : "greater than or equal";
-            case "equal" -> I18nService.isZh() ? "等于" : "equal";
-            case "not_equal" -> I18nService.isZh() ? "不等于" : "not equal";
-            default -> I18nService.isZh() ? "未知" : "unknown";
+            case "less_than" -> I18nService.tr("小于");
+            case "less_than_or_equal" -> I18nService.tr("小于等于");
+            case "greater_than" -> I18nService.tr("大于");
+            case "greater_than_or_equal" -> I18nService.tr("大于等于");
+            case "equal" -> I18nService.tr("等于");
+            case "not_equal" -> I18nService.tr("不等于");
+            default -> I18nService.tr("未知");
         };
     }
 

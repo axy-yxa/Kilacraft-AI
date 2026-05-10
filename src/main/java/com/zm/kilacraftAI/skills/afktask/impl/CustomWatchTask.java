@@ -266,7 +266,7 @@ public class CustomWatchTask extends AFKTask {
 
                     if (hasCallback) {
                         enteredCallback = true;
-                        String conditionDesc = I18nService.tr("挂机任务条件满足：{}.{} {} {}（当前值：{}）", conditionPlan.getConditionSkill(), conditionPlan.getConditionAction(), conditionPlan.getOperatorDescription(), conditionPlan.getThresholdStr() != null ? conditionPlan.getThresholdStr() : String.valueOf(conditionPlan.getThreshold()), evalResult.actualValue() != null ? String.valueOf(evalResult.actualValue()) : I18nService.tr("未知"));
+                        String conditionDesc = I18nService.tr("挂机任务条件满足：") + conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction() + " " + conditionPlan.getOperatorDescription() + " " + (conditionPlan.getThresholdStr() != null ? conditionPlan.getThresholdStr() : String.valueOf(conditionPlan.getThreshold())) + I18nService.tr("（当前值：{}）", evalResult.actualValue() != null ? String.valueOf(evalResult.actualValue()) : I18nService.tr("未知"));
                         executeCallback(creatorPlayer, conditionDesc);
                     } else {
                         notifyConditionMet(evalResult.actualValue());
