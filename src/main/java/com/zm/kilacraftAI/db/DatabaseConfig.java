@@ -117,4 +117,16 @@ public class DatabaseConfig {
      */
     @Builder.Default
     private final int profileAnalysisTimeoutSeconds = 60;
+
+    /**
+     * 画像分析系统提示词（中文，留空使用默认）
+     */
+    @Builder.Default
+    private final String profileAnalysisSystemPrompt = "";
+
+    /**
+     * 画像分析系统提示词（英文，留空使用默认）
+     */
+    @Builder.Default
+    private final String profileAnalysisSystemPromptEn = "";
 }

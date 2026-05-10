@@ -7,7 +7,6 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.api.LLMProvider;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.I18nService;
-import com.zm.kilacraftAI.db.DatabaseConfig;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.ConversationDao;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
@@ -58,7 +57,7 @@ public class ProfileAnalysisService {
     /**
      * LLM system prompt：要求输出固定 JSON 结构
      */
-    private static final String SYSTEM_PROMPT = """
+    private static final String DEFAULT_SYSTEM_PROMPT = """
             你是一个玩家行为分析助手。根据玩家的对话历史，分析该玩家的游戏风格、偏好和行为特征。
             
             请输出一个 JSON 对象，包含以下字段（如果没有足够信息则留空字符串）：
@@ -77,18 +76,35 @@ public class ProfileAnalysisService {
             4. 只输出 JSON，不要包含其他内容
             """;
 
+    private static final String DEFAULT_SYSTEM_PROMPT_EN = """
+            You are a player behavior analysis assistant. Analyze the player's game style, preferences, and behavioral traits based on their conversation history.
+            
+            Output a JSON object with the following fields (use empty string if insufficient information):
+            {
+              "playstyle": "Player's game style description (e.g., explorer, builder, fighter, socializer)",
+              "personality": "Personality traits observed from conversations (e.g., friendly, humorous, direct, introverted)",
+              "preferences": "Player preferences (e.g., favorite activities, topics of interest)",
+              "communication_style": "Communication style (e.g., brief and direct, detailed, uses emojis)",
+              "notes": "Other notable observations"
+            }
+            
+            Notes:
+            1. Only analyze information explicitly shown in conversations, do not speculate
+            2. Keep each field concise, within 50 characters
+            3. If insufficient information for a dimension, use empty string
+            4. Output only JSON, no other content
+            """;
+
     private final KilacraftAI plugin;
     private final DatabaseManager databaseManager;
     private final ConversationDao conversationDao;
     private final ProfileManager profileManager;
-    private final DatabaseConfig dbConfig;
 
     public ProfileAnalysisService(KilacraftAI plugin, DatabaseManager databaseManager, ProfileManager profileManager) {
         this.plugin = plugin;
         this.databaseManager = databaseManager;
         this.conversationDao = new ConversationDao(databaseManager.getTablePrefix());
         this.profileManager = profileManager;
-        this.dbConfig = databaseManager.getConfig();
     }
 
     /**
@@ -114,7 +130,7 @@ public class ProfileAnalysisService {
 
         long now = System.currentTimeMillis();
         long lastAnalyzed = profile.getProfileAnalyzedAt();
-        long intervalMs = (long) dbConfig.getProfileAnalysisIntervalDays() * 24L * 60 * 60 * 1000;
+        long intervalMs = (long) databaseManager.getConfig().getProfileAnalysisIntervalDays() * 24L * 60 * 60 * 1000;
 
         // 门控1：时间间隔未到
         if (intervalMs > 0 && (now - lastAnalyzed) < intervalMs) {
@@ -122,7 +138,7 @@ public class ProfileAnalysisService {
         }
 
         return CompletableFuture.supplyAsync(() -> {
-            int minMessages = dbConfig.getProfileMinMessagesToTrigger();
+            int minMessages = databaseManager.getConfig().getProfileMinMessagesToTrigger();
 
             try (Connection conn = databaseManager.getConnection()) {
                 // 门控2：新消息数不足
@@ -194,9 +210,9 @@ public class ProfileAnalysisService {
             }
         };
 
-        int timeoutSeconds = dbConfig.getProfileAnalysisTimeoutSeconds();
+        int timeoutSeconds = databaseManager.getConfig().getProfileAnalysisTimeoutSeconds();
 
-        provider.processRequestWithCustomSystemPrompt(userMessage, playerName, null, silentHandler, SYSTEM_PROMPT, false, false, true);
+        provider.processRequestWithCustomSystemPrompt(userMessage, playerName, null, silentHandler, getAnalysisSystemPrompt(), false, false, true);
 
         return responseFuture.orTimeout(timeoutSeconds, TimeUnit.SECONDS).thenAccept(response -> handleAnalysisResult(playerUuid, response)).exceptionally(ex -> {
             PluginLogger.warn("画像分析", I18nService.tr("LLM 分析失败: {} - {}", playerUuid, ex.getMessage()));
@@ -250,6 +266,21 @@ public class ProfileAnalysisService {
         profileManager.putExtendedData(playerUuid, profileData, analyzedAt);
 
         PluginLogger.info("画像分析", I18nService.tr("玩家 {} 画像分析完成，字段: {}", playerUuid, String.join(", ", profileData.keySet())));
+    }
+
+    /**
+     * 获取画像分析系统提示词（按当前语言选择配置值或默认值）
+     */
+    private String getAnalysisSystemPrompt() {
+        boolean isChinese = plugin.getConfigManager().isChinese();
+
+        if (isChinese) {
+            String custom = databaseManager.getConfig().getProfileAnalysisSystemPrompt();
+            return (custom != null && !custom.isEmpty()) ? custom : DEFAULT_SYSTEM_PROMPT;
+        } else {
+            String customEn = databaseManager.getConfig().getProfileAnalysisSystemPromptEn();
+            return (customEn != null && !customEn.isEmpty()) ? customEn : DEFAULT_SYSTEM_PROMPT_EN;
+        }
     }
 
     /**

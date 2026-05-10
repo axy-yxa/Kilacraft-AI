@@ -289,6 +289,10 @@ public class ProfileManager {
         // 避免异步窗口期内玩家退服导致 UPDATE 丢失
         int count = 0;
         for (var entry : cache.entrySet()) {
+            // 仅补录真正在线的玩家，跳过已下线但缓存尚未清理的画像
+            if (plugin.getServer().getPlayer(entry.getKey()) == null) {
+                continue;
+            }
             try (var conn = databaseManager.getConnection()) {
                 // 确保新库中存在记录（不存在则 INSERT 默认画像）
                 profileDao.loadOrCreate(conn, entry.getKey(), entry.getValue().getName());

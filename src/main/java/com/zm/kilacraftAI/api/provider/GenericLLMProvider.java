@@ -334,6 +334,14 @@ public class GenericLLMProvider implements LLMProvider {
 
                 // 使用自定义的系统提示词，替换 {player} 占位符
                 String systemPrompt = customSystemPrompt.replace("{player}", playerName);
+
+                // 语言约束：强制 AI 输出使用服务器配置的语言
+                // 防止第三方 SPI Skill 的多语言数据干扰输出语言
+                String langDirective = plugin.getConfigManager().getLanguageDirective();
+                if (langDirective != null) {
+                    systemPrompt += "\n" + langDirective;
+                }
+
                 JsonObject systemMessage = new JsonObject();
                 systemMessage.addProperty("role", ROLE_SYSTEM);
                 systemMessage.addProperty("content", systemPrompt);

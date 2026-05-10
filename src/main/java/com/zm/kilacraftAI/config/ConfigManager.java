@@ -394,6 +394,24 @@ public class ConfigManager {
     }
 
     /**
+     * 获取 AI 输出语言约束指令
+     *
+     * <p>当非中文模式时，返回一条强制 AI 使用配置语言输出的指令，
+     * 防止第三方 SPI Skill 的多语言数据干扰输出语言。
+     * 中文模式时返回 null（中文是默认语言，无需额外约束）。</p>
+     *
+     * @return 语言约束指令，或 null（中文模式）
+     */
+    public String getLanguageDirective() {
+        if ("zh".equals(language)) {
+            return null;
+        }
+        // TODO 未来支持更多语言时，在此扩展
+        // 目前仅支持 en
+        return "[Language Requirement] You MUST respond in English. Regardless of the language used in the data, context, or skill results provided to you, your final output to the player must always be in English.";
+    }
+
+    /**
      * 获取默认系统提示词（当 llm.yml 未配置时的回退值）
      */
     private String getDefaultSystemPrompt() {
