@@ -8,11 +8,11 @@
 # Knowledge base config moved to knowledge.yml, greeting config moved to greeting.yml
 settings:
   # 插件语言设置
-  # zh = 中文（默认），en = English
+  # zh = 中文，en = English
   # 影响范围：日志输出、技能消息、LLM提示词、AFK任务通知等
   # 修改后执行 /kilacraft reload 即时生效
   # Plugin language setting
-  # zh = Chinese (default), en = English
+  # zh = Chinese, en = English
   # Scope: log output, skill messages, LLM prompts, AFK task notifications, etc.
   # Run /kilacraft reload to apply changes immediately
   language: zh
