@@ -8,7 +8,7 @@
 
 会记住每个玩家的 AI 助手 — 对话即服务，越用越懂你
 
-[![Version](https://img.shields.io/badge/Version-2.0.0-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
+[![Version](https://img.shields.io/badge/Version-2.0.2-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
@@ -26,7 +26,7 @@
 | 🧠 | **玩家画像** | 五维度行为分析（风格/性格/偏好/沟通/观察）· 对话自动分析 · 动态注入提示词 · AI 越来越懂每个玩家 |
 | 🕸️ | **社交关系** | 私聊/TPA/技能交互自动追踪 · 关系强度递减累加 · 日常衰减 · 好友里程碑互推 |
 | 👋 | **智能问候** | 登录个性化问候 · 三大分类聚合（自有事件/好友动态/游玩亮点）· 画像感知 · 首次/回归双模式 |
-| 💾 | **数据持久化** | 对话历史 · 玩家画像 · 社交关系图谱 · 服务器事件 · 技能审计 · H2 零配置 / MySQL 热切换 |
+| 💾 | **数据持久化** | 对话历史 · 玩家画像 · 社交关系图谱 · 服务器事件 · 技能审计 · H2 零配置 / MySQL 热切换 · 群组服数据隔离 |
 | 💰 | **经济系统** | GlobalMarketPlus 深度集成 · 自然语言查询余额/价格/在售 · AI 代玩家上架/购买/转账/拍卖 · 多物品联合查询 |
 | 🔍 | **Bukkit API** | 72 个内置只读 API · YAML 数据驱动 · 多步骤数据传递（含数组索引）· 细粒度权限 |
 | 🎮 | **CMI 集成** | 传送（家/地标/TPA）· 玩家增强信息（时长/AFK/隐身/套装/在线列表） |
@@ -36,11 +36,11 @@
 | 🔧 | **命令执行** | 以玩家身份执行命令 · 完全继承服务器权限 · config 开关 + 权限节点双重保护 |
 | 🎨 | **音效与粒子** | AI 触发音效/粒子效果 · 仅调用者感知 · YML 配置驱动 |
 | 🔌 | **SPI 扩展** | 第三方 Skill 注册 · 插件命令模式 · 完整开发文档 · 全球 Skill 台账监管 |
-| 🛡️ | **安全隔离** | 非合作式 Value 扫描拦截器 · 除白名单 Skill 外禁止跨玩家操作 · 恶意 Skill 无法绕过 |
+| 🛡️ | **安全隔离** | 非合作式 Value 扫描拦截器 · 除白名单 Skill 外禁止跨玩家操作 · 恶意 Skill 无法绕过 · Skill 权限预检过滤 |
 
 ## 快速开始
 
-**1.** 下载 [Kilacraft-AI-2.0.0.jar](https://gitee.com/zm_mmm/kilacraft-ai/releases) 放入 `plugins/`
+**1.** 下载 [Kilacraft-AI-2.0.2.jar](https://gitee.com/zm_mmm/kilacraft-ai/releases) 放入 `plugins/`
 
 **2.** 编辑 `plugins/Kilacraft-AI/llm.yml`，填入 API 密钥：
 

@@ -8,7 +8,7 @@
 
 Remember each player's AI assistant - Dialogue as a Service, the more you use it, the better you understand
 
-[![Version](https://img.shields.io/badge/Version-2.0.0-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
+[![Version](https://img.shields.io/badge/Version-2.0.2-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
@@ -25,7 +25,7 @@ Remember each player's AI assistant - Dialogue as a Service, the more you use it
 | 🧠 | **Player Profile** | 5-dimension behavioral analysis (style/personality/preferences/communication/observations) · Auto-analysis from conversations · Dynamic prompt injection · AI gets smarter about each player |
 | 🕸️ | **Social Relations** | Auto-track private messages/TPA/skill interactions · Diminishing incremental strength · Daily decay · Friend milestone cross-promotion |
 | 👋 | **Smart Greetings** | Personalized login greetings · Three-category aggregation (own events/friend dynamics/session highlights) · Profile-aware · First-time/returning dual mode |
-| 💾 | **Data Persistence** | Conversation history · Player profiles · Social graph · Server events · Skill audit · H2 zero-config / MySQL hot-swap |
+| 💾 | **Data Persistence** | Conversation history · Player profiles · Social graph · Server events · Skill audit · H2 zero-config / MySQL hot-swap · Group server data isolation |
 | 💰 | **Economy** | GlobalMarketPlus integration · Natural language balance/price/listing queries · AI-powered trading (sell/buy/transfer/auction) · Multi-item search |
 | 🔍 | **Bukkit API** | 72 built-in read-only APIs · YAML data-driven · Multi-step data passing (with array indexing) · Fine-grained permissions |
 | 🎮 | **CMI Integration** | Teleport (home/warp/TPA) · Enhanced player info (playtime/AFK/vanish/armor/online list) |
@@ -35,11 +35,11 @@ Remember each player's AI assistant - Dialogue as a Service, the more you use it
 | 🔧 | **Command Execution** | Execute commands as player · Full server permission inheritance · Config toggle + permission node |
 | 🎨 | **Sound & Particles** | AI-triggered sounds/particles · Only caller perceives · YAML-driven config |
 | 🔌 | **SPI Extension** | Third-party Skill registration · Plugin command mode · Complete dev docs · Global Skill registry |
-| 🛡️ | **Security** | Non-cooperative value scanning filter · Cross-player ops blocked unless whitelisted · Malicious Skills cannot bypass |
+| 🛡️ | **Security** | Non-cooperative value scanning filter · Cross-player ops blocked unless whitelisted · Malicious Skills cannot bypass · Skill permission pre-filter |
 
 ## Quick Start
 
-**1.** Download [Kilacraft-AI-2.0.0.jar](https://github.com/Zm-Mmm/Kilacraft-AI/releases) and place it in `plugins/`
+**1.** Download [Kilacraft-AI-2.0.2.jar](https://github.com/Zm-Mmm/Kilacraft-AI/releases) and place it in `plugins/`
 
 **2.** Edit `plugins/Kilacraft-AI/llm.yml` with your API key:
 

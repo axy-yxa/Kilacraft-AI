@@ -1,7 +1,47 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-05-08  
+> **Last Updated**: 2026-05-11  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
+
+---
+
+## v2.0.2 - Group Server Data Isolation, Skill Permission Pre-Filter, Placeholder Arithmetic, JSON Auto-Repair
+
+### ✨ New Features
+- **Group Server Data Isolation**: Supports BungeeCord/Velocity cross-server data sharing and isolation
+  - `database.yml` adds `group` config section (`server_id` / `player_profile` / `social_relation`), requires deleting old config file to regenerate
+  - Conversation history, server events, skill audit logs isolated by `server_id`; profile & social relations support `shared`/`isolated` config
+  - Schema upgraded to v2, auto-creates `server_id` indexes (H2 / MySQL compatible)
+  - Supports group config hot-reload
+- **Skill Permission Pre-Filter**: Dynamically filters available skills by player permissions during intent recognition; unauthorized skills excluded from LLM candidates
+  - `Skill` interface adds `getRequiredPermission()`, all built-in Skills implement permission declaration
+  - `PluginPermissionEnum` adds 8 Skill-level permission enums
+- **Placeholder Arithmetic Expressions**: Multi-step tasks support `{step_x.field + 10}` style arithmetic
+- **LLM JSON Auto-Repair**: Auto-completes missing closing braces in AFK task callback JSON
+
+### 🐛 Bug Fixes
+- Fixed API_KEY unconfigured prompt pointing to wrong config file (`config.yml` → `llm.yml`)
+- Fixed `getBoolean()` silently returning default for `"shared"`/`"isolated"` string values (Critical)
+- Fixed `DatabaseManager.reload()` not updating `currentConfig` on hot-reload
+- Removed `DataCleanupService.serverId` dead code
+
+### 🔧 Improvements
+- Distributed scheduled task race safety: watermark markers + `SELECT FOR UPDATE` row locks for distributed mutual exclusion
+- `database.yml` group config section moved up + unified comment style
+- ConditionPlan operator descriptions migrated to `I18nService.tr()` system
+- SPI integration guide and database config guide updated in both Chinese and English
+
+### ⚠️ Compatibility
+
+#### Upgrading from v2.0.1
+1. Stop server, replace JAR, start — defaults to standalone mode, no config changes needed
+2. Database Schema auto-upgrades to v2, no manual migration needed
+3. For group server mode, delete `database.yml` to regenerate, or manually add `group` config section
+
+#### New Permission Nodes
+- `kilacraft.afk.task` / `kilacraft.bukkit_fx` / `kilacraft.bukkit_stats` / `kilacraft.bukkit_api` (default true)
+- `kilacraft.cmi` / `kilacraft.command.execute` / `kilacraft.market.action` (default OP)
+- `kilacraft.market.query` (default true)
 
 ---
 
