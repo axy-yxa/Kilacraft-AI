@@ -87,6 +87,11 @@ public class CMISkill implements Skill {
     }
 
     @Override
+    public String getRequiredPermission() {
+        return PluginPermissionEnum.CMI_QUERY.getNode();
+    }
+
+    @Override
     public boolean isAvailable(SkillContext context) {
         return CMIAPI.isAvailable();
     }

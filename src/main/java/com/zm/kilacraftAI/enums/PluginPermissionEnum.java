@@ -83,6 +83,31 @@ public enum PluginPermissionEnum {
     UTILITY_BROADCAST("kilacraft.utility.broadcast"),
 
     /**
+     * 通用工具技能（Skill 级权限，用于意图识别提示词预检）
+     */
+    UTILITY("kilacraft.utility"),
+
+    /**
+     * GlobalMarketPlus 市场查询技能
+     */
+    MARKET_QUERY("kilacraft.market.query"),
+
+    /**
+     * GlobalMarketPlus 市场操作技能
+     */
+    MARKET_ACTION("kilacraft.market.action"),
+
+    /**
+     * Bukkit 通用 API 技能（元数据驱动）
+     */
+    BUKKIT_API("kilacraft.api.*"),
+
+    /**
+     * 挂机任务技能
+     */
+    AFK_TASK("kilacraft.afk"),
+
+    /**
      * 查看定时任务运行状态
      */
     TASKS("kilacraft.tasks");

@@ -109,6 +109,9 @@ permissions:
     default: true              # 默认所有玩家可用
 
   # 通用工具技能权限（按动作细分）
+  kilacraft.utility:
+    description: 允许使用 AI 通用工具技能（延迟等待、主动通知等）
+    default: true              # 默认所有玩家可用
   kilacraft.utility.delay_wait:
     description: 允许使用 AI 工具技能的延迟等待功能
     default: true              # 默认所有玩家可用
@@ -118,3 +121,16 @@ permissions:
   kilacraft.utility.broadcast:
     description: 允许使用 AI 工具技能的全服广播功能（仅限 OP 管理员使用）
     default: op                # 默认仅 OP 拥有此权限
+  # 市场技能权限（GlobalMarketPlus）
+  kilacraft.market.query:
+    description: 允许使用 AI 查询市场信息（余额、价格、商品等）
+    default: true              # 默认所有玩家可用
+  kilacraft.market.action:
+    description: 允许使用 AI 执行市场操作（上架、下架、购买、转账等）
+    default: true              # 默认所有玩家可用
+  kilacraft.market.*:
+    description: 允许使用所有市场技能（包含以上全部）
+    default: true
+    children:
+      kilacraft.market.query: true
+      kilacraft.market.action: true

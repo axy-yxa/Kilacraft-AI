@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.skills.afktask;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
+import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.skills.afktask.impl.*;
 import com.zm.kilacraftAI.skills.framework.Skill;
@@ -92,6 +93,11 @@ public class AFKTaskSkill implements Skill {
     }
 
     @Override
+    public String getRequiredPermission() {
+        return PluginPermissionEnum.AFK_TASK.getNode();
+    }
+
+    @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
         String action = context.getAction();
         if (action == null) {
@@ -101,6 +107,9 @@ public class AFKTaskSkill implements Skill {
         Player player = context.getPlayer();
         if (player == null) {
             return CompletableFuture.completedFuture(SkillResult.failure("挂机任务仅支持在线玩家使用"));
+        }
+        if (!PluginPermissionEnum.AFK_TASK.hasPermission(player)) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.AFK_TASK.getNode())));
         }
 
         KilacraftAI plugin = KilacraftAI.getInstance();

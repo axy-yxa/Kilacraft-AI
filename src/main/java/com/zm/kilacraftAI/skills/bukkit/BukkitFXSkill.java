@@ -88,6 +88,11 @@ public class BukkitFXSkill implements Skill {
     }
 
     @Override
+    public String getRequiredPermission() {
+        return PluginPermissionEnum.BUKKIT_FX.getNode();
+    }
+
+    @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
         String action = context.getAction();
         Player player = context.getPlayer();

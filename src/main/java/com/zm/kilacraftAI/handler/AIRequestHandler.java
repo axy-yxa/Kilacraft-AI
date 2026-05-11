@@ -135,7 +135,7 @@ public class AIRequestHandler {
             return;
         }
 
-        intentRecognizer.recognizeIntent(message, ctx.history(), ctx.name()).thenAccept(result -> {
+        intentRecognizer.recognizeIntent(message, ctx.history(), ctx.name(), ctx.player()).thenAccept(result -> {
             if (result instanceof TaskPlan taskPlan && taskPlan.isMultiStep()) {
                 MetricsCollector.getInstance().recordRequestType("skill_execution");
                 handleTaskPlan(taskPlan, message, ctx);

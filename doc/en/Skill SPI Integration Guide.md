@@ -1,6 +1,6 @@
 # Kilacraft-AI - Skill SPI Integration Guide
 
-> **Last Updated**: 2026-05-06  
+> **Last Updated**: 2026-05-11  
 > **Description**: This document guides plugin developers on how to integrate custom skills into Kilacraft-AI through the Skill SPI interface
 
 ---
@@ -103,15 +103,15 @@ Add to your plugin project's `pom.xml`:
 <dependency>
     <groupId>com.zm</groupId>
     <artifactId>Kilacraft-Skill-API</artifactId>
-    <version>1.4.3</version>
-    <scope>system</scope>
-    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-1.4.3.jar</systemPath>
+    <version>2.0.0</version>
+        <scope>system</scope>
+        <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-2.0.0.jar</systemPath>
 </dependency>
 ```
 
 > **Note**:
 > 1. This dependency is `compileOnly`, will not be packaged into your plugin JAR
-> 2. **JAR filename includes version number**, adjust the filename in `<systemPath>` according to the actual downloaded file (e.g., `Kilacraft-Skill-API-1.4.3.jar`)
+> 2. **JAR filename includes version number**, adjust the filename in `<systemPath>` according to the actual downloaded file (e.g., `Kilacraft-Skill-API-2.0.0.jar`)
 
 ### Step 2: Implement Skill Interface
 
@@ -157,6 +157,11 @@ public class HelloWorldSkill implements Skill {
     @Override
     public boolean isAvailable(SkillContext context) {
         return true;  // Always available
+    }
+
+    @Override
+    public String getRequiredPermission() {
+        return "myplugin.hello";  // Skill-level permission node
     }
 }
 ```
@@ -212,6 +217,12 @@ api-version: '1.21'
 # Declare soft dependency to ensure Kilacraft-AI is loaded
 softdepend:
   - Kilacraft-AI
+
+# Declare Skill-level permission node (Kilacraft-AI queries via Player.hasPermission())
+permissions:
+  myplugin.hello:
+    description: Allow using AI greeting skill
+    default: true  # Available to all players
 ```
 
 ### Done!
@@ -253,6 +264,24 @@ public interface Skill {
     default boolean isAvailable(SkillContext context) {
         return true;
     }
+
+    /**
+     * Get the permission node required to use this skill (required)
+     *
+     * <p>Used for permission pre-check filtering during intent recognition:
+     * if the caller doesn't have this permission, the Skill description
+     * will not be injected into the LLM prompt.</p>
+     *
+     * <p>Third-party Skills declare their own permission nodes
+     * (in plugin.yml), Kilacraft-AI queries via Player.hasPermission()
+     * at runtime with zero coupling.</p>
+     *
+     * <p>The permission node's default value controls default behavior:
+     * default: true means available to all players, default: op means admin only.</p>
+     *
+     * @return Permission node (must not return null)
+     */
+    String getRequiredPermission();
 }
 ```
 
@@ -594,35 +623,86 @@ public CompletableFuture<SkillResult> execute(SkillContext context) {
 
 ## 8. Permission and Availability Control
 
-### 8.1 isAvailable() Check
+### 8.1 Permission Pre-check Filtering (getRequiredPermission)
+
+```java
+@Override
+public String getRequiredPermission() {
+    return "myplugin.query.stats";  // Skill-level permission node
+}
+```
+
+> **Important**: `getRequiredPermission()` returns a **Skill-level** permission, not an Action-level one. It controls whether the entire Skill (including all Actions) description is injected into the LLM prompt.
+
+**Timing**: Intent recognition phase (when building the LLM system prompt).
+
+**Effect**: If the caller doesn't have this permission, the Skill's name, description, and action list will **not** be injected into the LLM prompt. The LLM won't even know this Skill exists. This avoids:
+- LLM incorrectly matching to unauthorized Skills
+- Wasting prompt tokens
+- Information leakage (exposing the existence of admin-only features)
+
+**Skill-level vs Action-level Permissions**:
+
+| Level | Scope | Phase | Implementation |
+|-------|-------|-------|---------------|
+| **Skill-level** | Entire Skill visibility | Intent recognition (prompt building) | `getRequiredPermission()` |
+| **Action-level** | Single Action executability | Skill execution time | Check inside `execute()` |
+
+- **Skill-level permission**: Server owner disables a player's Skill permission → the player cannot see this Skill at all (not in prompt), providing the most thorough isolation
+- **Action-level permission** (optional): Skill-level permission is granted, but a specific Action has additional permission checks inside `execute()` → AI can see all Actions and may orchestrate them, but execution is blocked at runtime
+
+> ⚠️ **Note**: If a Skill mixes Actions with different permission levels (e.g., regular player Actions + admin-only Actions), AI may orchestrate an Action the player isn't authorized to execute, causing execution failure. **It's strongly recommended to follow the Skill Cohesion Principle (see below) and split Actions with different permission levels into separate Skills**.
+
+**Third-party Skill Permission Declaration**: Declare permission nodes in your own `plugin.yml`. Kilacraft-AI queries via `Player.hasPermission()` at runtime with zero coupling:
+
+```yaml
+# Your plugin.yml
+permissions:
+  myplugin.admin.stats:
+    description: Allow using AI to query player statistics
+    default: op
+```
+
+**Difference from isAvailable()**:
+
+| | `getRequiredPermission()` | `isAvailable()` |
+|---|---|---|
+| Phase | Before intent recognition (prompt building) | Before Skill execution |
+| Purpose | Controls Skill visibility to LLM | Controls whether Skill can execute |
+| Typical scenario | Permission control (hide unauthorized Skills from LLM) | Runtime checks (dependency plugin installed?) |
+
+**Skill Cohesion Principle**: It's recommended that all Actions in a Skill target the same class of users. Avoid mixing admin-only Actions with regular-player Actions in the same Skill. This allows precise `getRequiredPermission()` settings and prevents unauthorized Skill descriptions from polluting the intent recognition prompt.
+
+### 8.2 isAvailable() Check
 
 ```java
 @Override
 public boolean isAvailable(SkillContext context) {
-    // Example: Check if player has permission
-    Player player = context.getPlayer();
-    if (player == null) {
-        return false;  // Console not available
-    }
-    return player.hasPermission("myplugin.skill.use");
+    // Example: Check if dependency plugin is installed
+    return Bukkit.getPluginManager().getPlugin("MyEconomy") != null;
 }
 ```
+
+> **Note**: `isAvailable()` should be used for **runtime availability checks** (e.g., dependency plugin installed), not for permission checks. Permission control should be declared via `getRequiredPermission()`, automatically filtered by the framework during intent recognition.
 
 **Call timing**: This method is called before each Skill execution.
 
 **Effect of returning false**: User receives "Sorry, this feature is temporarily unavailable" message.
 
-### 8.2 Permission System
+### 8.3 Permission System
 
-Kilacraft-AI's permission system is independent and doesn't affect your own permission checks. You have two control methods:
+Kilacraft-AI's permission system is independent and doesn't affect your own permission checks. You have two permission control methods:
 
-1. **Check in `isAvailable()`**: Suitable for simple available/unavailable judgments
-2. **Check in `execute()`**: Suitable for scenarios requiring specific reasons
+1. **Skill-level permission (required)**: Declare in `getRequiredPermission()` → Filter at intent recognition phase, LLM won't see unauthorized Skills
+2. **Action-level permission (optional)**: Check in `execute()` → Suitable for scenarios requiring specific reasons
+
+> **Not recommended** to do permission checks in `isAvailable()`. `isAvailable()` is for runtime availability checks (e.g., dependency plugin installed), not permission control.
 
 ```java
 @Override
 public CompletableFuture<SkillResult> execute(SkillContext context) {
     Player player = context.getPlayer();
+    // Action-level permission check example: transfer requires additional permission
     if (!player.hasPermission("economy.transfer")) {
         return CompletableFuture.completedFuture(
             SkillResult.failure("You don't have transfer permission")
@@ -870,6 +950,11 @@ public class PlayerStatsSkill implements Skill {
         return context.getPlayer() != null;
     }
 
+    @Override
+    public String getRequiredPermission() {
+        return "statsplugin.query";  // Skill-level permission node
+    }
+
     private CompletableFuture<SkillResult> queryHealth(Player player) {
         double health = player.getHealth();
         double maxHealth = player.getMaxHealth();
@@ -944,6 +1029,12 @@ main: com.example.statsplugin.StatsPlugin
 api-version: '1.21'
 softdepend:
   - Kilacraft-AI
+
+# Declare Skill-level permission node
+permissions:
+  statsplugin.query:
+    description: Allow using AI to query player status (health, hunger, experience level)
+    default: true  # Available to all players
 ```
 
 ### 12.2 Command Execution Plugin (Built-in Example)
@@ -986,7 +1077,7 @@ AI: Your level is 15, total XP: 3200. Hunger: 18/20.
     <dependency>
         <groupId>com.zm.kilacraftAI</groupId>
         <artifactId>kilacraft-skill-api</artifactId>
-        <version>1.4.3</version>
+        <version>2.0.0</version>
         <scope>system</scope>
         <systemPath>${project.basedir}/libs/kilacraft-skill-api.jar</systemPath>
     </dependency>
@@ -1135,6 +1226,7 @@ For example, clearly state in description: `"Returned data contains item_name, p
 | `getHints()` | `List<String>` | No | Hint information, default empty |
 | `execute(SkillContext)` | `CompletableFuture<SkillResult>` | Yes | Core execution logic |
 | `isAvailable(SkillContext)` | `boolean` | No | Availability check, default true |
+| `getRequiredPermission()` | `String` | **Yes** | Permission pre-check node, must declare |
 
 ### SkillProvider Interface Methods
 
@@ -1234,10 +1326,12 @@ description: A custom skill for Kilacraft-AI
 1. **Skill name** (must match `getName()` return value)
 2. **Source code or JAR file** (required for security review)
 3. **Feature description** (brief explanation of what the Skill does)
-4. **Permission requirements** (Bukkit permissions or plugin dependencies)
+4. **Permission details** (the permission node returned by `getRequiredPermission()`, and permissions declared in `plugin.yml` with their `default` values)
 5. **Documentation link** (optional, usage docs or Wiki)
 
 **Review criteria**:
+- ✅ `getRequiredPermission()` is properly implemented, returns a non-null permission node
+- ✅ Permission node is declared in `plugin.yml` with reasonable `default` value (`true` for regular features, `op` for admin features)
 - ✅ No direct manipulation of other player data (unless explicitly declared and justified)
 - ✅ No dangerous commands (OP-level commands, file I/O, etc.)
 - ✅ No malicious network requests or data exfiltration

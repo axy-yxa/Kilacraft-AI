@@ -84,6 +84,11 @@ public class CommandSkill implements Skill {
     }
 
     @Override
+    public String getRequiredPermission() {
+        return PluginPermissionEnum.COMMAND_EXECUTE.getNode();
+    }
+
+    @Override
     public boolean isAvailable(SkillContext context) {
         // 全局开关检查
         KilacraftAI plugin = KilacraftAI.getInstance();

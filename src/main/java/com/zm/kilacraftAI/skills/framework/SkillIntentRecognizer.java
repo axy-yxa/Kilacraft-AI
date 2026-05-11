@@ -13,6 +13,7 @@ import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import com.zm.kilacraftAI.skills.framework.task.TaskStep;
 import com.zm.kilacraftAI.util.HistoryUtil;
 import com.zm.kilacraftAI.util.PluginLogger;
+import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -29,13 +30,23 @@ public class SkillIntentRecognizer {
     private final SkillManager skillManager; // 用于获取所有技能的描述
 
     /**
-     * 构建系统提示词
+     * 构建系统提示词（根据调用者权限过滤 Skill）
+     *
+     * @param caller 调用者（Player），null 表示控制台（控制台视为拥有所有权限）
      */
-    private String buildSystemPrompt() {
-        // 动态生成技能描述部分
+    private String buildSystemPrompt(Player caller) {
+        // 动态生成技能描述部分（按权限预检过滤）
         StringBuilder skillsDescription = new StringBuilder();
         int index = 1;
+        int skippedCount = 0;
         for (Skill skill : skillManager.getAllSkills()) {
+            // 权限预检：如果 Skill 声明了权限要求，且调用者没有该权限，跳过
+            String requiredPermission = skill.getRequiredPermission();
+            if (requiredPermission != null && caller != null && !caller.hasPermission(requiredPermission)) {
+                skippedCount++;
+                continue;
+            }
+
             skillsDescription.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
 
             // 如果技能有多个动作，自动列出
@@ -55,6 +66,10 @@ public class SkillIntentRecognizer {
             }
         }
 
+        if (skippedCount > 0) {
+            PluginLogger.debug("意图识别", I18nService.tr("权限预检过滤：跳过了 {} 个无权限的 Skill", skippedCount));
+        }
+
         // 使用配置管理器构建完整提示词
         return promptConfigManager.buildSystemPrompt(skillsDescription.toString());
     }
@@ -72,9 +87,10 @@ public class SkillIntentRecognizer {
      * @param userInput  用户输入
      * @param history    对话历史（用于上下文理解，可选）
      * @param playerName 当前玩家名称（用于提示词注入，可为 null 表示控制台）
+     * @param caller     调用者（Player），用于权限预检过滤 Skill 描述，null 表示控制台
      * @return 识别结果（可能是 SkillIntent 或 TaskPlan，异步）
      */
-    public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history, String playerName) {
+    public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history, String playerName, Player caller) {
         if (configManager == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -122,8 +138,8 @@ public class SkillIntentRecognizer {
             }
         };
 
-        // 构建系统提示词（全量注入）
-        String systemPrompt = buildSystemPrompt();
+        // 构建系统提示词（根据调用者权限过滤 Skill）
+        String systemPrompt = buildSystemPrompt(caller);
 
         // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
 //        PluginLogger.warn("意图识别", "动态构建系统提示词: {}", systemPrompt);

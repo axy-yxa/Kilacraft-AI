@@ -246,6 +246,7 @@ messages:
   "意图识别结果: {}": "Intent recognition result: {}"
   "意图识别错误: {}": "Intent recognition error: {}"
   "动态构建系统提示词: {}": "Dynamically built system prompt: {}"
+  "权限预检过滤：跳过了 {} 个无权限的 Skill": "Permission pre-check filtered: {} Skills skipped due to insufficient permissions"
   "解析意图失败：{}": "Intent parsing failed: {}"
   "解析任务计划失败：{}": "Task plan parsing failed: {}"
   "创建无效意图：{}": "Created invalid intent: {}"

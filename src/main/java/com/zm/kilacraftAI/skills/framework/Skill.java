@@ -1,5 +1,7 @@
 package com.zm.kilacraftAI.skills.framework;
 
+import org.bukkit.entity.Player;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -71,4 +73,23 @@ public interface Skill {
     default boolean isAvailable(SkillContext context) {
         return true;
     }
+
+    /**
+     * 获取使用此技能所需的权限节点
+     *
+     * <p>用于意图识别阶段的权限预检过滤：
+     * 如果调用者没有此权限，Skill 描述不会注入 LLM 提示词。</p>
+     *
+     * <p>所有 Skill 必须声明权限节点（强制）。服主通过权限插件灵活分配。</p>
+     *
+     * <p>内置 Skill 由 Kilacraft-AI 统一管理权限节点（在 plugin.yml 中声明）；
+     * 第三方 Skill 由其自身插件注册权限节点（在自身的 plugin.yml 中声明），
+     * 本插件仅通过 {@link Player#hasPermission(String)} 实时查询，不关心权限来源。</p>
+     *
+     * <p>权限节点的 default 值控制了默认行为：
+     * {@code default: true} 表示所有玩家可用，{@code default: op} 表示仅管理员可用。</p>
+     *
+     * @return 权限节点（不允许返回 null）
+     */
+    String getRequiredPermission();
 }

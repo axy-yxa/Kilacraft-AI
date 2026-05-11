@@ -6,6 +6,7 @@ import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
 import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
+import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
@@ -78,6 +79,11 @@ public class MarketActionSkill implements Skill {
     }
 
     @Override
+    public String getRequiredPermission() {
+        return PluginPermissionEnum.MARKET_ACTION.getNode();
+    }
+
+    @Override
     public boolean isAvailable(SkillContext context) {
         // GlobalMarketPlus 必须已安装且玩家在线
         return GlobalMarketPlusAPI.isAvailable() && context.getPlayer() != null;
@@ -85,6 +91,12 @@ public class MarketActionSkill implements Skill {
 
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
+        // Skill 级权限校验（isAvailable 已保证 GMP 可用且玩家在线）
+        Player player = context.getPlayer();
+        if (!PluginPermissionEnum.MARKET_ACTION.hasPermission(player)) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.MARKET_ACTION.getNode())));
+        }
+
         try {
             String action = context.getAction();
             return switch (action) {

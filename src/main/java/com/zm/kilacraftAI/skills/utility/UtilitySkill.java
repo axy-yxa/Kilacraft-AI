@@ -97,6 +97,11 @@ public class UtilitySkill implements Skill {
     }
 
     @Override
+    public String getRequiredPermission() {
+        return PluginPermissionEnum.UTILITY.getNode();
+    }
+
+    @Override
     public boolean isAvailable(SkillContext context) {
         return context.getPlayer() != null;
     }

@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.skills.bukkit;
 
 import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
+import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
@@ -76,6 +77,11 @@ public class GenericBukkitAPISkill implements Skill {
             }
         }
         return new ArrayList<>();
+    }
+
+    @Override
+    public String getRequiredPermission() {
+        return PluginPermissionEnum.BUKKIT_API.getNode();
     }
 
     @Override

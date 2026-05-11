@@ -90,6 +90,11 @@ public class BukkitStatsSkill implements Skill {
     }
 
     @Override
+    public String getRequiredPermission() {
+        return PluginPermissionEnum.BUKKIT_STATS.getNode();
+    }
+
+    @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
         String action = context.getAction();
         Player player = context.getPlayer();

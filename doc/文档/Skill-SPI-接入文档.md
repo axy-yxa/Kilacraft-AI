@@ -1,6 +1,6 @@
 # Kilacraft-AI - Skill SPI 接入文档  
 
-> **最后更新**: 2026-05-06  
+> **最后更新**: 2026-05-11  
 > **说明**: 本文档指导插件开发者如何通过 Skill SPI 接口将自定义技能接入 Kilacraft-AI  
 
 ---
@@ -158,6 +158,11 @@ public class HelloWorldSkill implements Skill {
     public boolean isAvailable(SkillContext context) {
         return true;  // 始终可用
     }
+
+    @Override
+    public String getRequiredPermission() {
+        return "myplugin.hello";  // Skill 级权限节点
+    }
 }
 ```
 
@@ -212,6 +217,12 @@ api-version: '1.21'
 # 声明软依赖，确保 Kilacraft-AI 已加载
 softdepend:
   - Kilacraft-AI
+
+# 声明 Skill 级权限节点（Kilacraft-AI 通过 Player.hasPermission() 查询）
+permissions:
+  myplugin.hello:
+    description: 允许使用 AI 问候技能
+    default: true  # 所有玩家可用
 ```
 
 ### 完成！
@@ -253,6 +264,22 @@ public interface Skill {
     default boolean isAvailable(SkillContext context) {
         return true;
     }
+
+    /**
+     * 获取使用此技能所需的权限节点（必须实现）
+     *
+     * <p>用于意图识别阶段的权限预检过滤：
+     * 如果调用者没有此权限，Skill 描述不会注入 LLM 提示词。</p>
+     *
+     * <p>第三方 Skill 由其自身插件注册权限节点（在 plugin.yml 中声明），
+     * Kilacraft-AI 仅通过 Player.hasPermission() 实时查询，不关心权限来源。</p>
+     *
+     * <p>权限节点的 default 值控制了默认行为：
+     * default: true 表示所有玩家可用，default: op 表示仅管理员可用。</p>
+     *
+     * @return 权限节点（不允许返回 null）
+     */
+    String getRequiredPermission();
 }
 ```
 
@@ -588,35 +615,86 @@ public CompletableFuture<SkillResult> execute(SkillContext context) {
 
 ## 8. 权限与可用性控制
 
-### 8.1 isAvailable() 检查
+### 8.1 权限预检过滤（getRequiredPermission）
+
+```java
+@Override
+public String getRequiredPermission() {
+    return "myplugin.query.stats";  // Skill 级权限节点
+}
+```
+
+> **重要**：`getRequiredPermission()` 返回的是 **Skill 级别**的权限，而非 Action 级别。它控制整个 Skill（包含所有 Action）的描述是否注入 LLM 提示词。
+
+**作用时机**：意图识别阶段（构建 LLM 系统提示词时）。
+
+**效果**：如果调用者没有此权限，Skill 的名称、描述、动作列表**不会**注入 LLM 提示词，LLM 根本不知道这个 Skill 存在。这避免了：
+- LLM 误匹配到无权限的 Skill
+- 浪费提示词 Token
+- 信息泄露（暴露管理员专用功能的存在）
+
+**Skill 级 vs Action 级权限**：
+
+| 层级 | 控制范围 | 作用阶段 | 实现方式 |
+|------|----------|----------|----------|
+| **Skill 级** | 整个 Skill 可见性 | 意图识别（提示词构建时） | `getRequiredPermission()` |
+| **Action 级** | 单个 Action 可执行性 | Skill 执行时 | `execute()` 内部检查 |
+
+- **Skill 级权限**：服主关闭某玩家的 Skill 权限 → 该玩家完全看不到这个 Skill（提示词中不存在），是最彻底的隔离
+- **Action 级权限**（可选）：Skill 级权限开放，但某个 Action 在 `execute()` 内部有额外权限检查 → AI 能看到所有 Action 并可能编排，但执行时被拦截
+
+> ⚠️ **注意**：如果 Skill 内混合了不同权限级别的 Action（如普通玩家 Action + 管理员 Action），AI 可能编排了玩家无权执行的 Action，导致执行失败。**强烈建议遵循 Skill 内聚原则（见下方），将不同权限级别的 Action 拆分为独立 Skill**。
+
+**第三方 Skill 权限声明**：在自身插件的 `plugin.yml` 中声明权限节点即可，Kilacraft-AI 通过 `Player.hasPermission()` 实时查询，零耦合：
+
+```yaml
+# 你的 plugin.yml
+permissions:
+  myplugin.admin.stats:
+    description: 允许使用 AI 查询玩家状态统计
+    default: op
+```
+
+**与 isAvailable() 的区别**：
+
+| | `getRequiredPermission()` | `isAvailable()` |
+|---|---|---|
+| 阶段 | 意图识别前（提示词构建时） | Skill 执行前 |
+| 作用 | 决定 Skill 是否对 LLM 可见 | 决定 Skill 是否可以执行 |
+| 典型场景 | 权限控制（不让 LLM 知道无权 Skill 的存在） | 运行时检查（前置插件是否安装） |
+
+**Skill 内聚原则**：建议一个 Skill 的所有 Action 面向同类权限用户，避免在同一个 Skill 内混合管理员 Action 和普通玩家 Action。这样可以精确设置 `getRequiredPermission()`，避免无权限 Skill 的描述污染意图识别提示词。
+
+### 8.2 isAvailable() 检查
 
 ```java
 @Override
 public boolean isAvailable(SkillContext context) {
-    // 示例：检查玩家是否有权限
-    Player player = context.getPlayer();
-    if (player == null) {
-        return false;  // 控制台不可用
-    }
-    return player.hasPermission("myplugin.skill.use");
+    // 示例：检查前置插件是否已安装
+    return Bukkit.getPluginManager().getPlugin("MyEconomy") != null;
 }
 ```
+
+> **注意**：`isAvailable()` 应用于**运行时可用性检查**（如前置插件是否安装），不建议在此方法中做权限检查。权限控制应通过 `getRequiredPermission()` 声明，由框架在意图识别阶段自动过滤。
 
 **调用时机**：每次 Skill 执行前都会先调用此方法。
 
 **返回 false 的效果**：用户会收到 "抱歉，该功能暂时不可用" 的提示。
 
-### 8.2 权限体系
+### 8.3 权限体系
 
-Kilacraft-AI 的权限体系是独立的，不影响你自身的权限检查。你有两种控制方式：
+Kilacraft-AI 的权限体系是独立的，不影响你自身的权限检查。你有两种权限控制方式：
 
-1. **在 `isAvailable()` 中检查**：适合简单的可用/不可用判断
-2. **在 `execute()` 中检查**：适合需要返回具体原因的场景
+1. **Skill 级权限（必须）**：在 `getRequiredPermission()` 中声明 → 意图识别阶段过滤，LLM 不会看到无权限的 Skill
+2. **Action 级权限（可选）**：在 `execute()` 中检查 → 适合需要返回具体原因的场景
+
+> **不建议**在 `isAvailable()` 中做权限检查。`isAvailable()` 的职责是运行时可用性检查（如前置插件是否安装），而非权限控制。
 
 ```java
 @Override
 public CompletableFuture<SkillResult> execute(SkillContext context) {
     Player player = context.getPlayer();
+    // Action 级权限检查示例：转账功能需要额外权限
     if (!player.hasPermission("economy.transfer")) {
         return CompletableFuture.completedFuture(
             SkillResult.failure("你没有转账权限")
@@ -864,6 +942,11 @@ public class PlayerStatsSkill implements Skill {
         return context.getPlayer() != null;
     }
 
+    @Override
+    public String getRequiredPermission() {
+        return "statsplugin.query";  // Skill 级权限节点
+    }
+
     private CompletableFuture<SkillResult> queryHealth(Player player) {
         double health = player.getHealth();
         double maxHealth = player.getMaxHealth();
@@ -938,6 +1021,12 @@ main: com.example.statsplugin.StatsPlugin
 api-version: '1.21'
 softdepend:
   - Kilacraft-AI
+
+# 声明 Skill 级权限节点
+permissions:
+  statsplugin.query:
+    description: 允许使用 AI 查询玩家状态信息（生命值、饥饿值、经验等级）
+    default: true  # 所有玩家可用
 ```
 
 ### 12.2 命令执行插件（内置示例）
@@ -1131,6 +1220,7 @@ A: 不建议。请使用小写英文 + 下划线格式，确保兼容性和可�
 | `getHints()` | `List<String>` | 否 | 提示信息，默认空 |
 | `execute(SkillContext)` | `CompletableFuture<SkillResult>` | 是 | 核心执行逻辑 |
 | `isAvailable(SkillContext)` | `boolean` | 否 | 可用性检查，默认 true |
+| `getRequiredPermission()` | `String` | **是** | 权限预检节点，必须声明 |
 
 ### SkillProvider 接口方法
 
@@ -1230,10 +1320,12 @@ description: A custom skill for Kilacraft-AI
 1. **Skill 名称**（与 `getName()` 返回值一致）
 2. **源码或 JAR 文件**（必须，用于安全审查）
 3. **功能描述**（简要说明 Skill 做什么）
-4. **权限说明**（需要哪些 Bukkit 权限或依赖哪些插件）
+4. **权限说明**（`getRequiredPermission()` 返回的权限节点，以及在 `plugin.yml` 中声明的权限和 `default` 值）
 5. **文档链接**（可选，如有使用文档或 Wiki）
 
 **审查标准**：
+- ✅ `getRequiredPermission()` 已正确实现，返回非 null 的权限节点
+- ✅ 权限节点已在 `plugin.yml` 中声明，`default` 值合理（普通功能设 `true`，管理功能设 `op`）
 - ✅ 不直接操作其他玩家数据（除非明确声明且合理）
 - ✅ 不执行危险命令（op 级别命令、文件读写等）
 - ✅ 无恶意网络请求或数据外传
