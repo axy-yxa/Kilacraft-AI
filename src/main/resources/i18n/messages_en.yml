@@ -200,7 +200,7 @@ messages:
   "加载内置枚举失败: {} - {}": "Failed to load internal enums: {} - {}"
 
   # ==================== AIRequestHandler ====================
-  "§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/config.yml 中的 llm.api_key 后重启服务器或执行 /kilacraft reload": "§c[AI Request] API Key not configured! Please edit llm.api_key in plugins/Kilacraft-AI/config.yml, then restart server or run /kilacraft reload"
+  "§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/llm.yml 中的 llm.api_key 后重启服务器或执行 /kilacraft reload": "§c[AI Request] API Key not configured! Please edit llm.api_key in plugins/Kilacraft-AI/llm.yml, then restart server or run /kilacraft reload"
   "拒绝请求：API Key 未配置": "Request rejected: API Key not configured"
   "Agent 能力已禁用，进入普通 AI 处理": "Agent capability disabled, entering normal AI processing"
   "开始 LLM 意图识别，用户：{}, 消息：{}": "Starting LLM intent recognition, user: {}, message: {}"
