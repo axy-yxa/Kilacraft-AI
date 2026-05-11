@@ -56,11 +56,11 @@ After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to
 |------|------|-------------|
 | `id` | BIGINT | Primary key, auto-increment |
 | `player_uuid` | VARCHAR(36) | Player UUID |
-| `player_name` | VARCHAR(64) | Player name |
 | `role` | VARCHAR(16) | Role (user/assistant) |
 | `message` | TEXT | Message content |
 | `source` | VARCHAR(32) | Source identifier (chat/command/console_plugin/console/greeting/afk_callback) |
 | `created_at` | TIMESTAMP | Creation time |
+| `server_id` | VARCHAR(64) | Server identifier (for group servers, empty for single server) |
 
 **Write Strategy**: Write-Behind async flush  
 **Flush Frequency**: Every 30 seconds, or immediately when message queue ≥ 20  
@@ -101,8 +101,9 @@ After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to
 | `event_type` | VARCHAR(64) | Event type |
 | `data` | TEXT | Event data (structured text, event-specific) |
 | `created_at` | TIMESTAMP | Event time |
+| `server_id` | VARCHAR(64) | Server identifier (for group servers) |
 
-**Event Types**: `PLAYER_DEATH`, `PLAYER_ADVANCEMENT`, `PLAYER_LEVEL_UP`, `MARKET_ITEM_SOLD`, `MARKET_ITEM_LISTED`, `MARKET_MONEY_RECEIVED`, `PLAYER_LOGIN`, `PLAYER_LOGOUT`, `PLAYER_FIRST_JOIN`, etc.
+**Event Types**: `PLAYER_DEATH`, `PLAYER_ADVANCEMENT`, `PLAYER_LEVEL_UP`, `MARKET_ITEM_SOLD`, `MARKET_ITEM_LISTED`, `MARKET_MONEY_RECEIVED`, `PLAYER_LOGIN`, `PLAYER_LOGOUT`, `PLAYER_FIRST_JOIN`, `PLAYER_PVP_KILL`, `PLAYER_PVP_DEATH`, `PLAYER_DEFEAT_BOSS`, `PLAYER_TAME_ANIMAL`, etc.
 
 > **Note**: This table does NOT store a `player_name` column. When a player name is needed (e.g., friend dynamics in AI greetings), it's obtained via LEFT JOIN with `kca_player_profile`. This design prevents data inconsistency from name changes.
 
@@ -128,25 +129,48 @@ After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to
 |------|------|-------------|
 | `id` | BIGINT | Primary key, auto-increment |
 | `player_uuid` | VARCHAR(36) | Player UUID |
-| `player_name` | VARCHAR(64) | Player name |
 | `skill_name` | VARCHAR(128) | Skill name |
 | `action` | VARCHAR(128) | Action name |
-| `parameters` | TEXT | Parameters JSON |
-| `result` | VARCHAR(32) | Execution result (SUCCESS/FAILURE/TIMEOUT) |
-| `duration_ms` | BIGINT | Execution duration (milliseconds) |
-| `trigger_source` | VARCHAR(64) | Trigger source |
+| `entities` | TEXT | Entity parameters JSON |
+| `success` | BOOLEAN | Success flag |
+| `result_message` | TEXT | Result message |
+| `trigger_message` | TEXT | Trigger original message |
+| `execution_ms` | BIGINT | Execution time (ms) |
+| `source` | VARCHAR(64) | Trigger source |
 | `created_at` | TIMESTAMP | Creation time |
+| `server_id` | VARCHAR(64) | Server identifier (for group servers) |
 
 ### kca_watermark - Watermark (Distributed Mutual Exclusion)
 
 | Field | Type | Description |
 |------|------|-------------|
-| `task_name` | VARCHAR(128) | Task name (unique) |
-| `last_run_date` | VARCHAR(16) | Last run date |
-| `server_id` | VARCHAR(64) | Executing server identifier |
-| `updated_at` | TIMESTAMP | Update time |
+| `name` | VARCHAR(64) | Watermark name (primary key, e.g., `decay_date`, `extract_time:survival`) |
+| `value` | VARCHAR(128) | Watermark value (date string or timestamp) |
 
-Used for distributed mutual exclusion of daily tasks like social relation decay (`SELECT FOR UPDATE` row lock).
+Used for distributed mutual exclusion of scheduled tasks (`SELECT FOR UPDATE` row lock), ensuring only one sub-server in a group executes cleanup/decay tasks. Watermark names automatically follow business table strategy: shared tables use global watermark names, isolated tables use names with `:server_id` suffix.
+
+---
+
+## Group Server Data Isolation
+
+### Table Isolation Strategy
+
+| Table | Default Strategy | Reason | Configurable |
+|---|:---:|------|:---:|
+| `conversation` | Isolated | Conversation context belongs to sub-server | Fixed |
+| `server_event` | Isolated | Events occur on specific sub-server | Fixed |
+| `skill_log` | Isolated | Skill execution on specific sub-server | Fixed |
+| `player_profile` | Shared | Player profiles accumulate cross-server | Configurable |
+| `social_relation` | Shared | Social relations are inherently cross-server | Configurable |
+| `watermark` | Auto-derived | Follows associated business table | Automatic |
+
+### Group Server Setup
+
+1. Configure the same MySQL connection parameters in each sub-server's `database.yml`
+2. Set a unique `group.server_id` for each sub-server (e.g., `survival`, `minigame`, `rpg`)
+3. Run `/kilacraft reload` to apply changes
+
+> **Note**: `server_id` changes only affect newly written data. Existing data is not automatically migrated.
 
 ---
 
@@ -155,42 +179,51 @@ Used for distributed mutual exclusion of daily tasks like social relation decay 
 ### database.yml Full Configuration
 
 ```yaml
-database:
-  # Database type: h2 (embedded, default) or mysql (external)
-  type: h2
+# Database type: H2, MYSQL
+type: H2
 
-  # H2 configuration (used when type=h2)
-  h2:
-    file_path: "data/kilacraft"   # Database file path (relative to plugin directory)
+# H2 Configuration (effective when type=H2)
+h2:
+  file: "data/kilacraft"
 
-  # MySQL configuration (used when type=mysql)
-  mysql:
-    host: localhost
-    port: 3306
-    database: kilacraft
-    username: root
-    password: ""
-    properties:
-      useSSL: false
-      allowPublicKeyRetrieval: true
-      serverTimezone: Asia/Shanghai
-
-  # HikariCP connection pool configuration
-  pool:
-    maximum_pool_size: 10
-    minimum_idle: 2
-    connection_timeout: 30000
-    idle_timeout: 600000
-    max_lifetime: 1800000
-
-  # Table name prefix
+# MySQL Configuration (effective when type=MYSQL)
+mysql:
+  host: "localhost"
+  port: 3306
+  database: "kilacraft_ai"
+  username: "root"
+  password: "password"
   table_prefix: "kca_"
 
-  # Data retention days (conversation records older than this will be cleaned)
-  data_retention_days: 30
+# Group server configuration (leave empty for single server)
+group:
+  server_id: ""              # Unique identifier for this sub-server
+  player_profile: shared     # Player profile sharing strategy
+  social_relation: shared    # Social relation sharing strategy
 
-  # Cleanup task execution interval (hours)
-  cleanup_interval_hours: 24
+# Connection pool (HikariCP)
+pool:
+  maximum_pool_size: 0       # 0=adaptive
+  minimum_idle: 0            # 0=adaptive
+  connection_timeout: 10000
+  idle_timeout: 300000
+  max_lifetime: 1800000
+
+# Data retention policy
+retention:
+  conversation_retention_days: 60
+  event_retention_days: 90
+  skill_log_retention_days: 60
+
+# Conversation history loading strategy
+conversation:
+  load_history_on_login: true
+
+# Player profile analysis configuration
+profile:
+  analysis_interval_days: 1
+  min_messages_to_trigger: 10
+  analysis_timeout_seconds: 60
 ```
 
 ---

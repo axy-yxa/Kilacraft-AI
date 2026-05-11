@@ -22,7 +22,7 @@ public class SchemaManager {
     /**
      * 当前代码期望的 Schema 版本号
      */
-    private static final int CURRENT_VERSION = 1;
+    private static final int CURRENT_VERSION = 2;
 
     private final DatabaseProvider provider;
     private final String tablePrefix;
@@ -90,6 +90,7 @@ public class SchemaManager {
     private void migrateToVersion(Connection conn, int version) throws SQLException {
         switch (version) {
             case 1 -> migrateV1(conn);
+            case 2 -> migrateV2(conn);
             default -> PluginLogger.warn("数据库", "未知的 Schema 版本: {}", version);
         }
     }
@@ -163,5 +164,21 @@ public class SchemaManager {
         }
 
         PluginLogger.info("数据库", "Schema v1 建表完成（6张表）");
+    }
+
+    // ==================== 版本 2：群组服 server_id 索引 ====================
+
+    /**
+     * 版本 2：为隔离表的 server_id 列添加索引（群组服按子服过滤性能优化）
+     *
+     * <p>仅影响 conversation、server_event、skill_log 三张隔离表。
+     * player_profile 和 social_relation 为共享表，不含 server_id 列。</p>
+     */
+    private void migrateV2(Connection conn) throws SQLException {
+        createIndex(conn, "idx_conv_server", "conversation", "server_id");
+        createIndex(conn, "idx_event_server", "server_event", "server_id");
+        createIndex(conn, "idx_skill_server", "skill_log", "server_id");
+
+        PluginLogger.info("数据库", "Schema v2 群组服索引已创建（3个 server_id 索引）");
     }
 }

@@ -32,7 +32,12 @@ public class SocialRelationExtractor {
 
     private final DatabaseManager databaseManager;
     private final SocialGraph socialGraph;
-    private final WatermarkDao watermarkDao;
+    private volatile WatermarkDao watermarkDao;
+
+    /**
+     * 当前服务器标识（群组服区分，影响水位名称后缀）
+     */
+    private volatile String serverId;
 
     /**
      * 上次提取时间（水位标记，避免重复处理）
@@ -42,59 +47,83 @@ public class SocialRelationExtractor {
      */
     private volatile long lastExtractTime = 0;
 
-    public SocialRelationExtractor(DatabaseManager databaseManager, SocialGraph socialGraph) {
+    public SocialRelationExtractor(DatabaseManager databaseManager, SocialGraph socialGraph, String serverId) {
         this.databaseManager = databaseManager;
         this.socialGraph = socialGraph;
+        this.watermarkDao = new WatermarkDao(databaseManager.getTablePrefix());
+        this.serverId = serverId != null ? serverId : "";
+    }
+
+    /**
+     * 热重载 server_id 配置
+     *
+     * @param serverId 新的 server_id 值
+     */
+    public void refreshConfig(String serverId) {
+        this.serverId = serverId != null ? serverId : "";
         this.watermarkDao = new WatermarkDao(databaseManager.getTablePrefix());
     }
 
     /**
-     * 提取新的社交关系
+     * 提取新的社交关系（分布式安全）
+     *
+     * <p>使用 FOR UPDATE 行锁 + 显式事务保证群组服中只有一个子服处理同一批数据。</p>
+     * <p>水位名称带 server_id 后缀，实现各子服独立提取。</p>
      *
      * @return 本轮处理的 Skill 日志条数（0 表示无新数据）
      */
     public int extractNewRelations() {
-        // 直接在 TaskScheduler 的异步线程上执行（runAsyncTimer 回调已在异步线程）
+        String watermarkName = buildWatermarkName("extract_time");
+
         try (var conn = databaseManager.getConnection()) {
-            // 分布式水位：从 DB 读取上次提取时间
-            String dbWatermarkStr = watermarkDao.get(conn, "extract_time");
-            long dbWatermark = 0;
-            if (dbWatermarkStr != null) {
-                try {
-                    dbWatermark = Long.parseLong(dbWatermarkStr);
-                } catch (NumberFormatException ignored) {
+            conn.setAutoCommit(false);
+            try {
+                // 分布式锁：锁定水位行
+                String dbWatermarkStr = watermarkDao.getForUpdate(conn, watermarkName);
+                long dbWatermark = 0;
+                if (dbWatermarkStr != null) {
+                    try {
+                        dbWatermark = Long.parseLong(dbWatermarkStr);
+                    } catch (NumberFormatException ignored) {
+                    }
                 }
-            }
-            if (dbWatermark > lastExtractTime) {
-                lastExtractTime = dbWatermark;
-            }
-
-            // 1. 查询最近一个提取周期内白名单 Skill 的执行记录
-            long since = lastExtractTime > 0 ? lastExtractTime : System.currentTimeMillis() - 30 * 60 * 1000;
-            List<SkillLogEntry> logs = loadRecentSkillLogs(conn, since);
-
-            if (!logs.isEmpty()) {
-                // 2. 加载玩家名→UUID 映射（全量加载）
-                Map<String, UUID> nameToUuid = loadPlayerNameMapping(conn);
-
-                // 3. 扫描 entities 提取玩家交互
-                for (SkillLogEntry log : logs) {
-                    processSkillLog(log, nameToUuid);
+                if (dbWatermark > lastExtractTime) {
+                    lastExtractTime = dbWatermark;
                 }
-            }
 
-            // 处理完成后再推进水位（确保失败时水位不前进，下次重新处理）
-            // 仅在有数据时推进，避免因白名单配置错误导致水位越过后永远丢失历史记录
-            if (!logs.isEmpty()) {
-                long now = System.currentTimeMillis();
-                watermarkDao.put(conn, "extract_time", String.valueOf(now));
-                lastExtractTime = now;
+                long since = lastExtractTime > 0 ? lastExtractTime : System.currentTimeMillis() - 30 * 60 * 1000;
+                List<SkillLogEntry> logs = loadRecentSkillLogs(conn, since);
+
+                if (!logs.isEmpty()) {
+                    Map<String, UUID> nameToUuid = loadPlayerNameMapping(conn);
+                    for (SkillLogEntry log : logs) {
+                        processSkillLog(log, nameToUuid);
+                    }
+
+                    long now = System.currentTimeMillis();
+                    watermarkDao.put(conn, watermarkName, String.valueOf(now));
+                    lastExtractTime = now;
+                }
+
+                conn.commit();
+                return logs.size();
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
             }
-            return logs.size();
         } catch (Exception e) {
             PluginLogger.error("数据库", "社交关系提取失败: {}", e.getMessage());
             return 0;
         }
+    }
+
+    /**
+     * 构建带 server_id 后缀的水位名称
+     *
+     * <p>server_id 为空时返回原始名称（单机服模式），否则返回 "name:server_id"。</p>
+     */
+    private String buildWatermarkName(String baseName) {
+        return serverId.isEmpty() ? baseName : baseName + ":" + serverId;
     }
 
     /**

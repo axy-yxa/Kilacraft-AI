@@ -33,8 +33,8 @@ public class SkillLogDao {
      * @param executionMs    执行耗时（ms）
      * @param source         触发来源
      */
-    public void insert(Connection conn, String playerUuid, String skillName, String action, String entitiesJson, boolean success, String resultMessage, String triggerMessage, long executionMs, String source) throws SQLException {
-        String sql = "INSERT INTO " + tablePrefix + "skill_log " + "(player_uuid, skill_name, action, entities, success, result_message, " + "trigger_message, execution_ms, source, created_at, server_id) " + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '')";
+    public void insert(Connection conn, String playerUuid, String skillName, String action, String entitiesJson, boolean success, String resultMessage, String triggerMessage, long executionMs, String source, String serverId) throws SQLException {
+        String sql = "INSERT INTO " + tablePrefix + "skill_log " + "(player_uuid, skill_name, action, entities, success, result_message, " + "trigger_message, execution_ms, source, created_at, server_id) " + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, playerUuid);
@@ -47,20 +47,18 @@ public class SkillLogDao {
             ps.setLong(8, executionMs);
             ps.setString(9, source);
             ps.setLong(10, System.currentTimeMillis());
+            ps.setString(11, serverId);
             ps.executeUpdate();
         }
     }
 
     /**
-     * 清理过期审计记录
+     * 清理过期审计记录（兼容 H2 和 MySQL）
      *
-     * @param conn       数据库连接
-     * @param beforeTime 截止时间戳（ms）
-     * @param batchSize  单次删除上限
-     * @return 实际删除条数
+     * <p>H2 不支持 {@code DELETE ... LIMIT} 语法，改用子查询方式限制删除行数。</p>
      */
     public int cleanExpired(Connection conn, long beforeTime, int batchSize) throws SQLException {
-        String sql = "DELETE FROM " + tablePrefix + "skill_log WHERE created_at < ? LIMIT ?";
+        String sql = "DELETE FROM " + tablePrefix + "skill_log WHERE id IN (" + "SELECT id FROM " + tablePrefix + "skill_log WHERE created_at < ? LIMIT ?" + ")";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, beforeTime);
             ps.setInt(2, batchSize);

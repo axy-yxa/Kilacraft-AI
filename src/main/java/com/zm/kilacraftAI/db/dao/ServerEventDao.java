@@ -27,8 +27,8 @@ public class ServerEventDao {
     /**
      * 插入事件记录
      */
-    public void insert(Connection conn, ServerEvent event) throws SQLException {
-        String sql = "INSERT INTO " + tablePrefix + "server_event " + "(event_type, player_uuid, target_uuid, data, created_at, server_id) " + "VALUES (?, ?, ?, ?, ?, '')";
+    public void insert(Connection conn, ServerEvent event, String serverId) throws SQLException {
+        String sql = "INSERT INTO " + tablePrefix + "server_event " + "(event_type, player_uuid, target_uuid, data, created_at, server_id) " + "VALUES (?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, event.getEventType().name());
@@ -36,6 +36,7 @@ public class ServerEventDao {
             ps.setString(3, event.getTargetUuid() != null ? event.getTargetUuid().toString() : null);
             ps.setString(4, event.getData());
             ps.setLong(5, event.getCreatedAt());
+            ps.setString(6, serverId);
             ps.executeUpdate();
         }
     }
@@ -227,15 +228,12 @@ public class ServerEventDao {
     }
 
     /**
-     * 清理过期事件记录
+     * 清理过期事件记录（兼容 H2 和 MySQL）
      *
-     * @param conn       数据库连接
-     * @param beforeTime 截止时间戳（ms）
-     * @param batchSize  单次删除上限
-     * @return 实际删除条数
+     * <p>H2 不支持 {@code DELETE ... LIMIT} 语法，改用子查询方式限制删除行数。</p>
      */
     public int cleanExpired(Connection conn, long beforeTime, int batchSize) throws SQLException {
-        String sql = "DELETE FROM " + tablePrefix + "server_event WHERE created_at < ? LIMIT ?";
+        String sql = "DELETE FROM " + tablePrefix + "server_event WHERE id IN (" + "SELECT id FROM " + tablePrefix + "server_event WHERE created_at < ? LIMIT ?" + ")";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, beforeTime);
             ps.setInt(2, batchSize);

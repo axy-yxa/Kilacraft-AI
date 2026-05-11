@@ -208,7 +208,8 @@ public class SkillManager {
             com.zm.kilacraftAI.compat.folia.FoliaCompat.getIOPool().submit(() -> {
                 try (var conn = plugin.getDatabaseManager().getConnection()) {
                     var skillLogDao = new com.zm.kilacraftAI.db.dao.SkillLogDao(plugin.getDatabaseManager().getTablePrefix());
-                    skillLogDao.insert(conn, playerUuid, skillName, action, entitiesJson, result.isSuccess(), result.getMessage(), triggerMessage, elapsedMs, executionSource);
+                    String serverId = plugin.getDatabaseManager().getConfig().getServerId();
+                    skillLogDao.insert(conn, playerUuid, skillName, action, entitiesJson, result.isSuccess(), result.getMessage(), triggerMessage, elapsedMs, executionSource, serverId != null ? serverId : "");
                 } catch (Exception e) {
                     PluginLogger.debug("技能管理", "写入审计日志失败: {}", e.getMessage());
                 }

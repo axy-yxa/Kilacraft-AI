@@ -97,7 +97,7 @@ public class ProfileAnalysisService {
 
     private final KilacraftAI plugin;
     private final DatabaseManager databaseManager;
-    private final ConversationDao conversationDao;
+    private volatile ConversationDao conversationDao;
     private final ProfileManager profileManager;
 
     public ProfileAnalysisService(KilacraftAI plugin, DatabaseManager databaseManager, ProfileManager profileManager) {
@@ -105,6 +105,18 @@ public class ProfileAnalysisService {
         this.databaseManager = databaseManager;
         this.conversationDao = new ConversationDao(databaseManager.getTablePrefix());
         this.profileManager = profileManager;
+    }
+
+    /**
+     * 热重载配置（由 /kilacraft reload 触发）
+     *
+     * <p>重建 ConversationDao 以反映最新的表前缀。</p>
+     * <p>其他 profile.* 配置（间隔天数、触发阈值、超时、提示词）均通过
+     * {@code databaseManager.getConfig()} 动态读取，无需额外刷新。</p>
+     */
+    public void refreshConfig() {
+        this.conversationDao = new ConversationDao(databaseManager.getTablePrefix());
+        PluginLogger.info("数据库", "画像分析服务配置已刷新");
     }
 
     /**

@@ -35,11 +35,26 @@ public class EventCollector implements Listener {
 
     private final KilacraftAI plugin;
     private final DatabaseManager databaseManager;
-    private final ServerEventDao eventDao;
+    private volatile ServerEventDao eventDao;
+    /**
+     * 当前服务器标识（群组服区分）
+     */
+    private volatile String serverId;
 
-    public EventCollector(KilacraftAI plugin, DatabaseManager databaseManager) {
+    public EventCollector(KilacraftAI plugin, DatabaseManager databaseManager, String serverId) {
         this.plugin = plugin;
         this.databaseManager = databaseManager;
+        this.eventDao = new ServerEventDao(databaseManager.getTablePrefix());
+        this.serverId = serverId != null ? serverId : "";
+    }
+
+    /**
+     * 热重载配置
+     *
+     * @param serverId 新的 server_id 值
+     */
+    public void refreshConfig(String serverId) {
+        this.serverId = serverId != null ? serverId : "";
         this.eventDao = new ServerEventDao(databaseManager.getTablePrefix());
     }
 
@@ -306,9 +321,10 @@ public class EventCollector implements Listener {
      * 异步写入事件到 DB（公共 API，供其他组件调用）
      */
     public void submitEvent(ServerEvent event) {
+        final String currentServerId = this.serverId;
         FoliaCompat.getIOPool().submit(() -> {
             try (var conn = databaseManager.getConnection()) {
-                eventDao.insert(conn, event);
+                eventDao.insert(conn, event, currentServerId);
             } catch (Exception e) {
                 PluginLogger.error("数据库", "写入服务器事件失败: {}", e.getMessage());
             }

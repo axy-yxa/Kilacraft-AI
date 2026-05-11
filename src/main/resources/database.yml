@@ -22,9 +22,39 @@ mysql:
   database: "kilacraft_ai"
   username: "root"
   password: "password"
-  # 表名前缀（群组服多插件共用DB时区分）
+  # 表名前缀（不同插件共用DB时区分，如 kca_ / other_）
   # Table name prefix (for distinguishing when multiple plugins share the same DB)
   table_prefix: "kca_"
+
+# ==================== 群组服配置 ====================
+# ==================== Group Server Configuration ====================
+# 群组服场景下，多个子服共享同一个 MySQL 数据库
+# 每个子服需要配置唯一的 server_id 以区分数据
+# 单机服留空即可（默认值）
+# server_id 仅影响隔离表的数据过滤和水位标记后缀
+# In group server setups, multiple sub-servers share the same MySQL database
+# Each sub-server needs a unique server_id to distinguish data
+# Leave empty for single-server setups (default)
+# server_id only affects data filtering of isolated tables and watermark suffixes
+group:
+  # 本服唯一标识（群组服中区分不同子服，如 survival / minigame / rpg）
+  # 单机服或独立 H2 数据库无需修改
+  # 修改后执行 /kilacraft reload 即时生效（仅影响新写入的数据）
+  # Unique identifier for this sub-server (e.g., survival / minigame / rpg)
+  # No need to change for single-server or standalone H2 database
+  # Run /kilacraft reload to apply (only affects newly written data)
+  server_id: ""
+
+  # 数据共享策略（仅群组服共享 MySQL 时需要关注）
+  # shared = 跨服共享同一份数据（适合画像、社交等天然跨服的数据）
+  # isolated = 各服独立数据（通过 server_id 字段过滤）
+  # 默认值已优化，一般不需要修改
+  # Data sharing strategy (only relevant for group servers sharing MySQL)
+  # shared = Cross-server shared data (suitable for profiles, social relations)
+  # isolated = Per-server isolated data (filtered by server_id field)
+  # Defaults are optimized, generally no need to change
+  player_profile: shared
+  social_relation: shared
 
 # 连接池配置（HikariCP，自适应策略）
 # 不配置时自动根据 CPU 核数和服务端类型计算最优值
@@ -70,7 +100,6 @@ conversation:
   # Whether to load conversation history from database to cache when player triggers AI
   # true: Restores recent N history entries on first chat after login (better experience, higher token usage)
   # false: Starts fresh each login, no history loaded (saves tokens, suitable for budget-limited servers)
-  # 无论此开关如何设置，对话记录始终会写入数据库（持久化不中断）
   # Regardless of this setting, conversation records are always persisted to database
   load_history_on_login: true
 

@@ -47,7 +47,7 @@ public class SocialGraph {
     private final KilacraftAI plugin;
     private final DatabaseManager databaseManager;
     private final SocialRelationDao socialDao;
-    private final WatermarkDao watermarkDao;
+    private volatile WatermarkDao watermarkDao;
 
     /**
      * 每日衰减因子（衰减 5%）
@@ -62,11 +62,36 @@ public class SocialGraph {
      */
     private volatile LocalDate lastDecayDate;
 
-    public SocialGraph(KilacraftAI plugin, DatabaseManager databaseManager) {
+    /**
+     * 当前服务器标识（群组服区分，影响水位名称后缀）
+     */
+    private volatile String serverId;
+
+    /**
+     * 社交关系是否共享（共享时水位不带 server_id 后缀）
+     */
+    private volatile boolean socialRelationShared;
+
+    public SocialGraph(KilacraftAI plugin, DatabaseManager databaseManager, String serverId, boolean socialRelationShared) {
         this.plugin = plugin;
         this.databaseManager = databaseManager;
         this.socialDao = new SocialRelationDao(databaseManager.getTablePrefix());
         this.watermarkDao = new WatermarkDao(databaseManager.getTablePrefix());
+        this.serverId = serverId != null ? serverId : "";
+        this.socialRelationShared = socialRelationShared;
+    }
+
+    /**
+     * 热重载配置
+     *
+     * @param serverId              新的 server_id
+     * @param socialRelationShared  社交关系是否共享
+     */
+    public void refreshConfig(String serverId, boolean socialRelationShared) {
+        this.serverId = serverId != null ? serverId : "";
+        this.socialRelationShared = socialRelationShared;
+        String prefix = databaseManager.getTablePrefix();
+        this.watermarkDao = new WatermarkDao(prefix);
     }
 
     /**
@@ -123,12 +148,14 @@ public class SocialGraph {
             return 0;
         }
 
+        String watermarkName = buildDecayWatermarkName();
+
         // 直接在 TaskScheduler 的异步线程上执行（runAsyncTimer 回调已在异步线程）
         try (var conn = databaseManager.getConnection()) {
             conn.setAutoCommit(false);
             try {
-                // 分布式锁：锁定水位行（kca_watermark WHERE name = 'decay_date'）
-                String dbDate = getWatermarkForUpdate(conn, "decay_date");
+                // 分布式锁：锁定水位行
+                String dbDate = getWatermarkForUpdate(conn, watermarkName);
                 if (today.toString().equals(dbDate)) {
                     // DB 中已记录今天的衰减，跳过（其他子服已执行）
                     lastDecayDate = today;
@@ -144,7 +171,7 @@ public class SocialGraph {
                 }
 
                 // 原子提交：衰减+水位同时生效
-                putWatermark(conn, "decay_date", today.toString());
+                putWatermark(conn, watermarkName, today.toString());
                 conn.commit();
                 lastDecayDate = today;
                 return Math.max(1, cleaned);
@@ -156,6 +183,19 @@ public class SocialGraph {
             PluginLogger.error("数据库", "社交关系衰减失败: {}", e.getMessage());
             return 0;
         }
+    }
+
+    /**
+     * 构建 decay_date 水位名称
+     *
+     * <p>共享模式下不带 server_id 后缀（全局只衰减一次），
+     * 隔离模式下带 server_id 后缀（各服独立衰减）。</p>
+     */
+    private String buildDecayWatermarkName() {
+        if (socialRelationShared) {
+            return "decay_date";
+        }
+        return serverId.isEmpty() ? "decay_date" : "decay_date:" + serverId;
     }
 
     /**

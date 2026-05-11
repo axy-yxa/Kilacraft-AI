@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.db;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.db.dao.ConversationDao;
+import com.zm.kilacraftAI.db.dao.WatermarkDao;
 import com.zm.kilacraftAI.manager.ConversationManager;
 import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
@@ -42,17 +43,35 @@ public class ConversationPersistenceService {
      */
     private static final int CLEANUP_BATCH_SIZE = 10000;
 
+    /**
+     * 清理周期水位名称（分布式锁标识）
+     *
+     * <p>清理任务不分 server_id，由分布式锁保证全局只执行一次，替所有子服清理过期数据。
+     * 这与 social_relation 的水位策略不同——社交衰减按共享策略决定是否带后缀。</p>
+     */
+    private static final String CLEANUP_WATERMARK_NAME = "cleanup_conversation";
+
+    /**
+     * 清理周期时长（6 小时 = 21600000ms）
+     */
+    private static final long CLEANUP_INTERVAL_MS = 21600000L;
+
     private final KilacraftAI plugin;
     private final DatabaseManager databaseManager;
-    private final ConversationDao conversationDao;
+    private volatile ConversationDao conversationDao;
+    private volatile WatermarkDao watermarkDao;
     private final ConversationManager conversationManager;
     private final int maxHistory;
     /**
      * 保留天数（0=永久保留）
      */
     @Getter
-    private final int retentionDays;
-    private final boolean loadHistoryEnabled;
+    private volatile int retentionDays;
+    private volatile boolean loadHistoryEnabled;
+    /**
+     * 当前服务器标识（群组服区分）
+     */
+    private volatile String serverId;
 
     /**
      * 待写入消息队列
@@ -69,14 +88,16 @@ public class ConversationPersistenceService {
      * @param retentionDays       对话保留天数（0=永久）
      * @param loadHistoryEnabled  是否启用历史加载
      */
-    public ConversationPersistenceService(KilacraftAI plugin, DatabaseManager databaseManager, ConversationManager conversationManager, int maxHistory, int retentionDays, boolean loadHistoryEnabled) {
+    public ConversationPersistenceService(KilacraftAI plugin, DatabaseManager databaseManager, ConversationManager conversationManager, int maxHistory, int retentionDays, boolean loadHistoryEnabled, String serverId) {
         this.plugin = plugin;
         this.databaseManager = databaseManager;
         this.conversationDao = new ConversationDao(databaseManager.getTablePrefix());
+        this.watermarkDao = new WatermarkDao(databaseManager.getTablePrefix());
         this.conversationManager = conversationManager;
         this.maxHistory = maxHistory;
         this.retentionDays = retentionDays;
         this.loadHistoryEnabled = loadHistoryEnabled;
+        this.serverId = serverId != null ? serverId : "";
     }
 
     // ==================== 写入相关 ====================
@@ -205,7 +226,7 @@ public class ConversationPersistenceService {
         }
 
         try (Connection conn = databaseManager.getConnection()) {
-            conversationDao.batchInsert(conn, rows);
+            conversationDao.batchInsert(conn, rows, serverId);
         } catch (SQLException e) {
             throw new RuntimeException("写入对话记录失败", e);
         }
@@ -293,32 +314,80 @@ public class ConversationPersistenceService {
     /**
      * 定时过期清理任务（由 TaskScheduler 调度）
      *
+     * <p>分布式安全：使用 watermark 行锁（SELECT FOR UPDATE）保证群组服中只有一个子服执行清理。</p>
+     *
      * @return 实际清理的记录条数
      */
     public int scheduledCleanup() {
         if (retentionDays <= 0) return 0;
 
         long cutoffTime = System.currentTimeMillis() - (retentionDays * 24L * 60 * 60 * 1000);
-        int totalDeleted = 0;
 
-        try (Connection conn = databaseManager.getConnection()) {
-            int deleted;
-            do {
-                deleted = conversationDao.cleanExpired(conn, cutoffTime, CLEANUP_BATCH_SIZE);
-                totalDeleted += deleted;
-            } while (deleted >= CLEANUP_BATCH_SIZE);
+        try (var conn = databaseManager.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 分布式锁：锁定水位行
+                String lastCleanupStr = watermarkDao.getForUpdate(conn, CLEANUP_WATERMARK_NAME);
+                long now = System.currentTimeMillis();
+
+                // 检查是否在当前周期内已清理
+                if (lastCleanupStr != null) {
+                    try {
+                        long lastTime = Long.parseLong(lastCleanupStr);
+                        if (now - lastTime < CLEANUP_INTERVAL_MS) {
+                            conn.rollback();
+                            return 0; // 其他子服已清理
+                        }
+                    } catch (NumberFormatException ignored) {
+                        // 水位值异常，视为需要重新清理
+                    }
+                }
+
+                // 执行清理
+                int totalDeleted = 0;
+                int deleted;
+                do {
+                    deleted = conversationDao.cleanExpired(conn, cutoffTime, CLEANUP_BATCH_SIZE);
+                    totalDeleted += deleted;
+                } while (deleted >= CLEANUP_BATCH_SIZE);
+
+                // 原子提交：清理 + 水位
+                watermarkDao.put(conn, CLEANUP_WATERMARK_NAME, String.valueOf(now));
+                conn.commit();
+
+                if (totalDeleted > 0) {
+                    PluginLogger.info("数据库", "已清理 {} 条过期对话记录（保留天数: {}）", totalDeleted, retentionDays);
+                }
+                return totalDeleted;
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
         } catch (SQLException e) {
             PluginLogger.warn("数据库", "过期清理失败: {}", e.getMessage());
             return 0;
         }
-
-        if (totalDeleted > 0) {
-            PluginLogger.info("数据库", "已清理 {} 条过期对话记录（保留天数: {}）", totalDeleted, retentionDays);
-        }
-        return totalDeleted;
     }
 
     // ==================== 生命周期 ====================
+
+    /**
+     * 热重载配置（由 /kilacraft reload 触发）
+     *
+     * <p>更新可热重载的配置项：历史加载开关、保留天数、表前缀（DAO 重建）、server_id。</p>
+     *
+     * @param config 新的数据库配置
+     */
+    public void refreshConfig(DatabaseConfig config) {
+        this.loadHistoryEnabled = config.isLoadHistoryOnLogin();
+        this.retentionDays = config.getConversationRetentionDays();
+        this.serverId = config.getServerId() != null ? config.getServerId() : "";
+        String prefix = databaseManager.getTablePrefix();
+        this.conversationDao = new ConversationDao(prefix);
+        this.watermarkDao = new WatermarkDao(prefix);
+        PluginLogger.info("数据库", "对话持久化服务配置已刷新（历史加载: {}, 保留天数: {}, server_id: {}）",
+                loadHistoryEnabled, retentionDays > 0 ? retentionDays : "永久", serverId.isEmpty() ? "未配置" : serverId);
+    }
 
     /**
      * 关闭服务：刷盘所有待写入消息

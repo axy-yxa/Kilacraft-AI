@@ -129,4 +129,26 @@ public class DatabaseConfig {
      */
     @Builder.Default
     private final String profileAnalysisSystemPromptEn = "";
+
+    // ==================== 群组服配置 ====================
+
+    /**
+     * 本服唯一标识（群组服中区分不同子服，如 survival / minigame / rpg）
+     *
+     * <p>单机服或独立 H2 数据库留空即可。server_id 仅影响隔离表的数据过滤和水位标记后缀。</p>
+     */
+    @Builder.Default
+    private final String serverId = "";
+
+    /**
+     * 玩家画像表是否共享（跨服共享同一份画像数据）
+     */
+    @Builder.Default
+    private final boolean profileShared = true;
+
+    /**
+     * 社交关系表是否共享（跨服共享同一份社交数据）
+     */
+    @Builder.Default
+    private final boolean socialRelationShared = true;
 }

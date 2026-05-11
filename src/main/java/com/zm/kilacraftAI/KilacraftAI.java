@@ -10,6 +10,7 @@ import com.zm.kilacraftAI.db.DatabaseConfig;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.event.EventCollector;
 import com.zm.kilacraftAI.event.MarketEventCollector;
+import com.zm.kilacraftAI.profile.SocialRelationExtractor;
 import com.zm.kilacraftAI.event.OfflineEventAggregator;
 import com.zm.kilacraftAI.event.PrivateChatListener;
 import com.zm.kilacraftAI.event.TpaListener;
@@ -95,6 +96,18 @@ public final class KilacraftAI extends JavaPlugin {
      */
     @Getter
     private SocialGraph socialGraph;
+
+    /**
+     * 社交关系智能提取器
+     */
+    @Getter
+    private SocialRelationExtractor socialRelationExtractor;
+
+    /**
+     * 市场事件采集器
+     */
+    @Getter
+    private MarketEventCollector marketEventCollector;
 
     /**
      * 对话持久化服务
@@ -224,12 +237,14 @@ public final class KilacraftAI extends JavaPlugin {
             databaseManager = new DatabaseManager();
             databaseManager.initialize(databaseConfigManager);
 
+            String serverId = databaseManager.getConfig().getServerId();
+
             // 初始化画像/事件/社交系统
             // 创建顺序：EventCollector 先于 ProfileManager，因为 ProfileManager 需要注入 EventCollector
-            eventCollector = new EventCollector(this, databaseManager);
+            eventCollector = new EventCollector(this, databaseManager, serverId);
             profileManager = new ProfileManager(this, databaseManager);
             profileManager.setEventCollector(eventCollector);
-            socialGraph = new SocialGraph(this, databaseManager);
+            socialGraph = new SocialGraph(this, databaseManager, serverId, databaseManager.getConfig().isSocialRelationShared());
 
             // 注册事件监听器
             getServer().getPluginManager().registerEvents(eventCollector, this);
@@ -261,8 +276,8 @@ public final class KilacraftAI extends JavaPlugin {
             // 条件注册 GlobalMarketPlus 事件采集器
             if (getServer().getPluginManager().getPlugin("GlobalMarketPlus") != null) {
                 try {
-                    MarketEventCollector marketCollector = new MarketEventCollector(databaseManager);
-                    getServer().getPluginManager().registerEvents(marketCollector, this);
+                    marketEventCollector = new MarketEventCollector(databaseManager, databaseManager.getConfig().getServerId());
+                    getServer().getPluginManager().registerEvents(marketEventCollector, this);
                     PluginLogger.info("数据库", "GlobalMarketPlus 事件采集器已注册");
                 } catch (Exception e) {
                     PluginLogger.warn("市场事件", "GMP 事件监听注册失败: {}", e.getMessage());
@@ -358,8 +373,9 @@ public final class KilacraftAI extends JavaPlugin {
         int maxHistory = configManager.getMaxHistory();
         int retentionDays = dbConfig.getConversationRetentionDays();
         boolean loadHistoryEnabled = dbConfig.isLoadHistoryOnLogin();
+        String serverId = dbConfig.getServerId();
 
-        persistenceService = new ConversationPersistenceService(this, databaseManager, conversationManager, maxHistory, retentionDays, loadHistoryEnabled);
+        persistenceService = new ConversationPersistenceService(this, databaseManager, conversationManager, maxHistory, retentionDays, loadHistoryEnabled, serverId);
 
         // 注入到 ConversationManager（onPlayerQuit 时 flush）
         conversationManager.setPersistenceService(persistenceService);
@@ -422,13 +438,13 @@ public final class KilacraftAI extends JavaPlugin {
         });
 
         // 5. 社交关系智能提取（每 30 分钟）
-        SocialRelationExtractor extractor = new SocialRelationExtractor(databaseManager, socialGraph);
+        socialRelationExtractor = new SocialRelationExtractor(databaseManager, socialGraph, databaseManager.getConfig().getServerId());
         taskScheduler.register(new ManagedTask() {
             @Override public String name() { return I18nService.tr("社交提取"); }
             @Override public String description() { return I18nService.tr("从Skill日志提取社交关系"); }
             @Override public long delayTicks() { return 3600L; }
             @Override public long intervalTicks() { return 36000L; }
-            @Override public int execute() { return extractor.extractNewRelations(); }
+            @Override public int execute() { return socialRelationExtractor.extractNewRelations(); }
         });
     }
 

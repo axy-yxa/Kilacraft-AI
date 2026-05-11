@@ -8,6 +8,7 @@ import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
 import com.zm.kilacraftAI.db.ConversationPersistenceService;
 import com.zm.kilacraftAI.db.ConversationSource;
+import com.zm.kilacraftAI.db.DatabaseConfig;
 import com.zm.kilacraftAI.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.handler.AIRequestHandler;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
@@ -144,7 +145,35 @@ public class KilacraftCommand implements CommandExecutor {
             if (plugin.getDatabaseConfigManager() != null && plugin.getDatabaseManager() != null) {
                 try {
                     plugin.getDatabaseConfigManager().reload();
-                    plugin.getDatabaseManager().reload(plugin.getDatabaseConfigManager().getConfig());
+                    DatabaseConfig newDbConfig = plugin.getDatabaseConfigManager().getConfig();
+                    plugin.getDatabaseManager().reload(newDbConfig);
+
+                    // 刷新缓存了数据库配置的服务（表前缀 / 保留天数 / 历史加载开关等）
+                    String newServerId = newDbConfig.getServerId();
+                    if (plugin.getPersistenceService() != null) {
+                        plugin.getPersistenceService().refreshConfig(newDbConfig);
+                    }
+                    if (plugin.getDataCleanupService() != null) {
+                        plugin.getDataCleanupService().refreshConfig(newDbConfig);
+                    }
+                    if (plugin.getProfileAnalysisService() != null) {
+                        plugin.getProfileAnalysisService().refreshConfig();
+                    }
+
+                    // 刷新群组服相关组件的 server_id 配置
+                    if (plugin.getEventCollector() != null) {
+                        plugin.getEventCollector().refreshConfig(newServerId);
+                    }
+                    if (plugin.getMarketEventCollector() != null) {
+                        plugin.getMarketEventCollector().refreshConfig(newServerId);
+                    }
+                    if (plugin.getSocialGraph() != null) {
+                        plugin.getSocialGraph().refreshConfig(newServerId, newDbConfig.isSocialRelationShared());
+                    }
+                    if (plugin.getSocialRelationExtractor() != null) {
+                        plugin.getSocialRelationExtractor().refreshConfig(newServerId);
+                    }
+
                     // 数据库切换成功后，将在线玩家画像补录到新库，避免退服时 UPDATE 丢失
                     if (plugin.getProfileManager() != null) {
                         plugin.getProfileManager().reconcileOnlineProfiles();

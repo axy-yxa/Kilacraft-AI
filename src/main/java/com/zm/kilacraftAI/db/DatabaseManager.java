@@ -49,6 +49,8 @@ public class DatabaseManager {
 
         // 配置完全相同则跳过重建（避免无意义的连接池销毁与创建）
         if (oldConfig != null && configEquals(oldConfig, newConfig)) {
+            // 连接参数未变则跳过连接池重建，但非连接级字段（如 group.*）仍需更新
+            this.currentConfig = newConfig;
             PluginLogger.info("数据库", "热重载跳过，配置未变化（类型: {}）", newConfig.getType());
             return;
         }

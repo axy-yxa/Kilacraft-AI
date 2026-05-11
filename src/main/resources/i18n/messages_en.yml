@@ -1007,6 +1007,7 @@ messages:
   "Schema 版本: 当前={}, 期望={}": "Schema version: current={}, expected={}" 
   "Schema 已迁移到版本 {}": "Schema migrated to version {}"
   "Schema v1 建表完成（6张表）": "Schema v1 table creation complete (6 tables)"
+  "Schema v2 群组服索引已创建（3个 server_id 索引）": "Schema v2 group server indexes created (3 server_id indexes)"
 
   # ==================== ConversationPersistenceService ====================
   "已刷盘玩家 {} 的 {} 条待写入消息": "Flushed {} pending messages for player {}"
@@ -1018,10 +1019,13 @@ messages:
   "过期清理失败: {}": "Expired cleanup failed: {}"
   "已清理 {} 条过期对话记录（保留天数: {}）": "Cleaned {} expired conversation records (retention days: {})"
   "对话持久化服务已关闭": "Conversation persistence service shut down"
+  "对话持久化服务配置已刷新（历史加载: {}, 保留天数: {}, server_id: {}）": "Conversation persistence config refreshed (history loading: {}, retention days: {}, server_id: {})"
   "事件数据清理失败: {}": "Event data cleanup failed: {}"
   "已清理 {} 条过期事件数据": "Cleaned {} expired event records"
   "清理 {} 表 {} 条过期记录": "Cleaned {} expired records from table {}"
   "离线数据聚合失败: {}": "Offline data aggregation failed: {}"
+  "数据清理服务配置已刷新（事件保留: {}天, 审计保留: {}天）": "Data cleanup service config refreshed (event retention: {} days, audit retention: {} days)"
+  "画像分析服务配置已刷新": "Profile analysis service config refreshed"
 
   # ==================== PlayerProfileDao ====================
   "创建新玩家画像: {} ({})": "Creating new player profile: {} ({})"

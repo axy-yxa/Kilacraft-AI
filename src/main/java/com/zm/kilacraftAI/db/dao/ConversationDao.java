@@ -29,10 +29,10 @@ public class ConversationDao {
      * @param conn     数据库连接
      * @param messages 待写入的消息列表，每个元素为 [playerUuid, role, content, personality, source, createdAt]
      */
-    public void batchInsert(Connection conn, List<String[]> messages) throws SQLException {
+    public void batchInsert(Connection conn, List<String[]> messages, String serverId) throws SQLException {
         if (messages == null || messages.isEmpty()) return;
 
-        String sql = "INSERT INTO " + tablePrefix + "conversation " + "(player_uuid, role, content, personality, source, created_at, server_id) " + "VALUES (?, ?, ?, ?, ?, ?, '')";
+        String sql = "INSERT INTO " + tablePrefix + "conversation " + "(player_uuid, role, content, personality, source, created_at, server_id) " + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             for (String[] msg : messages) {
@@ -42,6 +42,7 @@ public class ConversationDao {
                 ps.setString(4, msg[3]); // personality
                 ps.setString(5, msg[4]); // source
                 ps.setLong(6, Long.parseLong(msg[5])); // createdAt
+                ps.setString(7, serverId);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -83,7 +84,9 @@ public class ConversationDao {
     }
 
     /**
-     * 清理过期对话记录
+     * 清理过期对话记录（兼容 H2 和 MySQL）
+     *
+     * <p>H2 不支持 {@code DELETE ... LIMIT} 语法，改用子查询方式限制删除行数。</p>
      *
      * @param conn       数据库连接
      * @param beforeTime 截止时间戳（ms）
@@ -91,7 +94,7 @@ public class ConversationDao {
      * @return 实际删除条数
      */
     public int cleanExpired(Connection conn, long beforeTime, int batchSize) throws SQLException {
-        String sql = "DELETE FROM " + tablePrefix + "conversation WHERE created_at < ? LIMIT ?";
+        String sql = "DELETE FROM " + tablePrefix + "conversation WHERE id IN (" + "SELECT id FROM " + tablePrefix + "conversation WHERE created_at < ? LIMIT ?" + ")";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, beforeTime);
             ps.setInt(2, batchSize);

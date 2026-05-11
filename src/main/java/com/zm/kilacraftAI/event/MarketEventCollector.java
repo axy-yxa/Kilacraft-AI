@@ -26,10 +26,25 @@ import java.util.UUID;
 public class MarketEventCollector implements Listener {
 
     private final DatabaseManager databaseManager;
-    private final ServerEventDao eventDao;
+    private volatile ServerEventDao eventDao;
+    /**
+     * 当前服务器标识（群组服区分）
+     */
+    private volatile String serverId;
 
-    public MarketEventCollector(DatabaseManager databaseManager) {
+    public MarketEventCollector(DatabaseManager databaseManager, String serverId) {
         this.databaseManager = databaseManager;
+        this.eventDao = new ServerEventDao(databaseManager.getTablePrefix());
+        this.serverId = serverId != null ? serverId : "";
+    }
+
+    /**
+     * 热重载配置
+     *
+     * @param serverId 新的 server_id 值
+     */
+    public void refreshConfig(String serverId) {
+        this.serverId = serverId != null ? serverId : "";
         this.eventDao = new ServerEventDao(databaseManager.getTablePrefix());
     }
 
@@ -69,9 +84,10 @@ public class MarketEventCollector implements Listener {
     }
 
     private void submitEvent(ServerEventType type, UUID playerUuid, String data) {
+        final String currentServerId = this.serverId;
         FoliaCompat.getIOPool().submit(() -> {
             try (var conn = databaseManager.getConnection()) {
-                eventDao.insert(conn, ServerEvent.of(type, playerUuid, data));
+                eventDao.insert(conn, ServerEvent.of(type, playerUuid, data), currentServerId);
             } catch (Exception e) {
                 PluginLogger.error("市场事件", "写入市场事件失败: {}", e.getMessage());
             }

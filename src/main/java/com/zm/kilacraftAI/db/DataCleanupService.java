@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.db;
 
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.db.dao.SkillLogDao;
+import com.zm.kilacraftAI.db.dao.WatermarkDao;
 import com.zm.kilacraftAI.util.PluginLogger;
 
 import java.sql.Connection;
@@ -24,55 +25,112 @@ public class DataCleanupService {
      */
     private static final int CLEANUP_BATCH_SIZE = 10000;
 
+    /**
+     * 清理周期水位名称（分布式锁标识）
+     *
+     * <p>清理任务不分 server_id，由分布式锁保证全局只执行一次，替所有子服清理过期数据。</p>
+     */
+    private static final String CLEANUP_WATERMARK_NAME = "cleanup_events";
+
+    /**
+     * 清理周期时长（6 小时 = 21600000ms）
+     */
+    private static final long CLEANUP_INTERVAL_MS = 21600000L;
+
     private final DatabaseManager databaseManager;
-    private final ServerEventDao serverEventDao;
-    private final SkillLogDao skillLogDao;
+    private volatile ServerEventDao serverEventDao;
+    private volatile SkillLogDao skillLogDao;
+    private volatile WatermarkDao watermarkDao;
     /**
      * 服务器事件保留天数（0=永久保留）
      */
-    private final int eventRetentionDays;
+    private volatile int eventRetentionDays;
     /**
      * 技能审计日志保留天数（0=永久保留）
      */
-    private final int skillLogRetentionDays;
+    private volatile int skillLogRetentionDays;
 
     public DataCleanupService(DatabaseManager databaseManager, int eventRetentionDays, int skillLogRetentionDays) {
         this.databaseManager = databaseManager;
         this.serverEventDao = new ServerEventDao(databaseManager.getTablePrefix());
         this.skillLogDao = new SkillLogDao(databaseManager.getTablePrefix());
+        this.watermarkDao = new WatermarkDao(databaseManager.getTablePrefix());
         this.eventRetentionDays = eventRetentionDays;
         this.skillLogRetentionDays = skillLogRetentionDays;
     }
 
     /**
+     * 热重载配置（由 /kilacraft reload 触发）
+     *
+     * <p>更新可热重载的配置项：事件保留天数、审计日志保留天数、表前缀（DAO 重建）。</p>
+     *
+     * @param config 新的数据库配置
+     */
+    public void refreshConfig(DatabaseConfig config) {
+        this.eventRetentionDays = config.getEventRetentionDays();
+        this.skillLogRetentionDays = config.getSkillLogRetentionDays();
+        String prefix = databaseManager.getTablePrefix();
+        this.serverEventDao = new ServerEventDao(prefix);
+        this.skillLogDao = new SkillLogDao(prefix);
+        this.watermarkDao = new WatermarkDao(prefix);
+        PluginLogger.info("数据库", "数据清理服务配置已刷新（事件保留: {}天, 审计保留: {}天）", eventRetentionDays, skillLogRetentionDays);
+    }
+
+    /**
      * 定时过期清理任务（由 TaskScheduler 调度）
+     *
+     * <p>分布式安全：使用 watermark 行锁（SELECT FOR UPDATE）保证群组服中只有一个子服执行清理。</p>
      *
      * @return 实际清理的记录条数
      */
     public int scheduledCleanup() {
-        int totalDeleted = 0;
+        try (var conn = databaseManager.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 分布式锁：锁定水位行
+                String lastCleanupStr = watermarkDao.getForUpdate(conn, CLEANUP_WATERMARK_NAME);
+                long now = System.currentTimeMillis();
 
-        try (Connection conn = databaseManager.getConnection()) {
-            // 清理 server_event
-            if (eventRetentionDays > 0) {
-                long cutoffTime = System.currentTimeMillis() - (eventRetentionDays * 24L * 60 * 60 * 1000);
-                totalDeleted += cleanupTable(conn, serverEventDao::cleanExpired, "服务器事件", cutoffTime);
-            }
+                // 检查是否在当前周期内已清理
+                if (lastCleanupStr != null) {
+                    try {
+                        long lastTime = Long.parseLong(lastCleanupStr);
+                        if (now - lastTime < CLEANUP_INTERVAL_MS) {
+                            conn.rollback();
+                            return 0; // 其他子服已清理
+                        }
+                    } catch (NumberFormatException ignored) {
+                        // 水位值异常，视为需要重新清理
+                    }
+                }
 
-            // 清理 skill_log
-            if (skillLogRetentionDays > 0) {
-                long cutoffTime = System.currentTimeMillis() - (skillLogRetentionDays * 24L * 60 * 60 * 1000);
-                totalDeleted += cleanupTable(conn, skillLogDao::cleanExpired, "技能审计", cutoffTime);
+                // 执行清理
+                int totalDeleted = 0;
+                if (eventRetentionDays > 0) {
+                    long cutoffTime = now - (eventRetentionDays * 24L * 60 * 60 * 1000);
+                    totalDeleted += cleanupTable(conn, serverEventDao::cleanExpired, "服务器事件", cutoffTime);
+                }
+                if (skillLogRetentionDays > 0) {
+                    long cutoffTime = now - (skillLogRetentionDays * 24L * 60 * 60 * 1000);
+                    totalDeleted += cleanupTable(conn, skillLogDao::cleanExpired, "技能审计", cutoffTime);
+                }
+
+                // 原子提交：清理 + 水位
+                watermarkDao.put(conn, CLEANUP_WATERMARK_NAME, String.valueOf(now));
+                conn.commit();
+
+                if (totalDeleted > 0) {
+                    PluginLogger.info("数据库", "已清理 {} 条过期事件数据", totalDeleted);
+                }
+                return totalDeleted;
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
             }
         } catch (SQLException e) {
             PluginLogger.warn("数据库", "事件数据清理失败: {}", e.getMessage());
             return 0;
         }
-
-        if (totalDeleted > 0) {
-            PluginLogger.info("数据库", "已清理 {} 条过期事件数据", totalDeleted);
-        }
-        return totalDeleted;
     }
 
     /**
