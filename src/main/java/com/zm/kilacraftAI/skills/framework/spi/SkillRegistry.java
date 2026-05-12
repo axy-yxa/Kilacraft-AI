@@ -55,6 +55,12 @@ public class SkillRegistry {
 
             for (Skill skill : skills) {
                 try {
+                    // SPI 兼容性预检：调用所有必须实现的方法，确保 Skill 实现了当前版本的接口
+                    // 旧版 SPI 插件未实现新增方法时，会抛出 AbstractMethodError/NoSuchMethodError
+                    skill.getName();
+                    skill.getDescription();
+                    skill.getRequiredPermission();
+
                     // 检查 Skill 是否已注册（防止同名覆盖）
                     Skill existingSkill = skillManager.getSkill(skill.getName());
                     if (existingSkill == null) {
@@ -65,8 +71,11 @@ public class SkillRegistry {
                         // 已存在内置 Skill，不覆盖，跳过
                         PluginLogger.warn("技能注册", "跳过第三方技能 '{}'（来自 {}）：名称与已注册技能冲突", skill.getName(), sourcePlugin.getName());
                     }
-                } catch (Exception e) {
-                    PluginLogger.warn("技能注册", I18nService.tr("注册第三方技能失败:{} (来自 {}): {}", skill.getName(), sourcePlugin.getName(), e.getMessage()), e);
+                } catch (AbstractMethodError | NoSuchMethodError e) {
+                    PluginLogger.warn("技能注册", I18nService.tr("跳过第三方技能 '{}'（来自 {}）：接口版本不兼容，开发者需更新依赖至 Kilacraft-Skill-API 2.0.2+ 后重新编译发布",
+                            skill.getClass().getName(), sourcePlugin.getName()));
+                } catch (Throwable e) {
+                    PluginLogger.warn("技能注册", I18nService.tr("注册第三方技能失败:{} (来自 {}): {}", skill.getClass().getName(), sourcePlugin.getName(), e.getMessage()), e);
                 }
             }
         }

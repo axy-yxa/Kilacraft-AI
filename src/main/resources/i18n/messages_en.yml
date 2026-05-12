@@ -258,6 +258,7 @@ messages:
   "发现并注册第三方技能：{} (来自 {})": "Discovered and registered third-party skill: {} (from {})"
   "跳过第三方技能 '{}'（来自 {}）：名称与已注册技能冲突": "Skipped third-party skill '{}' (from {}): name conflicts with registered skill"
   "注册第三方技能失败:{} (来自 {}): {}": "Third-party skill registration failed: {} (from {}): {}"
+  "跳过第三方技能 '{}'（来自 {}）：接口版本不兼容，开发者需更新依赖至 Kilacraft-Skill-API 2.0.2+ 后重新编译发布": "Skipped third-party skill '{}' (from {}): incompatible API version, developer must update dependency to Kilacraft-Skill-API 2.0.2+ and recompile"
   "共发现并注册 {} 个第三方技能": "Discovered and registered {} third-party skills in total"
   "未发现有效的第三方 SkillProvider": "No valid third-party SkillProvider found"
 
@@ -1027,6 +1028,8 @@ messages:
   "数据清理服务配置已刷新（事件保留: {}天, 审计保留: {}天）": "Data cleanup service config refreshed (event retention: {} days, audit retention: {} days)"
   "画像分析服务配置已刷新": "Profile analysis service config refreshed"
   "画像管理器配置已刷新": "Profile manager config refreshed"
+  "意图识别失败: {}": "Intent recognition failed: {}"
+  "LLM 请求失败: {}": "LLM request failed: {}"
 
   # ==================== PlayerProfileDao ====================
   "创建新玩家画像: {} ({})": "Creating new player profile: {} ({})"
