@@ -260,6 +260,12 @@ public class ConversationPersistenceService {
             return;
         }
 
+        // 检查 cleared 标记：玩家执行过 /ai clear，跳过 DB 加载，从空白上下文开始
+        if (conversationManager.consumeCleared(playerUuid)) {
+            callback.accept(new ArrayDeque<>());
+            return;
+        }
+
         // 从枚举构建 SQL IN 子句
         String sourceFilter = buildSourceFilter(sources);
 

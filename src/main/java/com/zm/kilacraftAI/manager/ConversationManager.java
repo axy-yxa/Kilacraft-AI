@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -39,6 +40,16 @@ public class ConversationManager {
      */
     @Getter
     private final Map<String, Deque<Message>> pluginCommandHistory = new ConcurrentHashMap<>();
+
+    /**
+     * 已执行 clear 的玩家集合（一次性消耗标记）
+     * <p>
+     * 玩家执行 /ai clear 后加入此集合，阻止 {@link com.zm.kilacraftAI.db.ConversationPersistenceService#loadHistoryIfNeeded}
+     * 从 DB 加载旧历史。标记在下次 loadHistoryIfNeeded 时一次性消耗（移除），
+     * 在玩家下线时也会被清理。
+     * </p>
+     */
+    private final Set<UUID> clearedPlayers = ConcurrentHashMap.newKeySet();
 
     /**
      * AI 最新回复缓存（key: UUID_人格，value: AI 回复内容）
@@ -130,13 +141,32 @@ public class ConversationManager {
     }
 
     /**
-     * 清除指定玩家的所有历史记录（包括普通和插件命令）
+     * 清除指定玩家的所有历史记录（包括普通和插件命令），并标记为 cleared
+     * <p>
+     * cleared 标记会阻止后续 {@code loadHistoryIfNeeded} 从 DB 加载旧历史，
+     * 使玩家从空白上下文开始新对话。标记在下次 loadHistoryIfNeeded 时一次性消耗。
+     * </p>
      *
      * @param playerId 玩家 UUID
      */
     public void clearAllHistory(UUID playerId) {
         clearHistory(playerId);
         clearPluginHistory(playerId);
+        clearedPlayers.add(playerId);
+    }
+
+    /**
+     * 检查并消耗 cleared 标记
+     * <p>
+     * 如果玩家在 cleared 集合中，移除标记并返回 true；否则返回 false。
+     * 此方法用于 {@code loadHistoryIfNeeded} 中判断是否应跳过 DB 加载。
+     * </p>
+     *
+     * @param playerId 玩家 UUID
+     * @return true 表示该玩家刚执行过 clear，应跳过 DB 加载
+     */
+    public boolean consumeCleared(UUID playerId) {
+        return clearedPlayers.remove(playerId);
     }
 
     /**
@@ -213,5 +243,8 @@ public class ConversationManager {
 
         // 4. 清理最新AI回复缓存
         latestAIResponses.keySet().removeIf(key -> key.startsWith(playerId.toString()));
+
+        // 5. 清理 cleared 标记（下线后再上线应正常加载 DB 历史）
+        clearedPlayers.remove(playerId);
     }
 }
