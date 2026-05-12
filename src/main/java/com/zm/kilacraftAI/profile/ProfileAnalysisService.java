@@ -16,8 +16,10 @@ import com.zm.kilacraftAI.util.PluginLogger;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -119,6 +121,11 @@ public class ProfileAnalysisService {
             2. Keep the same fields as the existing profile (playstyle, personality, preferences, communication_style, notes)
             3. If insufficient information for a dimension, use empty string
             """;
+
+    /**
+     * 注入旧画像时需要过滤掉的元数据字段（非画像内容，由 handleAnalysisResult 自动管理）
+     */
+    private static final Set<String> METADATA_KEYS = Set.of("version", "analyzed_at");
 
     private final KilacraftAI plugin;
     private final DatabaseManager databaseManager;
@@ -268,8 +275,11 @@ public class ProfileAnalysisService {
 
         Map<String, Object> existingData = profile.getExtendedData();
         if (existingData != null && !existingData.isEmpty()) {
+            // 过滤元数据字段，仅注入画像内容（version/analyzed_at 由 handleAnalysisResult 管理）
+            Map<String, Object> cleanData = new LinkedHashMap<>(existingData);
+            METADATA_KEYS.forEach(cleanData::remove);
             sb.append(I18nService.tr("以下是该玩家的历史画像数据（JSON）：\n\n"));
-            sb.append(GSON.toJson(existingData)).append("\n\n");
+            sb.append(GSON.toJson(cleanData)).append("\n\n");
             sb.append(I18nService.tr("以及自上次分析以来的新对话记录：\n\n"));
         } else {
             sb.append(I18nService.tr("以下是玩家的对话历史，请分析其行为特征：\n\n"));

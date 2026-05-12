@@ -1026,6 +1026,7 @@ messages:
   "离线数据聚合失败: {}": "Offline data aggregation failed: {}"
   "数据清理服务配置已刷新（事件保留: {}天, 审计保留: {}天）": "Data cleanup service config refreshed (event retention: {} days, audit retention: {} days)"
   "画像分析服务配置已刷新": "Profile analysis service config refreshed"
+  "画像管理器配置已刷新": "Profile manager config refreshed"
 
   # ==================== PlayerProfileDao ====================
   "创建新玩家画像: {} ({})": "Creating new player profile: {} ({})"

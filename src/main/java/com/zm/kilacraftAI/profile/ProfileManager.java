@@ -34,8 +34,8 @@ public class ProfileManager {
 
     private final KilacraftAI plugin;
     private final DatabaseManager databaseManager;
-    private final PlayerProfileDao profileDao;
-    private final ProfileSnapshotDao snapshotDao;
+    private PlayerProfileDao profileDao;
+    private ProfileSnapshotDao snapshotDao;
 
     /**
      * 事件采集器（volatile 保证异步线程可见性：setEventCollector 在主线程调用，onPlayerJoin 回调在 IO 线程读取）
@@ -48,6 +48,20 @@ public class ProfileManager {
         this.databaseManager = databaseManager;
         this.profileDao = new PlayerProfileDao(databaseManager.getTablePrefix());
         this.snapshotDao = new ProfileSnapshotDao(databaseManager.getTablePrefix());
+    }
+
+    /**
+     * 热重载配置（由 /kilacraft reload 触发）
+     *
+     * <p>重建 DAO 以反映最新的表前缀。</p>
+     * <p>其他配置（保留天数、分析间隔等）均通过
+     * {@code databaseManager.getConfig()} 动态读取，无需额外刷新。</p>
+     */
+    public void refreshConfig() {
+        String tablePrefix = databaseManager.getTablePrefix();
+        this.profileDao = new PlayerProfileDao(tablePrefix);
+        this.snapshotDao = new ProfileSnapshotDao(tablePrefix);
+        PluginLogger.info("数据库", "画像管理器配置已刷新");
     }
 
     /**

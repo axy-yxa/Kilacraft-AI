@@ -159,6 +159,9 @@ public class KilacraftCommand implements CommandExecutor {
                     if (plugin.getProfileAnalysisService() != null) {
                         plugin.getProfileAnalysisService().refreshConfig();
                     }
+                    if (plugin.getProfileManager() != null) {
+                        plugin.getProfileManager().refreshConfig();
+                    }
 
                     // 刷新群组服相关组件的 server_id 配置
                     if (plugin.getEventCollector() != null) {
