@@ -244,7 +244,7 @@ public final class KilacraftAI extends JavaPlugin {
             eventCollector = new EventCollector(this, databaseManager, serverId);
             profileManager = new ProfileManager(this, databaseManager);
             profileManager.setEventCollector(eventCollector);
-            socialGraph = new SocialGraph(this, databaseManager, serverId, databaseManager.getConfig().isSocialRelationShared());
+            socialGraph = new SocialGraph(this, databaseManager);
 
             // 注册事件监听器
             getServer().getPluginManager().registerEvents(eventCollector, this);

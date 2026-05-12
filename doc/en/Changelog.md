@@ -9,8 +9,8 @@
 
 ### ✨ New Features
 - **Group Server Data Isolation**: Supports BungeeCord/Velocity cross-server data sharing and isolation
-  - `database.yml` adds `group` config section (`server_id` / `player_profile` / `social_relation`), requires deleting old config file to regenerate
-  - Conversation history, server events, skill audit logs isolated by `server_id`; profile & social relations support `shared`/`isolated` config
+  - `database.yml` adds `group.server_id` config, requires deleting old config file to regenerate
+  - Conversation history, server events, skill audit logs isolated by `server_id`; player profiles & social relations are inherently cross-server shared (no `server_id` field, not configurable)
   - Schema upgraded to v2, auto-creates `server_id` indexes (H2 / MySQL compatible)
   - Supports group config hot-reload
 - **Skill Permission Pre-Filter**: Dynamically filters available skills by player permissions during intent recognition; unauthorized skills excluded from LLM candidates
@@ -23,20 +23,24 @@
 - Fixed API_KEY unconfigured prompt pointing to wrong config file (`config.yml` → `llm.yml`)
 - Fixed `getBoolean()` silently returning default for `"shared"`/`"isolated"` string values (Critical)
 - Fixed `DatabaseManager.reload()` not updating `currentConfig` on hot-reload
-- Removed `DataCleanupService.serverId` dead code
+- Fixed enchanted golden apple event name exceeding length limit
+- Fixed SQL syntax incompatibility in expired conversation/event/audit log cleanup using derived table syntax
 
 ### 🔧 Improvements
 - Distributed scheduled task race safety: watermark markers + `SELECT FOR UPDATE` row locks for distributed mutual exclusion
 - `database.yml` group config section moved up + unified comment style
+- Removed `DataCleanupService.serverId` dead code
+- Improved key field length documentation comments
+- Removed unused parameter from social relation interaction type enum
 - ConditionPlan operator descriptions migrated to `I18nService.tr()` system
-- SPI integration guide and database config guide updated in both Chinese and English
+- SPI integration guide, database config guide, and player profile & social relations system guide updated in both Chinese and English (corrected table field descriptions to match actual DDL)
 
 ### ⚠️ Compatibility
 
 #### Upgrading from v2.0.1
 1. Stop server, replace JAR, start — defaults to standalone mode, no config changes needed
 2. Database Schema auto-upgrades to v2, no manual migration needed
-3. For group server mode, delete `database.yml` to regenerate, or manually add `group` config section
+3. For group server mode, delete `database.yml` to regenerate, or manually add `group.server_id` config
 
 #### New Permission Nodes
 - `kilacraft.afk.task` / `kilacraft.bukkit_fx` / `kilacraft.bukkit_stats` / `kilacraft.bukkit_api` (default true)

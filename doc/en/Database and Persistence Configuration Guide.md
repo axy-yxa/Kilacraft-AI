@@ -57,9 +57,10 @@ After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to
 | `id` | BIGINT | Primary key, auto-increment |
 | `player_uuid` | VARCHAR(36) | Player UUID |
 | `role` | VARCHAR(16) | Role (user/assistant) |
-| `message` | TEXT | Message content |
-| `source` | VARCHAR(32) | Source identifier (chat/command/console_plugin/console/greeting/afk_callback) |
-| `created_at` | TIMESTAMP | Creation time |
+| `content` | TEXT | Message content |
+| `personality` | VARCHAR(32) | Personality ID (empty for default AI) |
+| `source` | VARCHAR(16) | Source identifier (chat/command/plugin/greeting/afk_callback) |
+| `created_at` | BIGINT | Message creation timestamp (ms) |
 | `server_id` | VARCHAR(64) | Server identifier (for group servers, empty for single server) |
 
 **Write Strategy**: Write-Behind async flush  
@@ -70,14 +71,21 @@ After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to
 
 | Field | Type | Description |
 |------|------|-------------|
-| `player_uuid` | VARCHAR(36) | Player UUID (unique) |
-| `player_name` | VARCHAR(64) | Player name |
-| `first_login` | TIMESTAMP | First login time |
-| `total_playtime_seconds` | BIGINT | Total playtime (seconds) |
-| `login_count` | INT | Login count |
+| `uuid` | VARCHAR(36) | Player UUID (primary key) |
+| `name` | VARCHAR(16) | Player name |
+| `first_login` | BIGINT | First login timestamp (ms) |
+| `last_login` | BIGINT | Last login timestamp (ms) |
+| `last_logout` | BIGINT | Last logout timestamp (ms) |
+| `login_count` | INT | Total login count |
+| `total_playtime_ms` | BIGINT | Total playtime (ms) |
+| `last_world` | VARCHAR(64) | Last world on logout |
+| `last_x` | DOUBLE | Last X coordinate on logout |
+| `last_y` | DOUBLE | Last Y coordinate on logout |
+| `last_z` | DOUBLE | Last Z coordinate on logout |
+| `last_greeting_time` | BIGINT | Last AI greeting timestamp (ms) |
 | `profile_data` | TEXT | Profile JSON (5 dimensions) |
-| `last_analysis_time` | TIMESTAMP | Last profile analysis time |
-| `version_stamp` | BIGINT | Version stamp (prevents race conditions) |
+| `profile_analyzed_at` | BIGINT | Last profile analysis completion timestamp (ms) |
+| `updated_at` | BIGINT | Last update timestamp (ms) |
 
 **Profile Dimensions**:
 - Playstyle: PVP/PVE/Building/Exploration/Redstone/Survival, etc.
@@ -96,11 +104,11 @@ After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to
 | Field | Type | Description |
 |------|------|-------------|
 | `id` | BIGINT | Primary key, auto-increment |
-| `player_uuid` | VARCHAR(36) | Related player UUID |
-| `target_uuid` | VARCHAR(36) | Target player UUID (nullable) |
-| `event_type` | VARCHAR(64) | Event type |
-| `data` | TEXT | Event data (structured text, event-specific) |
-| `created_at` | TIMESTAMP | Event time |
+| `event_type` | VARCHAR(32) | Event type |
+| `player_uuid` | VARCHAR(36) | Triggering player UUID |
+| `target_uuid` | VARCHAR(36) | Target player UUID (optional) |
+| `data` | TEXT | Event metadata JSON |
+| `created_at` | BIGINT | Event timestamp (ms) |
 | `server_id` | VARCHAR(64) | Server identifier (for group servers) |
 
 **Event Types**: `PLAYER_DEATH`, `PLAYER_ADVANCEMENT`, `PLAYER_LEVEL_UP`, `MARKET_ITEM_SOLD`, `MARKET_ITEM_LISTED`, `MARKET_MONEY_RECEIVED`, `PLAYER_LOGIN`, `PLAYER_LOGOUT`, `PLAYER_FIRST_JOIN`, `PLAYER_PVP_KILL`, `PLAYER_PVP_DEATH`, `PLAYER_DEFEAT_BOSS`, `PLAYER_TAME_ANIMAL`, etc.
@@ -111,10 +119,14 @@ After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to
 
 | Field | Type | Description |
 |------|------|-------------|
-| `player_uuid` | VARCHAR(36) | Player UUID |
-| `target_uuid` | VARCHAR(36) | Target player UUID |
-| `strength` | DOUBLE | Relation strength |
-| `last_interaction` | TIMESTAMP | Last interaction time |
+| `id` | BIGINT | Primary key, auto-increment |
+| `player_uuid` | VARCHAR(36) | Player UUID (relationship owner) |
+| `target_uuid` | VARCHAR(36) | Target UUID (relationship target) |
+| `relation_type` | VARCHAR(32) | Relation type (e.g., PRIVATE_CHAT / TPA_INTERACTION / SKILL_INTERACTION) |
+| `interaction_count` | INT | Interaction count |
+| `last_interaction` | BIGINT | Last interaction timestamp (ms) |
+| `strength` | DOUBLE | Relation strength (daily decay) |
+| `updated_at` | BIGINT | Last update timestamp (ms) |
 
 **Interaction Weights**:
 - Private message: +0.01
@@ -128,16 +140,16 @@ After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to
 | Field | Type | Description |
 |------|------|-------------|
 | `id` | BIGINT | Primary key, auto-increment |
-| `player_uuid` | VARCHAR(36) | Player UUID |
-| `skill_name` | VARCHAR(128) | Skill name |
-| `action` | VARCHAR(128) | Action name |
-| `entities` | TEXT | Entity parameters JSON |
+| `player_uuid` | VARCHAR(36) | Triggering player UUID |
+| `skill_name` | VARCHAR(32) | Skill name |
+| `action` | VARCHAR(64) | Executed action |
+| `entities` | TEXT | Involved entities JSON |
 | `success` | BOOLEAN | Success flag |
 | `result_message` | TEXT | Result message |
 | `trigger_message` | TEXT | Trigger original message |
 | `execution_ms` | BIGINT | Execution time (ms) |
-| `source` | VARCHAR(64) | Trigger source |
-| `created_at` | TIMESTAMP | Creation time |
+| `source` | VARCHAR(16) | Trigger source (agent/manual) |
+| `created_at` | BIGINT | Creation timestamp (ms) |
 | `server_id` | VARCHAR(64) | Server identifier (for group servers) |
 
 ### kca_watermark - Watermark (Distributed Mutual Exclusion)
@@ -147,7 +159,7 @@ After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to
 | `name` | VARCHAR(64) | Watermark name (primary key, e.g., `decay_date`, `extract_time:survival`) |
 | `value` | VARCHAR(128) | Watermark value (date string or timestamp) |
 
-Used for distributed mutual exclusion of scheduled tasks (`SELECT FOR UPDATE` row lock), ensuring only one sub-server in a group executes cleanup/decay tasks. Watermark names automatically follow business table strategy: shared tables use global watermark names, isolated tables use names with `:server_id` suffix.
+Used for distributed mutual exclusion of scheduled tasks (`SELECT FOR UPDATE` row lock), ensuring only one sub-server in a group executes cleanup/decay tasks. Watermark names are based on task type (e.g., `decay_date`, `cleanup_conversation`, `cleanup_events`). Extractor watermark names include `:server_id` suffix for per-server processing (e.g., `extract_time:survival`).
 
 ---
 
@@ -155,14 +167,16 @@ Used for distributed mutual exclusion of scheduled tasks (`SELECT FOR UPDATE` ro
 
 ### Table Isolation Strategy
 
-| Table | Default Strategy | Reason | Configurable |
+| Table | Strategy | Reason | Has server_id |
 |---|:---:|------|:---:|
-| `conversation` | Isolated | Conversation context belongs to sub-server | Fixed |
-| `server_event` | Isolated | Events occur on specific sub-server | Fixed |
-| `skill_log` | Isolated | Skill execution on specific sub-server | Fixed |
-| `player_profile` | Shared | Player profiles accumulate cross-server | Configurable |
-| `social_relation` | Shared | Social relations are inherently cross-server | Configurable |
-| `watermark` | Auto-derived | Follows associated business table | Automatic |
+| `conversation` | Isolated | Conversation context belongs to sub-server | Yes |
+| `server_event` | Isolated | Events occur on specific sub-server | Yes |
+| `skill_log` | Isolated | Skill execution on specific sub-server | Yes |
+| `player_profile` | Shared | Player profiles accumulate cross-server (no server_id field) | No |
+| `social_relation` | Shared | Social relations are inherently cross-server (no server_id field) | No |
+| `watermark` | Global | Distributed mutex locks, distinguished by task name | No |
+
+> **Note**: player_profile and social_relation are inherently shared — these tables have no server_id field from design, so all sub-servers operate on the same data. The watermark table is global, with watermark names based on task type (e.g., `decay_date`, `cleanup_conversation`, `cleanup_events`, `extract_time:server_id`). Watermark names without server_id suffix indicate global single-execution.
 
 ### Group Server Setup
 
@@ -198,8 +212,6 @@ mysql:
 # Group server configuration (leave empty for single server)
 group:
   server_id: ""              # Unique identifier for this sub-server
-  player_profile: shared     # Player profile sharing strategy
-  social_relation: shared    # Social relation sharing strategy
 
 # Connection pool (HikariCP)
 pool:

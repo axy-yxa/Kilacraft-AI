@@ -139,16 +139,4 @@ public class DatabaseConfig {
      */
     @Builder.Default
     private final String serverId = "";
-
-    /**
-     * 玩家画像表是否共享（跨服共享同一份画像数据）
-     */
-    @Builder.Default
-    private final boolean profileShared = true;
-
-    /**
-     * 社交关系表是否共享（跨服共享同一份社交数据）
-     */
-    @Builder.Default
-    private final boolean socialRelationShared = true;
 }

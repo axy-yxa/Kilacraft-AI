@@ -75,34 +75,17 @@ public class SocialGraph {
      */
     private volatile LocalDate lastDecayDate;
 
-    /**
-     * 当前服务器标识（群组服区分，影响水位名称后缀）
-     */
-    private volatile String serverId;
-
-    /**
-     * 社交关系是否共享（共享时水位不带 server_id 后缀）
-     */
-    private volatile boolean socialRelationShared;
-
-    public SocialGraph(KilacraftAI plugin, DatabaseManager databaseManager, String serverId, boolean socialRelationShared) {
+    public SocialGraph(KilacraftAI plugin, DatabaseManager databaseManager) {
         this.plugin = plugin;
         this.databaseManager = databaseManager;
         this.socialDao = new SocialRelationDao(databaseManager.getTablePrefix());
         this.watermarkDao = new WatermarkDao(databaseManager.getTablePrefix());
-        this.serverId = serverId != null ? serverId : "";
-        this.socialRelationShared = socialRelationShared;
     }
 
     /**
      * 热重载配置
-     *
-     * @param serverId             新的 server_id
-     * @param socialRelationShared 社交关系是否共享
      */
-    public void refreshConfig(String serverId, boolean socialRelationShared) {
-        this.serverId = serverId != null ? serverId : "";
-        this.socialRelationShared = socialRelationShared;
+    public void refreshConfig() {
         String prefix = databaseManager.getTablePrefix();
         this.watermarkDao = new WatermarkDao(prefix);
     }
@@ -201,14 +184,11 @@ public class SocialGraph {
     /**
      * 构建 decay_date 水位名称
      *
-     * <p>共享模式下不带 server_id 后缀（全局只衰减一次），
-     * 隔离模式下带 server_id 后缀（各服独立衰减）。</p>
+     * <p>社交关系天然跨服，始终使用全局水位名 "decay_date"，
+     * 保证群组服中只有一个子服执行衰减，避免重复操作。</p>
      */
     private String buildDecayWatermarkName() {
-        if (socialRelationShared) {
-            return "decay_date";
-        }
-        return serverId.isEmpty() ? "decay_date" : "decay_date:" + serverId;
+        return "decay_date";
     }
 
     /**

@@ -168,7 +168,7 @@ public class KilacraftCommand implements CommandExecutor {
                         plugin.getMarketEventCollector().refreshConfig(newServerId);
                     }
                     if (plugin.getSocialGraph() != null) {
-                        plugin.getSocialGraph().refreshConfig(newServerId, newDbConfig.isSocialRelationShared());
+                        plugin.getSocialGraph().refreshConfig();
                     }
                     if (plugin.getSocialRelationExtractor() != null) {
                         plugin.getSocialRelationExtractor().refreshConfig(newServerId);

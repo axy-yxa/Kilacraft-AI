@@ -31,11 +31,13 @@ mysql:
 # 群组服场景下，多个子服共享同一个 MySQL 数据库
 # 每个子服需要配置唯一的 server_id 以区分数据
 # 单机服留空即可（默认值）
-# server_id 仅影响隔离表的数据过滤和水位标记后缀
+# server_id 仅影响隔离表（conversation / server_event / skill_log）的数据过滤
+# player_profile 和 social_relation 为共享表（无 server_id 字段），天然跨服共享
 # In group server setups, multiple sub-servers share the same MySQL database
 # Each sub-server needs a unique server_id to distinguish data
 # Leave empty for single-server setups (default)
-# server_id only affects data filtering of isolated tables and watermark suffixes
+# server_id only affects data filtering of isolated tables (conversation / server_event / skill_log)
+# player_profile and social_relation are shared tables (no server_id field), naturally cross-server
 group:
   # 本服唯一标识（群组服中区分不同子服，如 survival / minigame / rpg）
   # 单机服或独立 H2 数据库无需修改
@@ -44,17 +46,6 @@ group:
   # No need to change for single-server or standalone H2 database
   # Run /kilacraft reload to apply (only affects newly written data)
   server_id: ""
-
-  # 数据共享策略（仅群组服共享 MySQL 时需要关注）
-  # shared = 跨服共享同一份数据（适合画像、社交等天然跨服的数据）
-  # isolated = 各服独立数据（通过 server_id 字段过滤）
-  # 默认值已优化，一般不需要修改
-  # Data sharing strategy (only relevant for group servers sharing MySQL)
-  # shared = Cross-server shared data (suitable for profiles, social relations)
-  # isolated = Per-server isolated data (filtered by server_id field)
-  # Defaults are optimized, generally no need to change
-  player_profile: shared
-  social_relation: shared
 
 # 连接池配置（HikariCP，自适应策略）
 # 不配置时自动根据 CPU 核数和服务端类型计算最优值

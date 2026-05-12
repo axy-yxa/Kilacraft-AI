@@ -49,7 +49,7 @@ To prevent unnecessary LLM overhead, profile analysis requires **all three condi
 
 ### Version Stamp Anti-Race-Condition
 
-Profile updates use a version stamp mechanism — checks `version_stamp` when writing to DB, only allows overwrite when version numbers match, preventing data loss from concurrent updates.
+Profile cache cleanup uses an in-memory version stamp mechanism — when a player logs out, the cache is not immediately removed. Instead, after a 5-minute delay, the version stamp is checked. If the player reconnected during the delay, the version stamp has changed and removal is skipped. This prevents cache from being erroneously cleared during quick reconnects. Database updates use `profileDao.update()` full-field writes without optimistic locking.
 
 ### Memory Cache
 
@@ -85,11 +85,11 @@ Relations with strength < threshold (e.g., 0.01) after decay are auto-cleaned, m
 In multi-server environments, multiple servers may execute daily decay simultaneously, causing duplicate decay.
 
 #### Solution
-- **Watermark Table** (kca_watermark): One record per periodic task
-- **DB Row Lock** (`SELECT FOR UPDATE`): Acquires lock before decay, checks if `last_run_date` is today
+- **Watermark Table** (kca_watermark): Decay watermark name is fixed as `decay_date` (globally unique)
+- **DB Row Lock** (`SELECT FOR UPDATE`): Acquires lock before decay, checks if watermark date is today
 - **CAS Mutual Exclusion** (TaskScheduler layer): Only one thread per task executes at a time within a single server
 
-Two-layer mutual exclusion ensures no conflicts in multi-server environments.
+Two-layer mutual exclusion ensures no conflicts in multi-server environments. Social relations are inherently cross-server shared (no server_id field), decay operates on the entire table, executed globally only once.
 
 ### Social Relation Extractor
 
