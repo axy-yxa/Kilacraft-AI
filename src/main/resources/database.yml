@@ -105,7 +105,7 @@ profile:
   min_messages_to_trigger: 10
   # LLM 分析超时时间（秒）
   # LLM analysis timeout in seconds
-  analysis_timeout_seconds: 60
+  analysis_timeout_seconds: 120
 
   # 画像分析系统提示词（支持多行，修改后 /kilacraft reload 生效）
   # Profile analysis system prompt (supports multiline, /kilacraft reload to apply)
