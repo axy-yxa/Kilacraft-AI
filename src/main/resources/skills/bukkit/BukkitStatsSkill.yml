@@ -3,10 +3,10 @@
 # 用于：查询死亡次数、击杀数、行走距离等历史累计数据
 
 # 此描述会发送给LLM，帮助其理解何时调用此技能
-description: '查询玩家 Minecraft 原版统计数据（累计/生涯记录）。支持统计项精确匹配和中文描述模糊匹配。用于查询历史累计数据，如总死亡次数、总击杀数、总行走距离、挖矿数量等。注意：此技能查询的是生涯累计值，不是当前实时状态（如血量、饱食度）。'
+description: '查询玩家 Minecraft 原版统计数据（累计/生涯记录）。仅支持 Minecraft 游戏内置的统计项（如死亡次数、击杀数、行走距离、挖矿数量、合成物品、使用物品等），不支持查询非游戏内容（如食谱、营养建议等）。注意：此技能查询的是生涯累计值，不是当前实时状态（如血量、饱食度）。'
 
 action_descriptions:
-  query_statistic: '查询指定统计项的值。需要参数：statistic（统计枚举名称或中文描述，如死亡次数、杀了多少怪）。部分统计项需要额外参数：entity_type（实体类型名，如 ZOMBIE）、material（材质名，如 DIAMOND_ORE）。返回的 data 中包含 statistic、value、statistic_type 字段，可供后续步骤引用。'
+  query_statistic: '查询指定统计项的值。需要参数：statistic（Minecraft 游戏统计项的枚举名或游戏相关的中文描述，如 DEATHS、死亡次数、MOB_KILLS、击杀数、杀了多少怪等，必须是与 Minecraft 游戏玩法直接相关的统计项）。部分统计项需要额外参数：entity_type（实体类型名，如 ZOMBIE）、material（材质名，如 DIAMOND_ORE）。返回的 data 中包含 statistic、value、statistic_type 字段，可供后续步骤引用。'
 
 hints:
   - "**累计统计 vs 当前状态**：此技能查询生涯累计值（如总共死了多少次），不适用于查询当前实时状态（如血量/饱食度/等级）。"
