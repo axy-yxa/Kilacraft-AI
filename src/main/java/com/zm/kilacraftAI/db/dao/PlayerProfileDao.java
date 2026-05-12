@@ -102,10 +102,14 @@ public class PlayerProfileDao {
     }
 
     /**
-     * 更新玩家画像（登出时调用）
+     * 更新玩家运行时状态（登录/登出/刷盘时调用）
+     *
+     * <p>仅写入游戏运行时状态字段（登录次数、坐标、在线时长等），
+     * 不覆盖画像分析字段（profile_data / profile_analyzed_at），
+     * 这两个字段由 {@link #updateProfileData} 独占写入。</p>
      */
     public void update(Connection conn, PlayerProfile profile) throws SQLException {
-        String sql = "UPDATE " + tablePrefix + "player_profile SET " + "name = ?, last_login = ?, last_logout = ?, login_count = ?, " + "total_playtime_ms = ?, last_world = ?, " + "last_x = ?, last_y = ?, last_z = ?, " + "last_greeting_time = ?, profile_analyzed_at = ?, profile_data = ?, updated_at = ? " + "WHERE uuid = ?";
+        String sql = "UPDATE " + tablePrefix + "player_profile SET " + "name = ?, last_login = ?, last_logout = ?, login_count = ?, " + "total_playtime_ms = ?, last_world = ?, " + "last_x = ?, last_y = ?, last_z = ?, " + "last_greeting_time = ?, updated_at = ? " + "WHERE uuid = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, profile.getName());
@@ -118,10 +122,8 @@ public class PlayerProfileDao {
             ps.setDouble(8, profile.getLastY());
             ps.setDouble(9, profile.getLastZ());
             ps.setLong(10, profile.getLastGreetingTime());
-            ps.setLong(11, profile.getProfileAnalyzedAt());
-            ps.setString(12, serializeExtendedData(profile.getExtendedData()));
-            ps.setLong(13, System.currentTimeMillis());
-            ps.setString(14, profile.getUuid().toString());
+            ps.setLong(11, System.currentTimeMillis());
+            ps.setString(12, profile.getUuid().toString());
             ps.executeUpdate();
         }
     }
