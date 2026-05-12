@@ -26,6 +26,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * AI 请求统一处理器
@@ -135,7 +136,7 @@ public class AIRequestHandler {
             return;
         }
 
-        intentRecognizer.recognizeIntent(message, ctx.history(), ctx.name(), ctx.player()).thenAccept(result -> {
+        intentRecognizer.recognizeIntent(message, ctx.history(), ctx.name(), ctx.player()).orTimeout(120, TimeUnit.SECONDS).thenAccept(result -> {
             if (result instanceof TaskPlan taskPlan && taskPlan.isMultiStep()) {
                 MetricsCollector.getInstance().recordRequestType("skill_execution");
                 handleTaskPlan(taskPlan, message, ctx);
@@ -148,7 +149,8 @@ public class AIRequestHandler {
                 handleNormalAIRequest(message, ctx);
             }
         }).exceptionally(throwable -> {
-            ctx.sendError.accept(throwable.getMessage());
+            PluginLogger.warn("AI请求", I18nService.tr("意图识别失败: {}", throwable.getMessage()));
+            ctx.sendError.accept(I18nService.tr("意图识别失败: {}", throwable.getMessage()));
             return null;
         });
     }
@@ -255,8 +257,9 @@ public class AIRequestHandler {
             }
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt).thenAccept(fullResponse -> validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source())).exceptionally(throwable -> {
-            ctx.sendError.accept(throwable.getMessage());
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source())).exceptionally(throwable -> {
+            PluginLogger.warn("AI请求", I18nService.tr("LLM 请求失败: {}", throwable.getMessage()));
+            ctx.sendError.accept(I18nService.tr("LLM 请求失败: {}", throwable.getMessage()));
             return null;
         });
     }
