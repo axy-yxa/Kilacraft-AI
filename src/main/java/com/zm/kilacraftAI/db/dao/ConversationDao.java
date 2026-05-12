@@ -86,15 +86,11 @@ public class ConversationDao {
     /**
      * 清理过期对话记录（兼容 H2 和 MySQL）
      *
-     * <p>H2 不支持 {@code DELETE ... LIMIT} 语法，改用子查询方式限制删除行数。</p>
-     *
-     * @param conn       数据库连接
-     * @param beforeTime 截止时间戳（ms）
-     * @param batchSize  单次删除上限
-     * @return 实际删除条数
+     * <p>H2 不支持 {@code DELETE ... LIMIT}，MySQL 不允许 {@code IN} 子查询中使用 {@code LIMIT}。
+     * 使用派生表包裹 LIMIT，H2 和 MySQL 均可执行。</p>
      */
     public int cleanExpired(Connection conn, long beforeTime, int batchSize) throws SQLException {
-        String sql = "DELETE FROM " + tablePrefix + "conversation WHERE id IN (" + "SELECT id FROM " + tablePrefix + "conversation WHERE created_at < ? LIMIT ?" + ")";
+        String sql = "DELETE FROM " + tablePrefix + "conversation WHERE id IN (" + "SELECT id FROM (SELECT id FROM " + tablePrefix + "conversation WHERE created_at < ? LIMIT ?) AS tmp" + ")";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, beforeTime);
             ps.setInt(2, batchSize);

@@ -277,7 +277,7 @@ public class EventCollector implements Listener {
         recipe.getResult();
         if (recipe.getResult().getType() != Material.ENCHANTED_GOLDEN_APPLE) return;
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        submitEvent(ServerEvent.of(ServerEventType.PLAYER_CRAFT_ENCHANTED_GOLDEN_APPLE, player.getUniqueId(), ""));
+        submitEvent(ServerEvent.of(ServerEventType.PLAYER_CRAFT_ENCH_GOLDEN_APPLE, player.getUniqueId(), ""));
     }
 
     /**

@@ -55,10 +55,10 @@ public class SkillLogDao {
     /**
      * 清理过期审计记录（兼容 H2 和 MySQL）
      *
-     * <p>H2 不支持 {@code DELETE ... LIMIT} 语法，改用子查询方式限制删除行数。</p>
+     * <p>使用派生表包裹 LIMIT，H2 和 MySQL 均可执行。</p>
      */
     public int cleanExpired(Connection conn, long beforeTime, int batchSize) throws SQLException {
-        String sql = "DELETE FROM " + tablePrefix + "skill_log WHERE id IN (" + "SELECT id FROM " + tablePrefix + "skill_log WHERE created_at < ? LIMIT ?" + ")";
+        String sql = "DELETE FROM " + tablePrefix + "skill_log WHERE id IN (" + "SELECT id FROM (SELECT id FROM " + tablePrefix + "skill_log WHERE created_at < ? LIMIT ?) AS tmp" + ")";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, beforeTime);
             ps.setInt(2, batchSize);

@@ -4,7 +4,6 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.SocialRelationDao;
-import com.zm.kilacraftAI.db.dao.SocialRelationDao.SocialRelation;
 import com.zm.kilacraftAI.db.dao.WatermarkDao;
 import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
@@ -12,7 +11,6 @@ import lombok.Getter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -29,17 +27,32 @@ public class SocialGraph {
      *
      * <p>作为 SocialGraph 的内部枚举，封装业务语义。
      * DAO 层只接收 double weight 参数，不感知业务含义。</p>
+     *
+     * <p><b>字段长度约束：枚举名 name().length() 不得超过 32 字符</b>
+     * （对应 social_relation.relation_type DDL {@code VARCHAR(32)}）。</p>
      */
     @Getter
     public enum InteractionWeight {
-        PRIVATE_CHAT(0.01, "私聊"), TPA_INTERACTION(0.02, "传送"), SKILL_INTERACTION(0.005, "Skill交互");
+
+        /**
+         * 私聊
+         */
+        PRIVATE_CHAT(0.01),
+
+        /**
+         * 传送
+         */
+        TPA_INTERACTION(0.02),
+
+        /**
+         * Skill交互
+         */
+        SKILL_INTERACTION(0.005);
 
         private final double weight;
-        private final String description;
 
-        InteractionWeight(double weight, String description) {
+        InteractionWeight(double weight) {
             this.weight = weight;
-            this.description = description;
         }
 
     }
@@ -84,8 +97,8 @@ public class SocialGraph {
     /**
      * 热重载配置
      *
-     * @param serverId              新的 server_id
-     * @param socialRelationShared  社交关系是否共享
+     * @param serverId             新的 server_id
+     * @param socialRelationShared 社交关系是否共享
      */
     public void refreshConfig(String serverId, boolean socialRelationShared) {
         this.serverId = serverId != null ? serverId : "";

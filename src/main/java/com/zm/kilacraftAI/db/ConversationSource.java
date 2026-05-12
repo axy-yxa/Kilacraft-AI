@@ -8,6 +8,9 @@ import lombok.Getter;
  * <p>定义所有对话历史的来源类型，用于 {@code kca_conversation} 表的 {@code source} 字段。</p>
  * <p>不同来源的对话在加载时通过 source 过滤隔离，互不污染。</p>
  *
+ * <p><b>字段长度约束：getValue().length() 不得超过 16 字符</b>（对应 DDL {@code VARCHAR(16)}）。
+ * 新增枚举项时必须检查长度。</p>
+ *
  * <ul>
  *     <li>{@link #CHAT} — 连续对话模式 / 关键词触发</li>
  *     <li>{@link #COMMAND} — /kilacraft 命令触发</li>

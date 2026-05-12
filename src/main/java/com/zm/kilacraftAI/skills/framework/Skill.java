@@ -25,6 +25,9 @@ public interface Skill {
     /**
      * 获取技能名称（唯一标识）
      *
+     * <p><b>字段长度约束：返回值长度不得超过 32 字符</b>
+     * （对应 skill_log.skill_name DDL {@code VARCHAR(32)}）。</p>
+     *
      * @return 技能名称
      */
     String getName();

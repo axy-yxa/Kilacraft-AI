@@ -190,16 +190,12 @@ public class GreetingPromptBuilder {
         return switch (type) {
             case MARKET_ITEM_SOLD -> {
                 int count = events.size();
-                yield count == 1
-                        ? I18nService.tr("你上架的商品已卖出") + appendDataSuffix(events.get(0))
-                        : I18nService.tr("你上架的 {} 件商品已卖出", count);
+                yield count == 1 ? I18nService.tr("你上架的商品已卖出") + appendDataSuffix(events.get(0)) : I18nService.tr("你上架的 {} 件商品已卖出", count);
             }
             case MARKET_MONEY_RECEIVED -> {
                 int count = events.size();
                 String amountStr = formatMoneyAmount(events.get(0).getData());
-                yield count == 1
-                        ? I18nService.tr("你收到了 {} 收入", amountStr)
-                        : I18nService.tr("你收到了 {} 笔款项（共 {}）", count, sumMoneyAmounts(events));
+                yield count == 1 ? I18nService.tr("你收到了 {} 收入", amountStr) : I18nService.tr("你收到了 {} 笔款项（共 {}）", count, sumMoneyAmounts(events));
             }
             case PLAYER_DEATH -> {
                 int count = events.size();
@@ -242,9 +238,7 @@ public class GreetingPromptBuilder {
             }
             case PLAYER_USE_TOTEM -> {
                 String suffix = data.isEmpty() ? "" : I18nService.tr("（{}）", formatDamageCause(data));
-                yield events.size() > 1
-                        ? I18nService.tr("你触发了 {} 次不死图腾", events.size()) + suffix
-                        : I18nService.tr("你触发了不死图腾") + suffix;
+                yield events.size() > 1 ? I18nService.tr("你触发了 {} 次不死图腾", events.size()) + suffix : I18nService.tr("你触发了不死图腾") + suffix;
             }
             case PLAYER_DEFEAT_BOSS ->
                     events.size() > 1 ? I18nService.tr("你击杀了 {} 共 {} 次", formatEntityName(data), events.size()) : I18nService.tr("你击杀了 {}", formatEntityName(data));
@@ -263,7 +257,7 @@ public class GreetingPromptBuilder {
             case PLAYER_MINE_ANCIENT_DEBRIS ->
                     events.size() > 1 ? I18nService.tr("你挖到了 {} 块远古残骸", events.size()) : I18nService.tr("你挖到了远古残骸");
             case PLAYER_TAME_ANIMAL -> I18nService.tr("你驯服了{}", formatPetEntityName(data));
-            case PLAYER_CRAFT_ENCHANTED_GOLDEN_APPLE ->
+            case PLAYER_CRAFT_ENCH_GOLDEN_APPLE ->
                     events.size() > 1 ? I18nService.tr("你合成了 {} 个附魔金苹果", events.size()) : I18nService.tr("你合成了附魔金苹果");
             case PLAYER_BUILD_WITHER ->
                     events.size() > 1 ? I18nService.tr("你召唤了 {} 次凋零", events.size()) : I18nService.tr("你召唤了凋零");
@@ -525,9 +519,7 @@ public class GreetingPromptBuilder {
             }
             case PLAYER_USE_TOTEM -> {
                 String suffix = data.isEmpty() ? "" : I18nService.tr("（{}）", formatDamageCause(data));
-                yield events.size() > 1
-                        ? I18nService.tr("{} 触发了 {} 次不死图腾", playerName, events.size()) + suffix
-                        : I18nService.tr("{} 触发了不死图腾", playerName) + suffix;
+                yield events.size() > 1 ? I18nService.tr("{} 触发了 {} 次不死图腾", playerName, events.size()) + suffix : I18nService.tr("{} 触发了不死图腾", playerName) + suffix;
             }
             case PLAYER_DEFEAT_BOSS ->
                     events.size() > 1 ? I18nService.tr("{} 击杀了 {} 共 {} 次", playerName, formatEntityName(data), events.size()) : I18nService.tr("{} 击杀了 {}", playerName, formatEntityName(data));
@@ -546,11 +538,12 @@ public class GreetingPromptBuilder {
             case PLAYER_MINE_ANCIENT_DEBRIS ->
                     events.size() > 1 ? I18nService.tr("{} 挖到了 {} 块远古残骸", playerName, events.size()) : I18nService.tr("{} 挖到了远古残骸", playerName);
             case PLAYER_TAME_ANIMAL -> I18nService.tr("{} 驯服了{}", playerName, formatPetEntityName(data));
-            case PLAYER_CRAFT_ENCHANTED_GOLDEN_APPLE ->
+            case PLAYER_CRAFT_ENCH_GOLDEN_APPLE ->
                     events.size() > 1 ? I18nService.tr("{} 合成了 {} 个附魔金苹果", playerName, events.size()) : I18nService.tr("{} 合成了附魔金苹果", playerName);
             case PLAYER_BUILD_WITHER ->
                     events.size() > 1 ? I18nService.tr("{} 召唤了 {} 次凋零", playerName, events.size()) : I18nService.tr("{} 召唤了凋零", playerName);
-            default -> I18nService.tr("{} 触发了 {} 次 {}", playerName, events.size(), I18nService.tr(type.getDescription()));
+            default ->
+                    I18nService.tr("{} 触发了 {} 次 {}", playerName, events.size(), I18nService.tr(type.getDescription()));
         };
     }
 
