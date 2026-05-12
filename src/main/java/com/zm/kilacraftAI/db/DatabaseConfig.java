@@ -130,6 +130,18 @@ public class DatabaseConfig {
     @Builder.Default
     private final String profileAnalysisSystemPromptEn = "";
 
+    /**
+     * 增量画像分析系统提示词（中文，留空使用默认）
+     */
+    @Builder.Default
+    private final String profileIncrementalSystemPrompt = "";
+
+    /**
+     * 增量画像分析系统提示词（英文，留空使用默认）
+     */
+    @Builder.Default
+    private final String profileIncrementalSystemPromptEn = "";
+
     // ==================== 群组服配置 ====================
 
     /**

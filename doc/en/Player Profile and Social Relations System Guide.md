@@ -1,6 +1,6 @@
 # Kilacraft-AI - Player Profile and Social Relations System Guide
 
-> **Last Updated**: 2026-05-06  
+> **Last Updated**: 2026-05-11  
 > **Description**: This document details the Player Profile System, Social Relationship Graph, and Server Event Collection System introduced in Kilacraft-AI v2.0.0
 
 ---
@@ -32,12 +32,48 @@ Player profiles are AI's "long-term memory" of players. The system automatically
 ```
 Player Login → Load memory cache → Check if analysis needed (triple gate)
                                         ↓ Yes
-                                   LLM Profile Analysis
-                                        ↓
-                                   Update memory cache + async write to DB
-                                        ↓
-                                   Profile summary injected into system prompt on next conversation
+                            Check for existing profile (extendedData)
+                              ↙                    ↘
+                         First Analysis          Incremental Analysis
+                        (no existing profile)    (has existing profile)
+                              ↓                        ↓
+                          LLM Analysis             LLM Fusion
+                        (first prompt)         (old profile + new conversations)
+                              ↓                        ↓
+                              └──────────┬─────────────┘
+                                         ↓
+                              Increment version (+1)
+                              Inject analyzed_at timestamp
+                                         ↓
+                              Update memory cache
+                              Async write to DB (player_profile)
+                              Async write snapshot (profile_snapshot) Added in v2.0.2
+                                         ↓
+                              Profile summary injected into system prompt on next conversation
 ```
+
+**Added in v2.0.2 — Incremental Analysis Mechanism**:
+
+Before v2.0.2, LLM only saw recent conversations each time, outputting a brand-new profile that fully overwrote old data — all previous knowledge was lost. v2.0.2 introduces two improvements:
+
+1. **Input side — Old profile injection**: For non-first analyses, the old profile JSON is injected into LLM input, allowing LLM to build upon existing knowledge rather than starting from scratch
+2. **Output side — Version increment**: The `version` field changed from hardcoded `1` to auto-incrementing (`oldVersion + 1`), producing a new version with each analysis
+
+**Dual Prompt System**:
+
+| Scenario | Prompt Used | Description |
+|----------|-------------|-------------|
+| First analysis (no existing profile) | `DEFAULT_SYSTEM_PROMPT` | Original prompt, requests five-dimension JSON |
+| Incremental analysis (has existing profile) | `DEFAULT_INCREMENTAL_SYSTEM_PROMPT` | Requests comparison of old profile + new conversations, producing a fused updated profile |
+
+Both prompts can be customized in `database.yml` (Chinese/English each with their own config). Custom values take priority when set; built-in defaults are used otherwise.
+
+**Progressive effect of incremental analysis**:
+- V1 analysis: Conversations A → Profile V1 (initial creation)
+- V2 analysis: Profile V1 + Conversations B → Profile V2 (V1's knowledge carried into LLM, preserved in V2)
+- V3 analysis: Profile V2 + Conversations C → Profile V3 (V1+V2 knowledge preserved)
+
+Profile knowledge is cumulative and never lost. A player who built for six months and recently played some PvP will see their profile updated by fusing the new observations onto the existing base, rather than having "master builder" suddenly replaced by "PvP fanatic".
 
 ### Triple Gate Mechanism
 
@@ -50,6 +86,23 @@ To prevent unnecessary LLM overhead, profile analysis requires **all three condi
 ### Version Stamp Anti-Race-Condition
 
 Profile cache cleanup uses an in-memory version stamp mechanism — when a player logs out, the cache is not immediately removed. Instead, after a 5-minute delay, the version stamp is checked. If the player reconnected during the delay, the version stamp has changed and removal is skipped. This prevents cache from being erroneously cleared during quick reconnects. Database updates use `profileDao.update()` full-field writes without optimistic locking.
+
+### Profile Version Tracking `Added in v2.0.2`
+
+Before v2.0.2, the `version` field was hardcoded to `1` and never actually incremented. v2.0.2 changes this to read the old version from the in-memory `extendedData` and auto-increment by +1 on each analysis. For the first analysis, `oldVersion = 0` → `newVersion = 1`.
+
+### Historical Snapshots `Added in v2.0.2`
+
+After each profile analysis, the system automatically inserts a snapshot record into `kca_profile_snapshot` at the same time as writing to `player_profile`, recording the complete profile JSON, version number, analysis window time range, and message count.
+
+**Snapshot vs Profile Update relationship**:
+
+| Operation | Target Table | Description |
+|-----------|-------------|-------------|
+| `profileDao.updateProfileData()` | `kca_player_profile` | Updates `profile_data` + `profile_analyzed_at` (overwrites) |
+| `snapshotDao.insert()` | `kca_profile_snapshot` | Inserts a historical snapshot (appends, permanently retained) |
+
+Both operations execute serially in the same IO task within the same `Connection`, ensuring data consistency. The snapshot table is permanently retained and not subject to `DataCleanupService` scheduled cleanup.
 
 ### Memory Cache
 
@@ -162,6 +215,7 @@ Event count and types are configurable via `greeting.yml`. Friend dynamics use L
 │        Database Async Write (Write-Behind)    │
 │  kca_player_profile │ kca_social_relation    │
 │  kca_server_event   │ kca_skill_log          │
+│  kca_profile_snapshot (Added in v2.0.2)       │
 └─────────────────────────────────────────────┘
                   ↓
 ┌─────────────────────────────────────────────┐

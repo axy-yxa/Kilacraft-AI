@@ -1007,7 +1007,7 @@ messages:
   "Schema 版本: 当前={}, 期望={}": "Schema version: current={}, expected={}" 
   "Schema 已迁移到版本 {}": "Schema migrated to version {}"
   "Schema v1 建表完成（6张表）": "Schema v1 table creation complete (6 tables)"
-  "Schema v2 群组服索引已创建（3个 server_id 索引）": "Schema v2 group server indexes created (3 server_id indexes)"
+  "Schema v2 群组服索引已创建（3个 server_id 索引）+ 画像快照表": "Schema v2 group server indexes created (3 server_id indexes) + profile snapshot table"
 
   # ==================== ConversationPersistenceService ====================
   "已刷盘玩家 {} 的 {} 条待写入消息": "Flushed {} pending messages for player {}"
@@ -1077,11 +1077,13 @@ messages:
   "LLM Provider 未初始化，跳过分析": "LLM Provider not initialized, skipping analysis"
   "LLM 分析失败: {} - {}": "LLM analysis failed: {} - {}"
   "以下是玩家的对话历史，请分析其行为特征：\n\n": "Here is the player's conversation history, please analyze their behavioral characteristics:\n\n"
+  "以下是该玩家的历史画像数据（JSON）：\n\n": "Below is the player's existing profile data (JSON):\n\n"
+  "以及自上次分析以来的新对话记录：\n\n": "And the new conversation records since the last analysis:\n\n"
   "玩家": "Player"
   "LLM 返回空响应，跳过更新": "LLM returned empty response, skipping update"
   "解析 LLM 响应 JSON 失败: {}": "Failed to parse LLM response JSON: {}"
   "解析结果为空，跳过更新": "Parse result is empty, skipping update"
-  "玩家 {} 画像分析完成，字段: {}": "Player {} profile analysis complete, fields: {}"
+  "玩家 {} 画像分析完成，版本: {}，字段: {}": "Player {} profile analysis complete, version: {}, fields: {}"
 
   # ==================== SocialGraph ====================
   "提交交互记录: {} ↔ {}, type={}, weight={}": "Submitting interaction: {} ↔ {}, type={}, weight={}"

@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.I18nService;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
+import com.zm.kilacraftAI.db.dao.ProfileSnapshotDao;
 import com.zm.kilacraftAI.event.EventCollector;
 import com.zm.kilacraftAI.event.ServerEvent;
 import com.zm.kilacraftAI.event.ServerEventType;
@@ -34,6 +35,7 @@ public class ProfileManager {
     private final KilacraftAI plugin;
     private final DatabaseManager databaseManager;
     private final PlayerProfileDao profileDao;
+    private final ProfileSnapshotDao snapshotDao;
 
     /**
      * 事件采集器（volatile 保证异步线程可见性：setEventCollector 在主线程调用，onPlayerJoin 回调在 IO 线程读取）
@@ -45,6 +47,7 @@ public class ProfileManager {
         this.plugin = plugin;
         this.databaseManager = databaseManager;
         this.profileDao = new PlayerProfileDao(databaseManager.getTablePrefix());
+        this.snapshotDao = new ProfileSnapshotDao(databaseManager.getTablePrefix());
     }
 
     /**
@@ -215,13 +218,19 @@ public class ProfileManager {
     /**
      * 更新玩家画像的扩展数据（画像分析服务调用）
      *
-     * <p>同时更新内存缓存和异步写入 DB（使用专用 updateProfileData，只写 profile_data + profile_analyzed_at）。</p>
+     * <p>同时更新内存缓存、异步写入 DB（使用专用 updateProfileData，只写 profile_data + profile_analyzed_at），
+     * 并插入一条快照记录到 {@code kca_profile_snapshot} 表。</p>
      *
-     * @param uuid       玩家 UUID
-     * @param data       分析结果数据
-     * @param analyzedAt 分析完成时间戳
+     * @param uuid         玩家 UUID
+     * @param data         分析结果数据
+     * @param analyzedAt   分析完成时间戳
+     * @param messageCount 本次分析的消息数
+     * @param windowStart  分析窗口起始时间（ms）
+     * @param windowEnd    分析窗口截止时间（ms）
+     * @param version      画像版本号
      */
-    public void putExtendedData(UUID uuid, Map<String, Object> data, long analyzedAt) {
+    public void putExtendedData(UUID uuid, Map<String, Object> data, long analyzedAt,
+                                int messageCount, long windowStart, long windowEnd, int version) {
         PlayerProfile profile = cache.get(uuid);
         if (profile != null) {
             profile.setExtendedData(data);
@@ -231,8 +240,9 @@ public class ProfileManager {
         FoliaCompat.getIOPool().submit(() -> {
             try (var conn = databaseManager.getConnection()) {
                 profileDao.updateProfileData(conn, uuid, data, analyzedAt);
+                snapshotDao.insert(conn, uuid, data, messageCount, windowStart, windowEnd, version, analyzedAt);
             } catch (Exception e) {
-                PluginLogger.error("数据库", "更新画像数据失败: {} - {}", uuid, e.getMessage());
+                PluginLogger.error("数据库", I18nService.tr("更新画像数据失败: {} - {}", uuid, e.getMessage()), e);
             }
         });
     }

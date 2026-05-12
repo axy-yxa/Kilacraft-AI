@@ -179,6 +179,12 @@ public class SchemaManager {
         createIndex(conn, "idx_event_server", "server_event", "server_id");
         createIndex(conn, "idx_skill_server", "skill_log", "server_id");
 
-        PluginLogger.info("数据库", "Schema v2 群组服索引已创建（3个 server_id 索引）");
+        // ── 画像快照表（增量分析版本追踪） ──────────────────────────
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE IF NOT EXISTS " + tablePrefix + "profile_snapshot (" + "id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '自增主键 / Auto-increment ID'," + "player_uuid VARCHAR(36) NOT NULL COMMENT '玩家UUID / Player UUID'," + "snapshot_data TEXT NOT NULL COMMENT '画像快照JSON / Profile snapshot JSON'," + "message_count INT NOT NULL DEFAULT 0 COMMENT '本次分析消息数 / Messages analyzed'," + "window_start BIGINT NOT NULL DEFAULT 0 COMMENT '分析窗口起始时间ms / Window start ms'," + "window_end BIGINT NOT NULL DEFAULT 0 COMMENT '分析窗口截止时间ms / Window end ms'," + "version INT NOT NULL DEFAULT 1 COMMENT '画像版本号 / Profile version'," + "analyzed_at BIGINT NOT NULL COMMENT '分析时间戳ms / Analysis timestamp ms'" + ")");
+        }
+        createIndex(conn, "idx_snapshot_player_time", "profile_snapshot", "player_uuid, analyzed_at DESC");
+
+        PluginLogger.info("数据库", "Schema v2 群组服索引已创建（3个 server_id 索引）+ 画像快照表");
     }
 }

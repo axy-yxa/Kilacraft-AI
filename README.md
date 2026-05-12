@@ -22,10 +22,10 @@ Remember each player's AI assistant - Dialogue as a Service, the more you use it
 | | Feature | Description |
 |:---:|:---|:---|
 | 🤖 | **AI Engine** | LLM intent recognition · Multi-step task planning & execution · RAG knowledge base · Embedding semantic search · 5 output carriers · Streaming output · Secondary analysis coordinator · Public broadcast · Response sound effects |
-| 🧠 | **Player Profile** | 5-dimension behavioral analysis (style/personality/preferences/communication/observations) · Auto-analysis from conversations · Dynamic prompt injection · AI gets smarter about each player |
+| 🧠 | **Player Profile** | 5-dimension behavioral analysis (style/personality/preferences/communication/observations) · Auto-analysis from conversations · Incremental cumulative updates · Version tracking · Historical snapshots · Dynamic prompt injection · AI gets smarter about each player |
 | 🕸️ | **Social Relations** | Auto-track private messages/TPA/skill interactions · Diminishing incremental strength · Daily decay · Friend milestone cross-promotion |
 | 👋 | **Smart Greetings** | Personalized login greetings · Three-category aggregation (own events/friend dynamics/session highlights) · Profile-aware · First-time/returning dual mode |
-| 💾 | **Data Persistence** | Conversation history · Player profiles · Social graph · Server events · Skill audit · H2 zero-config / MySQL hot-swap · Group server data isolation |
+| 💾 | **Data Persistence** | Conversation history · Player profiles · Social graph · Server events · Skill audit · Profile snapshots · H2 zero-config / MySQL hot-swap · Group server data isolation |
 | 💰 | **Economy** | GlobalMarketPlus integration · Natural language balance/price/listing queries · AI-powered trading (sell/buy/transfer/auction) · Multi-item search |
 | 🔍 | **Bukkit API** | 72 built-in read-only APIs · YAML data-driven · Multi-step data passing (with array indexing) · Fine-grained permissions |
 | 🎮 | **CMI Integration** | Teleport (home/warp/TPA) · Enhanced player info (playtime/AFK/vanish/armor/online list) |

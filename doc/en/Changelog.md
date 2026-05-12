@@ -5,9 +5,12 @@
 
 ---
 
-## v2.0.2 - Group Server Data Isolation, Skill Permission Pre-Filter, Placeholder Arithmetic, JSON Auto-Repair
+## v2.0.2 - Group Server Data Isolation, Skill Permission Pre-Filter, Incremental Profile Analysis, Profile Historical Snapshots, Placeholder Arithmetic, JSON Auto-Repair
 
 ### ✨ New Features
+- **Incremental Profile Analysis**: Profile analysis upgraded from "generate fresh each time" to "old profile + new conversations fusion update", long-term player traits are not overridden by short-term fluctuations
+  - Prompts support Chinese/English bilingual configuration (first analysis / incremental analysis configured separately), supports hot-reload
+- **Profile Historical Snapshots**: New `kca_profile_snapshot` table, automatically saves a profile snapshot after each analysis, supports tracing any version's profile content and analysis time range, permanently retained
 - **Group Server Data Isolation**: Supports BungeeCord/Velocity cross-server data sharing and isolation
   - `database.yml` adds `group.server_id` config, requires deleting old config file to regenerate
   - Conversation history, server events, skill audit logs isolated by `server_id`; player profiles & social relations are inherently cross-server shared (no `server_id` field, not configurable)
@@ -33,14 +36,16 @@
 - Improved key field length documentation comments
 - Removed unused parameter from social relation interaction type enum
 - ConditionPlan operator descriptions migrated to `I18nService.tr()` system
-- SPI integration guide, database config guide, and player profile & social relations system guide updated in both Chinese and English (corrected table field descriptions to match actual DDL)
+- `messages_en.yml` adds 4 new incremental analysis related i18n entries
+- SPI integration guide, database config guide, and player profile & social relations system guide updated in both Chinese and English (corrected table field descriptions to match actual DDL, added incremental analysis workflow and snapshot mechanism)
 
 ### ⚠️ Compatibility
 
 #### Upgrading from v2.0.1
 1. Stop server, replace JAR, start — defaults to standalone mode, no config changes needed
-2. Database Schema auto-upgrades to v2, no manual migration needed
+2. Database Schema auto-upgrades to v2 (adds `profile_snapshot` table + 3 `server_id` indexes), no manual migration needed
 3. For group server mode, delete `database.yml` to regenerate, or manually add `group.server_id` config
+4. v2.0.2 adds `profile.incremental_system_prompt` / `incremental_system_prompt_en` config entries (incremental analysis prompt when existing profile is present), leave empty to use built-in defaults, no manual changes needed for upgrade
 
 #### New Permission Nodes
 - `kilacraft.afk.task` / `kilacraft.bukkit_fx` / `kilacraft.bukkit_stats` / `kilacraft.bukkit_api` (default true)
