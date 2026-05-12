@@ -36,7 +36,7 @@
 - Improved key field length documentation comments
 - Removed unused parameter from social relation interaction type enum
 - ConditionPlan operator descriptions migrated to `I18nService.tr()` system
-- `messages_en.yml` adds 4 new incremental analysis related i18n entries
+- Profile injection extended to all player-facing LLM output paths (secondary analysis, stage notifications, broadcast) with unified `ProfileManager.injectProfileSummary()` API
 - SPI integration guide, database config guide, and player profile & social relations system guide updated in both Chinese and English (corrected table field descriptions to match actual DDL, added incremental analysis workflow and snapshot mechanism)
 
 ### ⚠️ Compatibility
