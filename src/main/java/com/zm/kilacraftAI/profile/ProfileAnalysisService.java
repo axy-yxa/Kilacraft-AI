@@ -102,7 +102,7 @@ public class ProfileAnalysisService {
             你是一个玩家行为分析助手。以下是玩家的历史画像数据（JSON）和新的对话记录。
             请对比历史画像和新对话，**保留仍然准确的内容，修正已经变化的内容**，融合输出更新后的完整画像 JSON。
             不要被最近几句话过度左右 —— 关注长期稳定的特征。
-
+            
             【输出要求】
             1. 只输出 JSON，不要包含其他内容
             2. 字段与历史画像保持一致（playstyle、personality、preferences、communication_style、notes）
@@ -113,7 +113,7 @@ public class ProfileAnalysisService {
             You are a player behavior analysis assistant. Below is the player's existing profile data (JSON) and new conversation records.
             Compare the existing profile with new conversations, **retain what still holds true, revise what has changed**, and produce a complete updated profile JSON.
             Do not over-weight the most recent few messages — focus on consistent long-term traits.
-
+            
             Requirements:
             1. Output only JSON, no other content
             2. Keep the same fields as the existing profile (playstyle, personality, preferences, communication_style, notes)
@@ -204,9 +204,7 @@ public class ProfileAnalysisService {
     /**
      * 构造静默 AIResponseHandler 并调用 LLM，返回异步结果链
      */
-    private CompletableFuture<Void> callLLMForAnalysis(UUID playerUuid, PlayerProfile profile,
-                                                       List<ConversationManager.Message> messages,
-                                                       int messageCount, long windowStart) {
+    private CompletableFuture<Void> callLLMForAnalysis(UUID playerUuid, PlayerProfile profile, List<ConversationManager.Message> messages, int messageCount, long windowStart) {
         LLMProvider provider = plugin.getLlmManager().getCurrentProvider();
         if (provider == null) {
             PluginLogger.warn("画像分析", I18nService.tr("LLM Provider 未初始化，跳过分析"));
@@ -253,13 +251,10 @@ public class ProfileAnalysisService {
 
         provider.processRequestWithCustomSystemPrompt(userMessage, playerName, null, silentHandler, getAnalysisSystemPrompt(profile), false, false, true);
 
-        long finalWindowStart = windowStart;
-        return responseFuture.orTimeout(timeoutSeconds, TimeUnit.SECONDS)
-                .thenAccept(response -> handleAnalysisResult(playerUuid, profile, response, messageCount, finalWindowStart))
-                .exceptionally(ex -> {
-                    PluginLogger.warn("画像分析", I18nService.tr("LLM 分析失败: {} - {}", playerUuid, ex.getMessage()));
-                    return null;
-                });
+        return responseFuture.orTimeout(timeoutSeconds, TimeUnit.SECONDS).thenAccept(response -> handleAnalysisResult(playerUuid, profile, response, messageCount, windowStart)).exceptionally(ex -> {
+            PluginLogger.warn("画像分析", I18nService.tr("LLM 分析失败: {} - {}", playerUuid, ex.getMessage()));
+            return null;
+        });
     }
 
     /**
@@ -291,8 +286,7 @@ public class ProfileAnalysisService {
     /**
      * 解析 LLM 响应 JSON 并写入画像
      */
-    private void handleAnalysisResult(UUID playerUuid, PlayerProfile profile, String response,
-                                      int messageCount, long windowStart) {
+    private void handleAnalysisResult(UUID playerUuid, PlayerProfile profile, String response, int messageCount, long windowStart) {
         if (response == null || response.isEmpty()) {
             PluginLogger.warn("画像分析", I18nService.tr("LLM 返回空响应，跳过更新"));
             return;
@@ -324,8 +318,7 @@ public class ProfileAnalysisService {
         profileData.put("version", newVersion);
         profileData.put("analyzed_at", analyzedAt);
 
-        long windowEnd = analyzedAt;
-        profileManager.putExtendedData(playerUuid, profileData, analyzedAt, messageCount, windowStart, windowEnd, newVersion);
+        profileManager.putExtendedData(playerUuid, profileData, analyzedAt, messageCount, windowStart, analyzedAt, newVersion);
 
         PluginLogger.info("画像分析", I18nService.tr("玩家 {} 画像分析完成，版本: {}，字段: {}", playerUuid, newVersion, String.join(", ", profileData.keySet())));
     }

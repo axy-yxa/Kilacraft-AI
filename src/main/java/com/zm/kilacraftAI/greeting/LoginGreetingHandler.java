@@ -147,13 +147,10 @@ public class LoginGreetingHandler implements Listener {
 
         String systemPrompt = promptBuilder.build(context, customPrompt);
 
-        // 画像注入：在系统提示词末尾追加玩家画像摘要
+        // 画像注入
         ProfileManager pm = plugin.getProfileManager();
-        if (config.isProfileInjectionEnabled() && pm != null) {
-            String profileSummary = pm.buildProfileSummary(playerUuid);
-            if (!profileSummary.isEmpty()) {
-                systemPrompt = systemPrompt + "\n\n" + profileSummary;
-            }
+        if (pm != null) {
+            systemPrompt = pm.injectProfileSummary(systemPrompt, playerUuid);
         }
 
         PluginLogger.debug("问候系统", "问候语摘要: {}", systemPrompt);

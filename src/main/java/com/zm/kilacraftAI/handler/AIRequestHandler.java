@@ -248,13 +248,10 @@ public class AIRequestHandler {
 
         // 构建系统提示词（玩家时注入画像摘要，控制台不注入）
         String systemPrompt = plugin.getConfigManager().getSystemPrompt();
-        if (ctx.player() != null && plugin.getConfigManager().isProfileInjectionEnabled()) {
+        if (ctx.player() != null) {
             var profileManager = plugin.getProfileManager();
             if (profileManager != null) {
-                String profileSummary = profileManager.buildProfileSummary(ctx.player().getUniqueId());
-                if (!profileSummary.isEmpty()) {
-                    systemPrompt = systemPrompt + "\n\n" + profileSummary;
-                }
+                systemPrompt = profileManager.injectProfileSummary(systemPrompt, ctx.player().getUniqueId());
             }
         }
 

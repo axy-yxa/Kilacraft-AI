@@ -229,8 +229,7 @@ public class ProfileManager {
      * @param windowEnd    分析窗口截止时间（ms）
      * @param version      画像版本号
      */
-    public void putExtendedData(UUID uuid, Map<String, Object> data, long analyzedAt,
-                                int messageCount, long windowStart, long windowEnd, int version) {
+    public void putExtendedData(UUID uuid, Map<String, Object> data, long analyzedAt, int messageCount, long windowStart, long windowEnd, int version) {
         PlayerProfile profile = cache.get(uuid);
         if (profile != null) {
             profile.setExtendedData(data);
@@ -280,6 +279,27 @@ public class ProfileManager {
         sb.append(I18nService.tr("\n请根据以上画像调整你的沟通风格，让回复更贴合玩家个性。"));
 
         return sb.toString();
+    }
+
+    /**
+     * 将玩家画像摘要注入系统提示词（如果配置开启且有画像数据）
+     *
+     * <p>封装了画像注入的完整逻辑：配置开关检查 → 画像数据获取 → 拼接。
+     * 所有面向玩家的 LLM 输出路径统一使用此方法。</p>
+     *
+     * @param systemPrompt 原始系统提示词
+     * @param uuid         玩家 UUID
+     * @return 注入画像后的系统提示词（无数据时原样返回）
+     */
+    public String injectProfileSummary(String systemPrompt, UUID uuid) {
+        if (uuid == null || !plugin.getConfigManager().isProfileInjectionEnabled()) {
+            return systemPrompt;
+        }
+        String profileSummary = buildProfileSummary(uuid);
+        if (profileSummary.isEmpty()) {
+            return systemPrompt;
+        }
+        return systemPrompt + "\n\n" + profileSummary;
     }
 
     /**

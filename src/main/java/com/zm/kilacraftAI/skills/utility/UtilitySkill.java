@@ -202,6 +202,12 @@ public class UtilitySkill implements Skill {
 
         // 从配置缓存读取提示词
         String systemPrompt = getConfigField("notify_system_prompt", DEFAULT_NOTIFY_SYSTEM_PROMPT);
+
+        // 画像注入
+        var profileManager = plugin.getProfileManager();
+        if (profileManager != null) {
+            systemPrompt = profileManager.injectProfileSummary(systemPrompt, context.getPlayer().getUniqueId());
+        }
         String userPromptTemplate = getConfigField("notify_user_prompt", DEFAULT_NOTIFY_USER_PROMPT);
         String userPrompt = userPromptTemplate.replace("{0}", message);
 
@@ -254,6 +260,13 @@ public class UtilitySkill implements Skill {
 
         // 从配置缓存读取提示词
         String systemPrompt = getConfigField("broadcast_system_prompt", DEFAULT_BROADCAST_SYSTEM_PROMPT);
+
+        // 画像注入
+        var profileManager = plugin.getProfileManager();
+        if (profileManager != null) {
+            systemPrompt = profileManager.injectProfileSummary(systemPrompt, player.getUniqueId());
+        }
+
         String userPromptTemplate = getConfigField("broadcast_user_prompt", DEFAULT_BROADCAST_USER_PROMPT);
         String userPrompt = userPromptTemplate.replace("{0}", message);
 

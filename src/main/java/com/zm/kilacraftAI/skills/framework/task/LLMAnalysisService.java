@@ -54,6 +54,12 @@ public class LLMAnalysisService {
         String suffix = configManager.getAgentAnalysisPromptSuffix();
         String systemPrompt = configManager.getAgentSystemPrompt();
 
+        // 画像注入
+        var profileManager = plugin.getProfileManager();
+        if (context.getPlayer() != null && profileManager != null) {
+            systemPrompt = profileManager.injectProfileSummary(systemPrompt, context.getPlayer().getUniqueId());
+        }
+
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append(promptContent);
         if (suffix != null && !suffix.isEmpty()) {
