@@ -28,6 +28,7 @@
 - Fixed `DatabaseManager.reload()` not updating `currentConfig` on hot-reload
 - Fixed enchanted golden apple event name exceeding length limit
 - Fixed SQL syntax incompatibility in expired conversation/event/audit log cleanup using derived table syntax
+- Fixed `ProfileManager` not rebuilding DAO on hot-reload, causing `table_prefix` changes to not take effect
 
 ### 🔧 Improvements
 - Distributed scheduled task race safety: watermark markers + `SELECT FOR UPDATE` row locks for distributed mutual exclusion
@@ -37,6 +38,7 @@
 - Removed unused parameter from social relation interaction type enum
 - ConditionPlan operator descriptions migrated to `I18nService.tr()` system
 - Profile injection extended to all player-facing LLM output paths (secondary analysis, stage notifications, broadcast) with unified `ProfileManager.injectProfileSummary()` API
+- Incremental profile analysis now filters out `version`/`analyzed_at` metadata fields when injecting old profile, preventing LLM misinterpretation
 - SPI integration guide, database config guide, and player profile & social relations system guide updated in both Chinese and English (corrected table field descriptions to match actual DDL, added incremental analysis workflow and snapshot mechanism)
 
 ### ⚠️ Compatibility

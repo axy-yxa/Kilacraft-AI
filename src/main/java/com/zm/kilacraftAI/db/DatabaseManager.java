@@ -132,13 +132,6 @@ public class DatabaseManager {
     }
 
     /**
-     * 测试当前连接是否可用（热重载内部使用）
-     */
-    public boolean testConnection() {
-        return provider != null && provider.testConnection();
-    }
-
-    /**
      * 根据配置创建对应的 DatabaseProvider
      */
     private void createProvider(DatabaseConfig config) throws SQLException {
