@@ -212,7 +212,6 @@ public class UtilitySkill implements Skill {
         String userPrompt = userPromptTemplate.replace("{0}", message);
 
         PluginLogger.debug("工具技能", I18nService.tr("阶段性通知摘要 - 玩家: {}, systemPrompt: [{}]", playerName, systemPrompt));
-        PluginLogger.debug("工具技能", I18nService.tr("阶段性通知摘要 - 玩家: {}, userPromptTemplate: [{}]", playerName, userPromptTemplate));
         PluginLogger.debug("工具技能", I18nService.tr("阶段性通知摘要 - 玩家: {}, userPrompt: [{}]", playerName, userPrompt));
 
         // 动态流式输出配置
@@ -271,7 +270,6 @@ public class UtilitySkill implements Skill {
         String userPrompt = userPromptTemplate.replace("{0}", message);
 
         PluginLogger.debug("工具技能", I18nService.tr("全服广播摘要 - 发起者: {}, systemPrompt: [{}]", playerName, systemPrompt));
-        PluginLogger.debug("工具技能", I18nService.tr("全服广播摘要 - 发起者: {}, userPromptTemplate: [{}]", playerName, userPromptTemplate));
         PluginLogger.debug("工具技能", I18nService.tr("全服广播摘要 - 发起者: {}, userPrompt: [{}]", playerName, userPrompt));
 
         // 强制 CHAT 载体，不开启流式，仅收集 LLM 美化后的文本

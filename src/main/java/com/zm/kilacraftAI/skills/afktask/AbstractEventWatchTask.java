@@ -209,6 +209,8 @@ public abstract class AbstractEventWatchTask extends AFKTask implements Listener
         try {
             // 1. 构建 TaskPlan
             TaskPlan plan = callback.getCallbackTask().toTaskPlan();
+            // 过滤末尾的 notify_player 步骤（与 AFK_CALLBACK 自动总结重复）
+            stripTrailingNotifyPlayer(plan);
             placeholderReplacer.accept(plan);
 
             // 2. 获取任务创建者玩家对象

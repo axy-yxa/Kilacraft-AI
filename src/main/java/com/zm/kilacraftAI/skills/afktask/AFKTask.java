@@ -6,6 +6,8 @@ import com.zm.kilacraftAI.enums.OutputScenario;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
+import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
+import com.zm.kilacraftAI.skills.framework.task.TaskStep;
 import com.zm.kilacraftAI.util.PluginLogger;
 import lombok.Getter;
 import org.bukkit.entity.Player;
@@ -254,5 +256,36 @@ public abstract class AFKTask {
             case COMPLETED -> I18nService.tr("已完成");
             case CANCELLED -> I18nService.tr("已取消");
         };
+    }
+
+    /**
+     * 过滤 TaskPlan 末尾的 notify_player 步骤
+     * <p>
+     * 原因：callback 执行完毕后，系统会自动通过 AFK_CALLBACK 输出 LLM 二次分析的完整总结。
+     * 如果 LLM 在 callback 步骤末尾编排了 notify_player，会与自动总结产生重复通知。
+     * 此方法作为兜底机制，无论 LLM 如何编排，都保证不会产生重复通知。
+     * </p>
+     *
+     * @param plan 要过滤的任务计划
+     */
+    protected void stripTrailingNotifyPlayer(TaskPlan plan) {
+        java.util.List<TaskStep> steps = plan.getSteps();
+        if (steps.isEmpty()) return;
+
+        // 从末尾开始连续移除 notify_player 步骤
+        while (!steps.isEmpty()) {
+            TaskStep last = steps.get(steps.size() - 1);
+            if ("utility".equalsIgnoreCase(last.getSkillName()) && "notify_player".equalsIgnoreCase(last.getAction())) {
+                String removedId = last.getId();
+                steps.remove(steps.size() - 1);
+
+                // 清理其他步骤对该步骤的依赖引用
+                for (TaskStep step : steps) {
+                    step.getDependsOn().remove(removedId);
+                }
+            } else {
+                break;
+            }
+        }
     }
 }

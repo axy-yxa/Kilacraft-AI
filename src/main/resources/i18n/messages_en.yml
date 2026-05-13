@@ -965,10 +965,8 @@ messages:
   "全服广播完成，发起者: {}": "Server-wide broadcast complete, initiator: {}"
   "已全服广播消息": "Server-wide message broadcast"
   "阶段性通知摘要 - 玩家: {}, systemPrompt: [{}]": "Stage notification summary - player: {}, systemPrompt: [{}]"
-  "阶段性通知摘要 - 玩家: {}, userPromptTemplate: [{}]": "Stage notification summary - player: {}, userPromptTemplate: [{}]"
   "阶段性通知摘要 - 玩家: {}, userPrompt: [{}]": "Stage notification summary - player: {}, userPrompt: [{}]"
   "全服广播摘要 - 发起者: {}, systemPrompt: [{}]": "Broadcast summary - initiator: {}, systemPrompt: [{}]"
-  "全服广播摘要 - 发起者: {}, userPromptTemplate: [{}]": "Broadcast summary - initiator: {}, userPromptTemplate: [{}]"
   "全服广播摘要 - 发起者: {}, userPrompt: [{}]": "Broadcast summary - initiator: {}, userPrompt: [{}]"
 
   # ==================== EventCollector ====================

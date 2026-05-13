@@ -153,7 +153,7 @@ profile:
     你是一个玩家行为分析助手。以下是玩家的历史画像数据（JSON）和新的对话记录。
     请对比历史画像和新对话，**保留仍然准确的内容，修正已经变化的内容**，融合输出更新后的完整画像 JSON。
     不要被最近几句话过度左右 —— 关注长期稳定的特征。
-
+    
     【输出要求】
     1. 只输出 JSON，不要包含其他内容
     2. 使用以下固定字段输出（旧画像中的 preferences/communication_style 等旧字段请迁移到新结构）：
@@ -166,7 +166,7 @@ profile:
     You are a player behavior analysis assistant. Below is the player's existing profile data (JSON) and new conversation records.
     Compare the existing profile with new conversations, **retain what still holds true, revise what has changed**, and produce a complete updated profile JSON.
     Do not over-weight the most recent few messages — focus on consistent long-term traits.
-
+    
     Requirements:
     1. Output only JSON, no other content
     2. Use the following fixed fields (migrate old fields like preferences/communication_style to the new structure):

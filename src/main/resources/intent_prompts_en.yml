@@ -36,6 +36,7 @@ output_format_rules: |
   2. **Do not add any extra text**, including: reasoning explanations, comments, explanations, summaries, etc.
   3. **Do not use line breaks and indentation**, JSON should be on a single line (for easy parsing)
   4. **Strictly forbidden** to add any text explanation after the JSON
+  5. **Nested JSON data in entities should be written as inline JSON objects** (not strings), the system will handle serialization automatically
 
 # ============================================
 # Part 3: Decision Rules
@@ -260,7 +261,7 @@ output_quality_requirements: |
   9. Step order should follow logical execution order
   10. **Step count limit**: multi-step tasks contain at most 8 steps. If decomposed sub-questions exceed 8, only keep the most core, important dimensions, omit secondary ones. The system will supplement answers through LLM secondary analysis based on execution results
   11. **Delay waiting**: when user requests include temporal intervals like "wait N seconds then...", "after a while...", insert utility.delay_wait (parameter seconds=number) in the step chain
-  12. **Intermediate notification (strictly limited)**: utility.notify_player usage pattern is fixed: [action A] → notify_player → [action B], i.e. it must be inserted between two execution steps with steps continuing after it. Any "tell me" / "tell me the result" appearing at the end of the user request is handled by the final AI summary automatically. Single-intent queries should NOT be split into multi-step + notify_player
+  12. **Intermediate notification**: utility.notify_player can insert AI output between two execution steps, usage pattern: [action A] → notify_player → [action B]. Must NEVER be the last step in a step chain (after task completion, the system automatically outputs an AI summary)
 
 # ============================================
 # Part 7: AFK Task Specific Rules
@@ -270,25 +271,25 @@ output_quality_requirements: |
 # ============================================
 afk_task_rules: |
   [AFK Task Decision Rules]
-
+  
   When user requests involve "monitor/wait/conditional trigger", use the AFKTask skill.
-
+  
   **I. Choose Event Type or CUSTOM Type**
   - Has a corresponding Event type monitoring target (see AFKTask skill's task type description) → Use corresponding Event type
   - Numerical condition monitoring (below X, above X, reach X, etc.) → Use CUSTOM type
   - Only supports single condition, not multi-condition combinations
-
+  
   **II. CUSTOM Task Key Points**
   - Pass condition configuration through condition_plan (JSON string) in entities
   - result_path must be the actual field name returned by condition_action (refer to that action's description), strictly no fabrication
   - threshold is a specific numerical value, needs to be converted based on actual data range (not percentage). **threshold must be a concrete number, no placeholder expressions like {step_0.health}-5 — compute the value yourself based on the prerequisite step result**
-
+  
   **III. Callback Rules**
   - Pure notification (user only says "tell me"): don't add callback
   - Need subsequent operations: add callback
   - **Temporal actions must use callback**: if user says "after X do Y", "once X and Y", "when X, Y", where Y is a follow-up action after X is satisfied, then Y must be placed in callback, not as a parallel step
-  - callback example: user says "watch my wheat, tell me when it's grown and check the price" → AFKTask's create_task monitors crop growth, callback contains query_price to check the price
-
+  - **callback last step must not be notify_player**: after all callback steps complete, the system automatically outputs an AI summary — a trailing notify_player would duplicate it. When user says "tell me when done" or "wait X seconds then tell me" — the "tell me" part is handled automatically by the system, only arrange the actual execution steps
+  
   **IV. One-Task-Per-Player Limit (System Hard Limit)**
   - Each player can only have one AFK task at a time. This is a system-level resource limit and cannot be bypassed
   - When user requests monitoring multiple independent events simultaneously (e.g. "watch both my wheat and furnace"), choose the event the user cares about most, create a task for it, and explain the system limitation in natural language, suggesting the user create the next task after the current one completes

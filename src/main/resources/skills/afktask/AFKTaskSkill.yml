@@ -13,7 +13,7 @@ action_descriptions:
 
 # 额外提示信息（用于指导 LLM 正确使用技能）
 hints:
-  - '**输出格式**：cancel_task 和 query_task 以单意图 JSON 返回。create_task 分两种：①参数全部已知（如"帮我盯着我的血量低于5"）→ 单意图 JSON；②参数需要先查询（如"帮我盯着市场上有人卖我手上的东西"——"我手上的东西"需先查）→ **必须**以多步骤 TaskPlan 返回（step_0 查询参数 → step_1 创建任务）。callback 是 entities 的一个字段（JSON字符串），不是独立步骤。'
+  - '**输出格式**：cancel_task 和 query_task 以单意图 JSON 返回。create_task 分两种：①参数全部已知（如"帮我盯着我的血量低于5"）→ 单意图 JSON；②参数需要先查询（如"帮我盯着市场上有人卖我手上的东西"——"我手上的东西"需先查）→ **必须**以多步骤 TaskPlan 返回（step_0 查询参数 → step_1 创建任务）。callback 是 entities 的一个字段，值为内嵌 JSON 对象（不是字符串），不是独立步骤。'
   - '**target_player 规则**：绝不允许为空/省略/填占位符。指向自己时填当前玩家名；明确提到其他玩家名时直接填入；指代不明时先询问用户。'
   - '**纯通知不加callback**：用户只说"帮我盯着xxx上线"时，entities中只有 task_type 和 target_player'
   - '**callback格式**：JSON对象，包含 callback_task（goal+steps）和 notify_target（默认 {creator}）。callback_task 的 steps 是独立完整的多步骤任务链，步骤之间可用 {step_X.xxx} 互相引用。约束：①skill_name不能是AFKTask（禁止递归）；②steps 的 id 从 step_0 开始连续编号，depends_on 中引用的步骤 id 必须在 steps 列表中存在；③步骤的 entities 中的占位符只能引用在其之前执行的前置步骤（depends_on 中声明的步骤），**绝不能自引用**（如 step_0 不能引用 {step_0.xxx}），也**不能引用尚未执行的步骤**；④需要前置数据的动作（如 teleport_home 需要 home_name），必须在 steps 中先添加查询步骤（如先 query_homes 再 teleport_home）；⑤callback 中需要外部数据时，使用外层 TaskPlan 前置步骤的占位符（如 {step_0.item_name}），系统会自动替换为具体值'
@@ -22,6 +22,5 @@ hints:
   - '**回调技能选择**：callback steps 中应优先使用专用技能而非 command 通用命令技能。专用技能封装了权限校验和业务逻辑，而直接执行命令可能因权限不足而失败（普通玩家通常没有管理员级命令权限）'
   - '**CUSTOM类型**：必填 task_type=CUSTOM, condition_plan={"condition_skill":"技能名","condition_action":"动作名","result_path":"返回字段名","operator":"比较符","threshold":值}。operator 支持 less_than/less_than_or_equal/greater_than/greater_than_or_equal/equal/not_equal。**threshold 必须是具体数值（禁止占位符表达式如 {step_0.health}-5，请根据前置步骤的返回结果自行计算）**。示例：用户说“血量减少5”，如果前置步骤返回 health=20，则 threshold=15 operator=less_than_or_equal。threshold 也支持布尔值（true→1.0, false→0.0）和字符串（仅用于 equal/not_equal，如方块类型 "GRASS_BLOCK"）。如果条件技能需要额外参数（如 market_query.query_availability 需要 item），必须添加 condition_params 字段（JSON对象）。condition_params 的值必须是具体值或外层 TaskPlan 前置步骤的占位符。只支持单条件，不支持多条件组合。'
   - '**一次性任务**：只支持触发一次就结束，不接受"每隔"、"定期"、"定时"、"每天"等循环任务'
-  - '**callback中可用utility技能**：callback steps 中可使用 utility.delay_wait 在步骤间插入延迟。也可使用 utility.notify_player 在步骤中间插入AI输出，但必须夹在两个执行步骤之间（即notify_player之后还有执行步骤继续）。callback 执行完毕后系统会自动通过 AI 总结输出完整结果'
-  - '**callback JSON转义规则**：callback 是 entities 中的一个字符串字段，其值是转义后的 JSON。外层JSON的双引号保持不变，内层callback JSON中的所有双引号必须加反斜杠转义。错误示范："callback": "{"callback_task":...}"（内层引号未转义会破坏外层JSON结构）。正确示范："callback": "{\"callback_task\":{\"goal\":\"通知\",\"steps\":[{\"id\":\"step_0\",\"skill_name\":\"utility\",\"action\":\"notify_player\",\"entities\":{\"message\":\"xxx上线了\"}}]},\"notify_target\":\"{creator}\"}"。**务必仔细检查转义，任何转义错误都会导致callback解析失败**'
+  - '**callback中可用utility技能**：callback steps 中可使用 utility.delay_wait 在步骤间插入延迟，utility.notify_player 在步骤中间插入AI输出（详细使用约束见挂机任务决策规则）'
   - '**并发与命令**：每人同时只能有一个挂机任务。游戏内命令：/kilacraft afk（查询）、/kilacraft afk cancel（取消）。替换任务顺序：cancel_task → create_task'

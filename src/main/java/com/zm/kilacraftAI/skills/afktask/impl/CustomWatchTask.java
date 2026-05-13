@@ -294,6 +294,8 @@ public class CustomWatchTask extends AFKTask {
         try {
             // 1. 构建 TaskPlan
             TaskPlan plan = callback.getCallbackTask().toTaskPlan();
+            // 过滤末尾的 notify_player 步骤（与 AFK_CALLBACK 自动总结重复）
+            stripTrailingNotifyPlayer(plan);
 
             // 2. 构建执行上下文
             SkillContext context = new SkillContext(creatorPlayer, callback.getCallbackTask().getGoal(), Map.of());
