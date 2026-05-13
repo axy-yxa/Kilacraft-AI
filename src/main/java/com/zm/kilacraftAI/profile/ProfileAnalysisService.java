@@ -57,23 +57,26 @@ public class ProfileAnalysisService {
     private static final String SOURCE_FILTER = "'chat','command'";
 
     /**
-     * LLM system prompt：要求输出固定 JSON 结构
+     * LLM system prompt：要求输出固定 JSON 结构（8 维度扁平结构）
      */
     private static final String DEFAULT_SYSTEM_PROMPT = """
             你是一个玩家行为分析助手。根据玩家的对话历史，分析该玩家的游戏风格、偏好和行为特征。
             
             请输出一个 JSON 对象，包含以下字段（如果没有足够信息则留空字符串）：
             {
-              "playstyle": "玩家的游戏风格描述（如：探索型、建造型、战斗型、社交型等）",
+              "playstyle": "游戏风格描述（如：探索型、建造型、战斗型、社交型等）",
               "personality": "从对话中观察到的性格特征（如：友好、幽默、直接、内向等）",
-              "preferences": "玩家的偏好（如：喜欢的活动、感兴趣的话题等）",
-              "communication_style": "沟通风格（如：简短直接、详细描述、使用表情符号等）",
+              "interests": "玩家感兴趣的领域和喜欢的活动（如：建筑、市场经济、红石等）",
+              "boundaries": "玩家的交互禁忌或反感（如：不要称呼名字、不喜欢被催促等，无则留空）",
+              "communication": "玩家期望的AI回复方式（如：简短直接、不用emoji、不要太热情等）",
+              "spatial": "玩家提到的地点、基地位置、常去之处（如：主世界(1200,64,-800)附近有城堡，无则留空）",
+              "facts": "玩家明确声明的事实（如：Steve是好友、我的家在沙漠神殿旁，无则留空）",
               "notes": "其他值得注意的观察"
             }
             
             注意：
             1. 只分析对话中明确体现的信息，不要推测
-            2. 每个字段尽量简洁，控制在50字以内
+            2. 每个字段用简短的短语或句子，整个JSON总字符数控制在500以内
             3. 如果某个维度信息不足，对应字段填空字符串
             4. 只输出 JSON，不要包含其他内容
             """;
@@ -83,16 +86,19 @@ public class ProfileAnalysisService {
             
             Output a JSON object with the following fields (use empty string if insufficient information):
             {
-              "playstyle": "Player's game style description (e.g., explorer, builder, fighter, socializer)",
+              "playstyle": "Game style description (e.g., explorer, builder, fighter, socializer)",
               "personality": "Personality traits observed from conversations (e.g., friendly, humorous, direct, introverted)",
-              "preferences": "Player preferences (e.g., favorite activities, topics of interest)",
-              "communication_style": "Communication style (e.g., brief and direct, detailed, uses emojis)",
+              "interests": "Areas of interest and liked activities (e.g., building, market economy, redstone)",
+              "boundaries": "Interaction taboos or dislikes (e.g., don't use player name, dislike being rushed, leave empty if none)",
+              "communication": "Preferred AI response style (e.g., brief and direct, no emojis, not overly enthusiastic)",
+              "spatial": "Mentioned locations, base position, frequent places (e.g., main world (1200,64,-800) near castle, leave empty if none)",
+              "facts": "Explicitly stated facts (e.g., Steve is a friend, my home is near the desert temple, leave empty if none)",
               "notes": "Other notable observations"
             }
             
             Notes:
             1. Only analyze information explicitly shown in conversations, do not speculate
-            2. Keep each field concise, within 50 characters
+            2. Keep each field as a brief phrase or sentence, total JSON within 500 characters
             3. If insufficient information for a dimension, use empty string
             4. Output only JSON, no other content
             """;
@@ -107,8 +113,10 @@ public class ProfileAnalysisService {
             
             【输出要求】
             1. 只输出 JSON，不要包含其他内容
-            2. 字段与历史画像保持一致（playstyle、personality、preferences、communication_style、notes）
-            3. 如果某个维度信息不足，对应字段填空字符串
+            2. 使用以下固定字段输出（旧画像中的 preferences/communication_style 等旧字段请迁移到新结构）：
+               playstyle、personality、interests、boundaries、communication、spatial、facts、notes
+            3. 整个JSON总字符数控制在500以内
+            4. 如果某个维度信息不足，对应字段填空字符串
             """;
 
     private static final String DEFAULT_INCREMENTAL_SYSTEM_PROMPT_EN = """
@@ -118,8 +126,10 @@ public class ProfileAnalysisService {
             
             Requirements:
             1. Output only JSON, no other content
-            2. Keep the same fields as the existing profile (playstyle, personality, preferences, communication_style, notes)
-            3. If insufficient information for a dimension, use empty string
+            2. Use the following fixed fields (migrate old fields like preferences/communication_style to the new structure):
+               playstyle, personality, interests, boundaries, communication, spatial, facts, notes
+            3. Keep total JSON within 500 characters
+            4. If insufficient information for a dimension, use empty string
             """;
 
     /**
@@ -315,6 +325,11 @@ public class ProfileAnalysisService {
         if (profileData == null || profileData.isEmpty()) {
             PluginLogger.warn("画像分析", I18nService.tr("解析结果为空，跳过更新"));
             return;
+        }
+
+        // 防御性长度检查：画像 JSON 应控制在 500 字符内，超过 2000 字符输出警告
+        if (jsonStr.length() > 2000) {
+            PluginLogger.warn("画像分析", I18nService.tr("画像JSON长度异常: {} 字符（建议≤500）", jsonStr.length()));
         }
 
         Map<String, Object> existingData = profile.getExtendedData();

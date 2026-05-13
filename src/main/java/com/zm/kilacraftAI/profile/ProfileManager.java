@@ -282,15 +282,22 @@ public class ProfileManager {
 
         appendIfPresent(sb, I18nService.tr("游戏风格"), data.get("playstyle"));
         appendIfPresent(sb, I18nService.tr("性格特征"), data.get("personality"));
-        appendIfPresent(sb, I18nService.tr("偏好"), data.get("preferences"));
-        appendIfPresent(sb, I18nService.tr("沟通风格"), data.get("communication_style"));
+        appendIfPresent(sb, I18nService.tr("兴趣偏好"), data.get("interests"));
+        appendIfPresent(sb, I18nService.tr("交互禁忌"), data.get("boundaries"));
+        appendIfPresent(sb, I18nService.tr("回复偏好"), data.get("communication"));
+        appendIfPresent(sb, I18nService.tr("空间记忆"), data.get("spatial"));
+        appendIfPresent(sb, I18nService.tr("已知事实"), data.get("facts"));
         appendIfPresent(sb, I18nService.tr("特别观察"), data.get("notes"));
+
+        // 兼容旧画像：过渡期渲染旧字段避免信息丢失（增量分析后旧 key 自然消失）
+        appendIfPresent(sb, I18nService.tr("偏好（旧）"), data.get("preferences"));
+        appendIfPresent(sb, I18nService.tr("沟通风格（旧）"), data.get("communication_style"));
 
         if (sb.length() == header.length()) {
             return "";
         }
 
-        sb.append(I18nService.tr("\n请根据以上画像调整你的沟通风格，让回复更贴合玩家个性。"));
+        sb.append(I18nService.tr("\n以上信息仅供参考，帮助更好地理解玩家。请优先响应当前对话内容。"));
 
         return sb.toString();
     }

@@ -15,17 +15,20 @@ v2.0.0 introduces three data-driven subsystems that let AI remember each player'
 
 ### Core Design
 
-Player profiles are AI's "long-term memory" of players. The system automatically triggers LLM analysis on player login/logout, generates a structured five-dimension profile, and dynamically injects profile summaries into system prompts during subsequent conversations, making AI's service more personalized.
+Player profiles are AI's "long-term memory" of players. The system automatically triggers LLM analysis on player login/logout, generates a structured eight-dimension profile, and dynamically injects profile summaries into system prompts during subsequent conversations, making AI's service more personalized.
 
-### Profile Dimensions (Five-Point Method)
+### Profile Dimensions (8 Dimensions)
 
-| Dimension | Description | Example |
-|-----------|-------------|---------|
-| Playstyle | Player's gameplay preferences | PVP enthusiast / Master builder / Redstone engineer |
-| Personality | Behavioral patterns | Adventurous / Social / Cautious |
-| Content Preference | Topics of interest | Economy & trading / Dungeon raids / Equipment crafting |
-| Communication Style | Communication approach | Prefers concise / Prefers detailed / Prefers humorous |
-| Special Observations | LLM freeform observations | "This player has recently shown strong interest in enchanting" |
+| Dimension | JSON Key | Description | Example |
+|-----------|----------|-------------|----------|
+| Playstyle | playstyle | Player's gameplay preferences | PVP enthusiast / Master builder / Redstone engineer |
+| Personality | personality | Behavioral patterns | Adventurous / Social / Cautious |
+| Interests | interests | Liked areas and activities | Economy & trading / Redstone / Building |
+| Boundaries | boundaries | Disliked content or behaviors | Don't use my name / Don't rush me |
+| Communication | communication | Preferred AI response style | Brief and direct / No emojis |
+| Spatial Memory | spatial | Mentioned locations, base positions | Main base at desert (1200,64,-800) |
+| Known Facts | facts | Explicitly stated facts by the player | Steve is a friend / Home near desert temple |
+| Special Observations | notes | LLM freeform observations | "This player has recently shown strong interest in enchanting" |
 
 ### Workflow
 

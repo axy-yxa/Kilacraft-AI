@@ -43,6 +43,7 @@
 - Removed unused parameter from social relation interaction type enum
 - ConditionPlan operator descriptions migrated to `I18nService.tr()` system
 - Profile injection extended to all player-facing LLM output paths (secondary analysis, stage notifications, broadcast) with unified `ProfileManager.injectProfileSummary()` API
+- Player profile dimensions expanded from 5 to 8 (added interests/boundaries/communication/spatial/facts), profile injection wording changed to "reference context" to avoid interfering with AI conversation judgment, incremental analysis auto-migrates legacy fields
 - Incremental profile analysis now filters out `version`/`analyzed_at` metadata fields when injecting old profile, preventing LLM misinterpretation
 - SPI integration guide, database config guide, and player profile & social relations system guide updated in both Chinese and English (corrected table field descriptions to match actual DDL, added incremental analysis workflow and snapshot mechanism)
 - Intent recognition prompt global optimization: strengthened skill semantic matching standard, clarified "data retrieved could help answer" ≠ "skill matches user intent", constrained question decomposition to user's explicitly stated information needs
@@ -62,7 +63,7 @@
    - `skills/bukkit/BukkitStatsSkill.yml` / `BukkitStatsSkill_en.yml` (narrowed stats query matching scope)
    - `skills/command/CommandSkill.yml` / `CommandSkill_en.yml` (optimized command matching boundary)
    - `llm.yml` (strengthened prohibition on exposing statistics, old version has similar rules but weaker wording, optional)
-   - `database.yml` (new group server config section + incremental profile prompts + profile timeout adjustment, can manually add or delete to regenerate)
+   - `database.yml` (new group server config section + incremental profile prompts + profile dimensions upgraded to 8 + profile timeout adjustment, can manually add or delete to regenerate)
 5. For group server mode, add `group.server_id` config to `database.yml` (leave empty for single-server)
 6. v2.0.2 adds `profile.incremental_system_prompt` / `incremental_system_prompt_en` config entries (incremental analysis prompt when existing profile is present), leave empty to use built-in defaults
 

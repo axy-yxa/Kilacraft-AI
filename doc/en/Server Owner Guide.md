@@ -139,23 +139,26 @@ Supports custom dictionaries for server-specific terminology to improve search a
 
 ## Player Profile System
 
-AI automatically analyzes player conversation history and builds a five-dimension behavioral profile for each player, dynamically adjusting communication style in subsequent conversations. **AI gets smarter about your players over time.**
+AI automatically analyzes player conversation history and builds an eight-dimension behavioral profile for each player, dynamically injecting profile summaries as reference context in subsequent conversations. **AI gets smarter about your players over time.**
 
-### Five Profile Dimensions
+### Eight Profile Dimensions
 
 | Dimension | Description | Example |
 |:-:|:-:|:-:|
 | Playstyle | Gameplay preferences | Combat-oriented, Explorer, Builder |
 | Personality | Behavioral patterns | Friendly, Humorous, Direct |
-| Content Preference | Topics of interest | Economy & trading, Dungeon raids, Equipment crafting |
-| Communication Style | Communication approach | Concise & direct, Prefers detailed explanations |
+| Interests | Liked areas and activities | Economy & trading, Redstone, Building |
+| Boundaries | Disliked content or behaviors | Don't use my name, Don't rush me |
+| Communication | Preferred AI response style | Brief & direct, No emojis |
+| Spatial Memory | Mentioned locations, base positions | Main base at desert (1200,64,-800) |
+| Known Facts | Explicitly stated facts by the player | Steve is a friend, Home near desert temple |
 | Special Observations | AI freeform observations | "This player has recently shown interest in enchanting" |
 
 ### How It Works
 
 - Automatically triggers analysis on player login/logout (triple gate mechanism to prevent wasting API calls)
 - Analysis data sourced from player's real conversations with AI (excludes NPC dialogues and greeting messages)
-- Results are automatically injected into system prompts for subsequent conversations
+- Results are automatically injected into system prompts as reference context for subsequent conversations
 - Configuration in `llm.yml`:
 
 ```yaml
@@ -276,7 +279,7 @@ Run `/kilacraft reload` for hot-switching. Auto-fallback on failure.
 | Data | Description |
 |------|------|
 | Conversation History | All player-AI conversations, batch flushed every 30 seconds |
-| Player Profiles | Five-dimension behavioral analysis results |
+| Player Profiles | Eight-dimension behavioral analysis results |
 | Social Relations | Interaction strength and type between players |
 | Server Events | Milestone events like deaths, achievements, trades |
 | Skill Audit | All Skill execution logs |

@@ -1069,10 +1069,16 @@ messages:
   "【玩家画像】\n（注：描述中若包含具体英文词，请结合上下文语义判断是否为玩家名称）": "[Player Profile]\n(Note: if English words appear in the description, judge by context whether they are player names)"
   "游戏风格": "Playstyle"
   "性格特征": "Personality"
-  "偏好": "Preferences"
-  "沟通风格": "Communication style"
+  "兴趣偏好": "Interests"
+  "交互禁忌": "Boundaries"
+  "回复偏好": "Communication"
+  "空间记忆": "Spatial Memory"
+  "已知事实": "Known Facts"
   "特别观察": "Special observations"
-  "\n请根据以上画像调整你的沟通风格，让回复更贴合玩家个性。": "\nPlease adjust your communication style based on the above profile to better match the player's personality."
+  # 旧画像字段兜底（过渡期）
+  "偏好（旧）": "Preferences (legacy)"
+  "沟通风格（旧）": "Communication style (legacy)"
+  "\n以上信息仅供参考，帮助更好地理解玩家。请优先响应当前对话内容。": "\nThe above information is for reference only to help better understand the player. Please prioritize responding to the current conversation."
 
   # ==================== ProfileAnalysisService ====================
   "玩家画像分析异常: {} - {}": "Player profile analysis error: {} - {}"
@@ -1080,6 +1086,7 @@ messages:
   "加载对话历史失败: {} - {}": "Failed to load conversation history: {} - {}"
   "LLM Provider 未初始化，跳过分析": "LLM Provider not initialized, skipping analysis"
   "LLM 分析失败: {} - {}": "LLM analysis failed: {} - {}"
+  "画像JSON长度异常: {} 字符（建议≤500）": "Profile JSON length anomaly: {} characters (recommended ≤500)"
   "以下是玩家的对话历史，请分析其行为特征：\n\n": "Here is the player's conversation history, please analyze their behavioral characteristics:\n\n"
   "以下是该玩家的历史画像数据（JSON）：\n\n": "Below is the player's existing profile data (JSON):\n\n"
   "以及自上次分析以来的新对话记录：\n\n": "And the new conversation records since the last analysis:\n\n"

@@ -83,16 +83,19 @@ After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to
 | `last_y` | DOUBLE | Last Y coordinate on logout |
 | `last_z` | DOUBLE | Last Z coordinate on logout |
 | `last_greeting_time` | BIGINT | Last AI greeting timestamp (ms) |
-| `profile_data` | TEXT | Profile JSON (5 dimensions) |
+| `profile_data` | TEXT | Profile JSON (8 dimensions) |
 | `profile_analyzed_at` | BIGINT | Last profile analysis completion timestamp (ms) |
 | `updated_at` | BIGINT | Last update timestamp (ms) |
 
 **Profile Dimensions**:
-- Playstyle: PVP/PVE/Building/Exploration/Redstone/Survival, etc.
-- Personality: Extroverted/Introverted/Adventurous/Cautious, etc.
-- Content Preference: Economy/Combat/Social/Building, etc.
-- Communication Style: Concise/Detailed/Humorous/Formal, etc.
-- Special Observations: Freeform personalized observations by LLM
+- Playstyle (playstyle): PVP/PVE/Building/Exploration/Redstone/Survival, etc.
+- Personality (personality): Extroverted/Introverted/Adventurous/Cautious, etc.
+- Interests (interests): Liked areas and activities
+- Boundaries (boundaries): Disliked content or behaviors
+- Communication (communication): Preferred AI response style
+- Spatial Memory (spatial): Mentioned locations, base positions
+- Known Facts (facts): Explicitly stated facts by the player
+- Special Observations (notes): Freeform personalized observations by LLM
 
 **Analysis Trigger Conditions** (triple gate, all three must be met):
 1. Time since last analysis ≥ configurable interval
