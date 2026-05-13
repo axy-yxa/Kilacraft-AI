@@ -123,12 +123,8 @@ public class ChatListener implements Listener {
             Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
 
             persistenceService.loadHistoryIfNeeded(playerId, "", loadedHistory -> {
-                // 如果是从DB加载的，回填到内存缓存
-                if (!loadedHistory.isEmpty() && playerHistory.isEmpty()) {
-                    for (ConversationManager.Message msg : loadedHistory) {
-                        playerHistory.addLast(msg);
-                    }
-                }
+                // 合并 DB 历史到内存：DB 历史在前，内存中的问候（如有）在后
+                ConversationPersistenceService.mergeLoadedHistory(loadedHistory, playerHistory);
                 aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSource.CHAT);
             }, ConversationSource.CHAT, ConversationSource.COMMAND);
         } else {

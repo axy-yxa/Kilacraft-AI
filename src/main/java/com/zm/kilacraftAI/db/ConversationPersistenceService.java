@@ -254,8 +254,9 @@ public class ConversationPersistenceService {
         }
 
         // 检查内存是否已有（去重保护）
+        // 注意：仅包含 assistant 消息的历史（如登录问候）不视为有效历史，仍需从 DB 加载
         Deque<ConversationManager.Message> existing = getExistingHistory(playerUuid, personality);
-        if (existing != null && !existing.isEmpty()) {
+        if (existing != null && !existing.isEmpty() && existing.stream().anyMatch(m -> !"assistant".equals(m.getRole()))) {
             callback.accept(existing);
             return;
         }
@@ -279,6 +280,27 @@ public class ConversationPersistenceService {
                 callback.accept(new ArrayDeque<>());
             }
         });
+    }
+
+    /**
+     * 将 DB 加载的历史合并到内存历史中
+     *
+     * <p>DB 历史在前（时间升序），内存中可能存在的 assistant-only 消息（如登录问候）保留在末尾。
+     * 当 loadHistoryIfNeeded 判定 assistant-only 的内存历史为“空”并从 DB 加载后，
+     * 调用此方法完成合并。</p>
+     *
+     * @param loadedHistory 从 DB 加载的历史（可能为空）
+     * @param playerHistory 内存中的历史队列（可能包含问候消息）
+     */
+    public static void mergeLoadedHistory(Deque<ConversationManager.Message> loadedHistory, Deque<ConversationManager.Message> playerHistory) {
+        if (loadedHistory != null && !loadedHistory.isEmpty() && playerHistory != null) {
+            ConversationManager.Message last = playerHistory.peekLast();
+            playerHistory.clear();
+            playerHistory.addAll(loadedHistory);
+            if (last != null) {
+                playerHistory.addLast(last);
+            }
+        }
     }
 
     /**
@@ -391,8 +413,7 @@ public class ConversationPersistenceService {
         String prefix = databaseManager.getTablePrefix();
         this.conversationDao = new ConversationDao(prefix);
         this.watermarkDao = new WatermarkDao(prefix);
-        PluginLogger.info("数据库", "对话持久化服务配置已刷新（历史加载: {}, 保留天数: {}, server_id: {}）",
-                loadHistoryEnabled, retentionDays > 0 ? retentionDays : "永久", serverId.isEmpty() ? "未配置" : serverId);
+        PluginLogger.info("数据库", "对话持久化服务配置已刷新（历史加载: {}, 保留天数: {}, server_id: {}）", loadHistoryEnabled, retentionDays > 0 ? retentionDays : "永久", serverId.isEmpty() ? "未配置" : serverId);
     }
 
     /**

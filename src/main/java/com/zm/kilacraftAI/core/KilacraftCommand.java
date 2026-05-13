@@ -680,12 +680,8 @@ public class KilacraftCommand implements CommandExecutor {
             Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
 
             persistenceService.loadHistoryIfNeeded(playerId, "", loadedHistory -> {
-                // 如果是从DB加载的，回填到内存缓存
-                if (!loadedHistory.isEmpty() && playerHistory.isEmpty()) {
-                    for (ConversationManager.Message msg : loadedHistory) {
-                        playerHistory.addLast(msg);
-                    }
-                }
+                // 合并 DB 历史到内存：DB 历史在前，内存中的问候（如有）在后
+                ConversationPersistenceService.mergeLoadedHistory(loadedHistory, playerHistory);
                 PluginLogger.debug("命令", "玩家 {} 的历史记录数量：{}", player.getName(), playerHistory.size());
 
                 // 使用统一的 AI 请求处理器
