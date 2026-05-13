@@ -29,6 +29,11 @@
 - Fixed enchanted golden apple event name exceeding length limit
 - Fixed SQL syntax incompatibility in expired conversation/event/audit log cleanup using derived table syntax
 - Fixed `ProfileManager` not rebuilding DAO on hot-reload, causing `table_prefix` changes to not take effect
+- Fixed `update()` overwriting profile analysis fields with cached stale values: `profile_data` / `profile_analyzed_at` now exclusively written by `updateProfileData()`, runtime state updates no longer overwrite AI analysis results
+- Fixed `/ai clear` not preventing DB history reload on next conversation: introduced one-time `cleared` marker to skip DB loading in `loadHistoryIfNeeded`
+- Fixed AI greeting writing to memory history causing `loadHistoryIfNeeded` to skip DB load: empty check now excludes assistant-only history
+- Fixed AI request errors being silently swallowed without console output
+- Unified AI call timeout settings, fixed profile analysis timeout inconsistency with other AI calls
 
 ### 🔧 Improvements
 - Distributed scheduled task race safety: watermark markers + `SELECT FOR UPDATE` row locks for distributed mutual exclusion
@@ -40,19 +45,50 @@
 - Profile injection extended to all player-facing LLM output paths (secondary analysis, stage notifications, broadcast) with unified `ProfileManager.injectProfileSummary()` API
 - Incremental profile analysis now filters out `version`/`analyzed_at` metadata fields when injecting old profile, preventing LLM misinterpretation
 - SPI integration guide, database config guide, and player profile & social relations system guide updated in both Chinese and English (corrected table field descriptions to match actual DDL, added incremental analysis workflow and snapshot mechanism)
+- Intent recognition prompt global optimization: strengthened skill semantic matching standard, clarified "data retrieved could help answer" ≠ "skill matches user intent", constrained question decomposition to user's explicitly stated information needs
+- BukkitStatsSkill prompt narrowed: limited to Minecraft vanilla statistics only, prohibited guessing or fabricating enum names
+- CommandSkill prompt optimization: clarified matching boundary between "executable action" and "information query", removed examples unsuitable for survival players
+- LLM secondary analysis prompt enhanced with boundary constraints, reducing hallucination and unreasonable inference
+- Third-party Skill registration adds compatibility pre-check mechanism, registration failure does not affect main process
 
 ### ⚠️ Compatibility
 
 #### Upgrading from v2.0.1
 1. Stop server, replace JAR, start — defaults to standalone mode, no config changes needed
 2. Database Schema auto-upgrades to v2 (adds `profile_snapshot` table + 3 `server_id` indexes), no manual migration needed
-3. For group server mode, delete `database.yml` to regenerate, or manually add `group.server_id` config
-4. v2.0.2 adds `profile.incremental_system_prompt` / `incremental_system_prompt_en` config entries (incremental analysis prompt when existing profile is present), leave empty to use built-in defaults, no manual changes needed for upgrade
+3. All new config entries have code-level default values — **the plugin works correctly even without deleting any config files**
+4. **Recommended** (to get the full v2.0.2 prompt optimization effects): delete the following config files and restart the server to let the plugin regenerate the latest versions:
+   - `intent_prompts.yml` / `intent_prompts_en.yml` (intent recognition prompts strengthened with semantic matching standards)
+   - `skills/bukkit/BukkitStatsSkill.yml` / `BukkitStatsSkill_en.yml` (narrowed stats query matching scope)
+   - `skills/command/CommandSkill.yml` / `CommandSkill_en.yml` (optimized command matching boundary)
+   - `llm.yml` (strengthened prohibition on exposing statistics, old version has similar rules but weaker wording, optional)
+   - `database.yml` (new group server config section + incremental profile prompts + profile timeout adjustment, can manually add or delete to regenerate)
+5. For group server mode, add `group.server_id` config to `database.yml` (leave empty for single-server)
+6. v2.0.2 adds `profile.incremental_system_prompt` / `incremental_system_prompt_en` config entries (incremental analysis prompt when existing profile is present), leave empty to use built-in defaults
+
+#### Upgrading from v2.0.0
+1. Follow the "Upgrading from v2.0.1" steps above first
+2. v2.0.1 added configurable profile analysis prompts (`profile.analysis_system_prompt` etc. in `database.yml`), delete `database.yml` to regenerate if you want to customize prompts
+3. If using English mode (`language: en`), a `greeting_en.yml` English greeting config file will be auto-generated on first startup
+
+#### Upgrading from versions before v2.0.0
+1. **You must read the v2.0.0 compatibility section first** — that version introduced database persistence, config architecture refactoring, and other major changes
+2. Upgrade steps:
+   - **Stop server and backup** the entire `plugins/Kilacraft-AI/` directory
+   - Replace `Kilacraft-AI.jar` with the new version
+   - On **first startup**, the plugin will auto-create new config files and database tables (Schema auto-upgrades to v2); old config files will not be deleted
+   - Follow log prompts to manually migrate custom settings from the old `config.yml` to new config files (`llm:` → `llm.yml`, `agent:` → `llm.yml`, `output:` → `output.yml`, `knowledge:` → `knowledge.yml`)
+   - If using MySQL, create the database in advance and configure `database.yml`
+   - **Strongly recommended** to delete `intent_prompts.yml` / `intent_prompts_en.yml` and Skill config files under `skills/` directory to let the plugin regenerate the latest versions
+3. Conversation history in versions <2.0.0 was stored in memory only — there is no historical data to migrate, data accumulation starts fresh after upgrade
 
 #### New Permission Nodes
 - `kilacraft.afk.task` / `kilacraft.bukkit_fx` / `kilacraft.bukkit_stats` / `kilacraft.bukkit_api` (default true)
 - `kilacraft.cmi` / `kilacraft.command.execute` / `kilacraft.market.action` (default OP)
-- `kilacraft.market.query` (default true)
+- `kilacraft.market.query` / `kilacraft.utility` (default true)
+
+#### Version Recommendation
+> Versions prior to v2.0.2 (including all v1.x releases) are no longer available for direct download. All users are recommended to upgrade to v2.0.2 for better system stability, security, and lower token consumption.
 
 ---
 
