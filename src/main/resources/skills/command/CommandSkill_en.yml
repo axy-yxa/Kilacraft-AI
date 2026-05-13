@@ -2,10 +2,10 @@
 # Execute server commands as the player, permission boundary equals the player's own permissions
 # Requires command_skill.enabled: true in config.yml to take effect
 
-description: "Command execution skill: execute any server command as the player (fallback skill). When no specialized skill can fulfill the user request, use this skill to execute the corresponding command. Permission boundary equals the player's own permissions."
+description: "Command execution skill: execute server commands as the player to change game state or trigger game actions. Match this skill when the user's request is an [executable action] rather than [information query]. NOT for consultation, suggestion, guide recommendation, or Q&A questions."
 
 action_descriptions:
-  execute_command: 'Execute a server command as the player (fallback). Required parameter: command (the command to execute, without leading /). The command will be executed as the player, subject to server permission system constraints.'
+  execute_command: 'Execute a server command as the player. Required parameter: command (the command to execute, without leading /). The command will be executed as the player, subject to server permission system constraints. Match condition: the user intends to perform an action that changes game state, NOT to get information or seek advice.'
 
 hints:
   - '**Priority**: This skill is a fallback means. If a specialized skill can fulfill the user request, must prioritize using the specialized skill. Only use this skill when specialized skills cannot cover the need.'

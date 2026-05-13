@@ -12,3 +12,4 @@ hints:
   - "**Cumulative stats vs current status**: This skill queries lifetime cumulative values (e.g. total deaths), not suitable for current real-time status (e.g. health/hunger/level)."
   - "**Parameter types**: Statistics are divided into four types - no parameter (UNTYPED), needs material parameter (ITEM/BLOCK type), needs entity_type parameter (ENTITY type)."
   - "**Distance and time units**: Movement distance in centimeters (1 block=100CM), time in ticks (20 ticks=1 second)."
+  - "**No guessing enum names**: statistic parameter must be a statistic enum name you are certain exists in Minecraft vanilla. If uncertain whether a statistic exists, return invalid intent instead of guessing. If the user asks advice/guide/recommendation questions, this skill does not apply, return invalid intent."
