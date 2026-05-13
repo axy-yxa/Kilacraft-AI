@@ -58,11 +58,11 @@ decision_rules:
   when_return_invalid: |
     - The user is just chatting or greeting (e.g. "hello", "thanks")
     - The user's question is about real-life topics (e.g. cooking, weather, studying, health) whose core semantics cannot be directly covered by any skill's description text
-    - **[Strongest Matching Rule] Matching must be strictly based on skill description text: if no skill's description text can directly and explicitly cover the core semantics of the user's question, you MUST return invalid intent. No associative reasoning to force a connection**
-    - Correct: user asks "what am I holding" → skill description includes "get player held item" → match, return single intent
-    - Correct: user asks "how to make a healthy dinner" → no skill description covers "cooking" or "recipe" semantics → no match, return invalid intent
-    - Correct: user asks "how much is diamond" → skill description includes "query market price" → match
-    - **Note: if the user's question contains sub-dimensions that can be directly covered by a skill's description text, do not return invalid intent — return the corresponding intent format instead**
+    - **[Core Matching Standard] Matching must be strictly based on skill description text: the skill's description must directly and explicitly serve the user's intent. "Data retrieved could help answer the question" is NOT a valid match reason. If no skill's description directly serves the user's intent, return invalid intent**
+    - Correct: user asks "what am I holding" → skill description includes "get player held item", directly serves user intent → match, return single intent
+    - Correct: user asks "how to make a healthy dinner" → no skill description serves "cooking" or "recipe" intent → no match, return invalid intent
+    - Correct: user asks "how much is diamond" → skill description includes "query market price", directly serves user intent → match
+    - **[Key Distinction] "Data retrieved by the skill could help answer the user's question" ≠ "The skill matches the user's intent". A match exists only when the user's question itself requires that data. When the user asks "principles/guides/suggestions/how-to", the core intent is acquiring knowledge, not retrieving game data — do NOT match any data-fetching skill**
     - Note: if the previous conversation has clear context, intent should be understood combining history rather than directly returning invalid
 
 # ============================================
@@ -126,6 +126,7 @@ critical_rules:
     - **Implicit decomposition**: user uses comprehensive words (e.g. "safe", "status", "situation", "evaluate", "comprehensive", "detailed", "overall") → you need to actively think about what specific information this concept contains that can be queried
     - **Decomposition method**: ask yourself "What specific information does the user want to know about this? Which skill can obtain each piece of information?"
     - **Key insight**: you don't need a 'comprehensive evaluation' skill. You just need to find the corresponding data acquisition skill for each dimension; after data is acquired, the system will automatically perform comprehensive analysis
+    - **Decomposition boundary**: decomposition must be based on the user's explicitly stated information needs. "What auxiliary data might be needed to answer the user's question" is NOT the user's intent and should NOT be used to decompose sub-questions
     
     **Temporal Semantics Recognition (Extremely Important)**
     - When the user's request contains temporal expressions like "...after...", "...once...", "...when...", "...then...", "once X, Y", "wait until X then Y", the subsequent action must depend on the precondition being met
@@ -144,9 +145,11 @@ critical_rules:
     
     **Step 1: Match Skills One by One (Semantic Matching Principle)**
     - For each sub-question, check if there's a corresponding skill in the [Available Skills List]
-    - **Semantic matching**: the skill's purpose must fully correspond to the user's intent
-    - Judgment method: ask yourself "What is this skill designed for? Does the user's question exactly match what this skill solves?"
-    - Counter-example: user asks "crafting recipe", market_query's design purpose is "query market prices", not "query recipes", so it doesn't match
+    - **Semantic matching**: the skill's design purpose must directly correspond to the user's sub-question intent
+    - Judgment method: ask yourself "What is this skill designed for? Does the user's sub-question exactly match what this skill solves?"
+    - **[Core Matching Standard] A match exists only when the skill's description directly and explicitly serves the user's sub-question intent. "Data retrieved could help answer the user's question" is NOT a valid match reason. Only when the user's sub-question itself requires obtaining that data does it count as a match**
+    - Counter-example: user asks "string duping machine principle" → sub-question "what is the principle" → get_player_hand_item is designed to "get held item", doesn't serve "understand principle" → no match
+    - Correct example: user asks "what am I holding" → sub-question "query held item" → get_player_hand_item is designed exactly to "get held item" → match
     - Only use skill names that explicitly exist in the list, strictly no fabrication
     
     **Step 2: Select Output Format Based on Matching Results**
@@ -166,11 +169,12 @@ critical_rules:
     **Strictly No Substituting with Unrelated Skills**:
     - **This is a common cause of task failure!**
     - Each skill has a clear purpose and semantic scope
-    - **Semantic matching requires the skill's description text to directly and explicitly cover the core semantics of the user's question** — not just functional similarity
+    - **Semantic matching requires the skill's description to directly serve the user's sub-question intent** — not "the data retrieved could help answer"
     - **Matching must be based on skill description text. No associative reasoning based on your own external knowledge** (e.g. user asks about cooking, you should NOT associate it with "might have ingredients in hand" and then match the held-item skill)
-    - Judgment criterion: if the skill name or description doesn't contain the user's question's core keywords, it's not a semantic match
+    - Judgment criterion: ask yourself "Does the user's sub-question exactly ask for what this skill is designed to do?" If not, it's not a match
     - Counter-example: user asks "crafting recipe", even if market_query can "query", it doesn't match because market_query's semantics are "market item prices", not "recipes"
-    - Counter-example: user asks "how to make a healthy dinner", no skill description covers "cooking" or "recipe" — should NOT associate-match any skill
+    - Counter-example: user asks "iron farm principle", even if get_player_hand_item can "get item", it doesn't match because the user asks "principle" not "what am I holding"
+    - Counter-example: user asks "how to make a healthy dinner", no skill description serves "cooking" or "recipe" intent — should NOT associate-match any skill
     - If a sub-question can't find a semantically matching skill in the [Available Skills List], that sub-question has no corresponding skill; don't force a match
     
     **About Degradation**:
@@ -178,10 +182,8 @@ critical_rules:
     - When some sub-questions have no corresponding skills, return single intent or multi-step format to execute the part with skills
     - The system will execute corresponding skills based on your recognition results, then use LLM secondary analysis combined with execution results to answer the user's question as completely as possible
     - Therefore, even if only some steps are executed, the user's complete question can still be answered
-    - Don't return invalid intent just because no skill covers all questions; as long as one sub-question has a corresponding skill, return the corresponding intent format
     - **Core Principle**:
-    - As long as one sub-question has a corresponding skill, the corresponding intent format (single intent or multi-step) must be returned
-    - Better to execute some steps than to give up entirely
+    - As long as one sub-question has a corresponding skill (meeting the semantic matching standard above), return the corresponding intent format
     - Strictly forbidden to have skill_name: null in steps array
     - Strictly forbidden to fabricate non-existent skill names
 
