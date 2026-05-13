@@ -4,7 +4,7 @@
 
 # Kilacraft-AI
 
-**第一个让每个服务器都拥有「越用越懂你」AI 智能体的插件**
+**第一个让每个服务器都拥有「越用越懂你」的AI智能体插件**
 
 [![Version](https://img.shields.io/badge/Version-2.0.2-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
