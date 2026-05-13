@@ -4,9 +4,7 @@
 
 # Kilacraft-AI
 
-**Lightweight AI Agent Plugin for Minecraft**
-
-Remember each player's AI assistant - Dialogue as a Service, the more you use it, the better you understand
+**The first plugin that gives every server an AI agent that understands you better the more you use it**
 
 [![Version](https://img.shields.io/badge/Version-2.0.2-orange)](https://github.com/Zm-Mmm/Kilacraft-AI/wiki/Changelog)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)

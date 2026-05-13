@@ -1,6 +1,6 @@
 # Kilacraft-AI
 
-> A Minecraft AI Agent plugin based on LLM intent recognition and skill execution framework, enabling natural language interaction with servers
+> The first plugin that gives every server an AI agent that understands you better the more you use it — powered by LLM intent recognition and skill execution framework
 
 [![GitHub Tag](https://img.shields.io/github/v/tag/axy-yxa/Kilacraft-AI?label=Release&color=blue)](https://github.com/axy-yxa/Kilacraft-AI/tags)
 [![MC](https://img.shields.io/badge/MC-1.16.5--1.21+-green.svg)](https://github.com/axy-yxa/Kilacraft-AI)
