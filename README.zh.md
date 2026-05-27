@@ -1,6 +1,6 @@
 <div align="center">
 
-# Kilacraft-AI <a href="README.md" style="font-size:14px;font-weight:normal">English</a>
+# Kilacraft-AI <sub>[English](README.md)</sub>
 
 **首个让每个服务器都拥有「越用越懂你」的AI智能体插件**
 

@@ -1,6 +1,6 @@
 <div align="center">
 
-# Kilacraft-AI <a href="README.zh.md" style="font-size:14px;font-weight:normal">中文</a>
+# Kilacraft-AI <sub>[中文](README.zh.md)</sub>
 
 **The first plugin that gives every server an AI agent that understands you better the more you use it**
 
