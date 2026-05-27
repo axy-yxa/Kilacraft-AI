@@ -1,0 +1,163 @@
+package com.zm.kilacraftAI.model.afktask;
+
+import com.zm.kilacraftAI.i18n.I18nService;
+import lombok.Getter;
+
+import java.util.Collections;
+import java.util.Map;
+
+/**
+ * 条件计划数据结构
+ *
+ * <p>用于定义CUSTOM挂机任务的条件评估规则。</p>
+ *
+ * <h3>设计原则：</h3>
+ * <ul>
+ *   <li>单条件限制：只支持一个数值条件，不支持多条件组合（AND/OR）</li>
+ *   <li>通用性：通过Skill返回结果 + 字段提取 + 数值比较实现</li>
+ *   <li>类型安全：所有数值统一使用double进行比较，布尔值会转为数值（true=1.0, false=0.0）</li>
+ * </ul>
+ *
+ * <h3>使用场景：</h3>
+ * <ul>
+ *   <li>血量监视：当血量低于50%时通知</li>
+ *   <li>等级监视：当等级达到30时通知</li>
+ *   <li>经济余额监视：当余额低于1000时通知</li>
+ *   <li>任意Skill返回值监视：只要返回值包含数值字段</li>
+ * </ul>
+ *
+ * @author Zm_Mmm
+ * @since 2026-04-13
+ */
+@Getter
+public class ConditionPlan {
+
+    /**
+     * 条件技能名称（来自可用技能列表）
+     */
+    private final String conditionSkill;
+
+    /**
+     * 条件动作名称（该技能的查询动作）
+     */
+    private final String conditionAction;
+
+    /**
+     * 结果字段路径（从Skill返回结果中提取的字段名）
+     *
+     * <p>必须是该动作实际返回的数据字段名，参考动作描述中的 data 字段说明。</p>
+     */
+    private final String resultPath;
+
+    /**
+     * 比较操作符
+     *
+     * <p>支持的操作符：</p>
+     * <ul>
+     *   <li>less_than - 小于 (&lt;)</li>
+     *   <li>less_than_or_equal - 小于等于 (&lt;=)</li>
+     *   <li>greater_than - 大于 (&gt;)</li>
+     *   <li>greater_than_or_equal - 大于等于 (&gt;=)</li>
+     *   <li>equal - 等于 (==)</li>
+     *   <li>not_equal - 不等于 (!=)</li>
+     * </ul>
+     */
+    private final String operator;
+
+    /**
+     * 阈值（用于比较的数值）
+     * <p>布尔阈值在解析时已转换为数值：true → 1.0, false → 0.0</p>
+     */
+    private final double threshold;
+
+    /**
+     * 字符串阈值（用于 equal/not_equal 的字符串比较，如方块类型 GRASS_BLOCK）
+     * <p>为 null 时使用数值比较，非 null 时使用字符串比较</p>
+     */
+    private final String thresholdStr;
+
+    /**
+     * 条件技能的执行参数（传递给 SkillContext 的 entities）
+     *
+     * <p>某些条件技能需要额外参数才能执行（如 market_query.query_availability 需要 item 参数），
+     * 此字段用于存储这些参数，在每次轮询评估时传递给 SkillContext。</p>
+     */
+    private final Map<String, String> conditionParams;
+
+    /**
+     * 构造条件计划
+     *
+     * @param conditionSkill  条件技能名称
+     * @param conditionAction 条件动作名称
+     * @param resultPath      结果字段路径
+     * @param operator        比较操作符
+     * @param threshold       阈值
+     */
+    public ConditionPlan(String conditionSkill, String conditionAction, String resultPath, String operator, double threshold) {
+        this(conditionSkill, conditionAction, resultPath, operator, threshold, null, Collections.emptyMap());
+    }
+
+    /**
+     * 构造条件计划（含条件技能参数）
+     *
+     * @param conditionSkill   条件技能名称
+     * @param conditionAction  条件动作名称
+     * @param resultPath       结果字段路径
+     * @param operator         比较操作符
+     * @param threshold        阈值
+     * @param conditionParams  条件技能的执行参数
+     */
+    public ConditionPlan(String conditionSkill, String conditionAction, String resultPath, String operator, double threshold, Map<String, String> conditionParams) {
+        this(conditionSkill, conditionAction, resultPath, operator, threshold, null, conditionParams);
+    }
+
+    /**
+     * 全参构造（含字符串阈值和条件技能参数）
+     */
+    public ConditionPlan(String conditionSkill, String conditionAction, String resultPath, String operator, double threshold, String thresholdStr, Map<String, String> conditionParams) {
+        this.conditionSkill = conditionSkill;
+        this.conditionAction = conditionAction;
+        this.resultPath = resultPath;
+        this.operator = operator;
+        this.threshold = threshold;
+        this.thresholdStr = thresholdStr;
+        this.conditionParams = conditionParams != null ? conditionParams : Collections.emptyMap();
+    }
+
+    /**
+     * 验证操作符是否合法
+     *
+     * @return true 如果操作符合法
+     */
+    public boolean isValidOperator() {
+        return operator != null && switch (operator) {
+            case "less_than", "less_than_or_equal", "greater_than", "greater_than_or_equal", "equal", "not_equal" ->
+                    true;
+            default -> false;
+        };
+    }
+
+    /**
+     * 获取操作符的可读描述
+     *
+     * @return 操作符的中文描述
+     */
+    public String getOperatorDescription() {
+        return switch (operator != null ? operator : "") {
+            case "less_than" -> I18nService.tr("小于");
+            case "less_than_or_equal" -> I18nService.tr("小于等于");
+            case "greater_than" -> I18nService.tr("大于");
+            case "greater_than_or_equal" -> I18nService.tr("大于等于");
+            case "equal" -> I18nService.tr("等于");
+            case "not_equal" -> I18nService.tr("不等于");
+            default -> I18nService.tr("未知");
+        };
+    }
+
+    @Override
+    public String toString() {
+        String paramsStr = conditionParams.isEmpty() ? "" : ", params=" + conditionParams;
+        String thresholdDisplay = thresholdStr != null ? "\"" + thresholdStr + "\"" : String.format("%.1f", threshold);
+        return String.format("%s.%s → %s %s %s%s", conditionSkill, conditionAction, resultPath, getOperatorDescription(), thresholdDisplay, paramsStr);
+    }
+}

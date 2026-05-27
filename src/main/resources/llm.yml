@@ -1,5 +1,4 @@
-# ==================== Kilacraft-AI LLM 与 Agent 配置 ====================
-# Kilacraft-AI LLM & Agent Configuration
+# ==================== Kilacraft-AI LLM 与 Agent 配置 / LLM & Agent Configuration ====================
 # 独立配置文件，修改后执行 /kilacraft reload 即时生效（除标注不可热重载的项外）
 # Standalone config file, run /kilacraft reload to apply changes (except items marked as non-hot-reloadable)
 
@@ -42,17 +41,12 @@ llm:
   
   # 模型名称（根据厂商配置）
   # Model name (configure according to provider)
-  # DeepSeek: deepseek-chat
-  # 智谱AI: glm-4-plus, glm-4-flash
-  # Moonshot: moonshot-v1-8k, moonshot-v1-32k
   model: "deepseek-chat"
-  
-  # 通用配置（覆盖各个提供商的默认值）
+
   # 温度参数（0-2之间）
   # 值越高回答越有创意和随机性
   # 值越低回答越保守和确定性
   # 0.7是平衡点，适合一般对话
-  # General configuration (overrides default values for each provider)
   # Temperature parameter (between 0-2)
   # Higher values = more creative and random responses
   # Lower values = more conservative and deterministic responses
@@ -76,16 +70,15 @@ llm:
     【操作声明规范】你不得自行声称已执行任何游戏内操作，除非你收到了技能系统返回的明确成功信息。严禁在没有执行结果的情况下使用'我帮你'、'已经'、'成功'等暗示操作已完成的措辞。
     【技能系统回退】当用户消息中附带 [FAILURE]、[NEED_INFO] 等标记或失败/异常信息时，说明技能系统已尝试执行但需要处理，此时直接根据信息内容用自然语言向玩家解释或转述，不得提及'系统提示'或内部机制。
     【货币单位】本服经济系统的货币符号为 $（如 $100.00）。绝对不要使用'绿宝石'、'emerald'或其他 Minecraft 物品名称指代货币，所有金额都是 $ 货币单位。
-  # 英文版系统提示词（language=en 时生效，留空则使用中文版）
-  # English system prompt (effective when language=en, leave empty to use Chinese version)
+  # 英文版系统提示词（language=en 时生效）
+  # English system prompt (effective when language=en)
   system_prompt_en: |
     You are a Minecraft game assistant, chatting with player {player}. Please respond in a friendly and concise manner, no more than 80 words. Feel free to mention Minecraft-related content. Do not address the player by name in your replies.
     [ACTION CLAIM RULES] You must NOT claim to have performed any in-game action unless you have received explicit success information from the skill system. NEVER use phrases like 'I'll help you', 'done', 'successfully' that imply an action was completed without confirmed execution results.
     [SKILL SYSTEM FALLBACK] When the user message contains [FAILURE], [NEED_INFO] markers or failure/error information, explain or relay the information to the player naturally in your own words. Never mention 'system prompt' or any internal mechanism.
     [CURRENCY UNIT] This server's economy uses $ as the currency symbol (e.g. $100.00). NEVER use 'emerald' or any other Minecraft item name to refer to currency. All prices and amounts are in $ currency.
 
-# ==================== Agent 能力配置 ====================
-# Agent Capability Configuration
+# ==================== Agent 能力配置 / Agent Capability Configuration ====================
 # Agent 能力说明：
 # 1. 启用后，AI 会先进行意图识别，判断是否需要调用技能（单意图或多步骤任务）
 # 2. 意图识别失败或技能执行失败时，回退到普通 AI 对话
@@ -141,8 +134,8 @@ agent:
     # 系统提示词
     # System prompt
     system_prompt: "你是一个热情有趣的 Minecraft 游戏助手，正在为玩家分析任务执行结果。优先根据执行结果数据回答问题，如果上下文中有知识库提供的相关信息，也可以适当补充。"
-    # 英文版系统提示词（language=en 时生效，留空则使用中文版）
-    # English system prompt (effective when language=en, leave empty to use Chinese version)
+    # 英文版系统提示词（language=en 时生效）
+    # English system prompt (effective when language=en)
     system_prompt_en: "You are an enthusiastic Minecraft game assistant, analyzing task execution results for the player. Prioritize answering questions based on execution result data. If relevant knowledge base information is available in the context, you may supplement your answer appropriately."
     
     # 分析提示词后缀
@@ -177,8 +170,8 @@ agent:
       - 请基于所有成功的步骤结果，尽可能形成对用户有用的回答
       - 对于失败或跳过的步骤，请明确指出哪些部分因何原因未能完成，并提供建议
       - 不要因为部分失败而完全拒绝回答，要充分利用已获取的信息
-    # 英文版分析提示词后缀（language=en 时生效，留空则使用中文版）
-    # English analysis prompt suffix (effective when language=en, leave empty to use Chinese version)
+    # 英文版分析提示词后缀（language=en 时生效）
+    # English analysis prompt suffix (effective when language=en)
     analysis_prompt_suffix_en: |
       
       [STRONGEST RULE - Absolutely No Violations]

@@ -1,14 +1,14 @@
 package com.zm.kilacraftAI.skills.cmi;
 
 import com.zm.kilacraftAI.compat.cmi.CMIAPI;
-import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.enums.PluginPermissionEnum;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
-import com.zm.kilacraftAI.util.BukkitCommandUtil;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skill.SkillConfig;
+import com.zm.kilacraftAI.common.util.BukkitCommandUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -109,13 +109,9 @@ public class CMISkill implements Skill {
     // 初始化动作映射
     private final Map<String, Function<SkillContext, CompletableFuture<SkillResult>>> actionToHandler = Map.ofEntries(entry("query_homes", this::queryHomes), entry("query_warps", this::queryWarps), entry("query_player_info", this::queryPlayerInfo), entry("query_kits", this::queryKits), entry("query_online_players", this::queryOnlinePlayers), entry("teleport_home", this::teleportHome), entry("teleport_to_warp", this::teleportToWarp), entry("send_tp_request", this::sendTpRequest));
 
-    // ==================== 通用方法 ====================
-
     private CompletableFuture<SkillResult> handleUnknownAction(SkillContext context) {
         return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 不支持的CMI操作，可用的操作：query_homes, query_warps, query_player_info, query_kits, query_online_players, teleport_home, teleport_to_warp, send_tp_request"));
     }
-
-    // ==================== 查询类动作（只读） ====================
 
     /**
      * 查询玩家的家列表
@@ -314,8 +310,6 @@ public class CMISkill implements Skill {
 
         return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
     }
-
-    // ==================== 传送类动作（通过 dispatchCommand） ====================
 
     /**
      * 传送到自己的家

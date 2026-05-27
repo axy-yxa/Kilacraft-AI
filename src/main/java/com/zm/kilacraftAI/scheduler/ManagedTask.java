@@ -1,5 +1,7 @@
 package com.zm.kilacraftAI.scheduler;
 
+import com.zm.kilacraftAI.i18n.I18nService;
+
 /**
  * 托管定时任务接口
  *
@@ -53,5 +55,18 @@ public interface ManagedTask {
      */
     default boolean enabled() {
         return true;
+    }
+
+    /**
+     * 格式化累计统计展示文本
+     *
+     * <p>用于 {@code /ai tasks} 状态展示。默认 "累计 x 条"，
+     * 非数据操作类任务（如健康监控）可覆写为其他格式（如 "触发 x 次"）。</p>
+     *
+     * @param totalProcessed 累计处理数
+     * @return 格式化后的统计文本
+     */
+    default String formatStats(long totalProcessed) {
+        return I18nService.tr("累计 §e{} §7条", totalProcessed);
     }
 }

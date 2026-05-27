@@ -1,7 +1,9 @@
 package com.zm.kilacraftAI.db;
 
+import com.zm.kilacraftAI.common.enums.DatabaseTypeEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.DatabaseConfigManager;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.db.model.DatabaseConfig;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -21,28 +23,48 @@ public class DatabaseManager {
      * 初始化数据库
      *
      * <p>流程：创建 Provider → 建池 → 迁移 Schema → 验证连接</p>
+     * <p>MySQL 连接失败时自动回退到 H2，确保持久化功能可用。</p>
      *
      * @param configManager 数据库配置管理器
-     * @throws SQLException 初始化失败
+     * @throws SQLException 初始化失败（包括 H2 回退也失败时）
      */
     public void initialize(DatabaseConfigManager configManager) throws SQLException {
         this.currentConfig = configManager.getConfig();
-        createProvider(currentConfig);
+
+        try {
+            createProvider(currentConfig);
+        } catch (SQLException e) {
+            // MySQL 连接失败，自动回退到 H2
+            if (currentConfig.getType() == DatabaseTypeEnum.MYSQL) {
+                PluginLoggerUtil.error("数据库", "MySQL 初始化失败: {}", e.getMessage());
+                PluginLoggerUtil.warn("数据库", "自动回退到 H2 内置数据库，持久化功能正常可用");
+
+                DatabaseConfig h2Config = DatabaseConfig.builder()
+                        .type(DatabaseTypeEnum.H2)
+                        .tablePrefix(currentConfig.getTablePrefix())
+                        .build();
+                this.currentConfig = h2Config;
+                createProvider(h2Config);
+            } else {
+                throw e;
+            }
+        }
 
         // Schema 迁移
         this.schemaManager = new SchemaManager(provider, currentConfig.getTablePrefix(), currentConfig.getType());
         schemaManager.initialize();
 
-        PluginLogger.info("数据库", "数据库初始化完成，类型: {}", currentConfig.getType());
+        PluginLoggerUtil.info("数据库", "数据库初始化完成，类型: {}", currentConfig.getType());
     }
 
     /**
      * 热重载：关闭旧池 → 按新配置创建新池 → 验证连接
      *
-     * <p>如果新配置连接测试失败，回退到旧连接池。</p>
+     * <p>如果新配置连接测试失败，回退到旧连接池。
+     * 如果新配置为 MySQL 且连接失败，自动回退到 H2（与启动行为一致）。</p>
      *
      * @param newConfig 新的数据库配置
-     * @throws SQLException 新配置初始化失败
+     * @throws SQLException 新配置初始化失败（包括 H2 回退也失败时）
      */
     public void reload(DatabaseConfig newConfig) throws SQLException {
         DatabaseConfig oldConfig = this.currentConfig;
@@ -51,13 +73,13 @@ public class DatabaseManager {
         if (oldConfig != null && configEquals(oldConfig, newConfig)) {
             // 连接参数未变则跳过连接池重建，但非连接级字段（如 group.*）仍需更新
             this.currentConfig = newConfig;
-            PluginLogger.info("数据库", "热重载跳过，配置未变化（类型: {}）", newConfig.getType());
+            PluginLoggerUtil.info("数据库", "热重载跳过，配置未变化（类型: {}）", newConfig.getType());
             return;
         }
 
         DatabaseProvider oldProvider = this.provider;
 
-        PluginLogger.info("数据库", "开始热重载，旧类型: {}，新类型: {}", oldConfig != null ? oldConfig.getType() : "无", newConfig.getType());
+        PluginLoggerUtil.info("数据库", "开始热重载，旧类型: {}，新类型: {}", oldConfig != null ? oldConfig.getType() : "无", newConfig.getType());
 
         try {
             // 创建新 Provider
@@ -78,11 +100,40 @@ public class DatabaseManager {
             }
 
             this.currentConfig = newConfig;
-            PluginLogger.info("数据库", "热重载完成，新类型: {}", newConfig.getType());
+            PluginLoggerUtil.info("数据库", "热重载完成，新类型: {}", newConfig.getType());
 
         } catch (SQLException e) {
-            // 新配置失败，回退到旧 Provider
-            PluginLogger.error("数据库", "热重载失败，回退到旧配置: {}", e.getMessage());
+            // MySQL 失败，尝试 H2 回退（与 initialize 行为一致）
+            if (newConfig.getType() == DatabaseTypeEnum.MYSQL) {
+                PluginLoggerUtil.error("数据库", "MySQL 热重载失败: {}", e.getMessage());
+                PluginLoggerUtil.warn("数据库", "自动回退到 H2 内置数据库，持久化功能正常可用");
+
+                try {
+                    // 先关闭旧 Provider（释放 H2 TCP Server 端口等资源），再创建新 H2
+                    if (oldProvider != null) {
+                        oldProvider.shutdown();
+                    }
+
+                    DatabaseConfig h2Config = DatabaseConfig.builder()
+                            .type(DatabaseTypeEnum.H2)
+                            .tablePrefix(newConfig.getTablePrefix())
+                            .build();
+                    createProvider(h2Config);
+                    this.schemaManager = new SchemaManager(provider, h2Config.getTablePrefix(), h2Config.getType());
+                    schemaManager.initialize();
+
+                    this.currentConfig = h2Config;
+                    PluginLoggerUtil.info("数据库", "热重载完成（已回退到 H2）");
+                    return;
+                } catch (SQLException h2Ex) {
+                    // H2 回退也失败，旧 Provider 已关闭无法恢复
+                    PluginLoggerUtil.error("数据库", "H2 回退也失败，无可用数据库: {}", h2Ex.getMessage());
+                    throw h2Ex;
+                }
+            }
+
+            // 非 MySQL 类型失败，回退到旧 Provider
+            PluginLoggerUtil.error("数据库", "热重载失败，回退到旧配置: {}", e.getMessage());
             this.provider = oldProvider;
             this.currentConfig = oldConfig;
             throw e;
@@ -97,7 +148,7 @@ public class DatabaseManager {
             provider.shutdown();
             provider = null;
         }
-        PluginLogger.info("数据库", "数据库管理器已关闭");
+        PluginLoggerUtil.info("数据库", "数据库管理器已关闭");
     }
 
     /**
@@ -129,6 +180,15 @@ public class DatabaseManager {
      */
     public DatabaseConfig getConfig() {
         return currentConfig;
+    }
+
+    /**
+     * 获取连接池状态信息（用于诊断报告）
+     *
+     * @return 连接池状态字符串，未初始化时返回 "N/A"
+     */
+    public String getPoolInfo() {
+        return provider != null ? provider.getPoolInfo() : "N/A";
     }
 
     /**

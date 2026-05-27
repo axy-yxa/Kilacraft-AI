@@ -169,6 +169,66 @@ public class SocialRelationDao {
         }
     }
 
+    /**
+     * 社交统计（social_insights Action）
+     *
+     * <p>按玩家聚合社交关系数、平均强度、最大强度、总交互次数。</p>
+     *
+     * @param conn  数据库连接
+     * @param limit 最大条数
+     * @return 社交统计列表（按 relation_count 降序）
+     */
+    public List<SocialStats> querySocialStats(Connection conn, int limit) throws SQLException {
+        String sql = "SELECT player_uuid, " + "COUNT(*) AS relation_count, " + "AVG(strength) AS avg_strength, " + "MAX(strength) AS max_strength, " + "SUM(interaction_count) AS total_interactions " + "FROM " + tablePrefix + "social_relation " + "GROUP BY player_uuid " + "ORDER BY relation_count DESC LIMIT ?";
+
+        List<SocialStats> results = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new SocialStats(UUID.fromString(rs.getString("player_uuid")), rs.getInt("relation_count"), rs.getDouble("avg_strength"), rs.getDouble("max_strength"), rs.getInt("total_interactions")));
+                }
+            }
+        }
+        return results;
+    }
+
+    /**
+     * 查询孤立玩家（有画像但无社交关系的玩家）
+     *
+     * <p>使用 LEFT JOIN + IS NULL 模式（比 NOT IN 更友好于查询优化器）。</p>
+     *
+     * @param conn      数据库连接
+     * @param afterTime 起始时间戳（ms）—— 仅返回 last_login > afterTime 的玩家
+     * @param limit     最大条数
+     * @return 孤立玩家列表（uuid, name）
+     */
+    public List<IsolatedPlayer> queryIsolatedPlayers(Connection conn, long afterTime, int limit) throws SQLException {
+        String sql = "SELECT p.uuid, p.name " + "FROM " + tablePrefix + "player_profile p " + "LEFT JOIN " + tablePrefix + "social_relation sr ON p.uuid = sr.player_uuid " + "WHERE sr.player_uuid IS NULL AND p.last_login > ? " + "LIMIT ?";
+
+        List<IsolatedPlayer> results = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, afterTime);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new IsolatedPlayer(UUID.fromString(rs.getString("uuid")), rs.getString("name")));
+                }
+            }
+        }
+        return results;
+    }
+
+    /**
+     * 查询社交关系总数
+     */
+    public int countTotalRelations(Connection conn) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM " + tablePrefix + "social_relation";
+        try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            return rs.next() ? rs.getInt(1) : 0;
+        }
+    }
+
     private void insert(Connection conn, UUID playerUuid, UUID targetUuid, String relationType, int count, double strength) throws SQLException {
         String sql = "INSERT INTO " + tablePrefix + "social_relation " + "(player_uuid, target_uuid, relation_type, interaction_count, " + "last_interaction, strength, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
@@ -194,5 +254,18 @@ public class SocialRelationDao {
      */
     public record SocialRelation(UUID playerUuid, UUID targetUuid, String relationType, int interactionCount,
                                  long lastInteraction, double strength) {
+    }
+
+    /**
+     * 社交统计（querySocialStats 返回值）
+     */
+    public record SocialStats(UUID playerUuid, int relationCount, double avgStrength, double maxStrength,
+                              int totalInteractions) {
+    }
+
+    /**
+     * 孤立玩家（queryIsolatedPlayers 返回值）
+     */
+    public record IsolatedPlayer(UUID uuid, String name) {
     }
 }

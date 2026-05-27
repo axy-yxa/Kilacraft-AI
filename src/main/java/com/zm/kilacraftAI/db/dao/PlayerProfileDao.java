@@ -2,8 +2,8 @@ package com.zm.kilacraftAI.db.dao;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.zm.kilacraftAI.profile.PlayerProfile;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.model.profile.PlayerProfile;
 
 import java.lang.reflect.Type;
 import java.sql.Connection;
@@ -50,7 +50,7 @@ public class PlayerProfileDao {
         PlayerProfile newProfile = PlayerProfile.builder().uuid(uuid).name(name).firstLogin(now).lastLogin(now).lastLogout(0).loginCount(0).totalPlaytimeMs(0).lastWorld("").lastGreetingTime(0).build();
 
         insert(conn, newProfile);
-        PluginLogger.debug("数据库", "创建新玩家画像: {} ({})", name, uuid);
+        PluginLoggerUtil.debug("数据库", "创建新玩家画像: {} ({})", name, uuid);
         return newProfile;
     }
 
@@ -195,9 +195,127 @@ public class PlayerProfileDao {
     }
 
     /**
+     * order_by 白名单映射
+     */
+    private static final Map<String, String> ORDER_BY_MAP = Map.of(
+        "login_count", "login_count",
+        "total_playtime_ms", "total_playtime_ms",
+        "last_login", "last_login"
+    );
+
+    /**
+     * 活跃玩家排行（top_active Action）
+     *
+     * @param conn      数据库连接
+     * @param afterTime 起始时间戳（ms）—— 仅返回 last_login > afterTime 的玩家
+     * @param orderBy   排序字段（login_count / total_playtime_ms / last_login）
+     * @param limit     最大条数
+     * @return 活跃玩家列表
+     */
+    public List<TopActivePlayer> queryTopActive(Connection conn, long afterTime, String orderBy, int limit) throws SQLException {
+        String sqlColumn = ORDER_BY_MAP.getOrDefault(orderBy, "login_count");
+        String sql = "SELECT uuid, name, login_count, total_playtime_ms, last_login "
+            + "FROM " + tablePrefix + "player_profile "
+            + "WHERE last_login > ? "
+            + "ORDER BY " + sqlColumn + " DESC LIMIT ?";
+
+        List<TopActivePlayer> results = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, afterTime);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new TopActivePlayer(
+                        UUID.fromString(rs.getString("uuid")),
+                        rs.getString("name"),
+                        rs.getInt("login_count"),
+                        rs.getLong("total_playtime_ms"),
+                        rs.getLong("last_login")
+                    ));
+                }
+            }
+        }
+        return results;
+    }
+
+    /**
+     * 画像分析覆盖率统计（profile_coverage Action）
+     *
+     * @param conn      数据库连接
+     * @param afterTime 起始时间戳（ms）—— 用于统计 recently_analyzed
+     * @return 覆盖率统计数据
+     */
+    public ProfileCoverageResult queryProfileCoverage(Connection conn, long afterTime) throws SQLException {
+        String sql = "SELECT "
+            + "COUNT(*) AS total_players, "
+            + "SUM(CASE WHEN profile_data IS NOT NULL AND profile_data != '' THEN 1 ELSE 0 END) AS analyzed_count, "
+            + "SUM(CASE WHEN profile_analyzed_at > ? THEN 1 ELSE 0 END) AS recently_analyzed "
+            + "FROM " + tablePrefix + "player_profile";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, afterTime);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int total = rs.getInt("total_players");
+                    int analyzed = rs.getInt("analyzed_count");
+                    int recentlyAnalyzed = rs.getInt("recently_analyzed");
+                    double coveragePct = total > 0 ? (double) analyzed / total * 100.0 : 0.0;
+                    return new ProfileCoverageResult(total, analyzed, recentlyAnalyzed, coveragePct);
+                }
+            }
+        }
+        return new ProfileCoverageResult(0, 0, 0, 0.0);
+    }
+
+    /**
+     * 查询待分析玩家列表（最近登录但无画像的玩家）
+     *
+     * @param conn      数据库连接
+     * @param afterTime 起始时间戳（ms）
+     * @param limit     最大条数
+     * @return 待分析玩家列表
+     */
+    public List<TopActivePlayer> queryPendingAnalysis(Connection conn, long afterTime, int limit) throws SQLException {
+        String sql = "SELECT uuid, name, login_count, total_playtime_ms, last_login "
+            + "FROM " + tablePrefix + "player_profile "
+            + "WHERE last_login > ? AND (profile_data IS NULL OR profile_data = '') "
+            + "ORDER BY last_login DESC LIMIT ?";
+
+        List<TopActivePlayer> results = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, afterTime);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new TopActivePlayer(
+                        UUID.fromString(rs.getString("uuid")),
+                        rs.getString("name"),
+                        rs.getInt("login_count"),
+                        rs.getLong("total_playtime_ms"),
+                        rs.getLong("last_login")
+                    ));
+                }
+            }
+        }
+        return results;
+    }
+
+    /**
      * 离线好友数据（UUID + 名称 + 最后登出时间）
      */
     public record OfflineFriendData(UUID uuid, String name, long lastLogout) {
+    }
+
+    /**
+     * 活跃玩家排行数据（top_active / queryPendingAnalysis 返回值）
+     */
+    public record TopActivePlayer(UUID uuid, String name, int loginCount, long totalPlaytimeMs, long lastLogin) {
+    }
+
+    /**
+     * 画像覆盖率统计结果（profile_coverage 返回值）
+     */
+    public record ProfileCoverageResult(int totalPlayers, int analyzedCount, int recentlyAnalyzed, double coveragePct) {
     }
 
     private PlayerProfile mapRow(ResultSet rs) throws SQLException {
@@ -218,7 +336,7 @@ public class PlayerProfileDao {
         try {
             return GSON.fromJson(json, MAP_TYPE);
         } catch (Exception e) {
-            PluginLogger.warn("数据库", "解析 profile_data 失败: {}", e.getMessage());
+            PluginLoggerUtil.warn("数据库", "解析 profile_data 失败: {}", e.getMessage());
             return null;
         }
     }

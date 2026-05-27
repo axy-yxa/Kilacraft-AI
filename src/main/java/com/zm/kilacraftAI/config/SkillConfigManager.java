@@ -1,18 +1,22 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.skills.bukkit.BukkitAPIConfigLoader;
-import com.zm.kilacraftAI.skills.bukkit.BukkitAPIMetadata;
-import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
-import com.zm.kilacraftAI.util.ConfigResourceUtil;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.service.bukkit.BukkitAPIConfigLoader;
+import com.zm.kilacraftAI.model.bukkit.BukkitAPIMetadata;
+import com.zm.kilacraftAI.skill.SkillConfig;
+import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.net.URI;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 /**
  * 技能配置管理器
@@ -84,7 +88,7 @@ public class SkillConfigManager {
         // 加载 Bukkit API 元数据
         loadBukkitAPIs();
 
-        PluginLogger.info("技能配置", "已加载 {} 个技能配置", skillConfigs.size());
+        PluginLoggerUtil.info("技能配置", "已加载 {} 个技能配置", skillConfigs.size());
     }
 
     /**
@@ -145,14 +149,14 @@ public class SkillConfigManager {
             var resource = plugin.getClass().getClassLoader().getResource("skills");
             if (resource == null) return;
 
-            java.net.URI uri = resource.toURI();
-            try (java.nio.file.FileSystem fs = java.nio.file.FileSystems.newFileSystem(uri, java.util.Collections.emptyMap())) {
-                java.nio.file.Path skillsPath = fs.getPath("skills");
-                try (java.util.stream.Stream<java.nio.file.Path> dirs = java.nio.file.Files.list(skillsPath)) {
-                    dirs.filter(java.nio.file.Files::isDirectory).forEach(pkgDir -> {
+            URI uri = resource.toURI();
+            try (FileSystem fs = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+                Path skillsPath = fs.getPath("skills");
+                try (Stream<Path> dirs = Files.list(skillsPath)) {
+                    dirs.filter(Files::isDirectory).forEach(pkgDir -> {
                         String pkgName = pkgDir.getFileName().toString();
-                        try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files.list(pkgDir)) {
-                            files.filter(java.nio.file.Files::isRegularFile).filter(p -> p.toString().endsWith(".yml")).forEach(p -> {
+                        try (Stream<Path> files = Files.list(pkgDir)) {
+                            files.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".yml")).forEach(p -> {
                                 String fileName = p.getFileName().toString();
                                 // 跳过 apis.yml（由 loadBukkitAPIs 单独处理）
                                 if (fileName.equalsIgnoreCase("apis.yml")) return;
@@ -172,13 +176,13 @@ public class SkillConfigManager {
                                 }
                             });
                         } catch (Exception e) {
-                            PluginLogger.warn("技能配置", I18nService.tr("扫描 JAR 包技能目录失败: skills/{}", pkgName));
+                            PluginLoggerUtil.warn("技能配置", "扫描 JAR 包技能目录失败: skills/{}", pkgName);
                         }
                     });
                 }
             }
         } catch (Exception e) {
-            PluginLogger.warn("技能配置", I18nService.tr("扫描 JAR 包技能配置目录失败: {}", e.getMessage()));
+            PluginLoggerUtil.warn("技能配置", "扫描 JAR 包技能配置目录失败: {}", e.getMessage());
         }
     }
 
@@ -216,9 +220,9 @@ public class SkillConfigManager {
                     bukkitApiMap.put(api.getId(), api);
                 }
 
-                PluginLogger.info("技能配置", "已加载 {} 个 Bukkit API", loadedApis.size());
+                PluginLoggerUtil.info("技能配置", "已加载 {} 个 Bukkit API", loadedApis.size());
             } catch (Exception e) {
-                PluginLogger.error("技能配置", I18nService.tr("加载 Bukkit API 配置失败：{}", apisFile.getPath()), e);
+                PluginLoggerUtil.error("技能配置", I18nService.tr("加载 Bukkit API 配置失败：{}", apisFile.getPath()), e);
             }
         }
     }
@@ -238,7 +242,7 @@ public class SkillConfigManager {
             String key = packageName + "." + skillName;
             skillConfigs.put(key, skillConfig);
         } catch (Exception e) {
-            PluginLogger.error("技能配置", I18nService.tr("加载技能配置失败：{}", configFile.getPath()), e);
+            PluginLoggerUtil.error("技能配置", I18nService.tr("加载技能配置失败：{}", configFile.getPath()), e);
         }
     }
 
@@ -335,7 +339,7 @@ public class SkillConfigManager {
             skillConfigs.put(key, skillConfig);
             return skillConfig;
         } catch (Exception e) {
-            PluginLogger.error("技能配置", I18nService.tr("动态加载技能配置失败：{}", configFile.getPath()), e);
+            PluginLoggerUtil.error("技能配置", I18nService.tr("动态加载技能配置失败：{}", configFile.getPath()), e);
             return null;
         }
     }
@@ -350,6 +354,6 @@ public class SkillConfigManager {
 
         loadAllSkillConfigs();
 
-        PluginLogger.info("技能配置", "技能配置重载完成");
+        PluginLoggerUtil.info("技能配置", "技能配置重载完成");
     }
 }

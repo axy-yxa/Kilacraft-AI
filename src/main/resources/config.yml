@@ -1,5 +1,4 @@
-# ==================== 插件设置 ====================
-# Plugin Settings
+# ==================== 插件设置 / Plugin Settings ====================
 # 说明：此文件为 Kilacraft-AI 主配置文件
 # LLM/Agent 配置已迁移至 llm.yml，输出管线配置已迁移至 output.yml
 # 知识库配置已迁移至 knowledge.yml，问候配置已迁移至 greeting.yml
@@ -108,8 +107,7 @@ settings:
   #- "world_nether"
   #- "world_the_end"
 
-# ==================== 消息格式配置 ====================
-# Message Format Configuration
+# ==================== 消息格式配置 / Message Format Configuration ====================
 messages:
   # AI 名称（用于提示语中的 AI 标识）
   # 例如："Kilacraft-AI"、"AI 助手" 等
@@ -130,12 +128,11 @@ messages:
   # "正在思考"提示文本
   # "Thinking" prompt text
   thinking_message: "正在思考中..."
-  # 英文版提示文本（language=en 时生效，留空则使用中文版）
-  # English prompt text (effective when language=en, leave empty to use Chinese version)
+  # 英文版提示文本（language=en 时生效）
+  # English prompt text (effective when language=en)
   thinking_message_en: "Thinking..."
 
-# ==================== 命令执行技能配置 ====================
-# Command Execution Skill Configuration
+# ==================== 命令执行技能配置 / Command Execution Skill Configuration ====================
 # 命令执行技能说明：
 # 1. 开启后 AI 可以代替玩家执行服务器命令（如 /back、/home 等）
 # 2. AI 以玩家身份执行命令，权限边界等于玩家自身的权限
@@ -157,14 +154,13 @@ messages:
 #    - Recommended to assign via permission plugin as needed (e.g., VIP players only)
 # 4. Server owners should verify permission configuration meets expectations before enabling
 command_skill:
-  # 是否启用命令执行技能（默认关闭，需手动开启）
+  # 是否启用命令执行技能
   # 注意：开启配置后，还需要给玩家分配 kilacraft.command.execute 权限
-  # Whether to enable command execution skill (default: off, requires manual enable)
+  # Whether to enable command execution skill
   # Note: After enabling config, players still need kilacraft.command.execute permission assigned
   enabled: false
 
-# ==================== 挂机任务配置 ====================
-# AFK Task Configuration
+# ==================== 挂机任务配置 / AFK Task Configuration ====================
 # 挂机任务功能说明：
 # 1. 玩家可以通过 AI 对话或命令创建后台监控任务
 # 2. 条件满足时自动通知玩家并执行动作
@@ -200,8 +196,7 @@ afk_task:
   # Recommended: 5-15, too small may kill normal tasks, too large wastes resources
   max_consecutive_failures: 10
 
-# ==================== 安全配置 ====================
-# Security Configuration
+# ==================== 安全配置 / Security Configuration ====================
 # 玩家数据隔离：防止通过AI技能查询/操作其他玩家的敏感数据
 # 安全拦截器会扫描所有Skill参数值，如果匹配到在线玩家名且不是调用者自己，则自动替换为调用者名
 # Player data isolation: prevents querying/manipulating other players' sensitive data via AI skills
@@ -218,27 +213,19 @@ security:
     # Format: skill_name.action_name (exact match) or skill_name (skill-level whitelist)
     # Run /kilacraft reload to apply changes, no server restart required
     allowed_actions:
-      - "cmi.send_tp_request"        # TPA传送请求：target_player是传送目的地
-      # TPA request: target_player is the teleport destination
-      - "market_query.query_seller_items" # 市场查询：查看指定卖家在售商品（公开市场信息）
-      # Market query: view a specific seller's listed items (public market info)
-      - "AFKTask.create_task"        # 挂机任务：允许监控其他玩家（如"帮我盯着xxx"）
-      # AFK task: allows monitoring other players (e.g., "keep an eye on xxx for me")
-      - "command.execute_command"    # 命令执行：以玩家身份执行命令，权限边界等于玩家自身权限
-      # Command execution: executes as the player, permission boundary equals player's own permissions
-      - "market_action.transfer_money" # 转账：target_player是收款人，需要允许指定其他玩家
-      # Money transfer: target_player is the recipient, must allow specifying other players
-      - "utility.notify_player"      # 中途通知：仅通知文本，不执行操作，消息中可包含其他玩家名
-      # Mid-task notification: text-only, no operations, message may contain other player names
-      - "utility.broadcast_message"    # 全服广播：仅输出公告文本，消息中可能包含其他玩家名
-      # Server-wide broadcast: announcement text output only, message may contain other player names
+      - "cmi.send_tp_request"        # TPA传送请求：target_player是传送目的地 / TPA request: target_player is the teleport destination
+      - "market_query.query_seller_items" # 市场查询：查看指定卖家在售商品（公开市场信息） / Market query: view a specific seller's listed items (public market info)
+      - "AFKTask.create_task"        # 挂机任务：只允许监控其他玩家上线和下线 / AFK Task: Only allow monitoring of other players' online and offline activities
+      - "command.execute_command"    # 命令执行：以玩家身份执行命令，权限边界等于玩家自身权限 / Command execution: executes as the player, permission boundary equals player's own permissions
+      - "market_action.transfer_money" # 转账：target_player是收款人，需要允许指定其他玩家 / Money transfer: target_player is the recipient, must allow specifying other players
+      - "utility.notify_player"      # 中途通知：仅通知文本，不执行操作，消息中可包含其他玩家名 / Mid-task notification: text-only, no operations, message may contain other player names
+      - "utility.broadcast_message"    # 全服广播：仅输出公告文本，消息中可能包含其他玩家名 / Server-wide broadcast: announcement text output only, message may contain other player names
 
-# ==================== 社交关系配置 ====================
-# Social Relation Configuration
+# ==================== 社交关系配置 / Social Relation Configuration ====================
 # 社交关系智能提取器会定期扫描这些 Skill 的审计日志，
-# 从中提取涉及其他玩家的交互，自动累加社交关系强度（skill_interaction 类型，权重 0.005）
+# 从中提取涉及其他玩家的交互，自动累加社交关系强度
 # The social relation extractor periodically scans these Skills' audit logs,
-# extracts player-to-player interactions, and automatically accumulates social relation strength (skill_interaction type, weight 0.005)
+# extracts player-to-player interactions, and automatically accumulates social relation strength
 social:
   # 参与社交关系计算的 Skill 白名单
   # 填写 Skill 的 getName() 返回值（区分大小写）
@@ -247,6 +234,6 @@ social:
   # Use the exact value returned by Skill.getName() (case-sensitive)
   # Add new SPI Skills here, run /kilacraft reload to apply
   skill_whitelist:
-    - "market_action"    # 市场操作（转账等涉及其他玩家的交易）
-    - "cmi"              # CMI 操作（TPA 传送请求等）
-    - "AFKTask"          # 挂机任务（监控其他玩家上线/下线）
+    - "market_action"    # 市场操作（转账等涉及其他玩家的交易） / Market operations (transactions involving other players such as transfers)
+    - "cmi"              # CMI 操作（TPA 传送请求等） / CMI operation (TPA transmission request, etc.)
+    - "AFKTask"          # 挂机任务（监控其他玩家上线/下线） / Hanging task (monitoring other players online/offline)

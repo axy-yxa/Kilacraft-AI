@@ -1,8 +1,8 @@
 package com.zm.kilacraftAI.compat.folia;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.config.I18nService;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -190,7 +190,7 @@ class FoliaReflection {
             try {
                 mhTaskCancel.invoke(task); // 返回值忽略（CancelledState 或 void）
             } catch (Throwable e) {
-                PluginLogger.warn("Folia兼容", I18nService.tr("取消任务失败: {}", e.getMessage()), e);
+                PluginLoggerUtil.warn("Folia兼容", I18nService.tr("取消任务失败: {}", e.getMessage()), e);
             }
         }
     }

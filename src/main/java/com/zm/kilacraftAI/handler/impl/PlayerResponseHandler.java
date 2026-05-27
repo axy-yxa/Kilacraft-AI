@@ -1,8 +1,8 @@
 package com.zm.kilacraftAI.handler.impl;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.enums.OutputChannel;
-import com.zm.kilacraftAI.enums.OutputScenario;
+import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
+import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import org.bukkit.entity.Player;
 
@@ -20,14 +20,14 @@ public class PlayerResponseHandler implements AIResponseHandler {
 
     private final KilacraftAI plugin;
     private final Player player;
-    private final OutputScenario scenario;
+    private final OutputScenarioEnum scenario;
     private final java.util.function.Consumer<String> customSendResponse;  // 自定义发送逻辑（如公屏广播）
 
-    public PlayerResponseHandler(Player player, OutputScenario scenario) {
+    public PlayerResponseHandler(Player player, OutputScenarioEnum scenario) {
         this(KilacraftAI.getInstance(), player, scenario, null);
     }
 
-    public PlayerResponseHandler(KilacraftAI plugin, Player player, OutputScenario scenario, java.util.function.Consumer<String> customSendResponse) {
+    public PlayerResponseHandler(KilacraftAI plugin, Player player, OutputScenarioEnum scenario, java.util.function.Consumer<String> customSendResponse) {
         this.plugin = plugin;
         this.player = player;
         this.scenario = scenario;
@@ -66,7 +66,7 @@ public class PlayerResponseHandler implements AIResponseHandler {
 
     @Override
     public void showStreamChunk(String chunk, String currentMessage) {
-        OutputChannel channel = plugin.getResponsePipeline().getChannelForScenario(scenario);
+        OutputChannelEnum channel = plugin.getResponsePipeline().getChannelForScenario(scenario);
         plugin.getResponsePipeline().updateStream(player, chunk, currentMessage, channel);
     }
 

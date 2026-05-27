@@ -1,8 +1,8 @@
 package com.zm.kilacraftAI.compat.mythicmobs.placeholders.all;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.config.I18nService;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
 import io.lumine.mythic.api.adapters.AbstractEntity;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import io.lumine.mythic.core.skills.placeholders.PlaceholderContext;
@@ -81,7 +81,7 @@ public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> impleme
         } catch (Exception e) {
             // 尝试获取插件实例记录错误
             try {
-                PluginLogger.error("AI占位符", I18nService.tr("占位符解析失败: {}", e.getMessage()), e);
+                PluginLoggerUtil.error("AI占位符", I18nService.tr("占位符解析失败: {}", e.getMessage()), e);
             } catch (Exception ignored) {
             }
             return I18nService.tr("[占位符解析错误]");

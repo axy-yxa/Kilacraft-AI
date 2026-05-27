@@ -1,10 +1,8 @@
 <div align="center">
 
-中文 · [**English**](README.md)
+# Kilacraft-AI <a href="README.md" style="font-size:14px;font-weight:normal">English</a>
 
-# Kilacraft-AI
-
-**第一个让每个服务器都拥有「越用越懂你」的AI智能体插件**
+**首个让每个服务器都拥有「越用越懂你」的AI智能体插件**
 
 [![Version](https://img.shields.io/badge/Version-2.0.2-orange)](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
@@ -18,23 +16,36 @@
 
 ## 特性一览
 
+**核心能力**
+
 | | 功能 | 说明 |
 |:---:|:---|:---|
-| 🤖 | **AI 智能引擎** | LLM 意图识别 · 多步骤任务规划与执行 · RAG 知识库 · Embedding 语义检索 · 5 种输出载体 · 流式输出 · 二次分析协调器 · 公屏广播 · 回复音效 |
-| 🧠 | **玩家画像** | 五维度行为分析（风格/性格/偏好/沟通/观察）· 对话自动分析 · 增量累积更新 · 版本追踪 · 历史快照 · 动态注入提示词 · AI 越来越懂每个玩家 |
-| 🕸️ | **社交关系** | 私聊/TPA/技能交互自动追踪 · 关系强度递减累加 · 日常衰减 · 好友里程碑互推 |
-| 👋 | **智能问候** | 登录个性化问候 · 三大分类聚合（自有事件/好友动态/游玩亮点）· 画像感知 · 首次/回归双模式 |
-| 💾 | **数据持久化** | 对话历史 · 玩家画像 · 社交关系图谱 · 服务器事件 · 技能审计 · 画像快照 · H2 零配置 / MySQL 热切换 · 群组服数据隔离 |
-| 💰 | **经济系统** | GlobalMarketPlus 深度集成 · 自然语言查询余额/价格/在售 · AI 代玩家上架/购买/转账/拍卖 · 多物品联合查询 |
-| 🔍 | **Bukkit API** | 72 个内置只读 API · YAML 数据驱动 · 多步骤数据传递（含数组索引）· 细粒度权限 |
-| 🎮 | **CMI 集成** | 传送（家/地标/TPA）· 玩家增强信息（时长/AFK/隐身/套装/在线列表） |
-| 🔔 | **挂机任务** | 20 种类型（19 事件监听 + CUSTOM 轮询）· 自然语言创建 · 通知/回调双模式 · 智能回调 |
-| 📊 | **原版统计** | 80+ 原版统计数据查询 · 知识库驱动 BM25 检索 · 距离/时长自动换算 · 多步骤条件监控 |
-| 🎭 | **个性化** | 多人格系统 · RAG 知识库增强（HanLP + BM25）· Embedding 语义检索 · 自定义词典 · 全语言可配置 |
-| 🔧 | **命令执行** | 以玩家身份执行命令 · 完全继承服务器权限 · config 开关 + 权限节点双重保护 |
-| 🎨 | **音效与粒子** | AI 触发音效/粒子效果 · 仅调用者感知 · YML 配置驱动 |
-| 🔌 | **SPI 扩展** | 第三方 Skill 注册 · 插件命令模式 · 完整开发文档 · 全球 Skill 台账监管 |
-| 🛡️ | **安全隔离** | 非合作式 Value 扫描拦截器 · 除白名单 Skill 外禁止跨玩家操作 · 恶意 Skill 无法绕过 · Skill 权限预检过滤 |
+| 🤖 | AI 智能引擎 | LLM 意图识别 · 多步骤任务规划与执行 · 5 种输出载体 · 流式输出 · 公屏广播 |
+| 🔍 | Bukkit API | 72 个只读 API · YAML 数据驱动 · 多步骤数据传递 · 细粒度权限 |
+| 💰 | 经济系统 | GlobalMarketPlus 集成 · 自然语言查询余额/价格 · AI 代玩家上架/购买/转账 |
+| 🎮 | CMI 集成 | 传送（家/地标/TPA）· 玩家增强信息（时长/AFK/隐身/在线列表） |
+| 📊 | 原版统计 | 80+ 统计查询 · 知识库驱动检索 · 距离/时长自动换算 |
+| 🔧 | 命令执行 | 以玩家身份执行命令 · 继承权限 · config 开关 + 权限双重保护 |
+| 🎨 | 音效与粒子 | AI 触发音效/粒子 · 仅调用者感知 · YML 配置驱动 |
+
+**智能化**
+
+| | 功能 | 说明 |
+|:---:|:---|:---|
+| 🧠 | 玩家画像 | 八维度行为分析 · 增量累积更新 · 历史快照 · 动态注入对话上下文 |
+| 🕸️ | 社交关系 | 私聊/TPA/技能交互追踪 · 强度递减累加 · 好友里程碑互推问候 |
+| 👋 | 智能问候 | 登录个性化问候 · 三大分类聚合（自有事件/好友动态/游玩亮点） |
+| 🎭 | 个性化 | 多人格系统 · RAG 知识库增强（HanLP + BM25 + Embedding）· 自定义词典 |
+| 🔔 | 挂机任务 | 20 种类型（19 事件 + 自定义轮询）· 自然语言创建 · 通知/回调双模式 |
+| 🏥 | 服主管理 | Spark + AI 诊断 · 玩家行为分析 · 审计日志 · Discord/钉钉告警 |
+
+**基础设施**
+
+| | 功能 | 说明 |
+|:---:|:---|:---|
+| 💾 | 数据持久化 | 对话/画像/社交/事件/审计全持久化 · H2 零配置 / MySQL 热切换 |
+| 🔌 | SPI 扩展 | 第三方 Skill 注册 · 插件命令模式 · 全球 Skill 台账监管 |
+| 🛡️ | 安全隔离 | 非合作式 Value 扫描 · 跨玩家操作拦截 · Skill 权限预检过滤 |
 
 ## 快速开始
 
@@ -49,9 +60,9 @@ llm:
   model: "deepseek-chat"
 ```
 
-**3.** 重启服务器，输入 `/kila 你好` 测试
+**3.** 重启服务器，输入 `/ai 你好` 测试
 
-> 支持所有 OpenAI 兼容 API（DeepSeek / 智谱 AI / Moonshot 等），修改 `api_url` 和 `model` 即可切换。
+> 支持所有 OpenAI 兼容 API — DeepSeek / 智谱AI / Moonshot / 硅基流动（国内）· OpenAI / Groq / Gemini / OpenRouter（国际），修改 `api_url` 和 `model` 即可切换。
 
 ## 使用示例
 
@@ -79,8 +90,22 @@ llm:
 | 1.17 - 1.19 | 17+ | 全部主流 | ✅ |
 | 1.20 - 1.21+ | 21+ | 全部主流 | ✅ |
 
-> 可选依赖：MythicMobs 5.12+（NPC 占位符）· GlobalMarketPlus 1.3.8+（经济）· CMI（传送/查询）· Vault（多货币）
+> 可选依赖：MythicMobs 5.12+（NPC 占位符）· GlobalMarketPlus 1.3.8+（经济）· CMI（传送/查询）· Spark（性能分析，Paper 1.21+ 等已内置）· Vault（多货币）
 > 未安装时对应功能自动禁用，不影响核心对话。
+
+## 技能体系
+
+| 类别 | 能力 | 依赖插件 |
+|:---:|:---|:---:|
+| **Bukkit API** | 72 个只读接口：玩家物品栏/状态/信息、世界信息、服务器信息、环境感知 | 无 |
+| **原版统计** | 80+ 原版累计统计查询，知识库驱动检索，自动单位转换 | 无 |
+| **全球市场** | 搜索/上架/领取/求购/下架/转账/拍卖/批量操作（9 种） | GlobalMarketPlus |
+| **CMI 集成** | 5 查询（家/地标/玩家信息/在线/AFK）+ 3 传送 | CMI |
+| **挂机任务** | 19 事件监听 + 自定义轮询，自然语言创建 | 无 |
+| **通用工具** | 延时等待、主动通知、全服广播 | 无 |
+| **命令执行** | 以玩家身份执行命令，继承权限（默认关闭） | 无 |
+| **音效粒子** | AI 触发音效/粒子，仅调用者感知 | 无 |
+| **服主管理** | 健康监控、玩家分析、审计日志 | Spark（可选） |
 
 ## 命令
 
@@ -94,6 +119,10 @@ llm:
 | `/kilacraft personalities reload` | OP | 重载人格配置 |
 | `/kilacraft afk [cancel]` | 无 | 查看/取消挂机任务 |
 | `/kilacraft tasks` | `kilacraft.tasks` | 查看定时任务运行状态（默认 OP） |
+| `/kilacraft profile start [秒]` | `admin.health` | 启动手动性能采样（30-120 秒） |
+| `/kilacraft profile status` | `admin.health` | 查看采样状态 |
+| `/kilacraft profile stop` | `admin.health` | 中断采样并丢弃 |
+| `/kilacraft notify test` | `admin.health` | 测试外部通知渠道 |
 | `/kilacraft plugins <人格> <内容> <UUID> [回调]` | 控制台 | 第三方插件集成 |
 
 ## 文档
@@ -101,6 +130,7 @@ llm:
 | 文档 | 说明 |
 |---|---|
 | [服主指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9C%8D%E4%B8%BB%E6%8C%87%E5%8D%97) | 完整配置与故障排除 |
+| [服主管理功能指南](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9C%8D%E4%B8%BB%E7%AE%A1%E7%90%86%E5%8A%9F%E8%83%BD%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97) | 健康监控/玩家分析/审计日志 |
 | [更新日志](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97) | 版本历史 |
 | [Bukkit API 参考](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/Bukkit-API%E5%8F%82%E8%80%83%E6%89%8B%E5%86%8C) | 72 个 API 详解 |
 | [AFK 任务详解](https://gitee.com/zm_mmm/kilacraft-ai/wikis/%E6%96%87%E6%A1%A3/AFK%E6%8C%82%E6%9C%BA%E4%BB%BB%E5%8A%A1%E7%B3%BB%E7%BB%9F%E8%AF%A6%E8%A7%A3) | 挂机任务系统架构 |

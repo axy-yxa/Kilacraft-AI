@@ -1,23 +1,24 @@
 package com.zm.kilacraftAI.handler;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
+import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
+import com.zm.kilacraftAI.common.util.AIRequestValidatorUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.LanguageManager;
-import com.zm.kilacraftAI.db.ConversationSource;
-import com.zm.kilacraftAI.enums.OutputScenario;
+import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
-import com.zm.kilacraftAI.manager.ConversationManager;
+import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
-import com.zm.kilacraftAI.output.AIResponsePipeline;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillIntent;
-import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
-import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
-import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
-import com.zm.kilacraftAI.util.AIRequestValidator;
-import com.zm.kilacraftAI.util.MessageUtil;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.service.output.AIResponsePipeline;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillIntent;
+import com.zm.kilacraftAI.skill.task.AnalysisSummary;
+import com.zm.kilacraftAI.skill.task.TaskExecutor;
+import com.zm.kilacraftAI.skill.task.TaskPlan;
+import com.zm.kilacraftAI.common.util.MessageUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -39,12 +40,12 @@ import java.util.concurrent.TimeUnit;
 public class AIRequestHandler {
 
     private final KilacraftAI plugin;
-    private final AIRequestValidator validator;
+    private final AIRequestValidatorUtil validator;
     private final LanguageManager languageManager;
 
     public AIRequestHandler(KilacraftAI plugin) {
         this.plugin = plugin;
-        this.validator = new AIRequestValidator(plugin);
+        this.validator = new AIRequestValidatorUtil(plugin);
         this.languageManager = plugin.getLanguageManager();
     }
 
@@ -52,7 +53,7 @@ public class AIRequestHandler {
      * 处理玩家 AI 请求（默认私信回复）
      */
     public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent) {
-        handleAIRequest(player, message, playerHistory, enableAgent, false, ConversationSource.CHAT);
+        handleAIRequest(player, message, playerHistory, enableAgent, false, ConversationSourceEnum.CHAT);
     }
 
     /**
@@ -61,7 +62,7 @@ public class AIRequestHandler {
      * @param publicReply 是否将AI回复广播给所有在线玩家（公屏回复）
      */
     public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply) {
-        handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSource.CHAT);
+        handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSourceEnum.CHAT);
     }
 
     /**
@@ -70,7 +71,7 @@ public class AIRequestHandler {
      * @param publicReply 是否将AI回复广播给所有在线玩家（公屏回复）
      * @param source      来源标识
      */
-    public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply, ConversationSource source) {
+    public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply, ConversationSourceEnum source) {
         // 使用统一的响应管线
         AIResponsePipeline pipeline = plugin.getResponsePipeline();
 
@@ -81,19 +82,19 @@ public class AIRequestHandler {
             // 公屏模式：先发送给触发者（使用场景配置），再广播给所有人
             sendResponse = response -> {
                 // 1. 发送给触发者（使用 NORMAL_CHAT 场景配置，如 ACTION_BAR/SIDEBAR/CHAT）
-                pipeline.send(player, response, OutputScenario.NORMAL_CHAT);
+                pipeline.send(player, response, OutputScenarioEnum.NORMAL_CHAT);
                 // 2. 公屏广播（强制 CHAT）
                 // 如果NORMAL_CHAT的载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
-                boolean isChatChannel = (pipeline.getChannelForScenario(OutputScenario.NORMAL_CHAT) == com.zm.kilacraftAI.enums.OutputChannel.CHAT);
+                boolean isChatChannel = (pipeline.getChannelForScenario(OutputScenarioEnum.NORMAL_CHAT) == OutputChannelEnum.CHAT);
                 pipeline.broadcast(response, isChatChannel ? player : null);
             };
         } else {
             // 私信模式：只发给触发者
-            sendResponse = response -> pipeline.send(player, response, OutputScenario.NORMAL_CHAT);
+            sendResponse = response -> pipeline.send(player, response, OutputScenarioEnum.NORMAL_CHAT);
         }
         sendError = error -> pipeline.sendError(player, languageManager.getPluginCommandError() + error);
 
-        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, sendError, OutputScenario.NORMAL_CHAT, publicReply, source);
+        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, sendError, OutputScenarioEnum.NORMAL_CHAT, publicReply, source);
         handleAIRequestInternal(message, ctx, enableAgent);
     }
 
@@ -104,7 +105,7 @@ public class AIRequestHandler {
         UUID consoleUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
         Deque<ConversationManager.Message> consoleHistory = getOrCreateHistory(consoleUUID);
 
-        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error), OutputScenario.NORMAL_CHAT, false, ConversationSource.CONSOLE);
+        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error), OutputScenarioEnum.NORMAL_CHAT, false, ConversationSourceEnum.CONSOLE);
         handleAIRequestInternal(message, ctx, enableAgent);
     }
 
@@ -116,18 +117,18 @@ public class AIRequestHandler {
         if (!plugin.getConfigManager().isApiKeyConfigured()) {
             String hint = I18nService.tr("§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/llm.yml 中的 llm.api_key 后重启服务器或执行 /kilacraft reload");
             ctx.sendError.accept(hint);
-            PluginLogger.warn("AI请求", "拒绝请求：API Key 未配置");
+            PluginLoggerUtil.warn("AI请求", "拒绝请求：API Key 未配置");
             return;
         }
 
         if (!enableAgent) {
-            PluginLogger.debug("AI请求", "Agent 能力已禁用，进入普通 AI 处理");
+            PluginLoggerUtil.debug("AI请求", "Agent 能力已禁用，进入普通 AI 处理");
             MetricsCollector.getInstance().recordRequestType("normal_chat");
             handleNormalAIRequest(message, ctx);
             return;
         }
 
-        PluginLogger.debug("AI请求", "开始 LLM 意图识别，用户：{}, 消息：{}", ctx.name(), message);
+        PluginLoggerUtil.debug("AI请求", "开始 LLM 意图识别，用户：{}, 消息：{}", ctx.name(), message);
 
         var intentRecognizer = plugin.getIntentRecognizer();
         if (intentRecognizer == null) {
@@ -144,12 +145,12 @@ public class AIRequestHandler {
                 MetricsCollector.getInstance().recordRequestType("skill_execution");
                 handleSkillIntent(intent, message, ctx);
             } else {
-                PluginLogger.debug("AI请求", "意图识别结束，回退到普通 AI 处理");
+                PluginLoggerUtil.debug("AI请求", "意图识别结束，回退到普通 AI 处理");
                 MetricsCollector.getInstance().recordRequestType("normal_chat");
                 handleNormalAIRequest(message, ctx);
             }
         }).exceptionally(throwable -> {
-            PluginLogger.warn("AI请求", I18nService.tr("意图识别失败: {}", throwable.getMessage()));
+            PluginLoggerUtil.warn("AI请求", I18nService.tr("意图识别失败: {}", throwable.getMessage()));
             ctx.sendError.accept(I18nService.tr("意图识别失败: {}", throwable.getMessage()));
             return null;
         });
@@ -159,24 +160,24 @@ public class AIRequestHandler {
      * 处理任务计划（多步骤）
      */
     private void handleTaskPlan(TaskPlan taskPlan, String message, RequestContext ctx) {
-        PluginLogger.debug("AI请求", "识别到多步骤任务：{}", taskPlan.getGoal());
+        PluginLoggerUtil.debug("AI请求", "识别到多步骤任务：{}", taskPlan.getGoal());
 
         TaskExecutor taskExecutor = new TaskExecutor(plugin.getSkillManager());
         SkillContext context = new SkillContext(ctx.player(), null, new HashMap<>());
 
         // TaskExecutor 返回 AnalysisSummary，通过中间层进行 LLM 二次分析
         taskExecutor.executeTask(taskPlan, context, ctx.history(), message).thenAccept(summary -> {
-            PluginLogger.debug("AI请求", "任务计划执行完成，开始 LLM 二次分析...");
+            PluginLoggerUtil.debug("AI请求", "任务计划执行完成，开始 LLM 二次分析...");
 
             // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
-            plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenario.TASK_RESULT, false).thenAccept(result -> {
+            plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.TASK_RESULT, false).thenAccept(result -> {
                 // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, result.getMessage(), ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
 
                 // 公屏广播（outputAnalysisResult只输出给触发者，公屏需要额外广播）
                 // 如果场景载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
                 if (ctx.isBroadcast()) {
-                    boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenario.TASK_RESULT) == com.zm.kilacraftAI.enums.OutputChannel.CHAT);
+                    boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenarioEnum.TASK_RESULT) == OutputChannelEnum.CHAT);
                     plugin.getResponsePipeline().broadcast(result.getMessage(), isChatChannel ? ctx.player() : null);
                 }
             });
@@ -187,21 +188,21 @@ public class AIRequestHandler {
      * 处理技能意图（单意图）
      */
     private void handleSkillIntent(SkillIntent intent, String message, RequestContext ctx) {
-        PluginLogger.debug("AI请求", "识别到单意图：{}", intent.getAction());
+        PluginLoggerUtil.debug("AI请求", "识别到单意图：{}", intent.getAction());
 
         SkillContext context = new SkillContext(ctx.player(), intent.getAction(), intent.getEntities());
 
         plugin.getSkillManager().executeSkillByIntent(intent, context).thenCompose(execResult -> {
             if (execResult.isSuccess()) {
-                PluginLogger.debug("技能执行", "技能执行成功");
+                PluginLoggerUtil.debug("技能执行", "技能执行成功");
                 AnalysisSummary summary = new AnalysisSummary().userMessage(message).addResult("SUCCESS", execResult.getMessage()).statistics(1, 0, 0);
 
                 // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
-                return plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenario.SKILL_RESULT, false).thenApply(result -> {
+                return plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.SKILL_RESULT, false).thenApply(result -> {
                     // 公屏广播（outputAnalysisResult只输出给触发者，公屏需要额外广播）
                     // 如果场景载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
                     if (ctx.isBroadcast()) {
-                        boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenario.SKILL_RESULT) == com.zm.kilacraftAI.enums.OutputChannel.CHAT);
+                        boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenarioEnum.SKILL_RESULT) == OutputChannelEnum.CHAT);
                         plugin.getResponsePipeline().broadcast(result.getMessage(), isChatChannel ? ctx.player() : null);
                     }
 
@@ -215,8 +216,8 @@ public class AIRequestHandler {
                 // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, finalResult.getMessage(), ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
             } else {
-                PluginLogger.debug("技能执行", "技能执行失败：{}", finalResult.getMessage());
-                PluginLogger.debug("技能执行", "已回退到普通 AI 处理");
+                PluginLoggerUtil.debug("技能执行", "技能执行失败：{}", finalResult.getMessage());
+                PluginLoggerUtil.debug("技能执行", "已回退到普通 AI 处理");
                 // 将技能失败信息注入消息上下文，回退到普通AI兜底
                 // LLM看到失败信息后可以理解原因并引导玩家（如提示取消旧的挂机任务）
                 String enrichedMessage = message + "\n" + I18nService.tr("[系统提示：技能执行失败 - {}]", finalResult.getMessage());
@@ -224,7 +225,7 @@ public class AIRequestHandler {
             }
         }).exceptionally(throwable -> {
             ctx.sendError.accept(throwable.getMessage());
-            PluginLogger.error("技能执行", I18nService.tr("技能执行异常: {}", throwable.getMessage()), throwable);
+            PluginLoggerUtil.error("技能执行", I18nService.tr("技能执行异常: {}", throwable.getMessage()), throwable);
             return null;
         });
     }
@@ -237,7 +238,7 @@ public class AIRequestHandler {
     }
 
     private void handleNormalAIRequest(String message, RequestContext ctx, String originalMessage) {
-        PluginLogger.debug("AI请求", "{} 的历史记录数量：{}", ctx.name(), ctx.history().size());
+        PluginLoggerUtil.debug("AI请求", "{} 的历史记录数量：{}", ctx.name(), ctx.history().size());
 
         String historyMessage = (originalMessage != null) ? originalMessage : message;
 
@@ -258,7 +259,7 @@ public class AIRequestHandler {
         }
 
         plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source())).exceptionally(throwable -> {
-            PluginLogger.warn("AI请求", I18nService.tr("LLM 请求失败: {}", throwable.getMessage()));
+            PluginLoggerUtil.warn("AI请求", I18nService.tr("LLM 请求失败: {}", throwable.getMessage()));
             ctx.sendError.accept(I18nService.tr("LLM 请求失败: {}", throwable.getMessage()));
             return null;
         });
@@ -288,7 +289,7 @@ public class AIRequestHandler {
      */
     private record RequestContext(String name, Player player, Deque<ConversationManager.Message> history,
                                   java.util.function.Consumer<String> sendResponse,
-                                  java.util.function.Consumer<String> sendError, OutputScenario scenario,
-                                  boolean isBroadcast, ConversationSource source) {
+                                  java.util.function.Consumer<String> sendError, OutputScenarioEnum scenario,
+                                  boolean isBroadcast, ConversationSourceEnum source) {
     }
 }

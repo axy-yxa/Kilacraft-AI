@@ -1,15 +1,15 @@
 package com.zm.kilacraftAI.skills.command;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.enums.PluginPermissionEnum;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
-import com.zm.kilacraftAI.util.BukkitCommandUtil;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skill.SkillConfig;
+import com.zm.kilacraftAI.common.util.BukkitCommandUtil;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -151,7 +151,7 @@ public class CommandSkill implements Skill {
 
         final String finalCommand = command;
 
-        PluginLogger.debug("命令技能", "玩家 {} 通过 AI 执行命令: /{}", player.getName(), finalCommand);
+        PluginLoggerUtil.debug("命令技能", "玩家 {} 通过 AI 执行命令: /{}", player.getName(), finalCommand);
 
         // 使用 dispatchAsync 获取执行结果
         return BukkitCommandUtil.dispatchAsync(player, finalCommand).thenApply(success -> {
@@ -161,7 +161,7 @@ public class CommandSkill implements Skill {
                 return SkillResult.failure(I18nService.tr("[FAILURE] 命令执行失败，可能没有权限或命令不存在: /{}", finalCommand));
             }
         }).exceptionally(ex -> {
-            PluginLogger.warn("命令技能", I18nService.tr("命令执行异常: /{} - {}", finalCommand, ex.getMessage()), ex);
+            PluginLoggerUtil.warn("命令技能", I18nService.tr("命令执行异常: /{} - {}", finalCommand, ex.getMessage()), ex);
             return SkillResult.failure(I18nService.tr("命令执行异常: /{}", finalCommand));
         });
     }

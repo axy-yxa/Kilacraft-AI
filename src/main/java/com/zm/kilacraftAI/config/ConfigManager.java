@@ -1,16 +1,20 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 /**
  * 配置管理
@@ -25,8 +29,6 @@ public class ConfigManager {
 
     private final JavaPlugin plugin;
 
-    // ==================== 子 Manager（独立配置文件） ====================
-
     @Getter
     private final LLMConfigManager llmConfigManager;
     @Getter
@@ -35,8 +37,6 @@ public class ConfigManager {
     private final KnowledgeConfigManager knowledgeConfigManager;
     @Getter
     private final GreetingConfigManager greetingConfigManager;
-
-    // ==================== 主配置文件保留字段 ====================
 
     @Getter
     private boolean enableChatCommand;
@@ -102,8 +102,6 @@ public class ConfigManager {
     private List<String> allDictionaryWords;
     private String vocabularyLoadedLanguage = null;
 
-    // ==================== 代理 getter（LLM/Agent） ====================
-
     public double getTemperature() {
         return llmConfigManager.getTemperature();
     }
@@ -160,8 +158,6 @@ public class ConfigManager {
     public String getAgentAnalysisPromptSuffix() {
         return llmConfigManager.getAgentAnalysisPromptSuffixByLanguage(isChinese(), "");
     }
-
-    // ==================== 代理 getter（知识库） ====================
 
     public boolean isKnowledgeEnabled() {
         return knowledgeConfigManager.isEnabled();
@@ -239,8 +235,6 @@ public class ConfigManager {
         return knowledgeConfigManager.getCustomDictionaryWords();
     }
 
-    // ==================== 代理 getter（问候） ====================
-
     public boolean isGreetingEnabled() {
         return greetingConfigManager.isEnabled();
     }
@@ -280,8 +274,6 @@ public class ConfigManager {
     public boolean isProfileInjectionEnabled() {
         return greetingConfigManager.isProfileInjectionEnabled();
     }
-
-    // ==================== 构造与加载 ====================
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -375,7 +367,7 @@ public class ConfigManager {
                 plugin.getLlmManager().refreshProviderConfig();
             }
         } catch (Exception e) {
-            PluginLogger.warn("配置管理", I18nService.tr("刷新 LLM 配置缓存时发生异常: {}", e.getMessage()), e);
+            PluginLoggerUtil.warn("配置管理", I18nService.tr("刷新 LLM 配置缓存时发生异常: {}", e.getMessage()), e);
         }
     }
 
@@ -429,8 +421,6 @@ public class ConfigManager {
                 【货币单位】本服经济系统的货币符号为 $（如 $100.00）。绝对不要使用'绿宝石'、'emerald'或其他 Minecraft 物品名称指代货币，所有金额都是 $ 货币单位。""";
     }
 
-    // ==================== 内置词汇表加载 ====================
-
     /**
      * 加载内置词汇表
      */
@@ -439,7 +429,7 @@ public class ConfigManager {
         try {
             loadVocabularyFromJar(words);
         } catch (Exception e) {
-            PluginLogger.warn("配置管理", I18nService.tr("加载内置词汇表时发生异常: {}", e.getMessage()), e);
+            PluginLoggerUtil.warn("配置管理", I18nService.tr("加载内置词汇表时发生异常: {}", e.getMessage()), e);
         }
         return words;
     }
@@ -449,20 +439,20 @@ public class ConfigManager {
      */
     private void loadVocabularyFromJar(List<String> words) {
         try {
-            java.io.File jarFile = new java.io.File(plugin.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
+            File jarFile = new File(plugin.getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
 
             if (!jarFile.exists()) {
-                PluginLogger.warn("配置管理", "无法找到插件 JAR 文件，跳过加载词汇表");
+                PluginLoggerUtil.warn("配置管理", "无法找到插件 JAR 文件，跳过加载词汇表");
                 return;
             }
 
             String prefix = "en".equals(this.language) ? "internal/vocabulary/en/" : "internal/vocabulary/";
 
-            try (java.util.jar.JarFile jar = new java.util.jar.JarFile(jarFile)) {
-                java.util.Enumeration<java.util.jar.JarEntry> entries = jar.entries();
+            try (JarFile jar = new JarFile(jarFile)) {
+                Enumeration<JarEntry> entries = jar.entries();
 
                 while (entries.hasMoreElements()) {
-                    java.util.jar.JarEntry entry = entries.nextElement();
+                    JarEntry entry = entries.nextElement();
                     String name = entry.getName();
 
                     if (name.startsWith(prefix) && name.endsWith(".txt") && !entry.isDirectory()) {
@@ -482,9 +472,9 @@ public class ConfigManager {
                 }
             }
         } catch (java.net.URISyntaxException e) {
-            PluginLogger.warn("配置管理", I18nService.tr("无法解析 JAR 文件路径: {}，跳过加载", e.getMessage()), e);
+            PluginLoggerUtil.warn("配置管理", I18nService.tr("无法解析 JAR 文件路径: {}，跳过加载", e.getMessage()), e);
         } catch (Exception e) {
-            PluginLogger.warn("配置管理", I18nService.tr("加载内置词汇表失败: {}", e.getMessage()), e);
+            PluginLoggerUtil.warn("配置管理", I18nService.tr("加载内置词汇表失败: {}", e.getMessage()), e);
         }
     }
 

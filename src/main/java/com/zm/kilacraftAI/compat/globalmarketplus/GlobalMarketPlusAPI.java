@@ -1,12 +1,12 @@
 package com.zm.kilacraftAI.compat.globalmarketplus;
 
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
-import com.zm.kilacraftAI.config.I18nService;
-import com.zm.kilacraftAI.util.BukkitCommandUtil;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.common.util.BukkitCommandUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import studio.trc.bukkit.globalmarketplus.api.GlobalMarket;
@@ -51,7 +51,7 @@ public class GlobalMarketPlusAPI {
         try {
             return GlobalMarket.getGlobalMarket();
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "获取GlobalMarket实例失败", e);
+            PluginLoggerUtil.error("市场插件", "获取GlobalMarket实例失败", e);
             return null;
         }
     }
@@ -86,7 +86,7 @@ public class GlobalMarketPlusAPI {
             }
             return -1;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", I18nService.tr("获取玩家余额失败: {}", player.getName()), e);
+            PluginLoggerUtil.error("市场插件", I18nService.tr("获取玩家余额失败: {}", player.getName()), e);
             return -1;
         }
     }
@@ -151,7 +151,7 @@ public class GlobalMarketPlusAPI {
             result.sort(Comparator.comparingDouble(MarketItem::getPrice));
             return result;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", I18nService.tr("搜索市场商品失败: {}", itemName), e);
+            PluginLoggerUtil.error("市场插件", I18nService.tr("搜索市场商品失败: {}", itemName), e);
             return new ArrayList<>();
         }
     }
@@ -208,7 +208,7 @@ public class GlobalMarketPlusAPI {
             result.sort(Comparator.comparingDouble(MarketItemDetail::getPrice));
             return result;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", I18nService.tr("获取商品详情失败: {}", itemName), e);
+            PluginLoggerUtil.error("市场插件", I18nService.tr("获取商品详情失败: {}", itemName), e);
             return new ArrayList<>();
         }
     }
@@ -281,7 +281,7 @@ public class GlobalMarketPlusAPI {
             }).collect(Collectors.toList());
 
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "获取市场物品列表失败", e);
+            PluginLoggerUtil.error("市场插件", "获取市场物品列表失败", e);
             return null;
         }
     }
@@ -320,7 +320,7 @@ public class GlobalMarketPlusAPI {
             result.sort(Comparator.comparingDouble(MarketItemDetail::getPrice));
             return result;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", I18nService.tr("获取我的商品列表失败: {}", player.getName()), e);
+            PluginLoggerUtil.error("市场插件", I18nService.tr("获取我的商品列表失败: {}", player.getName()), e);
             return new ArrayList<>();
         }
     }
@@ -363,7 +363,7 @@ public class GlobalMarketPlusAPI {
             result.sort(Comparator.comparingDouble(MarketItemDetail::getPrice));
             return result;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", I18nService.tr("获取卖家商品列表失败: {}", sellerName), e);
+            PluginLoggerUtil.error("市场插件", I18nService.tr("获取卖家商品列表失败: {}", sellerName), e);
             return new ArrayList<>();
         }
     }
@@ -408,7 +408,7 @@ public class GlobalMarketPlusAPI {
 
             return result;
         } catch (Exception e) {
-            PluginLogger.error("市场插件", I18nService.tr("获取邮箱物品失败: {}", player.getName()), e);
+            PluginLoggerUtil.error("市场插件", I18nService.tr("获取邮箱物品失败: {}", player.getName()), e);
             return new ArrayList<>();
         }
     }
@@ -447,7 +447,7 @@ public class GlobalMarketPlusAPI {
 
             return new MarketStats(totalItems, sellers.size());
         } catch (Exception e) {
-            PluginLogger.error("市场插件", "获取市场统计信息失败", e);
+            PluginLoggerUtil.error("市场插件", "获取市场统计信息失败", e);
             return new MarketStats(0, 0);
         }
     }
@@ -461,7 +461,7 @@ public class GlobalMarketPlusAPI {
      */
     public static CompletableFuture<Boolean> pickupMail(Player player, String target) {
         String command = "mailbox pickup " + target;
-        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 领取邮件: /{}", player.getName(), command));
+        PluginLoggerUtil.debug("市场插件", I18nService.tr("代玩家 {} 领取邮件: /{}", player.getName(), command));
         return BukkitCommandUtil.dispatchAsync(player, command);
     }
 
@@ -475,7 +475,7 @@ public class GlobalMarketPlusAPI {
      */
     public static CompletableFuture<Boolean> buyItem(Player player, double price, int quantity) {
         String command = String.format("market buy %.2f %d", price, quantity);
-        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 发起收购: /{}", player.getName(), command));
+        PluginLoggerUtil.debug("市场插件", I18nService.tr("代玩家 {} 发起收购: /{}", player.getName(), command));
         return BukkitCommandUtil.dispatchAsync(player, command);
     }
 
@@ -488,7 +488,7 @@ public class GlobalMarketPlusAPI {
      */
     public static CompletableFuture<Boolean> cancelMerchandise(Player player, long uid) {
         String command = "gmp merchandise remove " + uid;
-        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 下架商品: /{}", player.getName(), command));
+        PluginLoggerUtil.debug("市场插件", I18nService.tr("代玩家 {} 下架商品: /{}", player.getName(), command));
         return BukkitCommandUtil.dispatchAsync(player, command);
     }
 
@@ -502,7 +502,7 @@ public class GlobalMarketPlusAPI {
      */
     public static CompletableFuture<Boolean> transferMoney(Player player, String target, double amount) {
         String command = String.format("gmp money pay %s %.2f", target, amount);
-        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 转账: /{}", player.getName(), command));
+        PluginLoggerUtil.debug("市场插件", I18nService.tr("代玩家 {} 转账: /{}", player.getName(), command));
         return BukkitCommandUtil.dispatchAsync(player, command);
     }
 
@@ -516,7 +516,7 @@ public class GlobalMarketPlusAPI {
      */
     public static CompletableFuture<Boolean> auctionItem(Player player, double startingBid, int quantity) {
         String command = String.format("auction start %.2f %d", startingBid, quantity);
-        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 发起拍卖: /{}", player.getName(), command));
+        PluginLoggerUtil.debug("市场插件", I18nService.tr("代玩家 {} 发起拍卖: /{}", player.getName(), command));
         return BukkitCommandUtil.dispatchAsync(player, command);
     }
 
@@ -529,7 +529,7 @@ public class GlobalMarketPlusAPI {
      */
     public static CompletableFuture<Boolean> sellInventory(Player player, double price) {
         String command = String.format("market sellInventory %.2f", price);
-        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 批量出售: /{}", player.getName(), command));
+        PluginLoggerUtil.debug("市场插件", I18nService.tr("代玩家 {} 批量出售: /{}", player.getName(), command));
         return BukkitCommandUtil.dispatchAsync(player, command);
     }
 
@@ -542,7 +542,7 @@ public class GlobalMarketPlusAPI {
      */
     public static CompletableFuture<Boolean> buyInventory(Player player, double price) {
         String command = String.format("market buyInventory %.2f", price);
-        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 批量收购: /{}", player.getName(), command));
+        PluginLoggerUtil.debug("市场插件", I18nService.tr("代玩家 {} 批量收购: /{}", player.getName(), command));
         return BukkitCommandUtil.dispatchAsync(player, command);
     }
 
@@ -555,7 +555,7 @@ public class GlobalMarketPlusAPI {
      */
     public static CompletableFuture<Boolean> searchItem(Player player, String materialName) {
         String command = "market search item:" + materialName.toUpperCase();
-        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 搜索商品: /{}", player.getName(), command));
+        PluginLoggerUtil.debug("市场插件", I18nService.tr("代玩家 {} 搜索商品: /{}", player.getName(), command));
         return BukkitCommandUtil.dispatchAsync(player, command);
     }
 
@@ -569,7 +569,7 @@ public class GlobalMarketPlusAPI {
      */
     public static CompletableFuture<Boolean> sellItem(Player player, double price, int quantity) {
         String command = String.format("market sell %.2f %d", price, quantity);
-        PluginLogger.debug("市场插件", I18nService.tr("代玩家 {} 上架商品: /{}", player.getName(), command));
+        PluginLoggerUtil.debug("市场插件", I18nService.tr("代玩家 {} 上架商品: /{}", player.getName(), command));
         return BukkitCommandUtil.dispatchAsync(player, command);
     }
 

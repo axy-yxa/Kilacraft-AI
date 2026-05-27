@@ -1,7 +1,7 @@
 package com.zm.kilacraftAI.metrics;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import org.bstats.bukkit.Metrics;
 import org.bstats.charts.AdvancedPie;
 import org.bstats.charts.SimplePie;
@@ -55,6 +55,6 @@ public class MetricsBootstrap {
         // Chart 6: 全量 Skill 元信息（用于全球 Skill 台账）
         metrics.addCustomChart(new SimplePie("all_skills", collector::getAllSkillsJson));
 
-        PluginLogger.info("统计", "bStats 统计已启用");
+        PluginLoggerUtil.info("统计", "bStats 统计已启用");
     }
 }

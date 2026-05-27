@@ -1,8 +1,8 @@
 package com.zm.kilacraftAI.compat.folia;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.config.I18nService;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
@@ -45,8 +45,6 @@ public class FoliaCompat {
      */
     private static boolean initialized = false;
 
-    // ==================== 自适应 I/O 线程池 ====================
-
     /**
      * 线程编号原子计数器（用于生成唯一线程名）
      */
@@ -79,7 +77,7 @@ public class FoliaCompat {
         t.setDaemon(true);
         return t;
     }, (r, executor) -> {
-        PluginLogger.warn("I/O线程池", I18nService.tr("异步任务队列已满，丢弃任务（池状态: {}/{}，队列: {}）", executor.getActiveCount(), executor.getMaximumPoolSize(), executor.getQueue().size()));
+        PluginLoggerUtil.warn("I/O线程池", I18nService.tr("异步任务队列已满，丢弃任务（池状态: {}/{}，队列: {}）", executor.getActiveCount(), executor.getMaximumPoolSize(), executor.getQueue().size()));
     });
 
     /**
@@ -93,14 +91,14 @@ public class FoliaCompat {
      * 关闭全局 I/O 线程池（仅在插件 onDisable 时调用）
      */
     public static void shutdownIOPool() {
-        PluginLogger.info("I/O线程池", I18nService.tr("正在关闭（活跃线程: {}，队列: {}）", IO_POOL.getActiveCount(), IO_POOL.getQueue().size()));
+        PluginLoggerUtil.info("I/O线程池", I18nService.tr("正在关闭（活跃线程: {}，队列: {}）", IO_POOL.getActiveCount(), IO_POOL.getQueue().size()));
         IO_POOL.shutdown();
         try {
             if (!IO_POOL.awaitTermination(5, TimeUnit.SECONDS)) {
                 int remaining = IO_POOL.shutdownNow().size();
-                PluginLogger.warn("I/O线程池", I18nService.tr("等待超时，强制关闭（残留任务: {}）", remaining));
+                PluginLoggerUtil.warn("I/O线程池", I18nService.tr("等待超时，强制关闭（残留任务: {}）", remaining));
             } else {
-                PluginLogger.info("I/O线程池", I18nService.tr("已安全关闭"));
+                PluginLoggerUtil.info("I/O线程池", I18nService.tr("已安全关闭"));
             }
         } catch (InterruptedException e) {
             IO_POOL.shutdownNow();
@@ -109,7 +107,7 @@ public class FoliaCompat {
     }
 
     /**
-     * 延迟初始化 Folia 检测（首次调用时执行，确保 I18nService 和 PluginLogger 已就绪）
+     * 延迟初始化 Folia 检测（首次调用时执行，确保 I18nService 和 PluginLoggerUtil 已就绪）
      */
     private static synchronized void ensureInitialized() {
         if (initialized) return;
@@ -132,20 +130,19 @@ public class FoliaCompat {
             } catch (ReflectiveOperationException e) {
                 REFLECTION = null;
                 FOLIA = false;
-                PluginLogger.warn("Folia兼容", I18nService.tr("Folia API 反射初始化失败，回退到 Spigot 模式: {}", e.getMessage()), e);
+                PluginLoggerUtil.warn("Folia兼容", I18nService.tr("Folia API 反射初始化失败，回退到 Spigot 模式: {}", e.getMessage()), e);
             }
         } else {
             FOLIA = false;
             REFLECTION = null;
         }
 
-        // 输出 I/O 线程池初始化日志（此处 PluginLogger 和 I18nService 已就绪）
+        // 输出 I/O 线程池初始化日志（此处 PluginLoggerUtil 和 I18nService 已就绪）
         String serverName = Bukkit.getServer().getName();
-        PluginLogger.info("I/O线程池", I18nService.tr("已初始化（核心: {}，最大: {}，队列: {}，服务端: {}，Folia: {}）", IO_POOL.getCorePoolSize(), IO_POOL.getMaximumPoolSize(), IO_POOL.getQueue().remainingCapacity() + IO_POOL.getQueue().size(), serverName, FOLIA));
+        PluginLoggerUtil.info("I/O线程池", I18nService.tr("已初始化（核心: {}，最大: {}，队列: {}，服务端: {}，Folia: {}）", IO_POOL.getCorePoolSize(), IO_POOL.getMaximumPoolSize(), IO_POOL.getQueue().remainingCapacity() + IO_POOL.getQueue().size(), serverName, FOLIA));
     }
 
     private FoliaCompat() {
-        // 工具类禁止实例化
     }
 
     /**
@@ -155,8 +152,6 @@ public class FoliaCompat {
         ensureInitialized();
         return FOLIA;
     }
-
-    // ==================== 全局调度（无区域依赖） ====================
 
     /**
      * 在全局区域执行任务（相当于 Spigot 的 runTask）
@@ -197,8 +192,6 @@ public class FoliaCompat {
             return new ScheduledTask(bukkitTask);
         }
     }
-
-    // ==================== 命令调度 ====================
 
     /**
      * 执行命令（自动适配 Folia/Spigot 调度方式），fire-and-forget
@@ -315,8 +308,6 @@ public class FoliaCompat {
         }
     }
 
-    // ==================== 主线程同步调用 ====================
-
     /**
      * 在主线程/全局区域同步执行 Supplier 并返回结果
      */
@@ -396,8 +387,6 @@ public class FoliaCompat {
         return Bukkit.isPrimaryThread();
     }
 
-    // ==================== 统一任务句柄 ====================
-
     /**
      * 统一的可取消任务句柄，封装 Folia ScheduledTask 和 BukkitTask
      */
@@ -431,8 +420,6 @@ public class FoliaCompat {
             return true;
         }
     }
-
-    // ==================== 通用工具方法 ====================
 
     /**
      * 统一等待 CompletableFuture 并处理异常，消除重复的 catch 块

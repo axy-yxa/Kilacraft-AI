@@ -1,5 +1,4 @@
-# ==================== Kilacraft-AI 数据库配置 ====================
-# ==================== Kilacraft-AI Database Configuration
+# ==================== Kilacraft-AI 数据库配置 / Database Configuration ====================
 # 独立配置文件，修改后执行 /kilacraft reload 即时生效
 # Standalone config file, run /kilacraft reload to apply changes
 
@@ -26,8 +25,7 @@ mysql:
   # Table name prefix (for distinguishing when multiple plugins share the same DB)
   table_prefix: "kca_"
 
-# ==================== 群组服配置 ====================
-# ==================== Group Server Configuration ====================
+# ==================== 群组服配置 / Group Server Configuration ====================
 # 群组服场景下，多个子服共享同一个 MySQL 数据库
 # 每个子服需要配置唯一的 server_id 以区分数据
 # 单机服留空即可（默认值）
@@ -68,8 +66,7 @@ pool:
   # Maximum lifetime (milliseconds)
   max_lifetime: 1800000
 
-# ==================== 数据保留策略 ====================
-# ==================== Data Retention Policy ====================
+# ==================== 数据保留策略 / Data Retention Policy ====================
 retention:
   # 对话历史保留天数（0=永久保留，建议30-90）
   # Conversation history retention days (0=keep forever, recommended 30-90)
@@ -81,8 +78,7 @@ retention:
   # Skill audit log retention days (0=keep forever, recommended 30-90)
   skill_log_retention_days: 60
 
-# ==================== 对话历史加载策略 ====================
-# ==================== Conversation History Loading Strategy ====================
+# ==================== 对话历史加载策略 / Conversation History Loading Strategy ====================
 conversation:
   # 是否在玩家触发AI对话时从数据库加载历史到缓存
   # true: 玩家每次登录后首次对话会恢复最近N条历史（体验好，但每次对话携带历史，token消耗增加）
@@ -94,8 +90,7 @@ conversation:
   # Regardless of this setting, conversation records are always persisted to database
   load_history_on_login: true
 
-# ==================== 玩家画像分析配置 ====================
-# ==================== Player Profile Analysis Configuration ====================
+# ==================== 玩家画像分析配置 / Player Profile Analysis Configuration ====================
 profile:
   # 分析触发间隔天数（玩家距离上次分析至少间隔N天才再次触发）
   # Minimum days between profile analyses (trigger only if N days passed since last analysis)
@@ -107,8 +102,8 @@ profile:
   # LLM analysis timeout in seconds
   analysis_timeout_seconds: 120
 
-  # 画像分析系统提示词（支持多行，修改后 /kilacraft reload 生效）
-  # Profile analysis system prompt (supports multiline, /kilacraft reload to apply)
+  # 画像分析系统提示词
+  # Profile analysis system prompt
   analysis_system_prompt: |
     你是一个玩家行为分析助手。根据玩家的对话历史，分析该玩家的游戏风格、偏好和行为特征。
     请输出一个 JSON 对象，包含以下字段（如果没有足够信息则留空字符串）：
@@ -127,8 +122,9 @@ profile:
     2. 每个字段用简短的短语或句子，整个JSON总字符数控制在500以内
     3. 如果某个维度信息不足，对应字段填空字符串
     4. 只输出 JSON，不要包含其他内容
-  # 画像分析系统提示词英文版（language=en 时生效，修改后 /kilacraft reload 生效）
-  # Profile analysis system prompt in English (effective when language=en, /kilacraft reload to apply)
+    5. 只记录长期稳定的特征和事实，不要记录临时性的当前动作或瞬时状态
+  # 画像分析系统提示词英文版（language=en 时生效）
+  # Profile analysis system prompt in English (effective when language=en)
   analysis_system_prompt_en: |
     You are a player behavior analysis assistant. Analyze the player's game style, preferences, and behavioral traits based on their conversation history.
     Output a JSON object with the following fields (use empty string if insufficient information):
@@ -147,8 +143,9 @@ profile:
     2. Keep each field as a brief phrase or sentence, total JSON within 500 characters
     3. If insufficient information for a dimension, use empty string
     4. Output only JSON, no other content
-  # 增量画像分析系统提示词（已有画像时生效，支持多行，修改后 /kilacraft reload 生效）
-  # Incremental profile analysis system prompt (effective when existing profile is present, /kilacraft reload to apply)
+    5. Only record long-term stable traits and facts, do not record temporary current actions or transient states
+  # 增量画像分析系统提示词（已有画像时生效）
+  # Incremental profile analysis system prompt (effective when existing profile is present)
   incremental_system_prompt: |
     你是一个玩家行为分析助手。以下是玩家的历史画像数据（JSON）和新的对话记录。
     请对比历史画像和新对话，**保留仍然准确的内容，修正已经变化的内容**，融合输出更新后的完整画像 JSON。
@@ -160,7 +157,9 @@ profile:
        playstyle、personality、interests、boundaries、communication、spatial、facts、notes
     3. 整个JSON总字符数控制在500以内
     4. 如果某个维度信息不足，对应字段填空字符串
-  # 增量画像分析系统提示词英文版（language=en 且已有画像时生效，修改后 /kilacraft reload 生效）
+    5. 清理旧画像中已经过时的临时性内容，只保留长期稳定的特征
+    6. 当字符数受限需要取舍时，优先保留新对话中印证或提及的信息，精简或移除长期未被提及的低优先级信息
+  # 增量画像分析系统提示词英文版（language=en 且已有画像时生效）
   # Incremental profile analysis system prompt in English (effective when language=en and existing profile is present)
   incremental_system_prompt_en: |
     You are a player behavior analysis assistant. Below is the player's existing profile data (JSON) and new conversation records.
@@ -173,3 +172,5 @@ profile:
        playstyle, personality, interests, boundaries, communication, spatial, facts, notes
     3. Keep total JSON within 500 characters
     4. If insufficient information for a dimension, use empty string
+    5. Clean up outdated temporary content from the old profile, only retain long-term stable traits
+    6. When character limit requires trade-offs, prioritize information corroborated or mentioned in new conversations, and trim or remove long-unmentioned low-priority information

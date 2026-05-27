@@ -4,15 +4,15 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.compat.globalmarketplus.GlobalMarketPlusAPI;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
-import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.enums.PluginPermissionEnum;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
-import com.zm.kilacraftAI.translate.ItemTranslator;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skill.SkillConfig;
+import com.zm.kilacraftAI.service.translate.ItemTranslator;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -144,7 +144,7 @@ public class MarketActionSkill implements Skill {
         try {
             return FoliaCompat.callSyncOnEntity(player, () -> player.getInventory().getItemInMainHand(), 5);
         } catch (Exception e) {
-            PluginLogger.warn("市场插件", I18nService.tr("读取玩家手持物品失败: {}", player.getName()), e);
+            PluginLoggerUtil.warn("市场插件", I18nService.tr("读取玩家手持物品失败: {}", player.getName()), e);
             return null;
         }
     }
@@ -238,7 +238,7 @@ public class MarketActionSkill implements Skill {
                 return SkillResult.failure(failMsg);
             }
         }).exceptionally(ex -> {
-            PluginLogger.warn("市场插件", I18nService.tr("{}异常: {}", errorKey, ex.getMessage()), ex);
+            PluginLoggerUtil.warn("市场插件", I18nService.tr("{}异常: {}", errorKey, ex.getMessage()), ex);
             return SkillResult.failure(I18nService.tr("[FAILURE] {}时发生异常: {}", errorKey, ex.getMessage()));
         });
     }

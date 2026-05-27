@@ -1,6 +1,6 @@
 package com.zm.kilacraftAI.db.dao;
 
-import com.zm.kilacraftAI.manager.ConversationManager;
+import com.zm.kilacraftAI.service.conversation.ConversationManager;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

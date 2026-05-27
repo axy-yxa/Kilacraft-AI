@@ -1,9 +1,9 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.enums.OutputChannel;
-import com.zm.kilacraftAI.enums.OutputScenario;
-import com.zm.kilacraftAI.util.ConfigResourceUtil;
+import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
+import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
+import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import lombok.Getter;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -28,47 +28,35 @@ public class OutputConfigManager {
 
     private KilacraftAI plugin;
 
-    // ==================== 基础配置 ====================
-
     /**
      * 全局默认输出载体
      */
-    private OutputChannel defaultChannel;
+    private OutputChannelEnum defaultChannel;
 
     /**
      * "正在思考"提示消息的输出载体
      */
-    private OutputChannel thinkingChannel;
+    private OutputChannelEnum thinkingChannel;
 
     /**
      * 场景级载体覆盖配置
      */
-    private final Map<OutputScenario, OutputChannel> scenarioChannels = new HashMap<>();
-
-    // ==================== BossBar 配置 ====================
+    private final Map<OutputScenarioEnum, OutputChannelEnum> scenarioChannels = new HashMap<>();
 
     private BarColor bossBarColor;
     private BarStyle bossBarStyle;
     private int bossBarDurationSeconds;
 
-    // ==================== Title 配置 ====================
-
     private int titleStayTicks;
     private int titleFadeInTicks;
     private int titleFadeOutTicks;
-
-    // ==================== Scoreboard 配置 ====================
 
     private int sidebarDurationSeconds;
     private int sidebarMaxLinesPerPage;
     private int sidebarMaxCharsPerLine;
     private int sidebarMaxCharsPerLineEn;
 
-    // ==================== 流式输出配置 ====================
-
     private boolean streamEnabled;
-
-    // ==================== 音效配置 ====================
 
     private boolean soundEnabled;
     private String soundName;
@@ -113,7 +101,7 @@ public class OutputConfigManager {
 
         // 场景级配置
         scenarioChannels.clear();
-        for (OutputScenario scenario : OutputScenario.values()) {
+        for (OutputScenarioEnum scenario : OutputScenarioEnum.values()) {
             String key = "output.scenarios." + scenario.name().toLowerCase();
             String value = config.getString(key, "");
             if (!value.isEmpty()) {
@@ -156,14 +144,14 @@ public class OutputConfigManager {
         }
     }
 
-    private OutputChannel parseChannel(String value) {
+    private OutputChannelEnum parseChannel(String value) {
         if (value == null || value.isEmpty()) {
-            return OutputChannel.CHAT;
+            return OutputChannelEnum.CHAT;
         }
         try {
-            return OutputChannel.valueOf(value.toUpperCase());
+            return OutputChannelEnum.valueOf(value.toUpperCase());
         } catch (IllegalArgumentException e) {
-            return OutputChannel.CHAT;
+            return OutputChannelEnum.CHAT;
         }
     }
 
@@ -186,7 +174,7 @@ public class OutputConfigManager {
     /**
      * 获取指定场景的输出载体
      */
-    public OutputChannel getChannelForScenario(OutputScenario scenario) {
+    public OutputChannelEnum getChannelForScenario(OutputScenarioEnum scenario) {
         return scenarioChannels.getOrDefault(scenario, defaultChannel);
     }
 

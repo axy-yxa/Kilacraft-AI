@@ -38,6 +38,10 @@ help:
   afk: "§e查询挂机任务：/kilacraft afk"
   afk-subcommands: "§e可用子命令：query(查询), cancel(取消)"
 
+  # /kilacraft profile 子命令的帮助提示（需要 kilacraft.admin.health 权限）
+  profile: "§e服务器性能采样：/kilacraft profile start [秒数(30~120，默认60)]"
+  profile-subcommands: "§e可用子命令：start(开始采样), stop(中断采样), status(查看状态)"
+
 # ==================== 权限相关消息 ====================
 # 以下配置控制玩家执行没有权限的命令时的提示
 permissions:

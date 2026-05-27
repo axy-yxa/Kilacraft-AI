@@ -1,18 +1,24 @@
 package com.zm.kilacraftAI.skills.bukkit;
 
-import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.enums.PluginPermissionEnum;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.model.bukkit.BukkitAPIMetadata;
+import com.zm.kilacraftAI.service.bukkit.BukkitAPIExecutor;
+import com.zm.kilacraftAI.service.translate.ItemTranslator;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * 通用 Bukkit API 执行器
@@ -48,7 +54,7 @@ public class GenericBukkitAPISkill implements Skill {
     public Map<String, String> getActions() {
         SkillConfigManager configManager = SkillConfigManager.getInstance();
         if (configManager != null) {
-            Map<String, String> actions = new java.util.HashMap<>();
+            Map<String, String> actions = new HashMap<>();
             for (BukkitAPIMetadata api : configManager.getBukkitApiMap().values()) {
                 // displayName + description
                 String displayName = api.getDisplayName();
@@ -63,7 +69,7 @@ public class GenericBukkitAPISkill implements Skill {
             }
             return actions;
         }
-        return java.util.Collections.emptyMap();
+        return Collections.emptyMap();
     }
 
     @Override
@@ -116,14 +122,14 @@ public class GenericBukkitAPISkill implements Skill {
             // 根据 API 配置自动提取 data 字段
             // 对于 additional_methods 模式：自动提取所有方法返回值
             // 对于 method_chain + lophine 模式：executor 返回的 Map 也走此路径
-            if (result instanceof java.util.Map<?, ?> resultMap) {
+            if (result instanceof Map<?, ?> resultMap) {
                 for (Map.Entry<?, ?> entry : resultMap.entrySet()) {
                     String key = entry.getKey().toString();
                     Object value = entry.getValue();
                     // 添加基本类型和可安全序列化的容器类型（Map/Collection）
                     if (value instanceof Number || value instanceof Boolean || value instanceof String) {
                         dataMap.put(key, value);
-                    } else if (value instanceof java.util.Map<?, ?> || value instanceof java.util.Collection<?>) {
+                    } else if (value instanceof Map<?, ?> || value instanceof Collection<?>) {
                         // lophine ItemStack 提取的 enchantments(Map)、lore(List) 等容器类型
                         // Gson 可正常序列化，允许加入 dataMap
                         dataMap.put(key, value);
@@ -144,7 +150,7 @@ public class GenericBukkitAPISkill implements Skill {
                     // 对简单标量直接注入
                     if (result instanceof Number || result instanceof Boolean || result instanceof String) {
                         dataMap.put(dataField, result);
-                    } else if (result instanceof java.util.Collection<?> collection) {
+                    } else if (result instanceof Collection<?> collection) {
                         // 集合类型注入元素数量（如在线玩家数、世界数）
                         dataMap.put(dataField, collection.size());
                         // 在线玩家集合特殊处理：额外注入 players 字段（玩家名字逗号分隔）
@@ -152,7 +158,7 @@ public class GenericBukkitAPISkill implements Skill {
                         if (!collection.isEmpty() && collection.iterator().next() instanceof org.bukkit.entity.Player) {
                             String playerNames = collection.stream()
                                     .map(p -> ((org.bukkit.entity.Player) p).getName())
-                                    .collect(java.util.stream.Collectors.joining(", "));
+                                    .collect(Collectors.joining(", "));
                             dataMap.put("players", playerNames);
                         }
                     } else {
@@ -175,7 +181,7 @@ public class GenericBukkitAPISkill implements Skill {
 
             return CompletableFuture.completedFuture(SkillResult.success(formatted, dataMap));
         } catch (Exception e) {
-            PluginLogger.error("BukkitAPI", I18nService.tr("执行 Bukkit API 失败：{}", api.getId()), e);
+            PluginLoggerUtil.error("BukkitAPI", I18nService.tr("执行 Bukkit API 失败：{}", api.getId()), e);
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("执行失败：{}", e.getMessage())));
         }
     }
@@ -195,7 +201,7 @@ public class GenericBukkitAPISkill implements Skill {
                 if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
                     itemName = itemStack.getItemMeta().getDisplayName();
                 } else {
-                    itemName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(itemStack.getType().name());
+                    itemName = ItemTranslator.getInstance().translateToChinese(itemStack.getType().name());
                 }
                 dataMap.put("item_name", itemName);
 
@@ -272,7 +278,7 @@ public class GenericBukkitAPISkill implements Skill {
                     dataMap.put(slotNames[i] + "_amount", item.getAmount());
                     // 附魔信息
                     if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
-                        Map<String, Integer> enchants = new java.util.HashMap<>();
+                        Map<String, Integer> enchants = new HashMap<>();
                         item.getItemMeta().getEnchants().forEach((ench, level) -> enchants.put(ench.getKey().getKey().toUpperCase(), level));
                         dataMap.put(slotNames[i] + "_enchantments", enchants);
                     }
@@ -304,11 +310,11 @@ public class GenericBukkitAPISkill implements Skill {
             extractInventorySummary(contents, dataMap);
         }
         // Collection<PotionEffect>：药水效果集合（仅对 get_player_potion_effects 生效）
-        else if (result instanceof java.util.Collection<?> potionEffects && api != null && "get_player_potion_effects".equals(api.getId())) {
-            java.util.List<Map<String, Object>> effectsList = new java.util.ArrayList<>();
+        else if (result instanceof Collection<?> potionEffects && api != null && "get_player_potion_effects".equals(api.getId())) {
+            List<Map<String, Object>> effectsList = new ArrayList<>();
             for (Object obj : potionEffects) {
                 if (obj instanceof org.bukkit.potion.PotionEffect effect) {
-                    Map<String, Object> effectData = new java.util.HashMap<>();
+                    Map<String, Object> effectData = new HashMap<>();
                     effectData.put("type", effect.getType().getName());
                     effectData.put("amplifier", effect.getAmplifier() + 1);
                     effectData.put("duration_seconds", effect.getDuration() / 20);
@@ -357,20 +363,20 @@ public class GenericBukkitAPISkill implements Skill {
 
         // 特殊类型处理（lophine 优化：已在区域线程内提取为 Map/String）
         // 背包/末影箱/打开容器 Map（必须在通用 item/location Map 分支之前）
-        if (result instanceof java.util.Map<?, ?> inventoryMap && (api.getId().equals("get_player_inventory_usage") || api.getId().equals("get_player_inventory") || api.getId().equals("get_player_ender_chest") || api.getId().equals("get_player_open_container"))) {
+        if (result instanceof Map<?, ?> inventoryMap && (api.getId().equals("get_player_inventory_usage") || api.getId().equals("get_player_inventory") || api.getId().equals("get_player_ender_chest") || api.getId().equals("get_player_open_container"))) {
             return formatInventoryFromMap(api, inventoryMap);
         }
         // 盔甲装备 Map（Paper 系异步/主线程可能返回 Map 而非 ItemStack[]）
-        if (result instanceof java.util.Map<?, ?> armorMap && api.getId().equals("get_player_armor")) {
+        if (result instanceof Map<?, ?> armorMap && api.getId().equals("get_player_armor")) {
             return formatArmorFromMap(armorMap);
         }
-        if (result instanceof java.util.Map<?, ?> locationMap && api.getId().contains("location")) {
+        if (result instanceof Map<?, ?> locationMap && api.getId().contains("location")) {
             return formatLocationFromMap(locationMap);
         }
-        if (result instanceof java.util.Map<?, ?> itemMap && api.getId().contains("item")) {
+        if (result instanceof Map<?, ?> itemMap && api.getId().contains("item")) {
             return formatItemStackFromMap(api, itemMap);
         }
-        if (result instanceof java.util.Map<?, ?> vectorMap && (api.getId().contains("velocity") || api.getId().contains("direction"))) {
+        if (result instanceof Map<?, ?> vectorMap && (api.getId().contains("velocity") || api.getId().contains("direction"))) {
             return formatVectorFromMap(vectorMap);
         }
         // 枚举类型（线程安全）
@@ -394,15 +400,15 @@ public class GenericBukkitAPISkill implements Skill {
             return formatDuration(duration);
         }
         // 药水效果集合（必须在通用 Collection 分支之前）
-        if (result instanceof java.util.Collection<?> potionEffects && api.getId().equals("get_player_potion_effects")) {
+        if (result instanceof Collection<?> potionEffects && api.getId().equals("get_player_potion_effects")) {
             return formatPotionEffects(potionEffects);
         }
         // 袭击列表（必须在通用 Collection 分支之前）
-        if (result instanceof java.util.Collection<?> raids && api.getId().equals("get_world_raids")) {
+        if (result instanceof Collection<?> raids && api.getId().equals("get_world_raids")) {
             return formatRaids(raids);
         }
         // 在线玩家列表或世界列表
-        if (result instanceof java.util.Collection<?> collection) {
+        if (result instanceof Collection<?> collection) {
             return formatCollection(collection, api);
         }
         // 世界时间（刻数）
@@ -465,20 +471,20 @@ public class GenericBukkitAPISkill implements Skill {
             return formatInventorySummary(contents, containerLabel);
         }
         // 瞄准的方块（lophine 优化：Block 对象已在区域线程内提取为 Map）
-        if (result instanceof java.util.Map<?, ?> blockMap && api.getId().equals("get_player_target_block")) {
+        if (result instanceof Map<?, ?> blockMap && api.getId().equals("get_player_target_block")) {
             return formatBlockFromMap(blockMap);
         }
         // 脚下方块（Folia Map 路径）
-        if (result instanceof java.util.Map<?, ?> feetBlockMap && api.getId().equals("get_player_feet_block")) {
+        if (result instanceof Map<?, ?> feetBlockMap && api.getId().equals("get_player_feet_block")) {
             return formatFeetBlockFromMap(feetBlockMap);
         }
         // 脚下方块（Spigot Block 路径）
         if (result instanceof org.bukkit.block.Block block && api.getId().equals("get_player_feet_block")) {
-            String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(block.getType().name());
+            String chineseName = ItemTranslator.getInstance().translateToChinese(block.getType().name());
             return I18nService.tr("脚下方块：{}（位置：X={}, Y={}, Z={}）", chineseName, block.getX(), block.getY(), block.getZ());
         }
         // 上次受伤原因（Folia Map 路径）
-        if (result instanceof java.util.Map<?, ?> damageMap && api.getId().equals("get_player_last_damage")) {
+        if (result instanceof Map<?, ?> damageMap && api.getId().equals("get_player_last_damage")) {
             return formatDamageFromMap(damageMap);
         }
         // 上次受伤原因（Spigot EntityDamageEvent 路径）
@@ -516,7 +522,7 @@ public class GenericBukkitAPISkill implements Skill {
         }
 
         // additional_methods 模式返回的 Map
-        if (result instanceof java.util.Map<?, ?> mapResult) {
+        if (result instanceof Map<?, ?> mapResult) {
             return formatWithAdditionalMethods(api, mapResult);
         }
 
@@ -793,7 +799,7 @@ public class GenericBukkitAPISkill implements Skill {
         if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
             sb.append(item.getItemMeta().getDisplayName());
         } else {
-            String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(item.getType().name());
+            String chineseName = ItemTranslator.getInstance().translateToChinese(item.getType().name());
             sb.append(chineseName);
         }
         if (item.getAmount() > 1) {
@@ -854,7 +860,7 @@ public class GenericBukkitAPISkill implements Skill {
         if (displayName != null) {
             sb.append(label).append("：").append(displayName);
         } else {
-            String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(type);
+            String chineseName = ItemTranslator.getInstance().translateToChinese(type);
             sb.append(label).append("：").append(chineseName);
         }
         if (amount > 1) {
@@ -1005,7 +1011,7 @@ public class GenericBukkitAPISkill implements Skill {
                 if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
                     sb.append(item.getItemMeta().getDisplayName());
                 } else {
-                    String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(item.getType().name());
+                    String chineseName = ItemTranslator.getInstance().translateToChinese(item.getType().name());
                     sb.append(chineseName);
                 }
                 if (item.getAmount() > 1) {
@@ -1100,7 +1106,7 @@ public class GenericBukkitAPISkill implements Skill {
             return I18nService.tr("瞄准方块：未知");
         }
 
-        String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(materialName);
+        String chineseName = ItemTranslator.getInstance().translateToChinese(materialName);
         int x = blockMap.containsKey("x") ? ((Number) blockMap.get("x")).intValue() : 0;
         int y = blockMap.containsKey("y") ? ((Number) blockMap.get("y")).intValue() : 0;
         int z = blockMap.containsKey("z") ? ((Number) blockMap.get("z")).intValue() : 0;
@@ -1119,7 +1125,7 @@ public class GenericBukkitAPISkill implements Skill {
         if (materialName == null) {
             return I18nService.tr("脚下方块：未知");
         }
-        String chineseName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(materialName);
+        String chineseName = ItemTranslator.getInstance().translateToChinese(materialName);
         int x = blockMap.containsKey("x") ? ((Number) blockMap.get("x")).intValue() : 0;
         int y = blockMap.containsKey("y") ? ((Number) blockMap.get("y")).intValue() : 0;
         int z = blockMap.containsKey("z") ? ((Number) blockMap.get("z")).intValue() : 0;
@@ -1342,11 +1348,11 @@ public class GenericBukkitAPISkill implements Skill {
      * 从 ItemStack[] 中提取物品摘要（仅物品名称+数量，不含附魔/耐久）
      */
     private void extractInventorySummary(org.bukkit.inventory.ItemStack[] contents, Map<String, Object> dataMap) {
-        java.util.List<Map<String, Object>> itemsList = new java.util.ArrayList<>();
+        java.util.List<Map<String, Object>> itemsList = new ArrayList<>();
         for (int i = 0; i < contents.length; i++) {
             org.bukkit.inventory.ItemStack item = contents[i];
             if (item != null && item.getType() != org.bukkit.Material.AIR) {
-                Map<String, Object> itemData = new java.util.HashMap<>();
+                Map<String, Object> itemData = new HashMap<>();
                 itemData.put("slot", i);
                 itemData.put("item_type", item.getType().name());
                 // 仅读取名称，不读取附魔/耐久等详情
@@ -1354,7 +1360,7 @@ public class GenericBukkitAPISkill implements Skill {
                 if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
                     itemName = item.getItemMeta().getDisplayName();
                 } else {
-                    itemName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(item.getType().name());
+                    itemName = ItemTranslator.getInstance().translateToChinese(item.getType().name());
                 }
                 itemData.put("item_name", itemName);
                 itemData.put("item_amount", item.getAmount());
@@ -1400,7 +1406,7 @@ public class GenericBukkitAPISkill implements Skill {
                 if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
                     itemName = item.getItemMeta().getDisplayName();
                 } else {
-                    itemName = com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(item.getType().name());
+                    itemName = ItemTranslator.getInstance().translateToChinese(item.getType().name());
                 }
                 sb.append("  [").append(i).append("] ").append(itemName);
                 if (item.getAmount() > 1) {
@@ -1478,7 +1484,7 @@ public class GenericBukkitAPISkill implements Skill {
         sb.append(label).append(I18nService.tr("物品（已用 {}/{} 格）：\n", itemCount, totalSlots));
 
         for (Object obj : itemsList) {
-            if (obj instanceof java.util.Map<?, ?> itemData) {
+            if (obj instanceof Map<?, ?> itemData) {
                 int slot = itemData.containsKey("slot") ? ((Number) itemData.get("slot")).intValue() : -1;
                 String itemName = itemData.get("item_name") != null ? itemData.get("item_name").toString() : (itemData.get("item_type") != null ? itemData.get("item_type").toString() : "未知");
                 int amount = itemData.containsKey("item_amount") ? ((Number) itemData.get("item_amount")).intValue() : 1;

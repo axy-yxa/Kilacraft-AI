@@ -1,367 +1,41 @@
 # Kilacraft-AI Document Index
 
-> **Last Updated**: 2026-05-06  
-> **Description**: This document provides a complete index of all Kilacraft-AI documentation, helping users quickly find the documentation they need
-
----
-## 📚 Document Overview
-This document index lists all Chinese technical documents of the Kilacraft-AI project to help you quickly find the required information.
----
-## 🎯 Quick Navigation
-### 👥 Server Owner/Administrator Documents
-| Document Name | Description | Target Audience |
-|--------------|-------------|----------------|
-| [Server Owner's Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Complete installation, configuration, and usage guide | Server Administrators |
-| [Changelog](sslocal://flow/file_open?url=.%2FKilacraft-AI-Changelog.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Version history and change descriptions | Everyone |
-| [Database and Persistence Configuration Guide](./Database%20and%20Persistence%20Configuration%20Guide) | Database configuration, persistence content and data management | Server Administrators |
-| [Player Profile and Social Relations System Guide](./Player%20Profile%20and%20Social%20Relations%20System%20Guide) | Player profiles, social graph and event collection system | Server Owners, Developers |
-### 🔌 Developer Documents
-| Document Name | Description | Target Audience |
-|--------------|-------------|----------------|
-| [Skill SPI Integration Document](./Skill-SPI-Integration-Document) | How to develop custom skills for Kilacraft-AI | Plugin Developers |
-| [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) | Complete guide for third-party plugin integration (callback mechanism, async optimization, etc.) | Plugin Developers |
-### 📖 Technical Reference Documents
-| Document Name | Description | Target Audience |
-|--------------|-------------|----------------|
-| [Bukkit API Reference Manual](./Bukkit%20API%20Reference) | Detailed descriptions and examples of 58 built-in APIs (Player 31 + World 20 + Server 6) with multi-step data passing | Server Owners, Developers |
-| [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference) | Complete reference and integration guide for Bukkit event listeners | Developers |
-| [Personality System Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Personality-System-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Management and customization methods for multiple personalities | Server Owners, Advanced Users |
-| [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | Usage and optimization techniques for RAG knowledge base | Server Owners, Content Creators |
-| [Intent Recognition Prompt Configuration Guide](./Intent-Recognition-Prompt-Configuration-Guide) | Configuration and optimization of LLM intent recognition system | Server Owners, Developers |
-| [System Architecture Details](./System-Architecture-Details) | Complete call chains and design philosophy of three interaction modes | Developers, Technical Personnel |
-| [AFK Task System Guide](./AFK%20Task%20System%20Guide) | Complete usage guide and configuration instructions for AFK task system | Server Owners, Developers |
-| [Known Bugs](./Known%20Bugs) | List of known issues, impact scope, and temporary solutions | Everyone |
----
-## 📋 Detailed Document Descriptions
-### 1. Server Owner's Guide
-**File**: `Kilacraft-AI-Server-Owner's-Guide.md`  
-**Size**: ~45 KB  
-**Content**:
-- ✅ Why Choose Kilacraft-AI (Advantage Comparison)
-- ✅ Core Feature Showcase (Intelligent Chat, Knowledge Base, Intent Recognition, etc.)
-- ✅ Quick Start (5-Minute Getting Started Tutorial)
-- ✅ Performance and Resource Usage Analysis
-- ✅ Complete Command List
-- ✅ Dependence Requirements
-- ✅ Advanced Configuration Details
-- ✅ Troubleshooting Guide
-  **Recommended Chapters**:
-- Chapters 1-3: Understand core features and quick start
-- Chapter 7: Plugin Command Mode Integration (Must-read for third-party plugin developers)
-- Chapter 9: Troubleshooting
----
-### 2. Changelog
-**File**: `Kilacraft-AI-Changelog.md`  
-**Size**: ~18 KB  
-**Content**:
-- ✅ Change records for all versions from v1.0.0 to v2.0.0
-- ✅ New features, optimizations, and compatibility notes for each version
-- ✅ Packaging changes and breaking update warnings
-  **Recommended Usage Scenarios**:
-- Check compatibility notes before upgrading
-- Learn about the latest features and improvements
-- Troubleshoot version-related issues
----
-### 3. Skill SPI Integration Document
-**File**: `Kilacraft-AI-Skill-SPI-Integration-Document.md`  
-**Size**: ~33 KB  
-**Content**:
-- ✅ SPI Architecture Overview and Data Flow
-- ✅ Quick Start (5-Minute Integration Tutorial)
-- ✅ Detailed Explanation of Core Interfaces (SkillProvider, Skill, SkillContext, SkillResult)
-- ✅ Skill Development Specifications
-- ✅ Multi-step Task Data Transfer Mechanism (including array index access)
-- ✅ Error Isolation and Exception Handling
-- ✅ Permission and Availability Control
-- ✅ Naming Conventions and Conflict Resolution
-- ✅ Complete Example Code
-  **Recommended Chapters**:
-- Chapter 3: Quick Start (Must-read for beginners)
-- Chapters 4-5: Core Interfaces and Development Specifications
-- Chapter 7: Error Isolation Mechanism
-- Chapter 11: Complete Examples
----
-### 4. Bukkit API Reference Manual
-**File**: `Kilacraft-AI-Bukkit-API-Reference-Manual.md`  
-**Size**: ~23 KB  
-**Content**:
-- ✅ Complete list of 37 built-in APIs (Player 23 + World 7 + Server 7)
-- ✅ Configuration examples and usage scenarios for each API
-- ✅ Parameter type and return type descriptions
-- ✅ Detailed permission management
-- ✅ Performance optimization suggestions
-- ✅ Troubleshooting guide
-  **API Categories**:
-- 👤 Player-related APIs (23): Health, Hunger, Inventory, Location, etc.
-- 🌍 World-related APIs (7): Time, Weather, Difficulty, Seed, etc.
-- 🖥️ Server-related APIs (7): Online Players, Version, World List, etc.
-  **Recommended Usage Scenarios**:
-- Need to know which game data the AI can query
-- Configure custom Bukkit API calls
-- Set fine-grained permission control
----
-### 5. Personality System Configuration Guide
-**File**: `Kilacraft-AI-Personality-System-Configuration-Guide.md`  
-**Size**: ~18 KB  
-**Content**:
-- ✅ Personality system architecture and configuration file structure
-- ✅ Best practices for writing system prompts
-- ✅ Detailed language style configuration (tone, formality, emojis, etc.)
-- ✅ 4 complete personality configuration examples:
-    - Default Assistant (Friendly and Professional)
-    - Newbie Mentor (Patient and Gentle)
-    - Technical Expert (Rigorous and Detailed)
-    - Humorous Chat Partner (Funny and Witty)
-- ✅ Personality switching methods (commands, permissions, automatic assignment)
-- ✅ Advanced usage (dynamic switching, personality combination, seasonal personalities)
-- ✅ Frequently Asked Questions
-  **Recommended Chapters**:
-- Chapter 2: Writing System Prompts (Core Content)
-- Chapter 3: Complete Configuration Examples (Can be copied and modified directly)
-- Chapter 5: Frequently Asked Questions
----
-### 6. Knowledge Base Enhancement Guide
-
-**File**: `Kilacraft-AI-Knowledge-Base-Enhancement-Guide.md`  
-**Size**: ~16 KB  
-**Content**:
-- ✅ RAG technology principles and workflow
-- ✅ Document writing specifications (Markdown best practices)
-- ✅ Detailed explanation of intelligent segmentation algorithm and comprehensive scoring mechanism (HanLP TF-IDF + BM25)
-- ✅ Configuration option descriptions (max_relevant_chunks, segment, keywords, bm25, custom_dictionary)
-- ✅ Custom dictionary support (improves Chinese word segmentation accuracy)
-- ✅ Performance optimization suggestions
-- ✅ Troubleshooting guide
-  **Recommended Chapters**:
-- Chapter 2: Document Writing Specifications (Key to improving retrieval accuracy)
-- Chapter 3: Detailed Explanation of Retrieval Mechanism (Understand working principles)
-- Chapter 5: Performance Optimization
----
-
-### 7. System Architecture Details
-
-**File**: `Kilacraft-AI-System-Architecture-Details.md`  
-**Size**: ~15 KB  
-**Content**:
-
-- ✅ Overview of three interaction modes (ChatListener / KilacraftCommand / Plugin Command)
-- ✅ Complete call chain for Mode 1 & 2 (Agent Enabled)
-  - Entry Layer → Intent Recognition Layer → Skill Execution Layer → Secondary Analysis Layer → Response Layer
-  - Intelligent intent recognition, multi-step orchestration, knowledge enhancement, failure fallback
-- ✅ Complete call chain for Mode 3 (Agent Disabled)
-  - Why plugin command mode doesn't enable Agent capabilities
-  - Entry Layer → Personality Configuration → Normal AI Dialogue → Callback Layer
-  - Pure text output, personality, isolated history, callback mechanism
-- ✅ Core differences comparison table (detailed comparison across 12 dimensions)
-- ✅ Design philosophy summary (responsibility separation, performance optimization, reliability, flexibility)
-- ✅ How to choose which mode to use (decision guide)
-
-**Recommended Chapters**:
-- Chapter 2: Mode 1 & 2 Call Chains (Understand Agent workflow)
-- Chapter 3: Mode 3 Call Chain (Understand plugin integration principles)
-- Chapter 4: Core Differences Comparison Table (Quickly understand the differences between two modes)
-
-**Applicable Scenarios**:
-- Need in-depth understanding of internal system mechanisms
-- Developing third-party plugin integration features
-- Troubleshooting complex interaction issues
-- Optimizing performance and response speed
+> **Last Updated**: 2026-05-27  
+> **Description**: Quick index of all Kilacraft-AI documentation to help you find what you need
 
 ---
 
-### 8. Intent Recognition Prompt Configuration Guide
-**File**: `Kilacraft-AI-Intent-Recognition-Prompt-Configuration-Guide.md`  
-**Size**: ~23 KB  
-**Content**:
-- ✅ Intent recognition system architecture and configuration file structure
-- ✅ Response format specification (single intent, invalid intent, multi-step task)
-- ✅ Decision rules details (when to use single/multi-step/return invalid)
-- ✅ Critical constraint rules (placeholder usage, reference resolution, vague instruction handling)
-- ✅ Example library (single intent examples, multi-step examples, invalid intent examples)
-- ✅ Special scenario handling (continuous conversation, conflicting intents, missing parameters)
-- ✅ Output quality requirements and JSON format specification
-- ✅ Difference from personality system explanation
-- ✅ Optimization strategies and common problem troubleshooting
-  **Recommended Chapters**:
-- Chapter 2: Response Format Specification (Understand three response types)
-- Chapter 4: Critical Constraint Rules (Avoid common errors)
-- Chapter 6: Difference from Personality System (Important concept distinction)
-- Chapter 8: Optimization Strategies (Improve recognition accuracy)
----
+## Server Owner / Admin Documents
 
-### 9. Plugin Command Mode Detailed Guide
+| Document | Description | Audience |
+|----------|-------------|----------|
+| [Server Owner Guide](./Server%20Owner%20Guide) | Installation, core features, advanced features, commands & permissions, FAQ | Server Administrators |
+| [Admin Features Guide](./Admin%20Features%20Guide) | Health monitoring, player analysis, audit logs — full configuration & usage | Server Administrators |
+| [Changelog](./Changelog) | Version history and change descriptions | Everyone |
+| [Database and Persistence Configuration Guide](./Database%20and%20Persistence%20Configuration%20Guide) | Database architecture, persisted data, configuration reference | Server Administrators |
+| [Player Profile and Social Relations System Guide](./Player%20Profile%20and%20Social%20Relations%20System%20Guide) | Player profiles, social graph, event collection system | Server Owners, Developers |
 
-**File**: `Kilacraft-AI-Plugin-Command-Mode-Detailed-Guide.md`  
-**Size**: ~25 KB  
-**Content**:
+## Developer Documents
 
-- ✅ Three interaction modes comparison analysis
-- ✅ Why plugin command mode doesn't enable Agent capabilities
-- ✅ Command format and parameter details
-- ✅ Callback mechanism deep dive
-- ✅ **Callback method optimization best practices** (key techniques to avoid blocking main thread)
-- ✅ Complete Java code integration examples
-- ✅ MythicMobs configuration-driven plugin integration examples
-- ✅ Personality system configuration details
-- ✅ History isolation mechanism
-- ✅ FAQ and debugging tips
+| Document | Description | Audience |
+|----------|-------------|----------|
+| [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide) | Custom skill development guide (architecture, interfaces, example code) | Plugin Developers |
+| [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) | Third-party plugin integration (callback mechanism, async optimization, MythicMobs) | Plugin Developers |
 
-**Recommended Chapters**:
-- Chapter 3: Callback Mechanism Details (Understand working principles)
-- Chapter 4: Callback Method Optimization Best Practices (Must-read! Avoid server lag)
-- Chapter 5: Complete Integration Examples (Can be referenced directly)
-- Chapter 8: FAQ (Quick problem solving)
+## Technical Reference Documents
 
-**Applicable Scenarios**:
-- Developing third-party plugin integration features
-- Implementing NPC intelligent dialogue
-- Need to process AI responses asynchronously
-- Troubleshooting callback execution issues
+| Document | Description | Audience |
+|----------|-------------|----------|
+| [Built-in Skills and Events Capability List](./Built-in%20Skills%20and%20Events%20Capability%20List) | Complete list of all built-in Skills and Bukkit Event listeners | Server Owners, Developers |
+| [Bukkit API Reference](./Bukkit%20API%20Reference) | 72 read-only APIs — configuration examples, permission management | Server Owners, Developers |
+| [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference) | Event listener architecture, registration mechanism, async processing | Developers |
+| [Personality System Guide](./Personality%20System%20Guide) | Multi-personality management, prompt writing, style configuration | Server Owners, Advanced Users |
+| [Knowledge Base Guide](./Knowledge%20Base%20Guide) | RAG principles, document writing standards, retrieval optimization | Server Owners, Content Creators |
+| [Intent Recognition Prompt Configuration Guide](./Intent%20Recognition%20Prompt%20Configuration%20Guide) | Intent recognition system config, decision rules, constraint rules | Server Owners, Developers |
+| [System Architecture Details](./System%20Architecture%20Details) | Call chains and design philosophy of three interaction modes | Developers, Technical Personnel |
+| [AFK Task System Guide](./AFK%20Task%20System%20Guide) | AFK task architecture, 20 task types, configuration & best practices | Server Owners, Developers |
+| [Known Bugs](./Known%20Bugs) | Known issues, impact scope, temporary solutions | Everyone |
 
 ---
 
-### 10. Bukkit Event Listener Reference
-
-**File**: `Kilacraft-AI-Bukkit-Event-Listener-Reference.md`  
-**Size**: ~12 KB  
-**Content**:
-
-- ✅ Bukkit event listener architecture and registration mechanism
-- ✅ AIResponseReadyEvent detailed explanation
-- ✅ Event parameter descriptions and usage examples
-- ✅ Asynchronous processing best practices
-- ✅ Event integration solutions with other plugins
-- ✅ Common issues and debugging tips
-
-**Recommended Chapters**:
-- Chapter 2: Event Listener Registration (Must-read for developers)
-- Chapter 3: AIResponseReadyEvent Details (Core event)
-- Chapter 5: Asynchronous Processing Best Practices (Avoid blocking main thread)
-
-**Applicable Scenarios**:
-- Need to listen for AI response completion events
-- Implement custom AI response handling logic
-- Event-driven integration with other plugins
-
----
-
-### 11. AFK Task System Guide
-
-**File**: `Kilacraft-AI-AFK-Task-System-Guide.md`  
-**Size**: ~20 KB  
-**Content**:
-
-- ✅ AFK task system architecture design
-- ✅ Detailed task types (20 built-in task types in 4 tiers)
-- ✅ Task configuration methods and parameter descriptions
-- ✅ Callback mechanism and task status management
-- ✅ Permission control and availability checks
-- ✅ Complete usage examples and best practices
-- ✅ Troubleshooting and performance optimization
-
-**Task Types**:
-- 🔵 S-Tier (7 types): Player online/offline/death/teleport/level/world change, weather change
-- 🟢 A-Tier (1 type): Custom condition polling
-- 🟡 B-Tier (4 types): Player inventory change, player damage, player kill entity, player interact entity
-- 🟠 C-Tier (8 types): Player fish, player chat, block break, entity death, entity spawn, player item consume, player join, player quit
-
-**Recommended Chapters**:
-- Chapter 2: Task Type Details (Learn all available tasks)
-- Chapter 3: Configuration Methods (Quick start)
-- Chapter 6: Best Practices (Improve task efficiency)
-
-**Applicable Scenarios**:
-- Provide AFK task functionality for players
-- Automated resource collection
-- Server economy system assistance
-
----
-
-### 12. Known Bugs
-
-**File**: `Kilacraft-AI-Known-Bugs.md`  
-**Size**: ~5 KB  
-**Content**:
-
-- ✅ Current list of known issues
-- ✅ Impact scope and severity for each bug
-- ✅ Temporary solutions and workarounds
-- ✅ Fix plans and estimated timelines
-- ✅ How to report newly discovered bugs
-
-**Bug Categories**:
-- 🔴 Critical: Affects core functionality, needs immediate fix
-- 🟡 Medium: Affects partial functionality, planned for fix
-- 🟢 Minor: Does not affect usage, low priority
-
-**Recommended Reading Scenarios**:
-- Check this document first when encountering abnormal behavior
-- Understand known limitations of the current version
-- Confirm whether to submit a new Issue
-
----
-
-## 🔍 Find Documents by Topic
-### Installation and Configuration
-- [Server Owner's Guide - Quick Start](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-quick-start5-minute-getting-started&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-- [Server Owner's Guide - Advanced Configuration Details](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-advanced-configuration-details&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-### Feature Usage
-- [Server Owner's Guide - Core Feature Showcase](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-core-feature-showcase&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-- [Bukkit API Reference Manual](sslocal://flow/file_open?url=.%2FKilacraft-AI-Bukkit-API-Reference-Manual.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-- [Personality System Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Personality-System-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-- [Intent Recognition Prompt Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Intent-Recognition-Prompt-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-### Knowledge Base Management
-- [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-- [Server Owner's Guide - Knowledge Base Enhancement](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23%EF%B8%8F-knowledge-base-enhancementrag-retrieval&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-### Developer Integration
-- [Skill SPI Integration Document](./Skill-SPI-Integration-Document)
-- [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) (Complete guide for third-party plugin integration)
-- [System Architecture Details](./System-Architecture-Details) (Deep understanding of three interaction modes)
-- [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference) (Event-driven integration)
-
-### AFK Task System
-- [AFK Task System Guide](./AFK%20Task%20System%20Guide)
-
-### Performance Optimization
-- [Server Owner's Guide - Performance and Resource Usage](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-performance-and-resource-usage&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-- [Knowledge Base Enhancement Guide - Performance Optimization](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md%23-performance-optimization&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-- [Bukkit API Reference Manual - Performance Optimization Suggestions](sslocal://flow/file_open?url=.%2FKilacraft-AI-Bukkit-API-Reference-Manual.md%23%EF%B8%8F-performance-optimization-suggestions&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-
-### Troubleshooting
-- [Known Bugs](./Known%20Bugs) (Check first)
-- [Server Owner's Guide - Troubleshooting](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md%23-troubleshooting&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-- [Bukkit API Reference Manual - Troubleshooting](sslocal://flow/file_open?url=.%2FKilacraft-AI-Bukkit-API-Reference-Manual.md%23-troubleshooting&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-- [Knowledge Base Enhancement Guide - Troubleshooting](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md%23-troubleshooting&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
----
-## 📊 Document Statistics
-| Category | Number of Documents | Total Size |
-|----------|--------------------|------------|
-| Server Owner Documents | 2 | ~55 KB |
-| Developer Documents | 2 | ~58 KB |
-| Technical Reference | 10 | ~180 KB |
-| **Total** | **14** | **~293 KB** |
----
-## 💡 Usage Suggestions
-### New Users
-1. First read Chapters 1-3 of the [Server Owner's Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-2. Complete installation and configuration according to the "Quick Start"
-3. Refer to other chapters as needed
-### Advanced Users
-1. Deeply read the advanced configuration chapter of the [Server Owner's Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Server-Owner%27s-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-2. Learn the [Personality System Configuration Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Personality-System-Configuration-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) to customize AI behavior
-3. Use the [Knowledge Base Enhancement Guide](sslocal://flow/file_open?url=.%2FKilacraft-AI-Knowledge-Base-Enhancement-Guide.md&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) to optimize retrieval results
-### Plugin Developers
-1. Must read the [Skill SPI Integration Document](./Skill-SPI-Integration-Document)
-2. Must read the [Plugin Command Mode Detailed Guide](./Plugin%20Command%20Mode%20Detailed%20Guide) (Third-party plugin integration guide)
-3. Read [System Architecture Details](./System-Architecture-Details) to understand three interaction modes
-4. Check the [Bukkit API Reference Manual](./Bukkit-API-Reference-Manual) to learn about available APIs
-5. Check the [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference) to learn about event integration
-6. If developing AFK tasks, read the [AFK Task System Guide](./AFK%20Task%20System%20Guide)
----
-## 📝 Document Maintenance
-- **Last Updated**: 2026-05-06
-- **Maintainer**: Zm_Mmm
-- **Feedback Channels**: [GitHub Issues](sslocal://flow/file_open?url=https%3A%2F%2Fgithub.com%2Faxy-yxa%2FKilacraft-AI%2Fissues&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=) | [Gitee Issues](sslocal://flow/file_open?url=https%3A%2F%2Fgitee.com%2Fzm_mmm%2Fkilacraft-ai%2Fissues&flow_extra=eyJsaW5rX3R5cGUiOiJjb2RlX2ludGVycHJldGVyIn0=)
-  If you find document errors or need to add content, please submit an Issue or Pull Request!
----
-> **Note**: This document will be continuously maintained with project updates. It is recommended to check for the latest version regularly.
+> Found an error or want to add content? Submit an [Issue](https://github.com/axy-yxa/Kilacraft-AI/issues) or Pull Request

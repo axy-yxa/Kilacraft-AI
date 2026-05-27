@@ -1,8 +1,8 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.greeting.GreetingPromptBuilder;
-import com.zm.kilacraftAI.util.ConfigResourceUtil;
+import com.zm.kilacraftAI.service.greeting.GreetingPromptBuilder;
+import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;

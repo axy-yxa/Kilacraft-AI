@@ -6,7 +6,7 @@
 
     <groupId>com.zm</groupId>
     <artifactId>Kilacraft-AI</artifactId>
-    <version>2.0.2</version>
+    <version>2.1.0</version>
     <packaging>jar</packaging>
 
     <name>Kilacraft-AI</name>
@@ -136,6 +136,12 @@
     </build>
 
     <repositories>
+        <!-- Maven Central (log4j2 等 Apache 项目) -->
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+
         <!-- SpigotMC Repository -->
         <repository>
             <id>spigotmc-repo</id>
@@ -148,13 +154,41 @@
             <name>Lumine Releases</name>
             <url>https://mvn.lumine.io/repository/maven-public/</url>
         </repository>
+
+        <!-- Sonatype OSS (Spark API) -->
+        <repository>
+            <id>sonatype-oss-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
+
+        <!-- Lucko Repository (Spark API) -->
+        <repository>
+            <id>luck-repo</id>
+            <url>https://repo.lucko.me/</url>
+        </repository>
     </repositories>
 
     <dependencies>
+        <!-- Spark API (性能监控插件) - provided scope，运行时由 Spark 插件提供 -->
+        <dependency>
+            <groupId>me.lucko</groupId>
+            <artifactId>spark-api</artifactId>
+            <version>0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
             <version>1.16.5-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Log4j Core (Paper 服务端运行时提供，用于 Spark 输出捕获) -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.23.1</version>
             <scope>provided</scope>
         </dependency>
 
@@ -233,6 +267,13 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>2.2.224</version>
+        </dependency>
+
+        <!-- Protobuf (用于 Spark Profiler 数据解析) -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.25.5</version>
         </dependency>
 
         <!-- MySQL -->

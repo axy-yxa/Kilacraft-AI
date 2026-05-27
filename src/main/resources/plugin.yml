@@ -1,59 +1,62 @@
-# 插件名称
+# 插件名称 / Plugin Name
 name: Kilacraft-AI
-# 插件版本号
-version: '2.0.2'
-# 主类路径（插件入口）
+# 插件版本号 / Plugin version number
+version: '2.1.0'
+# 主类路径 / Main class path
 main: com.zm.kilacraftAI.KilacraftAI
-# Bukkit API 版本（支持的最低服务端版本）
+# Bukkit API 版本 / Bukkit API version
 api-version: '1.16'
-# 声明支持 Folia 区域化线程调度
+# 声明支持 Folia 区域化线程调度 / Declare support for Folia regionalized thread scheduling
 folia-supported: true
-# 作者信息
+# 作者 / author
 author: Zm_Mmm
-# 插件描述
-description: "一款强大的 Minecraft AI Agent 插件，基于 LLM 意图识别与技能执行框架，支持自然语言交互、多步骤任务规划、挂机任务系统、知识库增强等功能。"
-# 插件加载时机（POSTWORLD 表示在世界加载后加载，确保依赖插件已加载）
+# 描述 / description
+description: "每个服务器都拥有「越用越懂你」的AI智能体插件"
+# 加载时机 / Loading timing
 load: POSTWORLD
-# 软依赖列表（如果这些插件存在则会集成其功能）
+# 软依赖列表 / Soft Dependency List
 softdepend:
-  - MythicMobs          # MythicMobs 怪物插件，用于占位符功能
-  - GlobalMarketPlus    # GlobalMarketPlus 市场插件，用于经济系统功能
-  - Vault               # Vault 经济接口，用于多货币支持
-  - CMI                 # CMI 管理插件，用于传送/家/地标等功能
+  - MythicMobs
+  - GlobalMarketPlus
+  - Vault
+  - CMI
+  - Spark
 
-# 命令定义
+# 命令定义 / command definition
 commands:
   kilacraft:
     description: 与 AI 对话
-    usage: /<command> <消息>   # 命令使用格式说明
-    aliases: [ kila, ai, zm ]    # 命令别名（可以使用/kila、/ai、/zm 代替/kilacraft）
+    usage: /<command> <消息>
+    aliases: [ kila, ai, zm ]
 
-# 权限节点定义
+# 权限节点定义 / Definition of permission nodes
 permissions:
   kilacraft.clear.self:
     description: 允许清除自己的对话历史
-    default: true              # 默认拥有此权限（所有玩家可用）
+    default: true              # 所有玩家可用 / available to all players
   kilacraft.clear.other:
     description: 允许清除其他玩家的对话历史
-    default: op                # 默认仅 OP 拥有此权限
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
   kilacraft.reload:
     description: 允许重载配置
-    default: op                # 默认仅 OP 拥有此权限
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
   kilacraft.knowledge:
     description: 允许管理知识库
-    default: op                # 默认仅 OP 拥有此权限
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
   kilacraft.personalities:
     description: 允许管理人格配置
-    default: op                # 默认仅 OP 拥有此权限
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
   kilacraft.afk:
     description: 允许查询和取消挂机任务
-    default: true              # 默认所有玩家可用
+    default: true              # 所有玩家可用 / available to all players
   kilacraft.tasks:
     description: 允许查看定时任务运行状态
-    default: op                # 默认仅 OP 拥有此权限
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
 
   # Bukkit API 技能权限（按功能类别分组）
   # 玩家相关 API 分为三类：inventory(物品栏)、status(实时状态)、info(基础信息)
+  # Bukkit API skill permissions (grouped by functional category)
+  # Player related APIs are divided into three categories: inventory, status, and info
   kilacraft.api.player.inventory:
     description: 查询玩家物品栏（主手/副手物品）
     default: true
@@ -79,7 +82,7 @@ permissions:
       kilacraft.api.world.info: true
       kilacraft.api.server.info: true
 
-  # CMI 插件技能权限
+  # CMI 插件技能权限 / CMI plugin skill permissions
   kilacraft.cmi.query:
     description: 查询 CMI 信息（家、地标、玩家信息、物品价值、套装列表等）
     default: true
@@ -93,44 +96,63 @@ permissions:
       kilacraft.cmi.query: true
       kilacraft.cmi.teleport: true
 
-  # 命令执行技能权限
+  # 命令执行技能权限 / Command execution skill permissions
   kilacraft.command.execute:
     description: 允许 AI 帮助执行服务器命令（以玩家身份执行，受服务器权限约束）
-    default: op                # 默认仅 OP 拥有此权限，服主可按需开放
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
 
-  # Bukkit 音效与粒子效果技能权限
+  # Bukkit 音效与粒子效果技能权限 / Bukkit sound effects and particle effects skill permissions
   kilacraft.bukkit_fx:
     description: 允许播放音效和显示粒子效果（仅自己听到/看到）
-    default: true              # 默认所有玩家可用
+    default: true              # 所有玩家可用 / available to all players
 
-  # Bukkit 原版统计数据查询权限
+  # Bukkit 原版统计数据查询权限 / Bukkit original statistical data query permission
   kilacraft.bukkit_stats:
     description: 允许查询 Minecraft 原版统计数据（生涯累计统计）
-    default: true              # 默认所有玩家可用
+    default: true              # 所有玩家可用 / available to all players
 
-  # 通用工具技能权限（按动作细分）
+  # 通用工具技能权限（按动作细分） / General tool skill permissions (subdivided by action)
   kilacraft.utility:
     description: 允许使用 AI 通用工具技能（延迟等待、主动通知等）
-    default: true              # 默认所有玩家可用
+    default: true              # 所有玩家可用 / available to all players
   kilacraft.utility.delay_wait:
     description: 允许使用 AI 工具技能的延迟等待功能
-    default: true              # 默认所有玩家可用
+    default: true              # 所有玩家可用 / available to all players
   kilacraft.utility.notify_player:
     description: 允许使用 AI 工具技能的主动中途通知功能
-    default: true              # 默认所有玩家可用
+    default: true              # 所有玩家可用 / available to all players
   kilacraft.utility.broadcast:
     description: 允许使用 AI 工具技能的全服广播功能（仅限 OP 管理员使用）
-    default: op                # 默认仅 OP 拥有此权限
-  # 市场技能权限（GlobalMarketPlus）
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+
+  # 市场技能权限（GlobalMarketPlus） / Market Skills Authority (GlobalMarketPlus)
   kilacraft.market.query:
     description: 允许使用 AI 查询市场信息（余额、价格、商品等）
-    default: true              # 默认所有玩家可用
+    default: true              # 所有玩家可用 / available to all players
   kilacraft.market.action:
     description: 允许使用 AI 执行市场操作（上架、下架、购买、转账等）
-    default: true              # 默认所有玩家可用
+    default: true              # 所有玩家可用 / available to all players
   kilacraft.market.*:
     description: 允许使用所有市场技能（包含以上全部）
     default: true
     children:
       kilacraft.market.query: true
       kilacraft.market.action: true
+
+  # 管理员功能权限 / Administrator functional permissions
+  kilacraft.admin.health:
+    description: 服务器健康监控（实时快照、自动诊断报告、手动性能采样）
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+  kilacraft.admin.player:
+    description: 玩家行为分析（在线趋势、活跃排行、新玩家流入、画像覆盖率、社交图谱）
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+  kilacraft.admin.audit:
+    description: 技能执行审计日志查询（执行记录、使用统计、失败日志）
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+  kilacraft.admin.*:
+    description: 允许使用所有管理员功能（包含以上全部）
+    default: op
+    children:
+      kilacraft.admin.health: true
+      kilacraft.admin.player: true
+      kilacraft.admin.audit: true

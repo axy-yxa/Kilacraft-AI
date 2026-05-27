@@ -1,8 +1,9 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.util.ConfigResourceUtil;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -102,7 +103,7 @@ public class IntentPromptConfigManager {
             // 读取各部分配置
             loadPromptSections();
         } catch (Exception e) {
-            PluginLogger.error("意图提示词", "加载意图识别提示词配置失败", e);
+            PluginLoggerUtil.error("意图提示词", "加载意图识别提示词配置失败", e);
         }
     }
 
@@ -150,7 +151,7 @@ public class IntentPromptConfigManager {
      */
     public void reload() {
         loadConfig();
-        PluginLogger.info("意图提示词", "意图识别提示词配置重载完成");
+        PluginLoggerUtil.info("意图提示词", "意图识别提示词配置重载完成");
     }
 
     /**

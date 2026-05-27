@@ -1,7 +1,78 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-05-11  
+> **Last Updated**: 2026-05-22  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
+
+---
+
+## v2.1.0 - Server Admin Management (Health Monitoring, Player Analysis, Audit Log), Code Architecture Restructuring
+
+### ✨ New Features
+- **Server Health Monitoring System**: AI-powered intelligent server monitoring and diagnostics system, solving the problems of difficult-to-locate server lag and time-consuming performance troubleshooting
+  - **Zero-Configuration Auto-Monitoring**: Guardian thread runs 24/7 in the background, checking TPS, MSPT, CPU and other metrics every 10 seconds, automatically triggering diagnostics on anomaly detection
+  - **AI-Powered Diagnostics**: Uses reasoning models (e.g. DeepSeek R1) for deep performance analysis, automatically generating Markdown diagnostic reports with precise bottleneck identification
+  - **Server Activity Metrics Collection**: Captures chunk load changes and player distribution across worlds during the sampling window, compensating for Profiler's blind spot for non-CPU activities (I/O, disk, network)
+  - **Method-Level Hotspot Identification**: Based on Spark Profiler's call stack analysis, pinpointing issues at the code level and identifying specific plugin performance impacts. Auto mode uses full-duration sampling, consistent with manual mode
+  - **On-Demand Precision Analysis**: Supports `/kilacraft profile start [duration]` command for admins to analyze specific time periods as needed, solving intermittent performance issues
+  - **Intelligent Debouncing**: Alert cooldown, sliding window frequency limits prevent resource exhaustion and ensure system stability
+  - **External Notification**: When auto-triggered diagnostic analysis completes, push alert notifications to Discord or DingTalk group bots so admins are informed even when offline. Discord supports Embed card messages; DingTalk supports Markdown text + optional HMAC-SHA256 signature security. Push content only includes alert triggers, real-time snapshot metrics, and AI diagnosis summary — no full report file attachments to prevent sensitive information leakage
+  - **Independent Configuration Management**: New `admin.yml` config file for centralized management of monitoring thresholds, reasoning model settings, external notification channels, and diagnostic prompts
+- **Server Health Alert Query (ServerHealthSkill)**: Query historical health alert records via natural language
+- **Player Behavior Analysis (PlayerAnalysisSkill)**: Online player trends, active player rankings, new player inflow, profile analysis coverage, social graph insights
+- **Audit Log Query (AuditLogSkill)**: View AI skill execution records, usage statistics, and failure logs
+- New admin permission nodes: `kilacraft.admin.health`, `kilacraft.admin.player`, `kilacraft.admin.audit` (OP only by default)
+- Spark plugin added as a soft dependency; admin features auto-disable when Spark is absent without affecting other functionality. Paper 1.21+/Folia/Purpur/Leaf/Pufferfish bundles Spark built-in — no separate installation needed
+- New `/kilacraft notify test` command to test Discord/DingTalk notification channel configuration
+- Diagnostic report file output (Markdown format, auto-saved to `plugins/Kilacraft-AI/reports/`)
+
+### 🔧 Improvements
+- **Profile Analysis Prompt Temporal Optimization**: First-time analysis excludes temporary transient states; incremental analysis actively cleans up outdated temporary content, preventing short-lived activities from persisting across multiple versions
+- **Self-Monitoring Text Logic Reuse**: Extracted `DiagnosticReportGenerator.appendSelfMonitoring()` as a public static method, `ServerHealthGuardian` delegates to it, eliminating duplicate code
+- **MySQL Connection Failure Auto-Fallback to H2**: Automatically falls back to H2 embedded database when MySQL is unavailable during startup and hot-reload, ensuring persistence functionality remains available
+- **Hot-Reload Database Switch Resource Release Order**: Adjusted to close old Provider before creating new Provider, avoiding H2 TCP port conflicts
+- **Hot-Reload DAO tablePrefix Refresh Consistency**: All modules holding DAOs rebuild them during hot-reload to reflect the latest table prefix
+- **AI Greeting System Prompt & Injected Content Comprehensive Optimization**: Three-layer structured health alert output (abnormal metrics / involved plugins / hotspot methods + trigger paths), injected content perspective correction (AI perspective uses player name instead of "you"), last location world prefix, prompt rules comprehensive strengthening (rule #3 milestone generalization & vague description prevention), and full i18n audit governance
+
+### 🐛 Bug Fixes
+- **Fixed player profile version reset after hot-reload database switch (V8→V1)**: `reconcileOnlineProfiles()` did not reload profile from new database into memory cache, causing runtime state to overwrite new database's historical profile data
+- **Fixed NPE in `initializeAdminSystem` / `syncGuardianState` when `databaseManager` is not initialized**
+
+### ⚠️ Compatibility
+
+#### 🔴 SPI Skill Developer Notice (Breaking Change)
+
+**v2.1.0 includes a code package architecture restructuring. All third-party Skill plugins using the SPI mechanism must upgrade their `Kilacraft-Skill-API` dependency to the matching version and recompile.**
+
+- **Core interface package paths have changed** (affects all third-party Skills):
+  - `com.zm.kilacraftAI.skills.framework.Skill` → `com.zm.kilacraftAI.skill.Skill`
+  - `com.zm.kilacraftAI.skills.framework.SkillContext` → `com.zm.kilacraftAI.skill.SkillContext`
+  - `com.zm.kilacraftAI.skills.framework.SkillResult` → `com.zm.kilacraftAI.skill.SkillResult`
+  - `com.zm.kilacraftAI.skills.framework.SkillIntent` → `com.zm.kilacraftAI.skill.SkillIntent`
+  - `com.zm.kilacraftAI.skills.framework.SkillProvider` → `com.zm.kilacraftAI.skill.SkillProvider`
+- **Third-party Skills that are not upgraded will fail with `ClassNotFoundException` at server startup**, error message example:
+  `java.lang.ClassNotFoundException: com.zm.kilacraftAI.skills.framework.Skill`
+- **Fix**: Upgrade `Kilacraft-Skill-API` dependency to the v2.1.0 matching version, update all import statements (`skills.framework` → `skill`), and recompile the third-party Skill plugin
+- **Best Practice**: Third-party Skills should only depend on public interface classes in `skill-api.jar`, avoid directly referencing internal implementation classes
+
+#### Upgrading from v2.0.2
+1. Stop server, replace JAR, start — no database migration needed
+2. `admin.yml` config file is auto-generated on first startup
+3. Spark plugin and a configured reasoning model API key in `admin.yml` are required for server health monitoring features
+4. Admin management features default to OP-only access, no additional permission configuration needed
+5. **`database.yml` profile analysis prompts updated** (new rule #5 for temporal relevance). To get the full prompt optimization effect:
+   - Back up your custom config values in `database.yml`
+   - Delete `database.yml` and restart the server to let the plugin regenerate the latest version
+   - Manually merge your custom config values back into the new file
+6. **`greeting.yml` greeting prompts optimized** (prompt rules comprehensively strengthened, injected content perspective corrected, health alerts structured). To get the full optimization effect:
+   - Back up your custom config values in `greeting.yml` (and `greeting_en.yml` if using English mode)
+   - Delete `greeting.yml` (and `greeting_en.yml`) and restart the server to let the plugin regenerate the latest version
+   - Manually merge your custom config values back into the new file
+
+#### New Permission Nodes
+- `kilacraft.admin.health` (server health management, default OP)
+- `kilacraft.admin.player` (player behavior analysis, default OP)
+- `kilacraft.admin.audit` (audit log query, default OP)
+- `kilacraft.admin.*` (all admin features, default OP)
 
 ---
 
@@ -347,7 +418,7 @@ This version splits the 847-line `config.yml` into 6 independent files by config
 
 ### 📚 Documentation Updates
 - **README / README.zh.md**: Version updated to 1.5.0, Bukkit API count 58 → 72
-- **Changelog / 更新日志**: Chinese and English synchronized with new v1.5.0 version record
+- **Changelog**: Chinese and English versions synchronized with new v1.5.0 record
 - **All technical documents**: Version uniformly updated to 1.5.0, last update date synchronized to 2026-04-23
 - **Skill Registry page**: Real-time update of Skill usage statistics and security review status (51 updates)
 

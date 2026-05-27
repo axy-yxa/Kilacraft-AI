@@ -1,5 +1,8 @@
 package com.zm.kilacraftAI.db;
 
+import com.zm.kilacraftAI.common.enums.DatabaseTypeEnum;
+import com.zm.kilacraftAI.db.model.DatabaseConfig;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -38,7 +41,7 @@ public interface DatabaseProvider {
      *
      * @return 数据库类型枚举
      */
-    DatabaseType getType();
+    DatabaseTypeEnum getType();
 
     /**
      * 测试连接可用性
@@ -46,4 +49,16 @@ public interface DatabaseProvider {
      * @return true 表示连接正常
      */
     boolean testConnection();
+
+    /**
+     * 获取连接池状态信息（用于诊断报告）
+     *
+     * <p>返回格式化字符串，包含活跃/空闲/等待线程数等。
+     * 如果连接池未初始化或已关闭，返回 "N/A"。</p>
+     *
+     * @return 连接池状态信息
+     */
+    default String getPoolInfo() {
+        return "N/A";
+    }
 }

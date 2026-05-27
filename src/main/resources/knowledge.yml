@@ -1,5 +1,4 @@
-# ==================== 知识库配置 ====================
-# Knowledge Base Configuration
+# ==================== 知识库配置 / Knowledge Base Configuration ====================
 # 独立配置文件，修改后执行 /kilacraft reload 即时生效（除标注不可热重载的项外）
 # Standalone config file, run /kilacraft reload to apply changes (except items marked as non-hot-reloadable)
 
@@ -14,8 +13,8 @@
 # 3. AI automatically retrieves relevant knowledge and answers based on it
 # 4. Use /kilacraft knowledge reload command to reload the knowledge base
 knowledge:
-  # 是否启用知识库检索（默认开启）
-  # Whether to enable knowledge base retrieval (default: on)
+  # 是否启用知识库检索
+  # Whether to enable knowledge base retrieval
   enabled: true
   
   # 每次检索最多返回的相关知识数量（建议 1-5）
@@ -86,20 +85,18 @@ knowledge:
   embedding:
     # 是否启用 Embedding 语义检索（替换 BM25 算法检索）
     # 设为 false 时使用原有的 BM25 算法检索
-    # 支持热重载 ✅
     # Enable Embedding semantic retrieval (replaces BM25 algorithm)
     # Set to false to use original BM25 algorithm retrieval
-    # Supports hot reload ✅
     enabled: true
 
     # Embedding 供应商 API URL（必填，完整 URL）
-    # 修改后必须重启服务器 ❌
+    # 修改后必须重启服务器
     # 示例：
     #   智谱AI: https://open.bigmodel.cn/api/paas/v4/embeddings
     #   硅基流动: https://api.siliconflow.cn/v1/embeddings
     #   OpenAI: https://api.openai.com/v1/embeddings
     # Embedding provider API URL (required, full URL)
-    # Requires server restart after modification ❌
+    # Requires server restart after modification
     # Examples:
     #   ZhipuAI: https://open.bigmodel.cn/api/paas/v4/embeddings
     #   SiliconFlow: https://api.siliconflow.cn/v1/embeddings
@@ -107,19 +104,19 @@ knowledge:
     api_url: ""
 
     # Embedding 供应商 API Key（必填）
-    # 修改后必须重启服务器 ❌
+    # 修改后必须重启服务器
     # Embedding provider API Key (required)
-    # Requires server restart after modification ❌
+    # Requires server restart after modification
     api_key: ""
 
     # Embedding 模型名称（必填，需与供应商支持的模型一致）
-    # 修改后必须重启服务器（不同模型的向量不兼容）❌
+    # 修改后必须重启服务器（不同模型的向量不兼容）
     # 常见模型：
     #   硅基流动 SiliconFlow: BAAI/bge-large-zh-v1.5, Pro/BAAI/bge-m3
     #   OpenAI: text-embedding-3-small, text-embedding-3-large
     #   智谱AI: embedding-3
     # Embedding model name (required, must match provider-supported models)
-    # Requires server restart after modification (vectors from different models are incompatible) ❌
+    # Requires server restart after modification (vectors from different models are incompatible)
     # Common models:
     #   SiliconFlow: BAAI/bge-large-zh-v1.5, Pro/BAAI/bge-m3
     #   OpenAI: text-embedding-3-small, text-embedding-3-large
@@ -127,31 +124,27 @@ knowledge:
     model: ""
 
     # 向量维度（不同模型维度不同，需与模型匹配）
-    # 修改后必须重启服务器（维度变化会导致缓存完全不兼容）❌
+    # 修改后必须重启服务器（维度变化会导致缓存完全不兼容）
     # embedding-3: 2048（最高精度）/ 1024（平衡）/ 512 / 256，text-embedding-3-small: 1536，bge-large-zh: 1024，bge-m3: 1024
     # Vector dimensions (varies by model, must match the model)
-    # Requires server restart after modification (dimension change makes cache completely incompatible) ❌
+    # Requires server restart after modification (dimension change makes cache completely incompatible)
     # embedding-3: 2048 (highest precision) / 1024 (balanced) / 512 / 256, text-embedding-3-small: 1536, bge-large-zh: 1024, bge-m3: 1024
     dimensions: 1024
 
     # 最低相似度阈值（余弦相似度 0~1）
     # 值越高过滤越严格，建议范围 0.45~0.65
-    # 支持热重载 ✅
     # Minimum similarity threshold (cosine similarity 0~1)
     # Higher values = stricter filtering, recommended range 0.45~0.65
-    # Supports hot reload ✅
     min_similarity: 0.5
 
     # Embedding API 调用超时（秒）
-    # 修改后必须重启服务器（需要重建 OkHttpClient 实例）❌
+    # 修改后必须重启服务器（需要重建 OkHttpClient 实例）
     # Embedding API call timeout (seconds)
-    # Requires server restart after modification (requires rebuilding OkHttpClient instance) ❌
+    # Requires server restart after modification (requires rebuilding OkHttpClient instance)
     timeout_seconds: 10
 
     # 是否启用向量缓存持久化（避免每次启动重新计算）
-    # 支持热重载 ✅
     # Enable vector cache persistence (avoids recomputing on every startup)
-    # Supports hot reload ✅
     cache_enabled: true
   
   # 自定义词典配置（仅在 BM25 检索模式下生效）

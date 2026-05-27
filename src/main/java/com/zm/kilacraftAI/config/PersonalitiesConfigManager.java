@@ -1,8 +1,9 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.util.ConfigResourceUtil;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -59,7 +60,7 @@ public class PersonalitiesConfigManager {
         try {
             // 先检查文件是否存在且可读
             if (!personalitiesFile.exists()) {
-                PluginLogger.warn("人格配置", "人格配置文件不存在");
+                PluginLoggerUtil.warn("人格配置", "人格配置文件不存在");
                 return;
             }
 
@@ -72,7 +73,7 @@ public class PersonalitiesConfigManager {
             // 获取所有配置节
             ConfigurationSection section = config.getConfigurationSection("");
             if (section == null || section.getKeys(false).isEmpty()) {
-                PluginLogger.warn("人格配置", "人格配置文件为空");
+                PluginLoggerUtil.warn("人格配置", "人格配置文件为空");
                 return;
             }
 
@@ -91,9 +92,9 @@ public class PersonalitiesConfigManager {
                 }
             }
 
-            PluginLogger.info("人格配置", "人格配置加载完成，共 {} 个人格", personalitiesCache.size());
+            PluginLoggerUtil.info("人格配置", "人格配置加载完成，共 {} 个人格", personalitiesCache.size());
         } catch (Exception e) {
-            PluginLogger.error("人格配置", I18nService.tr("加载人格配置文件失败：{}", personalitiesFile.getAbsolutePath()), e);
+            PluginLoggerUtil.error("人格配置", I18nService.tr("加载人格配置文件失败：{}", personalitiesFile.getAbsolutePath()), e);
         }
     }
 
@@ -140,9 +141,9 @@ public class PersonalitiesConfigManager {
      * 重新加载配置文件（语言变更时同步切换文件）
      */
     public void reload() {
-        PluginLogger.info("人格配置", "正在重新加载人格配置...");
+        PluginLoggerUtil.info("人格配置", "正在重新加载人格配置...");
         updateConfigFile();
         loadConfig();
-        PluginLogger.info("人格配置", "人格配置加载完成");
+        PluginLoggerUtil.info("人格配置", "人格配置加载完成");
     }
 }

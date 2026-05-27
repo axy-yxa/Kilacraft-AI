@@ -2,15 +2,16 @@ package com.zm.kilacraftAI.skills.bukkit;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.enums.PluginPermissionEnum;
-import com.zm.kilacraftAI.knowledge.InternalEnumRegistry;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.service.knowledge.InternalEnumRegistry;
+import com.zm.kilacraftAI.service.translate.ItemTranslator;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skill.SkillConfig;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import org.bukkit.Material;
 import org.bukkit.Statistic;
 import org.bukkit.entity.EntityType;
@@ -126,7 +127,7 @@ public class BukkitStatsSkill implements Skill {
                 return future;
             }
         } catch (Exception e) {
-            PluginLogger.error("BukkitStats", "执行统计查询失败", e);
+            PluginLoggerUtil.error("BukkitStats", "执行统计查询失败", e);
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("执行失败: {}", e.getMessage())));
         }
     }
@@ -217,7 +218,7 @@ public class BukkitStatsSkill implements Skill {
 
             return SkillResult.success(formattedResult, dataMap);
         } catch (Exception e) {
-            PluginLogger.error("BukkitStats", I18nService.tr("查询统计失败: {}", statisticName), e);
+            PluginLoggerUtil.error("BukkitStats", I18nService.tr("查询统计失败: {}", statisticName), e);
             return SkillResult.failure(I18nService.tr("查询统计失败: {}", e.getMessage()));
         }
     }
@@ -423,7 +424,7 @@ public class BukkitStatsSkill implements Skill {
         // 尝试翻译 Material 名
         try {
             Material mat = Material.valueOf(paramName.toUpperCase());
-            return com.zm.kilacraftAI.translate.ItemTranslator.getInstance().translateToChinese(mat.name());
+            return ItemTranslator.getInstance().translateToChinese(mat.name());
         } catch (IllegalArgumentException ignored) {
         }
 

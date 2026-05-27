@@ -4,7 +4,7 @@ import com.Zrips.CMI.CMI;
 import com.Zrips.CMI.Containers.CMIUser;
 import com.Zrips.CMI.Modules.Homes.CmiHome;
 import com.Zrips.CMI.Modules.Warps.CmiWarp;
-import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.i18n.I18nService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -26,7 +26,6 @@ import java.util.Map;
 public class CMIAPI {
 
     private CMIAPI() {
-        // 工具类，禁止实例化
     }
 
     /**
@@ -55,8 +54,6 @@ public class CMIAPI {
         if (!isAvailable() || player == null) return null;
         return getCMI().getPlayerManager().getUser(player);
     }
-
-    // ==================== 家系统 ====================
 
     /**
      * 查询玩家的家列表
@@ -90,8 +87,6 @@ public class CMIAPI {
         return result;
     }
 
-    // ==================== 地标系统 ====================
-
     /**
      * 查询公共地标列表
      *
@@ -122,8 +117,6 @@ public class CMIAPI {
         return result;
     }
 
-    // ==================== 玩家信息 ====================
-
     /**
      * 查询 CMI 玩家增强信息
      *
@@ -153,9 +146,6 @@ public class CMIAPI {
         return info;
     }
 
-
-    // ==================== 套装系统 ====================
-
     /**
      * 查询可用套装列表
      *
@@ -173,8 +163,6 @@ public class CMIAPI {
 
         return new ArrayList<>(kitMap.keySet());
     }
-
-    // ==================== 在线玩家增强 ====================
 
     /**
      * 查询在线玩家列表（CMI 增强版，含 AFK/隐身状态）

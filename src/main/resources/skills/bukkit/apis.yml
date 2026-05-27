@@ -14,33 +14,33 @@
 #    - 类型：String
 #    - 说明：API 的唯一标识符，用于在代码中查找和引用
 #    - 示例："get_player_hand_item"
-#    - 自定义：✅ 允许自定义，建议使用小写字母和下划线
+#    - 自定义：允许自定义，建议使用小写字母和下划线
 #
 # 2. display_name (必需)
 #    - 类型：String
 #    - 说明：API 的显示名称，用于向用户展示
 #    - 示例："获取玩家主手物品"
-#    - 自定义：✅ 允许自定义，建议简洁明了
+#    - 自定义：允许自定义，建议简洁明了
 #
 # 3. description (必需)
 #    - 类型：String
 #    - 说明：API 的详细描述，会发送给 LLM 帮助其理解何时使用该 API
 #    - 示例："获取玩家主要手持的物品信息，包括物品类型、数量、附魔等"
-#    - 自定义：✅ 允许自定义，建议包含功能说明和使用场景
+#    - 自定义：允许自定义，建议包含功能说明和使用场景
 #
 # 4. target_type (必需)
 #    - 类型：String
 #    - 说明：API 调用的目标对象类型
 #    - 可选值："Player", "World", "Server"
 #    - 示例："Player"
-#    - 自定义：❌ 仅限预定义的三种类型
+#    - 自定义：仅限预定义的三种类型
 #
 # 5. method_chain (可选)
 #    - 类型：List<String>
 #    - 说明：方法链，按顺序调用多个方法（接力调用）
 #    - 示例：["getInventory", "getItemInMainHand"] → player.getInventory().getItemInMainHand()
 #    - 注意：如果使用了 method_chain，则不应再使用 additional_methods
-#    - 自定义：✅ 允许自定义，但必须确保方法在目标对象上存在
+#    - 自定义：允许自定义，但必须确保方法在目标对象上存在
 #
 # 6. additional_methods (可选)
 #    - 类型：Map<String, String>
@@ -50,7 +50,7 @@
 #        max_health: "getMaxHealth"
 #      对应模板："生命值：{health}/{max_health}"
 #    - 注意：如果使用了 additional_methods，则不应再使用 method_chain
-#    - 自定义：✅ 允许自定义，但 key 必须在 result_template 中使用
+#    - 自定义：允许自定义，但 key 必须在 result_template 中使用
 #    - **重要特性**：支持简单链式调用！
 #      * 语法：方法名中可以包含点号 "." 实现两层链式调用
 #      * 示例："getLocation.getX" → player.getLocation().getX()
@@ -62,13 +62,13 @@
 #    - 说明：结果格式化模板，支持占位符替换
 #    - 占位符格式：{key_name}，其中 key_name 必须是 additional_methods 中的 key
 #    - 示例："等级：{level}, 经验进度：{exp_progress}"
-#    - 自定义：✅ 允许自定义，但占位符必须与 additional_methods 的 key 一致
+#    - 自定义：允许自定义，但占位符必须与 additional_methods 的 key 一致
 #
 # 8. required_permission (可选)
 #    - 类型：String
 #    - 说明：执行此 API 所需的权限节点
 #    - 示例："kilacraft.api.player.inventory"
-#    - 自定义：✅ 允许自定义，用于细粒度权限控制
+#    - 自定义：允许自定义，用于细粒度权限控制
 #
 # 9. data_field (可选)
 #    - 类型：String
@@ -79,7 +79,7 @@
 #    - 示例：data_field: "ping" → dataMap 中既有 raw_result，也有 ping=42
 #    - 注意：additional_methods 模式无需此属性（框架已自动提取所有 key 到 dataMap）
 #    - 注意：对 Collection 类型（如 getOnlinePlayers），自动注入元素数量而非集合本身
-#    - 自定义：✅ 允许自定义，建议使用小写字母和下划线
+#    - 自定义：允许自定义，建议使用小写字母和下划线
 #
 # 【重要规则】
 # --------------------------------------------
@@ -88,8 +88,8 @@
 #    - additional_methods：用于并行调用多个独立方法
 #
 # 2. result_template 中的占位符 {xxx} 必须与 additional_methods 的 key 完全一致
-#    - ✅ 正确：additional_methods: {health: "getHealth"} → template: "{health}"
-#    - ❌ 错误：additional_methods: {health: "getHealth"} → template: "{Health}"
+#    - 正确：additional_methods: {health: "getHealth"} → template: "{health}"
+#    - 错误：additional_methods: {health: "getHealth"} → template: "{Health}"
 #
 # 3. target_type 只能是 "Player", "World", "Server" 之一
 #    - Player：方法会在 org.bukkit.entity.Player 对象上调用

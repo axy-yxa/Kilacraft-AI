@@ -1,19 +1,19 @@
 package com.zm.kilacraftAI.skills.utility;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.api.LLMProvider;
-import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.llm.LLMProvider;
+import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.enums.OutputScenario;
-import com.zm.kilacraftAI.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
-import com.zm.kilacraftAI.manager.ConversationManager;
-import com.zm.kilacraftAI.output.AIResponsePipeline;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.service.output.AIResponsePipeline;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skill.SkillConfig;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -42,8 +42,6 @@ public class UtilitySkill implements Skill {
     private static final int MIN_DELAY_SECONDS = 1;
     private static final int MAX_DELAY_SECONDS = 60;
     private static final long LLM_TIMEOUT_SECONDS = 120;
-
-    // ==================== 默认提示词（配置文件中不存在时使用） ====================
 
     private static final String DEFAULT_NOTIFY_SYSTEM_PROMPT = "你是 Minecraft 游戏助手，正在多步骤任务执行过程中向玩家发送阶段性通知。" + "请用简洁自然的语气概括下方数据的关键信息，不超过2句话、80个汉字。" + "不要使用任何标题或模板，直接说出关键结果。" + "不要提及'系统提示'、'任务步骤'、'执行结果'等内部机制。" + "将英文物品名转换为中文（如 DIAMOND→钻石，STICK→木棍）。" + "直接输出通知内容，不要有任何前缀。";
     private static final String DEFAULT_NOTIFY_USER_PROMPT = "请概括以下数据的关键信息：\n{0}";
@@ -166,11 +164,11 @@ public class UtilitySkill implements Skill {
         seconds = Math.max(MIN_DELAY_SECONDS, Math.min(seconds, MAX_DELAY_SECONDS));
 
         final int delaySeconds = seconds;
-        PluginLogger.debug("工具技能", "延迟等待: {}秒", delaySeconds);
+        PluginLoggerUtil.debug("工具技能", "延迟等待: {}秒", delaySeconds);
 
         CompletableFuture<SkillResult> future = new CompletableFuture<>();
         DELAY_SCHEDULER.schedule(() -> {
-            PluginLogger.debug("工具技能", "延迟完成: {}秒", delaySeconds);
+            PluginLoggerUtil.debug("工具技能", "延迟完成: {}秒", delaySeconds);
             future.complete(SkillResult.success(I18nService.tr("已等待{}秒", delaySeconds)));
         }, delaySeconds, TimeUnit.SECONDS);
         return future;
@@ -192,7 +190,7 @@ public class UtilitySkill implements Skill {
         }
 
         final String playerName = player.getName();
-        PluginLogger.debug("工具技能", "主动通知玩家: {}", playerName);
+        PluginLoggerUtil.debug("工具技能", "主动通知玩家: {}", playerName);
 
         KilacraftAI plugin = KilacraftAI.getInstance();
         LLMProvider llmProvider = requireLLMProvider();
@@ -211,13 +209,13 @@ public class UtilitySkill implements Skill {
         String userPromptTemplate = getConfigField("notify_user_prompt", DEFAULT_NOTIFY_USER_PROMPT);
         String userPrompt = userPromptTemplate.replace("{0}", message);
 
-        PluginLogger.debug("工具技能", I18nService.tr("阶段性通知摘要 - 玩家: {}, systemPrompt: [{}]", playerName, systemPrompt));
-        PluginLogger.debug("工具技能", I18nService.tr("阶段性通知摘要 - 玩家: {}, userPrompt: [{}]", playerName, userPrompt));
+        PluginLoggerUtil.debug("工具技能", I18nService.tr("阶段性通知摘要 - 玩家: {}, systemPrompt: [{}]", playerName, systemPrompt));
+        PluginLoggerUtil.debug("工具技能", I18nService.tr("阶段性通知摘要 - 玩家: {}, userPrompt: [{}]", playerName, userPrompt));
 
         // 动态流式输出配置
         AIResponsePipeline pipeline = plugin.getResponsePipeline();
         boolean streamEnabled = plugin.getConfigManager().getOutputConfigManager().isStreamEnabled();
-        AIResponseHandler handler = createPlayerOutputHandler(player, pipeline, OutputScenario.TASK_RESULT, streamEnabled);
+        AIResponseHandler handler = createPlayerOutputHandler(player, pipeline, OutputScenarioEnum.TASK_RESULT, streamEnabled);
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
 
@@ -225,10 +223,10 @@ public class UtilitySkill implements Skill {
 
         return llmFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {
-                PluginLogger.warn("工具技能", "通知玩家 {} 失败: {}", playerName, ex.getMessage());
+                PluginLoggerUtil.warn("工具技能", "通知玩家 {} 失败: {}", playerName, ex.getMessage());
                 return SkillResult.failure(I18nService.tr("通知玩家失败: {}", ex.getMessage()));
             }
-            PluginLogger.debug("工具技能", "通知完成: {}", playerName);
+            PluginLoggerUtil.debug("工具技能", "通知完成: {}", playerName);
             return SkillResult.success("已通知玩家");
         });
     }
@@ -249,7 +247,7 @@ public class UtilitySkill implements Skill {
         }
 
         final String playerName = player.getName();
-        PluginLogger.debug("工具技能", "全服广播请求，发起者: {}, 消息长度: {}", playerName, message.length());
+        PluginLoggerUtil.debug("工具技能", "全服广播请求，发起者: {}, 消息长度: {}", playerName, message.length());
 
         KilacraftAI plugin = KilacraftAI.getInstance();
         LLMProvider llmProvider = requireLLMProvider();
@@ -269,8 +267,8 @@ public class UtilitySkill implements Skill {
         String userPromptTemplate = getConfigField("broadcast_user_prompt", DEFAULT_BROADCAST_USER_PROMPT);
         String userPrompt = userPromptTemplate.replace("{0}", message);
 
-        PluginLogger.debug("工具技能", I18nService.tr("全服广播摘要 - 发起者: {}, systemPrompt: [{}]", playerName, systemPrompt));
-        PluginLogger.debug("工具技能", I18nService.tr("全服广播摘要 - 发起者: {}, userPrompt: [{}]", playerName, userPrompt));
+        PluginLoggerUtil.debug("工具技能", I18nService.tr("全服广播摘要 - 发起者: {}, systemPrompt: [{}]", playerName, systemPrompt));
+        PluginLoggerUtil.debug("工具技能", I18nService.tr("全服广播摘要 - 发起者: {}, userPrompt: [{}]", playerName, userPrompt));
 
         // 强制 CHAT 载体，不开启流式，仅收集 LLM 美化后的文本
         CompletableFuture<String> responseFuture = new CompletableFuture<>();
@@ -310,13 +308,13 @@ public class UtilitySkill implements Skill {
 
         return responseFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {
-                PluginLogger.warn("工具技能", "全服广播 LLM 分析失败，发起者: {}, 错误: {}", playerName, ex.getMessage());
+                PluginLoggerUtil.warn("工具技能", "全服广播 LLM 分析失败，发起者: {}, 错误: {}", playerName, ex.getMessage());
                 return SkillResult.failure(I18nService.tr("全服广播失败: {}", ex.getMessage()));
             }
 
             // 通过 pipeline.broadcast 全服广播（强制 CHAT 载体）
             plugin.getResponsePipeline().broadcast(response, null);
-            PluginLogger.debug("工具技能", "全服广播完成，发起者: {}", playerName);
+            PluginLoggerUtil.debug("工具技能", "全服广播完成，发起者: {}", playerName);
             return SkillResult.success(I18nService.tr("已全服广播消息"));
         });
     }
@@ -334,7 +332,7 @@ public class UtilitySkill implements Skill {
      *
      * @param streamEnabled 是否启用流式输出（由服主配置决定）
      */
-    private AIResponseHandler createPlayerOutputHandler(Player player, AIResponsePipeline pipeline, OutputScenario scenario, boolean streamEnabled) {
+    private AIResponseHandler createPlayerOutputHandler(Player player, AIResponsePipeline pipeline, OutputScenarioEnum scenario, boolean streamEnabled) {
         return new AIResponseHandler() {
             @Override
             public UUID getPlayerId() {

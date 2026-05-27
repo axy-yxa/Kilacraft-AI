@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.db;
 
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.common.enums.DatabaseTypeEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 
 import java.sql.*;
 
@@ -30,12 +31,12 @@ public class SchemaManager {
     /**
      * 当前数据库类型（影响 DDL 语法选择）
      */
-    private final DatabaseType databaseType;
+    private final DatabaseTypeEnum databaseTypeEnum;
 
-    public SchemaManager(DatabaseProvider provider, String tablePrefix, DatabaseType databaseType) {
+    public SchemaManager(DatabaseProvider provider, String tablePrefix, DatabaseTypeEnum databaseTypeEnum) {
         this.provider = provider;
         this.tablePrefix = tablePrefix;
-        this.databaseType = databaseType;
+        this.databaseTypeEnum = databaseTypeEnum;
     }
 
     /**
@@ -47,12 +48,12 @@ public class SchemaManager {
 
             int currentVersion = getCurrentVersion(conn);
 
-            PluginLogger.info("数据库", "Schema 版本: 当前={}, 期望={}", currentVersion, CURRENT_VERSION);
+            PluginLoggerUtil.info("数据库", "Schema 版本: 当前={}, 期望={}", currentVersion, CURRENT_VERSION);
 
             for (int v = currentVersion + 1; v <= CURRENT_VERSION; v++) {
                 migrateToVersion(conn, v);
                 updateVersion(conn, v);
-                PluginLogger.info("数据库", "Schema 已迁移到版本 {}", v);
+                PluginLoggerUtil.info("数据库", "Schema 已迁移到版本 {}", v);
             }
         }
     }
@@ -91,11 +92,9 @@ public class SchemaManager {
         switch (version) {
             case 1 -> migrateV1(conn);
             case 2 -> migrateV2(conn);
-            default -> PluginLogger.warn("数据库", "未知的 Schema 版本: {}", version);
+            default -> PluginLoggerUtil.warn("数据库", "未知的 Schema 版本: {}", version);
         }
     }
-
-    // ==================== 版本 1：初始建表 ====================
 
     /**
      * 创建索引（兼容 H2 和 MySQL）
@@ -104,7 +103,7 @@ public class SchemaManager {
      * MySQL 模式下通过查询 INFORMATION_SCHEMA 判断索引是否存在。</p>
      */
     private void createIndex(Connection conn, String indexName, String tableSuffix, String columns) throws SQLException {
-        if (databaseType == DatabaseType.H2) {
+        if (databaseTypeEnum == DatabaseTypeEnum.H2) {
             // H2 支持 IF NOT EXISTS
             conn.createStatement().execute("CREATE INDEX IF NOT EXISTS " + indexName + " ON " + tablePrefix + tableSuffix + " (" + columns + ")");
         } else {
@@ -163,10 +162,8 @@ public class SchemaManager {
             stmt.execute("CREATE TABLE IF NOT EXISTS " + tablePrefix + "watermark (" + "name VARCHAR(64) PRIMARY KEY COMMENT '水位名称（如 decay_date, extract_time）'," + "`value` VARCHAR(128) NOT NULL COMMENT '水位值（日期字符串或时间戳）'" + ")");
         }
 
-        PluginLogger.info("数据库", "Schema v1 建表完成（6张表）");
+        PluginLoggerUtil.info("数据库", "Schema v1 建表完成（6张表）");
     }
-
-    // ==================== 版本 2：群组服 server_id 索引 ====================
 
     /**
      * 版本 2：为隔离表的 server_id 列添加索引（群组服按子服过滤性能优化）
@@ -185,6 +182,6 @@ public class SchemaManager {
         }
         createIndex(conn, "idx_snapshot_player_time", "profile_snapshot", "player_uuid, analyzed_at DESC");
 
-        PluginLogger.info("数据库", "Schema v2 群组服索引已创建（3个 server_id 索引）+ 画像快照表");
+        PluginLoggerUtil.info("数据库", "Schema v2 群组服索引已创建（3个 server_id 索引）+ 画像快照表");
     }
 }

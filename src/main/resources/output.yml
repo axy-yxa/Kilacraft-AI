@@ -1,5 +1,4 @@
-# ==================== AI 响应输出管线配置 ====================
-# AI Response Output Pipeline Configuration
+# ==================== AI 响应输出管线配置 / AI Response Output Pipeline Configuration ====================
 # 独立配置文件，修改后执行 /kilacraft reload 即时生效
 # Standalone config file, run /kilacraft reload to apply changes
 
@@ -17,44 +16,24 @@ output:
   # "正在思考"提示消息的输出载体
   # 可选值: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
   # 说明：默认为 default_channel，可独立配置
-  # 示例：default_channel=BOSS_BAR, thinking_channel=CHAT → 思考提示在聊天框，回复也在聊天框（如果 normal_chat=CHAT）
   # Output channel for "thinking" prompt message
   # Available values: CHAT, ACTION_BAR, BOSS_BAR, TITLE, SIDEBAR
   # Description: Defaults to default_channel, can be configured independently
-  # Example: default_channel=BOSS_BAR, thinking_channel=CHAT → thinking prompt in chat, reply also in chat (if normal_chat=CHAT)
   thinking_channel: ""
   
   # 流式输出配置（实时显示 AI 生成过程）
-  # 说明：
-  # 1. 启用后，AI 响应会逐字实时显示，而非等待完整响应
-  # 2. 窗口期管理：请求发起后立即显示"生成中..."占位符
-  # 3. 流式输出使用场景对应的载体（与最终结果一致）
-  # 4. 推荐载体：SIDEBAR（最佳体验，适合长文本）/ BOSS_BAR（中长文本）/ ACTION_BAR（短文本）
-  # 5. CHAT 载体不推荐（会刷屏），TITLE 载体不适合（会闪烁）
+  # 推荐载体：SIDEBAR（最佳体验，适合长文本）/ BOSS_BAR（中长文本）/ ACTION_BAR（短文本）
+  # CHAT 载体不推荐（会刷屏），TITLE 载体不适合（会闪烁）
   # Stream output configuration (real-time display of AI generation process)
-  # Description:
-  # 1. When enabled, AI response is displayed character by character in real-time instead of waiting for the full response
-  # 2. Window management: "Generating..." placeholder is displayed immediately after request is sent
-  # 3. Stream output uses the scenario's channel (same as final result)
-  # 4. Recommended channels: SIDEBAR (best experience, for long text) / BOSS_BAR (medium text) / ACTION_BAR (short text)
-  # 5. CHAT channel not recommended (screen flooding), TITLE channel not suitable (flickering)
+  # Recommended channels: SIDEBAR (best experience, for long text) / BOSS_BAR (medium text) / ACTION_BAR (short text)
+  # CHAT channel not recommended (screen flooding), TITLE channel not suitable (flickering)
   stream:
     # 是否启用流式输出（总开关）
     # Whether to enable stream output (master switch)
     enabled: false
   
   # AI 回复音效配置
-  # 说明：
-  # 1. 启用后，AI 开始回复时会播放提示音效（仅触发玩家听到）
-  # 2. 音效时机：思考完成/开始生成时播放，与输出内容同步
-  # 3. 适用场景：普通对话/技能结果/任务结果/挂机回调
-  # 4. 提升沉浸式体验：声音与文字同步出现
   # AI reply sound effect configuration
-  # Description:
-  # 1. When enabled, a prompt sound plays when AI starts replying (only the triggering player hears it)
-  # 2. Sound timing: plays when thinking completes / generation starts, synchronized with output content
-  # 3. Applicable scenarios: normal chat / skill results / task results / AFK callback
-  # 4. Enhances immersive experience: sound and text appear simultaneously
   sound:
     # 是否启用 AI 回复音效（总开关，默认开启）
     # Whether to enable AI reply sound effect (master switch, default: on)
@@ -64,13 +43,11 @@ output:
     # - ENTITY_PLAYER_LEVELUP（升级音效，默认）
     # - ENTITY_EXPERIENCE_ORB_PICKUP（经验球拾取）
     # - BLOCK_NOTE_BLOCK_PLING（音符方块）
-    # - UI_TOAST_CHALLENGE_COMPLETE（成就完成）
     # Sound enum name (Bukkit Sound enum)
     # Recommended values:
     # - ENTITY_PLAYER_LEVELUP (level-up sound, default)
     # - ENTITY_EXPERIENCE_ORB_PICKUP (experience orb pickup)
     # - BLOCK_NOTE_BLOCK_PLING (note block)
-    # - UI_TOAST_CHALLENGE_COMPLETE (advancement complete)
     sound_name: "ENTITY_PLAYER_LEVELUP"
     # 音量（0.0-1.0）
     # Volume (0.0-1.0)
@@ -134,9 +111,6 @@ output:
     fade_out_ticks: 10
   
   # Scoreboard Sidebar 专属配置（仅当载体为 SIDEBAR 时生效）
-  # 说明：
-  # - 自动分页：超过 max_lines_per_page 行时自动拆分多页
-  # - 持久显示：不遮挡游戏视野，适合长文本 AI 回复
   # 注意：
   # - 如果服务器有其他插件使用了 Scoreboard Sidebar（如计分板、排行榜等），可能会导致冲突
   # - 冲突表现：两个插件的 Sidebar 会互相覆盖，只能显示最后一个
@@ -145,9 +119,6 @@ output:
   #   2. 如果有冲突，建议改用其他载体（CHAT/BOSS_BAR）
   #   3. 或者联系其他插件作者，看是否支持配置到其他显示槽位
   # Scoreboard Sidebar-specific configuration (only effective when channel is SIDEBAR)
-  # Description:
-  # - Auto-pagination: automatically splits into multiple pages when exceeding max_lines_per_page
-  # - Persistent display: does not obstruct game view, suitable for long AI replies
   # Note:
   # - If other plugins use Scoreboard Sidebar (e.g., scoreboards, leaderboards), conflicts may occur
   # - Conflict behavior: Sidebars from two plugins will overwrite each other, only the last one is visible

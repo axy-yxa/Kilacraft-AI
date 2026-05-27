@@ -1,13 +1,14 @@
 package com.zm.kilacraftAI.db.dao;
 
-import com.zm.kilacraftAI.event.ServerEvent;
-import com.zm.kilacraftAI.event.ServerEventType;
+import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
+import com.zm.kilacraftAI.model.event.ServerEvent;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 服务器事件 DAO
@@ -19,9 +20,44 @@ import java.util.*;
 public class ServerEventDao {
 
     private final String tablePrefix;
+    /**
+     * 缓存的排除列表：排除所有非 PLAYER 类别事件（用于社交/统计查询）
+     */
+    private final String playerFacingExcludeFilter;
+    /**
+     * 缓存的排除列表：仅排除 LIFECYCLE 类别事件（用于玩家上下文事件查询，保留市场事件）
+     */
+    private final String lifecycleExcludeFilter;
 
     public ServerEventDao(String tablePrefix) {
         this.tablePrefix = tablePrefix;
+        // 排除所有非 PLAYER 类别事件（用于社交/统计查询：loadEventsForPlayers, countGlobalEventsBetween）
+        this.playerFacingExcludeFilter = buildCategoryExcludeFilter(ServerEventTypeEnum.Category.PLAYER);
+        // 仅排除 LIFECYCLE 类别事件（用于玩家上下文事件查询：loadEventsAfter, loadEventsBetween）
+        this.lifecycleExcludeFilter = buildLifecycleExcludeFilter();
+    }
+
+    /**
+     * 动态构建排除列表：排除所有 {@code Category != retainCategory} 的事件类型。
+     *
+     * <p>新增事件类型时无需修改此方法或任何 SQL。</p>
+     *
+     * @param retainCategory 要保留的事件类别，其他类别全部排除
+     * @return NOT IN 子句值
+     */
+    private static String buildCategoryExcludeFilter(ServerEventTypeEnum.Category retainCategory) {
+        return Arrays.stream(ServerEventTypeEnum.values()).filter(e -> e.getCategory() != retainCategory).map(e -> "'" + e.name() + "'").collect(Collectors.joining(","));
+    }
+
+    /**
+     * 构建生命周期事件排除列表：仅排除 {@code Category == LIFECYCLE} 的事件类型。
+     *
+     * <p>与 {@link #buildCategoryExcludeFilter} 语义相反：
+     * buildCategoryExcludeFilter 是排除「非指定类别」的所有事件（保留指定类别），
+     * 此方法是排除「指定类别」的事件（保留其他所有类别）。</p>
+     */
+    private static String buildLifecycleExcludeFilter() {
+        return Arrays.stream(ServerEventTypeEnum.values()).filter(e -> e.getCategory() == ServerEventTypeEnum.Category.LIFECYCLE).map(e -> "'" + e.name() + "'").collect(Collectors.joining(","));
     }
 
     /**
@@ -51,7 +87,7 @@ public class ServerEventDao {
      * @return 事件列表（时间倒序，最新的在前）
      */
     public List<ServerEvent> loadEventsAfter(Connection conn, UUID playerUuid, long afterTime, int limit) throws SQLException {
-        String sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND created_at > ? " + "AND event_type NOT IN ('PLAYER_LOGIN', 'PLAYER_LOGOUT', 'PLAYER_FIRST_JOIN') " + "ORDER BY created_at DESC LIMIT ?";
+        String sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND created_at > ? " + "AND event_type NOT IN (" + lifecycleExcludeFilter + ") " + "ORDER BY created_at DESC LIMIT ?";
 
         List<ServerEvent> events = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -80,9 +116,9 @@ public class ServerEventDao {
     public List<ServerEvent> loadEventsBetween(Connection conn, UUID playerUuid, long afterTime, long beforeTime, int limit) throws SQLException {
         String sql;
         if (afterTime > 0) {
-            sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND created_at > ? AND created_at < ? " + "AND event_type NOT IN ('PLAYER_LOGIN', 'PLAYER_LOGOUT', 'PLAYER_FIRST_JOIN') " + "ORDER BY created_at DESC LIMIT ?";
+            sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND created_at > ? AND created_at < ? " + "AND event_type NOT IN (" + lifecycleExcludeFilter + ") " + "ORDER BY created_at DESC LIMIT ?";
         } else {
-            sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND created_at < ? " + "AND event_type NOT IN ('PLAYER_LOGIN', 'PLAYER_LOGOUT', 'PLAYER_FIRST_JOIN') " + "ORDER BY created_at DESC LIMIT ?";
+            sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND created_at < ? " + "AND event_type NOT IN (" + lifecycleExcludeFilter + ") " + "ORDER BY created_at DESC LIMIT ?";
         }
 
         List<ServerEvent> events = new ArrayList<>();
@@ -126,7 +162,7 @@ public class ServerEventDao {
         }
 
         // 排除市场事件（隐私）和生命周期事件
-        String sql = "SELECT se.*, pp.name AS player_name FROM " + tablePrefix + "server_event se " + "LEFT JOIN " + tablePrefix + "player_profile pp ON se.player_uuid = pp.uuid " + "WHERE se.player_uuid IN (" + placeholders + ") " + "AND se.created_at > ? " + "AND se.event_type NOT IN ('PLAYER_LOGIN', 'PLAYER_LOGOUT', 'PLAYER_FIRST_JOIN', " + "'MARKET_ITEM_SOLD', 'MARKET_ITEM_LISTED', 'MARKET_MONEY_RECEIVED') " + "ORDER BY se.created_at DESC LIMIT ?";
+        String sql = "SELECT se.*, pp.name AS player_name FROM " + tablePrefix + "server_event se " + "LEFT JOIN " + tablePrefix + "player_profile pp ON se.player_uuid = pp.uuid " + "WHERE se.player_uuid IN (" + placeholders + ") " + "AND se.created_at > ? " + "AND se.event_type NOT IN (" + playerFacingExcludeFilter + ") " + "ORDER BY se.created_at DESC LIMIT ?";
 
         List<ServerEvent> events = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -187,7 +223,7 @@ public class ServerEventDao {
      * @return 事件总数
      */
     public int countGlobalEventsBetween(Connection conn, long afterTime, long beforeTime) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM " + tablePrefix + "server_event " + "WHERE created_at > ? AND created_at <= ? " + "AND event_type NOT IN ('PLAYER_LOGIN','PLAYER_LOGOUT','PLAYER_FIRST_JOIN'," + "'MARKET_ITEM_SOLD','MARKET_ITEM_LISTED','MARKET_MONEY_RECEIVED')";
+        String sql = "SELECT COUNT(*) FROM " + tablePrefix + "server_event " + "WHERE created_at > ? AND created_at <= ? " + "AND event_type NOT IN (" + playerFacingExcludeFilter + ")";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, afterTime);
             ps.setLong(2, beforeTime);
@@ -228,6 +264,72 @@ public class ServerEventDao {
     }
 
     /**
+     * 查询指定时间范围内的 HEALTH_ALERT 告警事件（query 模式使用）
+     *
+     * <p>返回数据量极小（每天 1~10 条），Java 层完成 data JSON 解析和过滤。</p>
+     *
+     * @param conn      数据库连接
+     * @param afterTime 起始时间戳（ms，不含）
+     * @param limit     最大条数
+     * @return 告警事件列表（时间倒序，最新的在前）
+     */
+    public List<ServerEvent> loadHealthAlerts(Connection conn, long afterTime, int limit) throws SQLException {
+        String sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE event_type = 'HEALTH_ALERT' AND player_uuid IS NULL AND created_at > ? " + "ORDER BY created_at DESC LIMIT ?";
+
+        List<ServerEvent> events = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, afterTime);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    events.add(mapRow(rs));
+                }
+            }
+        }
+        return events;
+    }
+
+    /**
+     * 按时间桶统计指定事件类型的数量（在线趋势/新玩家流入）
+     *
+     * <p>返回每个时间桶内各事件类型的计数，用于 PlayerAnalysisSkill 的 online_trend / new_players Action。</p>
+     *
+     * @param conn       数据库连接
+     * @param eventTypes 事件类型列表（如 PLAYER_LOGIN, PLAYER_LOGOUT, PLAYER_FIRST_JOIN）
+     * @param bucketMs   时间桶大小（ms）：hour=3600000, day=86400000
+     * @param afterTime  起始时间戳（ms，不含）
+     * @param beforeTime 截止时间戳（ms，含）
+     * @return 列表，每条记录包含 time_bucket, event_type, cnt
+     */
+    public List<TimeBucketCount> countEventsByTypeBetween(Connection conn, List<String> eventTypes, long bucketMs, long afterTime, long beforeTime) throws SQLException {
+        if (eventTypes == null || eventTypes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        StringJoiner placeholders = new StringJoiner(",");
+        for (int i = 0; i < eventTypes.size(); i++) placeholders.add("?");
+
+        String sql = "SELECT FLOOR(created_at / ?) * ? AS time_bucket, event_type, COUNT(*) AS cnt " + "FROM " + tablePrefix + "server_event " + "WHERE event_type IN (" + placeholders + ") " + "AND created_at > ? AND created_at <= ? " + "GROUP BY time_bucket, event_type " + "ORDER BY time_bucket";
+
+        List<TimeBucketCount> results = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int idx = 1;
+            ps.setLong(idx++, bucketMs);
+            ps.setLong(idx++, bucketMs);
+            for (String et : eventTypes) ps.setString(idx++, et);
+            ps.setLong(idx++, afterTime);
+            ps.setLong(idx, beforeTime);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new TimeBucketCount(rs.getLong("time_bucket"), rs.getString("event_type"), rs.getInt("cnt")));
+                }
+            }
+        }
+        return results;
+    }
+
+    /**
      * 清理过期事件记录（兼容 H2 和 MySQL）
      *
      * <p>使用派生表包裹 LIMIT，H2 和 MySQL 均可执行。</p>
@@ -245,7 +347,7 @@ public class ServerEventDao {
         String playerUuidStr = rs.getString("player_uuid");
         String targetUuidStr = rs.getString("target_uuid");
 
-        return ServerEvent.builder().eventType(ServerEventType.valueOf(rs.getString("event_type"))).playerUuid(playerUuidStr != null ? UUID.fromString(playerUuidStr) : null).targetUuid(targetUuidStr != null ? UUID.fromString(targetUuidStr) : null).data(rs.getString("data")).createdAt(rs.getLong("created_at")).build();
+        return ServerEvent.builder().eventType(ServerEventTypeEnum.valueOf(rs.getString("event_type"))).playerUuid(playerUuidStr != null ? UUID.fromString(playerUuidStr) : null).targetUuid(targetUuidStr != null ? UUID.fromString(targetUuidStr) : null).data(rs.getString("data")).createdAt(rs.getLong("created_at")).build();
     }
 
     /**
@@ -256,6 +358,12 @@ public class ServerEventDao {
         String targetUuidStr = rs.getString("target_uuid");
         String playerName = rs.getString("player_name");
 
-        return ServerEvent.builder().eventType(ServerEventType.valueOf(rs.getString("event_type"))).playerUuid(playerUuidStr != null ? UUID.fromString(playerUuidStr) : null).targetUuid(targetUuidStr != null ? UUID.fromString(targetUuidStr) : null).data(rs.getString("data")).createdAt(rs.getLong("created_at")).playerName(playerName).build();
+        return ServerEvent.builder().eventType(ServerEventTypeEnum.valueOf(rs.getString("event_type"))).playerUuid(playerUuidStr != null ? UUID.fromString(playerUuidStr) : null).targetUuid(targetUuidStr != null ? UUID.fromString(targetUuidStr) : null).data(rs.getString("data")).createdAt(rs.getLong("created_at")).playerName(playerName).build();
+    }
+
+    /**
+     * 时间桶事件计数（countEventsByTypeBetween 返回值）
+     */
+    public record TimeBucketCount(long timeBucket, String eventType, int count) {
     }
 }

@@ -118,9 +118,9 @@ Add to your plugin project's `pom.xml`:
 ```java
 package com.example.myplugin.skills;
 
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -141,7 +141,7 @@ public class HelloWorldSkill implements Skill {
     @Override
     public Map<String, String> getActions() {
         return Map.of(
-            "greet", "Send a greeting to the specified player"
+                "greet", "Send a greeting to the specified player"
         );
     }
 
@@ -150,7 +150,7 @@ public class HelloWorldSkill implements Skill {
         Player player = context.getPlayer();
         String name = player != null ? player.getName() : "Stranger";
         return CompletableFuture.completedFuture(
-            SkillResult.success("Hello, " + name + "! Welcome to use AI Assistant!")
+                SkillResult.success("Hello, " + name + "! Welcome to use AI Assistant!")
         );
     }
 
@@ -173,8 +173,8 @@ In your plugin main class:
 ```java
 package com.example.myplugin;
 
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.spi.SkillProvider;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillProvider;
 import com.example.myplugin.skills.HelloWorldSkill;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -187,10 +187,10 @@ public class MyPlugin extends JavaPlugin implements SkillProvider {
         // Register SkillProvider in onEnable
         // Kilacraft-AI will automatically scan and discover after server starts
         getServer().getServicesManager().register(
-            SkillProvider.class,
-            this,
-            this,
-            org.bukkit.plugin.ServicePriority.Normal
+                SkillProvider.class,
+                this,
+                this,
+                org.bukkit.plugin.ServicePriority.Normal
         );
         getLogger().info("SkillProvider registered, waiting for Kilacraft-AI discovery...");
     }
@@ -885,9 +885,9 @@ Here's a complete third-party plugin example that queries player health, hunger,
 ```java
 package com.example.statsplugin.skills;
 
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -898,14 +898,14 @@ public class PlayerStatsSkill implements Skill {
 
     private static final String NAME = "player_stats_query";
     private static final String DESCRIPTION =
-        "Query player status information, including health, hunger, and experience level. " +
-        "Returned data contains health, max_health, food_level, level, total_exp fields, " +
-        "for multi-step task parameter passing.";
+            "Query player status information, including health, hunger, and experience level. " +
+                    "Returned data contains health, max_health, food_level, level, total_exp fields, " +
+                    "for multi-step task parameter passing.";
 
     private static final Map<String, String> ACTIONS = Map.of(
-        "query_health", "Query player's current health. Returned data contains health and max_health fields.",
-        "query_food", "Query player's current hunger. Returned data contains food_level field.",
-        "query_experience", "Query player's current experience level. Returned data contains level and total_exp fields."
+            "query_health", "Query player's current health. Returned data contains health and max_health fields.",
+            "query_food", "Query player's current hunger. Returned data contains food_level field.",
+            "query_experience", "Query player's current experience level. Returned data contains level and total_exp fields."
     );
 
     @Override
@@ -937,11 +937,11 @@ public class PlayerStatsSkill implements Skill {
                 case "query_food" -> queryFood(player);
                 case "query_experience" -> queryExperience(player);
                 default -> CompletableFuture.completedFuture(
-                    SkillResult.failure("Unknown action: " + action));
+                        SkillResult.failure("Unknown action: " + action));
             };
         } catch (Exception e) {
             return CompletableFuture.completedFuture(
-                SkillResult.failure("Query failed: " + e.getMessage()));
+                    SkillResult.failure("Query failed: " + e.getMessage()));
         }
     }
 
@@ -962,8 +962,8 @@ public class PlayerStatsSkill implements Skill {
         data.put("health", health);
         data.put("max_health", maxHealth);
         return CompletableFuture.completedFuture(
-            SkillResult.success(
-                String.format("Health: %.1f/%.1f", health, maxHealth), data));
+                SkillResult.success(
+                        String.format("Health: %.1f/%.1f", health, maxHealth), data));
     }
 
     private CompletableFuture<SkillResult> queryFood(Player player) {
@@ -971,7 +971,7 @@ public class PlayerStatsSkill implements Skill {
         Map<String, Object> data = new HashMap<>();
         data.put("food_level", foodLevel);
         return CompletableFuture.completedFuture(
-            SkillResult.success("Hunger: " + foodLevel + "/20", data));
+                SkillResult.success("Hunger: " + foodLevel + "/20", data));
     }
 
     private CompletableFuture<SkillResult> queryExperience(Player player) {
@@ -981,8 +981,8 @@ public class PlayerStatsSkill implements Skill {
         data.put("level", level);
         data.put("total_exp", totalExp);
         return CompletableFuture.completedFuture(
-            SkillResult.success(
-                String.format("Level: %d, Total XP: %d", level, totalExp), data));
+                SkillResult.success(
+                        String.format("Level: %d, Total XP: %d", level, totalExp), data));
     }
 }
 ```
@@ -992,8 +992,8 @@ public class PlayerStatsSkill implements Skill {
 ```java
 package com.example.statsplugin;
 
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.spi.SkillProvider;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillProvider;
 import com.example.statsplugin.skills.PlayerStatsSkill;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -1005,10 +1005,10 @@ public class StatsPlugin extends JavaPlugin implements SkillProvider {
     public void onEnable() {
         // Register SkillProvider to Bukkit ServicesManager (4 parameters)
         getServer().getServicesManager().register(
-            SkillProvider.class,
-            this,
-            this,
-            org.bukkit.plugin.ServicePriority.Normal
+                SkillProvider.class,
+                this,
+                this,
+                org.bukkit.plugin.ServicePriority.Normal
         );
         getLogger().info("StatsPlugin has registered SkillProvider");
     }
@@ -1109,12 +1109,12 @@ dependencies {
 This JAR contains compiled classes for third-party developers to reference during compilation:
 
 ```
-com.zm.kilacraftAI.skills.framework.Skill
-com.zm.kilacraftAI.skills.framework.SkillContext
-com.zm.kilacraftAI.skills.framework.SkillResult
-com.zm.kilacraftAI.skills.framework.SkillIntent
-com.zm.kilacraftAI.skills.framework.spi.SkillProvider
-com.zm.kilacraftAI.skills.framework.spi.SkillRegistry
+com.zm.kilacraftAI.skill.Skill
+com.zm.kilacraftAI.skill.SkillContext
+com.zm.kilacraftAI.skill.SkillResult
+com.zm.kilacraftAI.skill.SkillIntent
+com.zm.kilacraftAI.skill.SkillProvider
+com.zm.kilacraftAI.skill.SkillRegistry
 ```
 
 > **This JAR should not and cannot be packaged into your plugin**. Provided by Kilacraft-AI main plugin at runtime.

@@ -1,9 +1,9 @@
 package com.zm.kilacraftAI.compat.mythicmobs;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.mythicmobs.placeholders.all.AIAnswerPlaceholder;
-import com.zm.kilacraftAI.config.I18nService;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.i18n.I18nService;
 import io.lumine.mythic.core.utils.annotations.MythicPlaceholder;
 import org.bukkit.Bukkit;
 
@@ -24,14 +24,14 @@ public class MythicMobsPlaceholderManager {
      */
     public void registerPlaceholders() {
         if (registered) {
-            PluginLogger.warn("MythicMobs", I18nService.tr("占位符已经注册过了"));
+            PluginLoggerUtil.warn("MythicMobs", I18nService.tr("占位符已经注册过了"));
             return;
         }
 
         try {
             // 检查 MythicMobs 是否已加载
             if (!Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
-                PluginLogger.warn("MythicMobs", I18nService.tr("MythicMobs 未启用，跳过占位符注册"));
+                PluginLoggerUtil.warn("MythicMobs", I18nService.tr("MythicMobs 未启用，跳过占位符注册"));
                 return;
             }
 
@@ -52,9 +52,9 @@ public class MythicMobsPlaceholderManager {
             placeholderManager.register(AIAnswerPlaceholder.class, annotation);
 
             registered = true;
-            PluginLogger.info("MythicMobs", I18nService.tr("已加载 MythicMobs 占位符"));
+            PluginLoggerUtil.info("MythicMobs", I18nService.tr("已加载 MythicMobs 占位符"));
         } catch (Exception e) {
-            PluginLogger.error("MythicMobs", I18nService.tr("占位符注册失败: {}", e.getMessage()), e);
+            PluginLoggerUtil.error("MythicMobs", I18nService.tr("占位符注册失败: {}", e.getMessage()), e);
         }
     }
 }

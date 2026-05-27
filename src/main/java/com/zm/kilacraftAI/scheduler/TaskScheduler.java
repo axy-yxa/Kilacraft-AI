@@ -1,8 +1,8 @@
 package com.zm.kilacraftAI.scheduler;
 
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.config.I18nService;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.i18n.I18nService;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <ul>
  *   <li>注册：调用 {@link FoliaCompat#runAsyncTimer} 启动任务并保存句柄</li>
  *   <li>互斥：{@link AtomicBoolean} CAS 保护，上次未完成时跳过本次</li>
- *   <li>日志：统一通过 {@link PluginLogger}，模块名 "定时任务"</li>
+ *   <li>日志：统一通过 {@link PluginLoggerUtil}，模块名 "定时任务"</li>
  *   <li>关闭：{@link #shutdownAll()} 取消所有任务句柄</li>
  * </ul>
  *
@@ -45,7 +45,7 @@ public class TaskScheduler {
      */
     public void register(ManagedTask task) {
         if (!task.enabled()) {
-            PluginLogger.info(LOG_MODULE, "跳过注册（已禁用）: {} ({})", task.name(), task.description());
+            PluginLoggerUtil.info(LOG_MODULE, "跳过注册（已禁用）: {} ({})", task.name(), task.description());
             return;
         }
 
@@ -53,7 +53,29 @@ public class TaskScheduler {
         handle.handle = FoliaCompat.runAsyncTimer(plugin, () -> executeWrapped(handle), task.delayTicks(), task.intervalTicks());
         tasks.add(handle);
 
-        PluginLogger.info(LOG_MODULE, "已启动: {} ({})", task.name(), task.description());
+        PluginLoggerUtil.info(LOG_MODULE, "已启动: {} ({})", task.name(), task.description());
+    }
+
+    /**
+     * 取消并移除指定任务（热重载调用）
+     *
+     * @param task 要移除的托管任务
+     */
+    public void unregister(ManagedTask task) {
+        ManagedTaskHandle target = null;
+        for (ManagedTaskHandle handle : tasks) {
+            if (handle.task == task) {
+                target = handle;
+                break;
+            }
+        }
+        if (target != null) {
+            if (target.handle != null) {
+                target.handle.cancel();
+            }
+            tasks.remove(target);
+            PluginLoggerUtil.info(LOG_MODULE, "已移除: {} ({})", task.name(), task.description());
+        }
     }
 
     /**
@@ -65,7 +87,7 @@ public class TaskScheduler {
                 handle.handle.cancel();
             }
         }
-        PluginLogger.info(LOG_MODULE, "已关闭 {} 个定时任务", tasks.size());
+        PluginLoggerUtil.info(LOG_MODULE, "已关闭 {} 个定时任务", tasks.size());
     }
 
     /**
@@ -76,28 +98,35 @@ public class TaskScheduler {
     public List<String> getStatusSummary() {
         List<String> lines = new ArrayList<>();
         lines.add(I18nService.tr("§f[TaskScheduler] §7已注册 §e{} §7个定时任务:", tasks.size()));
+        // 表头
+        lines.add(I18nService.tr("  §8任务     §7| §8周期  §7| §8执行统计     §7| §8上次执行   §7| §8状态"));
 
         for (ManagedTaskHandle h : tasks) {
             String intervalStr = formatInterval(h.task.intervalTicks());
-            String processed = I18nService.tr("§f{}条", h.totalProcessed);
+            String stats;
+            if (h.totalProcessed > 0) {
+                stats = h.task.formatStats(h.totalProcessed);
+            } else if (h.lastExecuteTime > 0) {
+                stats = I18nService.tr("§7暂无触发");
+            } else {
+                stats = "§8-";
+            }
             String lastExec = h.lastExecuteTime > 0 ? I18nService.tr("§f{}前", formatElapsed(System.currentTimeMillis() - h.lastExecuteTime)) : I18nService.tr("§8未执行");
             String status = h.lastError != null ? I18nService.tr("§c异常: {}", truncate(h.lastError, 30)) : h.lastExecuteTime == 0 ? I18nService.tr("§7等待首次") : I18nService.tr("§a正常");
 
             String name = String.format("%-8s", h.task.name());
             String interval = String.format("%-5s", intervalStr);
-            lines.add(I18nService.tr("  §f{} §7| §e{} §7| 累计 §e{} §7| 上次: {} §7| {}", name, interval, processed, lastExec, status));
+            lines.add(String.format("  §f%s §7| §e%s §7| %s §7| %s §7| %s", name, interval, stats, lastExec, status));
         }
         return lines;
     }
-
-    // ==================== 内部方法 ====================
 
     /**
      * 包装任务执行：CAS 互斥 + 日志 + 异常捕获
      */
     private void executeWrapped(ManagedTaskHandle handle) {
         if (!handle.running.compareAndSet(false, true)) {
-            PluginLogger.debug(LOG_MODULE, "[{}] 上次尚未完成，跳过本次", handle.task.name());
+            PluginLoggerUtil.debug(LOG_MODULE, "[{}] 上次尚未完成，跳过本次", handle.task.name());
             return;
         }
 
@@ -107,15 +136,14 @@ public class TaskScheduler {
             long elapsed = System.currentTimeMillis() - start;
             handle.lastExecuteTime = System.currentTimeMillis();
             handle.totalProcessed += processed;
+            // 仅在有实际处理结果时输出日志
             if (processed > 0) {
-                PluginLogger.debug(LOG_MODULE, "[{}] 执行完成 (耗时{}ms, 本轮{}条, 累计{}条)", handle.task.name(), elapsed, processed, handle.totalProcessed);
-            } else {
-                PluginLogger.debug(LOG_MODULE, "[{}] 执行完成 (耗时{}ms, 无新数据)", handle.task.name(), elapsed);
+                PluginLoggerUtil.info(LOG_MODULE, "[{}] 执行完成 (耗时{}ms, 本轮{}条, 累计{}条)", handle.task.name(), elapsed, processed, handle.totalProcessed);
             }
         } catch (Exception e) {
             handle.lastErrorTime = System.currentTimeMillis();
             handle.lastError = e.getMessage();
-            PluginLogger.error(LOG_MODULE, I18nService.tr("[{}] 执行失败: {}", handle.task.name(), e.getMessage()), e);
+            PluginLoggerUtil.error(LOG_MODULE, I18nService.tr("[{}] 执行失败: {}", handle.task.name(), e.getMessage()), e);
         } finally {
             handle.running.set(false);
         }
@@ -150,8 +178,6 @@ public class TaskScheduler {
         return value.length() > maxLen ? value.substring(0, maxLen) + "..." : value;
     }
 
-    // ==================== 内部句柄 ====================
-
     /**
      * 托管任务句柄：包装 ScheduledTask + 运行状态
      */
@@ -159,10 +185,10 @@ public class TaskScheduler {
         final ManagedTask task;
         FoliaCompat.ScheduledTask handle;
         final AtomicBoolean running = new AtomicBoolean(false);
-        volatile long lastExecuteTime;
-        volatile long totalProcessed;
-        volatile long lastErrorTime;
-        volatile String lastError;
+        long lastExecuteTime;
+        long totalProcessed;
+        long lastErrorTime;
+        String lastError;
 
         ManagedTaskHandle(ManagedTask task) {
             this.task = task;

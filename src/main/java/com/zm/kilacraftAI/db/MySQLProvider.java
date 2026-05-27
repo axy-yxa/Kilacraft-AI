@@ -2,8 +2,10 @@ package com.zm.kilacraftAI.db;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import com.zm.kilacraftAI.config.I18nService;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.db.model.DatabaseConfig;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.common.enums.DatabaseTypeEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -55,15 +57,15 @@ public class MySQLProvider implements DatabaseProvider {
             throw new SQLException(I18nService.tr("MySQL 连接池初始化失败: {}", e.getMessage()), e);
         }
 
-        PluginLogger.info("数据库", "MySQL 数据库已初始化，地址: {}:{}", config.getMysqlHost(), config.getMysqlPort());
-        PluginLogger.info("数据库", "连接池配置: maxPoolSize={}, minIdle={}", maxPool, minIdle);
+        PluginLoggerUtil.info("数据库", "MySQL 数据库已初始化，地址: {}:{}", config.getMysqlHost(), config.getMysqlPort());
+        PluginLoggerUtil.info("数据库", "连接池配置: maxPoolSize={}, minIdle={}", maxPool, minIdle);
     }
 
     @Override
     public void shutdown() {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
-            PluginLogger.info("数据库", "MySQL 连接池已关闭");
+            PluginLoggerUtil.info("数据库", "MySQL 连接池已关闭");
         }
     }
 
@@ -73,8 +75,8 @@ public class MySQLProvider implements DatabaseProvider {
     }
 
     @Override
-    public DatabaseType getType() {
-        return DatabaseType.MYSQL;
+    public DatabaseTypeEnum getType() {
+        return DatabaseTypeEnum.MYSQL;
     }
 
     @Override
@@ -82,8 +84,15 @@ public class MySQLProvider implements DatabaseProvider {
         try (Connection conn = getConnection()) {
             return conn.isValid(5);
         } catch (SQLException e) {
-            PluginLogger.error("数据库", "MySQL 连接测试失败: {}", e.getMessage());
+            PluginLoggerUtil.error("数据库", "MySQL 连接测试失败: {}", e.getMessage());
             return false;
         }
+    }
+
+    @Override
+    public String getPoolInfo() {
+        if (dataSource == null || dataSource.isClosed()) return I18nService.tr("MySQL: 未初始化/已关闭");
+        var mxBean = dataSource.getHikariPoolMXBean();
+        return I18nService.tr("MySQL: 活跃={}, 空闲={}, 等待={}, 最大={}", mxBean.getActiveConnections(), mxBean.getIdleConnections(), mxBean.getThreadsAwaitingConnection(), dataSource.getMaximumPoolSize());
     }
 }

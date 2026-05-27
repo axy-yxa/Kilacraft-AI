@@ -1,8 +1,9 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.util.ConfigResourceUtil;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -24,7 +25,6 @@ public class LanguageManager {
     @Getter
     private FileConfiguration config;
 
-    // ==================== 帮助消息 ====================
     @Getter
     private List<String> helpMessages;
     @Getter
@@ -41,8 +41,13 @@ public class LanguageManager {
     private String helpAfk;
     @Getter
     private String helpAfkSubcommands;
+    @Getter
+    private String helpProfile;
+    @Getter
+    private String helpProfileSubcommands;
+    @Getter
+    private String helpNotify;
 
-    // ==================== 权限相关消息 ====================
     @Getter
     private String permissionReload;
     @Getter
@@ -54,7 +59,6 @@ public class LanguageManager {
     @Getter
     private String permissionPersonalities;
 
-    // ==================== 功能状态消息 ====================
     @Getter
     private String featureChatModeDisabled;
     @Getter
@@ -66,7 +70,6 @@ public class LanguageManager {
     @Getter
     private String featureChatModeExit;
 
-    // ==================== 命令执行结果消息 ====================
     @Getter
     private String commandReloadSuccess;
     @Getter
@@ -96,7 +99,6 @@ public class LanguageManager {
     @Getter
     private String worldBannedHint;
 
-    // ==================== 插件命令专用消息 ====================
     @Getter
     private String pluginCommandPlayerBlocked;
     @Getter
@@ -120,7 +122,6 @@ public class LanguageManager {
     @Getter
     private String pluginCommandError;
 
-    // ==================== 日志消息 ====================
     @Getter
     private String logConfigReloaded;
     @Getter
@@ -165,7 +166,7 @@ public class LanguageManager {
             File languageFile = new File(plugin.getDataFolder(), fileName);
             this.config = YamlConfiguration.loadConfiguration(languageFile);
         } catch (Exception e) {
-            PluginLogger.error("语言配置", I18nService.tr("加载 {} 失败", fileName), e);
+            PluginLoggerUtil.error("语言配置", I18nService.tr("加载 {} 失败", fileName), e);
         }
 
         // 加载语言配置
@@ -185,6 +186,9 @@ public class LanguageManager {
         this.helpPersonalitiesSubcommands = config.getString("help.personalities-subcommands", "§e可用子命令：reload - 重新加载人格配置");
         this.helpAfk = config.getString("help.afk", "§e查询挂机任务：/kilacraft afk");
         this.helpAfkSubcommands = config.getString("help.afk-subcommands", "§e可用子命令：query(查询), cancel(取消)");
+        this.helpProfile = config.getString("help.profile", "§e服务器性能采样：/kilacraft profile start [秒数(30~120，默认60)]");
+        this.helpProfileSubcommands = config.getString("help.profile-subcommands", "§e可用子命令：start(开始采样), stop(中断采样), status(查看状态)");
+        this.helpNotify = config.getString("help.notify", "§e测试外部通知：/kilacraft notify test");
 
         // 权限相关消息
         this.permissionReload = config.getString("permissions.reload", "§c你没有权限重载配置！");

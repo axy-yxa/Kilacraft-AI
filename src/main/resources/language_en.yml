@@ -31,6 +31,10 @@ help:
   afk: "§eQuery AFK tasks: /kilacraft afk"
   afk-subcommands: "§eAvailable subcommands: query (query), cancel (cancel)"
 
+  profile: "§eServer performance profiling: /kilacraft profile start [seconds(30~120, default 60)]"
+  profile-subcommands: "§eAvailable subcommands: start (start profiling), stop (abort), status (view status)"
+  notify: "§eTest external notifications: /kilacraft notify test"
+
 # ==================== Permission Messages ====================
 permissions:
   reload: "§cYou don't have permission to reload the configuration!"

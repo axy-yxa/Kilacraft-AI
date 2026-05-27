@@ -1,0 +1,258 @@
+# ==================== Kilacraft-AI 服主管理功能独立配置 / Admin Management Configuration (Standalone) ====================
+
+# ==================== 推理模型配置（仅用于服务器诊断） / Thinking Model Configuration (for server diagnostics only) ====================
+# 支持通用 OpenAI API 格式的推理模型，自动适配部分模型的特殊参数
+# 注意：推理模型仅用于服务器诊断场景（health_report），不对外开放
+# Supports OpenAI API standard format thinking models, auto-adapts special parameters for certain models
+# Note: Thinking models are ONLY used for server diagnostics (health_report), not exposed to other features
+thinking_model:
+  # LLM API 配置（通用，支持所有 OpenAI 标准格式的推理/思考模型）
+  # LLM API Configuration (Universal, supports all OpenAI standard format reasoning/thinking models)
+  # 可用厂商示例（均兼容 OpenAI Chat Completions API）：
+  # Available provider examples (all compatible with OpenAI Chat Completions API):
+  # - DeepSeek: https://api.deepseek.com/v1/chat/completions
+  #   Models: deepseek-reasoner
+  # - OpenAI: https://api.openai.com/v1/chat/completions
+  #   Models: o3, o4-mini, o3-mini, o1, o1-mini
+  # - SiliconFlow（硅基流动）: https://api.siliconflow.cn/v1/chat/completions
+  #   Models: deepseek-ai/DeepSeek-R1
+  # - OpenRouter: https://openrouter.ai/api/v1/chat/completions
+  #   Models: deepseek/deepseek-r1, openai/o3-mini, openai/o4-mini
+  # - Groq: https://api.groq.com/openai/v1/chat/completions
+  #   Models: deepseek-r1-distill-llama-70b（蒸馏版 / distilled）
+  # - Together AI: https://api.together.xyz/v1/chat/completions
+  #   Models: deepseek-ai/DeepSeek-R1
+  # - Google Gemini: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+  #   Models: gemini-2.5-flash-preview-05-20（思考模式 / thinking mode）
+  # - Perplexity: https://api.perplexity.ai/chat/completions
+  #   Models: sonar-reasoning, sonar-reasoning-pro
+  # - Fireworks AI: https://api.fireworks.ai/inference/v1/chat/completions
+  #   Models: accounts/fireworks/models/deepseek-r1
+  api_url: "https://api.deepseek.com/v1/chat/completions"
+  
+  # API 密钥（从对应厂商获取）
+  # 默认值为占位符，未配置时健康诊断功能不可用，相关资源不会注册
+  # API key (obtained from the corresponding provider)
+  # Default is placeholder; health diagnostics disabled when not configured, related resources won't register
+  api_key: "your-api-key"
+  
+  # 模型名称（根据厂商配置）
+  # Model name (configure according to provider)
+  model: "deepseek-reasoner"
+  
+  # 最大返回 token 数
+  # 控制 AI 回复的最大长度（约 1 token ≈ 0.75 个中文）
+  # 推理模型通常需要更大的 token 限制以容纳深度分析
+  # Maximum response tokens
+  # Controls max length of AI response (approx. 1 token ≈ 0.75 Chinese characters)
+  # Reasoning models typically need larger token limits for deep analysis
+  max_tokens: 4096
+  
+  # 超时时间（秒，默认: 120）
+  # 推理模型需要更长的思考时间，建议 60-120 秒
+  # Timeout in seconds (default: 120)
+  # Reasoning models need longer thinking time, recommended 60-120 seconds
+  timeout_seconds: 120
+
+# ==================== 守护线程配置 / Health Guardian Configuration ====================
+# 每个服务器实例独立运行一个守护线程，检测本服性能异常
+# Each server instance runs an independent guardian thread to detect performance anomalies
+health_guardian:
+  # 是否启用守护线程（默认: true）
+  # Whether to enable guardian thread (default: true)
+  enabled: true
+  
+  # 轮询间隔（秒，默认: 10）
+  # Polling interval in seconds (default: 10)
+  interval_seconds: 10
+  
+  # 自动分析冷却期（分钟，默认: 5）
+  # 触发一次自动分析后，在冷却期内不会再次触发，无论触发指标类型
+  # Cooldown period after auto analysis in minutes (default: 5)
+  # Once triggered, no re-trigger within cooldown regardless of alert type
+  cooldown_minutes: 5
+  
+  # 滑动时间窗口内最大自动分析次数（默认: 5）
+  # 防止持续性能异常期间资源耗尽；manual 模式不受此限制
+  # Max auto analysis count within sliding window (default: 5)
+  # Prevents resource exhaustion during sustained performance issues; manual mode is not limited
+  max_auto_analysis_per_window: 5
+  
+  # 滑动窗口时长（分钟，默认: 60）
+  # Sliding window duration in minutes (default: 60)
+  auto_analysis_window_minutes: 60
+  
+  # MSPT max 连续确认次数（默认: 3）
+  # MSPT max 使用 10s 时间窗口检测，连续 N 次轮询超过阈值才触发分析
+  # 3 次约 30 秒（轮询间隔 10s），能有效过滤瞬时尖峰，真正持续的性问题不会受影响
+  # MSPT max consecutive confirmation count (default: 3)
+  # MSPT max uses 10s time window; requires N consecutive polls exceeding threshold to trigger analysis
+  # 3 polls ≈ 30s (10s interval), effectively filters transient spikes; sustained issues are unaffected
+  mspt_consecutive_threshold: 3
+
+  # Profiler 采样时长（秒，默认: 30）——仅用于 auto 自动模式
+  # manual 手动模式的采样时长由命令参数控制（/kilacraft profile start [秒]，默认 60，范围 30~120）
+  # Profiler sampling duration in seconds (default: 30) — auto mode only
+  # manual mode duration is controlled by command argument (/kilacraft profile start [seconds], default 60, range 30~120)
+  auto_profiler_timeout: 30
+  
+  # Profiler 数据大小预检阈值（字节，默认: 52428800 即 50MB）
+  # 完整 Profiler 数据通过流式写入临时文件（不占用堆内存），此值不影响内存安全
+  # 仅用于 Content-Length 预检：超过此阈值时，根据 download_when_exceeded 配置决定是否继续下载
+  # Profiler data size pre-check threshold in bytes (default: 52428800 = 50MB)
+  # Full Profiler data is streamed to a temp file (no heap memory impact); this value does NOT affect memory safety
+  # Used only for Content-Length pre-check: when exceeded, behavior depends on download_when_exceeded setting
+  max_profiler_download_bytes: 52428800
+  
+  # 超过预检阈值时是否仍尝试下载（默认: false）
+  # 设为 true 时，即使 Profiler 数据超过 max_profiler_download_bytes 阈值，仍会继续下载
+  # 设为 false 时，超过阈值直接跳过下载以节省网络带宽
+  # Whether to attempt download when exceeding pre-check threshold (default: false)
+  # When true, download proceeds even if data exceeds max_profiler_download_bytes threshold
+  # When false, skips download when threshold exceeded to save network bandwidth
+  download_when_exceeded: false
+  
+  # 告警阈值（可根据服务器规模调整）
+  # Alert thresholds (adjustable based on server scale)
+  alerts:
+    tps_threshold: 15           # TPS 1m < 15 → 触发分析 / trigger analysis
+    mspt_max_threshold: 50      # MSPT max > 50ms → 触发分析（对齐 Spark 标准：50ms 是单 tick 预算上限）/ trigger analysis (Spark standard: 50ms is single-tick budget)
+    mspt_p95_threshold: 50      # MSPT p95 > 50ms → 触发分析 / trigger analysis
+    cpu_threshold: 80           # 进程 CPU > 80% → 触发分析 / trigger analysis
+
+# ==================== 诊断报告配置 / Diagnostic Report Configuration ====================
+# 报告文件永久保存，由服主自行管理（清理旧报告、备份等）
+# Report files are permanently saved, managed by server owner (cleanup old reports, backup, etc.)
+diagnostic_report:
+  # 报告文件目录（相对于 plugins/Kilacraft-AI/，默认: reports）
+  # Report file directory (relative to plugins/Kilacraft-AI/)
+  output_dir: "reports"
+
+  # 是否在报告中包含 AI 推理过程（默认: true）
+  # 推理模型会输出详细的思考过程，设为 true 时折叠展示在诊断结论前
+  # 设为 false 可减小报告文件体积，仅保留最终诊断结论
+  # Whether to include AI reasoning process in report (default: true)
+  # Reasoning models output detailed thinking; when true, it's shown collapsed before the diagnosis
+  # Set to false to reduce report size, keeping only the final diagnosis conclusion
+  include_reasoning: true
+
+# ==================== 外部通知配置 / External Notification Configuration ====================
+# 自动触发诊断分析时，可向外部平台推送告警通知（手动触发不推送）
+# Push alert notifications to external platforms when auto-triggered diagnostic analysis runs
+notification:
+  # 是否启用外部通知（默认: false）
+  # Enable external notifications (default: false)
+  enabled: false
+
+  # 通知渠道（可配置多个，同时推送）
+  # Notification channels (multiple allowed, push to all simultaneously)
+  channels:
+    # Discord Webhook
+    - type: discord
+      # Webhook URL（在 Discord 服务器设置 -> 整合 -> Webhooks 中创建）
+      # Webhook URL (create in Discord Server Settings -> Integrations -> Webhooks)
+      webhook_url: ""
+
+    # 钉钉群机器人 Webhook
+    # DingTalk group robot Webhook
+    - type: dingtalk
+      webhook_url: ""
+      # 加签密钥（可选，在钉钉机器人安全设置中选择“加签”后获得）
+      # Signing secret (optional, obtained from DingTalk robot security settings)
+      secret: ""
+
+# ==================== AI 诊断提示词配置 / AI Diagnostic Prompt Configuration ====================
+prompts:
+  # 中文提示词
+  system_prompt: |
+    你是一位 Minecraft 服务器性能诊断专家，服务于 Kilacraft-AI 插件的服主管理功能。
+    
+    == 运行环境 ==
+    - 所有性能数据均来源于 Spark 插件（不是 Timings）
+    - 服务端: {server_platform}
+    - 你看到的「调用栈热点分析」数据来自 Spark Profiler 的 Protobuf 原始采样数据，是准确的，按 self time（自身耗时，不含子调用）分析，与 Spark 的 Plugins View 一致
+    
+    == 你的职责 ==
+    {mode_instruction}
+    
+    == 数据分析原则 ==
+    你将收到以下数据，请按优先级综合分析：
+    1. 异常告警：触发本次诊断的具体指标和阈值
+    2. Profiler 元数据摘要：TPS/MSPT/Ping/内存/在线玩家等实时指标
+    3. GC 信息：各垃圾收集器的频率和耗时，频繁 GC（尤其 Old Gen）会导致 STW 停顿推高 MSPT
+    4. 实体分布摘要：各世界实体数、Top 实体类型、高密度区块坐标——这是定位实体堆积的直接依据
+    5. 调用栈热点分析：已安装插件耗时（快速定位哪个插件有问题）、Top 热点方法的触发路径（定位具体原因）
+    6. 所有百分比均为 self time（自身耗时），每个热点只出现一次，不会重复累加
+    7. Kilacraft-AI 自监控：IO 线程池和 DB 连接池状态——如果调用栈热点中出现了 Kilacraft-AI (自身)，结合自监控数据判断是否因 IO/DB 负载过高导致
+    8. CPU 采样只能反映线程的 CPU 占用，无法捕获 I/O 等待、磁盘读写、网络传输等非 CPU 活动。如果调用栈热点占比极低但仍触发了 MSPT 异常，应结合"服务器活动指标"中的玩家移动距离和区块加载变化进行推断——玩家移动距离大 + 低 CPU 热点是非 CPU 瓶颈（如区块 I/O）的典型信号
+    优先分析插件层面的性能问题；如果数据不足以得出结论，基于已有数据给出最可能的推断，并建议延长采样时间
+    
+    == 分析注意事项 ==
+    1. 触发路径是可靠证据：热点方法的触发路径精确显示调用链路。分析性能问题时以触发路径的调用关系为准
+    2. 不要猜测插件功能：不要根据插件名称推断其实际行为。名称可能具有误导性，以触发路径为准
+    3. 相关性≠因果性：数据点同时出现不意味着存在因果关系。需要触发路径中的调用链路作为证据
+    4. self time 含义：self time 表示该方法自身的 CPU 时间（不含子调用）。高 self time 指向该方法本身在持续消耗 CPU
+    
+    == 回答规范 ==
+    1. 使用中文回答，面向服主（非开发者），避免过度技术化
+    2. 先给出结论（是否异常、严重程度），再展开分析
+    3. 如果定位到具体插件或方法导致卡顿，给出明确的插件名和原因
+    4. 优化建议要具体可操作，服主能直接执行
+    
+    == 禁止事项 ==
+    - 禁止在回答中引导服主去访问任何外部链接或网站（如“请打开xxx链接”“请访问xxx查看xxx”），所有分析必须由你自己完成
+    - 如果提供了外部链接（如 Spark Viewer URL），你可以自行访问获取补充信息，但不得在回答中要求服主去查看
+    - 不要推荐 Timings 或其他非 Spark 的诊断工具
+    - 不要编造不存在的数据或方法调用
+  
+  # English prompt
+  system_prompt_en: |
+    You are a Minecraft server performance diagnostics expert, serving the Kilacraft-AI plugin admin management feature.
+    
+    == Runtime Environment ==
+    - All performance data originates from the Spark plugin (not Timings)
+    - Server: {server_platform}
+    - The "Call Stack Hotspot Analysis" data is from Spark Profiler's raw Protobuf sampling data, extracted via streaming parsing, analyzed by self time (excluding child calls), consistent with Spark's Plugins View
+    
+    == Your Responsibility ==
+    {mode_instruction}
+    
+    == Data Analysis Principles ==
+    You will receive the following data — analyze comprehensively by priority:
+    1. Alert triggers: specific metrics and thresholds that triggered this diagnosis
+    2. Profiler metadata summary: TPS/MSPT/Ping/Memory/Players and other real-time metrics
+    3. GC info: frequency and duration of each garbage collector — frequent GC (especially Old Gen) causes STW pauses that increase MSPT
+    4. Entity distribution summary: entity count per world, top entity types, high-density chunk coordinates — direct evidence for locating entity pile-ups
+    5. Call stack hotspot analysis: installed plugin time (quickly identify which plugin has issues), top hotspot method trigger paths (identify specific causes)
+    6. All percentages are self time (own execution time), each hotspot appears only once, no duplicate accumulation
+    7. Kilacraft-AI self-monitoring: IO thread pool and DB connection pool status — if Kilacraft-AI (self) appears in call stack hotspots, combine with self-monitoring data to determine if excessive IO/DB load is the cause
+    8. CPU sampling only reflects thread CPU usage — it cannot capture I/O waits, disk reads/writes, network transfers, or other non-CPU activities. If call stack hotspots are extremely low yet MSPT anomalies were triggered, combine with "Server Activity Metrics" (player movement distance, chunk load changes) to make inferences — large player movement distance + low CPU hotspots are a typical signal of non-CPU bottlenecks (e.g., chunk I/O)
+    Prioritize analyzing plugin-level performance issues; if data is insufficient for a conclusion, provide the most likely inference based on available data and recommend retrying with a longer sampling duration
+    
+    == Analysis Guidelines ==
+    1. Trigger paths are reliable evidence: a hotspot method's trigger path precisely shows the call chain. Base your performance analysis on trigger path call relationships
+    2. Do not guess plugin functionality: do not infer a plugin's behavior from its name. Names can be misleading — rely on the trigger path
+    3. Correlation ≠ Causation: coincidental data points do not imply a causal relationship. A call chain in the trigger path is required as evidence
+    4. Self time meaning: self time is the method's own CPU time (excluding child calls). High self time means the method itself is continuously consuming CPU
+    
+    == Response Guidelines ==
+    1. Respond in English, targeted at server owners (not developers), avoiding excessive technical jargon
+    2. Start with conclusions (abnormal or not, severity level), then elaborate on the analysis
+    3. If a specific plugin or method is identified as causing lag, provide the exact plugin name and reason
+    4. Optimization suggestions should be specific and actionable, directly executable by server owners
+    
+    == Prohibitions ==
+    - NEVER direct server owners to visit any external links in your response (e.g. "please open xxx link", "please visit xxx to view xxx"); all analysis must be completed by yourself
+    - If external links (e.g. Spark Viewer URL) are provided, you may access them yourself for supplementary information, but must NEVER ask the server owner to check them
+    - Do not recommend Timings or other non-Spark diagnostic tools
+    - Do not fabricate non-existent data or method calls
+  
+  # auto 模式的职责描述
+  auto_mode_instruction: "系统自动检测到服务器性能异常并触发了 Profiler 采样，请分析数据，定位根因并给出优化建议"
+  # manual 模式的职责描述
+  manual_mode_instruction: "服主手动触发了性能采样，请分析数据，判断是否存在性能问题，如果有则定位根因并给出优化建议"
+
+  # Responsibility Description of Auto Mode
+  auto_mode_instruction_en: "The system automatically detected a server performance anomaly and triggered Profiler sampling. Please analyze the data, identify the root cause, and provide optimization suggestions"
+  # Manual Mode Responsibilities Description
+  manual_mode_instruction_en: "The server owner manually triggered a performance sampling. Please analyze the data, determine if there are performance issues, and if so, identify the root cause and provide optimization suggestions"

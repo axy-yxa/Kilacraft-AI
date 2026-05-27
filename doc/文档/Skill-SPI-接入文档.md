@@ -1,6 +1,6 @@
 # Kilacraft-AI - Skill SPI 接入文档  
 
-> **最后更新**: 2026-05-11  
+> **最后更新**: 2026-05-22  
 > **说明**: 本文档指导插件开发者如何通过 Skill SPI 接口将自定义技能接入 Kilacraft-AI  
 
 ---
@@ -118,9 +118,9 @@ Kilacraft-AI 通过 **SPI（Service Provider Interface）** 机制，允许第�
 ```java
 package com.example.myplugin.skills;
 
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -128,41 +128,41 @@ import java.util.concurrent.CompletableFuture;
 
 public class HelloWorldSkill implements Skill {
 
-    @Override
-    public String getName() {
-        return "hello_world";  // 全局唯一标识
-    }
+   @Override
+   public String getName() {
+      return "hello_world";  // 全局唯一标识
+   }
 
-    @Override
-    public String getDescription() {
-        return "向玩家打招呼。返回一个问候消息。";
-    }
+   @Override
+   public String getDescription() {
+      return "向玩家打招呼。返回一个问候消息。";
+   }
 
-    @Override
-    public Map<String, String> getActions() {
-        return Map.of(
-            "greet", "向指定玩家发送问候语"
-        );
-    }
+   @Override
+   public Map<String, String> getActions() {
+      return Map.of(
+              "greet", "向指定玩家发送问候语"
+      );
+   }
 
-    @Override
-    public CompletableFuture<SkillResult> execute(SkillContext context) {
-        Player player = context.getPlayer();
-        String name = player != null ? player.getName() : "陌生人";
-        return CompletableFuture.completedFuture(
-            SkillResult.success("你好，" + name + "！欢迎使用 AI 助手！")
-        );
-    }
+   @Override
+   public CompletableFuture<SkillResult> execute(SkillContext context) {
+      Player player = context.getPlayer();
+      String name = player != null ? player.getName() : "陌生人";
+      return CompletableFuture.completedFuture(
+              SkillResult.success("你好，" + name + "！欢迎使用 AI 助手！")
+      );
+   }
 
-    @Override
-    public boolean isAvailable(SkillContext context) {
-        return true;  // 始终可用
-    }
+   @Override
+   public boolean isAvailable(SkillContext context) {
+      return true;  // 始终可用
+   }
 
-    @Override
-    public String getRequiredPermission() {
-        return "myplugin.hello";  // Skill 级权限节点
-    }
+   @Override
+   public String getRequiredPermission() {
+      return "myplugin.hello";  // Skill 级权限节点
+   }
 }
 ```
 
@@ -173,8 +173,8 @@ public class HelloWorldSkill implements Skill {
 ```java
 package com.example.myplugin;
 
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.spi.SkillProvider;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillProvider;
 import com.example.myplugin.skills.HelloWorldSkill;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -182,28 +182,28 @@ import java.util.List;
 
 public class MyPlugin extends JavaPlugin implements SkillProvider {
 
-    @Override
-    public void onEnable() {
-        // 在 onEnable 中注册 SkillProvider
-        // Kilacraft-AI 会在服务器启动后自动扫描发现
-        getServer().getServicesManager().register(
-            SkillProvider.class,
-            this,
-            this,
-            org.bukkit.plugin.ServicePriority.Normal
-        );
-        getLogger().info("已注册 SkillProvider，等待 Kilacraft-AI 发现...");
-    }
+   @Override
+   public void onEnable() {
+      // 在 onEnable 中注册 SkillProvider
+      // Kilacraft-AI 会在服务器启动后自动扫描发现
+      getServer().getServicesManager().register(
+              SkillProvider.class,
+              this,
+              this,
+              org.bukkit.plugin.ServicePriority.Normal
+      );
+      getLogger().info("已注册 SkillProvider，等待 Kilacraft-AI 发现...");
+   }
 
-    @Override
-    public void onDisable() {
-        // Bukkit 会自动注销 ServicesManager 中的注册
-    }
+   @Override
+   public void onDisable() {
+      // Bukkit 会自动注销 ServicesManager 中的注册
+   }
 
-    @Override
-    public List<Skill> getSkills() {
-        return List.of(new HelloWorldSkill());
-    }
+   @Override
+   public List<Skill> getSkills() {
+      return List.of(new HelloWorldSkill());
+   }
 }
 ```
 
@@ -877,9 +877,9 @@ public List<Skill> getSkills() {
 ```java
 package com.example.statsplugin.skills;
 
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -888,94 +888,94 @@ import java.util.concurrent.CompletableFuture;
 
 public class PlayerStatsSkill implements Skill {
 
-    private static final String NAME = "player_stats_query";
-    private static final String DESCRIPTION =
-        "查询玩家状态信息，包括生命值、饥饿值、经验等级。" +
-        "返回的 data 中包含 health、max_health、food_level、level、total_exp 字段，" +
-        "供多步骤任务参数传递使用。";
+   private static final String NAME = "player_stats_query";
+   private static final String DESCRIPTION =
+           "查询玩家状态信息，包括生命值、饥饿值、经验等级。" +
+                   "返回的 data 中包含 health、max_health、food_level、level、total_exp 字段，" +
+                   "供多步骤任务参数传递使用。";
 
-    private static final Map<String, String> ACTIONS = Map.of(
-        "query_health", "查询玩家当前生命值。返回数据包含 health 和 max_health 字段。",
-        "query_food", "查询玩家当前饥饿值。返回数据包含 food_level 字段。",
-        "query_experience", "查询玩家当前经验等级。返回数据包含 level 和 total_exp 字段。"
-    );
+   private static final Map<String, String> ACTIONS = Map.of(
+           "query_health", "查询玩家当前生命值。返回数据包含 health 和 max_health 字段。",
+           "query_food", "查询玩家当前饥饿值。返回数据包含 food_level 字段。",
+           "query_experience", "查询玩家当前经验等级。返回数据包含 level 和 total_exp 字段。"
+   );
 
-    @Override
-    public String getName() {
-        return NAME;
-    }
+   @Override
+   public String getName() {
+      return NAME;
+   }
 
-    @Override
-    public String getDescription() {
-        return DESCRIPTION;
-    }
+   @Override
+   public String getDescription() {
+      return DESCRIPTION;
+   }
 
-    @Override
-    public Map<String, String> getActions() {
-        return ACTIONS;
-    }
+   @Override
+   public Map<String, String> getActions() {
+      return ACTIONS;
+   }
 
-    @Override
-    public CompletableFuture<SkillResult> execute(SkillContext context) {
-        Player player = context.getPlayer();
-        if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("请指定玩家"));
-        }
+   @Override
+   public CompletableFuture<SkillResult> execute(SkillContext context) {
+      Player player = context.getPlayer();
+      if (player == null) {
+         return CompletableFuture.completedFuture(SkillResult.failure("请指定玩家"));
+      }
 
-        String action = context.getAction();
-        try {
-            return switch (action) {
-                case "query_health" -> queryHealth(player);
-                case "query_food" -> queryFood(player);
-                case "query_experience" -> queryExperience(player);
-                default -> CompletableFuture.completedFuture(
+      String action = context.getAction();
+      try {
+         return switch (action) {
+            case "query_health" -> queryHealth(player);
+            case "query_food" -> queryFood(player);
+            case "query_experience" -> queryExperience(player);
+            default -> CompletableFuture.completedFuture(
                     SkillResult.failure("未知动作：" + action));
-            };
-        } catch (Exception e) {
-            return CompletableFuture.completedFuture(
-                SkillResult.failure("查询失败：" + e.getMessage()));
-        }
-    }
+         };
+      } catch (Exception e) {
+         return CompletableFuture.completedFuture(
+                 SkillResult.failure("查询失败：" + e.getMessage()));
+      }
+   }
 
-    @Override
-    public boolean isAvailable(SkillContext context) {
-        return context.getPlayer() != null;
-    }
+   @Override
+   public boolean isAvailable(SkillContext context) {
+      return context.getPlayer() != null;
+   }
 
-    @Override
-    public String getRequiredPermission() {
-        return "statsplugin.query";  // Skill 级权限节点
-    }
+   @Override
+   public String getRequiredPermission() {
+      return "statsplugin.query";  // Skill 级权限节点
+   }
 
-    private CompletableFuture<SkillResult> queryHealth(Player player) {
-        double health = player.getHealth();
-        double maxHealth = player.getMaxHealth();
-        Map<String, Object> data = new HashMap<>();
-        data.put("health", health);
-        data.put("max_health", maxHealth);
-        return CompletableFuture.completedFuture(
-            SkillResult.success(
-                String.format("生命值：%.1f/%.1f", health, maxHealth), data));
-    }
+   private CompletableFuture<SkillResult> queryHealth(Player player) {
+      double health = player.getHealth();
+      double maxHealth = player.getMaxHealth();
+      Map<String, Object> data = new HashMap<>();
+      data.put("health", health);
+      data.put("max_health", maxHealth);
+      return CompletableFuture.completedFuture(
+              SkillResult.success(
+                      String.format("生命值：%.1f/%.1f", health, maxHealth), data));
+   }
 
-    private CompletableFuture<SkillResult> queryFood(Player player) {
-        int foodLevel = player.getFoodLevel();
-        Map<String, Object> data = new HashMap<>();
-        data.put("food_level", foodLevel);
-        return CompletableFuture.completedFuture(
-            SkillResult.success("饱食度：" + foodLevel + "/20", data));
-    }
+   private CompletableFuture<SkillResult> queryFood(Player player) {
+      int foodLevel = player.getFoodLevel();
+      Map<String, Object> data = new HashMap<>();
+      data.put("food_level", foodLevel);
+      return CompletableFuture.completedFuture(
+              SkillResult.success("饱食度：" + foodLevel + "/20", data));
+   }
 
-    private CompletableFuture<SkillResult> queryExperience(Player player) {
-        int level = player.getLevel();
-        int totalExp = player.getTotalExperience();
-        Map<String, Object> data = new HashMap<>();
-        data.put("level", level);
-        data.put("total_exp", totalExp);
-        return CompletableFuture.completedFuture(
-            SkillResult.success(
-                String.format("等级：%d，总经验：%d", level, totalExp), data));
-    }
+   private CompletableFuture<SkillResult> queryExperience(Player player) {
+      int level = player.getLevel();
+      int totalExp = player.getTotalExperience();
+      Map<String, Object> data = new HashMap<>();
+      data.put("level", level);
+      data.put("total_exp", totalExp);
+      return CompletableFuture.completedFuture(
+              SkillResult.success(
+                      String.format("等级：%d，总经验：%d", level, totalExp), data));
+   }
 }
 ```
 
@@ -984,8 +984,8 @@ public class PlayerStatsSkill implements Skill {
 ```java
 package com.example.statsplugin;
 
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.spi.SkillProvider;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillProvider;
 import com.example.statsplugin.skills.PlayerStatsSkill;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -993,22 +993,22 @@ import java.util.List;
 
 public class StatsPlugin extends JavaPlugin implements SkillProvider {
 
-    @Override
-    public void onEnable() {
-        // 注册 SkillProvider 到 Bukkit ServicesManager（4个参数）
-        getServer().getServicesManager().register(
-            SkillProvider.class,
-            this,
-            this,
-            org.bukkit.plugin.ServicePriority.Normal
-        );
-        getLogger().info("StatsPlugin 已注册 SkillProvider");
-    }
+   @Override
+   public void onEnable() {
+      // 注册 SkillProvider 到 Bukkit ServicesManager（4个参数）
+      getServer().getServicesManager().register(
+              SkillProvider.class,
+              this,
+              this,
+              org.bukkit.plugin.ServicePriority.Normal
+      );
+      getLogger().info("StatsPlugin 已注册 SkillProvider");
+   }
 
-    @Override
-    public List<Skill> getSkills() {
-        return List.of(new PlayerStatsSkill());
-    }
+   @Override
+   public List<Skill> getSkills() {
+      return List.of(new PlayerStatsSkill());
+   }
 }
 ```
 
@@ -1103,12 +1103,12 @@ dependencies {
 此 JAR 包含以下类的编译产物，供第三方开发者编译时引用：
 
 ```
-com.zm.kilacraftAI.skills.framework.Skill
-com.zm.kilacraftAI.skills.framework.SkillContext
-com.zm.kilacraftAI.skills.framework.SkillResult
-com.zm.kilacraftAI.skills.framework.SkillIntent
-com.zm.kilacraftAI.skills.framework.spi.SkillProvider
-com.zm.kilacraftAI.skills.framework.spi.SkillRegistry
+com.zm.kilacraftAI.skill.Skill
+com.zm.kilacraftAI.skill.SkillContext
+com.zm.kilacraftAI.skill.SkillResult
+com.zm.kilacraftAI.skill.SkillIntent
+com.zm.kilacraftAI.skill.SkillProvider
+com.zm.kilacraftAI.skill.SkillRegistry
 ```
 
 > **此 JAR 不需要也不能打包进你的插件**。运行时由 Kilacraft-AI 主插件提供。

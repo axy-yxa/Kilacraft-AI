@@ -1,14 +1,14 @@
 package com.zm.kilacraftAI.listener;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.util.AIRequestValidatorUtil;
 import com.zm.kilacraftAI.config.LanguageManager;
-import com.zm.kilacraftAI.db.ConversationPersistenceService;
-import com.zm.kilacraftAI.db.ConversationSource;
+import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
+import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.handler.AIRequestHandler;
-import com.zm.kilacraftAI.manager.ConversationManager;
-import com.zm.kilacraftAI.util.AIRequestValidator;
-import com.zm.kilacraftAI.util.MessageUtil;
-import com.zm.kilacraftAI.util.PluginLogger;
+import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.common.util.MessageUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -29,13 +29,13 @@ import java.util.UUID;
 public class ChatListener implements Listener {
 
     private final KilacraftAI plugin;
-    private final AIRequestValidator validator;
+    private final AIRequestValidatorUtil validator;
     private final LanguageManager languageManager;
     private final AIRequestHandler aiRequestHandler;
 
     public ChatListener(KilacraftAI plugin) {
         this.plugin = plugin;
-        this.validator = new AIRequestValidator(plugin);
+        this.validator = new AIRequestValidatorUtil(plugin);
         this.languageManager = plugin.getLanguageManager();
         this.aiRequestHandler = new AIRequestHandler(plugin);
     }
@@ -110,7 +110,7 @@ public class ChatListener implements Listener {
         // 立即更新冷却时间
         validator.startCooldown(playerId);
 
-        PluginLogger.debug("聊天监听", "玩家 {} 的历史记录数量：{}", player.getName(), plugin.getConversationManager().getHistory(playerId) != null ? plugin.getConversationManager().getHistory(playerId).size() : 0);
+        PluginLoggerUtil.debug("聊天监听", "玩家 {} 的历史记录数量：{}", player.getName(), plugin.getConversationManager().getHistory(playerId) != null ? plugin.getConversationManager().getHistory(playerId).size() : 0);
 
         // 使用统一的 AI 请求处理器
         boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableChatListener();
@@ -125,13 +125,13 @@ public class ChatListener implements Listener {
             persistenceService.loadHistoryIfNeeded(playerId, "", loadedHistory -> {
                 // 合并 DB 历史到内存：DB 历史在前，内存中的问候（如有）在后
                 ConversationPersistenceService.mergeLoadedHistory(loadedHistory, playerHistory);
-                aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSource.CHAT);
-            }, ConversationSource.CHAT, ConversationSource.COMMAND);
+                aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSourceEnum.CHAT);
+            }, ConversationSourceEnum.CHAT, ConversationSourceEnum.COMMAND);
         } else {
             // 无持久化服务，使用原有同步逻辑
             ConversationManager convManager = plugin.getConversationManager();
             Deque<ConversationManager.Message> playerHistory = convManager.getOrCreateHistory(playerId);
-            aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSource.CHAT);
+            aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSourceEnum.CHAT);
         }
     }
 

@@ -1,0 +1,17 @@
+# AuditLogSkill 审计日志查询技能配置
+# 此文件由插件自动生成，可根据需要修改
+#
+# 此描述会发送给LLM，帮助其理解何时调用此技能
+description: '技能执行审计日志查询技能，查看 AI 技能的执行记录，包括谁用了什么技能、参数是什么、是否成功、耗时多久。支持按玩家、技能名、时间范围、成功/失败筛选。仅限管理员使用。'
+
+# 动作描述（Map 格式，key=动作名称，value=动作描述）
+action_descriptions:
+  query_logs: '查询技能执行日志。参数：time_range（默认7d）、player_name（玩家名过滤）、skill_name（技能名过滤）、limit（默认20）。返回的 data 中包含 time_range、count、logs（日志列表，含 player_uuid/skill_name/action/success/result_message/execution_ms/source/created_at）字段，可供后续步骤引用。'
+  skill_stats: '查询技能使用统计排行（按技能名+动作分组）。参数：time_range（默认7d）、limit（默认10）。返回的 data 中包含 time_range、total_executions、total_success、total_fail、success_rate、stats（含 skill_name/action/total_count/success_count/fail_count/avg_duration_ms）字段，可供后续步骤引用。'
+  error_logs: '查询失败执行日志（仅 success=false）。参数：time_range（默认7d）、skill_name（技能名过滤）、limit（默认20）。返回的 data 中包含 time_range、count、logs（失败日志列表，结构同 query_logs）字段，可供后续步骤引用。'
+
+# 额外提示信息
+hints:
+  - '当服主问"谁用了AI技能"、"技能执行记录"、"AI使用日志"等问题时使用 query_logs'
+  - '当服主问"AI技能排行"、"技能使用统计"、"哪个技能用得最多"等问题时使用 skill_stats'
+  - '当服主问"AI技能失败"、"执行失败的日志"、"哪些技能出错了"等问题时使用 error_logs'

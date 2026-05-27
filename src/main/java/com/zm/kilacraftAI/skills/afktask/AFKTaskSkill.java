@@ -1,15 +1,18 @@
 package com.zm.kilacraftAI.skills.afktask;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.config.I18nService;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.enums.AFKTaskTypeEnum;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
-import com.zm.kilacraftAI.skills.afktask.impl.*;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.config.SkillConfig;
+import com.zm.kilacraftAI.model.afktask.AFKTask;
+import com.zm.kilacraftAI.service.afktask.AFKTaskManager;
+import com.zm.kilacraftAI.service.afktask.impl.*;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skill.SkillConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -144,7 +147,7 @@ public class AFKTaskSkill implements Skill {
             return SkillResult.failure("缺少 task_type 参数。请用自然语言询问玩家想监视什么（上线还是下线）");
         }
 
-        AFKTaskType taskType = AFKTaskType.fromActionName(taskTypeStr);
+        AFKTaskTypeEnum taskType = AFKTaskTypeEnum.fromActionName(taskTypeStr);
 
         // 统计埋点：记录挂机任务类型
         MetricsCollector.getInstance().recordAfkTaskType(taskType.name());
@@ -161,10 +164,10 @@ public class AFKTaskSkill implements Skill {
             Player targetPlayer = Bukkit.getPlayerExact(targetPlayerName);
             boolean isOnline = targetPlayer != null && targetPlayer.isOnline();
 
-            if (taskType == AFKTaskType.PLAYER_ONLINE_WATCH && isOnline) {
+            if (taskType == AFKTaskTypeEnum.PLAYER_ONLINE_WATCH && isOnline) {
                 return SkillResult.failure(I18nService.tr("目标玩家 {} 当前已在线，PLAYER_ONLINE_WATCH 任务无意义。请用自然语言告知玩家目标已在线，并建议：如果需要监视 TA 下线，可以说\"帮我盯着{}下线\"", targetPlayerName, targetPlayerName));
             }
-            if (taskType == AFKTaskType.PLAYER_OFFLINE_WATCH && !isOnline) {
+            if (taskType == AFKTaskTypeEnum.PLAYER_OFFLINE_WATCH && !isOnline) {
                 return SkillResult.failure(I18nService.tr("目标玩家 {} 当前不在线，PLAYER_OFFLINE_WATCH 任务无意义。请用自然语言告知玩家目标不在线，并建议：如果需要监视 TA 上线，可以说\"帮我盯着{}上线\"", targetPlayerName, targetPlayerName));
             }
         }
@@ -188,7 +191,7 @@ public class AFKTaskSkill implements Skill {
      *
      * <p>根据任务类型返回对应的 AFKTask 工厂实现。</p>
      */
-    private AFKTaskManager.AFKTaskFactory getTaskFactory(AFKTaskType taskType) {
+    private AFKTaskManager.AFKTaskFactory getTaskFactory(AFKTaskTypeEnum taskType) {
         return switch (taskType) {
             case PLAYER_ONLINE_WATCH ->
                     (id, uuid, name, type, desc, p) -> new PlayerOnlineWatchTask(id, uuid, name, desc, p);
@@ -240,7 +243,7 @@ public class AFKTaskSkill implements Skill {
      * <p>当前允许跨玩家的类型：PLAYER_ONLINE_WATCH、PLAYER_OFFLINE_WATCH
      * （在线/下线状态不属于隐私数据）。</p>
      */
-    private boolean isPlayerPrivacyType(AFKTaskType taskType) {
+    private boolean isPlayerPrivacyType(AFKTaskTypeEnum taskType) {
         return switch (taskType) {
             case PLAYER_ONLINE_WATCH, PLAYER_OFFLINE_WATCH -> false;
             default -> true;
