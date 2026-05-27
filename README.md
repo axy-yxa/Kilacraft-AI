@@ -1,6 +1,8 @@
 <div align="center">
 
-# Kilacraft-AI <sub>[中文](README.zh.md)</sub>
+[English](README.md) · [中文](README.zh.md)
+
+# Kilacraft-AI
 
 **The first plugin that gives every server an AI agent that understands you better the more you use it**
 

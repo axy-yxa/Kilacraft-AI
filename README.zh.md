@@ -1,6 +1,8 @@
 <div align="center">
 
-# Kilacraft-AI <sub>[English](README.md)</sub>
+[English](README.md) · [中文](README.zh.md)
+
+# Kilacraft-AI
 
 **首个让每个服务器都拥有「越用越懂你」的AI智能体插件**
 
