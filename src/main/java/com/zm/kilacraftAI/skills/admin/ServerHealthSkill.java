@@ -1,24 +1,24 @@
 package com.zm.kilacraftAI.skills.admin;
 
-import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.common.util.AdminSkillUtil;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.config.AdminConfigManager;
-import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.db.DatabaseManager;
-import com.zm.kilacraftAI.db.dao.ServerEventDao;
-import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
-import com.zm.kilacraftAI.model.event.ServerEvent;
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
-import com.zm.kilacraftAI.skill.SkillConfig;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.AdminSkillUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.AdminConfigManager;
+import com.zm.kilacraftAI.config.SkillConfigManager;
+import com.zm.kilacraftAI.db.DatabaseManager;
+import com.zm.kilacraftAI.db.dao.ServerEventDao;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.model.event.ServerEvent;
+import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillConfig;
+import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skill.SkillResult;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -49,18 +49,37 @@ public class ServerHealthSkill implements Skill {
 
     private static final String LOG_PREFIX = "健康监控";
 
-    /** 报告文件名前缀 */
+    /**
+     * 报告文件名前缀
+     */
     private static final String REPORT_PREFIX = "health_report_";
-    /** 报告文件名中的日期格式 */
+
+    /**
+     * 系统热点名称集合 — 这些不是已安装插件，在聚合统计中应与插件分离，避免误导 LLM。
+     * Minecraft = 服务端内核（net.minecraft.* / ca.spottedleaf.*），
+     * 其他常见基础包名也可能作为系统热点出现。
+     */
+    private static final Set<String> SYSTEM_HOTSPOT_NAMES = Set.of("Minecraft", "Kilacraft-AI (自身)");
+    /**
+     * 报告文件名中的日期格式
+     */
     private static final String FILE_DATE_FORMAT = "yyyy-MM-dd_HH-mm-ss";
-    /** 报告文件名日期解析器 */
+    /**
+     * 报告文件名日期解析器
+     */
     private static final DateTimeFormatter PARSE_FMT = DateTimeFormatter.ofPattern(FILE_DATE_FORMAT);
-    /** 显示用日期格式 */
+    /**
+     * 显示用日期格式
+     */
     private static final DateTimeFormatter DISPLAY_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    /** 推理过程折叠块正则（中文） */
+    /**
+     * 推理过程折叠块正则（中文）
+     */
     private static final String REASONING_PATTERN_ZH = "(?s)<details><summary>AI 推理过程</summary>.*?</details>\\s*";
-    /** 推理过程折叠块正则（英文） */
+    /**
+     * 推理过程折叠块正则（英文）
+     */
     private static final String REASONING_PATTERN_EN = "(?s)<details><summary>AI Reasoning Process</summary>.*?</details>\\s*";
 
     private final SkillConfigManager configManager;
@@ -151,7 +170,7 @@ public class ServerHealthSkill implements Skill {
                 List<ServerEvent> alerts = dao.loadHealthAlerts(conn, queryAfterTime, 200);
 
                 if (alerts.isEmpty()) {
-                    return SkillResult.success("过去 {} 内没有健康告警记录。", timeRange);
+                    return SkillResult.success(I18nService.tr("过去 {} 内没有健康告警记录。", timeRange));
                 }
 
                 return buildQueryResult(alerts, plugin, metricType, timeRange);
@@ -169,6 +188,7 @@ public class ServerHealthSkill implements Skill {
     private SkillResult buildQueryResult(List<ServerEvent> alerts, String pluginFilter, String metricTypeFilter, String timeRange) {
         List<JsonObject> parsedAlerts = new ArrayList<>();
         Map<String, Integer> pluginAlertCounts = new LinkedHashMap<>();
+        Map<String, Integer> systemAlertCounts = new LinkedHashMap<>();
         Map<String, Integer> dailyDistribution = new LinkedHashMap<>();
         JsonObject lowestTpsAlert = null;
         double lowestTps = Double.MAX_VALUE;
@@ -212,13 +232,17 @@ public class ServerHealthSkill implements Skill {
                 }
             }
 
-            // 统计涉及插件
+            // 统计涉及插件（区分已安装插件 vs 系统内核）
             JsonArray hotspots = data.has("top_hotspots") ? data.getAsJsonArray("top_hotspots") : null;
             if (hotspots != null) {
                 for (JsonElement elem : hotspots) {
                     JsonObject hs = elem.getAsJsonObject();
                     String pluginName = hs.has("plugin") ? hs.get("plugin").getAsString() : "unknown";
-                    pluginAlertCounts.merge(pluginName, 1, Integer::sum);
+                    if (SYSTEM_HOTSPOT_NAMES.contains(pluginName)) {
+                        systemAlertCounts.merge(pluginName, 1, Integer::sum);
+                    } else {
+                        pluginAlertCounts.merge(pluginName, 1, Integer::sum);
+                    }
                 }
             }
 
@@ -249,6 +273,7 @@ public class ServerHealthSkill implements Skill {
         Map<String, Object> resultData = new LinkedHashMap<>();
         resultData.put("alert_count", parsedAlerts.size());
         resultData.put("plugins", pluginAlertCounts);
+        resultData.put("system", systemAlertCounts);
         resultData.put("daily_distribution", dailyDistribution);
         resultData.put("time_range", timeRange);
 
@@ -266,7 +291,7 @@ public class ServerHealthSkill implements Skill {
         }
 
         // 构建可读摘要
-        String summary = formatQuerySummary(parsedAlerts.size(), pluginAlertCounts, dailyDistribution, lowestTps, pluginFilter, metricTypeFilter, timeRange);
+        String summary = formatQuerySummary(parsedAlerts.size(), pluginAlertCounts, systemAlertCounts, dailyDistribution, lowestTps, pluginFilter, metricTypeFilter, timeRange);
         return SkillResult.success(summary, resultData);
     }
 
@@ -287,7 +312,7 @@ public class ServerHealthSkill implements Skill {
     /**
      * 格式化查询结果摘要
      */
-    private String formatQuerySummary(int alertCount, Map<String, Integer> pluginCounts, Map<String, Integer> dailyDist, double lowestTps, String pluginFilter, String metricFilter, String timeRange) {
+    private String formatQuerySummary(int alertCount, Map<String, Integer> pluginCounts, Map<String, Integer> systemCounts, Map<String, Integer> dailyDist, double lowestTps, String pluginFilter, String metricFilter, String timeRange) {
         StringBuilder sb = new StringBuilder();
         sb.append(I18nService.tr("过去 {} 共 {} 次健康告警", timeRange, alertCount));
 
@@ -301,6 +326,12 @@ public class ServerHealthSkill implements Skill {
         if (!pluginCounts.isEmpty()) {
             sb.append("\n").append(I18nService.tr("涉及插件: "));
             pluginCounts.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).limit(5).forEach(e -> sb.append(e.getKey()).append("(").append(e.getValue()).append(I18nService.tr("次) ")));
+        }
+
+        if (!systemCounts.isEmpty()) {
+            sb.append("\n").append(I18nService.tr("系统热点: "));
+            systemCounts.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).forEach(e -> sb.append(e.getKey()).append("(").append(e.getValue()).append(I18nService.tr("次) ")));
+            sb.append(I18nService.tr("（系统热点为服务端内核/自身插件的基础开销，通常无需关注）"));
         }
 
         if (!dailyDist.isEmpty()) {
@@ -350,8 +381,16 @@ public class ServerHealthSkill implements Skill {
                     return SkillResult.success(I18nService.tr("未找到报告文件（{}）", timeRange), data);
                 }
 
-                String summary = I18nService.tr("找到 {} 份报告（{}）", reportList.size(), timeRange);
-                return SkillResult.success(summary, data);
+                // 构建包含报告列表详情的摘要（确保 LLM 二次分析能看到具体报告）
+                StringBuilder summary = new StringBuilder();
+                summary.append(I18nService.tr("找到 {} 份报告（{}）", reportList.size(), timeRange));
+                for (Map<String, Object> r : reportList) {
+                    summary.append("\n  - ").append(r.get("filename"));
+                    summary.append(" (").append(r.get("mode"));
+                    summary.append(", ").append(r.get("timestamp"));
+                    summary.append(", ").append(r.get("size_display")).append(")");
+                }
+                return SkillResult.success(summary.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("列出报告失败: {}", e.getMessage()), e);
                 return SkillResult.failure("列出报告失败", e);
@@ -365,6 +404,7 @@ public class ServerHealthSkill implements Skill {
     private CompletableFuture<SkillResult> executeReadReport(SkillContext context) {
         String filenameRaw = context.getEntity("filename");
         String indexStr = context.getEntity("index");
+        String modeFilter = context.getEntity("mode");
 
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -384,7 +424,8 @@ public class ServerHealthSkill implements Skill {
                         return SkillResult.failure("报告目录不存在");
                     }
 
-                    List<Map<String, Object>> reports = performListReports(reportDir, null, -1, 100);
+                    // 应用 mode 过滤（如果上游步骤指定了 mode，如多步骤任务中的 list_reports）
+                    List<Map<String, Object>> reports = performListReports(reportDir, modeFilter, -1, 100);
                     if (index < 1 || index > reports.size()) {
                         return SkillResult.failure(I18nService.tr("索引超出范围（共 {} 份报告）", reports.size()));
                     }
@@ -437,9 +478,9 @@ public class ServerHealthSkill implements Skill {
                 data.put("size", reportFile.length());
                 data.put("content", content);
 
-                String summary = I18nService.tr("已读取报告 {}（{}）",
-                        filename, AdminSkillUtil.formatFileSize(reportFile.length()));
-                return SkillResult.success(summary, data);
+                // message 包含报告全文，确保 LLM 二次分析能看到完整内容
+                String summary = I18nService.tr("已读取报告 {}（{}）", filename, AdminSkillUtil.formatFileSize(reportFile.length()));
+                return SkillResult.success(summary + "\n\n" + content, data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("读取报告失败: {}", e.getMessage()), e);
                 return SkillResult.failure("读取报告失败", e);
@@ -501,11 +542,7 @@ public class ServerHealthSkill implements Skill {
         String tsStr = core.substring(firstUnderscore + 1);
         try {
             LocalDateTime ldt = LocalDateTime.parse(tsStr, PARSE_FMT);
-            return new String[]{
-                    mode,
-                    ldt.format(DISPLAY_FMT),
-                    String.valueOf(ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
-            };
+            return new String[]{mode, ldt.format(DISPLAY_FMT), String.valueOf(ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())};
         } catch (DateTimeParseException e) {
             return null;
         }
@@ -521,8 +558,7 @@ public class ServerHealthSkill implements Skill {
      * @return 报告列表（已按时间倒序排列、截断）
      */
     private List<Map<String, Object>> performListReports(File reportDir, String modeFilter, long afterTime, int limit) {
-        File[] files = reportDir.listFiles((dir, name) ->
-                name.startsWith(REPORT_PREFIX) && name.endsWith(".md"));
+        File[] files = reportDir.listFiles((dir, name) -> name.startsWith(REPORT_PREFIX) && name.endsWith(".md"));
 
         if (files == null || files.length == 0) {
             return List.of();

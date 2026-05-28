@@ -160,7 +160,7 @@ Query historical alert records and diagnostic reports via natural language:
 #### Historical Alert Query
 
 **Example queries:**
-- "What alerts have there been in the past hour?"
+- "What alerts have there been in the past day?"
 - "Show health alert records from the last 3 days"
 - "Which alerts had TPS below 15?"
 
@@ -189,6 +189,7 @@ Query your server's player ecosystem through natural language:
 - **New Player Influx**: New player join statistics
 - **Profile Coverage**: AI profile analysis coverage rate
 - **Social Insights**: Player social network analysis
+- **Player Relations**: Query a specific player's social relations (relation type, strength level, interaction frequency, last interaction time)
 
 ### 2.2 Usage
 
@@ -221,6 +222,12 @@ Returns total player count, analyzed/pending counts, coverage percentage.
 **Example:** "Show player social network analysis"
 
 Returns total social relations, average relationship strength, isolated player list.
+
+#### Specific Player Social Relations
+
+**Example:** "Show Steve's social relations", "What friends does Hub have?"
+
+Returns the specified player's social relations list, including relation target, relation type, strength level (Stranger/Acquaintance/Friend/Good Friend/Close Friend), interaction count, and last interaction time.
 
 ## 3. Audit Log Query
 

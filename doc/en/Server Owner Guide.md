@@ -285,7 +285,7 @@ Real-time server performance monitoring and AI-powered diagnostics based on Spar
 **Alert Notifications:** Supports in-game notifications + Discord Webhook / DingTalk bot external push (automatic mode only). Use `/kilacraft notify test` to test notification channels.
 
 **Historical Queries:** Query historical alerts and reports via natural language:
-- "What alerts have there been in the past hour?"
+- "What alerts have there been in the past day?"
 - "List recent diagnostic reports"
 - "I upgraded MythicMobs yesterday, check if performance has improved"
 

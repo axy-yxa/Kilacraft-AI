@@ -2,10 +2,19 @@ package com.zm.kilacraftAI.common.util;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.db.DatabaseManager;
+import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skill.SkillSecurityFilter;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
@@ -18,6 +27,92 @@ import java.util.concurrent.CompletableFuture;
 public final class AdminSkillUtil {
 
     private AdminSkillUtil() {
+    }
+
+    /**
+     * 关系强度等级阈值
+     */
+    private static final double[] STRENGTH_THRESHOLDS = {0.1, 0.3, 0.5, 0.7};
+
+    /**
+     * 格式化时间戳为可读日期字符串
+     *
+     * @param epochMs 毫秒时间戳
+     * @return 格式化后的日期字符串（如 "2026-05-18 14:30"）
+     */
+    public static String formatTimestamp(long epochMs) {
+        if (epochMs <= 0) return "-";
+        return Instant.ofEpochMilli(epochMs).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+    }
+
+    /**
+     * 将事件类型转换为可读名称
+     */
+    public static String translateEventType(String eventType) {
+        return switch (eventType) {
+            case "PLAYER_LOGIN" -> I18nService.tr("登录");
+            case "PLAYER_LOGOUT" -> I18nService.tr("登出");
+            case "PLAYER_FIRST_JOIN" -> I18nService.tr("首次加入");
+            default -> eventType;
+        };
+    }
+
+    /**
+     * 将关系强度数值转换为等级描述
+     *
+     * @param strength 关系强度 (0.0~1.0)
+     * @return 等级描述（如 "密友(0.85)"）
+     */
+    public static String formatStrengthLevel(double strength) {
+        String[] i18nLevels = {I18nService.tr("陌生"), I18nService.tr("点头之交"), I18nService.tr("普通朋友"), I18nService.tr("好友"), I18nService.tr("密友")};
+        String level;
+        if (strength < STRENGTH_THRESHOLDS[0]) level = i18nLevels[0];
+        else if (strength < STRENGTH_THRESHOLDS[1]) level = i18nLevels[1];
+        else if (strength < STRENGTH_THRESHOLDS[2]) level = i18nLevels[2];
+        else if (strength < STRENGTH_THRESHOLDS[3]) level = i18nLevels[3];
+        else level = i18nLevels[4];
+        return level + "(" + String.format("%.2f", strength) + ")";
+    }
+
+    /**
+     * UUID→玩家名反查（在线缓存优先 + 库查询兜底）
+     *
+     * @param uuidStr UUID 字符串
+     * @param conn    数据库连接
+     * @param cache   本地缓存（可复用，避免重复查询）
+     * @return 玩家名，未找到则返回 UUID 前8位
+     */
+    public static String resolvePlayerName(String uuidStr, Connection conn, Map<String, String> cache) throws SQLException {
+        if (uuidStr == null || uuidStr.isEmpty()) return "-";
+        String cached = cache.get(uuidStr);
+        if (cached != null) return cached;
+
+        // 尝试在线缓存
+        try {
+            UUID uuid = UUID.fromString(uuidStr);
+            Map<UUID, String> onlineCache = SkillSecurityFilter.getOnlineUuidToName();
+            String onlineName = onlineCache.get(uuid);
+            if (onlineName != null) {
+                cache.put(uuidStr, onlineName);
+                return onlineName;
+            }
+        } catch (Exception ignored) {
+        }
+
+        // 库查询
+        DatabaseManager dbManager = KilacraftAI.getInstance().getDatabaseManager();
+        PlayerProfileDao profileDao = new PlayerProfileDao(dbManager.getTablePrefix());
+        try {
+            UUID uuid = UUID.fromString(uuidStr);
+            var profile = profileDao.loadByUuid(conn, uuid);
+            String name = profile != null ? profile.getName() : uuidStr.substring(0, 8) + "...";
+            cache.put(uuidStr, name);
+            return name;
+        } catch (Exception e) {
+            String fallback = uuidStr.length() >= 8 ? uuidStr.substring(0, 8) + "..." : uuidStr;
+            cache.put(uuidStr, fallback);
+            return fallback;
+        }
     }
 
     /**

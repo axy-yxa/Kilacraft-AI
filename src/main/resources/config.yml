@@ -220,6 +220,8 @@ security:
       - "market_action.transfer_money" # 转账：target_player是收款人，需要允许指定其他玩家 / Money transfer: target_player is the recipient, must allow specifying other players
       - "utility.notify_player"      # 中途通知：仅通知文本，不执行操作，消息中可包含其他玩家名 / Mid-task notification: text-only, no operations, message may contain other player names
       - "utility.broadcast_message"    # 全服广播：仅输出公告文本，消息中可能包含其他玩家名 / Server-wide broadcast: announcement text output only, message may contain other player names
+      - "player_analysis.player_relations" # 玩家社交关系查询：管理员查询指定玩家的社交关系 / Player social relation query: admin queries a specific player's social relations
+      - "audit_log.query_logs"         # 技能执行日志查询：管理员查询指定玩家的技能使用记录 / Skill execution log query: admin queries a specific player's skill usage logs
 
 # ==================== 社交关系配置 / Social Relation Configuration ====================
 # 社交关系智能提取器会定期扫描这些 Skill 的审计日志，

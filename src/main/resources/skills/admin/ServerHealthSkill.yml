@@ -2,19 +2,19 @@
 # 此文件由插件自动生成，可根据需要修改
 #
 # 此描述会发送给LLM，帮助其理解何时调用此技能
-description: '服务器健康管理技能，提供历史告警查询和诊断报告读取。支持告警统计、报告文件浏览、完整报告内容读取。'
+description: '服务器健康监控技能。支持查询历史性能告警记录（health_report）、浏览诊断报告文件列表（list_reports）、读取完整诊断报告内容（read_report）。适用于服务器性能问题排查、历史告警统计分析、诊断报告回顾与对比等场景。'
 
 # 动作描述（Map 格式，key=动作名称，value=动作描述）
 action_descriptions:
-  health_report: '查询近期历史告警记录。支持 plugin（插件名过滤）和 metric_type（指标类型：tps/mspt/cpu）参数。返回的 data 中包含 alert_count、plugins（插件告警次数映射）、daily_distribution（按天分布）、time_range、lowest_tps_detail（含 tps_1m/mspt_p95/cpu_process/alerts/top_hotspots）字段，可供后续步骤引用。'
+  health_report: '查询近期历史告警记录。支持 plugin（插件名过滤）和 metric_type（指标类型：tps/mspt/cpu）参数。返回的 data 中包含 alert_count、plugins（已安装插件的告警次数映射，不含系统热点）、system（系统热点告警次数映射，如 Minecraft 内核、自身插件，通常无需关注）、daily_distribution（按天分布）、time_range、lowest_tps_detail（含 tps_1m/mspt_p95/cpu_process/alerts/top_hotspots）字段，可供后续步骤引用。'
   list_reports: '列出报告目录中的诊断报告文件。参数：time_range（默认7d）、mode（可选 auto/manual）、limit（默认20）。返回的 data 中包含 count（报告数量）、reports（报告列表，每条含 filename/mode/timestamp/size/size_display）字段。配合 read_report 使用。'
-  read_report: '读取指定诊断报告的完整内容。参数：filename（报告文件名）或 index（list_reports 结果中的序号，从1开始）。返回的 data 中包含 content（报告全文，已剥离推理过程）、mode、timestamp 字段。可基于报告内容进行深度分析。'
+  read_report: '读取指定诊断报告的完整内容。参数：filename（报告文件名，优先使用）或 index（按 mode 过滤后的序号，从1开始，不是全局序号）。支持 mode 参数（auto/manual）过滤报告类型。返回的 data 中包含 content（报告全文，已剥离推理过程）、mode、timestamp 字段。多步骤任务中建议先 list_reports 获取 filename，再用 filename 读取。'
 
 # 额外提示信息
 hints:
-  - '当服主说"最近有没有出过性能告警"、"过去几天卡过几次"、"某个插件是不是导致卡顿"、"服务器最近性能怎么样"时使用 health_report'
-  - '当服主说"列出最近的诊断报告"、"有哪些分析报告"时使用 list_reports'
-  - '当服主说"查看上次的诊断报告"、"看一下这份报告"、"对比这两次报告"时，先 list_reports 获取列表，再 read_report 读取内容'
+  - 'health_report 用于查询历史性能告警记录。当服主说"最近有没有出过性能告警"、"过去几天卡过几次"、"某个插件是不是导致卡顿"、"服务器最近性能怎么样"时使用'
+  - 'list_reports 用于列出服务器上保存的诊断报告文件列表。当服主说"列出最近的诊断报告"、"有哪些分析报告"、"列出报告"、"报告列表"时使用'
+  - 'read_report 用于读取某份诊断报告的完整内容。参数：filename（优先使用）或 index（过滤后序号，从1开始）。支持 mode 参数（auto/manual）过滤报告类型，注意：index 是按 mode 过滤后的序号，不是全局序号。当服主说"查看上次的诊断报告"、"看一下这份报告"、"对比这两次报告"时，必须先 list_reports 获取列表，再用 filename 参数读取指定报告（多步骤任务）'
   - '当服主说"这个月 MythicMobs 是不是一直有性能问题"，先 health_report 统计告警摘要看关联插件，再 list_reports + read_report 查看具体报告中的分析结论'
   - 'read_report 返回的 content 字段包含报告的 §1（状态概览）、§2（插件分析）、§3（AI 诊断结论），基于这些数据即可回答服主关于历史性能的问题'
   - '当对比多份报告时，注意各报告的采样条件（在线人数、玩家活动）可能不同，应偏向定性分析（如"改善明显"）而非精确量化（如"提升42%"），并在回答中说明采样条件差异'

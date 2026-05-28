@@ -4,23 +4,23 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.llm.LLMProvider;
-import com.zm.kilacraftAI.llm.GenericLLMProvider;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
 import com.zm.kilacraftAI.common.exception.LLMException;
-import com.zm.kilacraftAI.llm.LLMResponse;
-import com.zm.kilacraftAI.llm.ThinkingModelConfig;
+import com.zm.kilacraftAI.common.util.AdminSkillUtil;
 import com.zm.kilacraftAI.common.util.MessageUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.AdminConfigManager;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
-import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.llm.GenericLLMProvider;
+import com.zm.kilacraftAI.llm.LLMProvider;
+import com.zm.kilacraftAI.llm.LLMResponse;
+import com.zm.kilacraftAI.llm.ThinkingModelConfig;
 import com.zm.kilacraftAI.model.event.ServerEvent;
-import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
-import com.zm.kilacraftAI.scheduler.ManagedTask;
-import com.zm.kilacraftAI.common.util.AdminSkillUtil;
 import com.zm.kilacraftAI.model.notification.NotificationMessage;
+import com.zm.kilacraftAI.scheduler.ManagedTask;
 import com.zm.kilacraftAI.service.notification.NotificationMessageFormatter;
 import com.zm.kilacraftAI.service.notification.NotificationService;
 import lombok.Getter;
@@ -150,7 +150,7 @@ public class ServerHealthGuardian implements ManagedTask {
         }
 
         // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
-        PluginLoggerUtil.debug(LOG_PREFIX, "实时指标 — TPS: 5s={} 1m={} 5m={} | MSPT(1m): max={} median={} p95={} | MSPT(10s): max={} | CPU: process={}% system={}%", snapshot.tps5s(), snapshot.tps1m(), snapshot.tps5m(), String.format("%.1f", snapshot.msptMax()), String.format("%.1f", snapshot.msptMedian()), String.format("%.1f", snapshot.msptP95()), String.format("%.1f", snapshot.mspt10sMax()), String.format("%.1f", snapshot.cpuProcess()), String.format("%.1f", snapshot.cpuSystem()));
+//        PluginLoggerUtil.debug(LOG_PREFIX, "实时指标 — TPS: 5s={} 1m={} 5m={} | MSPT(1m): max={} median={} p95={} | MSPT(10s): max={} | CPU: process={}% system={}%", snapshot.tps5s(), snapshot.tps1m(), snapshot.tps5m(), String.format("%.1f", snapshot.msptMax()), String.format("%.1f", snapshot.msptMedian()), String.format("%.1f", snapshot.msptP95()), String.format("%.1f", snapshot.mspt10sMax()), String.format("%.1f", snapshot.cpuProcess()), String.format("%.1f", snapshot.cpuSystem()));
 
         List<String> alerts = sparkCollector.checkThresholds(snapshot, configManager.getAlertThresholds(), configManager.getMsptConsecutiveThreshold());
         if (alerts.isEmpty()) {
@@ -386,11 +386,11 @@ public class ServerHealthGuardian implements ManagedTask {
                 pushExternalNotification(alerts, snapshot, aiDiagnosis);
             }
 
-                        if (reportFile != null) {
-                            PluginLoggerUtil.info(LOG_PREFIX, "{}模式分析完成，报告: {}", mode, reportFile.getName());
-                        } else {
-                            PluginLoggerUtil.info(LOG_PREFIX, "{}模式分析完成", mode);
-                        }
+            if (reportFile != null) {
+                PluginLoggerUtil.info(LOG_PREFIX, "{}模式分析完成，报告: {}", mode, reportFile.getName());
+            } else {
+                PluginLoggerUtil.info(LOG_PREFIX, "{}模式分析完成", mode);
+            }
 
             // 通知在线管理员
             notifyAdmins(mode, reportFile);
@@ -541,7 +541,7 @@ public class ServerHealthGuardian implements ManagedTask {
             String userMessage = buildDiagnosticPrompt(snapshot, alerts, profilerUrl, metadataJson, processedResult, activityBefore, activityAfter);
 
             // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
-            PluginLoggerUtil.warn(LOG_PREFIX, "== AI 诊断提示词 ==\n[SYSTEM]\n{}\n\n[USER]\n{}", systemPrompt, userMessage);
+//            PluginLoggerUtil.warn(LOG_PREFIX, "== AI 诊断提示词 ==\n[SYSTEM]\n{}\n\n[USER]\n{}", systemPrompt, userMessage);
 
             LLMResponse response = genericProvider.processRequestWithThinkingModel(systemPrompt, userMessage, config, client);
 
@@ -572,9 +572,7 @@ public class ServerHealthGuardian implements ManagedTask {
         boolean isChinese = I18nService.isZh();
 
         // 获取模式职责描述（按语言）
-        String modeInstruction = MODE_AUTO.equals(mode)
-                ? configManager.getAutoModeInstructionByLanguage(isChinese, "系统自动检测到服务器性能异常并触发了 Profiler 采样，请分析数据，定位根因并给出优化建议")
-                : configManager.getManualModeInstructionByLanguage(isChinese, "服主手动触发了性能采样，请分析数据，判断是否存在性能问题，如果有则定位根因并给出优化建议");
+        String modeInstruction = MODE_AUTO.equals(mode) ? configManager.getAutoModeInstructionByLanguage(isChinese, "系统自动检测到服务器性能异常并触发了 Profiler 采样，请分析数据，定位根因并给出优化建议") : configManager.getManualModeInstructionByLanguage(isChinese, "服主手动触发了性能采样，请分析数据，判断是否存在性能问题，如果有则定位根因并给出优化建议");
 
         // 优先使用配置文件中的提示词（按语言）
         String configPrompt = configManager.getDiagnosticSystemPromptByLanguage(isChinese, null);
@@ -707,14 +705,14 @@ public class ServerHealthGuardian implements ManagedTask {
     private String extractEntitySummary(String metadataJson) {
         try {
             var root = JsonParser.parseString(metadataJson).getAsJsonObject();
-    
+
             if (!root.has("metadata") || !root.get("metadata").isJsonObject()) return null;
             var metadata = root.getAsJsonObject("metadata");
             if (!metadata.has("platformStatistics") || !metadata.get("platformStatistics").isJsonObject()) return null;
             var stats = metadata.getAsJsonObject("platformStatistics");
             if (!stats.has("world") || !stats.get("world").isJsonObject()) return null;
             var world = stats.getAsJsonObject("world");
-    
+
             StringBuilder sb = new StringBuilder();
             sb.append("总实体数: ").append(world.has("totalEntities") ? world.get("totalEntities").getAsInt() : "N/A").append("\n");
 
@@ -726,7 +724,7 @@ public class ServerHealthGuardian implements ManagedTask {
                 String joined = sorted.stream().map(e -> e.getKey() + "(" + e.getValue().getAsInt() + ")").collect(Collectors.joining(", "));
                 sb.append(joined).append("\n");
             }
-    
+
             // 各世界实体数 + Top 5 高密度区块
             if (world.has("worlds") && world.get("worlds").isJsonArray()) {
                 for (var elem : world.getAsJsonArray("worlds")) {
@@ -970,8 +968,7 @@ public class ServerHealthGuardian implements ManagedTask {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     Location loc = player.getLocation();
                     // 坐标精确到区块级
-                    locations.put(player.getName(),
-                        loc.getWorld().getName() + " (" + (loc.getBlockX() >> 4) + ", " + (loc.getBlockZ() >> 4) + ")");
+                    locations.put(player.getName(), loc.getWorld().getName() + " (" + (loc.getBlockX() >> 4) + ", " + (loc.getBlockZ() >> 4) + ")");
                     // 方块级精确坐标（不对外暴露）
                     blockCoords.put(player.getName(), new int[]{loc.getBlockX(), loc.getBlockZ()});
                 }
@@ -988,10 +985,9 @@ public class ServerHealthGuardian implements ManagedTask {
      * 格式化服务器活动指标差值（采样前后对比）
      *
      * @return 格式化文本，无有效数据时返回空字符串
-         */
+     */
     private String formatActivityDiff(ServerActivitySnapshot before, ServerActivitySnapshot after) {
-        if (before.worldChunkCounts().isEmpty() && after.worldChunkCounts().isEmpty()
-                && before.playerBlockCoords().isEmpty() && after.playerBlockCoords().isEmpty()) {
+        if (before.worldChunkCounts().isEmpty() && after.worldChunkCounts().isEmpty() && before.playerBlockCoords().isEmpty() && after.playerBlockCoords().isEmpty()) {
             return "";
         }
 
@@ -1060,18 +1056,12 @@ public class ServerHealthGuardian implements ManagedTask {
      * 异步执行，不阻塞分析主流程。</p>
      * <p>仅推送摘要（告警指标 + AI 结论），不推送完整报告文件（含敏感信息）。</p>
      */
-    private void pushExternalNotification(
-        List<String> alerts,
-        SparkDataCollector.HealthSnapshot snapshot,
-        String aiDiagnosis
-    ) {
+    private void pushExternalNotification(List<String> alerts, SparkDataCollector.HealthSnapshot snapshot, String aiDiagnosis) {
         NotificationService notificationService = plugin.getNotificationService();
         if (notificationService == null || !notificationService.isReady()) return;
 
         try {
-            NotificationMessage message = NotificationMessageFormatter.buildAutoAlert(
-                alerts, snapshot, aiDiagnosis
-            );
+            NotificationMessage message = NotificationMessageFormatter.buildAutoAlert(alerts, snapshot, aiDiagnosis);
             notificationService.notify(message);
         } catch (RejectedExecutionException e) {
             PluginLoggerUtil.warn(LOG_PREFIX, I18nService.tr("外部通知推送失败：IO 线程池已关闭"));

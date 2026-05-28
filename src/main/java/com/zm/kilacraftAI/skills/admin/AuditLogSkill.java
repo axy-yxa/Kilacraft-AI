@@ -1,18 +1,18 @@
 package com.zm.kilacraftAI.skills.admin;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.common.util.AdminSkillUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
 import com.zm.kilacraftAI.db.dao.SkillLogDao;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.skill.Skill;
+import com.zm.kilacraftAI.skill.SkillConfig;
 import com.zm.kilacraftAI.skill.SkillContext;
 import com.zm.kilacraftAI.skill.SkillResult;
-import com.zm.kilacraftAI.skill.SkillConfig;
-import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 
 import java.sql.Connection;
 import java.util.*;
@@ -125,13 +125,25 @@ public class AuditLogSkill implements Skill {
                 SkillLogDao dao = new SkillLogDao(dbManager.getTablePrefix());
                 List<SkillLogDao.SkillLogEntry> logs = dao.queryLogs(conn, range[0], range[1], playerUuid, skillName, null, limit);
 
+                List<Map<String, Object>> formatted = formatLogEntries(logs);
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("time_range", timeRange);
                 data.put("count", logs.size());
-                data.put("logs", formatLogEntries(logs));
+                data.put("logs", formatted);
 
-                String summary = I18nService.tr("技能执行日志（{}，共 {} 条）", timeRange, logs.size());
-                return SkillResult.success(summary, data);
+                // 构建包含数据的 message，供 LLM 二次分析直接使用
+                // UUID → 玩家名反查
+                Map<String, String> nameCache = new HashMap<>();
+
+                StringBuilder msg = new StringBuilder();
+                msg.append(I18nService.tr("全服技能执行日志（{}，共 {} 条）", timeRange, logs.size()));
+                for (SkillLogDao.SkillLogEntry entry : logs) {
+                    String pName = AdminSkillUtil.resolvePlayerName(entry.playerUuid(), conn, nameCache);
+                    String timeStr = AdminSkillUtil.formatTimestamp(entry.createdAt());
+                    msg.append("\n  - ").append(timeStr).append(" ").append(pName).append(" ").append(entry.skillName()).append("/").append(entry.action()).append(entry.success() ? I18nService.tr(" 成功") : I18nService.tr(" 失败")).append(" (").append(entry.executionMs()).append("ms)");
+                }
+
+                return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询技能日志失败: {}", e.getMessage()), e);
                 return SkillResult.failure("查询技能日志失败", e);
@@ -161,17 +173,26 @@ public class AuditLogSkill implements Skill {
                 int totalExecutions = stats.stream().mapToInt(SkillLogDao.SkillUsageStat::totalCount).sum();
                 int totalSuccess = stats.stream().mapToInt(SkillLogDao.SkillUsageStat::successCount).sum();
                 int totalFail = stats.stream().mapToInt(SkillLogDao.SkillUsageStat::failCount).sum();
+                double successRate = totalExecutions > 0 ? Math.round((double) totalSuccess / totalExecutions * 1000.0) / 10.0 : 0.0;
 
+                List<Map<String, Object>> formatted = formatUsageStats(stats);
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("time_range", timeRange);
                 data.put("total_executions", totalExecutions);
                 data.put("total_success", totalSuccess);
                 data.put("total_fail", totalFail);
-                data.put("success_rate", totalExecutions > 0 ? Math.round((double) totalSuccess / totalExecutions * 1000.0) / 10.0 : 0.0);
-                data.put("stats", formatUsageStats(stats));
+                data.put("success_rate", successRate);
+                data.put("stats", formatted);
 
-                String summary = String.format(I18nService.tr("技能使用统计（%s，共 %d 次执行，成功率 %.1f%%）"), timeRange, totalExecutions, totalExecutions > 0 ? (double) totalSuccess / totalExecutions * 100 : 0);
-                return SkillResult.success(summary, data);
+                // 构建包含数据的 message，供 LLM 二次分析直接使用
+                StringBuilder msg = new StringBuilder();
+                msg.append(I18nService.tr("全服技能使用统计（{}，共 {} 次执行，成功率 {}%）", timeRange, totalExecutions, successRate));
+                for (Map<String, Object> row : formatted) {
+                    double rowRate = (double) row.get("success_rate");
+                    msg.append("\n  - ").append(row.get("skill_name")).append("/").append(row.get("action")).append(": ").append(row.get("total_count")).append(I18nService.tr("次")).append(" (").append(I18nService.tr("成功")).append(" ").append(row.get("success_count")).append(", ").append(I18nService.tr("失败")).append(" ").append(row.get("fail_count")).append(", ").append(I18nService.tr("成功率")).append(" ").append(String.format("%.1f", rowRate)).append("%)").append(" ").append(I18nService.tr("均耗")).append(" ").append(row.get("avg_duration_ms")).append("ms");
+                }
+
+                return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询技能统计失败: {}", e.getMessage()), e);
                 return SkillResult.failure("查询技能统计失败", e);
@@ -199,13 +220,25 @@ public class AuditLogSkill implements Skill {
                 SkillLogDao dao = new SkillLogDao(dbManager.getTablePrefix());
                 List<SkillLogDao.SkillLogEntry> logs = dao.queryErrorLogs(conn, range[0], range[1], skillName, limit);
 
+                List<Map<String, Object>> formatted = formatLogEntries(logs);
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("time_range", timeRange);
                 data.put("count", logs.size());
-                data.put("logs", formatLogEntries(logs));
+                data.put("logs", formatted);
 
-                String summary = I18nService.tr("失败执行日志（{}，共 {} 条）", timeRange, logs.size());
-                return SkillResult.success(summary, data);
+                // 构建包含数据的 message，供 LLM 二次分析直接使用
+                Map<String, String> nameCache = new HashMap<>();
+
+                StringBuilder msg = new StringBuilder();
+                msg.append(I18nService.tr("全服失败执行日志（{}，共 {} 条）", timeRange, logs.size()));
+                for (SkillLogDao.SkillLogEntry entry : logs) {
+                    String pName = AdminSkillUtil.resolvePlayerName(entry.playerUuid(), conn, nameCache);
+                    String timeStr = AdminSkillUtil.formatTimestamp(entry.createdAt());
+                    String resultMsg = truncate(entry.resultMessage(), 100);
+                    msg.append("\n  - ").append(timeStr).append(" ").append(pName).append(" ").append(entry.skillName()).append("/").append(entry.action()).append(" (").append(entry.executionMs()).append("ms)").append(": ").append(resultMsg != null ? resultMsg : "");
+                }
+
+                return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询失败日志失败: {}", e.getMessage()), e);
                 return SkillResult.failure("查询失败日志失败", e);

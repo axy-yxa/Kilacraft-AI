@@ -1,14 +1,14 @@
 package com.zm.kilacraftAI.skill.task;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.llm.LLMProvider;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.ConfigManager;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.skill.SkillContext;
 import com.zm.kilacraftAI.skill.SkillResult;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 
 import java.util.Deque;
 import java.util.UUID;
@@ -26,6 +26,12 @@ public class LLMAnalysisService {
 
     private final KilacraftAI plugin;
     private final ConfigManager configManager;
+
+    /**
+     * 知识库检索禁用阈值：当分析提示词超过此长度时，说明技能执行结果已包含完整信息（如诊断报告全文），
+     * 知识库检索的边际价值极低且增加噪音，应禁用。
+     */
+    private static final int KNOWLEDGE_DISABLE_THRESHOLD = 2000;
 
     public LLMAnalysisService() {
         this.plugin = KilacraftAI.getInstance();
@@ -122,7 +128,12 @@ public class LLMAnalysisService {
         };
 
         // 调用 LLM，传入包装后的 Handler
-        llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, true, false);
+        // 当分析提示词已包含完整技能执行结果时（如诊断报告全文），知识库检索是纯噪音
+        boolean enableKnowledge = analysisPrompt.length() < KNOWLEDGE_DISABLE_THRESHOLD;
+        if (!enableKnowledge) {
+            PluginLoggerUtil.debug("LLM分析", I18nService.tr("分析提示词较长（{}字符），跳过知识库检索以减少噪音", analysisPrompt.length()));
+        }
+        llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, enableKnowledge, false);
 
         return responseFuture.thenApply(SkillResult::success);
     }
