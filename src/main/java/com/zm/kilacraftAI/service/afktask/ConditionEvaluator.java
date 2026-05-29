@@ -4,9 +4,9 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.model.afktask.ConditionPlan;
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
 import org.bukkit.entity.Player;
 
 import java.util.Map;

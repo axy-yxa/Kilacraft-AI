@@ -1,6 +1,6 @@
-package com.zm.kilacraftAI.skill.task;
+package com.zm.kilacraftAI.skills.framework.task;
 
-import com.zm.kilacraftAI.skill.SkillContext;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
 import lombok.Getter;
 
 /**

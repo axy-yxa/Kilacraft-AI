@@ -5,8 +5,8 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.skill.SkillResult;
-import com.zm.kilacraftAI.skill.SkillSecurityFilter;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
 
 import java.sql.Connection;
 import java.sql.SQLException;

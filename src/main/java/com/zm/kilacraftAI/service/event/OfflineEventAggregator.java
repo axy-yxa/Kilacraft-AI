@@ -11,7 +11,7 @@ import com.zm.kilacraftAI.model.greeting.FriendStatus;
 import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.profile.ProfileManager;
-import com.zm.kilacraftAI.skill.SkillSecurityFilter;
+import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 
 import java.sql.Connection;

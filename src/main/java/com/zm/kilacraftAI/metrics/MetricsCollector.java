@@ -1,8 +1,8 @@
 package com.zm.kilacraftAI.metrics;
 
 import com.google.gson.Gson;
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillManager;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillManager;
 import lombok.Getter;
 import lombok.Setter;
 

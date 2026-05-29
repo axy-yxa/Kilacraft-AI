@@ -8,10 +8,10 @@ import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
-import com.zm.kilacraftAI.skill.SkillConfig;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.SkillConfig;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
 import org.bukkit.entity.Player;
 

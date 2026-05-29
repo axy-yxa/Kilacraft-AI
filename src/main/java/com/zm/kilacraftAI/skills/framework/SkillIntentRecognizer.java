@@ -1,4 +1,4 @@
-package com.zm.kilacraftAI.skill;
+package com.zm.kilacraftAI.skills.framework;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -10,8 +10,8 @@ import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
-import com.zm.kilacraftAI.skill.task.TaskPlan;
-import com.zm.kilacraftAI.skill.task.TaskStep;
+import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
+import com.zm.kilacraftAI.skills.framework.task.TaskStep;
 import com.zm.kilacraftAI.common.util.HistoryUtil;
 import org.bukkit.entity.Player;
 

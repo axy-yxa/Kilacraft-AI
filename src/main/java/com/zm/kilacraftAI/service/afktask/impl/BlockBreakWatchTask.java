@@ -4,7 +4,7 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.common.enums.AFKTaskStatusEnum;
 import com.zm.kilacraftAI.common.enums.AFKTaskTypeEnum;
 import com.zm.kilacraftAI.service.afktask.AbstractEventWatchTask;
-import com.zm.kilacraftAI.skill.task.TaskPlan;
+import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;

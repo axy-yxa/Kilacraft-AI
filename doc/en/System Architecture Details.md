@@ -1,6 +1,6 @@
 # Kilacraft-AI System Architecture Details
 
-> **Last Updated**: 2026-05-06  
+> **Last Updated**: 2026-05-22
 > **Description**: This document provides detailed explanation of Kilacraft-AI's core architecture design, working principles of three interaction modes, call chains, and design philosophy
 
 ---
@@ -361,6 +361,100 @@ EmbeddingService (batch API call)
        ↓
   Top-K relevant chunks → injected into LLM context
 ```
+
+> - [SPI Integration Guide](./Skill%20SPI%20Integration%20Guide)
+> - [Changelog](./Changelog)
+
+---
+
+## 🆕 v2.1.0 Admin Management Subsystem Architecture
+
+v2.1.0 introduces the admin management subsystem for server operations, covering health monitoring, player analysis, and audit logging.
+
+### 1. Admin Skill Registration System
+
+```
+initializeAdminSystem()
+  ├── AdminConfigManager (admin.yml configuration)
+  ├── NotificationService (external notification init)
+  ├── AdminListener (event listener, interrupt sampling on disconnect)
+  │
+  ├── Admin Skill Registration (always registered, no API key / Spark required)
+  │   ├── ServerHealthSkill (3 actions: alert_history / list_reports / read_report)
+  │   ├── PlayerAnalysisSkill (6 actions: online_trend / top_active / new_players /
+  │   │                          profile_coverage / social_insights / player_relations)
+  │   └── AuditLogSkill (3 actions: query_logs / usage_stats / error_logs)
+  │
+  └── Guardian Thread Creation (triple gate)
+      ├── Gate 1: databaseManager != null
+      ├── Gate 2: admin.yml guardian.enabled + thinking model API configured
+      ├── Gate 3: Spark plugin available (2-min delayed retry supported)
+      └── All passed → Register ServerHealthGuardian to TaskScheduler
+```
+
+**Key Design**:
+- 12 Admin Skill actions are always registered; query features work without API key
+- Only the guardian thread (auto monitoring) and AI diagnostics require thinking model API key + Spark
+- Supports 2-minute delayed Spark detection retry (compatible with Leaf and other delayed Spark registration)
+
+### 2. Health Guardian Thread & AI Diagnostics
+
+```
+ServerHealthGuardian (daemon thread, polls every 10s)
+  ├── SparkDataCollector (reads TPS / MSPT / CPU)
+  ├── Metric exceeds threshold → Auto-trigger diagnostics
+  │   ├── Debounce: alert cooldown + sliding window rate limiting
+  │   ├── Spark Profiler sampling (auto mode, full duration)
+  │   ├── DiagnosticReportGenerator (Markdown diagnostic report)
+  │   │   ├── Server status overview (TPS / MSPT / memory / CPU)
+  │   │   ├── Plugin ranking by self time
+  │   │   ├── Hotspot method trigger paths
+  │   │   ├── Player activity metrics (movement distance / distribution)
+  │   │   ├── Self-monitoring text (Kilacraft-AI resource usage)
+  │   │   └── Saved to plugins/Kilacraft-AI/reports/
+  │   ├── Thinking model deep analysis (ThinkingModelConfig)
+  │   └── External notification push (Discord / DingTalk)
+  └── Sampling complete → Report file + notification push + DB alert record
+```
+
+**Manual Sampling** (admin proactive troubleshooting):
+```
+/kilacraft profile start [30-120]   → Start sampling
+/kilacraft profile status           → View status
+/kilacraft profile stop             → Interrupt and discard
+```
+
+### 3. External Notification Push
+
+```
+NotificationService
+  ├── Discord Webhook
+  │   ├── Embed card message
+  │   └── Includes alert reason / real-time snapshot / AI diagnosis summary
+  └── DingTalk Group Robot
+      ├── Markdown text
+      └── Optional HMAC-SHA256 signature security
+
+/kilacraft notify test → Test notification channel
+```
+
+**Push Policy**: Only alert summaries are pushed, no full diagnostic report attachments, to prevent sensitive information leakage.
+
+### 4. AdminSkillUtil Common Formatting Layer
+
+```
+AdminSkillUtil (static utility class)
+  ├── formatTimestamp()     → epoch → yyyy-MM-dd HH:mm
+  ├── resolvePlayerName()   → UUID → Player name (online cache + DB fallback)
+  ├── formatStrengthLevel() → Numeric → Semantic level (Stranger/Acquaintance/Friend/Close Friend/Best Friend)
+  ├── translateEventType()  → Event enum → Readable label
+  ├── parseTimeRange()      → Natural language time range → epoch timestamp
+  └── executeAsync()        → Unified async execution + error isolation
+```
+
+**Design Principle**: All Admin Skill message output must be formatted to ensure AI secondary analysis input readability.
+
+---
 
 > - [SPI Integration Guide](./Skill%20SPI%20Integration%20Guide)
 > - [Changelog](./Changelog)

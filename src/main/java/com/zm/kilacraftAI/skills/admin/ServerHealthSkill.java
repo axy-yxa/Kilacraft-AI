@@ -15,10 +15,10 @@ import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.model.event.ServerEvent;
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillConfig;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillConfig;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;

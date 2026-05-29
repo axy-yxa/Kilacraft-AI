@@ -42,21 +42,6 @@
 
 ### ⚠️ Compatibility
 
-#### 🔴 SPI Skill Developer Notice (Breaking Change)
-
-**v2.1.0 includes a code package architecture restructuring. All third-party Skill plugins using the SPI mechanism must upgrade their `Kilacraft-Skill-API` dependency to the matching version and recompile.**
-
-- **Core interface package paths have changed** (affects all third-party Skills):
-  - `com.zm.kilacraftAI.skills.framework.Skill` → `com.zm.kilacraftAI.skill.Skill`
-  - `com.zm.kilacraftAI.skills.framework.SkillContext` → `com.zm.kilacraftAI.skill.SkillContext`
-  - `com.zm.kilacraftAI.skills.framework.SkillResult` → `com.zm.kilacraftAI.skill.SkillResult`
-  - `com.zm.kilacraftAI.skills.framework.SkillIntent` → `com.zm.kilacraftAI.skill.SkillIntent`
-  - `com.zm.kilacraftAI.skills.framework.SkillProvider` → `com.zm.kilacraftAI.skill.SkillProvider`
-- **Third-party Skills that are not upgraded will fail with `ClassNotFoundException` at server startup**, error message example:
-  `java.lang.ClassNotFoundException: com.zm.kilacraftAI.skills.framework.Skill`
-- **Fix**: Upgrade `Kilacraft-Skill-API` dependency to the v2.1.0 matching version, update all import statements (`skills.framework` → `skill`), and recompile the third-party Skill plugin
-- **Best Practice**: Third-party Skills should only depend on public interface classes in `skill-api.jar`, avoid directly referencing internal implementation classes
-
 #### Upgrading from v2.0.2
 1. Stop server, replace JAR, start — no database migration needed
 2. `admin.yml` config file is auto-generated on first startup

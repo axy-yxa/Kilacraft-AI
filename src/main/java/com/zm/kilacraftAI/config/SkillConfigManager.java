@@ -5,7 +5,7 @@ import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.bukkit.BukkitAPIConfigLoader;
 import com.zm.kilacraftAI.model.bukkit.BukkitAPIMetadata;
-import com.zm.kilacraftAI.skill.SkillConfig;
+import com.zm.kilacraftAI.skills.framework.SkillConfig;
 import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;

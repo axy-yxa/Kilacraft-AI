@@ -1,8 +1,7 @@
-package com.zm.kilacraftAI.skill;
+package com.zm.kilacraftAI.skills.framework;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.i18n.I18nService;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;

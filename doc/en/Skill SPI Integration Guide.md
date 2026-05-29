@@ -118,9 +118,9 @@ Add to your plugin project's `pom.xml`:
 ```java
 package com.example.myplugin.skills;
 
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -173,8 +173,8 @@ In your plugin main class:
 ```java
 package com.example.myplugin;
 
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillProvider;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillProvider;
 import com.example.myplugin.skills.HelloWorldSkill;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -885,16 +885,15 @@ Here's a complete third-party plugin example that queries player health, hunger,
 ```java
 package com.example.statsplugin.skills;
 
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class PlayerStatsSkill implements Skill {
+public class PlayerStatsSkill implements com.zm.kilacraftAI.skills.framework.Skill {
 
     private static final String NAME = "player_stats_query";
     private static final String DESCRIPTION =
@@ -927,7 +926,7 @@ public class PlayerStatsSkill implements Skill {
     public CompletableFuture<SkillResult> execute(SkillContext context) {
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("Please specify player"));
+            return CompletableFuture.completedFuture(com.zm.kilacraftAI.skills.framework.SkillResult.failure("Please specify player"));
         }
 
         String action = context.getAction();
@@ -937,7 +936,7 @@ public class PlayerStatsSkill implements Skill {
                 case "query_food" -> queryFood(player);
                 case "query_experience" -> queryExperience(player);
                 default -> CompletableFuture.completedFuture(
-                        SkillResult.failure("Unknown action: " + action));
+                        com.zm.kilacraftAI.skills.framework.SkillResult.failure("Unknown action: " + action));
             };
         } catch (Exception e) {
             return CompletableFuture.completedFuture(
@@ -946,7 +945,7 @@ public class PlayerStatsSkill implements Skill {
     }
 
     @Override
-    public boolean isAvailable(SkillContext context) {
+    public boolean isAvailable(com.zm.kilacraftAI.skills.framework.SkillContext context) {
         return context.getPlayer() != null;
     }
 
@@ -971,7 +970,7 @@ public class PlayerStatsSkill implements Skill {
         Map<String, Object> data = new HashMap<>();
         data.put("food_level", foodLevel);
         return CompletableFuture.completedFuture(
-                SkillResult.success("Hunger: " + foodLevel + "/20", data));
+                com.zm.kilacraftAI.skills.framework.SkillResult.success("Hunger: " + foodLevel + "/20", data));
     }
 
     private CompletableFuture<SkillResult> queryExperience(Player player) {
@@ -992,8 +991,7 @@ public class PlayerStatsSkill implements Skill {
 ```java
 package com.example.statsplugin;
 
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillProvider;
+com.zm.kilacraftAI.skills.framework.SkillProvider;
 import com.example.statsplugin.skills.PlayerStatsSkill;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -1014,7 +1012,7 @@ public class StatsPlugin extends JavaPlugin implements SkillProvider {
     }
 
     @Override
-    public List<Skill> getSkills() {
+    public List<com.zm.kilacraftAI.skills.framework.Skill> getSkills() {
         return List.of(new PlayerStatsSkill());
     }
 }
@@ -1109,12 +1107,12 @@ dependencies {
 This JAR contains compiled classes for third-party developers to reference during compilation:
 
 ```
-com.zm.kilacraftAI.skill.Skill
-com.zm.kilacraftAI.skill.SkillContext
-com.zm.kilacraftAI.skill.SkillResult
-com.zm.kilacraftAI.skill.SkillIntent
-com.zm.kilacraftAI.skill.SkillProvider
-com.zm.kilacraftAI.skill.SkillRegistry
+com.zm.kilacraftAI.skills.framework.Skill
+com.zm.kilacraftAI.skills.framework.SkillContext
+com.zm.kilacraftAI.skills.framework.SkillResult
+com.zm.kilacraftAI.skills.framework.SkillIntent
+com.zm.kilacraftAI.skills.framework.SkillProvider
+com.zm.kilacraftAI.skills.framework.SkillRegistry
 ```
 
 > **This JAR should not and cannot be packaged into your plugin**. Provided by Kilacraft-AI main plugin at runtime.

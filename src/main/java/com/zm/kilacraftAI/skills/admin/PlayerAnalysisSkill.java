@@ -10,7 +10,7 @@ import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.db.dao.SocialRelationDao;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.skill.*;
+import com.zm.kilacraftAI.skills.framework.*;
 
 import java.sql.Connection;
 import java.sql.SQLException;

@@ -15,10 +15,10 @@ import com.zm.kilacraftAI.model.afktask.AFKTaskCallback;
 import com.zm.kilacraftAI.model.afktask.ConditionPlan;
 import com.zm.kilacraftAI.service.afktask.ConditionEvaluator;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.task.AnalysisSummary;
-import com.zm.kilacraftAI.skill.task.TaskExecutor;
-import com.zm.kilacraftAI.skill.task.TaskPlan;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
+import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
+import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 

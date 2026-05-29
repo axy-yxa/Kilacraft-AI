@@ -1,4 +1,4 @@
-package com.zm.kilacraftAI.skill.task;
+package com.zm.kilacraftAI.skills.framework.task;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
@@ -7,8 +7,8 @@ import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
 import com.zm.kilacraftAI.common.util.MessageUtil;
 import org.bukkit.entity.Player;
 

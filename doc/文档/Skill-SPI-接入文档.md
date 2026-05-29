@@ -118,15 +118,14 @@ Kilacraft-AI 通过 **SPI（Service Provider Interface）** 机制，允许第�
 ```java
 package com.example.myplugin.skills;
 
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class HelloWorldSkill implements Skill {
+public class HelloWorldSkill implements com.zm.kilacraftAI.skills.framework.Skill {
 
    @Override
    public String getName() {
@@ -146,7 +145,7 @@ public class HelloWorldSkill implements Skill {
    }
 
    @Override
-   public CompletableFuture<SkillResult> execute(SkillContext context) {
+   public CompletableFuture<com.zm.kilacraftAI.skills.framework.SkillResult> execute(com.zm.kilacraftAI.skills.framework.SkillContext context) {
       Player player = context.getPlayer();
       String name = player != null ? player.getName() : "陌生人";
       return CompletableFuture.completedFuture(
@@ -173,21 +172,20 @@ public class HelloWorldSkill implements Skill {
 ```java
 package com.example.myplugin;
 
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillProvider;
+import com.zm.kilacraftAI.skills.framework.Skill;
 import com.example.myplugin.skills.HelloWorldSkill;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
 
-public class MyPlugin extends JavaPlugin implements SkillProvider {
+public class MyPlugin extends JavaPlugin implements com.zm.kilacraftAI.skills.framework.SkillProvider {
 
    @Override
    public void onEnable() {
       // 在 onEnable 中注册 SkillProvider
       // Kilacraft-AI 会在服务器启动后自动扫描发现
       getServer().getServicesManager().register(
-              SkillProvider.class,
+              com.zm.kilacraftAI.skills.framework.SkillProvider.class,
               this,
               this,
               org.bukkit.plugin.ServicePriority.Normal
@@ -877,9 +875,9 @@ public List<Skill> getSkills() {
 ```java
 package com.example.statsplugin.skills;
 
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+com.zm.kilacraftAI.skills.framework.SkillResult;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -916,7 +914,7 @@ public class PlayerStatsSkill implements Skill {
    }
 
    @Override
-   public CompletableFuture<SkillResult> execute(SkillContext context) {
+   public CompletableFuture<SkillResult> execute(com.zm.kilacraftAI.skills.framework.SkillContext context) {
       Player player = context.getPlayer();
       if (player == null) {
          return CompletableFuture.completedFuture(SkillResult.failure("请指定玩家"));
@@ -984,20 +982,19 @@ public class PlayerStatsSkill implements Skill {
 ```java
 package com.example.statsplugin;
 
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillProvider;
+import com.zm.kilacraftAI.skills.framework.Skill;
 import com.example.statsplugin.skills.PlayerStatsSkill;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
 
-public class StatsPlugin extends JavaPlugin implements SkillProvider {
+public class StatsPlugin extends JavaPlugin implements com.zm.kilacraftAI.skills.framework.SkillProvider {
 
    @Override
    public void onEnable() {
       // 注册 SkillProvider 到 Bukkit ServicesManager（4个参数）
       getServer().getServicesManager().register(
-              SkillProvider.class,
+              com.zm.kilacraftAI.skills.framework.SkillProvider.class,
               this,
               this,
               org.bukkit.plugin.ServicePriority.Normal
@@ -1103,12 +1100,12 @@ dependencies {
 此 JAR 包含以下类的编译产物，供第三方开发者编译时引用：
 
 ```
-com.zm.kilacraftAI.skill.Skill
-com.zm.kilacraftAI.skill.SkillContext
-com.zm.kilacraftAI.skill.SkillResult
-com.zm.kilacraftAI.skill.SkillIntent
-com.zm.kilacraftAI.skill.SkillProvider
-com.zm.kilacraftAI.skill.SkillRegistry
+com.zm.kilacraftAI.skills.framework.Skill
+com.zm.kilacraftAI.skills.framework.SkillContext
+com.zm.kilacraftAI.skills.framework.SkillResult
+com.zm.kilacraftAI.skills.framework.SkillIntent
+com.zm.kilacraftAI.skills.framework.SkillProvider
+com.zm.kilacraftAI.skills.framework.SkillRegistry
 ```
 
 > **此 JAR 不需要也不能打包进你的插件**。运行时由 Kilacraft-AI 主插件提供。

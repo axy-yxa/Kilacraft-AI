@@ -300,6 +300,7 @@ Query your server's player ecosystem via natural language. Permission: `kilacraf
 - **New Player Influx:** "How many new players joined this week?" — Count and time distribution
 - **Profile Coverage:** "How many players have AI profile analysis?" — Analyzed/pending count
 - **Social Insights:** "Show player social network analysis" — Total relations, average strength, isolated players
+- **Specific Player Social Relations:** "Check Steve's social relations" — Detailed social relations, strength, interaction frequency for a specific player
 
 ### Audit Log Query
 
@@ -423,7 +424,7 @@ With DeepSeek as an example, a single conversation costs approximately ¥0.001-0
 
 **Q: Which LLMs are supported?**
 
-All OpenAI-compatible providers. Thinking/reasoning models (like deepseek-reasoner, o1) are not supported.
+All OpenAI-compatible providers. Regular conversations do not support thinking/reasoning models (like deepseek-reasoner, o1), but the admin features' AI diagnostics support configuring a reasoning model (in `admin.yml`).
 
 **Q: Will it lag the server?**
 

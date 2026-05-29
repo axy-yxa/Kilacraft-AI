@@ -1,4 +1,4 @@
-package com.zm.kilacraftAI.skill;
+package com.zm.kilacraftAI.skills.framework;
 
 import java.util.List;
 

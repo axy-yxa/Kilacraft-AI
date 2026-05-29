@@ -9,10 +9,10 @@ import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.model.afktask.AFKTask;
 import com.zm.kilacraftAI.service.afktask.AFKTaskManager;
 import com.zm.kilacraftAI.service.afktask.impl.*;
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
-import com.zm.kilacraftAI.skill.SkillConfig;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.SkillConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 

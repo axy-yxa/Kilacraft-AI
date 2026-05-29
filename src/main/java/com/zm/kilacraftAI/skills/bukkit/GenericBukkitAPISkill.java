@@ -6,9 +6,9 @@ import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.model.bukkit.BukkitAPIMetadata;
 import com.zm.kilacraftAI.service.bukkit.BukkitAPIExecutor;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
-import com.zm.kilacraftAI.skill.Skill;
-import com.zm.kilacraftAI.skill.SkillContext;
-import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillContext;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 
 import java.util.ArrayList;

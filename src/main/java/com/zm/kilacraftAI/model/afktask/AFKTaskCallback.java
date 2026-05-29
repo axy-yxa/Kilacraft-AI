@@ -1,8 +1,8 @@
 package com.zm.kilacraftAI.model.afktask;
 
 import com.google.gson.annotations.SerializedName;
-import com.zm.kilacraftAI.skill.task.TaskPlan;
-import com.zm.kilacraftAI.skill.task.TaskStep;
+import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
+import com.zm.kilacraftAI.skills.framework.task.TaskStep;
 import lombok.Getter;
 import lombok.Setter;
 

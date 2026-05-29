@@ -5,7 +5,7 @@ import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.common.enums.AFKTaskTypeEnum;
 import com.zm.kilacraftAI.model.afktask.AFKTask;
-import com.zm.kilacraftAI.skill.SkillResult;
+import com.zm.kilacraftAI.skills.framework.SkillResult;
 import org.bukkit.entity.Player;
 
 import java.util.Map;

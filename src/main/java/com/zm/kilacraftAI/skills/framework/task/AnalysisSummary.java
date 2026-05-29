@@ -1,4 +1,4 @@
-package com.zm.kilacraftAI.skill.task;
+package com.zm.kilacraftAI.skills.framework.task;
 
 import com.zm.kilacraftAI.i18n.I18nService;
 import lombok.Getter;

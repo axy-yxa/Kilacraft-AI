@@ -12,11 +12,11 @@
             <directory>${project.build.outputDirectory}</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
-                <include>com/zm/kilacraftAI/skill/Skill.class</include>
-                <include>com/zm/kilacraftAI/skill/SkillContext.class</include>
-                <include>com/zm/kilacraftAI/skill/SkillResult.class</include>
-                <include>com/zm/kilacraftAI/skill/SkillIntent.class</include>
-                <include>com/zm/kilacraftAI/skill/SkillProvider.class</include>
+                <include>com/zm/kilacraftAI/skills/framework/Skill.class</include>
+                <include>com/zm/kilacraftAI/skills/framework/SkillContext.class</include>
+                <include>com/zm/kilacraftAI/skills/framework/SkillResult.class</include>
+                <include>com/zm/kilacraftAI/skills/framework/SkillIntent.class</include>
+                <include>com/zm/kilacraftAI/skills/framework/SkillProvider.class</include>
             </includes>
         </fileSet>
     </fileSets>
