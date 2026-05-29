@@ -6,7 +6,7 @@
 
 **The first plugin that gives every server an AI agent that understands you better the more you use it**
 
-[![Version](https://img.shields.io/badge/Version-2.0.2-orange)](https://github.com/axy-yxa/Kilacraft-AI/wiki/Changelog)
+[![GitHub Tag](https://img.shields.io/github/v/tag/axy-yxa/Kilacraft-AI?label=Release&color=blue)](https://github.com/axy-yxa/Kilacraft-AI/tags)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white)](https://discord.gg/nNmhcZHDxr)
 [![GitHub](https://img.shields.io/badge/GitHub-Kilacraft--AI-blue?logo=github)](https://github.com/axy-yxa/Kilacraft-AI)
