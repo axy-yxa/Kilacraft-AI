@@ -45,6 +45,41 @@ public class MetricsCollector {
     private volatile String llmModel;
 
     /**
+     * 数据库类型（H2 / MYSQL）
+     */
+    @Setter
+    @Getter
+    private volatile String databaseType;
+
+    /**
+     * 流式输出是否启用
+     */
+    @Setter
+    @Getter
+    private volatile String streamingEnabled;
+
+    /**
+     * 全局默认输出载体
+     */
+    @Setter
+    @Getter
+    private volatile String outputChannel;
+
+    /**
+     * Embedding 模型名
+     */
+    @Setter
+    @Getter
+    private volatile String embeddingModel;
+
+    /**
+     * 推理模型名
+     */
+    @Setter
+    @Getter
+    private volatile String thinkingModel;
+
+    /**
      * 所有 Skill 的元信息列表
      * 动态生成，避免第三方 Skill 延迟注册导致的数据不完整
      */

@@ -34,6 +34,9 @@ public class MetricsBootstrap {
         // 初始化静态数据
         collector.setLlmModel(plugin.getConfigManager().getLlmModel());
 
+        // 读取配置特征快照
+        initFeatureFlags(plugin, collector);
+
         // 注册 bStats
         Metrics metrics = new Metrics(plugin, BSTATS_PLUGIN_ID);
 
@@ -55,6 +58,71 @@ public class MetricsBootstrap {
         // Chart 6: 全量 Skill 元信息（用于全球 Skill 台账）
         metrics.addCustomChart(new SimplePie("all_skills", collector::getAllSkillsJson));
 
+        // Chart 7: 数据库类型分布
+        metrics.addCustomChart(new SimplePie("database_type", collector::getDatabaseType));
+
+        // Chart 8: 流式输出使用率
+        metrics.addCustomChart(new SimplePie("streaming_enabled", collector::getStreamingEnabled));
+
+        // Chart 9: 默认输出载体分布
+        metrics.addCustomChart(new SimplePie("output_channel", collector::getOutputChannel));
+
+        // Chart 10: Embedding 模型分布
+        metrics.addCustomChart(new SimplePie("embedding_model", collector::getEmbeddingModel));
+
+        // Chart 11: 推理模型分布
+        metrics.addCustomChart(new SimplePie("thinking_model", collector::getThinkingModel));
+
         PluginLoggerUtil.info("统计", "bStats 统计已启用");
+    }
+
+    /**
+     * 从配置读取插件特征标志（启动时一次性快照）
+     */
+    private static void initFeatureFlags(KilacraftAI plugin, MetricsCollector collector) {
+        // 数据库类型
+        try {
+            collector.setDatabaseType(plugin.getDatabaseConfigManager().getConfig().getType().name());
+        } catch (Exception ignored) {
+            collector.setDatabaseType("unknown");
+        }
+
+        // 流式输出
+        collector.setStreamingEnabled(boolStr(plugin.getConfigManager().getOutputConfigManager().isStreamEnabled()));
+
+        // Embedding
+        boolean embeddingActuallyEnabled = plugin.getConfigManager().isEmbeddingEnabled() && isNotBlank(plugin.getConfigManager().getEmbeddingApiUrl()) && isNotBlank(plugin.getConfigManager().getEmbeddingApiKey()) && isNotBlank(plugin.getConfigManager().getEmbeddingModel());
+        if (embeddingActuallyEnabled) {
+            collector.setEmbeddingModel(plugin.getConfigManager().getEmbeddingModel());
+        }
+
+        // 推理模型
+        if (plugin.getAdminConfigManager() != null) {
+            boolean thinkingConfigured = plugin.getAdminConfigManager().isThinkingModelConfigured();
+            if (thinkingConfigured) {
+                collector.setThinkingModel(plugin.getAdminConfigManager().getThinkingModelConfig().model());
+            }
+        }
+
+        // 输出载体
+        try {
+            collector.setOutputChannel(plugin.getConfigManager().getOutputConfigManager().getDefaultChannel().name());
+        } catch (Exception ignored) {
+            collector.setOutputChannel("unknown");
+        }
+    }
+
+    /**
+     * boolean → "true" / "false" 字符串
+     */
+    private static String boolStr(boolean value) {
+        return value ? "true" : "false";
+    }
+
+    /**
+     * 字符串非空且非空白
+     */
+    private static boolean isNotBlank(String s) {
+        return s != null && !s.trim().isEmpty();
     }
 }
