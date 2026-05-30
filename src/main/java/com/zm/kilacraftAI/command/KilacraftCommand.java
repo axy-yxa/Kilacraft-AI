@@ -2,29 +2,29 @@ package com.zm.kilacraftAI.command;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.AIRequestValidatorUtil;
+import com.zm.kilacraftAI.common.util.MessageUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.i18n.TextProcessorFactory;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.service.notification.NotificationService;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.config.PersonalitiesConfigManager;
-import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.db.model.DatabaseConfig;
-import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.handler.AIRequestHandler;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.service.knowledge.EmbeddingService;
+import com.zm.kilacraftAI.i18n.TextProcessorFactory;
+import com.zm.kilacraftAI.model.afktask.AFKTask;
+import com.zm.kilacraftAI.service.afktask.AFKTaskManager;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.health.ManualSession;
 import com.zm.kilacraftAI.service.health.ServerHealthGuardian;
 import com.zm.kilacraftAI.service.health.SparkOutputCapture;
-import com.zm.kilacraftAI.model.afktask.AFKTask;
-import com.zm.kilacraftAI.service.afktask.AFKTaskManager;
-import com.zm.kilacraftAI.common.util.AIRequestValidatorUtil;
-import com.zm.kilacraftAI.common.util.MessageUtil;
+import com.zm.kilacraftAI.service.knowledge.EmbeddingService;
+import com.zm.kilacraftAI.service.notification.NotificationService;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -917,6 +917,16 @@ public class KilacraftCommand implements CommandExecutor {
                             } else if (url == null) {
                                 PluginLoggerUtil.warn("健康监控", "手动采样 Profiler URL 捕获超时（{}秒）", captureTimeout);
                                 session.reset();
+                                // 通知操作者采样失败（Spark 上传超时或网络问题）
+                                FoliaCompat.runTask(plugin, () -> {
+                                    if (!"Console".equals(finalPlayerName)) {
+                                        Player operator = Bukkit.getPlayer(finalPlayerName);
+                                        if (operator != null) {
+                                            operator.sendMessage(MessageUtil.getAIPrefix() + I18nService.tr("§c采样数据上传失败（Spark 服务器超时），无法生成诊断报告。"));
+                                            operator.sendMessage(MessageUtil.getAIPrefix() + I18nService.tr("§7可能原因：服务器网络无法访问 Spark 数据服务器。请稍后重试。"));
+                                        }
+                                    }
+                                });
                             }
                         } finally {
                             // 兜底清理：确保 appender 被移除
@@ -987,9 +997,7 @@ public class KilacraftCommand implements CommandExecutor {
             FoliaCompat.runTask(plugin, () -> {
                 sender.sendMessage(I18nService.tr("§f通知渠道测试结果："));
                 for (NotificationService.ChannelTestResult result : results) {
-                    String status = result.result().success()
-                        ? "§a" + I18nService.tr("发送成功")
-                        : I18nService.tr("§c发送失败: {}", result.result().message());
+                    String status = result.result().success() ? "§a" + I18nService.tr("发送成功") : I18nService.tr("§c发送失败: {}", result.result().message());
                     sender.sendMessage("§7[" + result.type() + "] " + status);
                 }
             });

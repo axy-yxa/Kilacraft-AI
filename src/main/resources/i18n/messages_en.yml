@@ -1501,6 +1501,8 @@ messages:
   "§c服务器性能异常自动诊断完成！报告: {}": "§cAuto health diagnosis complete! Report: {}"
   "§a诊断报告已生成: {}": "§aDiagnostic report generated: {}"
   "§7报告路径: plugins/Kilacraft-AI/reports/{}": "§7Report path: plugins/Kilacraft-AI/reports/{}"
+  "§c采样数据上传失败（Spark 服务器超时），无法生成诊断报告。": "§cSampling data upload failed (Spark server timeout), unable to generate diagnostic report."
+  "§7可能原因：服务器网络无法访问 Spark 数据服务器。请稍后重试。": "§7Possible cause: Server network cannot access Spark data server. Please try again later."
   "AI 诊断异常: {}": "AI diagnosis exception: {}"
 
   # ==================== Admin - ServerHealthSkill ====================
