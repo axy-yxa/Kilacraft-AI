@@ -952,33 +952,42 @@ public class ServerHealthGuardian implements ManagedTask {
      */
     public ServerActivitySnapshot captureActivitySnapshot() {
         try {
-            return FoliaCompat.callSync(plugin, () -> {
-                Map<String, Integer> chunks = new LinkedHashMap<>();
-                Map<String, Integer> players = new LinkedHashMap<>();
-                Map<String, String> locations = new LinkedHashMap<>();
-                Map<String, int[]> blockCoords = new LinkedHashMap<>();
-
-                for (World world : Bukkit.getWorlds()) {
-                    String name = world.getName();
-                    // 仅取 length，不遍历 Chunk[] 内容，避免内存/性能开销
-                    chunks.put(name, world.getLoadedChunks().length);
-                    players.put(name, world.getPlayers().size());
-                }
-
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    Location loc = player.getLocation();
-                    // 坐标精确到区块级
-                    locations.put(player.getName(), loc.getWorld().getName() + " (" + (loc.getBlockX() >> 4) + ", " + (loc.getBlockZ() >> 4) + ")");
-                    // 方块级精确坐标（不对外暴露）
-                    blockCoords.put(player.getName(), new int[]{loc.getBlockX(), loc.getBlockZ()});
-                }
-
-                return new ServerActivitySnapshot(chunks, players, locations, blockCoords);
-            }, 5);
+            // 非Folia下，命令执行在主线程，callSync 会自死锁；Folia下命令在区域线程，需要调度
+            if (!FoliaCompat.isFolia() && Bukkit.isPrimaryThread()) {
+                return doCaptureActivitySnapshot();
+            }
+            return FoliaCompat.callSync(plugin, this::doCaptureActivitySnapshot, 5);
         } catch (Exception e) {
             PluginLoggerUtil.warn(LOG_PREFIX, "采集服务器活动快照失败: {}", e.getMessage());
             return ServerActivitySnapshot.EMPTY;
         }
+    }
+
+    /**
+     * 执行活动快照采集（必须在主线程/全局区域线程执行）
+     */
+    private ServerActivitySnapshot doCaptureActivitySnapshot() {
+        Map<String, Integer> chunks = new LinkedHashMap<>();
+        Map<String, Integer> players = new LinkedHashMap<>();
+        Map<String, String> locations = new LinkedHashMap<>();
+        Map<String, int[]> blockCoords = new LinkedHashMap<>();
+
+        for (World world : Bukkit.getWorlds()) {
+            String name = world.getName();
+            // 仅取 length，不遍历 Chunk[] 内容，避免内存/性能开销
+            chunks.put(name, world.getLoadedChunks().length);
+            players.put(name, world.getPlayers().size());
+        }
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Location loc = player.getLocation();
+            // 坐标精确到区块级
+            locations.put(player.getName(), loc.getWorld().getName() + " (" + (loc.getBlockX() >> 4) + ", " + (loc.getBlockZ() >> 4) + ")");
+            // 方块级精确坐标（不对外暴露）
+            blockCoords.put(player.getName(), new int[]{loc.getBlockX(), loc.getBlockZ()});
+        }
+
+        return new ServerActivitySnapshot(chunks, players, locations, blockCoords);
     }
 
     /**
