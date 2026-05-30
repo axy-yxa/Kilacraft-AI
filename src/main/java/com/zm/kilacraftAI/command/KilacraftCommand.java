@@ -916,17 +916,25 @@ public class KilacraftCommand implements CommandExecutor {
                                 guardian.startManualAnalysis(finalPlayerName);
                             } else if (url == null) {
                                 PluginLoggerUtil.warn("健康监控", "手动采样 Profiler URL 捕获超时（{}秒）", captureTimeout);
-                                session.reset();
-                                // 通知操作者采样失败（Spark 上传超时或网络问题）
-                                FoliaCompat.runTask(plugin, () -> {
-                                    if (!"Console".equals(finalPlayerName)) {
-                                        Player operator = Bukkit.getPlayer(finalPlayerName);
-                                        if (operator != null) {
-                                            operator.sendMessage(MessageUtil.getAIPrefix() + I18nService.tr("§c采样数据上传失败（Spark 服务器超时），无法生成诊断报告。"));
-                                            operator.sendMessage(MessageUtil.getAIPrefix() + I18nService.tr("§7可能原因：服务器网络无法访问 Spark 数据服务器。请稍后重试。"));
+
+                                // 尝试回退到 Spark 本地保存的 .sparkprofile 文件
+                                String localPath = capture.getLocalFilePath();
+                                if (localPath != null && session.isRunning() && finalPlayerName.equals(session.getOperatorName())) {
+                                    PluginLoggerUtil.info("健康监控", "回退到 Spark 本地文件: {}", localPath);
+                                    guardian.startManualAnalysisWithLocalFile(finalPlayerName, localPath);
+                                } else {
+                                    session.reset();
+                                    // 无 URL 也无本地文件，通知操作者采样失败
+                                    FoliaCompat.runTask(plugin, () -> {
+                                        if (!"Console".equals(finalPlayerName)) {
+                                            Player operator = Bukkit.getPlayer(finalPlayerName);
+                                            if (operator != null) {
+                                                operator.sendMessage(MessageUtil.getAIPrefix() + I18nService.tr("§c采样数据上传失败（Spark 服务器超时），无法生成诊断报告。"));
+                                                operator.sendMessage(MessageUtil.getAIPrefix() + I18nService.tr("§7可能原因：服务器网络无法访问 Spark 数据服务器。请稍后重试。"));
+                                            }
                                         }
-                                    }
-                                });
+                                    });
+                                }
                             }
                         } finally {
                             // 兜底清理：确保 appender 被移除

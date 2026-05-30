@@ -270,6 +270,97 @@ public class ServerHealthGuardian implements ManagedTask {
     }
 
     /**
+     * 启动手动分析（使用 Spark 本地保存的 .sparkprofile 文件）
+     *
+     * <p>当 Spark 上传失败时，回退到本地文件继续分析。跳过 URL 下载步骤，
+     * 但仍然执行活动快照、热点分析、AI 诊断、报告生成。</p>
+     *
+     * @param operatorName 操作者玩家名
+     * @param localPath    Spark 本地保存的 .sparkprofile 文件路径
+     * @return true 表示成功启动
+     */
+    public boolean startManualAnalysisWithLocalFile(String operatorName, String localPath) {
+        if (shutdown) {
+            PluginLoggerUtil.debug(LOG_PREFIX, "startManualAnalysisWithLocalFile: 守护线程已关闭，拒绝请求");
+            return false;
+        }
+
+        if (!analysisLock.tryLock()) {
+            PluginLoggerUtil.warn(LOG_PREFIX, "服主 {} 请求本地文件分析，但获取分析锁失败", operatorName);
+            return false;
+        }
+
+        if (isAnalyzing) {
+            analysisLock.unlock();
+            PluginLoggerUtil.warn(LOG_PREFIX, "服主 {} 请求本地文件分析，但已有分析任务在运行", operatorName);
+            return false;
+        }
+
+        isAnalyzing = true;
+
+        final Set<String> pluginsSnapshot = FoliaCompat.callSync(plugin, () -> Arrays.stream(plugin.getServer().getPluginManager().getPlugins()).map(Plugin::getName).collect(Collectors.toSet()), 5);
+
+        analysisLock.unlock();
+
+        // 解析本地文件路径（可能是相对路径，基于服务器根目录）
+        File localFile = new File(localPath);
+        if (!localFile.isAbsolute()) {
+            localFile = new File(plugin.getDataFolder().getParentFile().getParentFile(), localPath);
+        }
+
+        if (!localFile.exists()) {
+            PluginLoggerUtil.warn(LOG_PREFIX, "Spark 本地文件不存在: {}", localFile.getAbsolutePath());
+            isAnalyzing = false;
+            manualSession.reset();
+            FoliaCompat.runTask(plugin, () -> {
+                Player operator = Bukkit.getPlayer(operatorName);
+                if (operator != null) {
+                    operator.sendMessage(MessageUtil.getAIPrefix() + I18nService.tr("§c采样数据文件未找到，无法生成诊断报告。"));
+                }
+            });
+            return false;
+        }
+
+        // 文件新鲜度校验：文件修改时间必须在本次 session 启动之后（防止读到上次采样残留的旧文件）
+        long sessionStart = manualSession.getStartTime();
+        if (sessionStart > 0 && localFile.lastModified() < sessionStart) {
+            PluginLoggerUtil.warn(LOG_PREFIX, "Spark 本地文件过旧（文件时间: {}，session 启动: {}），跳过", localFile.lastModified(), sessionStart);
+            isAnalyzing = false;
+            manualSession.reset();
+            FoliaCompat.runTask(plugin, () -> {
+                Player operator = Bukkit.getPlayer(operatorName);
+                if (operator != null) {
+                    operator.sendMessage(MessageUtil.getAIPrefix() + I18nService.tr("§c采样数据文件已过期，无法生成诊断报告。请重新采样。"));
+                }
+            });
+            return false;
+        }
+
+        final File profilerFile = localFile;
+        FoliaCompat.getIOPool().execute(() -> {
+            if (!analysisLock.tryLock()) {
+                PluginLoggerUtil.warn(LOG_PREFIX, "服主 {} 本地文件分析：锁竞争失败，请稍后重试", operatorName);
+                return;
+            }
+
+            try {
+                isAnalyzing = true;
+                SparkDataCollector.HealthSnapshot snapshot = sparkCollector.collectSnapshot();
+                Set<String> plugins = pluginsSnapshot != null ? pluginsSnapshot : Set.of();
+                String platform = FoliaCompat.callSync(plugin, AdminSkillUtil::getServerPlatform, 5);
+
+                performAnalysisWithLocalFile(snapshot, profilerFile, plugins, platform);
+                manualSession.reset();
+            } finally {
+                isAnalyzing = false;
+                analysisLock.unlock();
+            }
+        });
+
+        return true;
+    }
+
+    /**
      * 执行深度分析（同步阻塞）
      *
      * <p>步骤：
@@ -403,6 +494,69 @@ public class ServerHealthGuardian implements ManagedTask {
                     PluginLoggerUtil.warn(LOG_PREFIX, "无法删除 Profiler 临时文件: {}", profilerDataFile.getAbsolutePath());
                 }
             }
+        }
+    }
+
+    /**
+     * 使用本地 .sparkprofile 文件执行分析（Spark 上传失败时的回退路径）
+     *
+     * <p>跳过 URL 下载步骤，直接使用本地文件进行热点分析和 AI 诊断。
+     * 无 Profiler viewer URL 和元数据 JSON，但热点分析功能完整。</p>
+     */
+    private void performAnalysisWithLocalFile(SparkDataCollector.HealthSnapshot snapshot, File localProfilerFile, Set<String> preloadedPlugins, String serverPlatform) {
+        PluginLoggerUtil.info(LOG_PREFIX, "开始手动模式深度分析（本地文件回退）...");
+
+        // manual 模式：开始分析时通知操作者
+        notifyAnalysisStarted();
+
+        // 采样前快照（从 session 获取）
+        ServerActivitySnapshot activityBefore;
+        ServerActivitySnapshot sessionBefore = manualSession.getActivityBefore();
+        activityBefore = sessionBefore != null ? sessionBefore : ServerActivitySnapshot.EMPTY;
+
+        try {
+            if (shutdown) {
+                PluginLoggerUtil.debug(LOG_PREFIX, "守护线程已关闭，中断分析");
+                return;
+            }
+
+            // 采样后快照
+            ServerActivitySnapshot activityAfter = captureActivitySnapshot();
+
+            // 直接使用本地文件解析（无需下载）
+            StackTraceProcessor.ProcessedResult processedResult = null;
+            if (localProfilerFile.exists()) {
+                Set<String> installedPlugins = preloadedPlugins != null ? preloadedPlugins : Set.of();
+                processedResult = stackTraceProcessor.process(localProfilerFile, 0, installedPlugins);
+                PluginLoggerUtil.debug(LOG_PREFIX, "本地文件解析完成：热点 {} 个，Server thread 占比 {}", processedResult.hotspots().size(), String.format("%.1f%%", processedResult.serverThreadRatio()));
+            }
+
+            // 调用推理模型进行 AI 诊断（无 URL、无元数据）
+            String aiDiagnosis = callThinkingModel(snapshot, Collections.emptyList(), null, null, processedResult, MODE_MANUAL, serverPlatform, activityBefore, activityAfter);
+
+            // 生成报告文件（profilerUrl=null，metadataJson=null）
+            File reportFile = reportGenerator.generateReport(snapshot, null, null, aiDiagnosis, processedResult, MODE_MANUAL, Collections.emptyList(), serverPlatform, activityBefore, activityAfter);
+
+            if (reportFile != null) {
+                PluginLoggerUtil.info(LOG_PREFIX, "本地文件分析完成，报告: {}", reportFile.getName());
+            } else {
+                PluginLoggerUtil.info(LOG_PREFIX, "本地文件分析完成");
+            }
+
+            // 通知在线管理员
+            notifyAdmins(MODE_MANUAL, reportFile);
+        } catch (Exception e) {
+            PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("本地文件分析异常: {}", e.getMessage()), e);
+            // 异常时也要通知操作者
+            FoliaCompat.runTask(plugin, () -> {
+                String operatorName = manualSession.getOperatorName();
+                if (operatorName != null) {
+                    Player operator = Bukkit.getPlayer(operatorName);
+                    if (operator != null) {
+                        operator.sendMessage(MessageUtil.getAIPrefix() + I18nService.tr("§c分析过程中发生异常，请查看控制台日志。"));
+                    }
+                }
+            });
         }
     }
 

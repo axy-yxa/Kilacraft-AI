@@ -174,6 +174,18 @@ public class ManualSession {
     }
 
     /**
+     * 获取 session 启动时间戳（用于文件新鲜度校验）
+     */
+    public long getStartTime() {
+        lock.lock();
+        try {
+            return startTime;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
      * 获取 Profiler viewer URL
      */
     public String getProfilerUrl() {

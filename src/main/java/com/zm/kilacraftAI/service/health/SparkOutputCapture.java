@@ -30,8 +30,17 @@ public class SparkOutputCapture {
      * Spark viewer URL 正则
      */
     private static final Pattern URL_PATTERN = Pattern.compile("https://spark\\.lucko\\.me/[a-zA-Z0-9]+");
+    /**
+     * Spark 本地保存文件路径正则（上传失败时 Spark 会回退到本地保存）
+     * 匹配: "Data has been written to: plugins/spark/profile-2026-05-30_13.59.19.sparkprofile"
+     */
+    private static final Pattern LOCAL_FILE_PATTERN = Pattern.compile("Data has been written to: (.+\\.sparkprofile)");
 
     private volatile String profilerUrl;
+    /**
+     * Spark 本地保存的 .sparkprofile 文件路径（上传失败时的回退方案）
+     */
+    private volatile String localFilePath;
     private final CountDownLatch latch = new CountDownLatch(1);
     private Appender appender;
     /**
@@ -59,12 +68,18 @@ public class SparkOutputCapture {
                 try {
                     String msg = event.getMessage().getFormattedMessage();
                     if (msg != null) {
-                        var matcher = URL_PATTERN.matcher(msg);
-                        if (matcher.find()) {
-                            profilerUrl = matcher.group();
-                            // 标记已捕获，后续日志直接跳过
+                        // 优先捕获 URL（上传成功）
+                        var urlMatcher = URL_PATTERN.matcher(msg);
+                        if (urlMatcher.find()) {
+                            profilerUrl = urlMatcher.group();
                             captured = true;
                             latch.countDown();
+                            return;
+                        }
+                        // 同时检测本地文件路径（上传失败时的回退）
+                        var fileMatcher = LOCAL_FILE_PATTERN.matcher(msg);
+                        if (fileMatcher.find()) {
+                            localFilePath = fileMatcher.group(1).trim();
                         }
                     }
                 } finally {
@@ -96,6 +111,15 @@ public class SparkOutputCapture {
                 PluginLoggerUtil.warn(LOG_PREFIX, I18nService.tr("移除日志捕获器失败: {}", e.getMessage()), e);
             }
         }
+    }
+
+    /**
+     * 获取 Spark 本地保存的 .sparkprofile 文件路径（上传失败时的回退方案）
+     *
+     * @return 本地文件路径，未检测到时返回 null
+     */
+    public String getLocalFilePath() {
+        return localFilePath;
     }
 
     /**

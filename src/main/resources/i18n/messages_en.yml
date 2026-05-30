@@ -1439,6 +1439,7 @@ messages:
   "写入 HEALTH_ALERT 事件失败: {}": "Failed to write HEALTH_ALERT event: {}"
   "构造 HEALTH_ALERT 事件失败: {}": "Failed to construct HEALTH_ALERT event: {}"
   "深度分析异常: {}": "Deep analysis exception: {}"
+  "本地文件分析异常: {}": "Local file analysis exception: {}"
   "startManualAnalysis: 守护线程已关闭，拒绝请求": "startManualAnalysis: Guardian thread shut down, request rejected"
   "服主 {} 手动分析：锁竞争失败，请稍后重试": "Admin {} manual analysis: lock contention failed, please retry later"
   "守护线程已关闭，中断分析": "Guardian thread shut down, aborting analysis"
@@ -1503,6 +1504,9 @@ messages:
   "§7报告路径: plugins/Kilacraft-AI/reports/{}": "§7Report path: plugins/Kilacraft-AI/reports/{}"
   "§c采样数据上传失败（Spark 服务器超时），无法生成诊断报告。": "§cSampling data upload failed (Spark server timeout), unable to generate diagnostic report."
   "§7可能原因：服务器网络无法访问 Spark 数据服务器。请稍后重试。": "§7Possible cause: Server network cannot access Spark data server. Please try again later."
+  "§c采样数据文件未找到，无法生成诊断报告。": "§cSampling data file not found, unable to generate diagnostic report."
+  "§c采样数据文件已过期，无法生成诊断报告。请重新采样。": "§cSampling data file is outdated, unable to generate diagnostic report. Please resample."
+  "§c分析过程中发生异常，请查看控制台日志。": "§cAn error occurred during analysis. Please check the console log."
   "AI 诊断异常: {}": "AI diagnosis exception: {}"
 
   # ==================== Admin - ServerHealthSkill ====================
