@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.service.afktask;
 
 import com.google.gson.Gson;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
+import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.common.enums.AFKTaskTypeEnum;
@@ -93,7 +94,7 @@ public abstract class AbstractEventWatchTask extends AFKTask implements Listener
         } catch (Exception firstError) {
             // LLM 经常生成结构不完整的嵌套 JSON（缺少闭合花括号）
             // 尝试自动修复：补全缺失的 }
-            String repaired = repairJsonBraces(json);
+            String repaired = JsonSafeGetUtil.repairJsonBraces(json);
             if (!repaired.equals(json)) {
                 try {
                     AFKTaskCallback result = GSON.fromJson(repaired, AFKTaskCallback.class);
@@ -106,44 +107,6 @@ public abstract class AbstractEventWatchTask extends AFKTask implements Listener
             PluginLoggerUtil.warn("挂机任务", I18nService.tr("解析回调配置失败: {}", firstError.getMessage()));
             return new AFKTaskCallback();
         }
-    }
-
-    /**
-     * 尝试修复不完整的 JSON（补全缺失的闭合花括号）
-     * <p>
-     * LLM 生成嵌套 JSON 时常见错误：缺少闭合 }，
-     * 本方法统计 { 和 } 数量差，在末尾补全缺失的 }
-     * </p>
-     *
-     * @param json 可能不完整的 JSON 字符串
-     * @return 修复后的 JSON 字符串
-     */
-    private String repairJsonBraces(String json) {
-        int open = 0;
-        boolean inString = false;
-        boolean escape = false;
-        for (int i = 0; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (escape) {
-                escape = false;
-                continue;
-            }
-            if (c == '\\') {
-                if (inString) escape = true;
-                continue;
-            }
-            if (c == '"') {
-                inString = !inString;
-                continue;
-            }
-            if (inString) continue;
-            if (c == '{') open++;
-            else if (c == '}') open--;
-        }
-        if (open > 0) {
-            return json + "}".repeat(open);
-        }
-        return json;
     }
 
     /**

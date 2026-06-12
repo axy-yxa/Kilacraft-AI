@@ -4,12 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.common.enums.AFKTaskStatusEnum;
 import com.zm.kilacraftAI.common.enums.AFKTaskTypeEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
+import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.model.afktask.AFKTask;
 import com.zm.kilacraftAI.model.afktask.AFKTaskCallback;
 import com.zm.kilacraftAI.model.afktask.ConditionPlan;
@@ -22,11 +23,7 @@ import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -127,35 +124,51 @@ public class CustomWatchTask extends AFKTask {
         }
         try {
             JsonObject obj = GSON.fromJson(json, JsonObject.class);
-            // threshold 支持布尔值、数值和字符串：
-            // - 布尔值：true → 1.0, false → 0.0，与 ConditionEvaluator 中布尔结果转换一致
-            // - 数值：直接使用 double
-            // - 字符串：用于 equal/not_equal 的字符串比较（如方块类型 GRASS_BLOCK）
-            JsonElement thresholdEl = obj.get("threshold");
-            double thresholdValue = 0;
-            String thresholdStr = null;
-            if (thresholdEl == null) {
-                // threshold 缺失，保持默认值 0
-            } else if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isBoolean()) {
-                thresholdValue = thresholdEl.getAsBoolean() ? 1.0 : 0.0;
-            } else if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isNumber()) {
-                thresholdValue = thresholdEl.getAsDouble();
-            } else {
-                // 字符串阈值（如 GRASS_BLOCK），仅用于 equal/not_equal
-                thresholdStr = thresholdEl.getAsString();
+            if (obj == null) {
+                obj = GSON.fromJson(JsonSafeGetUtil.repairJsonBraces(json), JsonObject.class);
             }
-            // 解析 condition_params（条件技能的执行参数，如 item=经验瓶）
-            Map<String, String> conditionParams = Collections.emptyMap();
-            JsonElement paramsEl = obj.get("condition_params");
-            if (paramsEl != null && paramsEl.isJsonObject()) {
-                conditionParams = GSON.fromJson(paramsEl, new TypeToken<Map<String, String>>() {
-                }.getType());
-            }
-            return new ConditionPlan(obj.get("condition_skill").getAsString(), obj.get("condition_action").getAsString(), obj.get("result_path").getAsString(), obj.get("operator").getAsString(), thresholdValue, thresholdStr, conditionParams);
+            return parseConditionPlanFields(obj);
         } catch (Exception e) {
+            // 尝试自动修复不完整的 JSON
+            String repaired = JsonSafeGetUtil.repairJsonBraces(json);
+            if (!repaired.equals(json)) {
+                try {
+                    PluginLoggerUtil.debug("挂机任务", I18nService.tr("JSON 自动修复成功"));
+                    return parseConditionPlanFields(GSON.fromJson(repaired, JsonObject.class));
+                } catch (Exception ignored) {
+                    // 修复后仍然失败
+                }
+            }
             PluginLoggerUtil.warn("挂机任务", I18nService.tr("解析condition_plan JSON失败: {}", e.getMessage()), e);
             return null;
         }
+    }
+
+    /**
+     * 从 JsonObject 中解析 ConditionPlan 字段
+     */
+    private ConditionPlan parseConditionPlanFields(JsonObject obj) {
+        JsonElement thresholdEl = obj.get("threshold");
+        double thresholdValue = 0;
+        String thresholdStr = null;
+        if (thresholdEl == null) {
+            // threshold 缺失，保持默认值 0
+        } else if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isBoolean()) {
+            thresholdValue = thresholdEl.getAsBoolean() ? 1.0 : 0.0;
+        } else if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isNumber()) {
+            thresholdValue = thresholdEl.getAsDouble();
+        } else {
+            // 字符串阈值（如 GRASS_BLOCK），仅用于 equal/not_equal
+            thresholdStr = thresholdEl.getAsString();
+        }
+        // 解析 condition_params（条件技能的执行参数，如 item=经验瓶）
+        Map<String, String> conditionParams = Collections.emptyMap();
+        JsonElement paramsEl = obj.get("condition_params");
+        if (paramsEl != null && paramsEl.isJsonObject()) {
+            conditionParams = GSON.fromJson(paramsEl, new TypeToken<Map<String, String>>() {
+            }.getType());
+        }
+        return new ConditionPlan(obj.get("condition_skill").getAsString(), obj.get("condition_action").getAsString(), obj.get("result_path").getAsString(), obj.get("operator").getAsString(), thresholdValue, thresholdStr, conditionParams);
     }
 
     /**
@@ -168,6 +181,16 @@ public class CustomWatchTask extends AFKTask {
         try {
             return GSON.fromJson(json, AFKTaskCallback.class);
         } catch (Exception e) {
+            // 尝试自动修复不完整的 JSON
+            String repaired = JsonSafeGetUtil.repairJsonBraces(json);
+            if (!repaired.equals(json)) {
+                try {
+                    PluginLoggerUtil.debug("挂机任务", I18nService.tr("回调 JSON 自动修复成功"));
+                    return GSON.fromJson(repaired, AFKTaskCallback.class);
+                } catch (Exception ignored) {
+                    // 修复后仍然失败
+                }
+            }
             PluginLoggerUtil.warn("挂机任务", I18nService.tr("解析回调配置失败: {}", e.getMessage()), e);
             return new AFKTaskCallback();
         }

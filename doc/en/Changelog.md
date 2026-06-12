@@ -1,7 +1,37 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-05-22  
+> **Last Updated**: 2026-06-11  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
+
+---
+
+## v2.1.1 - Two-Phase Intent Recognition Architecture Upgrade, JSON Auto-Repair Enhancement, AFK Task Prompt Governance
+
+### ✨ New Features
+- **Two-Phase Intent Recognition Architecture**: Phase 1 (ultra-lightweight classification, Skill name + description only) → Phase 2 (full details for selected Skills only), significantly reducing Token consumption. Pure small talk goes directly to normal AI conversation. New `phase1.*` config entries in `intent_prompts.yml`, supports hot-reload
+- **JSON Auto-Repair Utility (JsonSafeGetUtil.repairJsonBraces)**: Public utility class with three-phase repair (filter excess closing brackets → complete missing closing brackets → remove trailing commas), abandons repair on cross-nesting. Unified replacement of duplicate implementations in `AbstractEventWatchTask` and `ProfileAnalysisService`. 54 unit tests covering 10 major anomaly categories
+- **Skill Name Exact Validation**: Phase 2 validates `skill_name` against whitelist, invalid names are rejected with WARN log
+
+### 🔧 Improvements
+- **AFK Task Prompt Governance**: notify_target enforced as string (JSON objects prohibited); task_type new event-driven vs condition-polling selection rules with common misjudgment scenarios; callback execution context fully isolated (outer step references prohibited); JSON bracket closing per-layer constraints; concurrent command rule optimization
+- **JSON Output Scenarios Disable max_tokens**: Intent recognition and profile analysis no longer set `max_tokens`, preventing complex JSON truncation
+- **GenericBukkitAPI Skill Description Enhancement**: Changed from generic description to specific query capabilities and keywords, improving Phase 1 classification accuracy
+- **LLM Empty Response Diagnostics**: Logs SSE chunk count and last 3 raw data chunks when streaming response is empty
+- **Internationalization & Logging**: Added two-phase recognition translation keys, cleaned up orphaned/duplicate keys; removed redundant WARN log in ConditionEvaluator
+
+### 🐛 Bug Fixes
+- Fixed profile analysis JSON parsing occasional failure (auto-repair then re-parse)
+- Fixed CUSTOM task `condition_plan` parsing NPE due to missing null check
+
+### ⚠️ Compatibility
+
+#### Upgrading from v2.1.0
+1. Stop server, replace JAR, start
+2. **Recommended** (for full prompt optimization effects): delete the following config files and restart to let the plugin regenerate:
+   - `intent_prompts.yml` / `intent_prompts_en.yml` (new Phase 1 config section)
+   - `skills/afktask/AFKTaskSkill.yml` / `AFKTaskSkill_en.yml` (callback format + task_type rules)
+   - `skills/bukkit/apis.yml` / `apis_en.yml` (Skill description enhancement)
+3. All new config entries have code-level default fallbacks — **works without deleting any config files**
 
 ---
 

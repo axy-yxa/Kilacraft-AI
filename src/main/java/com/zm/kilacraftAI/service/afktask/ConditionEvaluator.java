@@ -112,7 +112,6 @@ public class ConditionEvaluator {
                     return EvaluationResult.failed();
                 }
                 boolean meetsCondition = compareString(strValue, conditionPlan.getOperator(), conditionPlan.getThresholdStr());
-                PluginLoggerUtil.warn("条件评估", "{}.{} -> {}=\"{}\" {} \"{}\" ? {}", conditionPlan.getConditionSkill(), conditionPlan.getConditionAction(), conditionPlan.getResultPath(), strValue, conditionPlan.getOperator(), conditionPlan.getThresholdStr(), meetsCondition);
                 return meetsCondition ? EvaluationResult.met(1.0) : EvaluationResult.notMet(0.0);
             }
 

@@ -3,16 +3,17 @@ package com.zm.kilacraftAI.skills.framework;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.util.HistoryUtil;
+import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.llm.LLMProvider;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import com.zm.kilacraftAI.skills.framework.task.TaskStep;
-import com.zm.kilacraftAI.common.util.HistoryUtil;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -30,48 +31,135 @@ public class SkillIntentRecognizer {
     private final SkillManager skillManager; // 用于获取所有技能的描述
 
     /**
-     * 构建系统提示词（根据调用者权限过滤 Skill）
+     * Phase 1：构建精简 Skill 描述（仅 name + description，无 action/hints）
      *
      * @param caller 调用者（Player），null 表示控制台（控制台视为拥有所有权限）
+     * @return 精简技能描述文本
      */
-    private String buildSystemPrompt(Player caller) {
-        // 动态生成技能描述部分（按权限预检过滤）
-        StringBuilder skillsDescription = new StringBuilder();
+    private String buildPhase1SkillDescription(Player caller) {
+        StringBuilder sb = new StringBuilder();
+        int index = 1;
+        for (Skill skill : skillManager.getAllSkills()) {
+            // 权限预检
+            String requiredPermission = skill.getRequiredPermission();
+            if (requiredPermission != null && caller != null && !caller.hasPermission(requiredPermission)) {
+                continue;
+            }
+            sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Phase 2：构建过滤后的完整 Skill 描述（仅选中 Skill 的全量信息）
+     *
+     * @param caller             调用者（Player），null 表示控制台
+     * @param selectedSkillNames Phase 1 选中的 Skill 名称集合
+     * @return 过滤后的完整技能描述文本
+     */
+    private String buildPhase2SkillDescription(Player caller, Set<String> selectedSkillNames) {
+        StringBuilder sb = new StringBuilder();
         int index = 1;
         int skippedCount = 0;
         for (Skill skill : skillManager.getAllSkills()) {
-            // 权限预检：如果 Skill 声明了权限要求，且调用者没有该权限，跳过
+            // 过滤非选中 Skill
+            if (!selectedSkillNames.contains(skill.getName())) continue;
+
+            // 权限预检
             String requiredPermission = skill.getRequiredPermission();
             if (requiredPermission != null && caller != null && !caller.hasPermission(requiredPermission)) {
                 skippedCount++;
                 continue;
             }
 
-            skillsDescription.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
+            sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
 
-            // 如果技能有多个动作，自动列出
             if (!skill.getActions().isEmpty()) {
-                skillsDescription.append(I18nService.tr("可用动作：")).append("\n");
+                sb.append(I18nService.tr("可用动作：")).append("\n");
                 for (Map.Entry<String, String> entry : skill.getActions().entrySet()) {
-                    skillsDescription.append("    - ").append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
+                    sb.append("    - ").append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
                 }
             }
 
-            // 如果有额外提示，也加上
             if (!skill.getHints().isEmpty()) {
-                skillsDescription.append(I18nService.tr("提示：")).append("\n");
+                sb.append(I18nService.tr("提示：")).append("\n");
                 for (String hint : skill.getHints()) {
-                    skillsDescription.append("    - ").append(hint).append("\n");
+                    sb.append("    - ").append(hint).append("\n");
                 }
             }
         }
 
         if (skippedCount > 0) {
-            PluginLoggerUtil.debug("意图识别", "权限预检过滤：跳过了 {} 个无权限的 Skill", skippedCount);
+            PluginLoggerUtil.debug("意图识别", "Phase 2 权限预检过滤：跳过了 {} 个无权限的 Skill", skippedCount);
         }
 
-        // 使用配置管理器构建完整提示词
-        return promptConfigManager.buildSystemPrompt(skillsDescription.toString());
+        return sb.toString();
+    }
+
+    /**
+     * 获取所有可用 Skill 的名称集合（经过权限预检过滤）
+     */
+    private Set<String> getAllSkillNames(Player caller) {
+        Set<String> names = new HashSet<>();
+        for (Skill skill : skillManager.getAllSkills()) {
+            String perm = skill.getRequiredPermission();
+            if (perm != null && caller != null && !caller.hasPermission(perm)) continue;
+            names.add(skill.getName());
+        }
+        return names;
+    }
+
+    /**
+     * 解析 Phase 1 响应 → 提取 skill_names 集合
+     * 包含 Skill 名称校验，过滤不存在的名称并记录警告日志
+     *
+     * @param response Phase 1 LLM 响应文本
+     * @return 选中的 Skill 名称集合（空集合表示无效意图）
+     */
+    private Set<String> parsePhase1Response(String response) {
+        try {
+            // 从响应中提取 JSON
+            String jsonStr = extractJson(response);
+            if (jsonStr == null) return Collections.emptySet();
+
+            JsonObject json;
+            try {
+                json = gson.fromJson(jsonStr, JsonObject.class);
+            } catch (Exception parseError) {
+                // LLM 生成嵌套 JSON 时常见错误：缺少闭合 }
+                String repaired = JsonSafeGetUtil.repairJsonBraces(jsonStr);
+                if (!repaired.equals(jsonStr)) {
+                    try {
+                        json = gson.fromJson(repaired, JsonObject.class);
+                        PluginLoggerUtil.debug("意图识别", I18nService.tr("JSON 自动修复成功"));
+                    } catch (Exception ignored) {
+                        throw parseError;
+                    }
+                } else {
+                    throw parseError;
+                }
+            }
+            if (json == null) return Collections.emptySet();
+
+            // {"skill_names": null} → 无效意图
+            if (!json.has("skill_names") || json.get("skill_names").isJsonNull()) {
+                return Collections.emptySet();
+            }
+
+            Set<String> result = new HashSet<>();
+            for (var element : json.getAsJsonArray("skill_names")) {
+                String name = element.getAsString();
+                if (isValidSkillName(name)) {
+                    result.add(name);
+                } else {
+                    PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 1 返回了不存在的技能名称: {}，已忽略"), name);
+                }
+            }
+            return result;
+        } catch (Exception e) {
+            PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 1 解析失败: {}"), e.getMessage());
+            return Collections.emptySet();
+        }
     }
 
     public SkillIntentRecognizer(ConfigManager configManager, IntentPromptConfigManager promptConfigManager, SkillManager skillManager) {
@@ -82,7 +170,7 @@ public class SkillIntentRecognizer {
     }
 
     /**
-     * 识别用户意图（统一入口，支持单意图和多步骤任务）
+     * 识别用户意图（两阶段：Phase 1 Skill 分类 → Phase 2 Action 选择 + 参数提取）
      *
      * @param userInput  用户输入
      * @param history    对话历史（用于上下文理解，可选）
@@ -138,16 +226,38 @@ public class SkillIntentRecognizer {
             }
         };
 
-        // 构建系统提示词（根据调用者权限过滤 Skill）
-        String systemPrompt = buildSystemPrompt(caller);
+        // === Phase 1：Skill 分类（关闭知识检索） ===
+        String phase1Skills = buildPhase1SkillDescription(caller);
+        String phase1SystemPrompt = promptConfigManager.buildPhase1SystemPrompt(phase1Skills);
 
-        // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
-//        PluginLoggerUtil.warn("意图识别", "动态构建系统提示词: {}", systemPrompt);
+        PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 1 Skill 分类开始"));
 
-        // 调用 LLM 进行意图识别
-        // 优化：启用知识检索，支持命令文档等定制知识
-        // 注：经过优化，ChineseTextProcessor 和 BM25 已支持短文本和英文命令名
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, systemPrompt, true, false, true).thenApply(this::parseIntentFromResponse);
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase1SystemPrompt, false, false, true).thenCompose(phase1Response -> {
+            Set<String> selectedSkills = parsePhase1Response(phase1Response);
+
+            // 快速路径：无效意图，不调 Phase 2
+            if (selectedSkills.isEmpty()) {
+                PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 1 判定为非技能请求"));
+                return CompletableFuture.completedFuture(createInvalidIntent(I18nService.tr("非技能请求")));
+            }
+
+            // === Phase 2：Action 选择 + 参数提取（开启知识检索） ===
+            // AFK 挂机任务特殊处理：callback 的 condition_plan 和 callback_steps 可以引用任意 Skill（包括 SPI 注册的），
+            // 但 Phase 1 可能漏选这些 Skill。因此当 AFKTask 被选中时，Phase 2 必须拿到全量 Skill 的完整信息，
+            // 确保 LLM 能为 condition_plan 和 callback_steps 选择正确的技能和 API。
+            boolean hasAfkTask = selectedSkills.contains("AFKTask");
+            Set<String> phase2SkillFilter = hasAfkTask ? getAllSkillNames(caller) : selectedSkills;
+            String phase2Skills = buildPhase2SkillDescription(caller, phase2SkillFilter);
+            String phase2SystemPrompt = promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills);
+
+            PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 2 开始，选中技能: {}"), selectedSkills);
+
+            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase2SystemPrompt, true, false, true).thenApply(phase2Response -> {
+                PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 2 完成"));
+                // 解析 LLM 响应
+                return parseIntentFromResponse(phase2Response);
+            });
+        });
     }
 
     /**
@@ -189,7 +299,25 @@ public class SkillIntentRecognizer {
                 return createInvalidIntent(I18nService.tr("无法解析响应为 JSON"));
             }
 
-            JsonObject json = gson.fromJson(jsonStr, JsonObject.class);
+            JsonObject json;
+            try {
+                json = gson.fromJson(jsonStr, JsonObject.class);
+            } catch (Exception parseError) {
+                // LLM 生成嵌套 JSON 时常见错误：缺少闭合 }
+                // 尝试自动修复：补全缺失的 }
+                String repaired = JsonSafeGetUtil.repairJsonBraces(jsonStr);
+                if (!repaired.equals(jsonStr)) {
+                    try {
+                        json = gson.fromJson(repaired, JsonObject.class);
+                        PluginLoggerUtil.debug("意图识别", I18nService.tr("JSON 自动修复成功"));
+                    } catch (Exception ignored) {
+                        // 修复后仍然失败，用原始错误
+                        throw parseError;
+                    }
+                } else {
+                    throw parseError;
+                }
+            }
 
             // 检查是否是多步骤任务（包含 goal 和 steps 字段）
             if (json.has("goal") && json.has("steps")) {
@@ -230,6 +358,14 @@ public class SkillIntentRecognizer {
     }
 
     /**
+     * 校验 skill_name 是否为已注册的合法名称（精确匹配）
+     */
+    private boolean isValidSkillName(String skillName) {
+        if (skillName == null) return false;
+        return skillManager.getSkill(skillName) != null;
+    }
+
+    /**
      * 解析单意图
      */
     private SkillIntent parseSingleIntentFromResponse(JsonObject json) {
@@ -237,6 +373,12 @@ public class SkillIntentRecognizer {
         String skillName = null;
         if (json.has("skill_name") && !json.get("skill_name").isJsonNull()) {
             skillName = json.get("skill_name").getAsString();
+        }
+
+        // 校验技能名称：不合法则直接返回无效意图
+        if (!isValidSkillName(skillName)) {
+            PluginLoggerUtil.warn("意图识别", I18nService.tr("Phase 2 返回了不存在的技能名称: {}，已拒绝执行", skillName));
+            return createInvalidIntent(I18nService.tr("技能名称无效"));
         }
 
         String action = null;
@@ -311,6 +453,11 @@ public class SkillIntentRecognizer {
                     }
 
                     if (skillName != null && action != null) {
+                        if (!isValidSkillName(skillName)) {
+                            // 多步骤任务中某个步骤的技能名无效，跳过该步骤
+                            PluginLoggerUtil.debug("意图识别", I18nService.tr("多步骤任务中跳过无效技能名称: {}"), skillName);
+                            continue;
+                        }
                         plan.addStep(new TaskStep(id, skillName, action, entities, dependsOn));
                     }
                 }

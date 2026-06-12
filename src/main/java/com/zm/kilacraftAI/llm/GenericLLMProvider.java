@@ -2,21 +2,22 @@ package com.zm.kilacraftAI.llm;
 
 import com.google.gson.*;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.MessageRoleEnum;
 import com.zm.kilacraftAI.common.exception.LLMException;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.ConfigManager;
-import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.common.enums.MessageRoleEnum;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
-import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.i18n.TextProcessorFactory;
+import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import lombok.Getter;
 import okhttp3.*;
 import okhttp3.internal.http2.ConnectionShutdownException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -319,7 +320,11 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 JsonObject requestBody = new JsonObject();
                 requestBody.addProperty("model", cachedModel);
                 requestBody.addProperty("temperature", cachedTemperature);
-                requestBody.addProperty("max_tokens", cachedMaxTokens);
+                // JSON 输出场景（意图识别、画像分析）不设 max_tokens，避免复杂 JSON 被截断导致解析失败
+                // 自然语言输出场景（普通对话、通知、广播、问候）使用配置值，限制输出长度
+                if (!enableJsonOutput) {
+                    requestBody.addProperty("max_tokens", cachedMaxTokens);
+                }
                 // 始终使用流式请求
                 requestBody.addProperty("stream", true);
 
@@ -389,6 +394,10 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                     StringBuilder fullResponse = new StringBuilder(INITIAL_RESPONSE_CAPACITY);
                     StringBuilder currentStreamMessage = new StringBuilder(INITIAL_STREAM_CAPACITY);
 
+                    // 收集原始 SSE 数据行（用于空响应时诊断）
+                    int chunkCount = 0;
+                    final Deque<String> recentRawChunks = new ArrayDeque<>(3);
+
                     // 使用 BufferedReader 逐行流式读取（始终使用 SSE 模式）
                     try (BufferedReader reader = new BufferedReader(body.charStream(), BUFFER_SIZE)) {
                         String line;
@@ -405,6 +414,11 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                                 if ("[DONE]".equals(data.trim())) {
                                     break;
                                 }
+
+                                chunkCount++;
+                                // 保留最近 3 条原始 chunk 用于诊断
+                                if (recentRawChunks.size() >= 3) recentRawChunks.pollFirst();
+                                recentRawChunks.addLast(data.length() > 200 ? data.substring(0, 200) + "..." : data);
 
                                 try {
                                     JsonObject json = gson.fromJson(data, JsonObject.class);
@@ -460,6 +474,11 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                     // 流式输出完成后，调用 showResponse() 触发 completeGeneration()
                     if (responseHandler != null) {
                         responseHandler.showResponse(fullResponse.toString());
+                    }
+
+                    // 空响应检测：记录 SSE 原始数据帮助排查
+                    if (fullResponse.isEmpty()) {
+                        PluginLoggerUtil.warn("LLM请求", I18nService.tr("LLM 返回空响应，共收到 {} 个 SSE chunk，最近原始数据: {}", chunkCount, String.join(" | ", recentRawChunks)));
                     }
 
                     return fullResponse.toString();

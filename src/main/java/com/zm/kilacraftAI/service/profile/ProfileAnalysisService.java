@@ -4,24 +4,21 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.ConversationDao;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -325,8 +322,21 @@ public class ProfileAnalysisService {
         try {
             profileData = GSON.fromJson(jsonStr, MAP_TYPE);
         } catch (JsonSyntaxException e) {
-            PluginLoggerUtil.warn("画像分析", I18nService.tr("解析 LLM 响应 JSON 失败: {}", e.getMessage()));
-            return;
+            // 尝试自动修复不完整的 JSON
+            String repaired = JsonSafeGetUtil.repairJsonBraces(jsonStr);
+            if (!repaired.equals(jsonStr)) {
+                try {
+                    profileData = GSON.fromJson(repaired, MAP_TYPE);
+                    PluginLoggerUtil.debug("画像分析", I18nService.tr("JSON 自动修复成功"));
+                } catch (Exception ignored) {
+                    // 修复后仍然失败
+                    PluginLoggerUtil.warn("画像分析", I18nService.tr("解析 LLM 响应 JSON 失败: {}", e.getMessage()));
+                    return;
+                }
+            } else {
+                PluginLoggerUtil.warn("画像分析", I18nService.tr("解析 LLM 响应 JSON 失败: {}", e.getMessage()));
+                return;
+            }
         }
 
         if (profileData == null || profileData.isEmpty()) {

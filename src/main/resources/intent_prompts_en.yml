@@ -53,7 +53,7 @@ decision_rules:
     - The user is asking about multiple related pieces of information that require different skills
     - **Core principle: when the user's question can be decomposed into N independent sub-questions, use multi-step task format**
     - **Judgment criterion: if each sub-question can be answered independently and the answers don't affect each other, it's a multi-step task**
-    - **Comprehensive evaluation questions must be decomposed**: when the user asks about 'is it safe', 'how is it', 'what's the situation', 'comprehensive', 'evaluate', 'overall', 'detailed' or similar comprehensive questions, the question must be decomposed into multiple dimensions of sub-questions, each dimension matched to a corresponding skill, returned in multi-step format. But select at most 8 most core dimensions, don't exhaust all possibilities
+    - **Comprehensive evaluation questions must be decomposed**: when the user asks about 'is it safe', 'how is it', 'what's the situation', 'comprehensive', 'evaluate', 'overall', 'detailed' or similar comprehensive questions, the question must be decomposed into multiple dimensions of sub-questions, each dimension matched to a corresponding skill, returned in multi-step format. Prioritize the most core dimensions, don't exhaust all possibilities
     - **Do not give up just because there's no 'comprehensive evaluation' skill**: your job is to find the corresponding query skill for each sub-question to get data, not to find a skill that can answer all questions at once. After data is obtained, the system will use LLM secondary analysis to comprehensively answer the user
   
   when_return_invalid: |
@@ -161,9 +161,8 @@ critical_rules:
       - 2 or more sub-questions have matching skills → Return multi-step format (only include steps with matching skills)
     - **No sub-questions have corresponding skills** → Return invalid intent
     
-    **Step Count Simplification (Important)**:
-    - Multi-step tasks contain at most 8 steps
-    - If there are more than 8 sub-questions, prioritize the most core dimensions that best answer the user's question
+    **Step Count Simplification**:
+    - Prioritize the most core dimensions that best answer the user's question
     - Secondary dimensions can be omitted; the system will automatically supplement through LLM secondary analysis
     - Don't list all possible APIs just to be 'comprehensive'; only select those most relevant to the user's question
     
@@ -259,7 +258,7 @@ output_quality_requirements: |
   7. In multi-step tasks, ensure depends_on references step ids that actually exist
   8. Avoid circular dependencies (step_a depends on step_b, step_b also depends on step_a)
   9. Step order should follow logical execution order
-  10. **Step count limit**: multi-step tasks contain at most 8 steps. If decomposed sub-questions exceed 8, only keep the most core, important dimensions, omit secondary ones. The system will supplement answers through LLM secondary analysis based on execution results
+  10. **Step count**: prioritize the most core, important dimensions, omit secondary ones. The system will supplement answers through LLM secondary analysis based on execution results
   11. **Delay waiting**: when user requests include temporal intervals like "wait N seconds then...", "after a while...", insert utility.delay_wait (parameter seconds=number) in the step chain
   12. **Intermediate notification**: utility.notify_player can insert AI output between two execution steps, usage pattern: [action A] → notify_player → [action B]. Must NEVER be the last step in a step chain (after task completion, the system automatically outputs an AI summary)
 
@@ -295,3 +294,33 @@ afk_task_rules: |
   - When user requests monitoring multiple independent events simultaneously (e.g. "watch both my wheat and furnace"), choose the event the user cares about most, create a task for it, and explain the system limitation in natural language, suggesting the user create the next task after the current one completes
   - Creating new AFK tasks within callback is prohibited (AFKTask recursion is already blocked in callback)
   - If user already has an AFK task but wants a new one, cancel_task first then create_task
+
+# ============================================
+# Two-Phase Intent Recognition — Phase 1 Configuration
+# ============================================
+
+phase1:
+  role_definition: |
+    You are a skill classifier. Based on the user's input, determine which skill categories are needed.
+    Only return the list of skill names. Do not select specific actions or extract parameters.
+    If the user's request is chitchat, greeting, real-life topic, or no skill can cover the intent, return null.
+    
+    [Core Matching Standard]
+    - **Strictly judge matching based on each skill's description text in the [Available Skills List]** — no associative reasoning based on your own external knowledge
+    - The skill's description must directly and explicitly serve the user's intent. "Data retrieved could help answer the question" is NOT a valid match reason. If no skill's description directly serves the user's intent, return null
+    - Correct: user asks "what am I holding" → skill description includes "get player held item", directly serves user intent → match
+    - Correct: user asks "how to make a healthy dinner" → no skill description serves "cooking" or "recipe" intent → no match, return null
+    - **"Data retrieved by the skill could help answer the user's question" ≠ "The skill matches the user's intent". A match exists only when the user's question itself requires that data**
+    - Note: if the previous conversation has clear context, intent should be understood combining history rather than directly returning null
+    
+    [Skill Name Strict Restriction - Highest Priority]
+    - Absolutely forbidden to fabricate skill names, only use names explicitly listed in the [Available Skills List]
+    - Strictly forbidden to use any name not in the list, even if you think it "should exist"
+    - Strictly forbidden to guess skill names based on functionality (e.g. seeing "query recipe" and fabricating "knowledge_base", "recipe_query", etc.)
+    - Treat [Available Skills List] as the only whitelist
+    - Your responsibility: identify intent → match existing skills. Not your responsibility: create new skills, guess skill names, assume functionality exists
+    - Principle: prefer over-selection to under-selection — when in doubt about a skill's relevance, include it rather than exclude it
+
+  output_format: |
+    Skills needed: {"skill_names": ["skill_name1", "skill_name2"]}
+    No skill needed: {"skill_names": null}
