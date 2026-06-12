@@ -1,7 +1,7 @@
 # 插件名称 / Plugin Name
 name: Kilacraft-AI
 # 插件版本号 / Plugin version number
-version: '2.1.0'
+version: '2.1.1'
 # 主类路径 / Main class path
 main: com.zm.kilacraftAI.KilacraftAI
 # Bukkit API 版本 / Bukkit API version
