@@ -65,6 +65,7 @@ modules:
   "传送监听": "TPA Monitor"
   "画像分析": "Profile Analysis"
   "社交关系": "Social Relation"
+  "消息分发": "Msg Dispatch"
 
 # ==================== 消息翻译 ====================
 # Message Translations
@@ -892,6 +893,7 @@ messages:
   "Phase 2 完成": "Phase 2 completed"
   "JSON 自动修复成功": "JSON auto-repair successful"
   "Phase 2 权限预检过滤：跳过了 {} 个无权限的 Skill": "Phase 2 permission pre-check filtered: {} Skills skipped due to insufficient permissions"
+  "Phase 2 未返回 skill_name": "Phase 2 did not return skill_name"
   "非技能请求": "Non-skill request"
   "可用动作：": "Available actions:"
   "提示：": "Hints:"
@@ -1092,7 +1094,9 @@ messages:
   "保存玩家画像失败: {} - {}": "Failed to save player profile: {} - {}"
   "加载画像失败: {} - {}": "Failed to load profile: {} - {}"
   "flush 画像失败: {} - {}": "Failed to flush profile: {} - {}"
-  "已刷盘 {} 个玩家画像": "Flushed {} player profiles"
+  "已刷盘 {} 个玩家画像（成功 {}）": "Flushed {} player profiles ({} succeeded)"
+  "数据库连接异常，剩余 {} 个画像未刷盘": "Database connection error, {} remaining profiles not flushed"
+  "获取数据库连接失败，无法刷盘画像: {}": "Failed to get database connection, cannot flush profiles: {}"
   "更新画像数据失败: {} - {}": "Failed to update profile data: {} - {}"
   "热重载后补录画像失败: {} - {}": "Failed to backfill profile after hot reload: {} - {}"
   "热重载后补录 {} 个在线玩家画像": "Backfilled {} online player profiles after hot reload"
@@ -1123,6 +1127,7 @@ messages:
   "玩家": "Player"
   "LLM 返回空响应，跳过更新": "LLM returned empty response, skipping update"
   "LLM 返回空响应，共收到 {} 个 SSE chunk，最近原始数据: {}": "LLM returned empty response, received {} SSE chunks, recent raw data: {}"
+  "未知的输出载体类型: {}，回退到 CHAT": "Unknown output channel type: {}, falling back to CHAT"
   "解析 LLM 响应 JSON 失败: {}": "Failed to parse LLM response JSON: {}"
   "解析结果为空，跳过更新": "Parse result is empty, skipping update"
   "玩家 {} 画像分析完成，版本: {}，字段: {}": "Player {} profile analysis complete, version: {}, fields: {}"

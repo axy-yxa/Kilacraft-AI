@@ -1,48 +1,48 @@
 package com.zm.kilacraftAI;
 
+import com.zm.kilacraftAI.command.KilacraftCommand;
+import com.zm.kilacraftAI.command.TabCompleter;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.*;
-import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.command.KilacraftCommand;
-import com.zm.kilacraftAI.command.TabCompleter;
+import com.zm.kilacraftAI.db.DatabaseManager;
+import com.zm.kilacraftAI.db.model.DatabaseConfig;
 import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.db.service.DataCleanupService;
-import com.zm.kilacraftAI.db.model.DatabaseConfig;
-import com.zm.kilacraftAI.db.DatabaseManager;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.i18n.TextProcessorFactory;
+import com.zm.kilacraftAI.listener.*;
+import com.zm.kilacraftAI.llm.LLMManager;
+import com.zm.kilacraftAI.metrics.MetricsBootstrap;
+import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.model.profile.SocialGraph;
+import com.zm.kilacraftAI.scheduler.ManagedTask;
+import com.zm.kilacraftAI.scheduler.TaskScheduler;
+import com.zm.kilacraftAI.service.afktask.AFKTaskManager;
+import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.event.EventCollector;
 import com.zm.kilacraftAI.service.event.MarketEventCollector;
-import com.zm.kilacraftAI.config.LanguageManager;
-import com.zm.kilacraftAI.service.profile.*;
 import com.zm.kilacraftAI.service.event.OfflineEventAggregator;
-import com.zm.kilacraftAI.listener.PrivateChatListener;
-import com.zm.kilacraftAI.listener.TpaListener;
 import com.zm.kilacraftAI.service.greeting.LoginGreetingHandler;
+import com.zm.kilacraftAI.service.health.ServerHealthGuardian;
+import com.zm.kilacraftAI.service.health.SparkDataCollector;
 import com.zm.kilacraftAI.service.knowledge.EmbeddingService;
 import com.zm.kilacraftAI.service.knowledge.InternalEnumRegistry;
 import com.zm.kilacraftAI.service.knowledge.KnowledgeBaseManager;
 import com.zm.kilacraftAI.service.knowledge.KnowledgeRetriever;
-import com.zm.kilacraftAI.listener.ChatListener;
-import com.zm.kilacraftAI.service.conversation.ConversationManager;
-import com.zm.kilacraftAI.llm.LLMManager;
+import com.zm.kilacraftAI.service.notification.NotificationService;
+import com.zm.kilacraftAI.service.output.AIResponsePipeline;
 import com.zm.kilacraftAI.service.output.SoundEffectManager;
 import com.zm.kilacraftAI.service.output.StreamOutputManager;
-import com.zm.kilacraftAI.metrics.MetricsBootstrap;
-import com.zm.kilacraftAI.metrics.MetricsCollector;
-import com.zm.kilacraftAI.service.output.AIResponsePipeline;
-import com.zm.kilacraftAI.scheduler.ManagedTask;
-import com.zm.kilacraftAI.scheduler.TaskScheduler;
-import com.zm.kilacraftAI.listener.AFKTaskListener;
-import com.zm.kilacraftAI.service.afktask.AFKTaskManager;
-import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
-import com.zm.kilacraftAI.listener.AdminListener;
-import com.zm.kilacraftAI.service.health.ServerHealthGuardian;
-import com.zm.kilacraftAI.service.notification.NotificationService;
-import com.zm.kilacraftAI.skills.admin.ServerHealthSkill;
-import com.zm.kilacraftAI.skills.admin.PlayerAnalysisSkill;
+import com.zm.kilacraftAI.service.profile.ProfileAnalysisService;
+import com.zm.kilacraftAI.service.profile.ProfileEventCollector;
+import com.zm.kilacraftAI.service.profile.ProfileManager;
+import com.zm.kilacraftAI.service.profile.SocialRelationExtractor;
+import com.zm.kilacraftAI.service.translate.ItemTranslator;
 import com.zm.kilacraftAI.skills.admin.AuditLogSkill;
-import com.zm.kilacraftAI.service.health.SparkDataCollector;
+import com.zm.kilacraftAI.skills.admin.PlayerAnalysisSkill;
+import com.zm.kilacraftAI.skills.admin.ServerHealthSkill;
+import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
 import com.zm.kilacraftAI.skills.bukkit.BukkitFXSkill;
 import com.zm.kilacraftAI.skills.bukkit.BukkitStatsSkill;
 import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
@@ -50,14 +50,12 @@ import com.zm.kilacraftAI.skills.cmi.CMISkill;
 import com.zm.kilacraftAI.skills.command.CommandSkill;
 import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
-import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
 import com.zm.kilacraftAI.skills.framework.SkillRegistry;
+import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
 import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketActionSkill;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
 import com.zm.kilacraftAI.skills.utility.UtilitySkill;
-import com.zm.kilacraftAI.service.translate.ItemTranslator;
-import com.zm.kilacraftAI.i18n.TextProcessorFactory;
 import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -434,50 +432,153 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 1. 对话刷盘（每 30 秒）
         taskScheduler.register(new ManagedTask() {
-            @Override public String name() { return I18nService.tr("对话刷盘"); }
-            @Override public String description() { return I18nService.tr("定时批量写入对话记录"); }
-            @Override public long delayTicks() { return 600L; }
-            @Override public long intervalTicks() { return 600L; }
-            @Override public int execute() { return persistenceService.scheduledFlush(); }
+            @Override
+            public String name() {
+                return I18nService.tr("对话刷盘");
+            }
+
+            @Override
+            public String description() {
+                return I18nService.tr("定时批量写入对话记录");
+            }
+
+            @Override
+            public long delayTicks() {
+                return 600L;
+            }
+
+            @Override
+            public long intervalTicks() {
+                return 600L;
+            }
+
+            @Override
+            public int execute() {
+                return persistenceService.scheduledFlush();
+            }
         });
 
         // 2. 对话清理（每 6 小时，条件注册）
         taskScheduler.register(new ManagedTask() {
-            @Override public String name() { return I18nService.tr("对话清理"); }
-            @Override public String description() { return I18nService.tr("清理过期对话记录"); }
-            @Override public long delayTicks() { return 1200L; }
-            @Override public long intervalTicks() { return 432000L; }
-            @Override public boolean enabled() { return persistenceService.getRetentionDays() > 0; }
-            @Override public int execute() { return persistenceService.scheduledCleanup(); }
+            @Override
+            public String name() {
+                return I18nService.tr("对话清理");
+            }
+
+            @Override
+            public String description() {
+                return I18nService.tr("清理过期对话记录");
+            }
+
+            @Override
+            public long delayTicks() {
+                return 1200L;
+            }
+
+            @Override
+            public long intervalTicks() {
+                return 432000L;
+            }
+
+            @Override
+            public boolean enabled() {
+                return persistenceService.getRetentionDays() > 0;
+            }
+
+            @Override
+            public int execute() {
+                return persistenceService.scheduledCleanup();
+            }
         });
 
         // 3. 事件清理（每 6 小时，条件注册）
         taskScheduler.register(new ManagedTask() {
-            @Override public String name() { return I18nService.tr("事件清理"); }
-            @Override public String description() { return I18nService.tr("清理过期事件和审计日志"); }
-            @Override public long delayTicks() { return 2400L; }
-            @Override public long intervalTicks() { return 432000L; }
-            @Override public boolean enabled() { return dataCleanupService.needsCleanup(); }
-            @Override public int execute() { return dataCleanupService.scheduledCleanup(); }
+            @Override
+            public String name() {
+                return I18nService.tr("事件清理");
+            }
+
+            @Override
+            public String description() {
+                return I18nService.tr("清理过期事件和审计日志");
+            }
+
+            @Override
+            public long delayTicks() {
+                return 2400L;
+            }
+
+            @Override
+            public long intervalTicks() {
+                return 432000L;
+            }
+
+            @Override
+            public boolean enabled() {
+                return dataCleanupService.needsCleanup();
+            }
+
+            @Override
+            public int execute() {
+                return dataCleanupService.scheduledCleanup();
+            }
         });
 
         // 4. 社交关系每日衰减（每 24 小时）
         taskScheduler.register(new ManagedTask() {
-            @Override public String name() { return I18nService.tr("社交衰减"); }
-            @Override public String description() { return I18nService.tr("每日衰减社交关系强度"); }
-            @Override public long delayTicks() { return 6000L; }
-            @Override public long intervalTicks() { return 1728000L; }
-            @Override public int execute() { return socialGraph.performDailyDecay(); }
+            @Override
+            public String name() {
+                return I18nService.tr("社交衰减");
+            }
+
+            @Override
+            public String description() {
+                return I18nService.tr("每日衰减社交关系强度");
+            }
+
+            @Override
+            public long delayTicks() {
+                return 6000L;
+            }
+
+            @Override
+            public long intervalTicks() {
+                return 1728000L;
+            }
+
+            @Override
+            public int execute() {
+                return socialGraph.performDailyDecay();
+            }
         });
 
         // 5. 社交关系智能提取（每 30 分钟）
         socialRelationExtractor = new SocialRelationExtractor(databaseManager, socialGraph, databaseManager.getConfig().getServerId());
         taskScheduler.register(new ManagedTask() {
-            @Override public String name() { return I18nService.tr("社交提取"); }
-            @Override public String description() { return I18nService.tr("从Skill日志提取社交关系"); }
-            @Override public long delayTicks() { return 3600L; }
-            @Override public long intervalTicks() { return 36000L; }
-            @Override public int execute() { return socialRelationExtractor.extractNewRelations(); }
+            @Override
+            public String name() {
+                return I18nService.tr("社交提取");
+            }
+
+            @Override
+            public String description() {
+                return I18nService.tr("从Skill日志提取社交关系");
+            }
+
+            @Override
+            public long delayTicks() {
+                return 3600L;
+            }
+
+            @Override
+            public long intervalTicks() {
+                return 36000L;
+            }
+
+            @Override
+            public int execute() {
+                return socialRelationExtractor.extractNewRelations();
+            }
         });
     }
 
@@ -624,7 +725,7 @@ public final class KilacraftAI extends JavaPlugin {
         }
 
         // 创建任务管理器
-        afkTaskManager = new AFKTaskManager(this);
+        afkTaskManager = new AFKTaskManager(configManager.getAfkTaskMaxTasks());
 
         // 注册事件监听器（玩家下线自动清理）
         afkTaskListener = new AFKTaskListener(this);
@@ -683,7 +784,7 @@ public final class KilacraftAI extends JavaPlugin {
         boolean shouldBeEnabled = configManager.isAfkTaskEnabled();
 
         if (shouldBeEnabled && afkTaskManager == null) {
-            afkTaskManager = new AFKTaskManager(this);
+            afkTaskManager = new AFKTaskManager(configManager.getAfkTaskMaxTasks());
             // 仅在 listener 未注册时注册，避免热重载时重复注册
             if (afkTaskListener == null) {
                 afkTaskListener = new AFKTaskListener(this);
@@ -714,10 +815,7 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 初始化外部通知服务
         notificationService = new NotificationService();
-        notificationService.reload(
-            adminConfigManager.isNotificationEnabled(),
-            adminConfigManager.getNotificationChannels()
-        );
+        notificationService.reload(adminConfigManager.isNotificationEnabled(), adminConfigManager.getNotificationChannels());
 
         // 管理员事件监听器（掉线中断采样）始终注册
         adminListener = new AdminListener(this);
@@ -827,10 +925,7 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 同步通知服务配置
         if (notificationService != null) {
-            notificationService.reload(
-                adminConfigManager.isNotificationEnabled(),
-                adminConfigManager.getNotificationChannels()
-            );
+            notificationService.reload(adminConfigManager.isNotificationEnabled(), adminConfigManager.getNotificationChannels());
         }
     }
 

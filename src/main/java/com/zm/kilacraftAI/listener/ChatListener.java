@@ -110,7 +110,8 @@ public class ChatListener implements Listener {
         // 立即更新冷却时间
         validator.startCooldown(playerId);
 
-        PluginLoggerUtil.debug("聊天监听", "玩家 {} 的历史记录数量：{}", player.getName(), plugin.getConversationManager().getHistory(playerId) != null ? plugin.getConversationManager().getHistory(playerId).size() : 0);
+        Deque<ConversationManager.Message> h = plugin.getConversationManager().getHistory(playerId);
+        PluginLoggerUtil.debug("聊天监听", "玩家 {} 的历史记录数量：{}", player.getName(), h != null ? h.size() : 0);
 
         // 使用统一的 AI 请求处理器
         boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableChatListener();

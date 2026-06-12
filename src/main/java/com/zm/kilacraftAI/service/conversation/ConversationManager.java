@@ -2,14 +2,12 @@ package com.zm.kilacraftAI.service.conversation;
 
 import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * 对话管理器
@@ -22,6 +20,7 @@ public class ConversationManager {
     /**
      * 对话持久化服务（可选，由 KilacraftAI 注入）
      */
+    @Setter
     private ConversationPersistenceService persistenceService;
 
     /**
@@ -32,13 +31,11 @@ public class ConversationManager {
     /**
      * 玩家历史对话记录（普通命令和聊天模式）
      */
-    @Getter
     private final Map<UUID, Deque<Message>> history = new ConcurrentHashMap<>();
 
     /**
      * 插件命令的历史记录（key: UUID_人格）
      */
-    @Getter
     private final Map<String, Deque<Message>> pluginCommandHistory = new ConcurrentHashMap<>();
 
     /**
@@ -73,6 +70,12 @@ public class ConversationManager {
     }
 
     /**
+     * 每个玩家历史记录的最大条数
+     * <p>超出时从头部移除最旧记录，防止长期运行导致 OOM。</p>
+     */
+    private static final int MAX_HISTORY_SIZE = 100;
+
+    /**
      * 设置玩家的连续对话模式状态
      *
      * @param playerId 玩家 UUID
@@ -93,20 +96,23 @@ public class ConversationManager {
     }
 
     /**
-     * 获取或创建玩家的历史记录
+     * 获取或创建玩家的历史记录，并自动截断超出上限的旧记录
      *
      * @param playerId 玩家 UUID
      * @return 历史记录队列
      */
     public Deque<Message> getOrCreateHistory(UUID playerId) {
-        return history.computeIfAbsent(playerId, k -> new ArrayDeque<>());
+        Deque<Message> deque = history.computeIfAbsent(playerId, k -> new ConcurrentLinkedDeque<>());
+        trimHistory(deque);
+        return deque;
     }
 
     /**
-     * 获取玩家的历史记录
+     * 获取玩家的历史记录（只读，不创建）
+     * <p>用于判断历史是否存在，如 ConversationPersistenceService 的 DB 加载决策。</p>
      *
      * @param playerId 玩家 UUID
-     * @return 历史记录队列，如果不存在则返回 null
+     * @return 历史记录队列，不存在则返回 null
      */
     public Deque<Message> getHistory(UUID playerId) {
         return history.get(playerId);
@@ -122,13 +128,25 @@ public class ConversationManager {
     }
 
     /**
-     * 获取或创建插件命令的历史记录
+     * 获取或创建插件命令的历史记录，并自动截断超出上限的旧记录
      *
      * @param historyKey 历史记录 key（格式：UUID_人格）
      * @return 历史记录队列
      */
     public Deque<Message> getOrCreatePluginHistory(String historyKey) {
-        return pluginCommandHistory.computeIfAbsent(historyKey, k -> new ArrayDeque<>());
+        Deque<Message> deque = pluginCommandHistory.computeIfAbsent(historyKey, k -> new ConcurrentLinkedDeque<>());
+        trimHistory(deque);
+        return deque;
+    }
+
+    /**
+     * 获取插件命令历史记录
+     *
+     * @param historyKey 历史记录 key（格式：UUID_人格）
+     * @return 历史记录队列，如果不存在则返回 null
+     */
+    public Deque<Message> getPluginHistory(String historyKey) {
+        return pluginCommandHistory.get(historyKey);
     }
 
     /**
@@ -138,6 +156,16 @@ public class ConversationManager {
      */
     public void clearPluginHistory(UUID playerId) {
         pluginCommandHistory.entrySet().removeIf(entry -> entry.getKey().startsWith(playerId.toString()));
+    }
+
+    /**
+     * 截断历史记录到最大容量（从头部移除最旧记录）
+     */
+    private void trimHistory(Deque<Message> deque) {
+        if (deque.size() <= MAX_HISTORY_SIZE) return;
+        while (deque.size() > MAX_HISTORY_SIZE) {
+            deque.pollFirst();
+        }
     }
 
     /**
@@ -209,15 +237,6 @@ public class ConversationManager {
      */
     private String generatePluginHistoryKey(UUID playerId, String personality) {
         return playerId.toString() + "_" + personality;
-    }
-
-    /**
-     * 注入对话持久化服务
-     *
-     * @param persistenceService 持久化服务（可为 null，表示不持久化）
-     */
-    public void setPersistenceService(ConversationPersistenceService persistenceService) {
-        this.persistenceService = persistenceService;
     }
 
     /**

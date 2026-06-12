@@ -22,7 +22,6 @@ import com.zm.kilacraftAI.common.util.MessageUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.UUID;
@@ -103,7 +102,7 @@ public class AIRequestHandler {
      */
     public void handleAIRequestForConsole(CommandSender sender, String message, boolean enableAgent) {
         UUID consoleUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        Deque<ConversationManager.Message> consoleHistory = getOrCreateHistory(consoleUUID);
+        Deque<ConversationManager.Message> consoleHistory = plugin.getConversationManager().getOrCreateHistory(consoleUUID);
 
         RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error), OutputScenarioEnum.NORMAL_CHAT, false, ConversationSourceEnum.CONSOLE);
         handleAIRequestInternal(message, ctx, enableAgent);
@@ -263,18 +262,6 @@ public class AIRequestHandler {
             ctx.sendError.accept(I18nService.tr("LLM 请求失败: {}", throwable.getMessage()));
             return null;
         });
-    }
-
-    /**
-     * 获取或创建历史记录
-     */
-    private Deque<ConversationManager.Message> getOrCreateHistory(UUID playerId) {
-        ConversationManager convManager = plugin.getConversationManager();
-        Deque<ConversationManager.Message> history = convManager.getHistory(playerId);
-        if (history == null) {
-            history = convManager.getHistory().computeIfAbsent(playerId, k -> new ArrayDeque<>());
-        }
-        return history;
     }
 
     /**

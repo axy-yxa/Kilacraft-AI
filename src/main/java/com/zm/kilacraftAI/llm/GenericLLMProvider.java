@@ -317,59 +317,10 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 }
                 // ===================================
 
-                JsonObject requestBody = new JsonObject();
-                requestBody.addProperty("model", cachedModel);
-                requestBody.addProperty("temperature", cachedTemperature);
-                // JSON 输出场景（意图识别、画像分析）不设 max_tokens，避免复杂 JSON 被截断导致解析失败
-                // 自然语言输出场景（普通对话、通知、广播、问候）使用配置值，限制输出长度
-                if (!enableJsonOutput) {
-                    requestBody.addProperty("max_tokens", cachedMaxTokens);
-                }
-                // 始终使用流式请求
-                requestBody.addProperty("stream", true);
+                // 构建 SSE 流式请求体
+                JsonObject requestBody = buildRequestBody(enhancedUserMessage, history, customSystemPrompt, playerName, enableJsonOutput);
 
-                // 启用 JSON 输出格式（仅意图识别阶段使用）
-                if (enableJsonOutput) {
-                    JsonObject responseFormat = new JsonObject();
-                    responseFormat.addProperty("type", "json_object");
-                    requestBody.add("response_format", responseFormat);
-                }
-
-                JsonArray messages = new JsonArray();
-
-                // 使用自定义的系统提示词，替换 {player} 占位符
-                String systemPrompt = customSystemPrompt.replace("{player}", playerName);
-
-                // 语言约束：强制 AI 输出使用服务器配置的语言
-                // 防止第三方 SPI Skill 的多语言数据干扰输出语言
-                String langDirective = plugin.getConfigManager().getLanguageDirective();
-                if (langDirective != null) {
-                    systemPrompt += "\n" + langDirective;
-                }
-
-                JsonObject systemMessage = new JsonObject();
-                systemMessage.addProperty("role", MessageRoleEnum.SYSTEM.value());
-                systemMessage.addProperty("content", systemPrompt);
-                messages.add(systemMessage);
-
-                // 添加历史对话记录
-                if (history != null && !history.isEmpty()) {
-                    for (ConversationManager.Message msg : history) {
-                        JsonObject msgObj = new JsonObject();
-                        msgObj.addProperty("role", msg.getRole());
-                        msgObj.addProperty("content", msg.getContent());
-                        messages.add(msgObj);
-                    }
-                }
-
-                // 用户消息
-                JsonObject userMsg = new JsonObject();
-                userMsg.addProperty("role", MessageRoleEnum.USER.value());
-                userMsg.addProperty("content", enhancedUserMessage);
-                messages.add(userMsg);
-
-                requestBody.add("messages", messages);
-
+                // 构建 HTTP 请求
                 Request request = buildRequest(requestBody);
 
                 // ========== 使用流式读取 ==========
@@ -385,103 +336,8 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                         return errorMsg;
                     }
 
-                    ResponseBody body = response.body();
-                    if (body == null) {
-                        return "§c" + I18nService.tr("API 响应为空");
-                    }
-
-                    // 预分配容量，减少扩容开销
-                    StringBuilder fullResponse = new StringBuilder(INITIAL_RESPONSE_CAPACITY);
-                    StringBuilder currentStreamMessage = new StringBuilder(INITIAL_STREAM_CAPACITY);
-
-                    // 收集原始 SSE 数据行（用于空响应时诊断）
-                    int chunkCount = 0;
-                    final Deque<String> recentRawChunks = new ArrayDeque<>(3);
-
-                    // 使用 BufferedReader 逐行流式读取（始终使用 SSE 模式）
-                    try (BufferedReader reader = new BufferedReader(body.charStream(), BUFFER_SIZE)) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            // 跳过空行
-                            if (line.isEmpty()) {
-                                continue;
-                            }
-
-                            if (line.startsWith("data: ")) {
-                                String data = line.substring(6);
-
-                                // 检查结束标志
-                                if ("[DONE]".equals(data.trim())) {
-                                    break;
-                                }
-
-                                chunkCount++;
-                                // 保留最近 3 条原始 chunk 用于诊断
-                                if (recentRawChunks.size() >= 3) recentRawChunks.pollFirst();
-                                recentRawChunks.addLast(data.length() > 200 ? data.substring(0, 200) + "..." : data);
-
-                                try {
-                                    JsonObject json = gson.fromJson(data, JsonObject.class);
-                                    if (json == null) {
-                                        continue;
-                                    }
-
-                                    JsonArray choices = json.getAsJsonArray("choices");
-                                    if (choices != null && !choices.isEmpty()) {
-                                        JsonObject choice = choices.get(0).getAsJsonObject();
-                                        if (choice == null) {
-                                            continue;
-                                        }
-
-                                        JsonObject delta = choice.getAsJsonObject("delta");
-                                        if (delta != null && delta.has("content")) {
-                                            JsonElement contentElement = delta.get("content");
-                                            if (contentElement == null || contentElement.isJsonNull()) {
-                                                continue;
-                                            }
-                                            String content = contentElement.getAsString();
-                                            if (content.isEmpty()) {
-                                                continue;
-                                            }
-
-                                            fullResponse.append(content);
-
-                                            // 如果 handler 开启流式输出，实时回调
-                                            if (responseHandler != null && responseHandler.isStreamOutputEnabled()) {
-                                                currentStreamMessage.append(content);
-                                                responseHandler.showStreamChunk(content, currentStreamMessage.toString());
-                                            }
-                                        }
-                                    }
-                                } catch (JsonParseException e) {
-                                    // 忽略 JSON 解析错误，继续处理下一行
-                                    if (cachedDebugMode) {
-                                        String truncatedData = data.length() > 100 ? data.substring(0, 100) + "..." : data;
-                                        PluginLoggerUtil.debug("LLM请求", "JSON 解析失败：{}", truncatedData);
-                                    }
-                                }
-                            }
-                        }
-                    } catch (IOException e) {
-                        if (e instanceof ConnectionShutdownException) {
-                            PluginLoggerUtil.debug("LLM请求", "连接被对端关闭");
-                        } else {
-                            PluginLoggerUtil.warn("LLM请求", "读取响应流失败", e);
-                        }
-                        return "§c" + I18nService.tr("读取响应失败：{}", e.getMessage());
-                    }
-
-                    // 流式输出完成后，调用 showResponse() 触发 completeGeneration()
-                    if (responseHandler != null) {
-                        responseHandler.showResponse(fullResponse.toString());
-                    }
-
-                    // 空响应检测：记录 SSE 原始数据帮助排查
-                    if (fullResponse.isEmpty()) {
-                        PluginLoggerUtil.warn("LLM请求", I18nService.tr("LLM 返回空响应，共收到 {} 个 SSE chunk，最近原始数据: {}", chunkCount, String.join(" | ", recentRawChunks)));
-                    }
-
-                    return fullResponse.toString();
+                    // 解析 SSE 流式响应
+                    return parseSSEStream(response, responseHandler);
                 }
 
             } catch (Exception e) {
@@ -500,6 +356,179 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 }
             }
         }, FoliaCompat.getIOPool());
+    }
+
+    /**
+     * 构建 SSE 流式请求体
+     *
+     * @param enhancedUserMessage 增强后的用户消息（可能包含知识库上下文）
+     * @param history             历史对话记录
+     * @param customSystemPrompt  自定义系统提示词
+     * @param playerName          玩家名称
+     * @param enableJsonOutput    是否启用 JSON 输出格式
+     * @return 构建好的请求体 JSON
+     */
+    private JsonObject buildRequestBody(String enhancedUserMessage, Deque<ConversationManager.Message> history, String customSystemPrompt, String playerName, boolean enableJsonOutput) {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("model", cachedModel);
+        requestBody.addProperty("temperature", cachedTemperature);
+        // JSON 输出场景（意图识别、画像分析）不设 max_tokens，避免复杂 JSON 被截断导致解析失败
+        // 自然语言输出场景（普通对话、通知、广播、问候）使用配置值，限制输出长度
+        if (!enableJsonOutput) {
+            requestBody.addProperty("max_tokens", cachedMaxTokens);
+        }
+        // 始终使用流式请求
+        requestBody.addProperty("stream", true);
+
+        // 启用 JSON 输出格式（仅意图识别阶段使用）
+        if (enableJsonOutput) {
+            JsonObject responseFormat = new JsonObject();
+            responseFormat.addProperty("type", "json_object");
+            requestBody.add("response_format", responseFormat);
+        }
+
+        JsonArray messages = new JsonArray();
+
+        // 使用自定义的系统提示词，替换 {player} 占位符
+        String systemPrompt = customSystemPrompt.replace("{player}", playerName);
+
+        // 语言约束：强制 AI 输出使用服务器配置的语言
+        // 防止第三方 SPI Skill 的多语言数据干扰输出语言
+        String langDirective = plugin.getConfigManager().getLanguageDirective();
+        if (langDirective != null) {
+            systemPrompt += "\n" + langDirective;
+        }
+
+        JsonObject systemMessage = new JsonObject();
+        systemMessage.addProperty("role", MessageRoleEnum.SYSTEM.value());
+        systemMessage.addProperty("content", systemPrompt);
+        messages.add(systemMessage);
+
+        // 添加历史对话记录
+        if (history != null && !history.isEmpty()) {
+            for (ConversationManager.Message msg : history) {
+                JsonObject msgObj = new JsonObject();
+                msgObj.addProperty("role", msg.getRole());
+                msgObj.addProperty("content", msg.getContent());
+                messages.add(msgObj);
+            }
+        }
+
+        // 用户消息
+        JsonObject userMsg = new JsonObject();
+        userMsg.addProperty("role", MessageRoleEnum.USER.value());
+        userMsg.addProperty("content", enhancedUserMessage);
+        messages.add(userMsg);
+
+        requestBody.add("messages", messages);
+        return requestBody;
+    }
+
+    /**
+     * 解析 SSE 流式响应
+     *
+     * @param response        HTTP 响应
+     * @param responseHandler 响应处理器（流式回调）
+     * @return 完整的响应文本
+     */
+    private String parseSSEStream(Response response, AIResponseHandler responseHandler) {
+        ResponseBody body = response.body();
+        if (body == null) {
+            return "§c" + I18nService.tr("API 响应为空");
+        }
+
+        // 预分配容量，减少扩容开销
+        StringBuilder fullResponse = new StringBuilder(INITIAL_RESPONSE_CAPACITY);
+        StringBuilder currentStreamMessage = new StringBuilder(INITIAL_STREAM_CAPACITY);
+
+        // 收集原始 SSE 数据行（用于空响应时诊断）
+        int chunkCount = 0;
+        final Deque<String> recentRawChunks = new ArrayDeque<>(3);
+
+        // 使用 BufferedReader 逐行流式读取（始终使用 SSE 模式）
+        try (BufferedReader reader = new BufferedReader(body.charStream(), BUFFER_SIZE)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // 跳过空行
+                if (line.isEmpty()) {
+                    continue;
+                }
+
+                if (line.startsWith("data: ")) {
+                    String data = line.substring(6);
+
+                    // 检查结束标志
+                    if ("[DONE]".equals(data.trim())) {
+                        break;
+                    }
+
+                    chunkCount++;
+                    // 保留最近 3 条原始 chunk 用于诊断
+                    if (recentRawChunks.size() >= 3) recentRawChunks.pollFirst();
+                    recentRawChunks.addLast(data.length() > 200 ? data.substring(0, 200) + "..." : data);
+
+                    try {
+                        JsonObject json = gson.fromJson(data, JsonObject.class);
+                        if (json == null) {
+                            continue;
+                        }
+
+                        JsonArray choices = json.getAsJsonArray("choices");
+                        if (choices != null && !choices.isEmpty()) {
+                            JsonObject choice = choices.get(0).getAsJsonObject();
+                            if (choice == null) {
+                                continue;
+                            }
+
+                            JsonObject delta = choice.getAsJsonObject("delta");
+                            if (delta != null && delta.has("content")) {
+                                JsonElement contentElement = delta.get("content");
+                                if (contentElement == null || contentElement.isJsonNull()) {
+                                    continue;
+                                }
+                                String content = contentElement.getAsString();
+                                if (content.isEmpty()) {
+                                    continue;
+                                }
+
+                                fullResponse.append(content);
+
+                                // 如果 handler 开启流式输出，实时回调
+                                if (responseHandler != null && responseHandler.isStreamOutputEnabled()) {
+                                    currentStreamMessage.append(content);
+                                    responseHandler.showStreamChunk(content, currentStreamMessage.toString());
+                                }
+                            }
+                        }
+                    } catch (JsonParseException e) {
+                        // 忽略 JSON 解析错误，继续处理下一行
+                        if (cachedDebugMode) {
+                            String truncatedData = data.length() > 100 ? data.substring(0, 100) + "..." : data;
+                            PluginLoggerUtil.debug("LLM请求", "JSON 解析失败：{}", truncatedData);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            if (e instanceof ConnectionShutdownException) {
+                PluginLoggerUtil.debug("LLM请求", "连接被对端关闭");
+            } else {
+                PluginLoggerUtil.warn("LLM请求", "读取响应流失败", e);
+            }
+            return "§c" + I18nService.tr("读取响应失败：{}", e.getMessage());
+        }
+
+        // 流式输出完成后，调用 showResponse() 触发 completeGeneration()
+        if (responseHandler != null) {
+            responseHandler.showResponse(fullResponse.toString());
+        }
+
+        // 空响应检测：记录 SSE 原始数据帮助排查
+        if (fullResponse.isEmpty()) {
+            PluginLoggerUtil.warn("LLM请求", I18nService.tr("LLM 返回空响应，共收到 {} 个 SSE chunk，最近原始数据: {}", chunkCount, String.join(" | ", recentRawChunks)));
+        }
+
+        return fullResponse.toString();
     }
 
     /**

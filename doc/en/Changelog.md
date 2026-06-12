@@ -11,17 +11,28 @@
 - **Two-Phase Intent Recognition Architecture**: Phase 1 (ultra-lightweight classification, Skill name + description only) → Phase 2 (full details for selected Skills only), significantly reducing Token consumption. Pure small talk goes directly to normal AI conversation. New `phase1.*` config entries in `intent_prompts.yml`, supports hot-reload
 - **JSON Auto-Repair Utility (JsonSafeGetUtil.repairJsonBraces)**: Public utility class with three-phase repair (filter excess closing brackets → complete missing closing brackets → remove trailing commas), abandons repair on cross-nesting. Unified replacement of duplicate implementations in `AbstractEventWatchTask` and `ProfileAnalysisService`. 54 unit tests covering 10 major anomaly categories
 - **Skill Name Exact Validation**: Phase 2 validates `skill_name` against whitelist, invalid names are rejected with WARN log
+- **Intent Recognition Phase 2 Null Skill Name Diagnostics**: Separate logs for "not returned" vs "returned invalid" scenarios
 
 ### 🔧 Improvements
 - **AFK Task Prompt Governance**: notify_target enforced as string (JSON objects prohibited); task_type new event-driven vs condition-polling selection rules with common misjudgment scenarios; callback execution context fully isolated (outer step references prohibited); JSON bracket closing per-layer constraints; concurrent command rule optimization
 - **JSON Output Scenarios Disable max_tokens**: Intent recognition and profile analysis no longer set `max_tokens`, preventing complex JSON truncation
 - **GenericBukkitAPI Skill Description Enhancement**: Changed from generic description to specific query capabilities and keywords, improving Phase 1 classification accuracy
 - **LLM Empty Response Diagnostics**: Logs SSE chunk count and last 3 raw data chunks when streaming response is empty
-- **Internationalization & Logging**: Added two-phase recognition translation keys, cleaned up orphaned/duplicate keys; removed redundant WARN log in ConditionEvaluator
+- **GenericLLMProvider Refactor**: Extracted request body building into `buildRequestBody()` method, reducing main method complexity
+- **SkillManager / GreetingPromptBuilder Instance Reuse**: `Gson` and `DateTimeFormatter` promoted to `static final`; `SimpleDateFormat` replaced with thread-safe implementation
+- **SkillIntent Confidence Range Clamp**: Constructor clamps to [0.0, 1.0]
+- **ConversationManager Thread Safety & OOM Protection**: `ArrayDeque` → `ConcurrentLinkedDeque`; `trimHistory()` auto-invocation (MAX_HISTORY_SIZE=100); `@Setter` replaces hand-written setter; `getPluginCommandHistory()` → `getPluginHistory(key)`
+- **AFKTaskManager Concurrency Simplification**: Removed unused `plugin` field and `taskIndex` index; `putIfAbsent` atomic registration + post size check to prevent overflow; removed synchronized blocks and `getPriority()` stub
+- **ProfileManager flushAllProfiles Shared Connection**: Single connection batch update + SQLException early exit to prevent cascade failure
+- **MessageDispatcher / ChatListener Log Fixes**: Unknown channel WARN alert; debug log changed to read-only `getHistory()` to avoid side-effects
+- **Internationalization & Code Cleanup**: Added translation keys and module mapping; removed 9 redundant `I18nService.tr()` double-wrappers in SkillIntentRecognizer; cleaned up commented-out code in ConditionEvaluator and ineffective call in EventCollector
+- **Unified History Access**: Removed duplicate `getOrCreateHistory()` private methods in KilacraftCommand and AIRequestHandler, unified to `ConversationManager.getOrCreateHistory()`
 
 ### 🐛 Bug Fixes
 - Fixed profile analysis JSON parsing occasional failure (auto-repair then re-parse)
 - Fixed CUSTOM task `condition_plan` parsing NPE due to missing null check
+- Fixed `flushAllProfiles` cascade failure on server shutdown when database connection error prevents subsequent profile flushes
+- Fixed `ConversationManager` non-thread-safe `ArrayDeque` causing potential data loss under concurrency
 
 ### ⚠️ Compatibility
 

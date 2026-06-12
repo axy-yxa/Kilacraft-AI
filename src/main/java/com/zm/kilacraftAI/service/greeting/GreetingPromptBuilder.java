@@ -10,7 +10,9 @@ import com.zm.kilacraftAI.model.greeting.PlayerVanillaStats;
 import com.zm.kilacraftAI.model.greeting.SummaryStats;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 
-import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
  */
 public class GreetingPromptBuilder {
 
+    private static final DateTimeFormatter ALERT_DTF = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
+
     public static final String DEFAULT_FIRST_LOGIN_PROMPT = """
             你是这个 Minecraft 服务器的 AI 助手，{player} 第一次来到服务器。
             以平实自然的语气对 {player} 表示欢迎。
@@ -38,15 +42,15 @@ public class GreetingPromptBuilder {
 
     public static final String DEFAULT_RETURNING_PROMPT = """
             你是这个 Minecraft 服务器的 AI 助手。{player} 登录了，距上次离线 {offline_duration}。
-
+            
             {own_events_section}
             {friend_events_section}
             {online_friends_section}
             {last_location}
             {summary_section}
-
+            
             以平实的语气欢迎 {player} 回来。
-
+            
             规则：
             1. 空内容分类（"没有""暂无"等）完全跳过，不提。不用"一切如故""没什么事""挺安静的"等概括句填充。
             2. 无好友时禁止提任何与好友在线状态相关的表述。
@@ -68,15 +72,15 @@ public class GreetingPromptBuilder {
 
     public static final String DEFAULT_RETURNING_PROMPT_EN = """
             You are the AI assistant of this Minecraft server. {player} just logged in, after being offline for {offline_duration}.
-
+            
             {own_events_section}
             {friend_events_section}
             {online_friends_section}
             {last_location}
             {summary_section}
-
+            
             Welcome {player} back in a calm, natural tone.
-
+            
             Rules:
             1. Skip empty categories ("none", "nothing", etc.) entirely. Do not pad with phrases like "nothing special", "all quiet", or "everything's normal".
             2. If the player has no friends, do not mention anything about friend online status.
@@ -352,10 +356,9 @@ public class GreetingPromptBuilder {
         sb.append(I18nService.tr("【最高优先级 - 服务器异常告警】\n"));
         sb.append(I18nService.tr("管理员 {} 离线期间，服务器检测到 {} 次性能异常：\n\n", playerName, healthAlerts.size()));
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         for (int i = 0; i < healthAlerts.size(); i++) {
             ServerEvent alert = healthAlerts.get(i);
-            String time = sdf.format(new Date(alert.getCreatedAt()));
+            String time = ALERT_DTF.format(Instant.ofEpochMilli(alert.getCreatedAt()));
             sb.append(I18nService.tr("【告警 {}】", i + 1)).append(time).append("\n");
             sb.append(formatHealthAlert(alert.getData()));
             sb.append("\n\n");
@@ -494,12 +497,9 @@ public class GreetingPromptBuilder {
         String formattedThreshold = String.format("%.1f", threshold);
         return switch (metric) {
             case "tps_1m" -> I18nService.tr("TPS过低({})，阈值<{}", formattedValue, formattedThreshold);
-            case "mspt_max" ->
-                    I18nService.tr("MSPT峰值({}ms)，阈值>{}ms", formattedValue, formattedThreshold);
-            case "mspt_p95" ->
-                    I18nService.tr("MSPT P95({}ms)，阈值>{}ms", formattedValue, formattedThreshold);
-            case "cpu_process" ->
-                    I18nService.tr("CPU过高({}%)，阈值>{}%", formattedValue, formattedThreshold);
+            case "mspt_max" -> I18nService.tr("MSPT峰值({}ms)，阈值>{}ms", formattedValue, formattedThreshold);
+            case "mspt_p95" -> I18nService.tr("MSPT P95({}ms)，阈值>{}ms", formattedValue, formattedThreshold);
+            case "cpu_process" -> I18nService.tr("CPU过高({}%)，阈值>{}%", formattedValue, formattedThreshold);
             default -> metric + "(" + formattedValue + ")";
         };
     }

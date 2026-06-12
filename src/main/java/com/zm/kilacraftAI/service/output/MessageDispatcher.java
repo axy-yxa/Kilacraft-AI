@@ -2,7 +2,9 @@ package com.zm.kilacraftAI.service.output;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.OutputConfigManager;
+import com.zm.kilacraftAI.i18n.I18nService;
 import lombok.Getter;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -72,7 +74,7 @@ public class MessageDispatcher {
                 scoreboardManager.sendSidebar(player, message);
                 break;
             default:
-                // 未知载体，回退到 CHAT
+                PluginLoggerUtil.warn("消息分发", I18nService.tr("未知的输出载体类型: {}，回退到 CHAT", channel));
                 sendChat(player, message);
                 break;
         }

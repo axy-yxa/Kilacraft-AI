@@ -1,9 +1,8 @@
 package com.zm.kilacraftAI.service.afktask;
 
-import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.AFKTaskTypeEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.common.enums.AFKTaskTypeEnum;
 import com.zm.kilacraftAI.model.afktask.AFKTask;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
 import org.bukkit.entity.Player;
@@ -25,17 +24,11 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>任务完成后自动释放资源</li>
  * </ul>
  *
- * <h3>扩展点：</h3>
- * <ul>
- *   <li>{@link #getPriority(UUID)} 预留优先级接口，VIP玩家可优先使用</li>
- * </ul>
- *
  * @author Zm_Mmm
  * @since 2026-04-09
  */
 public class AFKTaskManager {
 
-    private final KilacraftAI plugin;
     private final int maxTasks;
 
     /**
@@ -43,14 +36,8 @@ public class AFKTaskManager {
      */
     private final Map<UUID, AFKTask> taskMap = new ConcurrentHashMap<>();
 
-    /**
-     * 任务ID → 任务（用于按ID查询和取消）
-     */
-    private final Map<String, AFKTask> taskIndex = new ConcurrentHashMap<>();
-
-    public AFKTaskManager(KilacraftAI plugin) {
-        this.plugin = plugin;
-        this.maxTasks = plugin.getConfigManager().getAfkTaskMaxTasks();
+    public AFKTaskManager(int maxTasks) {
+        this.maxTasks = maxTasks;
     }
 
     /**
@@ -87,18 +74,26 @@ public class AFKTaskManager {
             return SkillResult.failure("无法创建该类型的挂机任务，请检查任务参数是否正确。");
         }
 
-        // 注册任务
-        taskMap.put(playerUUID, task);
-        taskIndex.put(taskId, task);
+        // 注册任务（putIfAbsent 原子操作，防止并发重复注册）
+        AFKTask previous = taskMap.putIfAbsent(playerUUID, task);
+        if (previous != null) {
+            // 极端并发：在 hasTask 检查和注册之间被其他线程抢先注册
+            return SkillResult.failure(I18nService.tr("玩家已有一个正在运行的挂机任务：{}。请用自然语言告知玩家当前有任务在运行，并建议：可以使用 /kilacraft afk cancel 命令取消旧任务后再创建新的，或使用 /kilacraft afk query 查询详情。", previous.getTaskDescription()));
+        }
+
+        // 原子检查总数量（防止并发创建超过 maxTasks）
+        if (taskMap.size() > maxTasks) {
+            taskMap.remove(playerUUID);
+            return SkillResult.failure(I18nService.tr("挂机任务队列已满（当前 {}/{}），暂时无法创建新任务。请用自然语言告知玩家稍后再试。", taskMap.size(), maxTasks));
+        }
 
         // 启动任务
         task.start();
 
         // 检查任务是否在start()内部立即完成了（如参数不完整自动取消）
         if (!task.isActive()) {
-            // 清理注册
+            // 清理注册（参数校验失败时）
             taskMap.remove(playerUUID);
-            taskIndex.remove(taskId);
             String errorMsg = task.getStartError() != null ? task.getStartError() : "任务启动失败，未知原因";
             return SkillResult.failure(I18nService.tr("挂机任务创建失败：{}", errorMsg));
         }
@@ -119,7 +114,6 @@ public class AFKTaskManager {
         if (task == null) {
             return SkillResult.failure("你当前没有正在运行的挂机任务。");
         }
-        taskIndex.remove(task.getTaskId());
         task.stop();
         return SkillResult.success(I18nService.tr("挂机任务已取消：{}", task.getTaskDescription()));
     }
@@ -163,7 +157,6 @@ public class AFKTaskManager {
     public void onPlayerQuit(UUID playerUUID) {
         AFKTask task = taskMap.remove(playerUUID);
         if (task != null) {
-            taskIndex.remove(task.getTaskId());
             task.stop();
             PluginLoggerUtil.debug("挂机任务", "玩家下线，自动取消任务: {}, 玩家: {}", task.getTaskId(), task.getPlayerName());
         }
@@ -177,7 +170,6 @@ public class AFKTaskManager {
      */
     public void removeTask(UUID playerUUID, String taskId) {
         taskMap.remove(playerUUID);
-        taskIndex.remove(taskId);
     }
 
     /**
@@ -190,22 +182,7 @@ public class AFKTaskManager {
                 task.stop();
             }
             taskMap.clear();
-            taskIndex.clear();
         }
-    }
-
-    /**
-     * 获取玩家的优先级（预留扩展点）
-     *
-     * <p>默认返回 0，VIP 玩家可返回更高的值。</p>
-     * <p>当队列满时，高优先级玩家可以抢占低优先级玩家的任务位置。</p>
-     *
-     * @param playerUUID 玩家UUID
-     * @return 优先级（0=普通，值越高优先级越高）
-     */
-    public int getPriority(UUID playerUUID) {
-        // TODO: 预留扩展点，后续可结合权限系统实现 VIP 优先
-        return 0;
     }
 
     /**

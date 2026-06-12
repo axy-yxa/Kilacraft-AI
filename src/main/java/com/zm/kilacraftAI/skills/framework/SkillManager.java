@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.skills.framework;
 
+import com.google.gson.Gson;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
@@ -7,8 +8,6 @@ import com.zm.kilacraftAI.db.dao.SkillLogDao;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.metrics.SkillInfo;
-
-import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 2026-03-30
  */
 public class SkillManager {
+
+    private static final Gson GSON = new Gson();
 
     private final Map<String, Skill> skills;
     private final Map<String, String> skillSourcePlugins;
@@ -207,8 +208,7 @@ public class SkillManager {
         if (plugin.getDatabaseManager() == null || playerUuid == null) return;
 
         try {
-            var gson = new Gson();
-            String entitiesJson = entities != null ? gson.toJson(entities) : null;
+            String entitiesJson = entities != null ? GSON.toJson(entities) : null;
 
             FoliaCompat.getIOPool().submit(() -> {
                 try (var conn = plugin.getDatabaseManager().getConnection()) {

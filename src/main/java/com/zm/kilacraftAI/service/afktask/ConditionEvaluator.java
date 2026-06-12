@@ -125,9 +125,6 @@ public class ConditionEvaluator {
             // 6. 执行比较
             boolean meetsCondition = compare(value, conditionPlan.getOperator(), conditionPlan.getThreshold());
 
-            // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
-//            PluginLoggerUtil.warn("条件评估", "{}.{} -> {}={} {} {} ? {}", conditionPlan.getConditionSkill(), conditionPlan.getConditionAction(), conditionPlan.getResultPath(), value, conditionPlan.getOperatorDescription(), conditionPlan.getThreshold(), meetsCondition);
-
             return meetsCondition ? EvaluationResult.met(value) : EvaluationResult.notMet(value);
 
         } catch (Exception e) {

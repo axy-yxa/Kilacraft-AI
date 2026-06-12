@@ -310,7 +310,7 @@ public class ConversationPersistenceService {
             return conversationManager.getHistory(playerUuid);
         } else {
             String key = playerUuid.toString() + "_" + personality;
-            return conversationManager.getPluginCommandHistory().get(key);
+            return conversationManager.getPluginHistory(key);
         }
     }
 

@@ -15,4 +15,12 @@ package com.zm.kilacraftAI.llm;
  * @since 2026-05-10
  */
 public record ThinkingModelConfig(String apiUrl, String apiKey, String model, int maxTokens, int timeoutSeconds) {
+
+    /**
+     * 隐藏 API Key，防止日志泄露
+     */
+    @Override
+    public String toString() {
+        return "ThinkingModelConfig{apiUrl='%s', apiKey='***', model='%s', maxTokens=%d, timeoutSeconds=%d}".formatted(apiUrl, model, maxTokens, timeoutSeconds);
+    }
 }

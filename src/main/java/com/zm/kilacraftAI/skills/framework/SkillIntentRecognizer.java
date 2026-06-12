@@ -131,7 +131,7 @@ public class SkillIntentRecognizer {
                 if (!repaired.equals(jsonStr)) {
                     try {
                         json = gson.fromJson(repaired, JsonObject.class);
-                        PluginLoggerUtil.debug("意图识别", I18nService.tr("JSON 自动修复成功"));
+                        PluginLoggerUtil.debug("意图识别", "JSON 自动修复成功");
                     } catch (Exception ignored) {
                         throw parseError;
                     }
@@ -152,12 +152,12 @@ public class SkillIntentRecognizer {
                 if (isValidSkillName(name)) {
                     result.add(name);
                 } else {
-                    PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 1 返回了不存在的技能名称: {}，已忽略"), name);
+                    PluginLoggerUtil.debug("意图识别", "Phase 1 返回了不存在的技能名称: {}，已忽略", name);
                 }
             }
             return result;
         } catch (Exception e) {
-            PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 1 解析失败: {}"), e.getMessage());
+            PluginLoggerUtil.debug("意图识别", "Phase 1 解析失败: {}", e.getMessage());
             return Collections.emptySet();
         }
     }
@@ -230,14 +230,14 @@ public class SkillIntentRecognizer {
         String phase1Skills = buildPhase1SkillDescription(caller);
         String phase1SystemPrompt = promptConfigManager.buildPhase1SystemPrompt(phase1Skills);
 
-        PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 1 Skill 分类开始"));
+        PluginLoggerUtil.debug("意图识别", "Phase 1 Skill 分类开始");
 
         return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase1SystemPrompt, false, false, true).thenCompose(phase1Response -> {
             Set<String> selectedSkills = parsePhase1Response(phase1Response);
 
             // 快速路径：无效意图，不调 Phase 2
             if (selectedSkills.isEmpty()) {
-                PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 1 判定为非技能请求"));
+                PluginLoggerUtil.debug("意图识别", "Phase 1 判定为非技能请求");
                 return CompletableFuture.completedFuture(createInvalidIntent(I18nService.tr("非技能请求")));
             }
 
@@ -250,10 +250,10 @@ public class SkillIntentRecognizer {
             String phase2Skills = buildPhase2SkillDescription(caller, phase2SkillFilter);
             String phase2SystemPrompt = promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills);
 
-            PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 2 开始，选中技能: {}"), selectedSkills);
+            PluginLoggerUtil.debug("意图识别", "Phase 2 开始，选中技能: {}", selectedSkills);
 
             return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase2SystemPrompt, true, false, true).thenApply(phase2Response -> {
-                PluginLoggerUtil.debug("意图识别", I18nService.tr("Phase 2 完成"));
+                PluginLoggerUtil.debug("意图识别", "Phase 2 完成");
                 // 解析 LLM 响应
                 return parseIntentFromResponse(phase2Response);
             });
@@ -309,7 +309,7 @@ public class SkillIntentRecognizer {
                 if (!repaired.equals(jsonStr)) {
                     try {
                         json = gson.fromJson(repaired, JsonObject.class);
-                        PluginLoggerUtil.debug("意图识别", I18nService.tr("JSON 自动修复成功"));
+                        PluginLoggerUtil.debug("意图识别", "JSON 自动修复成功");
                     } catch (Exception ignored) {
                         // 修复后仍然失败，用原始错误
                         throw parseError;
@@ -376,8 +376,12 @@ public class SkillIntentRecognizer {
         }
 
         // 校验技能名称：不合法则直接返回无效意图
+        if (skillName == null) {
+            PluginLoggerUtil.debug("意图识别", "Phase 2 未返回 skill_name");
+            return createInvalidIntent(I18nService.tr("技能名称无效"));
+        }
         if (!isValidSkillName(skillName)) {
-            PluginLoggerUtil.warn("意图识别", I18nService.tr("Phase 2 返回了不存在的技能名称: {}，已拒绝执行", skillName));
+            PluginLoggerUtil.warn("意图识别", "Phase 2 返回了不存在的技能名称: {}，已拒绝执行", skillName);
             return createInvalidIntent(I18nService.tr("技能名称无效"));
         }
 
@@ -455,7 +459,7 @@ public class SkillIntentRecognizer {
                     if (skillName != null && action != null) {
                         if (!isValidSkillName(skillName)) {
                             // 多步骤任务中某个步骤的技能名无效，跳过该步骤
-                            PluginLoggerUtil.debug("意图识别", I18nService.tr("多步骤任务中跳过无效技能名称: {}"), skillName);
+                            PluginLoggerUtil.debug("意图识别", "多步骤任务中跳过无效技能名称: {}", skillName);
                             continue;
                         }
                         plan.addStep(new TaskStep(id, skillName, action, entities, dependsOn));

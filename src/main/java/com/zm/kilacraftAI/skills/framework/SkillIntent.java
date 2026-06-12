@@ -20,7 +20,7 @@ public class SkillIntent {
         this.skillName = skillName;
         this.action = action;
         this.entities = entities != null ? entities : new HashMap<>();
-        this.confidence = confidence;
+        this.confidence = Math.max(0.0, Math.min(1.0, confidence));
         this.rawInput = rawInput;
     }
 

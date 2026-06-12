@@ -1,16 +1,16 @@
 package com.zm.kilacraftAI.service.profile;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
 import com.zm.kilacraftAI.db.dao.ProfileSnapshotDao;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.event.EventCollector;
-import com.zm.kilacraftAI.model.event.ServerEvent;
-import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
 import lombok.Setter;
 
 import java.util.Map;
@@ -218,16 +218,32 @@ public class ProfileManager {
 
     /**
      * 同步刷盘所有在线玩家的画像到 DB（onDisable 兜底）
+     * <p>使用单个连接批量更新，避免 N 个玩家 N 次连接 open/close。</p>
      */
     public void flushAllProfiles() {
-        for (var entry : cache.entrySet()) {
-            try (var conn = databaseManager.getConnection()) {
-                profileDao.update(conn, entry.getValue());
-            } catch (Exception e) {
-                PluginLoggerUtil.error("数据库", "flush 画像失败: {} - {}", entry.getKey(), e.getMessage());
+        if (cache.isEmpty()) return;
+
+        try (var conn = databaseManager.getConnection()) {
+            int success = 0;
+            boolean connectionAlive = true;
+            for (var entry : cache.entrySet()) {
+                if (!connectionAlive) break;
+                try {
+                    profileDao.update(conn, entry.getValue());
+                    success++;
+                } catch (Exception e) {
+                    PluginLoggerUtil.error("数据库", "flush 画像失败: {} - {}", entry.getKey(), e.getMessage());
+                    // 连接级别异常（如连接中断），后续更新必然失败，提前退出
+                    if (e instanceof java.sql.SQLException) {
+                        connectionAlive = false;
+                        PluginLoggerUtil.warn("数据库", "数据库连接异常，剩余 {} 个画像未刷盘", cache.size() - success);
+                    }
+                }
             }
+            PluginLoggerUtil.info("数据库", "已刷盘 {} 个玩家画像（成功 {}）", cache.size(), success);
+        } catch (Exception e) {
+            PluginLoggerUtil.error("数据库", "获取数据库连接失败，无法刷盘画像: {}", e.getMessage());
         }
-        PluginLoggerUtil.info("数据库", "已刷盘 {} 个玩家画像", cache.size());
     }
 
     /**

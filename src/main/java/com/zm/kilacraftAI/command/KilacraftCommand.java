@@ -714,27 +714,13 @@ public class KilacraftCommand implements CommandExecutor {
             }, ConversationSourceEnum.COMMAND, ConversationSourceEnum.CHAT);
         } else {
             // 无持久化服务，使用原有同步逻辑
-            Deque<ConversationManager.Message> playerHistory = getOrCreateHistory(playerId);
+            Deque<ConversationManager.Message> playerHistory = plugin.getConversationManager().getOrCreateHistory(playerId);
             PluginLoggerUtil.debug("命令", "玩家 {} 的历史记录数量：{}", player.getName(), playerHistory.size());
 
             boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableCommand();
             aiRequestHandler.handleAIRequest(player, message, playerHistory, enableAgent, false, ConversationSourceEnum.COMMAND);
         }
         return true;
-    }
-
-    /**
-     * 获取或创建历史记录
-     */
-    private Deque<ConversationManager.Message> getOrCreateHistory(UUID playerId) {
-        ConversationManager convManager = plugin.getConversationManager();
-        Deque<ConversationManager.Message> history = convManager.getHistory(playerId);
-
-        if (history == null) {
-            history = convManager.getHistory().computeIfAbsent(playerId, k -> new ArrayDeque<>());
-        }
-
-        return history;
     }
 
     /**

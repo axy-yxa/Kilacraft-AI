@@ -272,7 +272,6 @@ public class EventCollector implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCraftEnchantedGoldenApple(CraftItemEvent event) {
         var recipe = event.getRecipe();
-        recipe.getResult();
         if (recipe.getResult().getType() != Material.ENCHANTED_GOLDEN_APPLE) return;
         if (!(event.getWhoClicked() instanceof Player player)) return;
         submitEvent(ServerEvent.of(ServerEventTypeEnum.PLAYER_CRAFT_ENCH_GOLDEN_APPLE, player.getUniqueId(), ""));
