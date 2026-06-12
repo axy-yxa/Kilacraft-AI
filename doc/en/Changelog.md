@@ -1,6 +1,6 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-06-11  
+> **Last Updated**: 2026-06-12  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
 
 ---
@@ -12,6 +12,7 @@
 - **JSON Auto-Repair Utility (JsonSafeGetUtil.repairJsonBraces)**: Public utility class with three-phase repair (filter excess closing brackets → complete missing closing brackets → remove trailing commas), abandons repair on cross-nesting. Unified replacement of duplicate implementations in `AbstractEventWatchTask` and `ProfileAnalysisService`. 54 unit tests covering 10 major anomaly categories
 - **Skill Name Exact Validation**: Phase 2 validates `skill_name` against whitelist, invalid names are rejected with WARN log
 - **Intent Recognition Phase 2 Null Skill Name Diagnostics**: Separate logs for "not returned" vs "returned invalid" scenarios
+- **Startup Version Update Detection**: Async GitHub latest release check, colored console box notification when a new version is available, silent on failure
 
 ### 🔧 Improvements
 - **AFK Task Prompt Governance**: notify_target enforced as string (JSON objects prohibited); task_type new event-driven vs condition-polling selection rules with common misjudgment scenarios; callback execution context fully isolated (outer step references prohibited); JSON bracket closing per-layer constraints; concurrent command rule optimization

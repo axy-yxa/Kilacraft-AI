@@ -38,6 +38,7 @@ import com.zm.kilacraftAI.service.profile.ProfileAnalysisService;
 import com.zm.kilacraftAI.service.profile.ProfileEventCollector;
 import com.zm.kilacraftAI.service.profile.ProfileManager;
 import com.zm.kilacraftAI.service.profile.SocialRelationExtractor;
+import com.zm.kilacraftAI.service.update.UpdateChecker;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
 import com.zm.kilacraftAI.skills.admin.AuditLogSkill;
 import com.zm.kilacraftAI.skills.admin.PlayerAnalysisSkill;
@@ -661,7 +662,7 @@ public final class KilacraftAI extends JavaPlugin {
     }
 
     /**
-     * 打印启动标志
+     * 打印启动标志，并异步检查版本更新
      */
     private void printStartupBanner() {
         java.util.logging.Logger logger = getLogger();
@@ -670,6 +671,9 @@ public final class KilacraftAI extends JavaPlugin {
         logger.info("╹ ╹╹┗━╸╹ ╹┗━╸╹┗╸╹ ╹╹   ╹    ╹ ╹╹");
         logger.info((I18nService.isZh() ? "版本：v" : "Version: v") + getDescription().getVersion());
         logger.info(I18nService.isZh() ? "作者：Zm_Mmm" : "Author: Zm_Mmm");
+
+        // 异步检查版本更新（有新版本时控制台输出彩色提示，失败或已是最新则静默）
+        new UpdateChecker(this).checkAsync();
     }
 
     /**
