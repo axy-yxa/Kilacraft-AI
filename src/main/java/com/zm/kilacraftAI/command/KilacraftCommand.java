@@ -569,7 +569,7 @@ public class KilacraftCommand implements CommandExecutor {
 
     private void processPluginCommandLLMRequest(String message, String targetPlayerName, UUID targetPlayerId, Deque<ConversationManager.Message> pluginHistory, AIResponseHandler handler, String personalityPrompt, String finalPersonality, String finalCallbackCommand, CommandSender sender) {
         // 使用统一的 API 处理请求（传入人格提示词）
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt).thenAccept(fullResponse -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt, true, true, false).thenAccept(fullResponse -> {
             // 保存对话到历史记录（隔离的），并保存到最新回复缓存
             validator.saveToHistory(pluginHistory, message, fullResponse, targetPlayerId, finalPersonality);
 

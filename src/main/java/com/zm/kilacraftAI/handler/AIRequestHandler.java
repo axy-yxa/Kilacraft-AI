@@ -3,22 +3,22 @@ package com.zm.kilacraftAI.handler;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
-import com.zm.kilacraftAI.common.util.AIRequestValidatorUtil;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
+import com.zm.kilacraftAI.common.util.AIRequestValidatorUtil;
+import com.zm.kilacraftAI.common.util.MessageUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
-import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
+import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillIntent;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
-import com.zm.kilacraftAI.common.util.MessageUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -257,7 +257,7 @@ public class AIRequestHandler {
             }
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source())).exceptionally(throwable -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt, true, true, false).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source())).exceptionally(throwable -> {
             PluginLoggerUtil.warn("AI请求", I18nService.tr("LLM 请求失败: {}", throwable.getMessage()));
             ctx.sendError.accept(I18nService.tr("LLM 请求失败: {}", throwable.getMessage()));
             return null;

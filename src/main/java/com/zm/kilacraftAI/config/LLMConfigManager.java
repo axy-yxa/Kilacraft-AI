@@ -101,66 +101,37 @@ public class LLMConfigManager {
     }
 
     /**
-     * 按语言获取系统提示词
-     *
-     * @param isChinese       是否中文模式
-     * @param fallbackDefault 回退默认值
-     * @return 系统提示词
+     * 通用语言回退逻辑：优先英文（非中文模式）、其次中文、最后回退默认值
      */
-    public String getSystemPromptByLanguage(boolean isChinese, String fallbackDefault) {
-        if (!isChinese) {
-            String enValue = systemPromptEn;
-            if (enValue != null && !enValue.isEmpty()) {
-                return enValue;
-            }
+    private String getByLanguage(boolean isChinese, String zhValue, String enValue, String fallbackDefault) {
+        if (!isChinese && enValue != null && !enValue.isEmpty()) {
+            return enValue;
         }
-        String value = systemPrompt;
-        if (value != null && !value.isEmpty()) {
-            return value;
+        if (zhValue != null && !zhValue.isEmpty()) {
+            return zhValue;
         }
         return fallbackDefault;
+    }
+
+    /**
+     * 按语言获取系统提示词
+     */
+    public String getSystemPromptByLanguage(boolean isChinese, String fallbackDefault) {
+        return getByLanguage(isChinese, systemPrompt, systemPromptEn, fallbackDefault);
     }
 
     /**
      * 按语言获取 Agent 系统提示词
-     *
-     * @param isChinese       是否中文模式
-     * @param fallbackDefault 回退默认值
-     * @return Agent 系统提示词
      */
     public String getAgentSystemPromptByLanguage(boolean isChinese, String fallbackDefault) {
-        if (!isChinese) {
-            String enValue = agentSystemPromptEn;
-            if (enValue != null && !enValue.isEmpty()) {
-                return enValue;
-            }
-        }
-        String value = agentSystemPrompt;
-        if (value != null && !value.isEmpty()) {
-            return value;
-        }
-        return fallbackDefault;
+        return getByLanguage(isChinese, agentSystemPrompt, agentSystemPromptEn, fallbackDefault);
     }
 
     /**
      * 按语言获取 Agent 分析提示词后缀
-     *
-     * @param isChinese       是否中文模式
-     * @param fallbackDefault 回退默认值
-     * @return Agent 分析提示词后缀
      */
     public String getAgentAnalysisPromptSuffixByLanguage(boolean isChinese, String fallbackDefault) {
-        if (!isChinese) {
-            String enValue = agentAnalysisPromptSuffixEn;
-            if (enValue != null && !enValue.isEmpty()) {
-                return enValue;
-            }
-        }
-        String value = agentAnalysisPromptSuffix;
-        if (value != null && !value.isEmpty()) {
-            return value;
-        }
-        return fallbackDefault;
+        return getByLanguage(isChinese, agentAnalysisPromptSuffix, agentAnalysisPromptSuffixEn, fallbackDefault);
     }
 
     /**

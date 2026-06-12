@@ -1,8 +1,9 @@
 package com.zm.kilacraftAI.db.model;
 
-import com.zm.kilacraftAI.config.DatabaseConfigManager;
 import com.zm.kilacraftAI.common.enums.DatabaseTypeEnum;
+import com.zm.kilacraftAI.config.DatabaseConfigManager;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 /**
@@ -14,58 +15,72 @@ import lombok.Getter;
  */
 @Getter
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class DatabaseConfig {
 
     /**
      * 数据库类型
      */
+    @EqualsAndHashCode.Include
     private final DatabaseTypeEnum type;
 
     /**
      * H2 数据文件路径（相对于插件目录）
      */
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final String h2File = "data/kilacraft";
 
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final String mysqlHost = "localhost";
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final int mysqlPort = 3306;
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final String mysqlDatabase = "kilacraft_ai";
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final String mysqlUsername = "root";
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final String mysqlPassword = "password";
     /**
      * 表名前缀（群组服多插件共用DB时区分）
      */
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final String tablePrefix = "kca_";
 
     /**
      * 最大连接数（0=自适应）
      */
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final int maximumPoolSize = 0;
     /**
      * 最小空闲连接数（0=自适应）
      */
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final int minimumIdle = 0;
     /**
      * 连接超时（毫秒）
      */
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final long connectionTimeout = 10000;
     /**
      * 空闲超时（毫秒）
      */
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final long idleTimeout = 300000;
     /**
      * 最大存活时间（毫秒）
      */
+    @EqualsAndHashCode.Include
     @Builder.Default
     private final long maxLifetime = 1800000;
 

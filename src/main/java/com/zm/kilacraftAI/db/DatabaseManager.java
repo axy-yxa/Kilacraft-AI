@@ -39,10 +39,7 @@ public class DatabaseManager {
                 PluginLoggerUtil.error("数据库", "MySQL 初始化失败: {}", e.getMessage());
                 PluginLoggerUtil.warn("数据库", "自动回退到 H2 内置数据库，持久化功能正常可用");
 
-                DatabaseConfig h2Config = DatabaseConfig.builder()
-                        .type(DatabaseTypeEnum.H2)
-                        .tablePrefix(currentConfig.getTablePrefix())
-                        .build();
+                DatabaseConfig h2Config = DatabaseConfig.builder().type(DatabaseTypeEnum.H2).tablePrefix(currentConfig.getTablePrefix()).build();
                 this.currentConfig = h2Config;
                 createProvider(h2Config);
             } else {
@@ -114,10 +111,7 @@ public class DatabaseManager {
                         oldProvider.shutdown();
                     }
 
-                    DatabaseConfig h2Config = DatabaseConfig.builder()
-                            .type(DatabaseTypeEnum.H2)
-                            .tablePrefix(newConfig.getTablePrefix())
-                            .build();
+                    DatabaseConfig h2Config = DatabaseConfig.builder().type(DatabaseTypeEnum.H2).tablePrefix(newConfig.getTablePrefix()).build();
                     createProvider(h2Config);
                     this.schemaManager = new SchemaManager(provider, h2Config.getTablePrefix(), h2Config.getType());
                     schemaManager.initialize();
@@ -205,15 +199,11 @@ public class DatabaseManager {
     /**
      * 判断两个数据库配置是否等价（无需重建连接池）
      *
-     * <p>比较数据库类型、连接参数、表前缀等关键字段。</p>
+     * <p>比较连接参数相关字段（由 {@link DatabaseConfig} 上的 {@code @EqualsAndHashCode.Include} 标记）。</p>
      */
     private boolean configEquals(DatabaseConfig a, DatabaseConfig b) {
         if (a == b) return true;
         if (a == null || b == null) return false;
-        return a.getType() == b.getType() && equalsSafe(a.getH2File(), b.getH2File()) && equalsSafe(a.getTablePrefix(), b.getTablePrefix()) && equalsSafe(a.getMysqlHost(), b.getMysqlHost()) && a.getMysqlPort() == b.getMysqlPort() && equalsSafe(a.getMysqlDatabase(), b.getMysqlDatabase()) && equalsSafe(a.getMysqlUsername(), b.getMysqlUsername()) && equalsSafe(a.getMysqlPassword(), b.getMysqlPassword()) && a.getMaximumPoolSize() == b.getMaximumPoolSize() && a.getMinimumIdle() == b.getMinimumIdle() && a.getConnectionTimeout() == b.getConnectionTimeout() && a.getIdleTimeout() == b.getIdleTimeout() && a.getMaxLifetime() == b.getMaxLifetime();
-    }
-
-    private static boolean equalsSafe(Object a, Object b) {
-        return (a == null && b == null) || (a != null && a.equals(b));
+        return a.equals(b);
     }
 }

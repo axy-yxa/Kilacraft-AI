@@ -133,7 +133,7 @@ public class LLMAnalysisService {
         if (!enableKnowledge) {
             PluginLoggerUtil.debug("LLM分析", I18nService.tr("分析提示词较长（{}字符），跳过知识库检索以减少噪音", analysisPrompt.length()));
         }
-        llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, enableKnowledge, false);
+        llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, enableKnowledge, false, false);
 
         return responseFuture.thenApply(SkillResult::success);
     }

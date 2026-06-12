@@ -11,7 +11,6 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.i18n.TextProcessorFactory;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
-import lombok.Getter;
 import okhttp3.*;
 import okhttp3.internal.http2.ConnectionShutdownException;
 
@@ -42,9 +41,16 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
     private final KilacraftAI plugin = KilacraftAI.getInstance();
     private final ConfigManager configManager;
-    @Getter
     private final OkHttpClient httpClient;
     private final Gson gson;
+
+    /**
+     * 获取共享的 HTTP 客户端（实现 ThinkingModelCapable 接口）
+     */
+    @Override
+    public OkHttpClient getSharedHttpClient() {
+        return httpClient;
+    }
 
     private volatile String cachedApiKey;
     private volatile String cachedApiUrl;
@@ -267,21 +273,6 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         } else {
             PluginLoggerUtil.debug("LLM请求", "历史对话：无");
         }
-    }
-
-    @Override
-    public CompletableFuture<String> processRequest(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler) {
-        return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, configManager.getSystemPrompt(), true, true);
-    }
-
-    @Override
-    public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String customSystemPrompt) {
-        return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, true, true);
-    }
-
-    @Override
-    public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String customSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog) {
-        return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false);
     }
 
     @Override
@@ -541,8 +532,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
      *   <li>从响应中提取 {@code reasoning_content}（思考过程）</li>
      * </ul>
      *
-     * <p>此方法为 GenericLLMProvider 独有方法（非 LLMProvider 接口方法），
-     * 调用方通过 {@code instanceof ThinkingModelCapable} 检查能力。</p>
+     * <p>此方法为 {@link ThinkingModelCapable} 接口方法，通过 {@code instanceof ThinkingModelCapable} 检查能力。</p>
      *
      * @param systemPrompt 系统提示词
      * @param userMessage  用户消息
@@ -551,6 +541,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
      * @return LLM 响应（含推理过程和用量）
      * @throws LLMException 请求或解析失败时抛出
      */
+    @Override
     public LLMResponse processRequestWithThinkingModel(String systemPrompt, String userMessage, ThinkingModelConfig config, OkHttpClient client) throws LLMException {
         // 构建请求体
         JsonObject requestBody = new JsonObject();

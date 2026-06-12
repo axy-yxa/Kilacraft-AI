@@ -1,6 +1,5 @@
 package com.zm.kilacraftAI.skills.framework.task;
 
-import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
@@ -24,8 +23,6 @@ import java.util.concurrent.CompletableFuture;
 public class TaskExecutor {
 
     private final SkillManager skillManager;
-
-    private final KilacraftAI plugin = KilacraftAI.getInstance();
 
     public TaskExecutor(SkillManager skillManager) {
         this.skillManager = skillManager;
@@ -147,7 +144,7 @@ public class TaskExecutor {
     /**
      * DFS 访问单个节点
      *
-     * @return false 如果检测到循环依赖
+     * @return true 如果检测到循环依赖
      */
     private boolean visit(TaskStep step, Map<String, TaskStep> stepMap, Set<String> visited, Set<String> visiting, List<TaskStep> result) {
         String id = step.getId();

@@ -14,9 +14,9 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.AdminConfigManager;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.llm.GenericLLMProvider;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.llm.LLMResponse;
+import com.zm.kilacraftAI.llm.ThinkingModelCapable;
 import com.zm.kilacraftAI.llm.ThinkingModelConfig;
 import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.notification.NotificationMessage;
@@ -683,9 +683,9 @@ public class ServerHealthGuardian implements ManagedTask {
             return I18nService.tr("AI 诊断未执行：推理模型未配置");
         }
 
-        // 获取 GenericLLMProvider
+        // 获取支持推理模型的 Provider
         LLMProvider provider = plugin.getLlmManager().getCurrentProvider();
-        if (!(provider instanceof GenericLLMProvider genericProvider)) {
+        if (!(provider instanceof ThinkingModelCapable capable)) {
             PluginLoggerUtil.warn(LOG_PREFIX, "当前 LLM Provider 不支持推理模型，跳过 AI 诊断");
             return I18nService.tr("AI 诊断未执行：当前 LLM 提供商不支持推理模型");
         }
@@ -697,7 +697,7 @@ public class ServerHealthGuardian implements ManagedTask {
             // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
 //            PluginLoggerUtil.warn(LOG_PREFIX, "== AI 诊断提示词 ==\n[SYSTEM]\n{}\n\n[USER]\n{}", systemPrompt, userMessage);
 
-            LLMResponse response = genericProvider.processRequestWithThinkingModel(systemPrompt, userMessage, config, client);
+            LLMResponse response = capable.processRequestWithThinkingModel(systemPrompt, userMessage, config, client);
 
             // 记录推理过程（如有）
             if (response.hasReasoning()) {

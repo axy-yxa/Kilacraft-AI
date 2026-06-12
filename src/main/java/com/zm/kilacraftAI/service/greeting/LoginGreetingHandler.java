@@ -1,25 +1,25 @@
 package com.zm.kilacraftAI.service.greeting;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
-import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.config.ConfigManager;
-import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.config.OutputConfigManager;
-import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
+import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.ConfigManager;
+import com.zm.kilacraftAI.config.OutputConfigManager;
+import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
+import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.greeting.GreetingContext;
 import com.zm.kilacraftAI.model.greeting.PlayerVanillaStats;
 import com.zm.kilacraftAI.model.greeting.SummaryStats;
-import com.zm.kilacraftAI.service.event.OfflineEventAggregator;
-import com.zm.kilacraftAI.model.event.ServerEvent;
-import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
-import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
+import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.service.event.OfflineEventAggregator;
 import com.zm.kilacraftAI.service.profile.ProfileManager;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -175,7 +175,7 @@ public class LoginGreetingHandler implements Listener {
             plugin.getResponsePipeline().startStream(player, channel, true);
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, playerName, emptyHistory, handler, systemPrompt, false, false).thenAccept(greeting -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, playerName, emptyHistory, handler, systemPrompt, false, false, false).thenAccept(greeting -> {
             if (greeting != null && player.isOnline()) {
                 ConversationPersistenceService persistence = plugin.getPersistenceService();
                 if (persistence != null) {

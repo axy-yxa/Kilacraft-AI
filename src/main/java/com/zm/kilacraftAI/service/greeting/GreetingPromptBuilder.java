@@ -166,7 +166,7 @@ public class GreetingPromptBuilder {
         if (events == null || events.isEmpty()) {
             StringBuilder emptySb = new StringBuilder(I18nService.tr("【离线期间发生的事】\n没有特别的事情发生。"));
             if (globalEventCount > 0) {
-                emptySb.append("\n").append(I18nService.tr("{} 不在的时候，全服共发生了 {} 件事", playerName, globalEventCount));
+                emptySb.append("\n").append(I18nService.tr("{}不在的时候，全服共发生了 {} 件事", playerName, globalEventCount));
             }
             return emptySb.toString();
         }
@@ -177,98 +177,103 @@ public class GreetingPromptBuilder {
         joiner.add(I18nService.tr("【离线期间发生的事】"));
 
         for (Map.Entry<ServerEventTypeEnum, List<ServerEvent>> entry : grouped.entrySet()) {
-            String summary = summarizeEventType(entry.getKey(), entry.getValue());
+            String summary = summarizeEvent(I18nService.tr("你"), entry.getKey(), entry.getValue());
             joiner.add(summary);
         }
 
         // 追加全服事件总数
         if (globalEventCount > 0) {
-            joiner.add(I18nService.tr("{} 不在的时候，全服共发生了 {} 件事", playerName, globalEventCount));
+            joiner.add(I18nService.tr("{}不在的时候，全服共发生了 {} 件事", playerName, globalEventCount));
         }
 
         return joiner.toString();
     }
 
     /**
-     * 按事件类型生成摘要
+     * 按事件类型生成摘要（统一方法，支持任意玩家名）
+     *
+     * @param playerName 玩家名（自身传 "你"，好友传好友名）
+     * @param type       事件类型
+     * @param events     事件列表
      */
-    private String summarizeEventType(ServerEventTypeEnum type, List<ServerEvent> events) {
+    private String summarizeEvent(String playerName, ServerEventTypeEnum type, List<ServerEvent> events) {
         String data = events.get(0).getData() != null ? events.get(0).getData() : "";
         return switch (type) {
             case MARKET_ITEM_SOLD -> {
                 int count = events.size();
-                yield count == 1 ? I18nService.tr("你上架的商品已卖出") + appendDataSuffix(events.get(0)) : I18nService.tr("你上架的 {} 件商品已卖出", count);
+                yield count == 1 ? I18nService.tr("{}上架的商品已卖出", playerName) + appendDataSuffix(events.get(0)) : I18nService.tr("{}上架的 {} 件商品已卖出", playerName, count);
             }
             case MARKET_MONEY_RECEIVED -> {
                 int count = events.size();
                 String amountStr = formatMoneyAmount(events.get(0).getData());
-                yield count == 1 ? I18nService.tr("你收到了 {} 收入", amountStr) : I18nService.tr("你收到了 {} 笔款项（共 {}）", count, sumMoneyAmounts(events));
+                yield count == 1 ? I18nService.tr("{}收到了 {} 收入", playerName, amountStr) : I18nService.tr("{}收到了 {} 笔款项（共 {}）", playerName, count, sumMoneyAmounts(events));
             }
             case PLAYER_DEATH -> {
                 int count = events.size();
                 if (count == 1) {
-                    yield data.isEmpty() ? I18nService.tr("你挂了 1 次") : I18nService.tr("你挂了 1 次（{}）", data);
+                    yield data.isEmpty() ? I18nService.tr("{}挂了 1 次", playerName) : I18nService.tr("{}挂了 1 次（{}）", playerName, data);
                 } else {
                     Map<String, Long> deathMsgCount = events.stream().collect(Collectors.groupingBy(e -> e.getData() != null ? e.getData() : "未知", Collectors.counting()));
                     StringJoiner dj = new StringJoiner("、");
                     deathMsgCount.forEach((msg, cnt) -> dj.add(msg + (cnt > 1 ? " x" + cnt : "")));
-                    yield I18nService.tr("你挂了 {} 次（{}）", count, dj);
+                    yield I18nService.tr("{}挂了 {} 次（{}）", playerName, count, dj);
                 }
             }
             case PLAYER_ADVANCEMENT -> {
                 int count = events.size();
                 if (count == 1) {
-                    yield I18nService.tr("你达成了成就 {}", data);
+                    yield I18nService.tr("{}达成了成就 {}", playerName, data);
                 } else {
                     StringJoiner aj = new StringJoiner(", ");
                     for (ServerEvent e : events) {
                         aj.add(e.getData() != null ? e.getData() : "未知");
                     }
-                    yield I18nService.tr("你达成了 {} 个成就（{}）", count, aj);
+                    yield I18nService.tr("{}达成了 {} 个成就（{}）", playerName, count, aj);
                 }
             }
             case PLAYER_LEVEL_UP -> {
                 int count = events.size();
                 if (count == 1) {
                     String levelDesc = formatLevelChange(data);
-                    yield levelDesc.isEmpty() ? I18nService.tr("你升级了") : I18nService.tr("你升级了（{}）", levelDesc);
+                    yield levelDesc.isEmpty() ? I18nService.tr("{}升级了", playerName) : I18nService.tr("{}升级了（{}）", playerName, levelDesc);
                 } else {
                     String oldestData = events.get(events.size() - 1).getData();
                     String startLevel = extractStartLevel(oldestData);
                     String endLevel = extractEndLevel(data);
                     if (!startLevel.isEmpty() && !endLevel.isEmpty()) {
-                        yield I18nService.tr("你从 {} 级升到了 {} 级（共{}级）", startLevel, endLevel, count);
+                        yield I18nService.tr("{}从 {} 级升到了 {} 级（共{}级）", playerName, startLevel, endLevel, count);
                     } else {
-                        yield I18nService.tr("你升级 {} 次", count);
+                        yield I18nService.tr("{}升了 {} 级", playerName, count);
                     }
                 }
             }
             case PLAYER_USE_TOTEM -> {
                 String suffix = data.isEmpty() ? "" : I18nService.tr("（{}）", formatDamageCause(data));
-                yield events.size() > 1 ? I18nService.tr("你触发了 {} 次不死图腾", events.size()) + suffix : I18nService.tr("你触发了不死图腾") + suffix;
+                yield events.size() > 1 ? I18nService.tr("{}触发了 {} 次不死图腾", playerName, events.size()) + suffix : I18nService.tr("{}触发了不死图腾", playerName) + suffix;
             }
             case PLAYER_DEFEAT_BOSS ->
-                    events.size() > 1 ? I18nService.tr("你击杀了 {} 共 {} 次", formatEntityName(data), events.size()) : I18nService.tr("你击杀了 {}", formatEntityName(data));
-            case PLAYER_COMPLETE_RAID -> I18nService.tr("你完成了袭击（{}）", data);
-            case PLAYER_PET_DEATH -> I18nService.tr("你的宠物战死了（{}）", formatPetDeathData(data));
+                    events.size() > 1 ? I18nService.tr("{}击杀了 {} 共 {} 次", playerName, formatEntityName(data), events.size()) : I18nService.tr("{}击杀了 {}", playerName, formatEntityName(data));
+            case PLAYER_COMPLETE_RAID -> I18nService.tr("{}完成了袭击（{}）", playerName, data);
+            case PLAYER_PET_DEATH -> I18nService.tr("{}的宠物战死了（{}）", playerName, formatPetDeathData(data));
             case PLAYER_PVP_KILL ->
-                    events.size() > 1 ? I18nService.tr("你在PVP中击杀了 {} 共 {} 次", data, events.size()) : I18nService.tr("你在PVP中击杀了 {}", data);
+                    events.size() > 1 ? I18nService.tr("{}在PVP中击杀了 {} 共 {} 次", playerName, data, events.size()) : I18nService.tr("{}在PVP中击杀了 {}", playerName, data);
             case PLAYER_PVP_DEATH ->
-                    events.size() > 1 ? I18nService.tr("你在PVP中被 {} 击杀了 {} 次", data, events.size()) : I18nService.tr("你在PVP中被 {} 击杀了", data);
-            case PLAYER_TOOL_BREAK -> I18nService.tr("你的{} 断了", formatMaterialName(data));
-            case PLAYER_CATCH_TREASURE -> I18nService.tr("你钓到了 {}", formatMaterialName(data));
+                    events.size() > 1 ? I18nService.tr("{}在PVP中被 {} 击杀了 {} 次", playerName, data, events.size()) : I18nService.tr("{}在PVP中被 {} 击杀了", playerName, data);
+            case PLAYER_TOOL_BREAK -> I18nService.tr("{}的{}断了", playerName, formatMaterialName(data));
+            case PLAYER_CATCH_TREASURE -> I18nService.tr("{}钓到了 {}", playerName, formatMaterialName(data));
             case PLAYER_LIGHTNING_STRIKE ->
-                    events.size() > 1 ? I18nService.tr("你被雷劈了 {} 次", events.size()) : I18nService.tr("你被雷劈了");
+                    events.size() > 1 ? I18nService.tr("{}被雷劈了 {} 次", playerName, events.size()) : I18nService.tr("{}被雷劈了", playerName);
             case PLAYER_CURE_VILLAGER ->
-                    events.size() > 1 ? I18nService.tr("你救了 {} 个僵尸村民", events.size()) : I18nService.tr("你救了一个僵尸村民");
+                    events.size() > 1 ? I18nService.tr("{}救了 {} 个僵尸村民", playerName, events.size()) : I18nService.tr("{}救了一个僵尸村民", playerName);
             case PLAYER_MINE_ANCIENT_DEBRIS ->
-                    events.size() > 1 ? I18nService.tr("你挖到了 {} 块远古残骸", events.size()) : I18nService.tr("你挖到了远古残骸");
-            case PLAYER_TAME_ANIMAL -> I18nService.tr("你驯服了{}", formatPetEntityName(data));
+                    events.size() > 1 ? I18nService.tr("{}挖到了 {} 块远古残骸", playerName, events.size()) : I18nService.tr("{}挖到了远古残骸", playerName);
+            case PLAYER_TAME_ANIMAL -> I18nService.tr("{}驯服了{}", playerName, formatPetEntityName(data));
             case PLAYER_CRAFT_ENCH_GOLDEN_APPLE ->
-                    events.size() > 1 ? I18nService.tr("你合成了 {} 个附魔金苹果", events.size()) : I18nService.tr("你合成了附魔金苹果");
+                    events.size() > 1 ? I18nService.tr("{}合成了 {} 个附魔金苹果", playerName, events.size()) : I18nService.tr("{}合成了附魔金苹果", playerName);
             case PLAYER_BUILD_WITHER ->
-                    events.size() > 1 ? I18nService.tr("你召唤了 {} 次凋零", events.size()) : I18nService.tr("你召唤了凋零");
-            default -> I18nService.tr(type.getDescription()) + " x" + events.size();
+                    events.size() > 1 ? I18nService.tr("{}召唤了 {} 次凋零", playerName, events.size()) : I18nService.tr("{}召唤了凋零", playerName);
+            default ->
+                    I18nService.tr("{}触发了 {} 次 {}", playerName, events.size(), I18nService.tr(type.getDescription()));
         };
     }
 
@@ -629,7 +634,7 @@ public class GreetingPromptBuilder {
                 Map<ServerEventTypeEnum, List<ServerEvent>> grouped = events.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
 
                 for (Map.Entry<ServerEventTypeEnum, List<ServerEvent>> ge : grouped.entrySet()) {
-                    String summary = summarizeFriendEvent(playerName, ge.getKey(), ge.getValue());
+                    String summary = summarizeEvent(playerName, ge.getKey(), ge.getValue());
                     joiner.add(summary);
                 }
             }
@@ -643,82 +648,6 @@ public class GreetingPromptBuilder {
         }
 
         return joiner.toString();
-    }
-
-    /**
-     * 生成单个好友的事件摘要
-     */
-    private String summarizeFriendEvent(String playerName, ServerEventTypeEnum type, List<ServerEvent> events) {
-        // 大多数好友动态事件只有1条，取第一条的 data 作为详情
-        String data = events.get(0).getData() != null ? events.get(0).getData() : "";
-        return switch (type) {
-            case PLAYER_DEATH -> {
-                int count = events.size();
-                if (count == 1) {
-                    yield data.isEmpty() ? I18nService.tr("{} 挂了 1 次", playerName) : I18nService.tr("{} 挂了 1 次（{}）", playerName, data);
-                } else {
-                    Map<String, Long> deathMsgCount = events.stream().collect(Collectors.groupingBy(e -> e.getData() != null ? e.getData() : "未知", Collectors.counting()));
-                    StringJoiner dj = new StringJoiner("、");
-                    deathMsgCount.forEach((msg, cnt) -> dj.add(msg + (cnt > 1 ? " x" + cnt : "")));
-                    yield I18nService.tr("{} 挂了 {} 次（{}）", playerName, count, dj);
-                }
-            }
-            case PLAYER_ADVANCEMENT -> {
-                int count = events.size();
-                if (count == 1) {
-                    yield I18nService.tr("{} 达成了成就 {}", playerName, data);
-                } else {
-                    StringJoiner aj = new StringJoiner(", ");
-                    for (ServerEvent e : events) {
-                        aj.add(e.getData() != null ? e.getData() : "未知");
-                    }
-                    yield I18nService.tr("{} 达成了 {} 个成就（{}）", playerName, count, aj);
-                }
-            }
-            case PLAYER_LEVEL_UP -> {
-                int count = events.size();
-                if (count == 1) {
-                    String levelDesc = formatLevelChange(data);
-                    yield levelDesc.isEmpty() ? I18nService.tr("{} 升级了", playerName) : I18nService.tr("{} 升级了（{}）", playerName, levelDesc);
-                } else {
-                    String oldestData = events.get(events.size() - 1).getData();
-                    String startLevel = extractStartLevel(oldestData);
-                    String endLevel = extractEndLevel(data);
-                    if (!startLevel.isEmpty() && !endLevel.isEmpty()) {
-                        yield I18nService.tr("{} 从 {} 级升到了 {} 级", playerName, startLevel, endLevel);
-                    } else {
-                        yield I18nService.tr("{} 升了 {} 级", playerName, count);
-                    }
-                }
-            }
-            case PLAYER_USE_TOTEM -> {
-                String suffix = data.isEmpty() ? "" : I18nService.tr("（{}）", formatDamageCause(data));
-                yield events.size() > 1 ? I18nService.tr("{} 触发了 {} 次不死图腾", playerName, events.size()) + suffix : I18nService.tr("{} 触发了不死图腾", playerName) + suffix;
-            }
-            case PLAYER_DEFEAT_BOSS ->
-                    events.size() > 1 ? I18nService.tr("{} 击杀了 {} 共 {} 次", playerName, formatEntityName(data), events.size()) : I18nService.tr("{} 击杀了 {}", playerName, formatEntityName(data));
-            case PLAYER_COMPLETE_RAID -> I18nService.tr("{} 完成了袭击（{}）", playerName, data);
-            case PLAYER_PET_DEATH -> I18nService.tr("{} 的宠物战死了（{}）", playerName, formatPetDeathData(data));
-            case PLAYER_PVP_KILL ->
-                    events.size() > 1 ? I18nService.tr("{} 在PVP中击杀了 {} 共 {} 次", playerName, data, events.size()) : I18nService.tr("{} 在PVP中击杀了 {}", playerName, data);
-            case PLAYER_PVP_DEATH ->
-                    events.size() > 1 ? I18nService.tr("{} 在PVP中被 {} 击杀了 {} 次", playerName, data, events.size()) : I18nService.tr("{} 在PVP中被 {} 击杀了", playerName, data);
-            case PLAYER_TOOL_BREAK -> I18nService.tr("{} 的{} 断了", playerName, formatMaterialName(data));
-            case PLAYER_CATCH_TREASURE -> I18nService.tr("{} 钓到了 {}", playerName, formatMaterialName(data));
-            case PLAYER_LIGHTNING_STRIKE ->
-                    events.size() > 1 ? I18nService.tr("{} 被雷劈了 {} 次", playerName, events.size()) : I18nService.tr("{} 被雷劈了", playerName);
-            case PLAYER_CURE_VILLAGER ->
-                    events.size() > 1 ? I18nService.tr("{} 救了 {} 个僵尸村民", playerName, events.size()) : I18nService.tr("{} 救了一个僵尸村民", playerName);
-            case PLAYER_MINE_ANCIENT_DEBRIS ->
-                    events.size() > 1 ? I18nService.tr("{} 挖到了 {} 块远古残骸", playerName, events.size()) : I18nService.tr("{} 挖到了远古残骸", playerName);
-            case PLAYER_TAME_ANIMAL -> I18nService.tr("{} 驯服了{}", playerName, formatPetEntityName(data));
-            case PLAYER_CRAFT_ENCH_GOLDEN_APPLE ->
-                    events.size() > 1 ? I18nService.tr("{} 合成了 {} 个附魔金苹果", playerName, events.size()) : I18nService.tr("{} 合成了附魔金苹果", playerName);
-            case PLAYER_BUILD_WITHER ->
-                    events.size() > 1 ? I18nService.tr("{} 召唤了 {} 次凋零", playerName, events.size()) : I18nService.tr("{} 召唤了凋零", playerName);
-            default ->
-                    I18nService.tr("{} 触发了 {} 次 {}", playerName, events.size(), I18nService.tr(type.getDescription()));
-        };
     }
 
     /**
@@ -973,7 +902,7 @@ public class GreetingPromptBuilder {
             Map<ServerEventTypeEnum, List<ServerEvent>> grouped = highlights.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
             StringJoiner hj = new StringJoiner("，");
             for (Map.Entry<ServerEventTypeEnum, List<ServerEvent>> entry : grouped.entrySet()) {
-                hj.add(summarizeEventType(entry.getKey(), entry.getValue()));
+                hj.add(summarizeEvent(I18nService.tr("你"), entry.getKey(), entry.getValue()));
             }
             sb.append("\n").append(I18nService.tr("【上次游玩亮点】\n")).append(hj);
         }

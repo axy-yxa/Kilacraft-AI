@@ -2,24 +2,19 @@ package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.llm.GenericLLMProvider;
-import com.zm.kilacraftAI.llm.ThinkingModelConfig;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.llm.ThinkingModelCapable;
+import com.zm.kilacraftAI.llm.ThinkingModelConfig;
+import com.zm.kilacraftAI.service.notification.NotificationService;
 import lombok.Getter;
 import okhttp3.OkHttpClient;
 import org.bukkit.configuration.file.YamlConfiguration;
-
-import com.zm.kilacraftAI.service.notification.NotificationService;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -185,7 +180,7 @@ public class AdminConfigManager {
             rebuildThinkingHttpClient();
             PluginLoggerUtil.info(LOG_PREFIX, "配置已加载（守护线程: 启用，推理模型: {}）", thinkingModel);
         } else {
-                        PluginLoggerUtil.info(LOG_PREFIX, "配置已加载（守护线程: {}）", I18nService.tr(guardianEnabled ? "启用" : "禁用"));
+            PluginLoggerUtil.info(LOG_PREFIX, "配置已加载（守护线程: {}）", I18nService.tr(guardianEnabled ? "启用" : "禁用"));
         }
     }
 
@@ -211,15 +206,15 @@ public class AdminConfigManager {
     /**
      * 重建推理模型专用 HTTP 客户端
      *
-     * <p>通过 GenericLLMProvider 的 httpClient.newBuilder() 创建，
+     * <p>通过 ThinkingModelCapable 的共享 HTTP 客户端创建派生客户端，
      * 共享连接池但使用更长的超时时间（推理模型默认 120s）。</p>
      */
     private void rebuildThinkingHttpClient() {
         // 保存旧客户端引用，重建后清理其独有资源
         OkHttpClient oldClient = this.thinkingHttpClient;
 
-        if (plugin.getLlmManager() != null && plugin.getLlmManager().getCurrentProvider() instanceof GenericLLMProvider provider) {
-            this.thinkingHttpClient = provider.getHttpClient().newBuilder().connectTimeout(30, TimeUnit.SECONDS).readTimeout(thinkingTimeout, TimeUnit.SECONDS).writeTimeout(30, TimeUnit.SECONDS).build();
+        if (plugin.getLlmManager() != null && plugin.getLlmManager().getCurrentProvider() instanceof ThinkingModelCapable capable) {
+            this.thinkingHttpClient = capable.getSharedHttpClient().newBuilder().connectTimeout(30, TimeUnit.SECONDS).readTimeout(thinkingTimeout, TimeUnit.SECONDS).writeTimeout(30, TimeUnit.SECONDS).build();
             PluginLoggerUtil.info(LOG_PREFIX, "推理模型 HTTP 客户端已重建（超时: {}s）", thinkingTimeout);
         }
 

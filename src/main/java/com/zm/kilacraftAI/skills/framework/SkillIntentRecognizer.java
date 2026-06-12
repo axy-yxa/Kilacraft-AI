@@ -1,7 +1,9 @@
 package com.zm.kilacraftAI.skills.framework;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.HistoryUtil;
 import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
@@ -156,8 +158,11 @@ public class SkillIntentRecognizer {
                 }
             }
             return result;
-        } catch (Exception e) {
-            PluginLoggerUtil.debug("意图识别", "Phase 1 解析失败: {}", e.getMessage());
+        } catch (JsonSyntaxException | JsonIOException e) {
+            PluginLoggerUtil.debug("意图识别", "Phase 1 JSON 解析失败: {}", e.getMessage());
+            return Collections.emptySet();
+        } catch (RuntimeException e) {
+            PluginLoggerUtil.warn("意图识别", "Phase 1 意外异常: {}", e.getMessage());
             return Collections.emptySet();
         }
     }
@@ -351,8 +356,11 @@ public class SkillIntentRecognizer {
 
             // 否则按单意图处理
             return parseSingleIntentFromResponse(json);
-        } catch (Exception e) {
-            PluginLoggerUtil.debug("意图识别", "解析意图失败：{}", e.getMessage());
+        } catch (JsonSyntaxException | JsonIOException e) {
+            PluginLoggerUtil.debug("意图识别", "意图识别 JSON 解析失败：{}", e.getMessage());
+            return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()));
+        } catch (RuntimeException e) {
+            PluginLoggerUtil.warn("意图识别", "意图识别意外异常：{}", e.getMessage());
             return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()));
         }
     }

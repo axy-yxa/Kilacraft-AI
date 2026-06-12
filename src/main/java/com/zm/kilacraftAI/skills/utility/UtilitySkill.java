@@ -1,19 +1,19 @@
 package com.zm.kilacraftAI.skills.utility;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
-import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
-import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
 import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillConfig;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -219,7 +219,7 @@ public class UtilitySkill implements Skill {
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
 
-        CompletableFuture<String> llmFuture = llmProvider.processRequestWithCustomSystemPrompt(userPrompt, playerName, emptyHistory, handler, systemPrompt, false, false);
+        CompletableFuture<String> llmFuture = llmProvider.processRequestWithCustomSystemPrompt(userPrompt, playerName, emptyHistory, handler, systemPrompt, false, false, false);
 
         return llmFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {
@@ -304,7 +304,7 @@ public class UtilitySkill implements Skill {
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
 
-        llmProvider.processRequestWithCustomSystemPrompt(userPrompt, playerName, emptyHistory, silentHandler, systemPrompt, false, false);
+        llmProvider.processRequestWithCustomSystemPrompt(userPrompt, playerName, emptyHistory, silentHandler, systemPrompt, false, false, false);
 
         return responseFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {

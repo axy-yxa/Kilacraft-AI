@@ -28,6 +28,10 @@
 - **MessageDispatcher / ChatListener Log Fixes**: Unknown channel WARN alert; debug log changed to read-only `getHistory()` to avoid side-effects
 - **Internationalization & Code Cleanup**: Added translation keys and module mapping; removed 9 redundant `I18nService.tr()` double-wrappers in SkillIntentRecognizer; cleaned up commented-out code in ConditionEvaluator and ineffective call in EventCollector
 - **Unified History Access**: Removed duplicate `getOrCreateHistory()` private methods in KilacraftCommand and AIRequestHandler, unified to `ConversationManager.getOrCreateHistory()`
+- **LLMProvider Interface Simplification & ThinkingModelCapable Upgrade**: Removed 3 deprecated overloads, kept only the 8-parameter full version with 6 call sites updated; ThinkingModelCapable upgraded from marker to functional interface, callers use interface capability check instead of downcasting to GenericLLMProvider
+- **SkillIntentRecognizer Exception Layering**: Split `catch(Exception)` in `parsePhase1Response`/`parseIntentFromResponse` into JSON parse exceptions (DEBUG) and unexpected exceptions (WARN), improving observability
+- **GreetingPromptBuilder Event Summary Unification**: Merged `summarizeEventType` and `summarizeFriendEvent` into unified `summarizeEvent(playerName, ...)`, eliminating ~140 lines of duplicate code; i18n templates unified to parameterized format, self events pass `I18nService.tr("you")`
+- **Code Cleanup**: LLMConfigManager language fallback extracted into generic helper; DatabaseConfig connection fields use declarative `@EqualsAndHashCode.Include`; fixed TaskExecutor `visit()` Javadoc; removed 38 dead keys and added 8 parameterized translations in messages_en.yml
 
 ### 🐛 Bug Fixes
 - Fixed profile analysis JSON parsing occasional failure (auto-repair then re-parse)
