@@ -108,9 +108,10 @@ critical_rules:
 
   placeholder_usage: |
     [Placeholder Usage Rules]
-    1. The {step_X.field.path} placeholder is used **only** in multi-step tasks (containing a steps array) to reference a prior step's return value
-    2. Single-intent (no steps array) entities must NOT use placeholders. A **required parameter** must be a concrete value explicitly provided by the user; an **optional parameter** that does not apply is omitted
-    3. **Never set a required parameter to null** — if its value is unknown and must be obtained via query, use multi-step (query-then-act); see [Missing Parameter Handling]
+    1. The {step_X.field.path} placeholder is used **only** in multi-step tasks (containing a steps array) to reference a return value of a prior step **within this same task's steps array**
+    2. **The step_X in a placeholder must be a step that actually exists in the current task.** Previous turns and query results in conversation history are NOT steps of the current task — **never use {step_X} to reference previous-turn data** (it is not resolved at execution time and is passed verbatim to the skill, causing failure). E.g., last turn returned a list and this turn you want to operate on one of its items — do NOT write `param:"{step_0.list_field[1].name_field}"` treating last turn as step_0; the correct approach is to **read that value directly from conversation history and fill it into single intent** (see [Continuous Conversation Principles -> Reusing previous-turn query results])
+    3. Single-intent (no steps array) entities must **never contain the literal `{step_`** (fatal error: single intent has no steps, so the placeholder cannot be resolved and will fail). A **required parameter** must be a concrete value explicitly provided by the user; an **optional parameter** that does not apply is omitted
+    4. **Never set a required parameter to null** — if its value is unknown and must be obtained via query, use multi-step (query-then-act); see [Missing Parameter Handling]
 
   continuous_conversation: |
     [Continuous Conversation Principles]
@@ -130,6 +131,9 @@ critical_rules:
        - Counter-example: last turn multi-step (get held item -> check listings -> check price), this turn "what about this one now" -> must re-run the same fetch -> query chain; do NOT return only the "get held item" single intent
        - Correct example: last turn single intent "query itemA price", this turn "what about itemB" -> only return single intent "query itemB price"
     6. If the user asks about something related to a "current status" and does not know the concrete value, use multi-step: fetch the current status first, then perform the follow-up query
+    7. [Reusing previous-turn query results] Data already queried and returned to the player in the previous turn may be read directly from conversation history and filled into single intent this turn **only if it is near-static player-owned reference data** (the player's own homes, landmarks, kits, etc. — things that barely change across a few turns); no re-query is needed and placeholders must not be used:
+       - Ordinal/name reference: when the user refers to an item of last turn's list by "the first / the second / the last" or by a direct name, read the concrete value of the corresponding item from history. E.g., last turn returned a list [itemA, itemB]; this turn "operate on the first" -> single intent, fill the parameter directly with "itemA"; "the second" -> fill "itemB"
+       - Boundary (consistent with rule 4, by principle not by list): **any data that changes over time or due to others' actions MUST be re-queried** — not limited to balance, inventory, held item, current location, health; it also includes online-player lists, items listed on the market, nearby entity counts, weather, etc.; reading these from history yields stale, wrong answers. **Only near-static player-owned reference data** (the player's own homes, landmarks, kits — data owned by that player and rarely changing) may be read from history
 
   entity_format: |
     [Entity Parameter Format Spec]
@@ -191,8 +195,11 @@ critical_rules:
     - **No sub-question has a corresponding skill/action** -> return invalid intent
 
     **Self-check reminder**: before output, confirm —
-    - Single intent: check whether any entities field is null or self-inferred -> null means a required parameter is missing, switch to multi-step; a self-inferred value means fabricating -> must switch to multi-step to query the real data first
-    - Multi-step: check whether each step's required parameters reference prior-step return values via {step_X.field} placeholders. If a step's required parameter is null with no prior step providing it -> add a prior query step
+    - Single intent: check whether any entities field is **null, contains a `{step_` placeholder, or is a self-inferred value** -> any of these is a fatal error. null/placeholder means the required parameter cannot be resolved; self-inferred means fabrication. Resolution: switch to multi-step to query the real data first; if the value already exists in conversation history and is stable (e.g., home/landmark names that barely change), you may fill in the concrete value from history directly
+    - Multi-step: for each step, check the source of its required parameters — all three fatal errors must be caught:
+      · **null with no prior step providing it** -> add a prior query step
+      · **a concrete value fabricated by the model** (neither explicitly given by the user, nor read from conversation history, nor a {step_X} placeholder) -> change it to a `{step_X.field}` placeholder referencing an already-executed prior step, or add a query step to fetch it
+      · **a {step_X} placeholder referencing a non-existent step, or a not-yet-executed later step (forward reference)** -> correct it to an already-executed prior step (a placeholder may only reference a step before the current one that has already executed)
 
     **Step count and degradation strategy**:
     - Prefer the most central dimensions (2-4); secondary dimensions may be omitted — the system supplements via LLM secondary analysis
@@ -227,7 +234,7 @@ special_scenarios:
 
     5. **Summary: better to add one step to fetch a parameter than to return a null parameter!**
     6. **[Derived-value handling — ratio/difference parameters]** When a parameter value is "a ratio or difference based on some real-time data" (e.g., "transfer half the balance", "a third", "10% off", "5 less than now"):
-       - **Scalar parameters** (direct fields like amount / quantity / price) and **AFK-task condition_plan.threshold**: both **support arithmetic placeholders** `{step_X.field} operator number`, auto-evaluated by the system in the execution phase (after the prior query completes). Only single binary operations (+ - * /) are supported. E.g., "transfer one-third of the balance" -> amount="{step_0.balance}/3"; "the entire balance" -> "{step_0.balance}"; "10% off" -> "{step_0.price}*0.9". You only write the expression — **do not fabricate a concrete value** (you don't have that data at planning time). Whether it is supported follows each action's description
+       - **Numeric scalar parameters** (direct numeric fields such as amount, quantity, unit price): **support arithmetic placeholders** `{step_X.field} operator number`, auto-evaluated by the system in the execution phase (after the prior query completes). Only single binary operations (+ - * /) are supported. E.g., "transfer one-third of the balance" -> fill the parameter with "{step_0.balance}/3"; "the entire balance" -> "{step_0.balance}"; "10% off" -> "{step_0.price}*0.9". You only write the expression — **do not fabricate a concrete value** (you don't have that data at planning time). Whether it is supported follows each action's description
        - **General limitation**: single binary operations only — no compound expressions (e.g., /2+100), no parentheses, no percent signs; arithmetic is not evaluated when the field value is mixed with text. If a ratio cannot be expressed as a single operation, query first, tell the user, and ask for a concrete value
 
   skill_name_restriction: |
