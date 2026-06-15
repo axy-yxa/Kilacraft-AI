@@ -49,18 +49,46 @@ public class ConditionEvaluator {
      *   <li>FAILED：评估过程出错（Skill找不到/超时/字段提取失败等），属于配置错误</li>
      * </ul>
      */
-    public record EvaluationResult(Status status, Double actualValue) {
+    public record EvaluationResult(Status status, Double actualValue, String actualValueStr) {
 
-        public enum Status { MET, NOT_MET, FAILED }
+        public enum Status {MET, NOT_MET, FAILED}
 
-        /** 兼容旧调用：仅关注状态 */
-        public boolean isMet() { return status == Status.MET; }
-        public boolean isFailed() { return status == Status.FAILED; }
+        /**
+         * 兼容旧调用：仅关注状态
+         */
+        public boolean isMet() {
+            return status == Status.MET;
+        }
 
-        /** 快捷构造方法 */
-        public static EvaluationResult met(double actualValue) { return new EvaluationResult(Status.MET, actualValue); }
-        public static EvaluationResult notMet(double actualValue) { return new EvaluationResult(Status.NOT_MET, actualValue); }
-        public static EvaluationResult failed() { return new EvaluationResult(Status.FAILED, null); }
+        public boolean isFailed() {
+            return status == Status.FAILED;
+        }
+
+        /**
+         * 数值条件快捷构造（保持原签名：actualValueStr = null，不影响数值路径调用方）
+         */
+        public static EvaluationResult met(double actualValue) {
+            return new EvaluationResult(Status.MET, actualValue, null);
+        }
+
+        public static EvaluationResult notMet(double actualValue) {
+            return new EvaluationResult(Status.NOT_MET, actualValue, null);
+        }
+
+        public static EvaluationResult failed() {
+            return new EvaluationResult(Status.FAILED, null, null);
+        }
+
+        /**
+         * 字符串条件快捷构造（actualValue = null，携带真实字符串值用于展示）
+         */
+        public static EvaluationResult metStr(String actualValueStr) {
+            return new EvaluationResult(Status.MET, null, actualValueStr);
+        }
+
+        public static EvaluationResult notMetStr(String actualValueStr) {
+            return new EvaluationResult(Status.NOT_MET, null, actualValueStr);
+        }
     }
 
     private static final long EXECUTION_TIMEOUT_SECONDS = 5;
@@ -112,7 +140,7 @@ public class ConditionEvaluator {
                     return EvaluationResult.failed();
                 }
                 boolean meetsCondition = compareString(strValue, conditionPlan.getOperator(), conditionPlan.getThresholdStr());
-                return meetsCondition ? EvaluationResult.met(1.0) : EvaluationResult.notMet(0.0);
+                return meetsCondition ? EvaluationResult.metStr(strValue) : EvaluationResult.notMetStr(strValue);
             }
 
             // 数值比较路径

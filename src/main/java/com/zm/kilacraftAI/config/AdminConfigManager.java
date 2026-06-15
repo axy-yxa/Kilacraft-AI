@@ -28,6 +28,24 @@ public class AdminConfigManager {
     private static final String CONFIG_FILE_NAME = "admin.yml";
     private static final String LOG_PREFIX = "服主管理";
 
+    /**
+     * 诊断模型来源（决定连接字段取自 admin.yml 还是回退 llm.yml）
+     */
+    public enum DiagnosticModelSource {
+        /**
+         * admin.yml 显式配置了有效 api_key
+         */
+        ADMIN_EXPLICIT,
+        /**
+         * 回退使用 llm.yml 基础模型（仅复用 url/key/model）
+         */
+        LLM_FALLBACK,
+        /**
+         * 均未配置，诊断功能不可用
+         */
+        NONE
+    }
+
     private final KilacraftAI plugin;
     private final File configFile;
     private YamlConfiguration config;
@@ -40,6 +58,11 @@ public class AdminConfigManager {
     private volatile String thinkingModel;
     private volatile int thinkingMaxTokens;
     private volatile int thinkingTimeout;
+
+    /**
+     * 当前诊断模型来源（在 reload() 末尾计算并缓存，volatile 保证可见性）
+     */
+    private volatile DiagnosticModelSource diagnosticSource = DiagnosticModelSource.NONE;
 
     /*
     守护线程配置
@@ -175,10 +198,19 @@ public class AdminConfigManager {
         autoModeInstructionEn = config.getString("prompts.auto_mode_instruction_en", "");
         manualModeInstructionEn = config.getString("prompts.manual_mode_instruction_en", "");
 
-        // 仅在守护线程启用且推理模型已配置时，才重建 HTTP 客户端
-        if (guardianEnabled && isThinkingModelConfigured()) {
+        // 计算诊断模型来源（优先级：admin 显式 > llm 回退 > 无）
+        if (isApiKeyValid(thinkingApiKey)) {
+            diagnosticSource = DiagnosticModelSource.ADMIN_EXPLICIT;
+        } else if (plugin.getConfigManager() != null && isApiKeyValid(plugin.getConfigManager().getLlmApiKey())) {
+            diagnosticSource = DiagnosticModelSource.LLM_FALLBACK;
+        } else {
+            diagnosticSource = DiagnosticModelSource.NONE;
+        }
+
+        // 仅在守护线程启用且诊断模型可用时，才重建 HTTP 客户端
+        if (guardianEnabled && diagnosticSource != DiagnosticModelSource.NONE) {
             rebuildThinkingHttpClient();
-            PluginLoggerUtil.info(LOG_PREFIX, "配置已加载（守护线程: 启用，推理模型: {}）", thinkingModel);
+            PluginLoggerUtil.info(LOG_PREFIX, "配置已加载（守护线程: 启用，诊断模型: {}）", getThinkingModelConfig().model());
         } else {
             PluginLoggerUtil.info(LOG_PREFIX, "配置已加载（守护线程: {}）", I18nService.tr(guardianEnabled ? "启用" : "禁用"));
         }
@@ -226,16 +258,33 @@ public class AdminConfigManager {
     }
 
     /**
-     * 检查推理模型 API Key 是否已配置（非默认占位符）
+     * 诊断模型是否可用（admin.yml 显式配置 或 回退 llm.yml 基础模型）
      *
-     * @return true 表示已配置有效 API key，深度思考 LLM 可调用
+     * <p>方法名保留以避免 3 处调用点连锁改动；语义已从"推理模型是否配置"扩展为"诊断功能是否有可用模型"。</p>
      */
     public boolean isThinkingModelConfigured() {
-        return thinkingApiKey != null && !thinkingApiKey.isEmpty() && !"your-api-key".equals(thinkingApiKey);
+        return diagnosticSource != DiagnosticModelSource.NONE;
     }
 
+    /**
+     * 获取诊断模型配置
+     *
+     * <p>回退时连接字段（url/key/model）取自 llm.yml，max_tokens/timeout 始终用 admin.yml 诊断专用值
+     * （不复用 llm.yml 的小配额，否则报告被截断）。</p>
+     */
     public ThinkingModelConfig getThinkingModelConfig() {
+        if (diagnosticSource == DiagnosticModelSource.LLM_FALLBACK) {
+            var cm = plugin.getConfigManager();
+            return new ThinkingModelConfig(cm.getLlmApiUrl(), cm.getLlmApiKey(), cm.getLlmModel(), thinkingMaxTokens, thinkingTimeout);
+        }
         return new ThinkingModelConfig(thinkingApiUrl, thinkingApiKey, thinkingModel, thinkingMaxTokens, thinkingTimeout);
+    }
+
+    /**
+     * 判断 API key 是否有效（非空且非默认占位符）
+     */
+    private boolean isApiKeyValid(String key) {
+        return key != null && !key.isEmpty() && !"your-api-key".equals(key);
     }
 
     /**

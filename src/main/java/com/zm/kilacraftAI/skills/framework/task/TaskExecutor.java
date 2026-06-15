@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.skills.framework.task;
 
+import com.zm.kilacraftAI.common.util.ArithmeticUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
@@ -296,46 +297,13 @@ public class TaskExecutor {
      * 本方法仅支持单次二元运算（A op B），不引入脚本引擎，安全无注入风险。
      * </p>
      *
+     * <p>实现已抽离至 {@link ArithmeticUtil}，供 {@code CustomWatchTask} 等其他场景复用。</p>
+     *
      * @param value 可能包含算术表达式的字符串
      * @return 求值后的字符串，或不匹配时的原始值
      */
     private String evaluateSimpleArithmetic(String value) {
-        if (value == null || value.isEmpty()) return value;
-
-        // 匹配 "数字 运算符 数字" 模式（整个字符串）
-        java.util.regex.Pattern arithPattern = java.util.regex.Pattern.compile("^\\s*(-?\\d+(?:\\.\\d+)?)\\s*([+\\-*/])\\s*(-?\\d+(?:\\.\\d+)?)\\s*$");
-        java.util.regex.Matcher m = arithPattern.matcher(value);
-        if (!m.find()) return value;
-
-        try {
-            double a = Double.parseDouble(m.group(1));
-            String op = m.group(2);
-            double b = Double.parseDouble(m.group(3));
-
-            // 除零保护
-            if ("/".equals(op) && b == 0) {
-                return value;
-            }
-
-            double result = switch (op) {
-                case "+" -> a + b;
-                case "-" -> a - b;
-                case "*" -> a * b;
-                case "/" -> a / b;
-                default -> a;
-            };
-
-            // 格式化：最多2位小数，去掉多余尾零
-            String formatted = String.format("%.2f", result);
-            if (formatted.contains(".")) {
-                formatted = formatted.replaceAll("\\.?0+$", "");
-                if (formatted.isEmpty()) formatted = "0";
-            }
-            return formatted;
-        } catch (NumberFormatException e) {
-            // 理论上不会触发（正则已限定数字格式），但安全起见保留原值
-            return value;
-        }
+        return ArithmeticUtil.evalAndFormat(value);
     }
 
     /**

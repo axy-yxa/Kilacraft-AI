@@ -4,15 +4,17 @@
 
 llm:
   # LLM API 配置（通用，支持所有 OpenAI 标准格式的厂商）
-  # 可用厂商示例（均兼容 OpenAI Chat Completions API，仅支持非思考模式）：
-  # 注意：不支持思考/推理模型（如 deepseek-reasoner、o1、o3 等），MC 场景无法展示大段思考内容
+  # 思考/推理模型会自动关闭思考模式（思考 token 与输出 token 共享 max_tokens 预算，MC 场景配额较小，开启思考会导致输出为空）
+  # 始终开启思考且无法关闭的模型（如 deepseek-reasoner、QwQ、GLM-Z1）不适合用于普通对话，请配置到 admin.yml 的推理模型中
+  # 注意：当 admin.yml 未配置推理模型时，异常诊断功能会自动回退使用此处的模型（仅复用 url/key/model，配额仍由 admin.yml 控制，不会与普通对话冲突）
   # LLM API Configuration (Universal, supports all OpenAI standard format providers)
-  # Available provider examples (all compatible with OpenAI Chat Completions API, non-thinking mode only):
-  # Note: Reasoning/thinking models (e.g. deepseek-reasoner, o1, o3) are NOT supported — MC cannot display long reasoning content
+  # Thinking/reasoning models are automatically disabled (thinking + output tokens share max_tokens budget; with small MC quotas, thinking mode leaves no room for output)
+  # Models that always think and cannot be disabled (e.g. deepseek-reasoner, QwQ, GLM-Z1) are NOT suitable for normal chat — configure them in admin.yml instead
+  # Note: When admin.yml has no thinking model configured, the diagnostics feature falls back to this model (only url/key/model are reused; quota stays controlled by admin.yml, no conflict with normal chat)
   # - OpenAI: https://api.openai.com/v1/chat/completions
   #   Models: gpt-4o-mini, gpt-4o
   # - DeepSeek: https://api.deepseek.com/v1/chat/completions
-  #   Models: deepseek-chat
+  #   Models: deepseek-v4-flash
   # - ZhipuAI (智谱AI): https://open.bigmodel.cn/api/paas/v4/chat/completions
   #   Models: glm-4-flash, glm-4-plus
   # - Moonshot: https://api.moonshot.cn/v1/chat/completions
@@ -41,7 +43,7 @@ llm:
   
   # 模型名称（根据厂商配置）
   # Model name (configure according to provider)
-  model: "deepseek-chat"
+  model: "deepseek-v4-flash"
 
   # 温度参数（0-2之间）
   # 值越高回答越有创意和随机性

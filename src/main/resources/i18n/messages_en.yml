@@ -668,8 +668,7 @@ messages:
   "参考知识库": "Reference Knowledge Base"
   "知识片段": "Knowledge Segment"
   "请分析": "Please analyze"
-  "请分析用户想要使用什么技能，并返回 JSON 格式的识别结果。": "Please analyze what skill the user wants to use and return the recognition result in JSON format."
-  "**重要：只返回纯 JSON 对象，不要包含任何 Markdown 标记、注释或额外说明文本。**": "**IMPORTANT: Only return a pure JSON object, do not include any Markdown formatting, comments, or additional explanatory text.**"
+  "请根据系统提示词中的规则分析用户意图，输出对应的 JSON 识别结果。": "Please analyze the user's intent following the rules in the system prompt and output the corresponding JSON recognition result."
   "§c任务创建者不在线，回调任务已取消。": "§cTask creator is offline, callback task cancelled."
   "§c回调任务执行失败：{}": "§cCallback task execution failed: {}"
   "§c回调任务启动失败：{}": "§cCallback task startup failed: {}"
@@ -869,7 +868,7 @@ messages:
   "【角色定义】": "[Role Definition]"
   "【可用技能列表】": "[Available Skills]"
   "【响应格式规范】": "[Response Format Specification]"
-  "请严格按照以下 JSON 格式返回识别结果。": "Please strictly return the recognition result in the following JSON format."
+  "支持以下三种 JSON 输出格式，请根据决策规则选择：": "The following three JSON output formats are supported. Choose based on the decision rules:"
   "### 单意图格式（简单任务）": "### Single Intent Format (Simple Task)"
   "### 无效意图格式（无法识别时）": "### Invalid Intent Format (Unrecognized)"
   "### 多步骤任务格式（复杂任务）": "### Multi-Step Task Format (Complex Task)"
@@ -882,7 +881,6 @@ messages:
   "【输出质量要求】": "[Output Quality Requirements]"
   "意图识别提示词配置重载完成": "Intent recognition prompt config reload complete"
   "加载意图识别提示词配置失败": "Failed to load intent recognition prompt config"
-  "你是一个智能的技能意图识别助手.": "You are an intelligent skill intent recognition assistant."
   "Phase 1 Skill 分类开始": "Phase 1 skill classification started"
   "Phase 1 判定为非技能请求": "Phase 1 determined as non-skill request"
   "Phase 1 JSON 解析失败: {}": "Phase 1 JSON parse failed: {}"
@@ -910,6 +908,7 @@ messages:
   # ==================== LLMProvider ====================
   "请求失败：{} - {}": "Request failed: {} - {}"
   "API 响应为空": "API response is empty"
+  "AI 暂时无法回复，请稍后再试": "AI is temporarily unable to respond, please try again later"
   "读取响应失败：{}": "Failed to read response: {}"
   "请求失败：{}": "Request failed: {}"
   "当前 LLM 不支持 response_format，自动降级为普通模式": "The current LLM does not support responsive_format and will automatically downgrade to normal mode"
@@ -1436,7 +1435,7 @@ messages:
   "实时指标 — TPS: 5s={} 1m={} 5m={} | MSPT(1m): max={} median={} p95={} | MSPT(10s): max={} | CPU: process={}% system={}%": "Live metrics — TPS: 5s={} 1m={} 5m={} | MSPT(1m): max={} median={} p95={} | MSPT(10s): max={} | CPU: process={}% system={}%"
   "MSPT 10s max={}ms 超过阈值，连续确认 {}/{}": "MSPT 10s max={}ms exceeds threshold, consecutive confirmation {}/{}"
   "MSPT 10s max 已恢复正常，连续计数 {} → 0": "MSPT 10s max returned to normal, consecutive count {} → 0"
-  "AI 诊断未执行：推理模型未配置": "AI diagnosis skipped: thinking model not configured"
+  "AI 诊断未执行：未配置可用的模型": "AI diagnosis skipped: no available model configured"
   "AI 诊断未执行：当前 LLM 提供商不支持推理模型": "AI diagnosis skipped: current LLM provider does not support thinking model"
 
   # ==================== Admin - ManualSession ====================
@@ -1468,7 +1467,7 @@ messages:
   "无法创建默认配置文件: {}": "Cannot create default config file: {}"
   "启用": "enabled"
   "禁用": "disabled"
-  "配置已加载（守护线程: 启用，推理模型: {}）": "Config loaded (Guardian: enabled, thinking model: {})"
+  "配置已加载（守护线程: 启用，诊断模型: {}）": "Config loaded (Guardian: enabled, diagnostic model: {})"
   "配置已加载（守护线程: {}）": "Config loaded (Guardian: {})"
   "推理模型 HTTP 客户端已重建（超时: {}s）": "Thinking model HTTP client rebuilt (timeout: {}s)"
 
@@ -1596,7 +1595,9 @@ messages:
 
   # ==================== Admin - KilacraftCommand (profile) ====================
   "§c你没有权限使用性能采样功能。": "§cYou do not have permission to use the profiling feature."
-  "§c服务器健康监控不可用（Spark 插件未安装或守护线程未启用）。": "§cServer health monitoring unavailable (Spark plugin not installed or guardian not enabled)."
+  "§c服务器健康监控不可用：admin.yml 和 llm.yml 均未配置可用模型。请至少在 llm.yml 中填写有效的 llm.api_key。": "§cServer health monitoring unavailable: No available model configured in admin.yml or llm.yml. Please set a valid llm.api_key in llm.yml at minimum."
+  "§c服务器健康监控不可用：守护线程已禁用（admin.yml 中 health_guardian.enabled 为 false）。": "§cServer health monitoring unavailable: Guardian thread disabled (health_guardian.enabled is false in admin.yml)."
+  "§c服务器健康监控不可用：Spark 插件未安装或未加载。": "§cServer health monitoring unavailable: Spark plugin not installed or not loaded."
   "§c无效的采样时长，请输入 30~120 之间的数字。": "§cInvalid profiling duration, please enter a number between 30 and 120."
   "§a已启动性能采样，时长 {} 秒。": "§aProfiling started, duration {} seconds."
   "§7采样完成后将自动生成诊断报告。": "§7Diagnostic report will be generated automatically after profiling completes."
@@ -1637,6 +1638,7 @@ messages:
   "触发模式": "Trigger Mode"
   "服务端": "Server"
   "生成时间": "Generated At"
+  "诊断模型": "Diagnostic Model"
   "原始数据": "Raw Data"
   "## 1. 服务器状态概览": "## 1. Server Status Overview"
   "### 1.1 触发原因": "### 1.1 Trigger Cause"

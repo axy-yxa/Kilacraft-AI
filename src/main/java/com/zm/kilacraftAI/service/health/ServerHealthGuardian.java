@@ -678,9 +678,9 @@ public class ServerHealthGuardian implements ManagedTask {
         ThinkingModelConfig config = configManager.getThinkingModelConfig();
         OkHttpClient client = configManager.getThinkingHttpClient();
 
-        if (client == null || config.apiKey() == null || config.apiKey().isEmpty()) {
-            PluginLoggerUtil.warn(LOG_PREFIX, "推理模型未配置，跳过 AI 诊断");
-            return I18nService.tr("AI 诊断未执行：推理模型未配置");
+        if (client == null || config.apiKey() == null || config.apiKey().isEmpty() || "your-api-key".equals(config.apiKey())) {
+            PluginLoggerUtil.warn(LOG_PREFIX, "诊断模型未配置（admin.yml 和 llm.yml 均未提供有效模型），跳过 AI 诊断");
+            return I18nService.tr("AI 诊断未执行：未配置可用的模型");
         }
 
         // 获取支持推理模型的 Provider

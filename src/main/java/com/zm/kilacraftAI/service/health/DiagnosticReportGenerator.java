@@ -74,6 +74,8 @@ public class DiagnosticReportGenerator {
         String platform = serverPlatform != null ? serverPlatform : AdminSkillUtil.getServerPlatform();
         content.append("| ").append(I18nService.tr("服务端")).append(" | ").append(platform).append(" |\n");
         content.append("| ").append(I18nService.tr("生成时间")).append(" | ").append(reportTime).append(" |\n");
+        // 诊断模型：显示实际生成 AI 诊断结论的模型名（admin.yml 显式 或 llm.yml 回退，由 configManager 解析）
+        content.append("| ").append(I18nService.tr("诊断模型")).append(" | ").append(configManager.getThinkingModelConfig().model()).append(" |\n");
         if (profilerUrl != null) {
             content.append("| Spark Viewer | [").append(profilerUrl).append("](").append(profilerUrl).append(") |\n");
             content.append("| ").append(I18nService.tr("原始数据")).append(" | [").append(profilerUrl).append("?raw=1](").append(profilerUrl).append("?raw=1) |\n");
@@ -394,8 +396,7 @@ public class DiagnosticReportGenerator {
      * 在报告中追加服务器活动指标（玩家移动距离 + 区块加载变化）
      */
     private void appendActivityMetrics(StringBuilder content, ServerActivitySnapshot before, ServerActivitySnapshot after) {
-        if (before.worldChunkCounts().isEmpty() && after.worldChunkCounts().isEmpty()
-                && before.playerBlockCoords().isEmpty() && after.playerBlockCoords().isEmpty()) {
+        if (before.worldChunkCounts().isEmpty() && after.worldChunkCounts().isEmpty() && before.playerBlockCoords().isEmpty() && after.playerBlockCoords().isEmpty()) {
             return;
         }
 

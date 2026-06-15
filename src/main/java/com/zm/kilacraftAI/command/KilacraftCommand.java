@@ -852,7 +852,15 @@ public class KilacraftCommand implements CommandExecutor {
 
         ServerHealthGuardian guardian = plugin.getServerHealthGuardian();
         if (guardian == null) {
-            sender.sendMessage(I18nService.tr("§c服务器健康监控不可用（Spark 插件未安装或守护线程未启用）。"));
+            // 分层诊断：逐一检查前置条件，给出精准提示
+            var adminConfig = plugin.getAdminConfigManager();
+            if (!adminConfig.isThinkingModelConfigured()) {
+                sender.sendMessage(I18nService.tr("§c服务器健康监控不可用：admin.yml 和 llm.yml 均未配置可用模型。请至少在 llm.yml 中填写有效的 llm.api_key。"));
+            } else if (!adminConfig.isGuardianEnabled()) {
+                sender.sendMessage(I18nService.tr("§c服务器健康监控不可用：守护线程已禁用（admin.yml 中 health_guardian.enabled 为 false）。"));
+            } else {
+                sender.sendMessage(I18nService.tr("§c服务器健康监控不可用：Spark 插件未安装或未加载。"));
+            }
             return true;
         }
 

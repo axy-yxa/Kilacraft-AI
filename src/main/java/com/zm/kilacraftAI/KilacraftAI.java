@@ -38,8 +38,8 @@ import com.zm.kilacraftAI.service.profile.ProfileAnalysisService;
 import com.zm.kilacraftAI.service.profile.ProfileEventCollector;
 import com.zm.kilacraftAI.service.profile.ProfileManager;
 import com.zm.kilacraftAI.service.profile.SocialRelationExtractor;
-import com.zm.kilacraftAI.service.update.UpdateChecker;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
+import com.zm.kilacraftAI.service.update.UpdateChecker;
 import com.zm.kilacraftAI.skills.admin.AuditLogSkill;
 import com.zm.kilacraftAI.skills.admin.PlayerAnalysisSkill;
 import com.zm.kilacraftAI.skills.admin.ServerHealthSkill;
@@ -811,7 +811,7 @@ public final class KilacraftAI extends JavaPlugin {
      * 初始化服主管理功能系统
      *
      * <p>包含 AdminConfigManager、ServerHealthGuardian、AdminListener 的初始化。</p>
-     * <p>守护线程依赖 Spark + 推理模型，任一不满足则不创建（AdminListener 和 AdminConfigManager 始终初始化）。</p>
+     * <p>守护线程依赖 Spark + 诊断模型可用（admin.yml 显式 或 回退 llm.yml 基础模型），任一不满足则不创建（AdminListener 和 AdminConfigManager 始终初始化）。</p>
      */
     private void initializeAdminSystem() {
         adminConfigManager = new AdminConfigManager(this);
@@ -825,7 +825,7 @@ public final class KilacraftAI extends JavaPlugin {
         adminListener = new AdminListener(this);
         getServer().getPluginManager().registerEvents(adminListener, this);
 
-        // 守护线程依赖：databaseManager + guardian.enabled + 推理模型已配置
+        // 守护线程依赖：databaseManager + guardian.enabled + 诊断模型可用（admin 显式 或 llm 回退）
         if (databaseManager == null || !adminConfigManager.isGuardianEnabled() || !adminConfigManager.isThinkingModelConfigured()) {
             return;
         }
@@ -879,7 +879,7 @@ public final class KilacraftAI extends JavaPlugin {
     /**
      * 同步守护线程状态（支持热重载）
      *
-     * <p>根据当前配置（推理模型、Spark 可用性、guardian enabled、interval）动态创建、销毁或重启守护线程。</p>
+     * <p>根据当前配置（诊断模型可用性、Spark 可用性、guardian enabled、interval）动态创建、销毁或重启守护线程。</p>
      * <p>由 {@code /kilacraft reload} 命令调用，使 admin.yml 配置变更即时生效。</p>
      */
     public void syncGuardianState() {

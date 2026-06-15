@@ -378,6 +378,11 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             requestBody.add("response_format", responseFormat);
         }
 
+        // 思考模式治理：对默认开启思考的模型，显式关闭思考模式
+        // 思考 token 与输出 token 共享 max_tokens 预算（默认 600），
+        // 若不关闭，思考过程会耗尽配额导致实际输出为空
+        disableThinkingIfNeeded(requestBody);
+
         JsonArray messages = new JsonArray();
 
         // 使用自定义的系统提示词，替换 {player} 占位符
@@ -413,6 +418,137 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
         requestBody.add("messages", messages);
         return requestBody;
+    }
+
+    /**
+     * 对默认开启思考/推理模式的模型，显式关闭思考模式。
+     * <p>
+     * 思考 token 与输出 token 共享 max_tokens 预算，
+     * MC 场景 max_tokens 较小（默认 600），思考模式会导致实际输出为空。
+     * <p>
+     * 参数格式分四组：
+     * <ul>
+     *   <li>Group 1 — {@code thinking: {type: "disabled"}} (object):
+     *       MiMo, DeepSeek V4+, GLM 4.5+, Kimi K2+</li>
+     *   <li>Group 2 — {@code enable_thinking: false} (boolean):
+     *       Qwen3 开源 / Qwen3.5+ 商业版</li>
+     *   <li>Group 3 — {@code reasoning_effort: "none"} (string):
+     *       xAI Grok 4, Mistral (medium-3-5 / small)</li>
+     *   <li>Group 4 — {@code thinking: "disabled"} (string):
+     *       Doubao thinking/seed, MiniMax-M3</li>
+     * </ul>
+     * <p>
+     * 不处理的模型：
+     * <ul>
+     *   <li>始终思考不可关闭: deepseek-reasoner, QwQ, GLM-Z1, OpenAI o-series, Gemini 2.5 Pro</li>
+     *   <li>默认关闭或不支持: deepseek-chat (V3), qwen-turbo/plus, doubao-lite, glm-4-flash,
+     *       gpt-4o, llama, grok-3, moonshot-v1, step-3.x, yi-lightning 等</li>
+     * </ul>
+     */
+    private void disableThinkingIfNeeded(JsonObject requestBody) {
+        String model = cachedModel.toLowerCase(java.util.Locale.ROOT);
+
+        // ── Group 1: thinking: {type: "disabled"} (object format) ──
+        // MiMo、DeepSeek V4+、GLM 4.5+、Kimi K2+ 均使用此格式
+        if (isThinkingObjectModel(model)) {
+            JsonObject thinking = new JsonObject();
+            thinking.addProperty("type", "disabled");
+            requestBody.add("thinking", thinking);
+            return;
+        }
+
+        // ── Group 2: enable_thinking: false ──
+        // Qwen3 开源系列、Qwen3.5/3.6/3.7 商业版默认开启思考
+        if (model.contains("qwen3") || model.contains("qwen-3")) {
+            requestBody.addProperty("enable_thinking", false);
+            return;
+        }
+
+        // ── Group 3: reasoning_effort: "none" ──
+        // xAI Grok 4.x 默认 low 推理；Mistral medium-3-5 / small 支持 reasoning_effort
+        if (model.contains("grok-4") || model.startsWith("grok-3-mini")) {
+            requestBody.addProperty("reasoning_effort", "none");
+            return;
+        }
+
+        // ── Group 4: thinking: "disabled" (string format) ──
+        // Doubao thinking/seed 系列使用字符串格式；MiniMax-M3 支持 adaptive/disabled
+        if ((model.contains("doubao") && (model.contains("thinking") || model.contains("seed"))) || model.contains("minimax-m3")) {
+            requestBody.addProperty("thinking", "disabled");
+        }
+    }
+
+    /**
+     * 判断模型是否使用 thinking: {type: "disabled"} (object) 格式
+     * <p>
+     * 覆盖: MiMo 全系列、DeepSeek V4+ (V3.x 默认 OFF 无需处理)、GLM 4.5+、Kimi K2+
+     */
+    private boolean isThinkingObjectModel(String model) {
+        // Xiaomi MiMo
+        if (model.contains("mimo")) return true;
+        // DeepSeek V4+ (排除 reasoner — 始终思考不可关闭，排除 chat — V3.x 默认 OFF)
+        if (model.contains("deepseek") && model.contains("v4")) return true;
+        // Zhipu GLM 4.5 / 4.6 / 4.7 / 5.x (排除 glm-4-flash/air/plus/long — 不支持思考)
+        if (model.contains("glm-4.5") || model.contains("glm-4.6") || model.contains("glm-4.7") || model.contains("glm-5"))
+            return true;
+        // Moonshot Kimi K2+ (排除 moonshot-v1 — 不支持思考)
+        if (model.contains("kimi")) return true;
+        return false;
+    }
+
+    /**
+     * 为 admin 推理模型路径显式启用思考模式。
+     * <p>
+     * 按模型族注入对应的启用参数：
+     * <ul>
+     *   <li>thinking: {type: "enabled"} (object): DeepSeek, MiMo, GLM 4.5+, Kimi K2+</li>
+     *   <li>enable_thinking: true (boolean): Qwen3 / QwQ</li>
+     *   <li>reasoning_effort: "high" (string): xAI Grok 4, Mistral medium/small</li>
+     *   <li>thinking: "enabled" (string): Doubao thinking/seed</li>
+     * </ul>
+     * 不需要显式启用的模型（始终思考）: deepseek-reasoner, QwQ, GLM-Z1, o-series
+     */
+    private void enableThinkingForModel(String modelName, JsonObject requestBody) {
+        String model = modelName.toLowerCase(java.util.Locale.ROOT);
+
+        // ── thinking: {type: "enabled"} (object format) ──
+        if (model.contains("deepseek") || model.contains("mimo") || model.contains("kimi") || model.contains("glm-4.5") || model.contains("glm-4.6") || model.contains("glm-4.7") || model.contains("glm-5")) {
+            JsonObject thinking = new JsonObject();
+            thinking.addProperty("type", "enabled");
+            requestBody.add("thinking", thinking);
+            return;
+        }
+
+        // ── enable_thinking: true ──
+        if (model.contains("qwen3") || model.contains("qwen-3")) {
+            requestBody.addProperty("enable_thinking", true);
+            return;
+        }
+
+        // ── reasoning_effort: "high" ──
+        if (model.contains("grok-4") || model.startsWith("grok-3-mini") || model.contains("mistral-medium") || model.contains("mistral-small")) {
+            requestBody.addProperty("reasoning_effort", "high");
+            return;
+        }
+
+        // ── thinking: "enabled" (string format) ──
+        if (model.contains("doubao") && (model.contains("thinking") || model.contains("seed"))) {
+            requestBody.addProperty("thinking", "enabled");
+        }
+    }
+
+    /**
+     * 构建标准的 system + user 消息对
+     */
+    private void addSystemAndUserMessages(JsonArray messages, String systemPrompt, String userMessage) {
+        JsonObject systemMsg = new JsonObject();
+        systemMsg.addProperty("role", MessageRoleEnum.SYSTEM.value());
+        systemMsg.addProperty("content", systemPrompt);
+        messages.add(systemMsg);
+        JsonObject userMsg = new JsonObject();
+        userMsg.addProperty("role", MessageRoleEnum.USER.value());
+        userMsg.addProperty("content", userMessage);
+        messages.add(userMsg);
     }
 
     /**
@@ -509,17 +645,19 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             return "§c" + I18nService.tr("读取响应失败：{}", e.getMessage());
         }
 
+        // 空响应检测：替换为友好提示，避免玩家收到空消息
+        String result = fullResponse.toString();
+        if (result.isEmpty()) {
+            PluginLoggerUtil.warn("LLM请求", I18nService.tr("LLM 返回空响应，共收到 {} 个 SSE chunk，最近原始数据: {}", chunkCount, String.join(" | ", recentRawChunks)));
+            result = "§c" + I18nService.tr("AI 暂时无法回复，请稍后再试");
+        }
+
         // 流式输出完成后，调用 showResponse() 触发 completeGeneration()
         if (responseHandler != null) {
-            responseHandler.showResponse(fullResponse.toString());
+            responseHandler.showResponse(result);
         }
 
-        // 空响应检测：记录 SSE 原始数据帮助排查
-        if (fullResponse.isEmpty()) {
-            PluginLoggerUtil.warn("LLM请求", I18nService.tr("LLM 返回空响应，共收到 {} 个 SSE chunk，最近原始数据: {}", chunkCount, String.join(" | ", recentRawChunks)));
-        }
-
-        return fullResponse.toString();
+        return result;
     }
 
     /**
@@ -548,37 +686,33 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         requestBody.addProperty("model", config.model());
         requestBody.addProperty("stream", false); // 非流式
 
-        // DeepSeek 特有参数：启用思考模式
-        if (config.model().contains("deepseek")) {
-            JsonObject thinking = new JsonObject();
-            thinking.addProperty("type", "enabled");
-            requestBody.add("thinking", thinking);
-        }
+        // ── 思考模式参数：按模型族注入启用思考的参数 ──
+        enableThinkingForModel(config.model(), requestBody);
 
         // 构建消息数组
         JsonArray messages = new JsonArray();
 
+        // ── 消息格式与 max_tokens 参数：按模型族适配 ──
         // OpenAI o1/o3/o4 系列不支持 system 消息，需合并到 user 消息
         boolean isOpenAIOModel = config.model().startsWith("o1") || config.model().startsWith("o3") || config.model().startsWith("o4");
+        // Doubao thinking/seed 系列使用 max_completion_tokens（不能与 max_tokens 同时设置）
+        boolean isDoubaoThinkingModel = config.model().contains("doubao") && (config.model().contains("thinking") || config.model().contains("seed"));
+
         if (isOpenAIOModel) {
-            // o 系列使用 max_completion_tokens（替代 max_tokens）
             requestBody.addProperty("max_completion_tokens", config.maxTokens());
-            // system 消息合并到 user 消息
+            // o 系列：system 消息合并到 user 消息
             JsonObject userMsg = new JsonObject();
             userMsg.addProperty("role", MessageRoleEnum.USER.value());
             userMsg.addProperty("content", systemPrompt + "\n\n" + userMessage);
             messages.add(userMsg);
+        } else if (isDoubaoThinkingModel) {
+            requestBody.addProperty("max_completion_tokens", config.maxTokens());
+            // Doubao：正常 system + user 分开
+            addSystemAndUserMessages(messages, systemPrompt, userMessage);
         } else {
             requestBody.addProperty("max_tokens", config.maxTokens());
-            // 正常模型：system + user 分开
-            JsonObject systemMsg = new JsonObject();
-            systemMsg.addProperty("role", MessageRoleEnum.SYSTEM.value());
-            systemMsg.addProperty("content", systemPrompt);
-            messages.add(systemMsg);
-            JsonObject userMsg = new JsonObject();
-            userMsg.addProperty("role", MessageRoleEnum.USER.value());
-            userMsg.addProperty("content", userMessage);
-            messages.add(userMsg);
+            // 其他模型：正常 system + user 分开
+            addSystemAndUserMessages(messages, systemPrompt, userMessage);
         }
         requestBody.add("messages", messages);
 

@@ -7,6 +7,7 @@ import com.google.gson.reflect.TypeToken;
 import com.zm.kilacraftAI.common.enums.AFKTaskStatusEnum;
 import com.zm.kilacraftAI.common.enums.AFKTaskTypeEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
+import com.zm.kilacraftAI.common.util.ArithmeticUtil;
 import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
@@ -146,6 +147,16 @@ public class CustomWatchTask extends AFKTask {
 
     /**
      * 从 JsonObject 中解析 ConditionPlan 字段
+     *
+     * <p>threshold 解析顺序：</p>
+     * <ol>
+     *   <li>布尔 → 1.0 / 0.0</li>
+     *   <li>数值 → 直接取值</li>
+     *   <li>字符串 → 尝试算术求值（占位符已被外层 TaskExecutor 替换，如 "20-5"）；
+     *       再尝试纯数字字符串（如 "15"）；都不是则视为真正的字符串阈值（如方块类型 "GRASS_BLOCK"）</li>
+     * </ol>
+     * <p>算术支持使得相对阈值（"{step_0.health}-5"）可用：外层替换占位符为具体值后，
+     * 此处求值固化。仅支持单次二元运算（+ - * /）。</p>
      */
     private ConditionPlan parseConditionPlanFields(JsonObject obj) {
         JsonElement thresholdEl = obj.get("threshold");
@@ -158,8 +169,21 @@ public class CustomWatchTask extends AFKTask {
         } else if (thresholdEl.isJsonPrimitive() && thresholdEl.getAsJsonPrimitive().isNumber()) {
             thresholdValue = thresholdEl.getAsDouble();
         } else {
-            // 字符串阈值（如 GRASS_BLOCK），仅用于 equal/not_equal
-            thresholdStr = thresholdEl.getAsString();
+            // 字符串阈值：可能是算术表达式（占位符已被外层替换，如 "20-5"）、纯数字字符串（如 "15"）、或真正的字符串阈值（如 "GRASS_BLOCK"）
+            String s = thresholdEl.getAsString();
+            // 优先尝试算术求值（单次二元运算），让相对阈值（如 {step_0.health}-5）可用
+            Double computed = ArithmeticUtil.tryEvalBinary(s);
+            if (computed != null) {
+                thresholdValue = computed;
+            } else {
+                try {
+                    // 纯数字字符串（如 "15"）按数值处理
+                    thresholdValue = Double.parseDouble(s);
+                } catch (NumberFormatException nfe) {
+                    // 真正的字符串阈值（如方块类型 GRASS_BLOCK），仅用于 equal/not_equal
+                    thresholdStr = s;
+                }
+            }
         }
         // 解析 condition_params（条件技能的执行参数，如 item=经验瓶）
         Map<String, String> conditionParams = Collections.emptyMap();
@@ -295,10 +319,11 @@ public class CustomWatchTask extends AFKTask {
 
                     if (hasCallback) {
                         enteredCallback = true;
-                        String conditionDesc = I18nService.tr("挂机任务条件满足：") + conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction() + " " + conditionPlan.getOperatorDescription() + " " + (conditionPlan.getThresholdStr() != null ? conditionPlan.getThresholdStr() : String.valueOf(conditionPlan.getThreshold())) + I18nService.tr("（当前值：{}）", evalResult.actualValue() != null ? String.valueOf(evalResult.actualValue()) : I18nService.tr("未知"));
+                        String currentDisplay = evalResult.actualValueStr() != null ? evalResult.actualValueStr() : (evalResult.actualValue() != null ? String.valueOf(evalResult.actualValue()) : I18nService.tr("未知"));
+                        String conditionDesc = I18nService.tr("挂机任务条件满足：") + conditionPlan.getConditionSkill() + "." + conditionPlan.getConditionAction() + " " + conditionPlan.getOperatorDescription() + " " + (conditionPlan.getThresholdStr() != null ? conditionPlan.getThresholdStr() : String.valueOf(conditionPlan.getThreshold())) + I18nService.tr("（当前值：{}）", currentDisplay);
                         executeCallback(creatorPlayer, conditionDesc);
                     } else {
-                        notifyConditionMet(evalResult.actualValue());
+                        notifyConditionMet(evalResult);
                         complete(I18nService.tr("条件满足，挂机任务完成。"));
                     }
                 }
@@ -367,14 +392,18 @@ public class CustomWatchTask extends AFKTask {
     /**
      * 通知条件满足（纯通知模式）
      *
-     * @param actualValue 条件评估时的实际值
+     * @param evalResult 条件评估结果（含真实当前值：数值条件用 actualValue，字符串条件用 actualValueStr）
      */
-    private void notifyConditionMet(Double actualValue) {
+    private void notifyConditionMet(ConditionEvaluator.EvaluationResult evalResult) {
         // 构建丰富的条件描述（面向 LLM 二次分析，需包含足够上下文让 LLM 生成友好的通知）
-        String currentValueStr = actualValue != null ? String.valueOf(actualValue) : I18nService.tr("未知");
-        // 字符串阈值场景：显示实际字符串值而非 numeric
-        if (conditionPlan.getThresholdStr() != null) {
-            currentValueStr = conditionPlan.getThresholdStr(); // 字符串匹配时，当前值就是阈值本身
+        // 当前值：优先字符串值（如方块类型 DIRT），其次数值
+        String currentValueStr;
+        if (evalResult.actualValueStr() != null) {
+            currentValueStr = evalResult.actualValueStr();
+        } else if (evalResult.actualValue() != null) {
+            currentValueStr = String.valueOf(evalResult.actualValue());
+        } else {
+            currentValueStr = I18nService.tr("未知");
         }
         String thresholdDisplay = conditionPlan.getThresholdStr() != null ? conditionPlan.getThresholdStr() : String.valueOf(conditionPlan.getThreshold());
         StringBuilder eventDesc = new StringBuilder();

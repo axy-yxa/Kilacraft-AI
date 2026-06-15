@@ -11,7 +11,7 @@ thinking_model:
   # 可用厂商示例（均兼容 OpenAI Chat Completions API）：
   # Available provider examples (all compatible with OpenAI Chat Completions API):
   # - DeepSeek: https://api.deepseek.com/v1/chat/completions
-  #   Models: deepseek-reasoner
+  #   Models: deepseek-v4-pro（推荐）, deepseek-v4-flash
   # - OpenAI: https://api.openai.com/v1/chat/completions
   #   Models: o3, o4-mini, o3-mini, o1, o1-mini
   # - SiliconFlow（硅基流动）: https://api.siliconflow.cn/v1/chat/completions
@@ -31,14 +31,16 @@ thinking_model:
   api_url: "https://api.deepseek.com/v1/chat/completions"
   
   # API 密钥（从对应厂商获取）
-  # 默认值为占位符，未配置时健康诊断功能不可用，相关资源不会注册
+  # 留空或保持占位符时，诊断功能会自动回退使用 llm.yml 中的基础对话模型（思考模式按模型自动适配，配额仍用此处的诊断专用值）
+  # 配置后优先使用此处的推理模型
   # API key (obtained from the corresponding provider)
-  # Default is placeholder; health diagnostics disabled when not configured, related resources won't register
+  # When left empty or as placeholder, diagnostics falls back to the base chat model in llm.yml (thinking mode auto-adapts to the model; quota still uses the diagnostic values here)
+  # Once configured, this thinking model takes priority
   api_key: "your-api-key"
   
   # 模型名称（根据厂商配置）
   # Model name (configure according to provider)
-  model: "deepseek-reasoner"
+  model: "deepseek-v4-pro"
   
   # 最大返回 token 数
   # 控制 AI 回复的最大长度（约 1 token ≈ 0.75 个中文）

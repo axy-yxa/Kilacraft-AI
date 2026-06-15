@@ -237,6 +237,9 @@ public class SkillIntentRecognizer {
 
         PluginLoggerUtil.debug("意图识别", "Phase 1 Skill 分类开始");
 
+        // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
+//        PluginLoggerUtil.warn("意图识别", "Phase 1提示词: {}", phase1SystemPrompt);
+
         return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase1SystemPrompt, false, false, true).thenCompose(phase1Response -> {
             Set<String> selectedSkills = parsePhase1Response(phase1Response);
 
@@ -256,6 +259,9 @@ public class SkillIntentRecognizer {
             String phase2SystemPrompt = promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills);
 
             PluginLoggerUtil.debug("意图识别", "Phase 2 开始，选中技能: {}", selectedSkills);
+
+            // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
+//            PluginLoggerUtil.warn("意图识别", "Phase 2提示词: {}", phase2SystemPrompt);
 
             return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase2SystemPrompt, true, false, true).thenApply(phase2Response -> {
                 PluginLoggerUtil.debug("意图识别", "Phase 2 完成");
@@ -287,9 +293,7 @@ public class SkillIntentRecognizer {
         prompt.append(I18nService.tr("用户说：")).append(userInput).append("\n\n");
 
         // 添加指令
-        prompt.append(I18nService.tr("请分析用户想要使用什么技能，并返回 JSON 格式的识别结果。"));
-        prompt.append("\n");
-        prompt.append(I18nService.tr("**重要：只返回纯 JSON 对象，不要包含任何 Markdown 标记、注释或额外说明文本。**"));
+        prompt.append(I18nService.tr("请根据系统提示词中的规则分析用户意图，输出对应的 JSON 识别结果。"));
         return prompt.toString();
     }
 

@@ -292,13 +292,15 @@ public class ConversationPersistenceService {
      * @param playerHistory 内存中的历史队列（可能包含问候消息）
      */
     public static void mergeLoadedHistory(Deque<ConversationManager.Message> loadedHistory, Deque<ConversationManager.Message> playerHistory) {
-        if (loadedHistory != null && !loadedHistory.isEmpty() && playerHistory != null) {
-            ConversationManager.Message last = playerHistory.peekLast();
-            playerHistory.clear();
-            playerHistory.addAll(loadedHistory);
-            if (last != null) {
-                playerHistory.addLast(last);
-            }
+        // 自引用保护：如果 loadedHistory 就是 playerHistory 本身（内存历史已有效时会出现），无需合并
+        if (loadedHistory == null || loadedHistory.isEmpty() || playerHistory == null || loadedHistory == playerHistory) {
+            return;
+        }
+        ConversationManager.Message last = playerHistory.peekLast();
+        playerHistory.clear();
+        playerHistory.addAll(loadedHistory);
+        if (last != null) {
+            playerHistory.addLast(last);
         }
     }
 
@@ -318,7 +320,7 @@ public class ConversationPersistenceService {
      * 从数据库加载历史记录
      */
     private Deque<ConversationManager.Message> loadFromDB(UUID playerUuid, String personality, String sourceFilter) throws SQLException {
-        int limit = maxHistory > 0 ? maxHistory * 2 : 50;
+        int limit = maxHistory > 0 ? maxHistory : 20;
         try (Connection conn = databaseManager.getConnection()) {
             return conversationDao.loadHistory(conn, playerUuid.toString(), personality != null ? personality : "", sourceFilter, limit);
         }

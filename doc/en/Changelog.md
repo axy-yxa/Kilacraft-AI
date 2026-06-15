@@ -1,53 +1,54 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-06-12  
+> **Last Updated**: 2026-06-15  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
 
 ---
 
-## v2.1.1 - Two-Phase Intent Recognition Architecture Upgrade, JSON Auto-Repair Enhancement, AFK Task Prompt Governance
+## v2.1.1 - Two-Phase Intent Recognition Architecture, Prompt System Restructuring, LLM Thinking Mode Governance
 
 ### ✨ New Features
-- **Two-Phase Intent Recognition Architecture**: Phase 1 (ultra-lightweight classification, Skill name + description only) → Phase 2 (full details for selected Skills only), significantly reducing Token consumption. Pure small talk goes directly to normal AI conversation. New `phase1.*` config entries in `intent_prompts.yml`, supports hot-reload
-- **JSON Auto-Repair Utility (JsonSafeGetUtil.repairJsonBraces)**: Public utility class with three-phase repair (filter excess closing brackets → complete missing closing brackets → remove trailing commas), abandons repair on cross-nesting. Unified replacement of duplicate implementations in `AbstractEventWatchTask` and `ProfileAnalysisService`. 54 unit tests covering 10 major anomaly categories
-- **Skill Name Exact Validation**: Phase 2 validates `skill_name` against whitelist, invalid names are rejected with WARN log
-- **Intent Recognition Phase 2 Null Skill Name Diagnostics**: Separate logs for "not returned" vs "returned invalid" scenarios
-- **Startup Version Update Detection**: Async GitHub latest release check, colored console box notification when a new version is available, silent on failure
+- **Two-Phase Intent Recognition Architecture (Core of this release)**: Splits the original "single full skill list to LLM" into two phases, significantly reducing Token consumption
+  - **Phase 1 (Coarse Selection)**: Sends only one line of `name + description` per skill; LLM determines which skill categories are needed; pure small talk returns `null` directly, skipping Phase 2 for normal AI conversation
+  - **Phase 2 (Precise Selection)**: Sends full details (actions + hints) only for skills selected in Phase 1, completing action selection and parameter extraction; validates `skill_name` against whitelist, invalid names rejected
+  - **Quantified benefits**:
+    - **Pre-refactor baseline** (single-phase, per recognition): main rules ~26K + all skills full ~80K (incl. BukkitAPI 77 actions ~38K) ≈ **106K chars**
+    - **Pure small talk**: only Phase 1 (returns `null`, no Phase 2) ≈ **8K chars**, **↓ ~92%** vs baseline
+    - **Normal skill** (1 built-in skill hit, median full size ~3.1K): Phase 1 + Phase 2 ≈ **38K chars**, **↓ ~65%**
+    - **Complex skill** (hit incl. BukkitAPI 77 actions): Phase 1 + Phase 2 ≈ **73K chars**, **↓ ~32%**
+    - Token conversion (Chinese-mixed content ~0.6 token/char): baseline ≈ 64K → three scenarios ≈ 4.8K / 22.6K / 43.5K
+  - Response speed: two-phase adds one ultra-lightweight Phase 1 call, but each recognition no longer carries the full skill list; net latency depends on model and network
+- **Intent Recognition Prompt System Restructuring** (Chinese/English synced): Added "Three Inviolable Rules" top-priority rule (default to multi-step when uncertain); single-intent/multi-step decision refactored to three-condition check (required param provided by user + completable in one action + no dependency on other actions' return values); arithmetic placeholders unified for `amount`/`quantity`/`price`/`threshold`; parameter missing enforced "query-then-act" (null required params prohibited); Phase 1 coarse-selection positioning strengthened (favor recall over precision)
+- **LLM Thinking Mode Governance**: Normal conversation path auto-disables thinking for models with thinking on by default (MiMo, DeepSeek V4+, GLM 4.5+, Kimi K2+, Qwen3, Grok 4, Doubao thinking, MiniMax-M3, etc.); admin reasoning path injects enable params per model family; adapted OpenAI o-series / Doubao thinking `max_completion_tokens`. Resolves thinking tokens sharing `max_tokens` budget with output tokens causing empty output in MC scenarios (small quota)
+- **Placeholder Arithmetic Evaluation Utility (ArithmeticUtil)**: Evaluation logic extracted to a public utility class; application scope expanded from multi-step task scalar params (amount/quantity/price) to CUSTOM task `threshold`, supporting relative thresholds like "5 below current health" (`{step_0.health}-5`). Single binary operation only (+ - * /), pure regex, no injection risk
+- **JSON Auto-Repair Utility (JsonSafeGetUtil)**: Three-phase repair (filter excess closing → complete missing closing → remove trailing commas), abandons on cross-nesting, unified replacement of multiple duplicate implementations
+- **Startup Version Update Detection**: Async GitHub latest release check, colored console box notification on new version, silent on failure
 
 ### 🔧 Improvements
-- **AFK Task Prompt Governance**: notify_target enforced as string (JSON objects prohibited); task_type new event-driven vs condition-polling selection rules with common misjudgment scenarios; callback execution context fully isolated (outer step references prohibited); JSON bracket closing per-layer constraints; concurrent command rule optimization
-- **JSON Output Scenarios Disable max_tokens**: Intent recognition and profile analysis no longer set `max_tokens`, preventing complex JSON truncation
-- **GenericBukkitAPI Skill Description Enhancement**: Changed from generic description to specific query capabilities and keywords, improving Phase 1 classification accuracy
-- **LLM Empty Response Diagnostics**: Logs SSE chunk count and last 3 raw data chunks when streaming response is empty
-- **GenericLLMProvider Refactor**: Extracted request body building into `buildRequestBody()` method, reducing main method complexity
-- **SkillManager / GreetingPromptBuilder Instance Reuse**: `Gson` and `DateTimeFormatter` promoted to `static final`; `SimpleDateFormat` replaced with thread-safe implementation
-- **SkillIntent Confidence Range Clamp**: Constructor clamps to [0.0, 1.0]
-- **ConversationManager Thread Safety & OOM Protection**: `ArrayDeque` → `ConcurrentLinkedDeque`; `trimHistory()` auto-invocation (MAX_HISTORY_SIZE=100); `@Setter` replaces hand-written setter; `getPluginCommandHistory()` → `getPluginHistory(key)`
-- **AFKTaskManager Concurrency Simplification**: Removed unused `plugin` field and `taskIndex` index; `putIfAbsent` atomic registration + post size check to prevent overflow; removed synchronized blocks and `getPriority()` stub
-- **ProfileManager flushAllProfiles Shared Connection**: Single connection batch update + SQLException early exit to prevent cascade failure
-- **MessageDispatcher / ChatListener Log Fixes**: Unknown channel WARN alert; debug log changed to read-only `getHistory()` to avoid side-effects
-- **Internationalization & Code Cleanup**: Added translation keys and module mapping; removed 9 redundant `I18nService.tr()` double-wrappers in SkillIntentRecognizer; cleaned up commented-out code in ConditionEvaluator and ineffective call in EventCollector
-- **Unified History Access**: Removed duplicate `getOrCreateHistory()` private methods in KilacraftCommand and AIRequestHandler, unified to `ConversationManager.getOrCreateHistory()`
-- **LLMProvider Interface Simplification & ThinkingModelCapable Upgrade**: Removed 3 deprecated overloads, kept only the 8-parameter full version with 6 call sites updated; ThinkingModelCapable upgraded from marker to functional interface, callers use interface capability check instead of downcasting to GenericLLMProvider
-- **SkillIntentRecognizer Exception Layering**: Split `catch(Exception)` in `parsePhase1Response`/`parseIntentFromResponse` into JSON parse exceptions (DEBUG) and unexpected exceptions (WARN), improving observability
-- **GreetingPromptBuilder Event Summary Unification**: Merged `summarizeEventType` and `summarizeFriendEvent` into unified `summarizeEvent(playerName, ...)`, eliminating ~140 lines of duplicate code; i18n templates unified to parameterized format, self events pass `I18nService.tr("you")`
-- **Code Cleanup**: LLMConfigManager language fallback extracted into generic helper; DatabaseConfig connection fields use declarative `@EqualsAndHashCode.Include`; fixed TaskExecutor `visit()` Javadoc; removed 38 dead keys and added 8 parameterized translations in messages_en.yml
+- **Diagnostic Model Fallback Mechanism**: When `admin.yml` has no reasoning model configured, auto-falls back to `llm.yml` base chat model (reuses url/key/model only, max_tokens/timeout still use diagnostic-specific values to avoid report truncation), lowering the barrier for health monitoring
+- **Health Monitoring Unavailable Layered Diagnostics**: Checks prerequisites one by one (model / guardian switch / Spark installed), gives precise hints; diagnostic report header adds a "Diagnostic Model" row marking the actual generation model
+- **DB History Load Count Tuning**: `loadFromDB` limit changed from `maxHistory×2` to `maxHistory` (default 20), reducing redundant loading
+- **AFK Task String Condition Value Display Optimization**: `EvaluationResult` adds `actualValueStr`; string conditions (e.g., block types) display real values instead of 0/1 placeholders
+- **LLM Empty Response Friendly Hint**: Returns "AI temporarily unavailable" to the player when streaming response is empty instead of an empty message (also logs SSE chunk count and recent raw data for troubleshooting)
+- **JSON Scenarios Disable `max_tokens`**: Intent recognition, profile analysis, etc. no longer set `max_tokens`, preventing complex JSON truncation; GenericBukkitAPI description enhanced to improve Phase 1 classification accuracy
+- **Concurrency & Thread Safety**: `ConversationManager` history queue upgraded to `ConcurrentLinkedDeque` + auto trim (MAX_HISTORY_SIZE=100); `AFKTaskManager` atomic registration prevents overflow; `ProfileManager.flushAllProfiles` single-connection batch update prevents cascade failure
+- **Code Cleanup & Observability**: LLMProvider interface simplified, ThinkingModelCapable upgraded to functional interface; SkillIntentRecognizer exception layering (JSON parse DEBUG / unexpected WARN); GreetingPromptBuilder event summary merge eliminates ~140 lines of duplication; unified history access; cleaned up redundant i18n wrappers and translation dead keys
 
 ### 🐛 Bug Fixes
-- Fixed profile analysis JSON parsing occasional failure (auto-repair then re-parse)
-- Fixed CUSTOM task `condition_plan` parsing NPE due to missing null check
-- Fixed `flushAllProfiles` cascade failure on server shutdown when database connection error prevents subsequent profile flushes
-- Fixed `ConversationManager` non-thread-safe `ArrayDeque` causing potential data loss under concurrency
+- Fixed `ConversationPersistenceService.mergeLoadedHistory` clearing itself when `loadedHistory` and `playerHistory` are the same object via `clear()`, causing history loss (triggered when a player sends a message for the second time or later with valid in-memory history, via `/ai` command or chat listener path)
+- Fixed thinking/reasoning models producing empty output in normal conversation (covered by thinking mode governance)
+- Fixed profile analysis JSON parsing occasional failure (auto-repair then re-parse), CUSTOM task `condition_plan` null NPE, shutdown `flushAllProfiles` connection exception cascade failure, `ConversationManager` non-thread-safe `ArrayDeque` concurrent data loss
 
 ### ⚠️ Compatibility
 
 #### Upgrading from v2.1.0
 1. Stop server, replace JAR, start
-2. **Recommended** (for full prompt optimization effects): delete the following config files and restart to let the plugin regenerate:
-   - `intent_prompts.yml` / `intent_prompts_en.yml` (new Phase 1 config section)
-   - `skills/afktask/AFKTaskSkill.yml` / `AFKTaskSkill_en.yml` (callback format + task_type rules)
-   - `skills/bukkit/apis.yml` / `apis_en.yml` (Skill description enhancement)
-3. All new config entries have code-level default fallbacks — **works without deleting any config files**
+2. **MUST remove `intent_prompts.yml` / `intent_prompts_en.yml`**: the two-phase architecture + prompt system restructuring changed this file's structure significantly (new `phase1` section, full rewrite into 9 sections, new "Three Inviolable Rules", etc.). Old file contents override the code's built-in new defaults, so the two-phase architecture and this prompt refactor **will not take effect** — **you must delete and restart to let the plugin regenerate it**
+3. **Recommended** (for full skill / model config optimization effects): the following config files are recommended to be deleted and regenerated (works without deletion, just missing some optimizations):
+   - `skills/afktask/AFKTaskSkill.yml` / `AFKTaskSkill_en.yml`, `skills/globalmarketplus/MarketActionSkill.yml` / `MarketActionSkill_en.yml`, `skills/bukkit/apis.yml` / `apis_en.yml`
+   - `llm.yml` / `admin.yml` (thinking mode governance notes + diagnostic model fallback notes + default model updates)
+4. Except for the `intent_prompts.yml` in step 2, all other config entries have code-level default fallbacks — **works without deleting them**
+5. **Lower diagnostic feature barrier**: when no `admin.yml` reasoning model is configured, health monitoring auto-falls back to `llm.yml`, usable without extra config (diagnostic quota still controlled by `admin.yml`, no conflict with normal conversation)
 
 ---
 
