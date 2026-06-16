@@ -36,6 +36,7 @@
 - **Configuration Hot-Reload Hardening**: `PersonalitiesConfigManager` switched to snapshot replacement pattern, `LLMConfigManager` fields fully `volatile`
 - **Embedding Retrieval Optimization**: chunk vector norm precomputed and cached, cosine similarity computation reduced by 2/3
 - **`reconcileOnlineProfiles` Single-Connection Batch**: aligned with `flushAllProfiles` pattern
+- **Profile Analysis Prompt Temporal Optimization (Chinese/English synced)**: No longer extracts volatile transient data like balance, coordinates, and inventory counts; retains only long-term stable traits to avoid stale wrong info lingering in the profile; existing profiles are auto-cleaned on the next analysis
 
 ### 🐛 Bug Fixes
 - Fixed `BM25Scorer.countOccurrences` infinite loop on empty keyword causing `mvn test` to hang forever
@@ -54,7 +55,7 @@
    - `skills/afktask/AFKTaskSkill.yml` / `AFKTaskSkill_en.yml`, `skills/globalmarketplus/MarketActionSkill.yml` / `MarketActionSkill_en.yml`, `skills/bukkit/apis.yml` / `apis_en.yml`
    - `llm.yml` / `admin.yml` (thinking mode governance notes + diagnostic model fallback notes + default model updates)
    - `config.yml` (new `security.player_isolation.offline_cache` section, recent active player cache)
-   - `database.yml` (new `h2.tcp` section, H2 TCP Server access control)
+   - `database.yml` (new `h2.tcp` section, H2 TCP Server access control; profile analysis prompt temporal optimization, old config overrides the built-in new version, update or delete to regenerate)
 4. Except for the `intent_prompts.yml` in step 2, all other config entries have code-level default fallbacks — **works without deleting them**
 5. **Lower diagnostic feature barrier**: when no `admin.yml` reasoning model is configured, health monitoring auto-falls back to `llm.yml`, usable without extra config (diagnostic quota still controlled by `admin.yml`, no conflict with normal conversation)
 

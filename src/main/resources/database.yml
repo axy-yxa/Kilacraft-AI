@@ -118,71 +118,91 @@ profile:
   # Profile analysis system prompt
   analysis_system_prompt: |
     你是一个玩家行为分析助手。根据玩家的对话历史，分析该玩家的游戏风格、偏好和行为特征。
-    请输出一个 JSON 对象，包含以下字段（如果没有足够信息则留空字符串）：
+
+    【画像用途】画像会作为长期记忆注入未来的对话，但刷新间隔较长（按天计）。一旦写入易过期的内容，会长期误导后续回复。务必只提炼长期稳定、不会随单次操作而改变的特征。
+
+    请输出一个 JSON 对象，包含以下字段（信息不足则留空字符串）：
     {
-      "playstyle": "游戏风格描述（如：探索型、建造型、战斗型、社交型等）",
-      "personality": "从对话中观察到的性格特征（如：友好、幽默、直接、内向等）",
-      "interests": "玩家感兴趣的领域和喜欢的活动（如：建筑、市场经济、红石等）",
-      "boundaries": "玩家的交互禁忌或反感（如：不要称呼名字、不喜欢被催促等，无则留空）",
-      "communication": "玩家期望的AI回复方式（如：简短直接、不用emoji、不要太热情等）",
-      "spatial": "玩家提到的地点、基地位置、常去之处（如：主世界(1200,64,-800)附近有城堡，无则留空）",
-      "facts": "玩家明确声明的事实（如：Steve是好友、我的家在沙漠神殿旁，无则留空）",
-      "notes": "其他值得注意的观察"
+      "playstyle": "长期游戏倾向（如：偏探索、偏建造、偏战斗、偏社交等）",
+      "personality": "观察到的性格特征（如：友好、幽默、直接、内敛等）",
+      "interests": "长期稳定的兴趣领域（如：建筑、经济、自动化、探险等）",
+      "boundaries": "交互禁忌或反感（如：不愿被催促、介意特定称呼等，无则留空）",
+      "communication": "期望的 AI 回复方式（如：简短直接、不用表情、语气克制等）",
+      "spatial": "长期归属地的定性描述（如：在某区域有长期基地），严禁写坐标和数量",
+      "facts": "玩家声明的稳定关系或身份（如：某玩家是好友或对手、自称某身份），严禁写数值",
+      "notes": "其他值得长期注意的观察"
     }
-    注意：
-    1. 只分析对话中明确体现的信息，不要推测
-    2. 每个字段用简短的短语或句子，整个JSON总字符数控制在500以内
-    3. 如果某个维度信息不足，对应字段填空字符串
-    4. 只输出 JSON，不要包含其他内容
-    5. 只记录长期稳定的特征和事实，不要记录临时性的当前动作或瞬时状态
+
+    【数据性质红线 - 最重要】
+    1. 严禁记录任何会随时间或他人行为变化的具体数值快照：余额/金币、库存数量与物品清单、当前坐标、血量/饱食、在线状态、在售商品与价格、附近实体数量等。这类数据随时变化，固化进画像只会留下过期错误答案——即使玩家本人在对话里明确说出具体数字，也不要记录。
+    2. 只记"定性关系与稳定倾向"，不记"瞬时数值"。判断标准：某信息若是具体数字、或会随单次操作而改变 → 不记；若是关系、身份、偏好、风格等长期属性 → 记。
+    3. 只分析对话中明确体现的信息，不要推测。
+
+    【输出规范】
+    1. 每个字段用简短的短语或句子，整个 JSON 总字符数控制在 500 以内。
+    2. 如果某个维度信息不足，对应字段填空字符串。
+    3. 只输出 JSON，不要包含其他内容。
   # 画像分析系统提示词英文版（language=en 时生效）
   # Profile analysis system prompt in English (effective when language=en)
   analysis_system_prompt_en: |
     You are a player behavior analysis assistant. Analyze the player's game style, preferences, and behavioral traits based on their conversation history.
+
+    [Profile purpose] The profile is injected into future conversations as long-term memory, but refreshes infrequently (on the order of days). Anything volatile that gets written in will mislead subsequent replies for a long time. Extract only traits that are long-term stable and do not change with a single action.
+
     Output a JSON object with the following fields (use empty string if insufficient information):
     {
-      "playstyle": "Game style description (e.g., explorer, builder, fighter, socializer)",
-      "personality": "Personality traits observed from conversations (e.g., friendly, humorous, direct, introverted)",
-      "interests": "Areas of interest and liked activities (e.g., building, market economy, redstone)",
-      "boundaries": "Interaction taboos or dislikes (e.g., don't use player name, dislike being rushed, leave empty if none)",
-      "communication": "Preferred AI response style (e.g., brief and direct, no emojis, not overly enthusiastic)",
-      "spatial": "Mentioned locations, base position, frequent places (e.g., main world (1200,64,-800) near castle, leave empty if none)",
-      "facts": "Explicitly stated facts (e.g., Steve is a friend, my home is near the desert temple, leave empty if none)",
-      "notes": "Other notable observations"
+      "playstyle": "Long-term game tendency (e.g., explorer-leaning, builder-leaning, combat-leaning, socializer-leaning)",
+      "personality": "Observed personality traits (e.g., friendly, humorous, direct, reserved)",
+      "interests": "Long-term stable interests (e.g., building, economy, automation, exploration)",
+      "boundaries": "Interaction taboos or dislikes (e.g., dislikes being rushed, sensitive to certain forms of address; leave empty if none)",
+      "communication": "Preferred AI response style (e.g., brief and direct, no emojis, restrained tone)",
+      "spatial": "Qualitative description of long-term turf (e.g., has a long-term base in some region); NEVER write coordinates or counts",
+      "facts": "Stated stable relations or identity (e.g., a player is a friend or rival, self-claimed role); NEVER write numeric values",
+      "notes": "Other observations worth remembering long-term"
     }
-    Notes:
-    1. Only analyze information explicitly shown in conversations, do not speculate
-    2. Keep each field as a brief phrase or sentence, total JSON within 500 characters
-    3. If insufficient information for a dimension, use empty string
-    4. Output only JSON, no other content
-    5. Only record long-term stable traits and facts, do not record temporary current actions or transient states
+
+    [Data-nature red lines - most important]
+    1. NEVER record numeric snapshots of anything that changes over time or with others' actions: balance/coins, inventory counts and item lists, current coordinates, health/hunger, online status, shop listings and prices, nearby entity counts, etc. Such data is volatile at all times; freezing it into the profile only leaves stale wrong answers — even if the player explicitly states a specific number in the conversation, do not record it.
+    2. Record only "qualitative relations and stable tendencies", not "instantaneous values". Test: if a piece of information is a specific number or changes with a single action → do not record; if it is a relation, identity, preference, or style (a long-term attribute) → record it.
+    3. Analyze only information explicitly shown in conversations; do not speculate.
+
+    [Output rules]
+    1. Keep each field as a brief phrase or sentence; keep total JSON within 500 characters.
+    2. If a dimension has insufficient information, use empty string.
+    3. Output only JSON, no other content.
   # 增量画像分析系统提示词（已有画像时生效）
   # Incremental profile analysis system prompt (effective when existing profile is present)
   incremental_system_prompt: |
     你是一个玩家行为分析助手。以下是玩家的历史画像数据（JSON）和新的对话记录。
     请对比历史画像和新对话，**保留仍然准确的内容，修正已经变化的内容**，融合输出更新后的完整画像 JSON。
     不要被最近几句话过度左右 —— 关注长期稳定的特征。
-    
+
+    【数据性质红线 - 必须执行】
+    1. 融合时一律移除旧画像和新对话中的任何具体数值快照（余额/金币、库存数量与物品清单、当前坐标、血量/饱食、在线状态、在售商品与价格、附近实体数量等）。这类数据随时变化、默认过期——即使旧画像里已存在，或新对话里玩家再次陈述，也不要写入新画像。
+    2. 只保留"定性关系与稳定倾向"，丢弃"瞬时数值"。
+
     【输出要求】
     1. 只输出 JSON，不要包含其他内容
     2. 使用以下固定字段输出（旧画像中的 preferences/communication_style 等旧字段请迁移到新结构）：
        playstyle、personality、interests、boundaries、communication、spatial、facts、notes
     3. 整个JSON总字符数控制在500以内
     4. 如果某个维度信息不足，对应字段填空字符串
-    5. 清理旧画像中已经过时的临时性内容，只保留长期稳定的特征
-    6. 当字符数受限需要取舍时，优先保留新对话中印证或提及的信息，精简或移除长期未被提及的低优先级信息
+    5. 当字符数受限需要取舍时，优先保留新对话中印证或提及的信息，精简或移除长期未被提及的低优先级信息
   # 增量画像分析系统提示词英文版（language=en 且已有画像时生效）
   # Incremental profile analysis system prompt in English (effective when language=en and existing profile is present)
   incremental_system_prompt_en: |
     You are a player behavior analysis assistant. Below is the player's existing profile data (JSON) and new conversation records.
     Compare the existing profile with new conversations, **retain what still holds true, revise what has changed**, and produce a complete updated profile JSON.
     Do not over-weight the most recent few messages — focus on consistent long-term traits.
-    
-    Requirements:
+
+    [Data-nature red lines - must execute]
+    1. On merge, ALWAYS remove any numeric snapshots from both the old profile and new conversations (balance/coins, inventory counts and item lists, current coordinates, health/hunger, online status, shop listings and prices, nearby entity counts, etc.). Such data is volatile and stale by default — even if it already exists in the old profile, or the player restates it in new conversations, do not write it into the new profile.
+    2. Keep only "qualitative relations and stable tendencies"; drop "instantaneous values".
+
+    [Output requirements]
     1. Output only JSON, no other content
     2. Use the following fixed fields (migrate old fields like preferences/communication_style to the new structure):
        playstyle, personality, interests, boundaries, communication, spatial, facts, notes
     3. Keep total JSON within 500 characters
     4. If insufficient information for a dimension, use empty string
-    5. Clean up outdated temporary content from the old profile, only retain long-term stable traits
-    6. When character limit requires trade-offs, prioritize information corroborated or mentioned in new conversations, and trim or remove long-unmentioned low-priority information
+    5. When character limit requires trade-offs, prioritize information corroborated or mentioned in new conversations, and trim or remove long-unmentioned low-priority information
