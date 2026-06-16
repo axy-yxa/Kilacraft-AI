@@ -38,6 +38,9 @@ public class BM25Scorer {
 
         double score = 0.0;
         for (String keyword : keywords) {
+            if (keyword == null || keyword.isEmpty()) {
+                continue; // 空关键词不贡献分数，避免 countOccurrences 在空串上无限循环
+            }
             int termFreq = countOccurrences(lowerDoc, keyword.toLowerCase());
             if (termFreq > 0) {
                 double tfScore = (termFreq * (k1 + 1)) / (termFreq + k1 * lengthNorm);
@@ -52,6 +55,10 @@ public class BM25Scorer {
      * 统计关键词在文本中出现的次数（子串匹配）
      */
     public static int countOccurrences(String text, String keyword) {
+        // 空串防御：text.indexOf("", idx) 恒返回 idx，idx+=0 永不前进会导致死循环
+        if (keyword == null || keyword.isEmpty()) {
+            return 0;
+        }
         int count = 0;
         int index = 0;
         while ((index = text.indexOf(keyword, index)) != -1) {

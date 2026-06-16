@@ -98,6 +98,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
+                    <!-- forked JVM 超时兜底：任何测试卡死时自动失败并打出线程转储，
+                         而非永久挂起等待手动 kill -->
+                    <forkedProcessTimeoutInSeconds>180</forkedProcessTimeoutInSeconds>
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>

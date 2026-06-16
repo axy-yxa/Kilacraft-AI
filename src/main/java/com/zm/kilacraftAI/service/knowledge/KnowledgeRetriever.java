@@ -498,17 +498,18 @@ public class KnowledgeRetriever {
                 chunks.add(chunk);
             }
 
-            // 确保 start 每次都前进，避免无限循环
+            // 已处理到文档末尾 → 结束，无需重叠回退（否则会凭空切出多余的末尾小段）
+            if (end >= content.length()) {
+                break;
+            }
+
+            // 还有剩余内容时才应用重叠回退；确保 start 每次都前进，避免无限循环
             int nextStart = end - CHUNK_OVERLAP;
             if (nextStart <= start) {
                 // 如果重叠导致不前进，直接跳到 end
                 nextStart = end;
             }
             start = nextStart;
-
-            if (start >= content.length()) {
-                break;
-            }
         }
 
         return chunks;
