@@ -150,6 +150,8 @@ messages:
   "每日衰减社交关系强度": "Daily decay of social relation strength"
   "社交提取": "Social Extract"
   "从Skill日志提取社交关系": "Extract social relations from Skill logs"
+  "安全缓存清理": "Security Cache Cleanup"
+  "清理过期的近期活跃玩家缓存": "Clean expired recent active player cache"
 
   # ==================== KnowledgeBaseManager ====================
   "知识库目录不存在：{}": "Knowledge base directory not found: {}"
@@ -250,8 +252,8 @@ messages:
   "意图识别错误: {}": "Intent recognition error: {}"
   "动态构建系统提示词: {}": "Dynamically built system prompt: {}"
   "意图识别 JSON 解析失败：{}": "Intent recognition JSON parse failed: {}"
-  "意图识别意外异常：{}": "Intent recognition unexpected exception: {}"
-  "解析任务计划失败：{}": "Task plan parsing failed: {}"
+  "意图识别意外异常": "Intent recognition unexpected exception"
+  "解析任务计划失败": "Task plan parsing failed"
   "创建无效意图：{}": "Created invalid intent: {}"
   "无法解析响应为 JSON": "Failed to parse response as JSON"
   "解析失败：{}": "Parsing failed: {}"
@@ -623,7 +625,10 @@ messages:
   "已保存 AI 回复到最新回复缓存：{}_{}": "Saved AI response to latest cache: {}_{}"
   "已保存新对话，当前历史记录数量：{}": "Saved new conversation, current history count: {}"
   "白名单放行：{} → {}": "Whitelist passed: {} → {}"
-  "玩家数据隔离：entities[{}]={} 是其他在线玩家，已替换为当前玩家 {}": "Player data isolation: entities[{}]={} is another online player, replaced with current player {}"
+  "玩家数据隔离：entities[{}]={} 是其他玩家，已替换为当前玩家 {}": "Player data isolation: entities[{}]={} is another player, replaced with current player {}"
+  "复合参数玩家数据隔离：token {} → {}": "Composite param isolation: token {} → {}"
+  "预热近期活跃玩家缓存：{} 个": "Preloaded recent active player cache: {} entries"
+  "预热近期活跃玩家缓存失败: {}": "Failed to preload recent active player cache: {}"
   "获取玩家余额失败: {}": "Failed to get player balance: {}"
   "搜索市场商品失败: {}": "Failed to search market items: {}"
   "获取商品详情失败: {}": "Failed to get item details: {}"
@@ -884,7 +889,7 @@ messages:
   "Phase 1 Skill 分类开始": "Phase 1 skill classification started"
   "Phase 1 判定为非技能请求": "Phase 1 determined as non-skill request"
   "Phase 1 JSON 解析失败: {}": "Phase 1 JSON parse failed: {}"
-  "Phase 1 意外异常: {}": "Phase 1 unexpected exception: {}"
+  "Phase 1 意外异常": "Phase 1 unexpected exception"
   "Phase 1 返回了不存在的技能名称: {}，已忽略": "Phase 1 returned non-existent skill name: {}, ignored"
   "Phase 2 返回了不存在的技能名称: {}，已拒绝执行": "Phase 2 returned non-existent skill name: {}, execution rejected"
   "技能名称无效": "Invalid skill name"
@@ -911,7 +916,8 @@ messages:
   "AI 暂时无法回复，请稍后再试": "AI is temporarily unable to respond, please try again later"
   "读取响应失败：{}": "Failed to read response: {}"
   "请求失败：{}": "Request failed: {}"
-  "当前 LLM 不支持 response_format，自动降级为普通模式": "The current LLM does not support responsive_format and will automatically downgrade to normal mode"
+  "错误响应体: {}": "Error response body: {}"
+  "当前 LLM 不支持 response_format，自动降级为普通模式": "Current LLM does not support response_format, auto-downgrading to normal mode"
   "... (共{} 字符)": "... ({} chars total)"
 
   # ==================== CMIAPI ====================
@@ -1081,6 +1087,7 @@ messages:
   "H2 TCP Server 已启动，端口: {}": "H2 TCP Server started on port: {}"
   "H2 TCP Server 启动失败（端口 {} 可能被占用）: {}": "H2 TCP Server start failed (port {} may be in use): {}"
   "H2 TCP Server 已关闭": "H2 TCP Server stopped"
+  "H2 TCP Server 已禁用": "H2 TCP Server disabled"
 
   # ==================== MySQLProvider ====================
   "MySQL 连接池初始化失败: {}": "MySQL connection pool initialization failed: {}"

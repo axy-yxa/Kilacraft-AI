@@ -177,16 +177,6 @@ public class ChineseTextProcessor implements TextProcessor {
     private static List<String> extractMeaningfulSingleChars(String text) {
         List<String> result = new ArrayList<>();
 
-        // 获取 HanLP 分词结果（不过滤单字）
-        for (com.hankcs.hanlp.corpus.tag.Nature nature : com.hankcs.hanlp.corpus.tag.Nature.values()) {
-            // 跳过无意义的词性
-            if (nature == com.hankcs.hanlp.corpus.tag.Nature.nx ||  // 字母专名
-                    nature == com.hankcs.hanlp.corpus.tag.Nature.m ||   // 数词
-                    nature == com.hankcs.hanlp.corpus.tag.Nature.q) {  // 量词
-                continue;
-            }
-        }
-
         // 直接检查文本中的每个中文字符是否在自定义词典中
         for (char c : text.toCharArray()) {
             String charStr = String.valueOf(c);

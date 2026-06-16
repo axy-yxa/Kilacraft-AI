@@ -103,10 +103,20 @@ public class SocialGraph {
         PluginLoggerUtil.debug("社交关系", "提交交互记录: {} ↔ {}, type={}, weight={}", playerUuid, targetUuid, relationType, weight);
         FoliaCompat.getIOPool().submit(() -> {
             try (var conn = databaseManager.getConnection()) {
-                // 双向记录
-                socialDao.incrementInteraction(conn, playerUuid, targetUuid, relationType, weight);
-                socialDao.incrementInteraction(conn, targetUuid, playerUuid, relationType, weight);
-                PluginLoggerUtil.debug("社交关系", "交互记录成功: {} ↔ {} ({})", playerUuid, targetUuid, relationType);
+                // 双向记录在同一事务内完成，避免单向写入（A→B 成功、B→A 失败导致数据不一致）
+                conn.setAutoCommit(false);
+                try {
+                    socialDao.incrementInteraction(conn, playerUuid, targetUuid, relationType, weight);
+                    socialDao.incrementInteraction(conn, targetUuid, playerUuid, relationType, weight);
+                    conn.commit();
+                    PluginLoggerUtil.debug("社交关系", "交互记录成功: {} ↔ {} ({})", playerUuid, targetUuid, relationType);
+                } catch (Exception e) {
+                    try {
+                        conn.rollback();
+                    } catch (Exception ignored) {
+                    }
+                    PluginLoggerUtil.error("数据库", "记录社交交互失败: {}", e.getMessage());
+                }
             } catch (Exception e) {
                 PluginLoggerUtil.error("数据库", "记录社交交互失败: {}", e.getMessage());
             }

@@ -255,6 +255,16 @@ public class EmbeddingService {
     }
 
     /**
+     * 获取预计算的 chunk 向量 L2 范数（供余弦相似度复用，避免每次查询重算 normB）。
+     *
+     * <p>调用前提：该 chunk 的向量已通过 {@link #getEmbedding(String)} 缓存或预计算过。
+     * 未缓存时返回 1.0（不会导致除零，但语义上不应走到这步）。</p>
+     */
+    public double getChunkNorm(String chunk) {
+        return cache.getNorm(chunk);
+    }
+
+    /**
      * 清除内存缓存、磁盘缓存，并重置可用性
      */
     public void clearCache() {

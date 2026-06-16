@@ -31,6 +31,24 @@ public class DatabaseConfig {
     @Builder.Default
     private final String h2File = "data/kilacraft";
 
+    /**
+     * 是否启用 H2 TCP Server（供 DBeaver 等外部工具连接查看数据，调试用）。
+     * <p>不纳入 {@code @EqualsAndHashCode.Include}：TCP 配置变更不触发连接池重建，需重启服务器生效。</p>
+     */
+    @Builder.Default
+    private final boolean h2TcpEnabled = true;
+    /**
+     * H2 TCP Server 端口
+     */
+    @Builder.Default
+    private final int h2TcpPort = 9092;
+    /**
+     * 是否允许非本机连接 H2 TCP Server（false=仅 localhost，安全默认）。
+     * <p>H2 TCP Server 默认无认证，开启远程将暴露全部数据，仅可信内网调试时才设为 true。</p>
+     */
+    @Builder.Default
+    private final boolean h2TcpAllowOthers = false;
+
     @EqualsAndHashCode.Include
     @Builder.Default
     private final String mysqlHost = "localhost";

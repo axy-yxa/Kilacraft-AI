@@ -87,6 +87,11 @@ public final class ArithmeticUtil {
         if (result == null) {
             return value;
         }
+        // 统一处理 ±0（含 -0.0）：result == 0.0 对 -0.0 同样成立，
+        // 避免 "-0.00" 经去尾零后残留孤立的 "-"。
+        if (result == 0.0) {
+            return "0";
+        }
         String formatted = String.format("%.2f", result);
         if (formatted.contains(".")) {
             formatted = formatted.replaceAll("\\.?0+$", "");

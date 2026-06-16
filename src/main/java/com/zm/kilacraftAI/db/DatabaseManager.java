@@ -189,11 +189,17 @@ public class DatabaseManager {
      * 根据配置创建对应的 DatabaseProvider
      */
     private void createProvider(DatabaseConfig config) throws SQLException {
-        this.provider = switch (config.getType()) {
+        // 先用局部变量构建并完成 initialize（建池、H2 启动 TCP Server 等），
+        // 最后再发布到 volatile 字段。
+        // 若先赋值 this.provider 再 initialize：reload() 在主线程执行期间，
+        // IO 线程上的刷盘/社交提取等任务正并发调 getConnection()，会拿到连接池
+        // 尚未建好的 Provider（dataSource 为 null）而抛 NPE。
+        DatabaseProvider newProvider = switch (config.getType()) {
             case H2 -> new H2Provider();
             case MYSQL -> new MySQLProvider();
         };
-        provider.initialize(config);
+        newProvider.initialize(config);
+        this.provider = newProvider;
     }
 
     /**

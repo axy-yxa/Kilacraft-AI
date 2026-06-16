@@ -359,36 +359,39 @@ public class ProfileManager {
         if (cache.isEmpty()) return;
 
         // 同步执行：确保 reload 返回时所有在线玩家画像已在新库中就绪，
-        // 避免异步窗口期内玩家退服导致 UPDATE 丢失
+        // 避免异步窗口期内玩家退服导致 UPDATE 丢失。
+        // 使用单个连接批量操作（与 flushAllProfiles 一致），避免 N 次建连开销。
         int count = 0;
-        for (var entry : cache.entrySet()) {
-            // 仅补录真正在线的玩家，跳过已下线但缓存尚未清理的画像
-            if (plugin.getServer().getPlayer(entry.getKey()) == null) {
-                continue;
-            }
-            try (var conn = databaseManager.getConnection()) {
-                PlayerProfile cached = entry.getValue();
-
-                // 确保新库中存在记录（不存在则 INSERT 默认画像）
-                profileDao.loadOrCreate(conn, cached.getUuid(), cached.getName());
-                // 用缓存中的运行时状态（登录次数、坐标、在线时长等）更新新库
-                // 注意：update() 不覆盖 profile_data / profile_analyzed_at
-                profileDao.update(conn, cached);
-
-                // 从新库重新加载画像到内存缓存，获取新库中的 extendedData 和版本号
-                PlayerProfile dbProfile = profileDao.loadByUuid(conn, cached.getUuid());
-                if (dbProfile != null) {
-                    // 保留运行时状态（当前会话的登录时间、在线时长等），使用新库的画像数据
-                    dbProfile.setLastLogin(cached.getLastLogin());
-                    dbProfile.setLoginCount(cached.getLoginCount());
-                    dbProfile.setTotalPlaytimeMs(cached.getTotalPlaytimeMs());
-                    dbProfile.setLastGreetingTime(cached.getLastGreetingTime());
-                    entry.setValue(dbProfile);
+        boolean connectionAlive = true;
+        try (var conn = databaseManager.getConnection()) {
+            for (var entry : cache.entrySet()) {
+                if (!connectionAlive) break;
+                // 仅补录真正在线的玩家，跳过已下线但缓存尚未清理的画像
+                if (plugin.getServer().getPlayer(entry.getKey()) == null) {
+                    continue;
                 }
-                count++;
-            } catch (Exception e) {
-                PluginLoggerUtil.warn("数据库", "热重载后补录画像失败: {} - {}", entry.getValue().getName(), e.getMessage());
+                try {
+                    PlayerProfile cached = entry.getValue();
+                    profileDao.loadOrCreate(conn, cached.getUuid(), cached.getName());
+                    profileDao.update(conn, cached);
+                    PlayerProfile dbProfile = profileDao.loadByUuid(conn, cached.getUuid());
+                    if (dbProfile != null) {
+                        dbProfile.setLastLogin(cached.getLastLogin());
+                        dbProfile.setLoginCount(cached.getLoginCount());
+                        dbProfile.setTotalPlaytimeMs(cached.getTotalPlaytimeMs());
+                        dbProfile.setLastGreetingTime(cached.getLastGreetingTime());
+                        entry.setValue(dbProfile);
+                    }
+                    count++;
+                } catch (Exception e) {
+                    PluginLoggerUtil.warn("数据库", "热重载后补录画像失败: {} - {}", entry.getValue().getName(), e.getMessage());
+                    // 连接死亡则停止后续补录，避免 N 次无效尝试
+                    if (e instanceof java.sql.SQLException) connectionAlive = false;
+                }
             }
+        } catch (Exception e) {
+            PluginLoggerUtil.warn("数据库", "获取数据库连接失败，无法补录画像: {}", e.getMessage());
+            return;
         }
         if (count > 0) {
             PluginLoggerUtil.info("数据库", "热重载后补录 {} 个在线玩家画像", count);

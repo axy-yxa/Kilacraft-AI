@@ -12,7 +12,10 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -80,6 +83,14 @@ public class ConfigManager {
     private boolean securityPlayerIsolationEnabled;
     @Getter
     private List<String> securityAllowedActions;
+    @Getter
+    private int securityOfflineCacheTtlMinutes;
+    @Getter
+    private int securityOfflineCacheMaxSize;
+    @Getter
+    private boolean securityOfflineCachePreload;
+    @Getter
+    private int securityOfflineCachePreloadDays;
 
     // 挂机任务配置
     @Getter
@@ -321,6 +332,10 @@ public class ConfigManager {
         // 安全配置
         this.securityPlayerIsolationEnabled = config.getBoolean("security.player_isolation.enabled", true);
         this.securityAllowedActions = config.getStringList("security.player_isolation.allowed_actions");
+        this.securityOfflineCacheTtlMinutes = config.getInt("security.player_isolation.offline_cache.ttl_minutes", 30);
+        this.securityOfflineCacheMaxSize = config.getInt("security.player_isolation.offline_cache.max_size", 5000);
+        this.securityOfflineCachePreload = config.getBoolean("security.player_isolation.offline_cache.preload_on_start", true);
+        this.securityOfflineCachePreloadDays = config.getInt("security.player_isolation.offline_cache.preload_window_days", 7);
 
         // 挂机任务配置
         this.afkTaskEnabled = config.getBoolean("afk_task.enabled", true);

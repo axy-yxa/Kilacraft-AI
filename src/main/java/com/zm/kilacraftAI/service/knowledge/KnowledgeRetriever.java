@@ -130,6 +130,11 @@ public class KnowledgeRetriever {
             return retrieveByBM25(question, allKnowledge, startTime);
         }
 
+        // 查询向量的 L2 范数：整个检索过程只算一次，不再对每个 chunk 重算
+        double queryNormSumSq = 0.0;
+        for (float v : queryVec) queryNormSumSq += (double) v * v;
+        double queryNorm = Math.sqrt(queryNormSumSq);
+
         // 遍历片段计算余弦相似度
         List<KnowledgeChunk> chunkScores = new ArrayList<>();
         int totalChunks = 0;
@@ -145,7 +150,8 @@ public class KnowledgeRetriever {
                 float[] chunkVec = embeddingService.getEmbedding(chunk);
                 if (chunkVec == null) continue;
 
-                double similarity = cosineSimilarity(queryVec, chunkVec);
+                double chunkNorm = embeddingService.getChunkNorm(chunk);
+                double similarity = cosineSimilarity(queryVec, chunkVec, queryNorm, chunkNorm);
                 if (similarity > 0) {
                     chunkScores.add(new KnowledgeChunk(fileName, chunk, similarity));
                 }
@@ -509,22 +515,23 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * 余弦相似度（-1 ~ 1）
+     * 余弦相似度（预计算范数版）。
+     *
+     * <p>仅计算点积；normA 和 normB 已由调用方预计算（查询向量 norm 一次、chunk norm 从缓存取），
+     * 消除每次查询对所有 chunk 重复开方求和的 O(N×dim) 浪费。</p>
+     *
+     * @param a     查询向量
+     * @param b     chunk 向量
+     * @param normA 预计算的 a 的 L2 范数
+     * @param normB 预计算的 b 的 L2 范数
      */
-    private double cosineSimilarity(float[] a, float[] b) {
+    private double cosineSimilarity(float[] a, float[] b, double normA, double normB) {
         if (a.length != b.length) return 0.0;
-
         double dot = 0.0;
-        double normA = 0.0;
-        double normB = 0.0;
-
         for (int i = 0; i < a.length; i++) {
             dot += a[i] * b[i];
-            normA += a[i] * a[i];
-            normB += b[i] * b[i];
         }
-
-        double denominator = Math.sqrt(normA) * Math.sqrt(normB);
+        double denominator = normA * normB;
         return denominator == 0.0 ? 0.0 : dot / denominator;
     }
 

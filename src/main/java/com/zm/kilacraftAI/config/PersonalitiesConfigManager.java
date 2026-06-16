@@ -9,6 +9,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -25,8 +26,9 @@ public class PersonalitiesConfigManager {
     private final KilacraftAI plugin;
     private File personalitiesFile;
 
-    // 人格缓存（人格中文名 -> 提示词）
-    private final Map<String, String> personalitiesCache;
+    // 人格缓存（人格中文名 -> 提示词）。
+    // volatile + 快照替换：loadConfig 先构建完整新 Map，再原子发布，消除"清空再填充"的瞬时空窗。
+    private volatile Map<String, String> personalitiesCache;
 
     // 公共提示词（所有人格共享的基础提示词）
     private String commonPrompt;
@@ -64,9 +66,6 @@ public class PersonalitiesConfigManager {
                 return;
             }
 
-            // 清空缓存，确保重新加载
-            personalitiesCache.clear();
-
             // 关键修复：每次重新从文件加载，避免 Bukkit 缓存导致重载不生效
             config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(personalitiesFile);
 
@@ -77,22 +76,26 @@ public class PersonalitiesConfigManager {
                 return;
             }
 
-            // 加载公共提示词
-            commonPrompt = config.getString("common_prompt", "");
+            // 先构建完整的新 Map 和新公共提示词，再原子替换 volatile 引用。
+            // 消除"先 clear 再逐条 put"的瞬时空窗：reload 期间并发读者看到的是旧 Map 或新 Map，不会看到空/半填充状态。
+            String newCommonPrompt = config.getString("common_prompt", "");
+            Map<String, String> newCache = new LinkedHashMap<>();
 
-            // 加载所有的人格配置
             for (String key : section.getKeys(false)) {
-                // 跳过 common_prompt 配置项
                 if ("common_prompt".equals(key)) {
                     continue;
                 }
                 String prompt = section.getString(key);
                 if (!key.trim().isEmpty() && prompt != null && !prompt.trim().isEmpty()) {
-                    personalitiesCache.put(key, prompt);
+                    newCache.put(key, prompt);
                 }
             }
 
-            PluginLoggerUtil.info("人格配置", "人格配置加载完成，共 {} 个人格", personalitiesCache.size());
+            // 原子发布
+            this.commonPrompt = newCommonPrompt;
+            this.personalitiesCache = newCache;
+
+            PluginLoggerUtil.info("人格配置", "人格配置加载完成，共 {} 个人格", newCache.size());
         } catch (Exception e) {
             PluginLoggerUtil.error("人格配置", I18nService.tr("加载人格配置文件失败：{}", personalitiesFile.getAbsolutePath()), e);
         }

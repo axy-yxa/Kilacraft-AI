@@ -22,41 +22,42 @@ public class LLMConfigManager {
     private final KilacraftAI plugin;
     private File configFile;
 
-    // LLM 基础配置
+    // LLM 基础配置（volatile：主线程 reload 写入 → IO 线程通过 GenericLLMProvider 缓存间接读取，
+    // 虽当前无一 IO 线程直读此字段，但加 volatile 消除"配置变更后 IO 线程读到 CPU 缓存过期值"的理论风险）
     @Getter
-    private String apiUrl;
+    private volatile String apiUrl;
     @Getter
-    private String apiKey;
+    private volatile String apiKey;
     @Getter
-    private String model;
+    private volatile String model;
     @Getter
-    private double temperature;
+    private volatile double temperature;
     @Getter
-    private int maxTokens;
+    private volatile int maxTokens;
     @Getter
-    private String systemPrompt;
+    private volatile String systemPrompt;
     @Getter
-    private String systemPromptEn;
+    private volatile String systemPromptEn;
 
     // Agent 配置
     @Getter
-    private boolean agentEnabled;
+    private volatile boolean agentEnabled;
     @Getter
-    private boolean agentEnableChatListener;
+    private volatile boolean agentEnableChatListener;
     @Getter
-    private boolean agentEnableCommand;
+    private volatile boolean agentEnableCommand;
     @Getter
-    private int agentIntentHistoryCount;
+    private volatile int agentIntentHistoryCount;
     @Getter
-    private int agentAnalysisHistoryCount;
+    private volatile int agentAnalysisHistoryCount;
     @Getter
-    private String agentSystemPrompt;
+    private volatile String agentSystemPrompt;
     @Getter
-    private String agentSystemPromptEn;
+    private volatile String agentSystemPromptEn;
     @Getter
-    private String agentAnalysisPromptSuffix;
+    private volatile String agentAnalysisPromptSuffix;
     @Getter
-    private String agentAnalysisPromptSuffixEn;
+    private volatile String agentAnalysisPromptSuffixEn;
 
     public LLMConfigManager(KilacraftAI plugin) {
         this.plugin = plugin;

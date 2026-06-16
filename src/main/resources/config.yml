@@ -222,6 +222,25 @@ security:
       - "utility.broadcast_message"    # 全服广播：仅输出公告文本，消息中可能包含其他玩家名 / Server-wide broadcast: announcement text output only, message may contain other player names
       - "player_analysis.player_relations" # 玩家社交关系查询：管理员查询指定玩家的社交关系 / Player social relation query: admin queries a specific player's social relations
       - "audit_log.query_logs"         # 技能执行日志查询：管理员查询指定玩家的技能使用记录 / Skill execution log query: admin queries a specific player's skill usage logs
+    # 近期活跃玩家缓存配置（防止通过离线玩家名绕过隔离）
+    # 仅缓存"在线 + 近期离线"玩家，有界 + TTL 淘汰，避免大服历史玩家名全量驻留内存
+    # 覆盖盲区：从未在本服活跃、或长期未上线的玩家不在缓存内（此类玩家无可读画像数据，风险低）
+    # Recent active player cache config (prevents bypassing isolation via offline player names)
+    # Only caches "online + recently offline" players, bounded + TTL eviction, avoids holding all historical names in memory
+    # Coverage gap: players who never joined or haven't been online for long are not cached (no readable profile data, low risk)
+    offline_cache:
+      # 离线后玩家名在缓存中的保留时长（分钟）
+      # How long (minutes) a player name is retained in cache after going offline
+      ttl_minutes: 30
+      # 缓存最大条目数（超出按最久未活跃淘汰，保护内存）
+      # Maximum cache entries (oldest evicted when exceeded, protects memory)
+      max_size: 5000
+      # 服务器启动时是否从画像表预热近期活跃玩家（弥补重启后的冷启动窗口）
+      # Whether to preload recently active players from the profile table on startup (covers cold-start gap after restart)
+      preload_on_start: true
+      # 预热窗口：加载近 N 天内活跃过的玩家
+      # Preload window: load players active within the last N days
+      preload_window_days: 7
 
 # ==================== 社交关系配置 / Social Relation Configuration ====================
 # 社交关系智能提取器会定期扫描这些 Skill 的审计日志，

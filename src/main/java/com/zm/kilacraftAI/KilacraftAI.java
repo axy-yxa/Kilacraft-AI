@@ -581,6 +581,39 @@ public final class KilacraftAI extends JavaPlugin {
                 return socialRelationExtractor.extractNewRelations();
             }
         });
+
+        // 6. 安全过滤器近期活跃玩家缓存清理（每 5 分钟）
+        taskScheduler.register(new ManagedTask() {
+            @Override
+            public String name() {
+                return I18nService.tr("安全缓存清理");
+            }
+
+            @Override
+            public String description() {
+                return I18nService.tr("清理过期的近期活跃玩家缓存");
+            }
+
+            @Override
+            public long delayTicks() {
+                return 6000L;
+            }
+
+            @Override
+            public long intervalTicks() {
+                return 6000L; // 5 分钟
+            }
+
+            @Override
+            public boolean enabled() {
+                return configManager != null && configManager.isSecurityPlayerIsolationEnabled();
+            }
+
+            @Override
+            public int execute() {
+                return SkillSecurityFilter.cleanupExpired();
+            }
+        });
     }
 
     /**

@@ -324,6 +324,10 @@ public class FoliaCompat {
             });
             return awaitFuture(future, timeoutSeconds, I18nService.tr("同步调用超时"), I18nService.tr("同步调用失败"));
         } else {
+            // 已在主线程时直接同步执行，避免 callSyncMethod 把任务排回主线程队列造成自死锁
+            if (Bukkit.isPrimaryThread()) {
+                return supplier.get();
+            }
             try {
                 return Bukkit.getScheduler().callSyncMethod(plugin, supplier::get).get(timeoutSeconds, TimeUnit.SECONDS);
             } catch (ExecutionException e) {
@@ -361,7 +365,10 @@ public class FoliaCompat {
             });
             return awaitFuture(future, timeoutSeconds, I18nService.tr("实体同步调用超时"), I18nService.tr("实体同步调用失败"));
         } else {
-            // Spigot/Paper: 直接调度到主线程
+            // Spigot/Paper: 已在主线程时直接同步执行，避免 callSyncMethod 排队造成自死锁
+            if (Bukkit.isPrimaryThread()) {
+                return supplier.get();
+            }
             try {
                 return Bukkit.getScheduler().callSyncMethod(KilacraftAI.getInstance(), supplier::get).get(timeoutSeconds, TimeUnit.SECONDS);
             } catch (ExecutionException e) {

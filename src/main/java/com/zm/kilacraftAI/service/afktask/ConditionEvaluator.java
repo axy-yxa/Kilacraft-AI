@@ -119,6 +119,7 @@ public class ConditionEvaluator {
                 result = future.get(EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
                 PluginLoggerUtil.warn("条件评估", "Skill执行超时: {}.{}", conditionPlan.getConditionSkill(), conditionPlan.getConditionAction());
+                future.cancel(true);
                 return EvaluationResult.failed();
             } catch (InterruptedException | ExecutionException e) {
                 PluginLoggerUtil.warn("条件评估", I18nService.tr("Skill执行异常: {}", e.getMessage()), e);

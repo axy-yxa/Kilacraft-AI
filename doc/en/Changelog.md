@@ -1,6 +1,6 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-06-15  
+> **Last Updated**: 2026-06-16  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
 
 ---
@@ -32,12 +32,16 @@
 - **LLM Empty Response Friendly Hint**: Returns "AI temporarily unavailable" to the player when streaming response is empty instead of an empty message (also logs SSE chunk count and recent raw data for troubleshooting)
 - **JSON Scenarios Disable `max_tokens`**: Intent recognition, profile analysis, etc. no longer set `max_tokens`, preventing complex JSON truncation; GenericBukkitAPI description enhanced to improve Phase 1 classification accuracy
 - **Concurrency & Thread Safety**: `ConversationManager` history queue upgraded to `ConcurrentLinkedDeque` + auto trim (MAX_HISTORY_SIZE=100); `AFKTaskManager` atomic registration prevents overflow; `ProfileManager.flushAllProfiles` single-connection batch update prevents cascade failure
-- **Code Cleanup & Observability**: LLMProvider interface simplified, ThinkingModelCapable upgraded to functional interface; SkillIntentRecognizer exception layering (JSON parse DEBUG / unexpected WARN); GreetingPromptBuilder event summary merge eliminates ~140 lines of duplication; unified history access; cleaned up redundant i18n wrappers and translation dead keys
+- **Code Cleanup & Observability**: LLMProvider interface simplified, ThinkingModelCapable upgraded to functional interface; SkillIntentRecognizer exception catching with full stack trace; GreetingPromptBuilder event summary merge eliminates ~140 lines of duplication; unified history access; cleaned up redundant i18n wrappers and translation dead keys
+- **Configuration Hot-Reload Hardening**: `PersonalitiesConfigManager` switched to snapshot replacement pattern, `LLMConfigManager` fields fully `volatile`
+- **Embedding Retrieval Optimization**: chunk vector norm precomputed and cached, cosine similarity computation reduced by 2/3
+- **`reconcileOnlineProfiles` Single-Connection Batch**: aligned with `flushAllProfiles` pattern
 
 ### 🐛 Bug Fixes
 - Fixed `ConversationPersistenceService.mergeLoadedHistory` clearing itself when `loadedHistory` and `playerHistory` are the same object via `clear()`, causing history loss (triggered when a player sends a message for the second time or later with valid in-memory history, via `/ai` command or chat listener path)
 - Fixed thinking/reasoning models producing empty output in normal conversation (covered by thinking mode governance)
 - Fixed profile analysis JSON parsing occasional failure (auto-repair then re-parse), CUSTOM task `condition_plan` null NPE, shutdown `flushAllProfiles` connection exception cascade failure, `ConversationManager` non-thread-safe `ArrayDeque` concurrent data loss
+- **Security & Stability Hardening**: Fixed multiple stability and security boundary issues; added recent active player cache to strengthen data isolation
 
 ### ⚠️ Compatibility
 
@@ -47,6 +51,8 @@
 3. **Recommended** (for full skill / model config optimization effects): the following config files are recommended to be deleted and regenerated (works without deletion, just missing some optimizations):
    - `skills/afktask/AFKTaskSkill.yml` / `AFKTaskSkill_en.yml`, `skills/globalmarketplus/MarketActionSkill.yml` / `MarketActionSkill_en.yml`, `skills/bukkit/apis.yml` / `apis_en.yml`
    - `llm.yml` / `admin.yml` (thinking mode governance notes + diagnostic model fallback notes + default model updates)
+   - `config.yml` (new `security.player_isolation.offline_cache` section, recent active player cache)
+   - `database.yml` (new `h2.tcp` section, H2 TCP Server access control)
 4. Except for the `intent_prompts.yml` in step 2, all other config entries have code-level default fallbacks — **works without deleting them**
 5. **Lower diagnostic feature barrier**: when no `admin.yml` reasoning model is configured, health monitoring auto-falls back to `llm.yml`, usable without extra config (diagnostic quota still controlled by `admin.yml`, no conflict with normal conversation)
 

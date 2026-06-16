@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.llm;
 import com.google.gson.*;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.MessageRoleEnum;
+import com.zm.kilacraftAI.common.exception.EmptyResponseException;
 import com.zm.kilacraftAI.common.exception.LLMException;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
@@ -317,20 +318,41 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 // ========== 使用流式读取 ==========
                 try (Response response = httpClient.newCall(request).execute()) {
                     if (!response.isSuccessful()) {
-                        // 检测是否为 response_format 不支持的错误
-                        String errorMsg = "§c" + I18nService.tr("请求失败：{} - {}", String.valueOf(response.code()), response.message());
-                        if (enableJsonOutput && response.code() == 400 && response.message().contains("response_format")) {
-                            // 自动降级：重新调用，不启用 JSON 输出
+                        // 读取错误响应体用于降级判断。注意：response.message() 只是 HTTP reason phrase
+                        // （通常是 "Bad Request"），不含厂商错误详情，无法据此判断是否因 response_format 报错。
+                        String errorBody = "";
+                        try {
+                            if (response.body() != null) {
+                                errorBody = response.body().string();
+                            }
+                        } catch (IOException ignored) {
+                            // 读取错误体失败不影响后续错误提示
+                        }
+                        // 检测是否为 response_format 不支持的错误（错误体含 response_format 字样）
+                        if (enableJsonOutput && response.code() == 400 && errorBody.contains("response_format")) {
+                            // 自动降级：重新调用，不启用 JSON 输出。
+                            // enableJsonOutput=false 后不会再进入此分支（天然防递归）。
                             PluginLoggerUtil.warn("LLM请求", "当前 LLM 不支持 response_format，自动降级为普通模式");
                             return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false).join();
                         }
-                        return errorMsg;
+                        PluginLoggerUtil.debug("LLM请求", "错误响应体: {}", errorBody);
+                        // 错误体仅用于诊断，不暴露给玩家；玩家看到的是 code + reason phrase
+                        return "§c" + I18nService.tr("请求失败：{} - {}", String.valueOf(response.code()), response.message());
                     }
 
                     // 解析 SSE 流式响应
                     return parseSSEStream(response, responseHandler);
                 }
 
+            } catch (EmptyResponseException e) {
+                // 空响应：走错误处理路径（handleError 会 cancelStream 清理流式状态 + sendError 友好提示）。
+                // 不复用 catch(Exception) 的"LLM 请求失败"措辞与 error 堆栈——空响应是模型空输出而非请求失败，
+                // 其可观测性已由 parseSSEStream 的 warn 日志覆盖。
+                String errorMsg = "§c" + e.getMessage();
+                if (responseHandler != null) {
+                    responseHandler.handleError(errorMsg);
+                }
+                return errorMsg;
             } catch (Exception e) {
                 PluginLoggerUtil.error("LLM请求", "LLM 请求失败", e);
                 if (cachedDebugMode) {
@@ -645,11 +667,12 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             return "§c" + I18nService.tr("读取响应失败：{}", e.getMessage());
         }
 
-        // 空响应检测：替换为友好提示，避免玩家收到空消息
+        // 空响应检测：抛出异常走错误处理路径（handleError），避免玩家收到空消息，
+        // 也避免上层（意图识别 / 二次分析 / 历史持久化）把降级提示误认为真实回复。
         String result = fullResponse.toString();
         if (result.isEmpty()) {
             PluginLoggerUtil.warn("LLM请求", I18nService.tr("LLM 返回空响应，共收到 {} 个 SSE chunk，最近原始数据: {}", chunkCount, String.join(" | ", recentRawChunks)));
-            result = "§c" + I18nService.tr("AI 暂时无法回复，请稍后再试");
+            throw new EmptyResponseException(I18nService.tr("AI 暂时无法回复，请稍后再试"));
         }
 
         // 流式输出完成后，调用 showResponse() 触发 completeGeneration()
@@ -700,7 +723,12 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
         if (isOpenAIOModel) {
             requestBody.addProperty("max_completion_tokens", config.maxTokens());
-            // o 系列：system 消息合并到 user 消息
+            // o 系列：显式请求推理摘要（默认可能不返回 reasoning.summary 文本，需声明 summary 参数）
+            JsonObject reasoning = new JsonObject();
+            reasoning.addProperty("effort", "medium");
+            reasoning.addProperty("summary", "auto");
+            requestBody.add("reasoning", reasoning);
+            // o 系列：system 消息合并到 user 消息（不支持 system role）
             JsonObject userMsg = new JsonObject();
             userMsg.addProperty("role", MessageRoleEnum.USER.value());
             userMsg.addProperty("content", systemPrompt + "\n\n" + userMessage);
@@ -761,10 +789,14 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             // 提取 content
             String content = message.has("content") && !message.get("content").isJsonNull() ? message.get("content").getAsString() : "";
 
-            // 提取 reasoning_content（DeepSeek-R1 等模型的思考过程）
+            // 提取推理过程：
+            // - DeepSeek-R1 等使用 message.reasoning_content（字符串）
+            // - OpenAI o 系列使用 message.reasoning.summary[]（需在请求时带 summary 参数才会返回）
             String reasoningContent = null;
             if (message.has("reasoning_content") && !message.get("reasoning_content").isJsonNull()) {
                 reasoningContent = message.get("reasoning_content").getAsString();
+            } else if (message.has("reasoning") && message.get("reasoning").isJsonObject()) {
+                reasoningContent = extractOpenAIReasoningSummary(message.getAsJsonObject("reasoning"));
             }
 
             // 提取 usage
@@ -782,6 +814,31 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         } catch (Exception e) {
             throw new LLMException("解析推理模型响应失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 提取 OpenAI o 系列的推理摘要（{@code message.reasoning.summary[]}）。
+     *
+     * <p>o 系列的 summary 是一组 {@code {type, text}} 对象，按顺序拼接为可读文本。
+     * 需在请求时声明 {@code reasoning.summary} 参数，响应中才会包含此字段。</p>
+     *
+     * @param reasoning message.reasoning 对象
+     * @return 拼接后的摘要文本；无摘要时返回 null
+     */
+    private String extractOpenAIReasoningSummary(JsonObject reasoning) {
+        if (reasoning == null || !reasoning.has("summary") || !reasoning.get("summary").isJsonArray()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (var el : reasoning.getAsJsonArray("summary")) {
+            if (!el.isJsonObject()) continue;
+            JsonObject item = el.getAsJsonObject();
+            if (item.has("text") && !item.get("text").isJsonNull()) {
+                if (!sb.isEmpty()) sb.append("\n");
+                sb.append(item.get("text").getAsString());
+            }
+        }
+        return !sb.isEmpty() ? sb.toString() : null;
     }
 
     @Override

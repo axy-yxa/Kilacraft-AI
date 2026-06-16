@@ -33,9 +33,23 @@ public class EmbeddingCache {
     private final Map<String, CacheEntry> entries = new HashMap<>();
 
     /**
-     * 缓存条目
+     * 缓存条目。
+     *
+     * @param norm 向量的 L2 范数（预计算，供余弦相似度分母复用，避免每次查询重复开方求和）
      */
-    public record CacheEntry(String contentPreview, float[] vector) {
+    public record CacheEntry(String contentPreview, float[] vector, double norm) {
+        /**
+         * 兼容旧代码：无 norm 时自动计算
+         */
+        public CacheEntry(String contentPreview, float[] vector) {
+            this(contentPreview, vector, computeNorm(vector));
+        }
+
+        private static double computeNorm(float[] vector) {
+            double sumSq = 0.0;
+            for (float v : vector) sumSq += (double) v * v;
+            return Math.sqrt(sumSq);
+        }
     }
 
     public EmbeddingCache(Path knowledgeDir) {
@@ -81,7 +95,10 @@ public class EmbeddingCache {
                     vector[i] = (float) vecArr.get(i).getAsDouble();
                 }
 
-                entries.put(entry.getKey(), new CacheEntry(preview, vector));
+                // 兼容旧缓存（无 norm 字段）：用向量重新计算 norm
+                double norm = obj.has("norm") ? obj.get("norm").getAsDouble() : CacheEntry.computeNorm(vector);
+
+                entries.put(entry.getKey(), new CacheEntry(preview, vector, norm));
             }
 
             PluginLoggerUtil.info("知识库", "已加载 Embedding 缓存（{} 条，模型：{}）", entries.size(), model);
@@ -117,6 +134,7 @@ public class EmbeddingCache {
                     vecArr.add(v);
                 }
                 obj.add("vector", vecArr);
+                obj.addProperty("norm", entry.getValue().norm());
 
                 entriesObj.add(entry.getKey(), obj);
             }
@@ -152,6 +170,18 @@ public class EmbeddingCache {
         String hash = contentHash(text);
         String preview = text.length() > 100 ? text.substring(0, 100) + "..." : text;
         entries.put(hash, new CacheEntry(preview, vector));
+    }
+
+    /**
+     * 获取预计算的向量 L2 范数（避免每次余弦相似度计算时重算 normB）。
+     *
+     * @param text 文本内容
+     * @return 向量的 L2 范数，不存在返回 1.0（不会导致除零；查不到 norm 意味着向量不在缓存里，调用方不应走到这步）
+     */
+    public synchronized double getNorm(String text) {
+        String hash = contentHash(text);
+        CacheEntry entry = entries.get(hash);
+        return entry != null ? entry.norm() : 1.0;
     }
 
     /**

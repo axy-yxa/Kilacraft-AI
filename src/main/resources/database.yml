@@ -12,6 +12,18 @@ h2:
   # 数据文件存储路径（相对于插件目录）
   # Data file storage path (relative to plugin directory)
   file: "data/kilacraft"
+  # TCP Server 配置（允许 DBeaver 等外部工具连接查看数据，仅用于调试）
+  # TCP Server config (allows external tools like DBeaver to connect for debugging)
+  tcp:
+    # 是否启用 H2 TCP Server（修改后需重启服务器生效）
+    # Whether to enable the H2 TCP Server (requires server restart to take effect)
+    enabled: true
+    # TCP 端口
+    # TCP port
+    port: 9092
+    # 是否允许非本机连接（true=允许远程，H2 TCP 无认证存在数据泄露风险；false=仅本机连接，推荐）
+    # Whether to allow non-localhost connections (true=allow remote, H2 TCP has no auth = data exposure risk; false=localhost only, recommended)
+    allow_others: false
 
 # MySQL 配置（type=MYSQL 时生效）
 # MySQL Configuration (effective when type=MYSQL)

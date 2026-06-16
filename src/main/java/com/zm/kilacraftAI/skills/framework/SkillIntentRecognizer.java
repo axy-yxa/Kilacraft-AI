@@ -162,7 +162,9 @@ public class SkillIntentRecognizer {
             PluginLoggerUtil.debug("意图识别", "Phase 1 JSON 解析失败: {}", e.getMessage());
             return Collections.emptySet();
         } catch (RuntimeException e) {
-            PluginLoggerUtil.warn("意图识别", "Phase 1 意外异常: {}", e.getMessage());
+            // Gson 解析异常已在上方单独捕获，能走到这里的 RuntimeException 多为代码缺陷（如 NPE）。
+            // 记录完整堆栈以便定位，同时保持原有降级语义（空集合 → 回退普通对话）。
+            PluginLoggerUtil.error("意图识别", "Phase 1 意外异常", e);
             return Collections.emptySet();
         }
     }
@@ -364,7 +366,7 @@ public class SkillIntentRecognizer {
             PluginLoggerUtil.debug("意图识别", "意图识别 JSON 解析失败：{}", e.getMessage());
             return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()));
         } catch (RuntimeException e) {
-            PluginLoggerUtil.warn("意图识别", "意图识别意外异常：{}", e.getMessage());
+            PluginLoggerUtil.error("意图识别", "意图识别意外异常", e);
             return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()));
         }
     }
@@ -480,8 +482,8 @@ public class SkillIntentRecognizer {
             }
             return plan;
 
-        } catch (Exception e) {
-            PluginLoggerUtil.debug("意图识别", "解析任务计划失败：{}", e.getMessage());
+        } catch (RuntimeException e) {
+            PluginLoggerUtil.error("意图识别", "解析任务计划失败", e);
             return null;
         }
     }

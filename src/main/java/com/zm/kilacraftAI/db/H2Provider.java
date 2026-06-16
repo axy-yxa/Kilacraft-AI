@@ -12,6 +12,8 @@ import org.h2.tools.Server;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * H2 数据库供应商实现（单服内嵌模式）
@@ -67,7 +69,7 @@ public class H2Provider implements DatabaseProvider {
         this.dataSource = new HikariDataSource(hc);
 
         // 启动 H2 TCP Server（允许 DBeaver 等外部工具在不停服时连接）
-        startTcpServer();
+        startTcpServer(config);
 
         PluginLoggerUtil.info("数据库", "H2 数据库已初始化");
         PluginLoggerUtil.info("数据库", "连接池配置: maxPoolSize={}, minIdle={}", maxPool, minIdle);
@@ -114,14 +116,30 @@ public class H2Provider implements DatabaseProvider {
     /**
      * 启动 H2 TCP Server
      *
-     * <p>允许外部工具（如 DBeaver）通过 {@code jdbc:h2:tcp://localhost:9092/<dbPath>} 连接查看数据。</p>
+     * <p>允许外部工具（如 DBeaver）通过 {@code jdbc:h2:tcp://localhost:<port>/<dbPath>} 连接查看数据。
+     * 默认仅允许本机连接（{@code allowOthers=false}）；H2 TCP Server 无认证，开启远程将暴露全部数据，
+     * 仅在可信内网调试时通过 {@code h2.tcp.allow_others: true} 放开。</p>
+     *
+     * @param config 数据库配置（读取 tcp 启用/端口/allow_others）
      */
-    private void startTcpServer() {
+    private void startTcpServer(DatabaseConfig config) {
+        if (!config.isH2TcpEnabled()) {
+            PluginLoggerUtil.info("数据库", "H2 TCP Server 已禁用");
+            return;
+        }
+        int port = config.getH2TcpPort() > 0 ? config.getH2TcpPort() : DEFAULT_TCP_PORT;
+        List<String> args = new ArrayList<>();
+        args.add("-tcpPort");
+        args.add(String.valueOf(port));
+        if (config.isH2TcpAllowOthers()) {
+            args.add("-tcpAllowOthers");
+        }
+        args.add("-tcpDaemon");
         try {
-            tcpServer = Server.createTcpServer("-tcpPort", String.valueOf(DEFAULT_TCP_PORT), "-tcpAllowOthers", "-tcpDaemon").start();
-            PluginLoggerUtil.info("数据库", "H2 TCP Server 已启动，端口: {}", DEFAULT_TCP_PORT);
+            tcpServer = Server.createTcpServer(args.toArray(new String[0])).start();
+            PluginLoggerUtil.info("数据库", "H2 TCP Server 已启动，端口: {}", port);
         } catch (SQLException e) {
-            PluginLoggerUtil.warn("数据库", "H2 TCP Server 启动失败（端口 {} 可能被占用）: {}", DEFAULT_TCP_PORT, e.getMessage());
+            PluginLoggerUtil.warn("数据库", "H2 TCP Server 启动失败（端口 {} 可能被占用）: {}", port, e.getMessage());
         }
     }
 
