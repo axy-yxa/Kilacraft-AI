@@ -38,6 +38,8 @@
 - **`reconcileOnlineProfiles` Single-Connection Batch**: aligned with `flushAllProfiles` pattern
 
 ### 🐛 Bug Fixes
+- Fixed `BM25Scorer.countOccurrences` infinite loop on empty keyword causing `mvn test` to hang forever
+- Fixed `KnowledgeRetriever.splitByFixedSize` off-by-one where content exactly at MAX_CHUNK_SIZE was split into an extra trailing chunk by the overlap rollback logic
 - Fixed `ConversationPersistenceService.mergeLoadedHistory` clearing itself when `loadedHistory` and `playerHistory` are the same object via `clear()`, causing history loss (triggered when a player sends a message for the second time or later with valid in-memory history, via `/ai` command or chat listener path)
 - Fixed thinking/reasoning models producing empty output in normal conversation (covered by thinking mode governance)
 - Fixed profile analysis JSON parsing occasional failure (auto-repair then re-parse), CUSTOM task `condition_plan` null NPE, shutdown `flushAllProfiles` connection exception cascade failure, `ConversationManager` non-thread-safe `ArrayDeque` concurrent data loss
