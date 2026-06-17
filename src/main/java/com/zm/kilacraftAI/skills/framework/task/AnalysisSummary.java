@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.framework.task;
 
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.skills.framework.SkillResultFormatter;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -76,7 +77,7 @@ public class AnalysisSummary {
 
     /**
      * 注入事件触发描述（挂机任务回调场景）
-     *
+     * <p>
      * 将事件触发描述作为第一条结果插入到 results 头部，
      * 让 LLM 二次分析时能在 [执行结果] 区域看到事件触发原因，
      *
@@ -113,8 +114,7 @@ public class AnalysisSummary {
             if (result.stepId() != null) {
                 sb.append(result.stepId()).append(": ");
             }
-            sb.append("[").append(result.status()).append("] ");
-            sb.append(result.message()).append("\n");
+            sb.append(SkillResultFormatter.toLlmText(result.status(), result.message())).append("\n");
         }
 
         sb.append("\n").append(I18nService.tr(MARKER_STATS)).append(" ").append(I18nService.tr("成功")).append(": ").append(successCount).append(", ").append(I18nService.tr("失败")).append(": ").append(failureCount).append(", ").append(I18nService.tr("跳过")).append(": ").append(skippedCount);

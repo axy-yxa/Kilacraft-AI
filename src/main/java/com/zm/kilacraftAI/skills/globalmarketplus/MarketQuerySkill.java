@@ -1,18 +1,18 @@
 package com.zm.kilacraftAI.skills.globalmarketplus;
 
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.compat.globalmarketplus.GlobalMarketPlusAPI;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.service.translate.ItemTranslator;
 import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillConfig;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.service.translate.ItemTranslator;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -111,7 +111,7 @@ public class MarketQuerySkill implements Skill {
             String action = context.getAction();
             return actionToHandler.getOrDefault(action, this::handleUnknownAction).apply(context);
         } catch (Exception e) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 查询失败: {}", e.getMessage())));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("查询失败: {}", e.getMessage())));
         }
     }
 
@@ -119,7 +119,7 @@ public class MarketQuerySkill implements Skill {
     private final Map<String, Function<SkillContext, CompletableFuture<SkillResult>>> actionToHandler = Map.ofEntries(entry("query_balance", this::queryBalance), entry("query_price", this::queryPrices), entry("query_items", this::queryMarketItems), entry("query_availability", this::queryAvailability), entry("query_my_items", this::queryMyItems), entry("query_seller_items", this::querySellerItems), entry("query_mailbox", this::queryMailbox), entry("query_market_stats", this::queryMarketStats));
 
     private CompletableFuture<SkillResult> handleUnknownAction(SkillContext context) {
-        return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 不支持的市场查询操作"));
+        return CompletableFuture.completedFuture(SkillResult.failure("不支持的市场查询操作"));
     }
 
     /**
@@ -129,14 +129,14 @@ public class MarketQuerySkill implements Skill {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
+            return CompletableFuture.completedFuture(SkillResult.failure("仅限在线玩家使用"));
         }
 
         // 使用 GlobalMarketPlus API
         double balance = GlobalMarketPlusAPI.getBalance(player);
 
         if (balance < 0) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装"));
+            return CompletableFuture.completedFuture(SkillResult.failure("无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装"));
         }
 
         // 构建 data Map，供多步骤任务引用
@@ -156,7 +156,7 @@ public class MarketQuerySkill implements Skill {
         String itemName = context.getEntity("item");
 
         if (itemName == null || itemName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 缺少参数: item(物品名称)"));
+            return CompletableFuture.completedFuture(SkillResult.failure("缺少参数: item(物品名称)"));
         }
 
         // 严格按逗号分割（LLM 已被要求多个物品时必须用逗号分隔）
@@ -282,7 +282,7 @@ public class MarketQuerySkill implements Skill {
             if (colonIdx > 0) {
                 cleanItemName = itemName.substring(0, colonIdx).trim();
             }
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 未找到物品 '{}' 的价格信息", translator.translateToChinese(cleanItemName))));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未找到物品 '{}' 的价格信息", translator.translateToChinese(cleanItemName))));
         }
 
         // 构建响应消息
@@ -398,7 +398,7 @@ public class MarketQuerySkill implements Skill {
         String itemName = context.getEntity("item");
 
         if (itemName == null || itemName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 缺少参数: item(物品名称)")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("缺少参数: item(物品名称)")));
         }
 
         // 去掉数量后缀（如果有）
@@ -472,7 +472,7 @@ public class MarketQuerySkill implements Skill {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
+            return CompletableFuture.completedFuture(SkillResult.failure("仅限在线玩家使用"));
         }
 
         List<MarketItemDetail> myItems = GlobalMarketPlusAPI.getMyMerchandises(player);
@@ -521,7 +521,7 @@ public class MarketQuerySkill implements Skill {
         String sellerName = context.getEntity("seller_name");
 
         if (sellerName == null || sellerName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 缺少参数: seller_name(卖家名称)")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("缺少参数: seller_name(卖家名称)")));
         }
 
         List<MarketItemDetail> sellerItems = GlobalMarketPlusAPI.getSellerMerchandises(sellerName);
@@ -568,7 +568,7 @@ public class MarketQuerySkill implements Skill {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
+            return CompletableFuture.completedFuture(SkillResult.failure("仅限在线玩家使用"));
         }
 
         List<MailItem> mails = GlobalMarketPlusAPI.getMailboxItems(player);

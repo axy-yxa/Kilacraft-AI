@@ -1,18 +1,18 @@
 package com.zm.kilacraftAI.skills.globalmarketplus;
 
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.compat.globalmarketplus.GlobalMarketPlusAPI;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItemDetail;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.config.SkillConfigManager;
-import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.service.translate.ItemTranslator;
 import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillConfig;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.service.translate.ItemTranslator;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -110,10 +110,10 @@ public class MarketActionSkill implements Skill {
                 case "sell_inventory" -> sellInventory(context);
                 case "buy_inventory" -> buyInventory(context);
                 default ->
-                        CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 未知的市场操作: {}", action)));
+                        CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未知的市场操作: {}", action)));
             };
         } catch (Exception e) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 市场操作失败: {}", e.getMessage())));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("市场操作失败: {}", e.getMessage())));
         }
     }
 
@@ -128,7 +128,7 @@ public class MarketActionSkill implements Skill {
      * 玩家不在线的统一失败结果
      */
     private static CompletableFuture<SkillResult> offlineFailure() {
-        return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 仅限在线玩家使用"));
+        return CompletableFuture.completedFuture(SkillResult.failure("仅限在线玩家使用"));
     }
 
     /**
@@ -152,7 +152,7 @@ public class MarketActionSkill implements Skill {
     /**
      * 解析价格参数
      *
-     * @param context   技能上下文
+     * @param context 技能上下文
      * @return 解析后的价格（null 表示参数缺失，Double.NEGATIVE_INFINITY 表示格式错误）
      */
     private Double parsePrice(SkillContext context) {
@@ -176,9 +176,9 @@ public class MarketActionSkill implements Skill {
      */
     private CompletableFuture<SkillResult> invalidPriceFailure(String priceStr) {
         if (priceStr == null || priceStr.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 价格必须大于 0"));
+            return CompletableFuture.completedFuture(SkillResult.failure("价格必须大于 0"));
         }
-        return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 价格格式不正确: {}", priceStr)));
+        return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("价格格式不正确: {}", priceStr)));
     }
 
     /**
@@ -213,10 +213,10 @@ public class MarketActionSkill implements Skill {
     private CompletableFuture<SkillResult> invalidQuantityFailure(int errorCode, String quantityStr, int maxQuantity) {
         return switch (errorCode) {
             case -1 ->
-                    CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 数量格式不正确: {}", quantityStr)));
+                    CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("数量格式不正确: {}", quantityStr)));
             case -2 ->
-                    CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 数量 {} 超过手中物品数量 {}", quantityStr, maxQuantity)));
-            default -> CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 数量必须大于 0"));
+                    CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("数量 {} 超过手中物品数量 {}", quantityStr, maxQuantity)));
+            default -> CompletableFuture.completedFuture(SkillResult.failure("数量必须大于 0"));
         };
     }
 
@@ -239,7 +239,7 @@ public class MarketActionSkill implements Skill {
             }
         }).exceptionally(ex -> {
             PluginLoggerUtil.warn("市场插件", I18nService.tr("{}异常: {}", errorKey, ex.getMessage()), ex);
-            return SkillResult.failure(I18nService.tr("[FAILURE] {}时发生异常: {}", errorKey, ex.getMessage()));
+            return SkillResult.failure(I18nService.tr("{}时发生异常: {}", errorKey, ex.getMessage()));
         });
     }
 
@@ -249,7 +249,7 @@ public class MarketActionSkill implements Skill {
 
         String itemName = context.getEntity("item");
         if (itemName == null || itemName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 缺少参数: item(物品名称)"));
+            return CompletableFuture.completedFuture(SkillResult.failure("缺少参数: item(物品名称)"));
         }
 
         // 翻译为英文 Material 名
@@ -261,7 +261,7 @@ public class MarketActionSkill implements Skill {
             material = Material.matchMaterial(itemName.toUpperCase());
         }
         if (material == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 无法识别的物品: {}，请使用标准的物品名称", itemName)));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("无法识别的物品: {}，请使用标准的物品名称", itemName)));
         }
 
         final String materialName = material.name();
@@ -272,7 +272,7 @@ public class MarketActionSkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("市场上没有找到 {} 的商品", displayName)));
         }
 
-        return handleCommandResult(GlobalMarketPlusAPI.searchItem(player, materialName), "已为你打开 {} 的搜索页面，请在弹出的 GUI 中点击购买", new Object[]{displayName}, "[FAILURE] 搜索失败，可能没有权限或命令不可用", "搜索商品");
+        return handleCommandResult(GlobalMarketPlusAPI.searchItem(player, materialName), "已为你打开 {} 的搜索页面，请在弹出的 GUI 中点击购买", new Object[]{displayName}, "搜索失败，可能没有权限或命令不可用", "搜索商品");
     }
 
     private CompletableFuture<SkillResult> sellItem(SkillContext context) {
@@ -281,10 +281,10 @@ public class MarketActionSkill implements Skill {
 
         ItemStack handItem = readHandItem(player);
         if (handItem == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 读取手持物品失败，请稍后重试"));
+            return CompletableFuture.completedFuture(SkillResult.failure("读取手持物品失败，请稍后重试"));
         }
         if (handItem.getType() == Material.AIR) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[NEED_INFO] 请先将需要上架的物品拿在主手中"));
+            return CompletableFuture.completedFuture(SkillResult.needInfo("请先将需要上架的物品拿在主手中"));
         }
 
         String itemTypeName = handItem.getType().name();
@@ -313,13 +313,13 @@ public class MarketActionSkill implements Skill {
         // 余额预检查（上架可能需缴纳税额，余额为 0 时 GMP 可能拒绝）
         double balance = GlobalMarketPlusAPI.getBalance(player);
         if (balance == 0) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 余额不足，上架商品可能需要缴纳税额，当前余额为 $0")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("余额不足，上架商品可能需要缴纳税额，当前余额为 $0")));
         }
 
         // 执行上架
         final double finalPrice = price;
         final int finalQuantity = quantity;
-        return handleCommandResult(GlobalMarketPlusAPI.sellItem(player, finalPrice, finalQuantity), "已上架 {} x{}，单价: ${}", new Object[]{displayName, finalQuantity, String.format("%.2f", finalPrice)}, "[FAILURE] 上架失败，可能没有权限、物品在黑名单中、余额不足以支付税额或命令不可用", "上架商品");
+        return handleCommandResult(GlobalMarketPlusAPI.sellItem(player, finalPrice, finalQuantity), "已上架 {} x{}，单价: ${}", new Object[]{displayName, finalQuantity, String.format("%.2f", finalPrice)}, "上架失败，可能没有权限、物品在黑名单中、余额不足以支付税额或命令不可用", "上架商品");
     }
 
     private CompletableFuture<SkillResult> pickupMail(SkillContext context) {
@@ -338,11 +338,11 @@ public class MarketActionSkill implements Skill {
 
         if ("all".equalsIgnoreCase(target)) {
             final int totalItems = mails.size();
-            return handleCommandResult(GlobalMarketPlusAPI.pickupMail(player, "all"), "已成功领取邮箱中所有物品（共 {} 件）", new Object[]{totalItems}, "[FAILURE] 领取邮件失败，可能背包已满或没有权限", "领取邮件");
+            return handleCommandResult(GlobalMarketPlusAPI.pickupMail(player, "all"), "已成功领取邮箱中所有物品（共 {} 件）", new Object[]{totalItems}, "领取邮件失败，可能背包已满或没有权限", "领取邮件");
         }
 
         // 指定 UID 领取
-        return handleCommandResult(GlobalMarketPlusAPI.pickupMail(player, target), "已成功领取指定邮件", new Object[]{}, "[FAILURE] 领取邮件失败，请检查 UID 是否正确", "领取邮件");
+        return handleCommandResult(GlobalMarketPlusAPI.pickupMail(player, target), "已成功领取指定邮件", new Object[]{}, "领取邮件失败，请检查 UID 是否正确", "领取邮件");
     }
 
     private CompletableFuture<SkillResult> buyItem(SkillContext context) {
@@ -351,10 +351,10 @@ public class MarketActionSkill implements Skill {
 
         ItemStack handItem = readHandItem(player);
         if (handItem == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 读取手持物品失败，请稍后重试"));
+            return CompletableFuture.completedFuture(SkillResult.failure("读取手持物品失败，请稍后重试"));
         }
         if (handItem.getType() == Material.AIR) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 请先将需要收购的物品拿在主手中")));
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请先将需要收购的物品拿在主手中")));
         }
 
         String itemTypeName = handItem.getType().name();
@@ -378,9 +378,9 @@ public class MarketActionSkill implements Skill {
         if (price == null) {
             double refPrice = GlobalMarketPlusAPI.getItemReferencePrice(itemTypeName);
             if (refPrice > 0) {
-                return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 你想以多少的单价收购 {} x{}？市场当前参考价: ${}", displayName, quantity, String.format("%.2f", refPrice))));
+                return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("你想以多少的单价收购 {} x{}？市场当前参考价: ${}", displayName, quantity, String.format("%.2f", refPrice))));
             } else {
-                return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 你想以多少的单价收购 {} x{}？市场暂无参考价", displayName, quantity)));
+                return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("你想以多少的单价收购 {} x{}？市场暂无参考价", displayName, quantity)));
             }
         }
 
@@ -388,12 +388,12 @@ public class MarketActionSkill implements Skill {
         double balance = GlobalMarketPlusAPI.getBalance(player);
         double totalCost = price * quantity;
         if (balance >= 0 && balance < totalCost) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 余额不足，需要 ${} 但当前余额 ${}", String.format("%.2f", totalCost), String.format("%.2f", balance))));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("余额不足，需要 ${} 但当前余额 ${}", String.format("%.2f", totalCost), String.format("%.2f", balance))));
         }
 
         final double finalPrice = price;
         final int finalQuantity = quantity;
-        return handleCommandResult(GlobalMarketPlusAPI.buyItem(player, finalPrice, finalQuantity), "已发起收购: {} x{}，单价: ${}", new Object[]{displayName, finalQuantity, String.format("%.2f", finalPrice)}, "[FAILURE] 发起收购失败，可能没有权限或命令不可用", "发起收购");
+        return handleCommandResult(GlobalMarketPlusAPI.buyItem(player, finalPrice, finalQuantity), "已发起收购: {} x{}，单价: ${}", new Object[]{displayName, finalQuantity, String.format("%.2f", finalPrice)}, "发起收购失败，可能没有权限或命令不可用", "发起收购");
     }
 
     private CompletableFuture<SkillResult> cancelListing(SkillContext context) {
@@ -413,7 +413,7 @@ public class MarketActionSkill implements Skill {
                 MarketItemDetail item = myItems.get(i);
                 sb.append(String.format("%d. %s x%d - $%.2f (UID:%d)", i + 1, item.getDisplayName(), item.getAmount(), item.getPrice(), item.getUid())).append("\n");
             }
-            return CompletableFuture.completedFuture(SkillResult.failure("[NEED_INFO] " + sb.toString().trim()));
+            return CompletableFuture.completedFuture(SkillResult.needInfo(sb.toString().trim()));
         }
 
         // 解析 UID
@@ -423,13 +423,13 @@ public class MarketActionSkill implements Skill {
             if (index >= 1 && index <= myItems.size()) {
                 targetUid = myItems.get(index - 1).getUid();
             } else {
-                return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 编号超出范围，请输入 1-{} 之间的数字", myItems.size())));
+                return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("编号超出范围，请输入 1-{} 之间的数字", myItems.size())));
             }
         } catch (NumberFormatException e) {
             try {
                 targetUid = Long.parseLong(uidStr);
             } catch (NumberFormatException e2) {
-                return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 无效的编号或 UID: {}", uidStr)));
+                return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("无效的编号或 UID: {}", uidStr)));
             }
         }
 
@@ -444,10 +444,10 @@ public class MarketActionSkill implements Skill {
             }
         }
         if (!owned) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 该商品不属于你，无法下架"));
+            return CompletableFuture.completedFuture(SkillResult.failure("该商品不属于你，无法下架"));
         }
 
-        return handleCommandResult(GlobalMarketPlusAPI.cancelMerchandise(player, targetUid), "已成功下架商品: {}，物品已归还到你的邮箱", new Object[]{targetItemName}, "[FAILURE] 下架失败，商品可能已过期或被购买", "下架商品");
+        return handleCommandResult(GlobalMarketPlusAPI.cancelMerchandise(player, targetUid), "已成功下架商品: {}，物品已归还到你的邮箱", new Object[]{targetItemName}, "下架失败，商品可能已过期或被购买", "下架商品");
     }
 
     private CompletableFuture<SkillResult> transferMoney(SkillContext context) {
@@ -456,44 +456,44 @@ public class MarketActionSkill implements Skill {
 
         String targetPlayer = context.getEntity("target_player");
         if (targetPlayer == null || targetPlayer.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 请告诉我要转给谁？")));
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请告诉我要转给谁？")));
         }
 
         if (targetPlayer.equalsIgnoreCase(player.getName())) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 不能向自己转账")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("不能向自己转账")));
         }
 
         String amountStr = context.getEntity("amount");
         if (amountStr == null || amountStr.isEmpty()) {
             double balance = GlobalMarketPlusAPI.getBalance(player);
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 你当前余额 ${}，要转多少给 {}？", String.format("%.2f", balance), targetPlayer)));
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("你当前余额 ${}，要转多少给 {}？", String.format("%.2f", balance), targetPlayer)));
         }
 
         double amount;
         try {
             amount = Double.parseDouble(amountStr);
             if (amount <= 0) {
-                return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 转账金额必须大于 0"));
+                return CompletableFuture.completedFuture(SkillResult.failure("转账金额必须大于 0"));
             }
         } catch (NumberFormatException e) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 金额格式不正确: {}", amountStr)));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("金额格式不正确: {}", amountStr)));
         }
 
         double balance = GlobalMarketPlusAPI.getBalance(player);
         if (balance >= 0 && balance < amount) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 余额不足，当前余额 ${}，需要 ${}", String.format("%.2f", balance), String.format("%.2f", amount))));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("余额不足，当前余额 ${}，需要 ${}", String.format("%.2f", balance), String.format("%.2f", amount))));
         }
 
         // 大额转账确认：超过余额 50% 时要求确认
         if (balance > 0 && amount > balance * 0.5) {
             String confirmed = context.getEntity("confirmed");
             if (!"true".equalsIgnoreCase(confirmed)) {
-                return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 即将向 {} 转账 ${}，占你余额的较大比例。确认转账吗？", targetPlayer, String.format("%.2f", amount))));
+                return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("即将向 {} 转账 ${}，占你余额的较大比例。确认转账吗？", targetPlayer, String.format("%.2f", amount))));
             }
         }
 
         final double finalAmount = amount;
-        return handleCommandResult(GlobalMarketPlusAPI.transferMoney(player, targetPlayer, finalAmount), "已成功向 {} 转账 ${}", new Object[]{targetPlayer, String.format("%.2f", finalAmount)}, "[FAILURE] 转账失败，可能目标玩家不存在或余额不足", "转账");
+        return handleCommandResult(GlobalMarketPlusAPI.transferMoney(player, targetPlayer, finalAmount), "已成功向 {} 转账 ${}", new Object[]{targetPlayer, String.format("%.2f", finalAmount)}, "转账失败，可能目标玩家不存在或余额不足", "转账");
     }
 
     private CompletableFuture<SkillResult> auctionItem(SkillContext context) {
@@ -502,10 +502,10 @@ public class MarketActionSkill implements Skill {
 
         ItemStack handItem = readHandItem(player);
         if (handItem == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("[FAILURE] 读取手持物品失败，请稍后重试"));
+            return CompletableFuture.completedFuture(SkillResult.failure("读取手持物品失败，请稍后重试"));
         }
         if (handItem.getType() == Material.AIR) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 请先将需要拍卖的物品拿在主手中")));
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请先将需要拍卖的物品拿在主手中")));
         }
 
         String itemTypeName = handItem.getType().name();
@@ -530,21 +530,21 @@ public class MarketActionSkill implements Skill {
         if (price == null) {
             double refPrice = GlobalMarketPlusAPI.getItemReferencePrice(itemTypeName);
             if (refPrice > 0) {
-                return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 你想以多少起拍价拍卖 {} x{}？市场参考价: ${}", displayName, quantity, String.format("%.2f", refPrice))));
+                return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("你想以多少起拍价拍卖 {} x{}？市场参考价: ${}", displayName, quantity, String.format("%.2f", refPrice))));
             } else {
-                return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 你想以多少起拍价拍卖 {} x{}？市场暂无参考价", displayName, quantity)));
+                return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("你想以多少起拍价拍卖 {} x{}？市场暂无参考价", displayName, quantity)));
             }
         }
 
         // 余额预检查（拍卖需缴纳税额，余额为 0 时 GMP 会拒绝）
         double balance = GlobalMarketPlusAPI.getBalance(player);
         if (balance == 0) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 余额不足，发起拍卖需要缴纳税额，当前余额为 $0")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("余额不足，发起拍卖需要缴纳税额，当前余额为 $0")));
         }
 
         final double finalPrice = price;
         final int finalQuantity = quantity;
-        return handleCommandResult(GlobalMarketPlusAPI.auctionItem(player, finalPrice, finalQuantity), "已发起拍卖: {} x{}，起拍价: ${}", new Object[]{displayName, finalQuantity, String.format("%.2f", finalPrice)}, "[FAILURE] 发起拍卖失败，可能没有权限、余额不足以支付税额或命令不可用", "发起拍卖");
+        return handleCommandResult(GlobalMarketPlusAPI.auctionItem(player, finalPrice, finalQuantity), "已发起拍卖: {} x{}，起拍价: ${}", new Object[]{displayName, finalQuantity, String.format("%.2f", finalPrice)}, "发起拍卖失败，可能没有权限、余额不足以支付税额或命令不可用", "发起拍卖");
     }
 
     private CompletableFuture<SkillResult> sellInventory(SkillContext context) {
@@ -559,12 +559,12 @@ public class MarketActionSkill implements Skill {
 
         // 价格缺失 → 引导补充
         if (price == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 请告诉我要以多少单价批量上架？")));
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请告诉我要以多少单价批量上架？")));
         }
 
         // 直接打开批量上架 GUI（玩家在 GUI 中自行放入物品并确认）
         final double finalPrice = price;
-        return handleCommandResult(GlobalMarketPlusAPI.sellInventory(player, finalPrice), "已为你打开批量上架页面，单价: ${}，请在 GUI 中放入物品并确认", new Object[]{String.format("%.2f", finalPrice)}, "[FAILURE] 批量上架失败，可能没有权限或命令不可用", "批量上架");
+        return handleCommandResult(GlobalMarketPlusAPI.sellInventory(player, finalPrice), "已为你打开批量上架页面，单价: ${}，请在 GUI 中放入物品并确认", new Object[]{String.format("%.2f", finalPrice)}, "批量上架失败，可能没有权限或命令不可用", "批量上架");
     }
 
     private CompletableFuture<SkillResult> buyInventory(SkillContext context) {
@@ -580,18 +580,18 @@ public class MarketActionSkill implements Skill {
         // 价格缺失 → 引导补充
         if (price == null) {
             double balance = GlobalMarketPlusAPI.getBalance(player);
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 请告诉我要以多少单价批量收购？当前余额: ${}", String.format("%.2f", balance))));
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请告诉我要以多少单价批量收购？当前余额: ${}", String.format("%.2f", balance))));
         }
 
         // 余额预检查
         double balance = GlobalMarketPlusAPI.getBalance(player);
         if (balance >= 0 && balance < price) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[FAILURE] 余额不足，当前余额 ${}", String.format("%.2f", balance))));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("余额不足，当前余额 ${}", String.format("%.2f", balance))));
         }
 
         // 直接打开批量收购 GUI（玩家在 GUI 中自行放入物品并确认）
         final double finalPrice = price;
-        return handleCommandResult(GlobalMarketPlusAPI.buyInventory(player, finalPrice), "已为你打开批量收购页面，单价: ${}，请在 GUI 中放入物品并确认", new Object[]{String.format("%.2f", finalPrice)}, "[FAILURE] 批量收购失败，可能没有权限或命令不可用", "批量收购");
+        return handleCommandResult(GlobalMarketPlusAPI.buyInventory(player, finalPrice), "已为你打开批量收购页面，单价: ${}，请在 GUI 中放入物品并确认", new Object[]{String.format("%.2f", finalPrice)}, "批量收购失败，可能没有权限或命令不可用", "批量收购");
     }
 
     /**
@@ -601,9 +601,9 @@ public class MarketActionSkill implements Skill {
         double refPrice = GlobalMarketPlusAPI.getItemReferencePrice(itemTypeName);
 
         if (refPrice > 0) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 你手中的 {} x{}，当前市场最低价为 ${}。请告诉我你希望以多少钱的单价上架？", displayName, quantity, String.format("%.2f", refPrice))));
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("你手中的 {} x{}，当前市场最低价为 ${}。请告诉我你希望以多少钱的单价上架？", displayName, quantity, String.format("%.2f", refPrice))));
         } else {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("[NEED_INFO] 你手中的 {} x{}，市场暂无参考价。请告诉我你希望以多少钱的单价上架？", displayName, quantity)));
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("你手中的 {} x{}，市场暂无参考价。请告诉我你希望以多少钱的单价上架？", displayName, quantity)));
         }
     }
 }

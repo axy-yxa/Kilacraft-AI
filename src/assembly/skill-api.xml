@@ -15,6 +15,7 @@
                 <include>com/zm/kilacraftAI/skills/framework/Skill.class</include>
                 <include>com/zm/kilacraftAI/skills/framework/SkillContext.class</include>
                 <include>com/zm/kilacraftAI/skills/framework/SkillResult.class</include>
+                <include>com/zm/kilacraftAI/skills/framework/SkillStatus.class</include>
                 <include>com/zm/kilacraftAI/skills/framework/SkillIntent.class</include>
                 <include>com/zm/kilacraftAI/skills/framework/SkillProvider.class</include>
             </includes>

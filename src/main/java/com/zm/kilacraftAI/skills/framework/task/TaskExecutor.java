@@ -8,6 +8,7 @@ import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillIntent;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.SkillResultFormatter;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -84,7 +85,7 @@ public class TaskExecutor {
         String dependencyError = checkDependencies(plan, currentStep);
         if (dependencyError != null) {
             // 依赖未满足，记录失败原因，跳过该步骤，继续执行
-            plan.getContext().put(currentStep.getId(), SkillResult.failure(I18nService.tr("[依赖未满足] {}", dependencyError)));
+            plan.getContext().put(currentStep.getId(), SkillResultFormatter.skipped(I18nService.tr("依赖未满足：{}", dependencyError)));
             PluginLoggerUtil.debug("任务执行", "步骤 {} 因依赖未满足被跳过: {}", currentStep.getId(), dependencyError);
             return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history, userMessage);
         }
@@ -98,7 +99,7 @@ public class TaskExecutor {
         BuildContextResult buildResult = buildStepContext(currentStep, plan, baseContext);
         if (buildResult.isFailed()) {
             // 占位符解析失败，记录失败原因，跳过该步骤，继续执行
-            plan.getContext().put(currentStep.getId(), SkillResult.failure(I18nService.tr("[参数解析失败] {}", buildResult.errorMessage)));
+            plan.getContext().put(currentStep.getId(), SkillResultFormatter.skipped(I18nService.tr("参数解析失败：{}", buildResult.errorMessage)));
             PluginLoggerUtil.debug("任务执行", "步骤 {} 因参数解析失败被跳过: {}", currentStep.getId(), buildResult.errorMessage);
             return executeSteps(plan, sortedSteps, stepIndex + 1, baseContext, history, userMessage);
         }
@@ -360,16 +361,7 @@ public class TaskExecutor {
             Object result = entry.getValue();
 
             if (result instanceof SkillResult skillResult) {
-                if (skillResult.isSuccess()) {
-                    summary.addResult(stepId, "SUCCESS", skillResult.getMessage());
-                } else {
-                    String msg = skillResult.getMessage();
-                    if (msg != null && (msg.startsWith("[依赖未满足]") || msg.startsWith("[参数解析失败]"))) {
-                        summary.addResult(stepId, "SKIPPED", msg);
-                    } else {
-                        summary.addResult(stepId, "FAILURE", msg);
-                    }
-                }
+                summary.addResult(stepId, skillResult.getStatus().name(), skillResult.getMessage());
             } else {
                 summary.addResult(stepId, "UNKNOWN", String.valueOf(result));
             }

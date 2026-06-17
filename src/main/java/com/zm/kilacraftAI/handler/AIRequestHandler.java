@@ -16,6 +16,7 @@ import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillIntent;
+import com.zm.kilacraftAI.skills.framework.SkillResultFormatter;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
@@ -194,7 +195,7 @@ public class AIRequestHandler {
         plugin.getSkillManager().executeSkillByIntent(intent, context).thenCompose(execResult -> {
             if (execResult.isSuccess()) {
                 PluginLoggerUtil.debug("技能执行", "技能执行成功");
-                AnalysisSummary summary = new AnalysisSummary().userMessage(message).addResult("SUCCESS", execResult.getMessage()).statistics(1, 0, 0);
+                AnalysisSummary summary = new AnalysisSummary().userMessage(message).addResult(execResult.getStatus().name(), execResult.getMessage()).statistics(1, 0, 0);
 
                 // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
                 return plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.SKILL_RESULT, false).thenApply(result -> {
@@ -219,7 +220,7 @@ public class AIRequestHandler {
                 PluginLoggerUtil.debug("技能执行", "已回退到普通 AI 处理");
                 // 将技能失败信息注入消息上下文，回退到普通AI兜底
                 // LLM看到失败信息后可以理解原因并引导玩家（如提示取消旧的挂机任务）
-                String enrichedMessage = message + "\n" + I18nService.tr("[系统提示：技能执行失败 - {}]", finalResult.getMessage());
+                String enrichedMessage = message + "\n[系统提示：" + SkillResultFormatter.toLlmText(finalResult) + "]";
                 handleNormalAIRequest(enrichedMessage, ctx, message);
             }
         }).exceptionally(throwable -> {

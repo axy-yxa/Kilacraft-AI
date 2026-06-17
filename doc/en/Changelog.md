@@ -5,7 +5,7 @@
 
 ---
 
-## v2.1.1 - Two-Phase Intent Recognition Architecture, Prompt System Restructuring, LLM Thinking Mode Governance
+## v2.1.1 - Two-Phase Intent Recognition Architecture, Skill SPI Structured Response (needInfo Secondary Confirmation), Prompt System Restructuring, LLM Thinking Mode Governance
 
 ### ✨ New Features
 - **Two-Phase Intent Recognition Architecture (Core of this release)**: Splits the original "single full skill list to LLM" into two phases, significantly reducing Token consumption
@@ -18,6 +18,10 @@
     - **Complex skill** (hit incl. BukkitAPI 77 actions): Phase 1 + Phase 2 ≈ **73K chars**, **↓ ~32%**
     - Token conversion (Chinese-mixed content ~0.6 token/char): baseline ≈ 64K → three scenarios ≈ 4.8K / 22.6K / 43.5K
   - Response speed: two-phase adds one ultra-lightweight Phase 1 call, but each recognition no longer carries the full skill list; net latency depends on model and network
+- **Skill SPI Structured Response Architecture (new `needInfo` secondary confirmation)**: Skill response semantics upgraded from "message-string prefixes" to typed status
+  - **New `SkillResult.needInfo(message)` factory**: the official contract for third-party Skills to implement "needs info / secondary confirmation" (missing-param prompts, large-transfer confirmation, etc.); the framework emits a `[NEED_INFO]` marker and intent recognition drives the confirmation flow
+  - `SkillResult` adds a typed `SkillStatus` enum (SUCCESS/FAILURE/NEED_INFO) + `getStatus()`; a new normalization layer `SkillResultFormatter` uniformly tags output to the LLM as `[SUCCESS]/[FAILURE]/[NEED_INFO]` — Skills write plain text, eliminating the inconsistency and double-tagging caused by hand-written prefixes
+  - SPI Jar adds the `SkillStatus` class (6th class)
 - **Intent Recognition Prompt System Restructuring** (Chinese/English synced): Added "Three Inviolable Rules" top-priority rule (default to multi-step when uncertain); single-intent/multi-step decision refactored to three-condition check (required param provided by user + completable in one action + no dependency on other actions' return values); arithmetic placeholders unified for `amount`/`quantity`/`price`/`threshold`; parameter missing enforced "query-then-act" (null required params prohibited); Phase 1 coarse-selection positioning strengthened (favor recall over precision)
 - **LLM Thinking Mode Governance**: Normal conversation path auto-disables thinking for models with thinking on by default (MiMo, DeepSeek V4+, GLM 4.5+, Kimi K2+, Qwen3, Grok 4, Doubao thinking, MiniMax-M3, etc.); admin reasoning path injects enable params per model family; adapted OpenAI o-series / Doubao thinking `max_completion_tokens`. Resolves thinking tokens sharing `max_tokens` budget with output tokens causing empty output in MC scenarios (small quota)
 - **Placeholder Arithmetic Evaluation Utility (ArithmeticUtil)**: Evaluation logic extracted to a public utility class; application scope expanded from multi-step task scalar params (amount/quantity/price) to CUSTOM task `threshold`, supporting relative thresholds like "5 below current health" (`{step_0.health}-5`). Single binary operation only (+ - * /), pure regex, no injection risk
@@ -37,6 +41,8 @@
 - **Embedding Retrieval Optimization**: chunk vector norm precomputed and cached, cosine similarity computation reduced by 2/3
 - **`reconcileOnlineProfiles` Single-Connection Batch**: aligned with `flushAllProfiles` pattern
 - **Profile Analysis Prompt Temporal Optimization (Chinese/English synced)**: No longer extracts volatile transient data like balance, coordinates, and inventory counts; retains only long-term stable traits to avoid stale wrong info lingering in the profile; existing profiles are auto-cleaned on the next analysis
+- **Built-in Skills fully migrated to structured output**: MarketActionSkill / CMISkill / MarketQuerySkill / CommandSkill stripped hand-written `[FAILURE]`/`[NEED_INFO]` prefixes (~80 sites), uniformly tagged by the framework normalization layer; `TaskExecutor` multi-step internal skip status switched to a typed enum, removing the old Chinese-prefix sniffing (fixes a latent classification mismatch under English locale)
+- **Secondary confirmation & prompt governance (Chinese/English synced)**: intent recognition prompts add a "confirmation-flow" rule (reads the concrete value from history when the player confirms a prior action); `llm.yml` system prompt uniformly documents marker semantics; `messages_en.yml` strips marker prefixes embedded in keys/values and fixes a duplicate key; `Skill-SPI-Integration-Guide.md` (zh+en) fully rewritten
 
 ### 🐛 Bug Fixes
 - Fixed `BM25Scorer.countOccurrences` infinite loop on empty keyword causing `mvn test` to hang forever
@@ -53,11 +59,12 @@
 2. **MUST remove `intent_prompts.yml` / `intent_prompts_en.yml`**: the two-phase architecture + prompt system restructuring changed this file's structure significantly (new `phase1` section, full rewrite into 9 sections, new "Three Inviolable Rules", etc.). Old file contents override the code's built-in new defaults, so the two-phase architecture and this prompt refactor **will not take effect** — **you must delete and restart to let the plugin regenerate it**
 3. **Recommended** (for full skill / model config optimization effects): the following config files are recommended to be deleted and regenerated (works without deletion, just missing some optimizations):
    - `skills/afktask/AFKTaskSkill.yml` / `AFKTaskSkill_en.yml`, `skills/globalmarketplus/MarketActionSkill.yml` / `MarketActionSkill_en.yml`, `skills/bukkit/apis.yml` / `apis_en.yml`
-   - `llm.yml` / `admin.yml` (thinking mode governance notes + diagnostic model fallback notes + default model updates)
+   - `llm.yml` (thinking mode governance notes + default model updates + **skill-result marker semantics unified**: added `[SUCCESS]/[FAILURE]/[NEED_INFO]/[SKIPPED]` four-marker fallback handling and multi-step failure semantics; old config overrides the new version) / `admin.yml` (diagnostic model fallback notes)
    - `config.yml` (new `security.player_isolation.offline_cache` section, recent active player cache)
    - `database.yml` (new `h2.tcp` section, H2 TCP Server access control; profile analysis prompt temporal optimization, old config overrides the built-in new version, update or delete to regenerate)
 4. Except for the `intent_prompts.yml` in step 2, all other config entries have code-level default fallbacks — **works without deleting them**
 5. **Lower diagnostic feature barrier**: when no `admin.yml` reasoning model is configured, health monitoring auto-falls back to `llm.yml`, usable without extra config (diagnostic quota still controlled by `admin.yml`, no conflict with normal conversation)
+6. **Skill SPI fully backward compatible**: `SkillResult` changes are **purely additive** (`success`/`failure`/public constructor signatures unchanged); already-compiled third-party Jars **need no recompilation and no changes** — at runtime the server's new `SkillResult` provides and auto-fills `status` (the SPI Jar is compile-time only, not packaged into third-party plugins). Old Skills need no changes; to use new capabilities like `needInfo`, recompile against the 2.1.1+ SPI Jar
 
 ---
 
