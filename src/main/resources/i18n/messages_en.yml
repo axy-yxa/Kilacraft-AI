@@ -1429,6 +1429,7 @@ messages:
   "{}模式分析完成": "{} mode analysis complete"
   "守护线程已标记关闭": "Guardian marked for shutdown"
   "执行 Profiler 命令: {}": "Executing Profiler command: {}"
+  "Profiler 命令已发送，等待 URL（超时: {}秒）": "Profiler command sent, waiting for URL (timeout: {}s)"
   "触发 Profiler 失败: {}": "Failed to trigger Profiler: {}"
   "拉取 Profiler 元数据失败: {}": "Failed to fetch Profiler metadata: {}"
   "下载 Profiler 数据失败: {}": "Failed to download Profiler data: {}"
@@ -1678,6 +1679,7 @@ messages:
   "自监控": "Self-Monitoring"
   "## 2. 插件性能分析": "## 2. Plugin Performance Analysis"
   "Server thread 采样占比: {}": "Server thread sample ratio: {}"
+  "Server thread 采样占比: {}（{} 个栈节点）": "Server thread sample ratio: {} ({} stack nodes)"
   "### 已安装插件耗时": "### Installed Plugin Time"
   "插件": "Plugin"
   "采样占比": "Sample Ratio"
@@ -1770,6 +1772,8 @@ messages:
   "玩家 {} 的待确认续体已过期，已清空": "Player {}'s pending resume expired, cleared"
   "玩家 {} 的待确认续体认领时发现已过期": "Player {}'s pending resume found expired on claim"
   "插件卸载，清除全部 {} 个待确认续体": "Plugin disabling, cleared all {} pending resumes"
+  "续体过期清理": "Resume expiration cleanup"
+  "清理过期/超轮的待确认续体": "Clean expired/exceeded pending resumes"
 
   # ==================== AIRequestHandler ====================
   "检测到待确认续体：{}.{}，进入恢复分类": "Pending resume detected: {}.{}, entering resume classification"
