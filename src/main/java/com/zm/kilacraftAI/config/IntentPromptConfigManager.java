@@ -80,6 +80,10 @@ public class IntentPromptConfigManager {
     @Getter
     private String afkTaskRules;
 
+    // 待确认续体分类提示词（pending_resume.classify_prompt）
+    @Getter
+    private String pendingClassifyPrompt;
+
     // Phase 1 配置（两阶段意图识别）
     @Getter
     private String phase1RoleDefinition;
@@ -152,6 +156,9 @@ public class IntentPromptConfigManager {
 
         // 第七部分：挂机任务专用规则
         this.afkTaskRules = config.getString("afk_task_rules", "");
+
+        // 待确认续体分类提示词
+        this.pendingClassifyPrompt = config.getString("pending_resume.classify_prompt", DEFAULT_PENDING_CLASSIFY_PROMPT);
 
         // Phase 1 配置（两阶段意图识别 — Skill 分类）
         this.phase1RoleDefinition = config.getString("phase1.role_definition", "你是两阶段意图识别系统的第一阶段（粗选阶段）。你的输出将传递给第二阶段进行精确的动作选择和参数提取，因此你的目标是粗选——宁多勿漏。\n\n你是一个技能分类器。根据用户的输入，判断需要使用哪些技能类别来完成任务。\n只需要返回技能名称列表，不需要选择具体动作或提取参数。\n如果用户请求是闲聊、问候、现实生活话题，或没有任何技能能覆盖用户意图，返回 null。\n\n【核心匹配标准】\n- **严格依据【可用技能列表】中每个技能的描述文本来判断匹配**，禁止基于你自己的外部知识做联想推理\n- 技能的描述文本必须直接、明确地服务于用户问题的意图，“获取的数据可能有助于回答”不构成匹配理由。如果没有技能的描述文本能直接服务于用户问题的意图，就必须返回 null\n- 正例：用户问“我手上拿着什么” → 技能描述中有“获取玩家手持物品”，直接服务于用户意图 → 匹配\n- 正例：用户问的是游戏外现实生活话题 → 没有任何技能的描述文本服务于这类现实意图 → 不匹配，返回 null\n- **“技能获取的数据可能有助于回答用户问题”≠“技能匹配用户意图”。只有当用户问题本身就要求获取该数据时才构成匹配**\n- 注意：如果上一轮对话有明确上下文，应该结合历史理解意图，而不是直接返回 null\n\n【技能名称严格限制 - 最高优先级】\n- 绝对禁止编造技能名称，只能使用【可用技能列表】中明确列出的技能名称\n- 严禁使用任何不在列表中的名称，即使你认为它“应该存在”\n- 严禁根据功能推测技能名称（如按功能描述编造一个看似合理的英文标识符）\n- 把【可用技能列表】视为唯一的白名单\n- 你的职责：识别意图 → 匹配已有技能。不是你的职责：创造新技能、推测技能名称、假设功能存在\n- 原则：宁多选不少选——当对某个技能是否相关存疑时，应纳入而非排除。你的目标是粗选：在不遗漏的前提下尽量精准。宁可多选一个可能相关的技能，也不要漏掉一个。后续 Phase 2 会进行精确的动作选择和参数提取\n");
@@ -259,6 +266,22 @@ public class IntentPromptConfigManager {
         sb.append(I18nService.tr("【输出质量要求】")).append("\n");
         sb.append(outputQualityRequirements).append("\n");
 
+        return sb.toString();
+    }
+
+    /**
+     * 待确认续体分类提示词的内置默认（当配置文件缺失 {@code pending_resume.classify_prompt} 时兜底）。
+     */
+    private static final String DEFAULT_PENDING_CLASSIFY_PROMPT = "" + "请判断玩家本轮回复针对上述【待处理操作】的意图，只输出一个 JSON：\n" + "- 肯定意向（确认/是/好/执行/就这样）→ {\"pending_action\":\"confirm\"}\n" + "- 提供或修改具体值（如金额/数量/名称）→ {\"pending_action\":\"respond\",\"entities\":{...只填本轮新给或改的字段...}}\n" + "- 放弃（取消/算了/不要了）→ {\"pending_action\":\"cancel\"}\n" + "- 与该操作无关（谈别的话题）→ {\"pending_action\":\"none\"}\n" + "【重要】绝不重建或猜测任何参数值，已有参数由框架自动持有；你只做意图分类。";
+
+    /**
+     * 构建待确认续体分类的系统提示词：待处理操作描述 + 分类契约。
+     */
+    public String buildPendingClassifyPrompt(String skillName, String action, String message) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(I18nService.tr("【系统：当前有一笔待处理的操作】")).append("\n");
+        sb.append(skillName).append(".").append(action).append(": ").append(message != null ? message : "").append("\n\n");
+        sb.append(pendingClassifyPrompt != null && !pendingClassifyPrompt.isEmpty() ? pendingClassifyPrompt : DEFAULT_PENDING_CLASSIFY_PROMPT);
         return sb.toString();
     }
 }

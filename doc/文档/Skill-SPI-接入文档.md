@@ -8,7 +8,7 @@
 ## 目录
 
 1. [概述](#1-概述)
-2. [版本与架构演进（新旧差异）](#2-版本与架构演进新旧差异)
+2. [核心契约速览](#2-核心契约速览)
 3. [架构总览与数据流](#3-架构总览与数据流)
 4. [快速开始（5 分钟接入）](#4-快速开始5-分钟接入)
 5. [核心接口](#5-核心接口)
@@ -39,8 +39,8 @@ Kilacraft-AI 通过 **SPI（Service Provider Interface）** 机制，允许第�
 - **自动发现**：基于 Bukkit `ServicesManager`，启动后自动扫描注册
 - **错误隔离**：第三方 Skill 的异常不会影响主插件核心流程
 - **LLM 意图驱动**：AI 自动识别意图并调用对应 Skill，用户无需记忆命令
-- **结构化响应（v2.1.1）**：`SkillResult` 携带类型化 `SkillStatus`，框架统一输出 `[SUCCESS]/[FAILURE]/[NEED_INFO]` 标记
-- **二次确认一等公民（v2.1.1）**：`needInfo(...)` 让 Skill 可结构化声明"需补全信息/需玩家确认"
+- **结构化响应**：`SkillResult` 携带类型化 `SkillStatus`，框架统一输出 `[SUCCESS]/[FAILURE]/[NEED_INFO]` 标记
+- **二次确认**：`needInfo(...)` 让 Skill 结构化声明"需补全信息/需玩家确认"，框架自动管理续体恢复
 - **多步骤任务**：Skill 返回的 `data` 可被后续步骤用 `{step_x.field}` 占位符引用，实现跨技能编排
 
 ### 适用场景
@@ -55,35 +55,16 @@ Kilacraft-AI 通过 **SPI（Service Provider Interface）** 机制，允许第�
 
 ---
 
-## 2. 版本与架构演进（新旧差异）
+## 2. 核心契约速览
 
-> 如果你是从 **2.0.x 或更早** 升级，请务必阅读本节。
+接入前先建立整体认知：
 
-### 2.1 v2.1.1 引入了什么
+- **Skill**：实现 `Skill` 接口，经 `SkillProvider` 自动发现并由框架执行（见 [§3](#3-架构总览与数据流)、[§4](#4-快速开始5-分钟接入)）。
+- **SkillResult 三态**：`success`（成功，可带 data）、`failure`（硬失败）、`needInfo`（软暂停：需补参或二次确认）。message 为裸文本，`[STATUS]` 标记由框架统一添加（见 [§6](#6-结果状态标记与归一化)）。
+- **needInfo 续体**：Skill 返回 `needInfo(...)` 暂停后，框架自动快照参数、在玩家下轮回复（确认/补值/取消）后恢复执行；确认状态经 `context.isConfirmed()` 读取（见 [§7](#7-需补充信息--二次确认needinfo)）。
+- **多步骤数据**：`success(msg, data)` 的 `data` 可被后续步骤用 `{step_x.field}` 占位符引用（见 [§8](#8-多步骤任务数据传递)）。
 
-v2.1.1 为 `SkillResult` 引入了**类型化状态**与**二次确认**能力：
-
-| 维度 | 说明 |
-|------|------|
-| 类型化状态 | 新增 `SkillStatus` 枚举与 `getStatus()`；Skill 用 `success()`/`failure()`/`needInfo()` 表达结果，框架在输出给 LLM 时统一加 `[SUCCESS]/[FAILURE]/[NEED_INFO]` 标记 |
-| 二次确认 | 新增 `needInfo(...)` 官方契约，支持"缺参数引导补充"与"高风险操作需玩家确认"两种场景（见 [§7](#7-需补充信息--二次确认needinfo)） |
-| 裸文本 message | Skill 返回裸文本即可，bracket 标记由框架统一添加，无需、也禁止自行拼接前缀 |
-
-> 旧版本（≤ 2.0.x）的 `SkillResult` 只有 success/failure 两态，不支持类型化状态标记与二次确认。**要使用这些新能力，请以 2.1.1+ 的 SPI Jar 编译。**
-
-### 2.2 向后兼容性
-
-v2.1.1 对 `SkillResult` 与 SPI Jar 的改动是**纯加法**，已编译的旧第三方 Jar **无需重新编译、无需改动**即可在新版本运行：
-
-- `SkillResult.success(...)` / `failure(...)` 签名一字未变；旧调用在运行时自动得到正确的 `SkillStatus`
-- 旧的公开构造器 `new SkillResult(boolean, String, Object)` 保留（内部推导 status）
-- 新增 `SkillStatus` 枚举类进入 SPI Jar，旧 Jar 不引用它 → 不会触发 `NoSuchMethodError`/`NoSuchFieldError`
-
-> 原理：SPI Jar 仅用于编译期；运行时服务器上只有一份 `SkillResult` 类（v2.1.1 版本），旧 Skill 调用的 `success()`/`failure()` 实际执行的是 v2.1.1 的实现，产出的对象自带 status，框架读 `getStatus()` 一切正常。
-
-### 2.3 使用新功能
-
-需要 `needInfo(...)` 等新能力时，用 2.1.1+ 的 SPI Jar 重新编译即可。旧 Skill 无需任何改动，继续按原样运行。
+接入只需 `compileOnly` 引入 `Kilacraft-Skill-API-2.1.1.jar`（含 `Skill`/`SkillContext`/`SkillResult`/`SkillStatus`/`SkillIntent`/`SkillProvider`），**不要打包进你的插件**，运行时由主插件提供。
 
 ---
 
@@ -281,6 +262,7 @@ public class SkillContext {
     String getAction();                 // LLM 识别的动作
     Map<String, String> getEntities();  // LLM 提取的参数
     String getEntity(String key);       // 获取指定参数（始终为 String，需自行转数字）
+    boolean isConfirmed();              // 框架确认位：玩家确认后的恢复调用置 true，用于二次确认
 }
 ```
 
@@ -334,7 +316,7 @@ public enum SkillStatus {
 
 ## 7. 需补充信息 / 二次确认（needInfo）
 
-这是 v2.1.1 新增的官方契约，用于两种场景：
+needInfo 是官方契约，用于两种场景：
 
 1. **缺参数**：必需参数缺失，需要玩家补充
 2. **需确认**：操作有风险或金额较大，需玩家明确确认后才执行
@@ -356,7 +338,7 @@ return CompletableFuture.completedFuture(
 
 ### 7.2 完整示例：转账二次确认（精简自内置 MarketActionSkill）
 
-下面是一个"大额转账需确认"的完整逻辑，演示 `needInfo` 与确认参数 `confirmed` 的配合：
+下面是一个"大额转账需确认"的完整逻辑，演示 `needInfo` 与框架确认位 `context.isConfirmed()` 的配合：
 
 ```java
 private CompletableFuture<SkillResult> transferMoney(SkillContext context) {
@@ -384,17 +366,16 @@ private CompletableFuture<SkillResult> transferMoney(SkillContext context) {
         return CompletableFuture.completedFuture(SkillResult.failure("金额格式不正确: " + amountStr));
     }
 
-    // ③ 大额转账（超过余额 50%）→ 需二次确认
+    // ③ 大额转账（超过余额 50%）→ 需二次确认（确认位由框架 context.isConfirmed() 表达）
     double balance = getBalance(player);
     if (balance > 0 && amount > balance * 0.5) {
-        String confirmed = context.getEntity("confirmed");
-        if (!"true".equalsIgnoreCase(confirmed)) {
+        if (!context.isConfirmed()) {
             // 返回 needInfo，message 含已计算的具体金额
             return CompletableFuture.completedFuture(
                     SkillResult.needInfo("即将向 " + targetPlayer + " 转账 " + amount
                             + "，占你余额的较大比例。确认转账吗？"));
         }
-        // confirmed=true → 继续往下真正执行
+        // 框架在玩家确认后置 isConfirmed=true → 继续往下真正执行
     }
 
     // 真正执行转账
@@ -404,54 +385,56 @@ private CompletableFuture<SkillResult> transferMoney(SkillContext context) {
 
 ### 7.3 二次确认流程是怎么跑通的（端到端）
 
-整个过程是 **Skill 代码 + 框架 + 意图识别提示词** 三方协作：
+确认/补参由**框架续体（continuation）机制**驱动。Skill 只需返回 `needInfo(...)`，框架自动完成"快照参数 → 分类玩家回复 → 恢复执行"：
 
 ```
 [轮 1] 玩家："给 ZookeeR 转一半余额"
    │
    ├─ 意图识别 Phase2 识别为多步骤：step_0 查余额 → step_1 转账({step_0.balance}/2)
-   ├─ 执行 step_0 得余额 1177.75；step_1 求值得 588.87，占比 >50%
-   └─ transferMoney 返回 needInfo("即将向 ZookeeR 转账 588.87，确认转账吗？")
+   ├─ 执行 step_0 得余额 1177.75；step_1 求值得 588.88，占比 >50%
+   └─ transferMoney 返回 needInfo("即将向 ZookeeR 转账 $588.88，确认转账吗？")
         │
-        ├─ 框架归一化层输出 [NEED_INFO] 即将向 ZookeeR 转账 588.87...
-        ├─ 该结果 isSuccess()=false → 回退到普通 LLM 对话
-        └─ LLM 按系统提示词规范，用自然语言转述给玩家："转账需要确认，是否向 ZookeeR 转 588.87？"
-              （这条回复进入对话历史，含具体值 588.87）
+        ├─ 唯一咽喉 SkillManager.executeSkillByIntent 检测到 NEED_INFO：
+        │    快照 {target_player:"ZookeeR", amount:"588.88"} + 消息 → 存入 per-player 续体槽位
+        ├─ 框架归一化层输出 [NEED_INFO] 正文，回退 LLM 用自然语言转述给玩家
+        └─ 关键：具体值只存进框架槽位，不再要求 LLM 下轮从聊天读回
 
 [轮 2] 玩家："确认"
    │
-   ├─ 意图识别 Phase2 看到"确认" + 历史里的 [NEED_INFO] 上下文
-   ├─ 按提示词"二次确认流"规则：从历史读取具体值 588.87，单意图调用 transfer_money
-   │   entities = {target_player: "ZookeeR", amount: "588.87", confirmed: "true"}
-   ├─ transferMoney 检测到 confirmed=true → 跳过 needInfo 分支，真正执行
-   └─ 返回 success("已成功向 ZookeeR 转账 588.87")
+   ├─ 框架检测到玩家有活跃续体 → 走轻量分类（不走两阶段 Phase1/2）
+   ├─ 分类为 confirm → 框架用槽位快照 + 置 context.isConfirmed()=true 直接复用执行 transferMoney
+   │   （amount 仍是槽位里的 "588.88"，从未进聊天 → 无 $ 污染、无占位符回搬）
+   ├─ transferMoney 检测 isConfirmed=true → 跳过 needInfo 分支，真正执行
+   └─ 返回 success("已成功向 ZookeeR 转账 $588.88")，终局清槽位
 ```
 
 框架保证：
 
 1. **统一 marker**：归一化层把 `needInfo` 结果输出为 `[NEED_INFO] 正文`，LLM 能稳定识别。
 2. **不会半执行**：多步骤中某步返回 `needInfo`（`isSuccess()=false`）时，**声明了依赖该步的下游**会被框架自动跳过，不会带着残缺数据继续跑。
-3. **具体值回传**：needInfo 的 message 会被回退 LLM 转述进对话历史；玩家下轮确认时，意图识别从历史读到这个具体值再发起调用。
+3. **参数不经聊天往返**：needInfo 时框架快照"已传给 Skill 的 entities"（已消毒、占位符已解析），玩家下轮确认/补值时直接复用快照恢复执行，避免参数被 LLM 文本污染。
+4. **实时数据由 Skill 现场重校验**：框架只存参数，**不缓存余额等世界态**。恢复执行时 Skill 现场重读余额；若漂移导致已确认金额不再有效（如确认后玩家手动转走部分余额），Skill 可返回新一轮 needInfo 重新引导（提示玩家重给金额），而非静默执行错误结果。
+5. **生命周期**：槽位 per-player 唯一，最后写入者胜（N 次确认 / 补参同规则）；终局（SUCCESS/FAILURE）、玩家取消、TTL 过期、超 `max_rounds`、玩家下线、插件卸载时清空；纯内存不落盘（高风险待确认操作绝不跨重启自动复活）。
 
 ### 7.4 Skill 开发者的提示词（description / hints）怎么写
 
-确认流能跑通，除了代码返回 `needInfo`，**还必须在 Skill 的 action 描述里声明"确认契约"**，告诉 LLM：看到 `[NEED_INFO]` 且玩家肯定回复时，用什么参数再次调用。以内置转账为例：
+确认/补参由框架自动管理。**Skill 的 action 描述只需声明本动作可能 needInfo**，无需教 LLM "看到 [NEED_INFO] 就带确认标记再次调用"：
 
 ```yaml
 # action_descriptions（节选自 MarketActionSkill.yml）
 transfer_money: "向其他玩家转账。需要参数：target_player、amount（纯数字，或算术占位符如 {step_0.balance}/2）。
-  可选参数：confirmed（确认为 'true'）。当用户说'转账'、'给XX转100'时使用。
-  如果此操作返回 [NEED_INFO] 要求确认，且用户回复'是'、'确认'、'好'等肯定回答时，
-  你必须带上相同参数再加上 confirmed='true' 再次调用 transfer_money。"
+  当用户说'转账'、'给XX转100'时使用。本动作可能返回 [NEED_INFO] 要求补充金额或确认大额转账；
+  续体由框架自动管理，按消息引导玩家即可。"
 ```
 
 要点：
 
-- **声明确认参数**：明确哪个参数表示"已确认"（如 `confirmed='true'`），框架不强制参数名，由你定义。
-- **描述触发词与再调用方式**：告诉 LLM "玩家肯定回复 → 带确认参数再次调用同一动作"。
-- **message 要含具体值**：needInfo 的正文里带上已计算/已查到的具体值（金额、编号等），方便玩家下轮确认时意图识别从历史读取。
+- **确认信号用 `context.isConfirmed()`**：确认位由框架统一管理（恢复执行时置 true）。Skill 代码读 `context.isConfirmed()`，**不再自定义 `confirmed` 实体参数**。
+- **message 含具体值**：needInfo 正文带上已计算/已查到的具体值（金额、编号等），供玩家确认时参考。
+- **实时数据现场重校验**：恢复执行时 Skill 应重读世界态（余额等）；漂移时可返回新一轮 needInfo 重新引导。
+- **无需 LLM 重建参数**：参数由框架槽位持有，描述中无需教 LLM 如何从历史读值或带确认标记再次调用。
 
-> 直接返回 `needInfo(...)` 即可，`[NEED_INFO]` 标记由框架自动添加。
+> 直接返回 `needInfo(...)` 即可，`[NEED_INFO]` 标记由框架自动添加；恢复执行自动走完整管线（安全消毒、权限、异常隔离）。
 
 ---
 
@@ -819,7 +802,7 @@ dependencies {
 com.zm.kilacraftAI.skills.framework.Skill
 com.zm.kilacraftAI.skills.framework.SkillContext
 com.zm.kilacraftAI.skills.framework.SkillResult
-com.zm.kilacraftAI.skills.framework.SkillStatus      ← v2.1.1 新增
+com.zm.kilacraftAI.skills.framework.SkillStatus
 com.zm.kilacraftAI.skills.framework.SkillIntent
 com.zm.kilacraftAI.skills.framework.SkillProvider
 ```
@@ -871,10 +854,10 @@ A: 可以，`getSkills()` 返回多个实例即可。
 A: 取决于你的 `isAvailable()`/`execute()`。控制台调用时 `context.getPlayer()` 为 null，需自行处理。
 
 **Q: 我需要"二次确认"功能，怎么实现？**
-A: 用 `SkillResult.needInfo(msg)` 返回，并在 action 描述里声明确认参数契约。详见 [§7](#7-需补充信息--二次确认needinfo)。
+A: 用 `SkillResult.needInfo(msg)` 返回（message 含具体值）；确认位读 `context.isConfirmed()`，框架在玩家确认后自动恢复执行并置位。**不要自定义 `confirmed` 实体参数，也不要在描述里教 LLM 带确认标记再次调用**——续体由框架自动管理。实时数据（余额等）恢复时由 Skill 现场重校验。详见 [§7](#7-需补充信息--二次确认needinfo)。
 
 **Q: 我应该在 message 里写 `[FAILURE]` 前缀吗？**
-A: **不要**。v2.1.1 起框架统一加标，你写裸文本即可；自己加前缀会导致双标。
+A: **不要**。框架统一加标，你写裸文本即可；自己加前缀会导致双标。
 
 **Q: 多步骤任务中如何被 LLM 正确编排？**
 A: 关键是 description / action 描述清楚说明返回的 data 字段，LLM 据此用 `{step_x.field}` 引用。

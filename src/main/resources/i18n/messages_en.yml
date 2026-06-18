@@ -66,6 +66,7 @@ modules:
   "画像分析": "Profile Analysis"
   "社交关系": "Social Relation"
   "消息分发": "Msg Dispatch"
+  "续体": "Resume"
 
 # ==================== 消息翻译 ====================
 # Message Translations
@@ -1749,3 +1750,30 @@ messages:
   "增量": "Delta"
   "在线玩家位置": "Online Player Positions"
   "世界 (区块x, 区块z)": "World (Chunk x, Chunk z)"
+
+  # ==================== 待确认续体机制 / Pending Resume ====================
+  # ==================== PendingResumeManager ====================
+  "保存待确认续体：{}.{}（round={}，TTL={}ms）": "Saved pending resume: {}.{} (round={}, TTL={}ms)"
+  "玩家 {} 的待确认续体 {}.{} 超过最大恢复次数 {}，已清空以防死循环": "Player {}'s pending resume {}.{} exceeded max resume rounds {}, cleared to prevent infinite loop"
+  "玩家 {} 的待确认续体已过期，已清空": "Player {}'s pending resume expired, cleared"
+  "玩家 {} 的待确认续体认领时发现已过期": "Player {}'s pending resume found expired on claim"
+  "插件卸载，清除全部 {} 个待确认续体": "Plugin disabling, cleared all {} pending resumes"
+
+  # ==================== AIRequestHandler ====================
+  "检测到待确认续体：{}.{}，进入恢复分类": "Pending resume detected: {}.{}, entering resume classification"
+  "玩家 {} 取消待确认操作": "Player {} cancelled pending operation"
+  "玩家 {} 的待确认续体已被并发认领/过期/取消": "Player {}'s pending resume already claimed/expired/cancelled"
+  "恢复执行：{}.{}（confirmed={}）": "Resuming execution: {}.{} (confirmed={})"
+  "待确认续体分类失败: {}": "Pending resume classification failed: {}"
+  "待确认续体关键词短路：{} → {}": "Pending resume keyword shortcut: {} → {}"
+  "已取消该操作。": "Operation cancelled."
+  "该操作正在处理或已失效，请重新描述你的需求。": "This operation is being processed or no longer valid. Please restate your request."
+  "该操作已过期或不存在，请重新描述你的需求。": "This operation has expired or does not exist. Please restate your request."
+  "单意图 {} 含未解析占位符 {}，回退普通 AI": "Single intent {} contains unresolved placeholders {}, falling back to normal AI"
+  "部分参数未能自动解析，请直接说明具体数值": "Some parameters could not be auto-resolved. Please state the concrete value directly."
+
+  # ==================== IntentPromptConfigManager ====================
+  "【系统：当前有一笔待处理的操作】": "[System: There is a pending operation]"
+
+  # ==================== MarketActionSkill ====================
+  "你确认时要转 ${}，但当前余额仅 ${}（期间有变动）。要转多少？或说「取消」。": "You confirmed transferring ${}, but the current balance is only ${} (changed since then). How much to transfer? Or say 'cancel'."

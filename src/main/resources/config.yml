@@ -242,6 +242,23 @@ security:
       # Preload window: load players active within the last N days
       preload_window_days: 7
 
+# ==================== 待确认续体配置 / Pending Resume Configuration ====================
+# 二次确认 / 补参：Skill 返回 needInfo 暂停时，框架自动快照"已传给 Skill 的参数"，
+# 玩家下轮回复分类（确认/补值/取消）后用快照直接恢复执行——参数不再经聊天往返。
+# Pending resume: when a skill returns needInfo, the framework snapshots the params already passed to it;
+# the player's next reply is classified (confirm/supply-value/cancel) and execution resumes from the snapshot —
+# params never round-trip through chat (eliminates $-prefix / placeholder-reuse parse failures).
+pending_resume:
+  # 总开关：关闭后退回旧行为（needInfo 仅由 LLM 往返处理）
+  # Master switch; when off, falls back to legacy LLM-round-trip behavior
+  enabled: true
+  # 槽位存活时长（秒）：过期自动清空，防内存泄漏
+  # Slot TTL in seconds; auto-cleared on expiry to prevent memory leaks
+  ttl_seconds: 300
+  # 单续体最大恢复次数：防止 Skill bug 导致的死循环
+  # Max resume rounds per slot; prevents infinite loops from buggy skills
+  max_rounds: 5
+
 # ==================== 社交关系配置 / Social Relation Configuration ====================
 # 社交关系智能提取器会定期扫描这些 Skill 的审计日志，
 # 从中提取涉及其他玩家的交互，自动累加社交关系强度

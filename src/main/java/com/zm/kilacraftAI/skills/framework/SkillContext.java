@@ -41,6 +41,12 @@ public class SkillContext {
     private String executionSource;
 
     /**
+     * 框架确认位：待确认续体恢复执行时由框架置 true，Skill 用 {@link #isConfirmed()} 读取。
+     * 普通执行始终为 false。getter 由类级 {@code @Getter} 生成。
+     */
+    private boolean confirmed;
+
+    /**
      * 创建 SkillContext
      */
     public SkillContext(Player player, String action, Map<String, String> entities) {
@@ -59,6 +65,14 @@ public class SkillContext {
     public SkillContext withAudit(String triggerMessage, String executionSource) {
         this.triggerMessage = triggerMessage;
         this.executionSource = executionSource;
+        return this;
+    }
+
+    /**
+     * 设置框架确认位（链式，框架内部使用）。
+     */
+    public SkillContext withConfirmed(boolean confirmed) {
+        this.confirmed = confirmed;
         return this;
     }
 

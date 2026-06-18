@@ -14,6 +14,8 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.skills.framework.resume.PendingAction;
+import com.zm.kilacraftAI.skills.framework.resume.PendingResume;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
 import com.zm.kilacraftAI.skills.framework.task.TaskStep;
 import org.bukkit.entity.Player;
@@ -274,6 +276,182 @@ public class SkillIntentRecognizer {
     }
 
     /**
+     * 待确认续体恢复分类。先做关键词短路（免 LLM），命中确认/取消直接返回；
+     * 歧义或补值回复走单次 LLM 分类。返回 null 表示与待确认操作无关，由调用方落回正常意图识别。
+     *
+     * @param userInput 玩家本轮原始输入
+     * @param slot      活跃续体
+     * @return 恢复动作，或 null（无关 / 解析失败）
+     */
+    public CompletableFuture<PendingAction> classifyPendingResponse(String userInput, PendingResume slot) {
+        if (slot == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        // 关键词短路：明显的确认/取消词直接分类，免 LLM 调用
+        PendingAction keywordMatch = classifyByKeyword(userInput, configManager == null || "zh".equals(configManager.getLanguage()));
+        if (keywordMatch != null) {
+            PluginLoggerUtil.debug("意图识别", "待确认续体关键词短路：{} → {}", userInput, keywordMatch.getType());
+            return CompletableFuture.completedFuture(keywordMatch);
+        }
+        LLMProvider llmProvider = plugin.getLlmManager().getCurrentProvider();
+        if (llmProvider == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        String systemPrompt = promptConfigManager.buildPendingClassifyPrompt(slot.getSkillName(), slot.getAction(), slot.getMessage());
+        AIResponseHandler handler = new AIResponseHandler() {
+            @Override
+            public UUID getPlayerId() {
+                return null;
+            }
+
+            @Override
+            public String getPlayerName() {
+                return "PendingClassify";
+            }
+
+            @Override
+            public void showResponse(String response) {
+                PluginLoggerUtil.debug("意图识别", "待确认续体分类结果: {}", response);
+            }
+
+            @Override
+            public void showStreamChunk(String chunk, String currentMessage) {
+            }
+
+            @Override
+            public void handleError(String errorMessage) {
+                PluginLoggerUtil.debug("意图识别", "待确认续体分类错误: {}", errorMessage);
+            }
+
+            @Override
+            public boolean isStreamOutputEnabled() {
+                return false;
+            }
+        };
+
+        PluginLoggerUtil.debug("意图识别", "待确认续体分类开始：{}.{}", slot.getSkillName(), slot.getAction());
+
+        return llmProvider.processRequestWithCustomSystemPrompt(userInput, "IntentRecognizer", null, handler, systemPrompt, false, false, true).thenApply(this::parsePendingAction);
+    }
+
+    /**
+     * 中文肯定词
+     */
+    private static final Set<String> AFFIRM_ZH = Set.of("确认", "确定", "是", "好", "好的", "对", "行", "可以", "没问题", "嗯", "执行", "就这样", "转吧", "同意");
+    /**
+     * 中文取消词（放弃）
+     */
+    private static final Set<String> CANCEL_ZH = Set.of("取消", "算了", "不要了", "放弃", "不用了", "作废", "不转了", "不买了", "不要", "别转了");
+    /**
+     * 英文肯定词
+     */
+    private static final Set<String> AFFIRM_EN = Set.of("yes", "ok", "okay", "confirm", "confirmed", "sure", "yeah", "yep", "do it", "go ahead", "affirmative", "proceed");
+    /**
+     * 英文取消词
+     */
+    private static final Set<String> CANCEL_EN = Set.of("cancel", "no", "nope", "never mind", "nevermind", "abort", "stop", "forget it", "don't", "do not");
+
+    /**
+     * 前导填充噪声（emmm/呃/啊/那个…）。不含"嗯"——"嗯"本身是肯定关键词。
+     */
+    private static final java.util.regex.Pattern LEADING_NOISE = java.util.regex.Pattern.compile("^(?:m+|em+|呃+|啊+|哦+|那个|那么|就)+", java.util.regex.Pattern.CASE_INSENSITIVE);
+    /**
+     * 结尾标点（第一遍剥离，不含语气词——避免破坏"好的/算了"等已收录带尾词）
+     */
+    private static final java.util.regex.Pattern TRAILING_PUNCT = java.util.regex.Pattern.compile("[!！。？?~\\s]+$");
+    /**
+     * 结尾语气词（第二遍剥离：吧/了/的/啊…），用于"确认吧/确认了"等命中 base 词
+     */
+    private static final java.util.regex.Pattern TRAILING_PARTICLE = java.util.regex.Pattern.compile("[吧了的啊呢哦啦哟哈呀呗]+$");
+
+    /**
+     * 关键词短路分类：明显的确认/取消词直接判定，免 LLM。按 zh 选词集，整句精确匹配（避免"不确认"误判）。
+     * 补值类回复（如"转300"）返回 null，由调用方走 LLM。zh 由调用方从 configManager 传入以便测试。
+     *
+     * @param userInput 玩家原始输入
+     * @param zh        是否中文词集
+     * @return CONFIRM / CANCEL，或 null（需走 LLM）
+     */
+    static PendingAction classifyByKeyword(String userInput, boolean zh) {
+        if (userInput == null || userInput.isBlank()) {
+            return null;
+        }
+        Set<String> affirm = zh ? AFFIRM_ZH : AFFIRM_EN;
+        Set<String> cancel = zh ? CANCEL_ZH : CANCEL_EN;
+
+        // 归一化：小写 + 剥离前导填充 + 结尾标点
+        String n = userInput.trim().toLowerCase();
+        n = LEADING_NOISE.matcher(n).replaceFirst("");
+        n = TRAILING_PUNCT.matcher(n).replaceAll("").trim();
+        if (n.isEmpty()) {
+            return null;
+        }
+        // 第一遍：原样匹配（覆盖 好的/算了 等已收录带尾形式）
+        PendingAction first = matchKeyword(n, affirm, cancel);
+        if (first != null) {
+            return first;
+        }
+        // 第二遍：剥离结尾语气词后再匹配（覆盖 确认吧/确认了 → 确认）
+        String stripped = TRAILING_PARTICLE.matcher(n).replaceAll("");
+        if (!stripped.isEmpty() && !stripped.equals(n)) {
+            return matchKeyword(stripped, affirm, cancel);
+        }
+        return null;
+    }
+
+    private static PendingAction matchKeyword(String n, Set<String> affirm, Set<String> cancel) {
+        if (affirm.contains(n)) {
+            return PendingAction.confirm();
+        }
+        if (cancel.contains(n)) {
+            return PendingAction.cancel();
+        }
+        return null;
+    }
+
+    /**
+     * 解析待确认续体分类响应。
+     *
+     * <p>包级可见以供单元测试直接覆盖 JSON 解析分支。</p>
+     *
+     * @param response LLM 响应文本
+     * @return 恢复动作，或 null（none / 解析失败）
+     */
+    PendingAction parsePendingAction(String response) {
+        try {
+            String jsonStr = extractJson(response);
+            if (jsonStr == null) return null;
+
+            JsonObject json;
+            try {
+                json = gson.fromJson(jsonStr, JsonObject.class);
+            } catch (Exception parseError) {
+                String repaired = JsonSafeGetUtil.repairJsonBraces(jsonStr);
+                try {
+                    json = !repaired.equals(jsonStr) ? gson.fromJson(repaired, JsonObject.class) : null;
+                } catch (Exception ignored) {
+                    json = null;
+                }
+            }
+
+            if (json == null || !json.has("pending_action") || json.get("pending_action").isJsonNull()) {
+                return null;
+            }
+            String action = json.get("pending_action").getAsString();
+            return switch (action) {
+                case "confirm" -> PendingAction.confirm();
+                case "cancel" -> PendingAction.cancel();
+                case "respond" -> PendingAction.respond(extractEntities(json));
+                default -> null; // "none" 或未知 → 无关，落回正常识别
+            };
+        } catch (RuntimeException e) {
+            PluginLoggerUtil.debug("意图识别", "待确认续体分类解析失败：{}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * 构建用户提示词
      */
     private String buildUserPrompt(String userInput, Deque<ConversationManager.Message> history, String playerName) {
@@ -511,6 +689,24 @@ public class SkillIntentRecognizer {
     private SkillIntent createInvalidIntent(String reason) {
         PluginLoggerUtil.debug("意图识别", "创建无效意图：{}", reason);
         return new SkillIntent(null, null, new HashMap<>(), 0.0, reason);
+    }
+
+    /**
+     * 从 JSON 提取 entities（支持嵌套 JSON 对象/数组，自动序列化为字符串）。
+     * 供待确认续体分类的 respond 分支提取玩家本轮新给/改的字段。
+     */
+    private Map<String, String> extractEntities(JsonObject json) {
+        Map<String, String> entities = new HashMap<>();
+        if (json.has("entities") && json.get("entities").isJsonObject()) {
+            JsonObject entitiesObj = json.getAsJsonObject("entities");
+            for (String key : entitiesObj.keySet()) {
+                var value = entitiesObj.get(key);
+                if (!value.isJsonNull()) {
+                    entities.put(key, valueToString(value));
+                }
+            }
+        }
+        return entities;
     }
 
     /**

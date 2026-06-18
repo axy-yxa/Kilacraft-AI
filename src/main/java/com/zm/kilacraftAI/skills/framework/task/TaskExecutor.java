@@ -4,11 +4,7 @@ import com.zm.kilacraftAI.common.util.ArithmeticUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillIntent;
-import com.zm.kilacraftAI.skills.framework.SkillManager;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.SkillResultFormatter;
+import com.zm.kilacraftAI.skills.framework.*;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -46,7 +42,7 @@ public class TaskExecutor {
         List<TaskStep> sortedSteps = topologicalSort(plan);
         if (sortedSteps == null) {
             // 返回失败的 AnalysisSummary
-            AnalysisSummary errorSummary = new AnalysisSummary().userMessage(userMessage).taskGoal(plan.getGoal()).addResult("INIT", "FAILURE", I18nService.tr("任务计划存在循环依赖，无法执行")).statistics(0, 1, 0);
+            AnalysisSummary errorSummary = new AnalysisSummary().userMessage(userMessage).taskGoal(plan.getGoal()).addResult("INIT", "FAILURE", I18nService.tr("任务计划存在循环依赖，无法执行")).statistics(0, 1, 0, 0);
             return CompletableFuture.completedFuture(errorSummary);
         }
 
@@ -367,16 +363,18 @@ public class TaskExecutor {
             }
         }
 
-        // 统计
-        int success = 0, failure = 0, skipped = 0;
+        // 统计：NEED_INFO 单列为 needInfo（非 failure），避免多步骤某步暂停等待玩家输入时
+        // 统计行误导 LLM 二次分析为"任务失败"
+        int success = 0, failure = 0, skipped = 0, needInfo = 0;
         for (var r : summary.getResults()) {
             switch (r.status()) {
                 case "SUCCESS" -> success++;
                 case "SKIPPED" -> skipped++;
+                case "NEED_INFO" -> needInfo++;
                 default -> failure++;
             }
         }
-        summary.statistics(success, failure, skipped);
+        summary.statistics(success, failure, skipped, needInfo);
 
         return CompletableFuture.completedFuture(summary);
     }

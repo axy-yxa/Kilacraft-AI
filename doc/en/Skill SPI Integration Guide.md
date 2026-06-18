@@ -8,12 +8,12 @@
 ## Table of Contents
 
 1. [Overview](#1-overview)
-2. [Version & Architecture Evolution (Old vs New)](#2-version--architecture-evolution-old-vs-new)
+2. [Core Contract at a Glance](#2-core-contract-at-a-glance)
 3. [Architecture & Data Flow](#3-architecture--data-flow)
 4. [Quick Start (5-Minute Integration)](#4-quick-start-5-minute-integration)
 5. [Core Interfaces](#5-core-interfaces)
 6. [Result Status Markers & Normalization](#6-result-status-markers--normalization)
-7. [Needs-Info / Secondary Confirmation (needInfo)](#7-needs-info--secondary-confirmation-needinfo)
+7. [Needs-Info / Confirmation (needInfo)](#7-needs-info--confirmation-needinfo)
 8. [Multi-Step Task Data Passing](#8-multi-step-task-data-passing)
 9. [Skill Development Guidelines](#9-skill-development-guidelines)
 10. [Error Isolation & Exception Handling](#10-error-isolation--exception-handling)
@@ -31,7 +31,7 @@
 
 ## 1. Overview
 
-Kilacraft-AI uses an **SPI (Service Provider Interface)** mechanism that lets third-party Minecraft plugins wrap their features as **Skills** registered with the AI agent, so the AI assistant can recognize user intent and invoke them automatically.
+Kilacraft-AI uses an **SPI (Service Provider Interface)** mechanism that allows third-party Minecraft plugins to wrap their own features as **Skills** registered with the AI agent, so the AI assistant automatically recognizes user intent and invokes the right Skill.
 
 ### Core Features
 
@@ -39,8 +39,8 @@ Kilacraft-AI uses an **SPI (Service Provider Interface)** mechanism that lets th
 - **Auto-discovery**: based on Bukkit `ServicesManager`; scanned and registered at startup
 - **Error isolation**: third-party Skill exceptions never break the host plugin's core flow
 - **LLM intent-driven**: the AI recognizes intent and invokes the right Skill; users need no commands
-- **Structured responses (v2.1.1)**: `SkillResult` carries a typed `SkillStatus`; the framework uniformly emits `[SUCCESS]/[FAILURE]/[NEED_INFO]` markers
-- **First-class secondary confirmation (v2.1.1)**: `needInfo(...)` lets a Skill structurally declare "needs info / needs confirmation"
+- **Structured responses**: `SkillResult` carries a typed `SkillStatus`; the framework uniformly emits `[SUCCESS]/[FAILURE]/[NEED_INFO]` markers
+- **Confirmation / supplement**: `needInfo(...)` lets a Skill structurally declare "needs info / needs confirmation", and the framework automatically manages continuation-resume
 - **Multi-step tasks**: a Skill's returned `data` can be referenced by later steps via `{step_x.field}` placeholders, enabling cross-skill orchestration
 
 ### Use Cases
@@ -48,42 +48,23 @@ Kilacraft-AI uses an **SPI (Service Provider Interface)** mechanism that lets th
 | Area | Examples |
 |------|----------|
 | Economy | query balance, transfer, shop purchase |
-| Land/protection | query land info, create land |
+| Land / protection | query land info, create land |
 | Leaderboards | online ranking, wealth ranking |
 | RPG | query skill level, quest progress |
 | World management | query chunk info, teleport |
 
 ---
 
-## 2. Version & Architecture Evolution (Old vs New)
+## 2. Core Contract at a Glance
 
-> If you are upgrading from **2.0.x or earlier**, read this section carefully.
+Before diving in, establish a high-level mental model:
 
-### 2.1 What v2.1.1 Introduces
+- **Skill**: implement the `Skill` interface; discovered and executed by the framework through `SkillProvider` (see [§3](#3-architecture--data-flow), [§4](#4-quick-start-5-minute-integration)).
+- **SkillResult has three states**: `success` (success, can carry data), `failure` (hard failure), `needInfo` (soft pause: needs a parameter supplemented or needs player confirmation). The message is plain text; `[STATUS]` markers are added uniformly by the framework (see [§6](#6-result-status-markers--normalization)).
+- **needInfo continuation**: when a Skill pauses via `needInfo(...)`, the framework snapshots the parameters and resumes execution after the player's next reply (confirm / supply a value / cancel). The confirmation state is read via `context.isConfirmed()` (see [§7](#7-needs-info--confirmation-needinfo)).
+- **Multi-step data**: the `data` from `success(msg, data)` can be referenced by later steps using `{step_x.field}` placeholders (see [§8](#8-multi-step-task-data-passing)).
 
-v2.1.1 brings **typed status** and **secondary confirmation** to `SkillResult`:
-
-| Aspect | Description |
-|--------|-------------|
-| Typed status | New `SkillStatus` enum and `getStatus()`; Skills express results via `success()`/`failure()`/`needInfo()`, and the framework uniformly prepends `[SUCCESS]/[FAILURE]/[NEED_INFO]` markers when sending output to the LLM |
-| Secondary confirmation | New `needInfo(...)` official contract, supporting both "missing parameter — prompt the player to supply it" and "risky operation — require player confirmation" (see [§7](#7-needs-info--secondary-confirmation-needinfo)) |
-| Plain-text message | Skills return plain text; the bracket marker is added uniformly by the framework — you neither need to nor may prepend it yourself |
-
-> Older versions (≤ 2.0.x) had only success/failure in `SkillResult`, with no typed status or secondary confirmation. **To use these new capabilities, compile against the 2.1.1+ SPI Jar.**
-
-### 2.2 Backward Compatibility
-
-Changes to `SkillResult` and the SPI Jar in v2.1.1 are **purely additive**. Already-compiled third-party Jars **need no recompilation and no changes** to run on the new version:
-
-- `SkillResult.success(...)` / `failure(...)` signatures are unchanged; old calls automatically get the correct `SkillStatus` at runtime
-- The old public constructor `new SkillResult(boolean, String, Object)` is preserved (status inferred internally)
-- The new `SkillStatus` enum class is added to the SPI Jar; old Jars don't reference it → no `NoSuchMethodError`/`NoSuchFieldError`
-
-> Why: the SPI Jar is compile-time only; at runtime the server has a single `SkillResult` class (the v2.1.1 one). An old Skill's `success()`/`failure()` calls actually execute the v2.1.1 implementations, producing objects that carry status, so the framework's `getStatus()` works fine.
-
-### 2.3 Using the New Features
-
-To use new capabilities like `needInfo(...)`, recompile against the 2.1.1+ SPI Jar. Old Skills need no changes and keep running as-is.
+Integration requires only `compileOnly` on `Kilacraft-Skill-API-2.1.1.jar` (containing `Skill` / `SkillContext` / `SkillResult` / `SkillStatus` / `SkillIntent` / `SkillProvider`). **Do not package it** into your plugin — it is provided at runtime by the host plugin.
 
 ---
 
@@ -107,6 +88,7 @@ To use new capabilities like `needInfo(...)`, recompile against the 2.1.1+ SPI J
 │                                 │                 │
 │                     LLM intent recognition        │
 │                     (Phase1 / Phase2)             │
+│                     User message → Skill call     │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -218,7 +200,7 @@ name: MyPlugin
 version: 1.0
 main: com.example.myplugin.MyPlugin
 api-version: '1.21'
-softdepend: [Kilacraft-AI]   # soft-depend to ensure the host plugin is loaded
+softdepend: [Kilacraft-AI]   # soft-depend so the host plugin is loaded first
 
 permissions:
   myplugin.hello:
@@ -281,6 +263,7 @@ public class SkillContext {
     String getAction();                 // LLM-recognized action
     Map<String, String> getEntities();  // LLM-extracted parameters
     String getEntity(String key);       // get a parameter (always String; convert numbers yourself)
+    boolean isConfirmed();              // framework confirmation flag: set true when resuming after player confirmation, used for needInfo flow
 }
 ```
 
@@ -305,7 +288,7 @@ public class SkillResult {
     static SkillResult success(String message, Object data);
     static SkillResult failure(String message);
     static SkillResult failure(String message, Throwable error);
-    static SkillResult needInfo(String message);   // needs info / secondary confirmation
+    static SkillResult needInfo(String message);   // needs info / confirmation
 }
 
 public enum SkillStatus {
@@ -323,8 +306,8 @@ At the **output boundary to the LLM**, the framework prepends a bracket marker t
 | Factory | `isSuccess()` | Marker | Meaning |
 |---------|:-------------:|:------:|---------|
 | `success(...)` | true | `[SUCCESS]` | executed successfully |
-| `failure(...)` | false | `[FAILURE]` | hard failure: cannot proceed (permission/balance/not found/invalid param/plugin missing) |
-| `needInfo(...)` | false | `[NEED_INFO]` | soft failure: needs the player to supply a parameter or confirm |
+| `failure(...)` | false | `[FAILURE]` | hard failure: cannot proceed (permission / balance / not found / invalid param / plugin missing) |
+| `needInfo(...)` | false | `[NEED_INFO]` | soft pause: needs the player to supply a parameter or confirm |
 
 **Key rule: the message must be plain text — do NOT prepend `[FAILURE]`/`[NEED_INFO]` yourself.** The framework adds the marker; doing it yourself causes marker corruption or conflicts with normalization.
 
@@ -332,9 +315,9 @@ This matters for LLM visibility: the player ultimately sees the LLM's natural-la
 
 ---
 
-## 7. Needs-Info / Secondary Confirmation (needInfo)
+## 7. Needs-Info / Confirmation (needInfo)
 
-This is the official contract added in v2.1.1, for two scenarios:
+The `needInfo` contract covers two scenarios:
 
 1. **Missing parameter**: a required parameter is missing and the player must supply it
 2. **Needs confirmation**: an operation is risky or large and requires explicit player confirmation before executing
@@ -356,7 +339,7 @@ return CompletableFuture.completedFuture(
 
 ### 7.2 Full Example: Transfer Confirmation (streamlined from the built-in MarketActionSkill)
 
-Below is the full logic for "large transfer requires confirmation", showing `needInfo` cooperating with a `confirmed` parameter:
+Below is the full logic for "large transfer requires confirmation", showing `needInfo` cooperating with the framework confirmation flag `context.isConfirmed()`:
 
 ```java
 private CompletableFuture<SkillResult> transferMoney(SkillContext context) {
@@ -384,17 +367,16 @@ private CompletableFuture<SkillResult> transferMoney(SkillContext context) {
         return CompletableFuture.completedFuture(SkillResult.failure("Invalid amount format: " + amountStr));
     }
 
-    // ③ large transfer (>50% of balance) → needs confirmation
+    // ③ large transfer (>50% of balance) → needs confirmation (flag expressed via context.isConfirmed())
     double balance = getBalance(player);
     if (balance > 0 && amount > balance * 0.5) {
-        String confirmed = context.getEntity("confirmed");
-        if (!"true".equalsIgnoreCase(confirmed)) {
+        if (!context.isConfirmed()) {
             // return needInfo with the concrete amount
             return CompletableFuture.completedFuture(
                     SkillResult.needInfo("About to transfer " + amount + " to " + targetPlayer
                             + ", a large portion of your balance. Confirm transfer?"));
         }
-        // confirmed=true → fall through and actually execute
+        // framework sets isConfirmed=true when the player confirms → fall through and execute
     }
 
     // actually perform the transfer
@@ -404,57 +386,58 @@ private CompletableFuture<SkillResult> transferMoney(SkillContext context) {
 
 ### 7.3 How the Confirmation Flow Works End-to-End
 
-The whole process is a collaboration between **Skill code + framework + intent-recognition prompts**:
+Confirmation / supplement is driven by the **framework continuation mechanism**. A Skill simply returns `needInfo(...)`, and the framework automatically handles "snapshot params → classify player reply → resume execution":
 
 ```
 [Turn 1] Player: "Transfer half my balance to ZookeeR"
    │
    ├─ Intent recognition Phase2 → multi-step: step_0 query balance → step_1 transfer({step_0.balance}/2)
-   ├─ step_0 returns balance 1177.75; step_1 evaluates to 588.87, >50%
-   └─ transferMoney returns needInfo("About to transfer 588.87 to ZookeeR. Confirm transfer?")
+   ├─ step_0 returns balance 1177.75; step_1 evaluates to 588.88, >50%
+   └─ transferMoney returns needInfo("About to transfer $588.88 to ZookeeR. Confirm transfer?")
         │
-        ├─ Normalization layer emits: [NEED_INFO] About to transfer 588.87 to ZookeeR...
-        ├─ isSuccess()==false → falls back to the normal LLM chat
-        └─ Per the system prompt, the LLM relays this to the player in natural language:
-              "Transfer needs confirmation. Transfer 588.87 to ZookeeR?"
-              (this reply enters conversation history, containing the concrete value 588.87)
+        ├─ The unified chokepoint SkillManager.executeSkillByIntent detects NEED_INFO:
+        │    snapshots {target_player:"ZookeeR", amount:"588.88"} + message → stores in a per-player continuation slot
+        ├─ Normalization layer emits [NEED_INFO] body; fallback LLM relays it to the player naturally
+        └─ Key detail: concrete values are only stored in the framework slot — the LLM is no longer required to read them back from chat history
 
 [Turn 2] Player: "Confirm"
    │
-   ├─ Intent recognition Phase2 sees "Confirm" + the [NEED_INFO] context in history
-   ├─ Per the "confirmation-flow" prompt rule: reads the concrete value 588.87 from history,
-   │   single-intent call to transfer_money with
-   │   entities = {target_player: "ZookeeR", amount: "588.87", confirmed: "true"}
-   ├─ transferMoney sees confirmed=true → skips the needInfo branch, actually executes
-   └─ returns success("Successfully transferred 588.87 to ZookeeR")
+   ├─ The framework detects an active continuation slot → runs lightweight classification (not two-phase)
+   ├─ Classified as confirm → framework resumes transferMoney directly from the slot snapshot
+   │   with context.isConfirmed()=true (amount is still "588.88" from the slot — never went through chat,
+   │   so no $-prefix pollution, no placeholder re-injection)
+   ├─ transferMoney sees isConfirmed=true → skips the needInfo branch, actually executes
+   └─ returns success("Successfully transferred $588.88 to ZookeeR"), slot is cleared on terminal outcome
 ```
 
 The framework guarantees:
 
-1. **Uniform marker**: the normalization layer emits the `needInfo` result as `[NEED_INFO] body`, which the LLM recognizes reliably.
-2. **No partial execution**: when a step returns `needInfo` (`isSuccess()==false`) in a multi-step task, **downstream steps that depend on it are automatically skipped by the framework**; they don't run with incomplete data.
-3. **Concrete value relayed**: the needInfo message is relayed by the fallback LLM into conversation history; when the player confirms next turn, intent recognition reads the concrete value from history and re-invokes.
+1. **Uniform marker**: the normalization layer emits `needInfo` results as `[NEED_INFO] body`, reliably recognized by the LLM.
+2. **No partial execution**: when a step returns `needInfo` (`isSuccess()==false`) in a multi-step task, **downstream steps that depend on it are automatically skipped** — they never run with incomplete data.
+3. **Params never round-trip through chat**: at `needInfo`, the framework snapshots the entities already passed to the Skill (sanitized, placeholder-resolved). On the player's next confirm/supplement turn, execution resumes directly from the snapshot, avoiding LLM text pollution of parameter values.
+4. **Real-time data validated live by the Skill**: the framework only stores param snapshots — it **never caches world state** (balance, inventory, etc.). On resume, the Skill re-reads live data; if drift means a previously-confirmed value is no longer valid (e.g. the player manually moved funds), the Skill can return a fresh `needInfo` to re-prompt the player, rather than silently executing a stale result.
+5. **Lifecycle**: one slot per player, last-write-wins (N-th confirmation / supplement follows the same rule); cleared on terminal (SUCCESS/FAILURE), player cancel, TTL expiry, exceeding `max_rounds`, player quit, or plugin disable. Purely in-memory — never persisted to disk (high-risk pending operations never auto-resurrect across restarts).
 
-### 7.4 How to Write the Skill's Prompts (description / hints)
+### 7.4 How to Write the Skill's Action Description
 
-For the confirmation flow to work, beyond returning `needInfo` in code, **you must declare a "confirmation contract" in the Skill's action description**, telling the LLM: upon seeing `[NEED_INFO]` and an affirmative player reply, which parameter to use for re-invocation. Example from the built-in transfer:
+Confirmation / supplement is managed automatically by the framework. **The Skill's action description only needs to declare that the action may return needInfo** — no need to teach the LLM to re-call with a confirmation flag:
 
 ```yaml
 # action_descriptions (excerpt from MarketActionSkill.yml)
 transfer_money: "Transfer money to another player. Required params: target_player, amount (plain number,
-  or an arithmetic placeholder like {step_0.balance}/2). Optional param: confirmed ('true').
-  Use when the user says 'transfer', 'send 100 to XX'.
-  If this action returns [NEED_INFO] asking for confirmation and the user replies affirmatively
-  ('yes', 'confirm', 'ok'), you MUST call transfer_money again with the same params plus confirmed='true'."
+  or an arithmetic placeholder like {step_0.balance}/2). Use when the user says 'transfer', 'send 100 to XX'.
+  This action may return [NEED_INFO] to ask for a missing amount or to confirm a large transfer;
+  the continuation is managed automatically by the framework — just follow the message to guide the player."
 ```
 
 Key points:
 
-- **Declare the confirmation parameter**: state clearly which parameter signals "confirmed" (e.g. `confirmed='true'`); the framework doesn't enforce the name — you define it.
-- **Describe trigger words and re-invocation**: tell the LLM "player replies affirmatively → re-invoke the same action with the confirmation param".
-- **Include concrete values in the message**: the needInfo body should carry the computed/queried concrete value (amount, index, etc.) so intent recognition can read it from history when the player confirms next turn.
+- **Confirmation signal via `context.isConfirmed()`**: the framework manages the confirmation flag (sets `true` on resume). Skill code reads `context.isConfirmed()` — **do not define your own `confirmed` entity parameter**.
+- **Include concrete values in the message**: the `needInfo` body should carry the computed/queried concrete value (amount, index, etc.) so the player knows what they are confirming.
+- **Re-validate live data on resume**: the Skill should re-read world state (balance, etc.) on resume; if drift occurs, return a fresh `needInfo` to re-prompt.
+- **No need for LLM to reconstruct params**: params are held by the framework slot; no need to teach the LLM in the description how to read values from history or re-call with confirmation flags.
 
-> Just return `needInfo(...)`; the `[NEED_INFO]` marker is added automatically by the framework.
+> Just return `needInfo(...)`; `[NEED_INFO]` is added automatically. Resumed execution goes through the full execution pipeline (security sanitize, permission, error isolation).
 
 ---
 
@@ -821,7 +804,7 @@ This JAR contains the compiled **6 classes** below for third-party compile-time 
 com.zm.kilacraftAI.skills.framework.Skill
 com.zm.kilacraftAI.skills.framework.SkillContext
 com.zm.kilacraftAI.skills.framework.SkillResult
-com.zm.kilacraftAI.skills.framework.SkillStatus      ← new in v2.1.1
+com.zm.kilacraftAI.skills.framework.SkillStatus
 com.zm.kilacraftAI.skills.framework.SkillIntent
 com.zm.kilacraftAI.skills.framework.SkillProvider
 ```
@@ -873,10 +856,10 @@ A: Yes, return multiple instances from `getSkills()`.
 A: Depends on your `isAvailable()`/`execute()`. For console calls, `context.getPlayer()` is null; handle it yourself.
 
 **Q: How do I implement "secondary confirmation"?**
-A: Return `SkillResult.needInfo(msg)` and declare the confirmation-parameter contract in the action description. See [§7](#7-needs-info--secondary-confirmation-needinfo).
+A: Return `SkillResult.needInfo(msg)` (include concrete values in the message); read the confirmation flag via `context.isConfirmed()`, which the framework sets `true` on resume. **Do not define your own `confirmed` entity parameter, and do not teach the LLM in the description to re-call with a confirmation flag** — the continuation is managed automatically by the framework. Live data (balance, etc.) should be re-validated by the Skill on resume. See [§7](#7-needs-info--confirmation-needinfo).
 
 **Q: Should I write a `[FAILURE]` prefix in the message?**
-A: **No.** From v2.1.1 the framework tags uniformly; write plain text or you'll double-tag.
+A: **No.** The framework tags uniformly; write plain text or you'll double-tag.
 
 **Q: How do I get orchestrated correctly in multi-step tasks?**
 A: Document the returned data fields clearly in the description / action description; the LLM references them with `{step_x.field}`.

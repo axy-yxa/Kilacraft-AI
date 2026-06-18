@@ -53,6 +53,7 @@ import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
 import com.zm.kilacraftAI.skills.framework.SkillRegistry;
 import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
+import com.zm.kilacraftAI.skills.framework.resume.PendingResumeManager;
 import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketActionSkill;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
@@ -614,6 +615,39 @@ public final class KilacraftAI extends JavaPlugin {
                 return SkillSecurityFilter.cleanupExpired();
             }
         });
+
+        // 7. 待确认续体过期清理（每 5 分钟）
+        taskScheduler.register(new ManagedTask() {
+            @Override
+            public String name() {
+                return I18nService.tr("续体过期清理");
+            }
+
+            @Override
+            public String description() {
+                return I18nService.tr("清理过期/超轮的待确认续体");
+            }
+
+            @Override
+            public long delayTicks() {
+                return 6000L;
+            }
+
+            @Override
+            public long intervalTicks() {
+                return 6000L; // 5 分钟
+            }
+
+            @Override
+            public boolean enabled() {
+                return configManager != null && configManager.isPendingResumeEnabled();
+            }
+
+            @Override
+            public int execute() {
+                return PendingResumeManager.getInstance().cleanupExpired();
+            }
+        });
     }
 
     /**
@@ -686,6 +720,9 @@ public final class KilacraftAI extends JavaPlugin {
         // 安全过滤器：注册事件监听器（在线玩家名缓存）
         SkillSecurityFilter securityFilter = SkillSecurityFilter.createAndInit();
         getServer().getPluginManager().registerEvents(securityFilter, this);
+
+        // 待确认续体管理器：注册事件监听器（玩家下线清理 per-player 槽位）
+        getServer().getPluginManager().registerEvents(PendingResumeManager.getInstance(), this);
 
         // 意图识别器（依赖 configManager + intentPromptConfigManager + skillManager）
         intentRecognizer = new SkillIntentRecognizer(configManager, intentPromptConfigManager, skillManager);
@@ -1026,6 +1063,9 @@ public final class KilacraftAI extends JavaPlugin {
         if (llmManager != null) {
             llmManager.shutdownAll();
         }
+
+        // 清除全部待确认续体（纯内存态，不落盘；高风险待确认操作绝不跨重启复活）
+        PendingResumeManager.getInstance().clearAll();
         PluginLoggerUtil.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         PluginLoggerUtil.info("  Kilacraft-AI 已停止运行");
         PluginLoggerUtil.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");

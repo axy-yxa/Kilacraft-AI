@@ -150,18 +150,19 @@ public class MarketActionSkill implements Skill {
     }
 
     /**
-     * 解析价格参数
-     *
-     * @param context 技能上下文
-     * @return 解析后的价格（null 表示参数缺失，Double.NEGATIVE_INFINITY 表示格式错误）
+     * 解析金额：剥离前导 $ 与首尾空白后转 double（玩家可能带 $ 报价）。
      */
+    private static double parseMoney(String raw) {
+        return Double.parseDouble(raw.trim().replaceFirst("^\\$", "").trim());
+    }
+
     private Double parsePrice(SkillContext context) {
         String priceStr = context.getEntity("price");
         if (priceStr == null || priceStr.isEmpty()) {
             return null;
         }
         try {
-            double price = Double.parseDouble(priceStr);
+            double price = parseMoney(priceStr);
             if (price <= 0 || !Double.isFinite(price)) {
                 return Double.NEGATIVE_INFINITY; // 标记为"值不合法"
             }
@@ -450,7 +451,7 @@ public class MarketActionSkill implements Skill {
         return handleCommandResult(GlobalMarketPlusAPI.cancelMerchandise(player, targetUid), "已成功下架商品: {}，物品已归还到你的邮箱", new Object[]{targetItemName}, "下架失败，商品可能已过期或被购买", "下架商品");
     }
 
-    private CompletableFuture<SkillResult> transferMoney(SkillContext context) {
+    CompletableFuture<SkillResult> transferMoney(SkillContext context) {
         Player player = requireOnlinePlayer(context);
         if (player == null) return offlineFailure();
 
@@ -471,7 +472,7 @@ public class MarketActionSkill implements Skill {
 
         double amount;
         try {
-            amount = Double.parseDouble(amountStr);
+            amount = parseMoney(amountStr);
             if (amount <= 0) {
                 return CompletableFuture.completedFuture(SkillResult.failure("转账金额必须大于 0"));
             }
@@ -481,13 +482,16 @@ public class MarketActionSkill implements Skill {
 
         double balance = GlobalMarketPlusAPI.getBalance(player);
         if (balance >= 0 && balance < amount) {
+            // 确认后发现余额不足（漂移）→ 重新引导；否则沿用 failure
+            if (context.isConfirmed()) {
+                return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("你确认时要转 ${}，但当前余额仅 ${}（期间有变动）。要转多少？或说「取消」。", String.format("%.2f", amount), String.format("%.2f", balance))));
+            }
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("余额不足，当前余额 ${}，需要 ${}", String.format("%.2f", balance), String.format("%.2f", amount))));
         }
 
-        // 大额转账确认：超过余额 50% 时要求确认
+        // 超过余额 50% 需确认（确认位由 isConfirmed 表达）
         if (balance > 0 && amount > balance * 0.5) {
-            String confirmed = context.getEntity("confirmed");
-            if (!"true".equalsIgnoreCase(confirmed)) {
+            if (!context.isConfirmed()) {
                 return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("即将向 {} 转账 ${}，占你余额的较大比例。确认转账吗？", targetPlayer, String.format("%.2f", amount))));
             }
         }

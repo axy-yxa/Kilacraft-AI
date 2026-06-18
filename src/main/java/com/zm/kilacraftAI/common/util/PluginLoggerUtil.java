@@ -221,6 +221,16 @@ public final class PluginLoggerUtil {
     }
 
     /**
+     * 构建模块前缀（仅翻译模块名，不翻译消息）。
+     *
+     * <p>供模板重载使用——消息已由调用方经 {@code tr(template, args)} 翻译并填充，
+     * 此处仅拼前缀，避免 {@link #formatMessage} 对已翻译消息二次 tr（原实现的双重翻译根因）。</p>
+     */
+    private static String modulePrefix(String module) {
+        return "[" + I18nService.trModule(module) + "] ";
+    }
+
+    /**
      * 检查DEBUG模式是否启用
      *
      * @return true=启用DEBUG日志, false=禁用
@@ -244,7 +254,7 @@ public final class PluginLoggerUtil {
      */
     public static void info(String module, String template, Object... args) {
         if (LOGGER == null) LOGGER = getLogger();
-        LOGGER.info(formatMessage(module, I18nService.tr(template, args)));
+        LOGGER.info(modulePrefix(module) + I18nService.tr(template, args));
     }
 
     /**
@@ -257,7 +267,7 @@ public final class PluginLoggerUtil {
     public static void debug(String module, String template, Object... args) {
         if (!isDebugEnabled()) return;
         if (LOGGER == null) LOGGER = getLogger();
-        LOGGER.info("[DEBUG] " + formatMessage(module, I18nService.tr(template, args)));
+        LOGGER.info("[DEBUG] " + modulePrefix(module) + I18nService.tr(template, args));
     }
 
     /**
@@ -269,7 +279,7 @@ public final class PluginLoggerUtil {
      */
     public static void warn(String module, String template, Object... args) {
         if (LOGGER == null) LOGGER = getLogger();
-        LOGGER.warning(formatMessage(module, I18nService.tr(template, args)));
+        LOGGER.warning(modulePrefix(module) + I18nService.tr(template, args));
     }
 
     /**
@@ -281,6 +291,6 @@ public final class PluginLoggerUtil {
      */
     public static void error(String module, String template, Object... args) {
         if (LOGGER == null) LOGGER = getLogger();
-        LOGGER.severe(formatMessage(module, I18nService.tr(template, args)));
+        LOGGER.severe(modulePrefix(module) + I18nService.tr(template, args));
     }
 }

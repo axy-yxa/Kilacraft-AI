@@ -134,12 +134,11 @@ critical_rules:
     7. [Reusing previous-turn query results] Data already queried and returned to the player in the previous turn may be read directly from conversation history and filled into single intent this turn **only if it is near-static player-owned reference data** (the player's own homes, landmarks, kits, etc. — things that barely change across a few turns); no re-query is needed and placeholders must not be used:
        - Ordinal/name reference: when the user refers to an item of last turn's list by "the first / the second / the last" or by a direct name, read the concrete value of the corresponding item from history. E.g., last turn returned a list [itemA, itemB]; this turn "operate on the first" -> single intent, fill the parameter directly with "itemA"; "the second" -> fill "itemB"
        - Boundary (consistent with rule 4, by principle not by list): **any data that changes over time or due to others' actions MUST be re-queried** — not limited to balance, inventory, held item, current location, health; it also includes online-player lists, items listed on the market, nearby entity counts, weather, etc.; reading these from history yields stale, wrong answers. **Only near-static player-owned reference data** (the player's own homes, landmarks, kits — data owned by that player and rarely changing) may be read from history
-    8. [Confirmation-flow — reusing a pending-confirmation operation (important exception, takes priority over rules 4/7)]
-       When the previous turn's execution action returned a [NEED_INFO] or "needs confirmation" response whose message stated **some concrete pending-confirmation value** (e.g., a computed number, or a determined name), AND the user replies with **affirmative intent** this turn ("confirm"/"yes"/"okay"/"do it"/"that's right", etc.), the following applies to the **pending-confirmation value parameter**:
-       - This is **confirming the previous turn's pending operation** — NOT re-issuing a computation, and NOT re-querying that value
-       - Read the concrete value written in the previous turn's message directly from conversation history and fill it into that parameter. This does NOT conflict with "high-frequency data must be re-queried" — you are reusing a **pending-execution value** already determined, displayed, and now being confirmed by the user (it does not change due to others' actions), not a stale real-time query result
-       - **NEVER** use a `{step_X.field}/N` (or similar) placeholder to reference the previous turn's steps: that multi-step task has already finished executing and its steps no longer exist in the current turn, so the reference will fail to resolve (the value may only be taken as the concrete value from the history message)
-       - **The output format this turn is NOT fixed**: it depends on how many actions the user actually wants this turn — decide via the normal decision rules. Pure confirmation (confirm only, no other action) -> single intent, calling the **same action** again with the same parameters (the pending-confirmation value taken from history) and the confirmation flag applied as specified by that action's description; if the user also bundles other actions this turn (e.g., "confirm, then check my balance", "confirm, then transfer another third to them"), use multi-step, where the confirmation action is one step (its pending-confirmation value likewise taken from history) and the other actions are arranged per dependency-chain / independent-query as usual
+    8. [Pending-operation / parameter-supplement — managed automatically by the framework continuation]
+       When the previous turn's execution action returned [NEED_INFO] (asking to confirm or supply a parameter), the framework has already snapshotted the collected params and will resume execution automatically after the player replies this turn — **you do NOT need to reconstruct any parameter value from history, nor fill a confirmation flag such as confirmed**.
+       - If the player replies with affirmative intent ("confirm"/"yes"/"ok"/"do it") or supplies a new value (e.g. "transfer 300"), the framework resumes accordingly; if the player talks about something else, the framework falls back to normal intent recognition.
+       - Your only job: decide whether this turn also has OTHER new actions (e.g. the "check my balance" inside "confirm, then check my balance"); if so, output that intent normally. For a pure confirm/supply-value you do nothing (do NOT emit a skill intent that re-calls the same action).
+       - **NEVER** use a `{step_X.field}/N` placeholder to reference the previous turn's steps, and **NEVER** read stale concrete values from history to reconstruct parameters — params are held by the framework slot and reused directly on resume
 
   entity_format: |
     [Entity Parameter Format Spec]
@@ -337,3 +336,16 @@ phase1:
   output_format: |
     Skills needed: {"skill_names": ["skill name 1", "skill name 2"]}
     No skill needed: {"skill_names": null}
+
+# ============================================
+# Pending-resume classification prompt (pending_resume)
+# Invoked only when the player has an active pending resume, via SkillIntentRecognizer.classifyPendingResponse (single lightweight call)
+# ============================================
+pending_resume:
+  classify_prompt: |
+    Judge the intent of the player's reply this turn toward the [pending operation] above; output only one JSON:
+    - Affirmative intent (confirm/yes/ok/do it/that's right) → {"pending_action":"confirm"}
+    - Provide or modify a concrete value (amount/quantity/name) → {"pending_action":"respond","entities":{...only fields newly given or changed this turn...}}
+    - Cancel (cancel/never mind/abort) → {"pending_action":"cancel"}
+    - Unrelated to this operation (talking about something else) → {"pending_action":"none"}
+    [IMPORTANT] NEVER reconstruct or guess any parameter value — existing params are held automatically by the framework; you only classify the intent.

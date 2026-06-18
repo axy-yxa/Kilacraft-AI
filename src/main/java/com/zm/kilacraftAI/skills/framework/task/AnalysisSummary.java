@@ -42,6 +42,7 @@ public class AnalysisSummary {
     private int successCount;
     private int failureCount;
     private int skippedCount;
+    private int needInfoCount;
 
     public AnalysisSummary userMessage(String userMessage) {
         this.userMessage = userMessage;
@@ -68,10 +69,24 @@ public class AnalysisSummary {
         return addResult(null, status, message);
     }
 
-    public AnalysisSummary statistics(int success, int failure, int skipped) {
+    /**
+     * 设置统计计数（含"需确认"单列）。
+     *
+     * <p>NEED_INFO 单独计数为"需确认"，不再混入"失败"——避免多步骤中某步暂停等待玩家输入时，
+     * 统计行误导 LLM 二次分析为"任务失败"。{@link #buildPrompt()} 仅在 {@code needInfo > 0} 时追加"需确认"，
+     * 保持普通场景（无 NEED_INFO）统计行输出完全不变。</p>
+     *
+     * @param success  成功数
+     * @param failure  失败数
+     * @param skipped  跳过数
+     * @param needInfo 需确认（NEED_INFO）数
+     * @return this
+     */
+    public AnalysisSummary statistics(int success, int failure, int skipped, int needInfo) {
         this.successCount = success;
         this.failureCount = failure;
         this.skippedCount = skipped;
+        this.needInfoCount = needInfo;
         return this;
     }
 
@@ -117,7 +132,12 @@ public class AnalysisSummary {
             sb.append(SkillResultFormatter.toLlmText(result.status(), result.message())).append("\n");
         }
 
-        sb.append("\n").append(I18nService.tr(MARKER_STATS)).append(" ").append(I18nService.tr("成功")).append(": ").append(successCount).append(", ").append(I18nService.tr("失败")).append(": ").append(failureCount).append(", ").append(I18nService.tr("跳过")).append(": ").append(skippedCount);
+        sb.append("\n").append(I18nService.tr(MARKER_STATS)).append(" ").append(I18nService.tr("成功")).append(": ").append(successCount).append(", ").append(I18nService.tr("失败")).append(": ").append(failureCount);
+        // NEED_INFO 单列为"需确认"（仅 >0 时追加，保持普通场景统计行不变）
+        if (needInfoCount > 0) {
+            sb.append(", ").append(I18nService.tr("需确认")).append(": ").append(needInfoCount);
+        }
+        sb.append(", ").append(I18nService.tr("跳过")).append(": ").append(skippedCount);
 
         return sb.toString();
     }

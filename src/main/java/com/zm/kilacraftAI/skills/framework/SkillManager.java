@@ -8,6 +8,7 @@ import com.zm.kilacraftAI.db.dao.SkillLogDao;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.metrics.SkillInfo;
+import com.zm.kilacraftAI.skills.framework.resume.PendingResumeManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -170,7 +171,11 @@ public class SkillManager {
             executionContext = new SkillContext(context.getPlayer(), context.getAction(), sanitizedEntities);
             // 保留审计字段
             executionContext.withAudit(context.getTriggerMessage(), context.getExecutionSource());
+            // 保留确认位（消毒重建不得丢失）
+            executionContext.withConfirmed(context.isConfirmed());
         }
+        // executionContext 可能被重新赋值（非 effectively final），lambda 需 final 局部捕获
+        final SkillContext execContext = executionContext;
 
         PluginLoggerUtil.debug("技能管理", "开始执行技能：{}, action={}", skillName, intent.getAction());
 
@@ -186,8 +191,12 @@ public class SkillManager {
 
         // 执行技能（带错误隔离，第三方 Skill 异常不影响核心流程）
         try {
-            return skill.execute(executionContext).thenApply(result -> {
+            return skill.execute(execContext).thenApply(result -> {
                 submitSkillLog(playerUuid, skillName, intent.getAction(), sanitizedEntities, result, System.currentTimeMillis() - startTime, triggerMessage, executionSource);
+                // needInfo 时捕获续体快照（此为单意图/多步骤 step 的统一咽喉）
+                if (result.getStatus() == SkillStatus.NEED_INFO && execContext.getPlayer() != null) {
+                    PendingResumeManager.getInstance().save(execContext.getPlayer().getUniqueId(), skillName, intent.getAction(), sanitizedEntities, result.getMessage());
+                }
                 return result;
             }).exceptionally(ex -> {
                 PluginLoggerUtil.error("技能管理", I18nService.tr("技能执行异常（可能为第三方技能）：{} - {}", skillName, ex.getMessage()), ex);
