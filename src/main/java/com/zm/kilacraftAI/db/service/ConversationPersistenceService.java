@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.db.service;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.ConversationDao;
@@ -410,7 +411,7 @@ public class ConversationPersistenceService {
         String prefix = databaseManager.getTablePrefix();
         this.conversationDao = new ConversationDao(prefix);
         this.watermarkDao = new WatermarkDao(prefix);
-        PluginLoggerUtil.info("数据库", "对话持久化服务配置已刷新（历史加载: {}, 保留天数: {}, server_id: {}）", loadHistoryEnabled, retentionDays > 0 ? retentionDays : "永久", serverId.isEmpty() ? "未配置" : serverId);
+        PluginLoggerUtil.info("数据库", "对话持久化服务配置已刷新（历史加载: {}, 保留天数: {}, server_id: {}）", loadHistoryEnabled, retentionDays > 0 ? retentionDays : I18nService.tr("永久"), serverId.isEmpty() ? I18nService.tr("未配置") : serverId);
     }
 
     /**

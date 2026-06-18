@@ -206,7 +206,7 @@ public class DiagnosticReportGenerator {
         }
 
         content.append("\n---\n\n");
-        content.append("*报告结束 / End of Report*\n");
+        content.append("*").append(I18nService.tr("报告结束")).append("*\n");
 
         // 写入文件
         try {

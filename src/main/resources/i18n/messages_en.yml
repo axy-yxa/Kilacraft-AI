@@ -67,6 +67,10 @@ modules:
   "社交关系": "Social Relation"
   "消息分发": "Msg Dispatch"
   "续体": "Resume"
+  "服主管理": "Admin"
+  "健康监控": "Health Monitor"
+  "审计日志": "Audit"
+  "玩家分析": "Player Analysis"
 
 # ==================== 消息翻译 ====================
 # Message Translations
@@ -531,9 +535,10 @@ messages:
   "转账金额必须大于 0": "Transfer amount must be greater than 0"
   "金额格式不正确: {}": "Invalid amount format: {}"
   "余额不足，当前余额 ${}，需要 ${}": "Insufficient balance, current balance ${}, need ${}"
-  "即将向 {} 转账 ${}，占你余额的较大比例。确认转账吗？": "About to transfer ${} to {}, which is a large portion of your balance. Confirm transfer?"
-  "已成功向 {} 转账 ${}": "Successfully transferred ${} to {}"
+  "即将向 {} 转账 ${}，占你余额的较大比例。确认转账吗？": "Transfer to {} amount ${} — large portion of your balance. Confirm?"
+  "已成功向 {} 转账 ${}": "{} has been sent ${}"
   "转账失败，可能目标玩家不存在或余额不足": "Transfer failed, target player may not exist or insufficient balance"
+  "你确认时要转 ${}，但当前余额仅 ${}（期间有变动）。要转多少？或说「取消」。": "You confirmed transferring ${}, but the current balance is only ${} (changed since then). How much to transfer? Or say 'cancel'."
   "请先将需要拍卖的物品拿在主手中": "Please hold the item you want to auction in your main hand first"
   "你想以多少起拍价拍卖 {} x{}？市场参考价: ${}": "What starting bid do you want for auctioning {} x{}? Market reference price: ${}"
   "你想以多少起拍价拍卖 {} x{}？市场暂无参考价": "What starting bid do you want for auctioning {} x{}? No market reference price available"
@@ -910,6 +915,7 @@ messages:
   "成功": "Success"
   "失败": "Failed"
   "跳过": "Skipped"
+  "需确认": "Needs confirm"
 
   # ==================== LLMProvider ====================
   "请求失败：{} - {}": "Request failed: {} - {}"
@@ -1418,10 +1424,9 @@ messages:
   "检测到异常，但已有分析任务在运行，跳过本次告警": "Anomaly detected, but analysis already running, skipping alert"
   "服主 {} 请求手动分析，但已有分析任务在运行": "Admin {} requested manual analysis, but analysis already running"
   "服主 {} 请求手动分析，但获取分析锁失败": "Admin {} requested manual analysis, but failed to acquire lock"
-  "推理模型未配置，跳过 AI 诊断": "Thinking model not configured, skipping AI diagnosis"
   "当前 LLM Provider 不支持推理模型，跳过 AI 诊断": "Current LLM Provider does not support thinking model, skipping AI diagnosis"
   "推理模型思考过程（{} 字符）": "Thinking model reasoning process ({} chars)"
-  "{}模式分析完成{}": "{} mode analysis complete{}"
+  "{}模式分析完成": "{} mode analysis complete"
   "守护线程已标记关闭": "Guardian marked for shutdown"
   "执行 Profiler 命令: {}": "Executing Profiler command: {}"
   "触发 Profiler 失败: {}": "Failed to trigger Profiler: {}"
@@ -1437,6 +1442,10 @@ messages:
   "服主 {} 手动分析：锁竞争失败，请稍后重试": "Admin {} manual analysis: lock contention failed, please retry later"
   "守护线程已关闭，中断分析": "Guardian thread shut down, aborting analysis"
   "Profiler 数据已下载，大小: {} bytes": "Profiler data downloaded, size: {} bytes"
+  "Profiler 数据已下载到临时文件: {} ({}) [来源: {}]": "Profiler data downloaded to temp file: {} ({}) [source: {}]"
+  "开始流式解析 Protobuf 数据（{}）...": "Starting streaming Protobuf data parsing ({})..."
+  "Protobuf 解析完成：线程 {} 个，类映射 {} 条，耗时 {}ms": "Protobuf parsing complete: {} threads, {} class mappings, took {}ms"
+  "热点提取完成：候选 {} 个，保留 Top {} 个": "Hotspot extraction complete: {} candidates, keeping Top {}"
   "调用栈解析完成：热点 {} 个，Server thread 占比 {}": "Stack trace parsing complete: {} hotspots, Server thread ratio: {}"
   "自动分析频率已达上限（{}次/{}分钟），跳过": "Auto analysis rate limit reached ({} per {} minutes), skipping"
   "冷却期内，距上次分析 {}s，需 {}s，跳过": "In cooldown, {}s since last analysis, need {}s, skipping"
@@ -1462,6 +1471,7 @@ messages:
   "无法写入诊断报告: {}": "Cannot write diagnostic report: {}"
   "解析失败: {}": "Parse failed: {}"
   "解析元数据 JSON 失败: {}": "Failed to parse metadata JSON: {}"
+  "报告结束": "End of Report"
 
   # ==================== Admin - SparkDataCollector ====================
   "采集 Spark 快照失败: {}": "Failed to collect Spark snapshot: {}"
@@ -1475,6 +1485,8 @@ messages:
   "无法创建默认配置文件: {}": "Cannot create default config file: {}"
   "启用": "enabled"
   "禁用": "disabled"
+  "未配置": "Not configured"
+  "永久": "Permanent"
   "配置已加载（守护线程: 启用，诊断模型: {}）": "Config loaded (Guardian: enabled, diagnostic model: {})"
   "配置已加载（守护线程: {}）": "Config loaded (Guardian: {})"
   "推理模型 HTTP 客户端已重建（超时: {}s）": "Thinking model HTTP client rebuilt (timeout: {}s)"
@@ -1766,14 +1778,13 @@ messages:
   "恢复执行：{}.{}（confirmed={}）": "Resuming execution: {}.{} (confirmed={})"
   "待确认续体分类失败: {}": "Pending resume classification failed: {}"
   "待确认续体关键词短路：{} → {}": "Pending resume keyword shortcut: {} → {}"
+  "待确认续体分类开始：{}.{}": "Pending resume classification started: {}.{}"
+  "待确认续体分类结果: {}": "Pending resume classification result: {}"
+  "待确认续体分类错误: {}": "Pending resume classification error: {}"
+  "待确认续体分类解析失败：{}": "Pending resume classification parse failed: {}"
+  "【系统：当前有一笔待处理的操作】": "[System: Pending operation in progress]"
   "已取消该操作。": "Operation cancelled."
   "该操作正在处理或已失效，请重新描述你的需求。": "This operation is being processed or no longer valid. Please restate your request."
   "该操作已过期或不存在，请重新描述你的需求。": "This operation has expired or does not exist. Please restate your request."
   "单意图 {} 含未解析占位符 {}，回退普通 AI": "Single intent {} contains unresolved placeholders {}, falling back to normal AI"
   "部分参数未能自动解析，请直接说明具体数值": "Some parameters could not be auto-resolved. Please state the concrete value directly."
-
-  # ==================== IntentPromptConfigManager ====================
-  "【系统：当前有一笔待处理的操作】": "[System: There is a pending operation]"
-
-  # ==================== MarketActionSkill ====================
-  "你确认时要转 ${}，但当前余额仅 ${}（期间有变动）。要转多少？或说「取消」。": "You confirmed transferring ${}, but the current balance is only ${} (changed since then). How much to transfer? Or say 'cancel'."

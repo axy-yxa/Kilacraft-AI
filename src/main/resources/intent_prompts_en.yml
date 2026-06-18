@@ -333,6 +333,13 @@ phase1:
     - Your job: recognize intent -> match existing skills. NOT your job: create new skills, guess names, assume features exist
     - Principle: prefer over-selection to omission — when in doubt about a skill's relevance, include it rather than exclude it. Your goal is coarse selection: be as precise as possible without missing any. Better to include one possibly-relevant skill than to miss one. Phase 2 then does precise action selection and parameter extraction
 
+    [Combined Intent Recognition — the key scenario for favoring recall]
+    A user's request may implicitly require multiple skills working together. You must recognize such combined intents:
+    - When a parameter in the user's request is a ratio/percentage/relative value (e.g., "half", "all", "one third", "50%", "the rest") based on some real-time data, this implies needing BOTH an execution skill AND the query skill that can obtain that real-time data — include both
+    - When the request involves a cross-category operation chain (e.g., "look up X then do Y with the result"), include both the data-fetch skill and the execution skill
+    - Decision principle: do not only look at the operation the user literally mentioned — also consider whether completing that operation depends on data provided by another skill. If yes, include that skill as well
+    - This concretely applies the coarse-selection principle — the cost of including an extra relevant skill is far lower than missing one. Phase 2 can only build correct multi-step tasks when it receives the full set of needed skills
+
   output_format: |
     Skills needed: {"skill_names": ["skill name 1", "skill name 2"]}
     No skill needed: {"skill_names": null}
