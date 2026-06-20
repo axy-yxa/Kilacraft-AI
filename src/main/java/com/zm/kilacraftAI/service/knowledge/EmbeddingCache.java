@@ -155,6 +155,7 @@ public class EmbeddingCache {
      * @return 向量，不存在返回 null
      */
     public synchronized float[] getVector(String text) {
+        if (text == null) return null;
         String hash = contentHash(text);
         CacheEntry entry = entries.get(hash);
         return entry != null ? entry.vector : null;
@@ -167,6 +168,7 @@ public class EmbeddingCache {
      * @param vector 向量
      */
     public synchronized void putVector(String text, float[] vector) {
+        if (text == null) return;
         String hash = contentHash(text);
         String preview = text.length() > 100 ? text.substring(0, 100) + "..." : text;
         entries.put(hash, new CacheEntry(preview, vector));
@@ -179,6 +181,7 @@ public class EmbeddingCache {
      * @return 向量的 L2 范数，不存在返回 1.0（不会导致除零；查不到 norm 意味着向量不在缓存里，调用方不应走到这步）
      */
     public synchronized double getNorm(String text) {
+        if (text == null) return 1.0;
         String hash = contentHash(text);
         CacheEntry entry = entries.get(hash);
         return entry != null ? entry.norm() : 1.0;

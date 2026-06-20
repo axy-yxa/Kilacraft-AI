@@ -56,7 +56,7 @@ public class BM25Scorer {
      */
     public static int countOccurrences(String text, String keyword) {
         // 空串防御：text.indexOf("", idx) 恒返回 idx，idx+=0 永不前进会导致死循环
-        if (keyword == null || keyword.isEmpty()) {
+        if (text == null || keyword == null || keyword.isEmpty()) {
             return 0;
         }
         int count = 0;

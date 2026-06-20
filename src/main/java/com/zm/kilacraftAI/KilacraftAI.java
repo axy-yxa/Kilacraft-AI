@@ -331,7 +331,14 @@ public final class KilacraftAI extends JavaPlugin {
         llmManager = new LLMManager();
 
         // 知识检索器（依赖 configManager + knowledgeBase）
-        knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, configManager.getMaxRelevantChunks(), configManager.getMinRelevanceScore(), configManager.getKnowledgeMaxChunkSize(), configManager.getKnowledgeMinChunkSize(), configManager.getKnowledgeChunkOverlap(), configManager.getKeywordTopK(), configManager.getBm25K1(), configManager.getBm25B());
+        knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, configManager.getMaxRelevantChunks(), configManager.getKnowledgeMaxChunkSize(), configManager.getKnowledgeMinChunkSize(), configManager.getKnowledgeChunkOverlap(), configManager.getKeywordTopK(), configManager.getBm25K1(), configManager.getBm25B());
+
+        // 软阈值 + BM25 长度归一化参数
+        knowledgeRetriever.setRetrievalConfig(configManager.getRetrievalNoiseFloor(), configManager.getRetrievalRelativeThreshold(), configManager.getRetrievalRrfK(), configManager.getBm25AvgDocLength());
+
+        // 对所有用户预构建分段缓存（使 avgDocLength 可统计，同时预热检索）
+        knowledgeRetriever.buildChunkCache();
+        knowledgeRetriever.computeAvgDocLength();
 
         // Embedding 语义检索服务
         if (configManager.isEmbeddingEnabled()) {
@@ -341,9 +348,8 @@ public final class KilacraftAI extends JavaPlugin {
             if (embeddingService.isAvailable()) {
                 knowledgeRetriever.setEmbeddingService(embeddingService, true, configManager.getEmbeddingMinSimilarity());
 
-                // 同步分段 + 预计算（服务器启动阶段）
+                // 预计算向量（分段缓存已在上方对所有用户构建）
                 try {
-                    knowledgeRetriever.buildChunkCache();
                     embeddingService.precomputeAllChunks(knowledgeBase.getAllChunkCache());
                 } catch (Exception e) {
                     PluginLoggerUtil.warn("知识库", "Embedding 预计算异常: {}", e.getMessage());
@@ -355,7 +361,7 @@ public final class KilacraftAI extends JavaPlugin {
 
         // 自定义词典（依赖 configManager，通过工厂统一初始化）
         if (configManager.isCustomDictionaryEnabled()) {
-            TextProcessorFactory.initialize(configManager.getAllDictionaryWords());
+            TextProcessorFactory.initialize(knowledgeBase.buildDictionaryWordsWithCorpus(configManager.getAllDictionaryWords()));
             PluginLoggerUtil.info("词典系统", "已加载 {} 个内置词汇", configManager.getInternalDictionaryWords().size());
             List<String> customWords = configManager.getCustomDictionaryWords();
             PluginLoggerUtil.info("词典系统", "已加载 {} 个自定义词汇", customWords != null ? customWords.size() : 0);

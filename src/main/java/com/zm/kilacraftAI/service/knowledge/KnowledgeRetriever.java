@@ -5,10 +5,7 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.i18n.TextProcessorFactory;
 import com.zm.kilacraftAI.model.knowledge.KnowledgeChunk;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,7 +21,6 @@ public class KnowledgeRetriever {
 
     private final KnowledgeBaseManager knowledgeBase;
     private int maxRelevantChunks;
-    private double minRelevanceScore;      // 最低相关性得分阈值（BM25 模式）
 
     // 关键词提取配置
     private int keywordTopK;
@@ -38,14 +34,23 @@ public class KnowledgeRetriever {
     private int MIN_CHUNK_SIZE;
     private int CHUNK_OVERLAP;
 
-    // Embedding 语义检索（volatile: 主线程写配置，异步检索线程读）
+    // Embedding 语义检索
     private volatile EmbeddingService embeddingService;
     private volatile boolean embeddingEnabled;
     private volatile double embeddingMinSimilarity;
 
-    public KnowledgeRetriever(KnowledgeBaseManager knowledgeBase, int maxRelevantChunks, double minRelevanceScore, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
+    // 检索结果过滤与融合
+    private volatile double noiseFloor;
+    private volatile double relativeThreshold;
+    private volatile double rrfK;
+
+    // BM25 长度归一化
+    private volatile int bm25AvgDocLengthOverride;
+    private volatile int avgDocLength;
+
+    public KnowledgeRetriever(KnowledgeBaseManager knowledgeBase, int maxRelevantChunks, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
         this.knowledgeBase = knowledgeBase;
-        applyConfig(maxRelevantChunks, minRelevanceScore, maxChunkSize, minChunkSize, chunkOverlap, keywordTopK, bm25K1, bm25B);
+        applyConfig(maxRelevantChunks, maxChunkSize, minChunkSize, chunkOverlap, keywordTopK, bm25K1, bm25B);
     }
 
     /**
@@ -54,7 +59,6 @@ public class KnowledgeRetriever {
      * 此方法仅更新算法调优参数（分段大小、BM25、阈值等）。</p>
      *
      * @param maxRelevantChunks 最大返回片段数
-     * @param minRelevanceScore 最低相关性阈值
      * @param maxChunkSize      最大分段大小
      * @param minChunkSize      最小分段大小
      * @param chunkOverlap      段间重叠字符数
@@ -62,8 +66,8 @@ public class KnowledgeRetriever {
      * @param bm25K1            BM25 k1 参数
      * @param bm25B             BM25 b 参数
      */
-    public void refreshConfig(int maxRelevantChunks, double minRelevanceScore, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
-        applyConfig(maxRelevantChunks, minRelevanceScore, maxChunkSize, minChunkSize, chunkOverlap, keywordTopK, bm25K1, bm25B);
+    public void refreshConfig(int maxRelevantChunks, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
+        applyConfig(maxRelevantChunks, maxChunkSize, minChunkSize, chunkOverlap, keywordTopK, bm25K1, bm25B);
     }
 
     /**
@@ -75,9 +79,58 @@ public class KnowledgeRetriever {
         this.embeddingMinSimilarity = embeddingMinSimilarity;
     }
 
-    private void applyConfig(int maxRelevantChunks, double minRelevanceScore, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
+    /**
+     * 设置检索过滤与 BM25 长度归一化参数（热重载时调用）。
+     *
+     * @param noiseFloor               噪声地板
+     * @param relativeThreshold        相对阈值
+     * @param rrfK                     RRF 融合常数
+     * @param bm25AvgDocLengthOverride BM25 平均文档长度覆盖（0 = 自动统计）
+     */
+    public void setRetrievalConfig(double noiseFloor, double relativeThreshold, double rrfK, int bm25AvgDocLengthOverride) {
+        this.noiseFloor = noiseFloor;
+        this.relativeThreshold = relativeThreshold;
+        this.rrfK = rrfK;
+        this.bm25AvgDocLengthOverride = bm25AvgDocLengthOverride;
+        computeAvgDocLength();   // 覆盖项变更后重算（chunkCache 未变也需重算以应用覆盖项）
+    }
+
+    /**
+     * 统计全量 chunk 的平均字符长度，用于 BM25 长度归一化
+     * 在 {@link #buildChunkCache()} 之后、以及知识库 reload 后调用。
+     */
+    public void computeAvgDocLength() {
+        if (bm25AvgDocLengthOverride > 0) {
+            this.avgDocLength = bm25AvgDocLengthOverride;
+            PluginLoggerUtil.debug("知识库", "avgDocLength 使用配置覆盖：{}", this.avgDocLength);
+            return;
+        }
+        Map<String, List<String>> allChunks = knowledgeBase.getAllChunkCache();
+        long total = 0;
+        int count = 0;
+        for (List<String> chunks : allChunks.values()) {
+            for (String chunk : chunks) {
+                total += chunk.length();
+                count++;
+            }
+        }
+        this.avgDocLength = count > 0 ? (int) (total / count) : 0;
+        PluginLoggerUtil.debug("知识库", "avgDocLength 统计：{} 个片段，平均 {} 字符", count, this.avgDocLength);
+    }
+
+    /**
+     * BM25 长度归一化用的平均文档长度。
+     * 优先配置覆盖项；其次运行时统计值；都不可用时回退原硬编码 500（保证未统计前仍可运行）。
+     */
+    private int effectiveAvgDocLength() {
+        if (bm25AvgDocLengthOverride > 0) {
+            return bm25AvgDocLengthOverride;
+        }
+        return avgDocLength > 0 ? avgDocLength : 500;
+    }
+
+    private void applyConfig(int maxRelevantChunks, int maxChunkSize, int minChunkSize, int chunkOverlap, int keywordTopK, double bm25K1, double bm25B) {
         this.maxRelevantChunks = maxRelevantChunks;
-        this.minRelevanceScore = minRelevanceScore;
         this.keywordTopK = keywordTopK;
         this.bm25K1 = bm25K1;
         this.bm25B = bm25B;
@@ -99,35 +152,88 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * 检索与问题相关的知识
+     * 检索与问题相关的知识。
+     *
+     * <p>未启用 Embedding 时走纯 BM25；启用且可用时走 BM25 + Embedding 的 RRF 融合。
+     * 两条路最终都经 {@link #applySoftThreshold} 过滤后返回。</p>
      */
     public List<String> retrieveKnowledge(String question) {
         long startTime = System.currentTimeMillis();
         Map<String, String> allKnowledge = knowledgeBase.getAllKnowledge();
-
         if (allKnowledge.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // Embedding 语义检索路径
-        if (embeddingEnabled && embeddingService != null && embeddingService.isAvailable()) {
-            return retrieveByEmbedding(question, allKnowledge, startTime);
+        // BM25 评分（恒做；同时产出 totalChunks 用于日志）
+        ScoreResult bm25 = scoreAllByBM25(question, allKnowledge);
+
+        boolean embedAvail = embeddingEnabled && embeddingService != null && embeddingService.isAvailable();
+        List<KnowledgeChunk> ranked;
+        double noiseFloorForFilter;
+
+        if (embedAvail) {
+            PluginLoggerUtil.debug("知识库", "使用 BM25 + Embedding 融合检索");
+            List<KnowledgeChunk> embedList = scoreAllByEmbedding(question, allKnowledge);
+            if (embedList != null) {
+                ranked = fuseByRRF(bm25.chunks(), embedList, rrfK);
+                noiseFloorForFilter = 0.0;   // RRF 得分恒 > 0，纯靠相对阈值
+            } else {
+                // 查询向量获取失败 → 退化为纯 BM25
+                ranked = bm25.chunks();
+                noiseFloorForFilter = noiseFloor;
+            }
+        } else {
+            if (embeddingEnabled) {
+                PluginLoggerUtil.debug("知识库", "Embedding 不可用，降级到 BM25");
+            }
+            ranked = bm25.chunks();
+            noiseFloorForFilter = noiseFloor;
         }
 
-        // BM25 算法检索路径（默认 / 降级）
-        return retrieveByBM25(question, allKnowledge, startTime);
+        List<String> result = applySoftThreshold(ranked, noiseFloorForFilter, relativeThreshold, maxRelevantChunks);
+        logRetrievalStats(startTime, allKnowledge.size(), bm25.totalChunks(), ranked.size(), result.size(), ranked);
+        return result;
     }
 
     /**
-     * Embedding 语义检索路径
+     * 评分结果：按得分降序的片段列表 + 本次遍历的总片段数（用于日志）。
      */
-    private List<String> retrieveByEmbedding(String question, Map<String, String> allKnowledge, long startTime) {
-        PluginLoggerUtil.debug("知识库", "使用 Embedding 语义检索");
+    private record ScoreResult(List<KnowledgeChunk> chunks, int totalChunks) {
+    }
 
+    /**
+     * 用 BM25 对全部片段评分，返回按得分降序的列表（得分 > 0 才入列）。
+     */
+    private ScoreResult scoreAllByBM25(String question, Map<String, String> allKnowledge) {
+        List<String> keywords = extractKeywords(question);
+        PluginLoggerUtil.debug("知识库", "提取关键词：{}", keywords);
+
+        List<KnowledgeChunk> chunkScores = new ArrayList<>();
+        int totalChunks = 0;
+        for (Map.Entry<String, String> entry : allKnowledge.entrySet()) {
+            List<String> chunks = getOrSplitChunks(entry.getValue(), entry.getKey());
+            totalChunks += chunks.size();
+            for (String chunk : chunks) {
+                double score = calculateRelevance(question, chunk, keywords);
+                if (score > 0) {
+                    chunkScores.add(new KnowledgeChunk(entry.getKey(), chunk, score));
+                }
+            }
+        }
+        chunkScores.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
+        return new ScoreResult(chunkScores, totalChunks);
+    }
+
+    /**
+     * 用 Embedding 余弦相似度对全部片段评分，返回按相似度降序的列表。
+     *
+     * @return 评分列表；若获取查询向量失败返回 null（调用方据此退化为纯 BM25）
+     */
+    private List<KnowledgeChunk> scoreAllByEmbedding(String question, Map<String, String> allKnowledge) {
         float[] queryVec = embeddingService.getEmbedding(question);
         if (queryVec == null) {
             PluginLoggerUtil.warn("知识库", "获取问题 Embedding 失败，降级到 BM25");
-            return retrieveByBM25(question, allKnowledge, startTime);
+            return null;
         }
 
         // 查询向量的 L2 范数：整个检索过程只算一次，不再对每个 chunk 重算
@@ -135,102 +241,78 @@ public class KnowledgeRetriever {
         for (float v : queryVec) queryNormSumSq += (double) v * v;
         double queryNorm = Math.sqrt(queryNormSumSq);
 
-        // 遍历片段计算余弦相似度
-        List<KnowledgeChunk> chunkScores = new ArrayList<>();
-        int totalChunks = 0;
+        // 预过滤：低于 min_similarity 的片段视为语义无关，不参与 Embedding 路排名
+        double embedThreshold = embeddingMinSimilarity > 0 ? embeddingMinSimilarity : 0.0;
 
+        List<KnowledgeChunk> chunkScores = new ArrayList<>();
         for (Map.Entry<String, String> entry : allKnowledge.entrySet()) {
             String fileName = entry.getKey();
-            String content = entry.getValue();
-
-            List<String> chunks = getOrSplitChunks(content, fileName);
-            totalChunks += chunks.size();
-
+            List<String> chunks = getOrSplitChunks(entry.getValue(), fileName);
             for (String chunk : chunks) {
                 float[] chunkVec = embeddingService.getEmbedding(chunk);
                 if (chunkVec == null) continue;
-
                 double chunkNorm = embeddingService.getChunkNorm(chunk);
                 double similarity = cosineSimilarity(queryVec, chunkVec, queryNorm, chunkNorm);
-                if (similarity > 0) {
+                if (similarity >= embedThreshold) {
                     chunkScores.add(new KnowledgeChunk(fileName, chunk, similarity));
                 }
             }
         }
-
-        // 按相似度排序
         chunkScores.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
-
-        // 过滤低相似度 + 取前 N
-        List<String> relevantKnowledge = new ArrayList<>();
-        int count = Math.min(chunkScores.size(), maxRelevantChunks);
-        double threshold = embeddingMinSimilarity >= 0 ? embeddingMinSimilarity : 0.3;
-
-        for (int i = 0; i < count; i++) {
-            KnowledgeChunk chunk = chunkScores.get(i);
-            if (chunk.getScore() < threshold) {
-                PluginLoggerUtil.debug("知识库", "剩余片段相似度过低（{}），停止返回", String.format("%.4f", chunk.getScore()));
-                break;
-            }
-            relevantKnowledge.add(chunk.getContent());
-        }
-
-        logRetrievalStats(startTime, allKnowledge.size(), totalChunks, chunkScores.size(), relevantKnowledge.size(), chunkScores);
-        return relevantKnowledge;
+        return chunkScores;
     }
 
     /**
-     * BM25 算法检索路径（默认 / Embedding 降级）
+     * 用 RRF（Reciprocal Rank Fusion）融合两路评分结果。
+     *
+     * <p>RRF(d) = 1/(k + rank_bm25(d)) + 1/(k + rank_embed(d))，按排名融合、与得分尺度无关。
+     * 两路覆盖同一批片段，故每个片段在两路各有一个名次（未在某路出现则该路不计）。</p>
+     *
+     * @param bm25List  BM25 路评分（已降序）
+     * @param embedList Embedding 路评分（已降序）
+     * @param k         平滑常数（默认 60）
+     * @return 按 RRF 得分降序的融合列表
      */
-    private List<String> retrieveByBM25(String question, Map<String, String> allKnowledge, long startTime) {
-        if (embeddingEnabled) {
-            PluginLoggerUtil.debug("知识库", "Embedding 不可用，降级到 BM25");
+    private List<KnowledgeChunk> fuseByRRF(List<KnowledgeChunk> bm25List, List<KnowledgeChunk> embedList, double k) {
+        Map<String, Integer> rankBm25 = buildRankIndex(bm25List);
+        Map<String, Integer> rankEmbed = buildRankIndex(embedList);
+
+        // 并集 key → 任一路的代表片段（同一片段两路的 fileName/content 一致）
+        Map<String, KnowledgeChunk> byKey = new LinkedHashMap<>();
+        for (KnowledgeChunk c : bm25List) byKey.putIfAbsent(chunkKey(c), c);
+        for (KnowledgeChunk c : embedList) byKey.putIfAbsent(chunkKey(c), c);
+
+        List<KnowledgeChunk> fused = new ArrayList<>(byKey.size());
+        for (Map.Entry<String, KnowledgeChunk> e : byKey.entrySet()) {
+            String key = e.getKey();
+            double rrf = 0.0;
+            if (rankBm25.containsKey(key)) rrf += 1.0 / (k + rankBm25.get(key));
+            if (rankEmbed.containsKey(key)) rrf += 1.0 / (k + rankEmbed.get(key));
+            KnowledgeChunk orig = e.getValue();
+            fused.add(new KnowledgeChunk(orig.getFileName(), orig.getContent(), rrf));
         }
-
-        // HanLP TF-IDF 提取有意义的关键词
-        List<String> keywords = extractKeywords(question);
-
-        PluginLoggerUtil.debug("知识库", "提取关键词：{}", keywords);
-
-        // 存储所有片段及其得分
-        List<KnowledgeChunk> chunkScores = new ArrayList<>();
-        int totalChunks = 0;
-
-        for (Map.Entry<String, String> entry : allKnowledge.entrySet()) {
-            String fileName = entry.getKey();
-            String content = entry.getValue();
-
-            List<String> chunks = getOrSplitChunks(content, fileName);
-            totalChunks += chunks.size();
-
-            // 计算每个片段与问题的相关性得分
-            for (String chunk : chunks) {
-                double score = calculateRelevance(question, chunk, keywords);
-                if (score > 0) {
-                    chunkScores.add(new KnowledgeChunk(fileName, chunk, score));
-                }
-            }
-        }
-
-        // 按得分排序
-        chunkScores.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
-
-        // 取前 N 个最相关的片段，过滤掉低分噪声
-        List<String> relevantKnowledge = new ArrayList<>();
-        int count = Math.min(chunkScores.size(), maxRelevantChunks);
-
-        for (int i = 0; i < count; i++) {
-            KnowledgeChunk chunk = chunkScores.get(i);
-            if (chunk.getScore() < minRelevanceScore) {
-                PluginLoggerUtil.debug("知识库", "剩余片段得分过低（{}），停止返回", String.format("%.2f", chunk.getScore()));
-                break;
-            }
-            relevantKnowledge.add(chunk.getContent());
-        }
-
-        logRetrievalStats(startTime, allKnowledge.size(), totalChunks, chunkScores.size(), relevantKnowledge.size(), chunkScores);
-        return relevantKnowledge;
+        fused.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
+        return fused;
     }
+
+    /**
+     * 片段复合键：文件名 + 分隔符 + 正文（避免跨文件相同正文被误合并）。
+     */
+    private static String chunkKey(KnowledgeChunk c) {
+        return c.getFileName() + "|" + c.getContent();
+    }
+
+    /**
+     * 按已降序列表构建 key → 名次（1 起）索引。
+     */
+    private static Map<String, Integer> buildRankIndex(List<KnowledgeChunk> sortedDesc) {
+        Map<String, Integer> rank = new HashMap<>(sortedDesc.size() * 2);
+        for (int i = 0; i < sortedDesc.size(); i++) {
+            rank.putIfAbsent(chunkKey(sortedDesc.get(i)), i + 1);
+        }
+        return rank;
+    }
+
 
     /**
      * 获取或创建分段缓存
@@ -295,7 +377,7 @@ public class KnowledgeRetriever {
         }
 
         // BM25 评分
-        score += BM25Scorer.score(content, keywords, bm25K1, bm25B, 500);
+        score += BM25Scorer.score(content, keywords, bm25K1, bm25B, effectiveAvgDocLength());
 
         // 标题位置加权：标题中的关键词额外加分
         for (String keyword : keywords) {
@@ -316,6 +398,40 @@ public class KnowledgeRetriever {
         }
 
         return score;
+    }
+
+    /**
+     * 软阈值 / 自适应阈值过滤
+     *
+     * <p>{@code floor = max(noiseFloor, top × relativeThreshold)}，其中 top 为最高分。
+     * 因入参已按得分降序、且 {@code top × relativeThreshold ≤ top}，故 {@code floor ≤ top ⟺ top ≥ noiseFloor}：
+     * 最高分过噪声地板时，最高分片段必 {@code ≥ floor}，数学上保证至少返回 1 条；
+     * 最高分都低于噪声地板时返回空（纯噪声）。无需额外"兜底返回 1"逻辑。</p>
+     *
+     * @param sortedDesc        按得分降序的片段列表
+     * @param noiseFloor        噪声地板（BM25 路为 retrieval.noise_floor；Embedding 路为 min_similarity）
+     * @param relativeThreshold 相对阈值（默认 0.5）
+     * @param maxResults        最大返回数（max_relevant_chunks）
+     */
+    private List<String> applySoftThreshold(List<KnowledgeChunk> sortedDesc, double noiseFloor, double relativeThreshold, int maxResults) {
+        if (sortedDesc == null || sortedDesc.isEmpty()) {
+            return Collections.emptyList();
+        }
+        double top = sortedDesc.get(0).getScore();
+        double floor = Math.max(noiseFloor, top * relativeThreshold);
+
+        List<String> out = new ArrayList<>();
+        for (KnowledgeChunk chunk : sortedDesc) {
+            if (out.size() >= maxResults) {
+                break;
+            }
+            if (chunk.getScore() < floor) {
+                PluginLoggerUtil.debug("知识库", "软阈值命中（floor={}），停止返回", String.format("%.4f", floor));
+                break;   // 降序，后续只会更低
+            }
+            out.add(chunk.getContent());
+        }
+        return out;
     }
 
     /**

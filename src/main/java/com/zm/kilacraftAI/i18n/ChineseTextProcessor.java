@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -17,6 +19,12 @@ import java.util.stream.Collectors;
  * @since 2026-04-06
  */
 public class ChineseTextProcessor implements TextProcessor {
+
+    /**
+     * 斜杠命令名匹配：/back、/spawn、/kit starter → 捕获命令名（back/spawn/kit）。
+     * <p>用于修复「/cmd 粘合中文」（如 /back冷却）时 Layer1.5 的英文抽取抽不出命令名的问题。</p>
+     */
+    private static final Pattern COMMAND_PATTERN = Pattern.compile("/([a-zA-Z][a-zA-Z0-9_-]{1,20})");
 
     @Override
     public void initCustomDictionary(List<String> customWords) {
@@ -118,13 +126,20 @@ public class ChineseTextProcessor implements TextProcessor {
 
         // 【第1.5层】提取英文单词（命令名优化）
         // 保留独立的英文单词，如 "back", "spawn", "money"
-        String[] words = normalizedText.split("[,，.。?？!！;；:：]+");
+        // 注意：分割类含 "/"，使 "/back spawn" 能拆出 back、spawn
+        String[] words = normalizedText.split("[,，.。?？!！;；:：/]+");
         for (String word : words) {
             String trimmed = word.trim();
             // 保留纯英文单词（2-15字符），如命令名；排除罗马数字（MC附魔等级标记）
             if (!trimmed.isEmpty() && trimmed.matches("^[a-zA-Z]{2,15}$") && !isRomanNumeral(trimmed)) {
                 keywordSet.add(trimmed.toLowerCase());
             }
+        }
+
+        // 【第1.6层】斜杠命令名提取
+        // 修复 "/back冷却" 这类命令粘合中文时，Layer1.5 抽不出命令名的问题
+        for (String command : extractSlashCommands(normalizedText)) {
+            keywordSet.add(command);
         }
 
         // 【第2层】分词结果(中等优先级,捕获复合词的组成部分)
@@ -165,6 +180,25 @@ public class ChineseTextProcessor implements TextProcessor {
 
         // 返回前 topK 个(保持优先级顺序)
         return keywordSet.stream().limit(topK).collect(Collectors.toList());
+    }
+
+    /**
+     * 提取斜杠命令名。
+     *
+     * <p>从文本中抽取 {@code /back}、{@code /spawn}、{@code /kit} 等命令名（去掉前导斜杠、小写）。
+     * 无论命令后是否紧跟中文（{@code /back冷却}）或空格（{@code /back 冷却}）都能抽出命令名，
+     * 弥补 Layer1.5 在命令粘合中文时抽不出的缺陷。</p>
+     *
+     * @param text 原始文本
+     * @return 命令名列表（小写、去重保序）
+     */
+    private static List<String> extractSlashCommands(String text) {
+        List<String> commands = new ArrayList<>();
+        Matcher matcher = COMMAND_PATTERN.matcher(text);
+        while (matcher.find()) {
+            commands.add(matcher.group(1).toLowerCase());
+        }
+        return commands;
     }
 
     /**
@@ -220,7 +254,8 @@ public class ChineseTextProcessor implements TextProcessor {
      * @return true 如果是停用词
      */
     private static boolean isStopWord(String word) {
-        return word.matches("^[的得地了着过吗呢吧啊呀哦嗯嘛啦呗哇哈嘿哟嚯]$") || word.matches("^(这个|那个|哪些|什么|怎么|如何|是否|可以|可能|应该|需要|想要)$");
+        // 单字语气/助词 + 常见无意义疑问/助动词
+        return word.matches("^[的得地了着过吗呢吧啊呀哦嗯嘛啦呗哇哈嘿哟嚯]$") || word.matches("^(这个|那个|哪些|什么|怎么|如何|是否|可以|可能|应该|需要|想要|多少|几个|为什么|为啥|怎样|怎么样|哪种|哪样|难道)$");
     }
 
     /**

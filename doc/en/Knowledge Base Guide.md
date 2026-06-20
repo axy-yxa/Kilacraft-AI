@@ -1,13 +1,13 @@
 # Kilacraft-AI - Knowledge Base Enhancement Guide
 
-> **Last Updated**: 2026-05-06  
-> **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation
+> **Last Updated**: 2026-06-20  
+> **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation.
 
 ---
 
 ## 💡 Core Philosophy: Knowledge Base Quality is Everything
 
-> **“Garbage In, Garbage Out” (GIGO)**  
+> **"Garbage In, Garbage Out" (GIGO)**  
 > —— George Fuechsel, Computer Scientist
 
 In RAG (Retrieval Augmented Generation) technology, **the quality of knowledge base documents directly determines retrieval quality and recall rate**:
@@ -15,7 +15,7 @@ In RAG (Retrieval Augmented Generation) technology, **the quality of knowledge b
 - ✅ **High-Quality Knowledge Base** → Precise Retrieval → Accurate Answers → **Save Tokens**
 - ❌ **Low-Quality Knowledge Base** → Chaotic Retrieval → Wrong Answers → **Waste Tokens**
 
-### Why Quality Affects Token Consumption?
+### Why Does Quality Affect Token Consumption?
 
 | Knowledge Base Quality | Retrieval Result | Token Consumption | Answer Quality |
 |----------------------|------------------|-------------------|----------------|
@@ -25,13 +25,13 @@ In RAG (Retrieval Augmented Generation) technology, **the quality of knowledge b
 
 **Conclusion**: Spending time optimizing knowledge base documents not only improves AI answer accuracy, but also **significantly reduces API call costs**!
 
-### Key Characteristics of High-Quality Knowledge Base
+### Key Characteristics of a High-Quality Knowledge Base
 
 1. ✅ **Clear Structure**: Use Markdown heading hierarchy for intelligent segmentation
-2. ✅ **Precise Content**: Each chapter focuses on one topic, avoid mixing content
+2. ✅ **Precise Content**: Each section focuses on one topic, avoid mixing content
 3. ✅ **Concise Language**: Express in concise language, avoid verbose writing
 4. ✅ **Rich Keywords**: Include keywords and synonyms that users might use
-5. ✅ **Standard Format**: Use structured content like lists, tables
+5. ✅ **Standard Format**: Use structured content like lists and tables
 6. ✅ **Regular Maintenance**: Update outdated content timely, remove redundant information
 
 ---
@@ -44,7 +44,7 @@ Knowledge Base Enhancement (RAG - Retrieval Augmented Generation) is a technolog
 
 **Working Principle**:
 ```
-User Question → Retrieve Relevant Knowledge Segments → Inject Knowledge into Prompt → LLM Generates Answer
+User Question → Retrieve Relevant Knowledge Chunks → Inject Knowledge into Prompt → LLM Generates Answer
 ```
 
 **Traditional AI vs Knowledge Base Enhanced AI**:
@@ -60,7 +60,7 @@ User Question → Retrieve Relevant Knowledge Segments → Inject Knowledge into
 
 ## 🚀 Quick Start
 
-### 1. Create Knowledge Base Directory
+### 1. Create the Knowledge Base Directory
 
 ```bash
 plugins/Kilacraft-AI/knowledge/
@@ -79,18 +79,18 @@ knowledge/
 └── events.md                # Event introductions
 ```
 
-### 3. Load Knowledge Base
+### 3. Load the Knowledge Base
 
 ```
 /kilacraft knowledge reload
 ```
 
-### 4. Test Effect
+### 4. Test the Effect
 
 ```
 Player: How do I claim land?
 AI: You can use the /claim command to define your territory. Requires at least 10 gold coins.
-    (Based on "Server Rules" document in knowledge base)
+    (Based on the "Server Rules" document in the knowledge base)
 ```
 
 ---
@@ -99,14 +99,14 @@ AI: You can use the /claim command to define your territory. Requires at least 1
 
 ### Supported Formats
 
-- ✅ **Markdown (.md)** - Recommended, supports heading segmentation
-- ✅ **Plain Text (.txt)** - Simple scenarios
+- ✅ **Markdown (.md)** - Recommended, supports heading-based segmentation
+- ✅ **Plain Text (.txt)** - For simple scenarios
 
 ### Markdown Best Practices
 
-#### 1. Use Clear Heading Structure
+#### 1. Use a Clear Heading Structure
 
-````
+```
 # Level 1 Heading (Document Topic)
 
 ## Level 2 Heading (Main Category)
@@ -142,9 +142,9 @@ AI: You can use the /claim command to define your territory. Requires at least 1
 - Fraud
 ```
 
-**Why Important?**
-- AI intelligently segments based on headings
-- Can precisely locate relevant chapters during retrieval
+**Why is this important?**
+- AI segments intelligently based on headings
+- Relevant sections can be precisely located during retrieval
 - Improves answer accuracy and relevance
 
 ---
@@ -162,14 +162,14 @@ You can obtain diamonds through the following methods:
 3. **Trading**: Exchange with other players
 4. **Rewards**: Complete server tasks
 
-**Tip**: Using Fortune enchantment can increase drops!
+**Tip**: Using the Fortune enchantment can increase drops!
 ```
 
 ❌ **Avoid**:
 ```
 ## How to get diamonds
 
-You can mine or go to caves to find or trade with others or do quests, oh and using fortune enchantment is better.
+You can mine or go to caves to find them or trade with others or do quests, oh and using the Fortune enchantment is better.
 ```
 
 ---
@@ -177,23 +177,23 @@ You can mine or go to caves to find or trade with others or do quests, oh and us
 #### 3. Include Keywords and Synonyms
 
 ```
-## Claim Land/Territory/Protected Area
+## Claim Land / Territory / Protected Area
 
 **Claiming land** (also known as territory, protected area) is a method to protect your builds from being destroyed by other players.
 
 ### How to Claim Land?
 1. Prepare 10 gold coins
 2. Stand at the location you want to claim
-3. Execute `/claim` command
+3. Execute the `/claim` command
 
 ### Related Commands
 - `/claim` - Claim territory
 - `/unclaim` - Unclaim territory
-- `/trust <player>` - Add trusted player
-- `/trustlist` - View trust list
+- `/trust <player>` - Add a trusted player
+- `/trustlist` - View the trust list
 ```
 
-**Benefits**: Whether players say "claim", "territory" or "protect", relevant content can be retrieved.
+**Benefits**: Whether players say "claim", "territory", or "protect", relevant content can be retrieved.
 
 ---
 
@@ -203,13 +203,13 @@ You can mine or go to caves to find or trade with others or do quests, oh and us
 ## Economy System Details
 
 ### Currency Unit
-The server's currency unit is "Gold Coin".
+The server's currency unit is the "Gold Coin".
 
 ### Common Item Price Reference
 
 | Item | Price Range | Description |
 |-------|--------------|-------------|
-| Diamond | $80-120 | Fluctuates with market |
+| Diamond | $80-120 | Fluctuates with the market |
 | Netherite Ingot | $500-800 | Rare material |
 | Enchanted Book (Mending) | $2000-3000 | Top-tier enchantment |
 
@@ -271,28 +271,6 @@ knowledge/
 
 ---
 
-#### Strategy 3: Hybrid Approach
-
-```
-knowledge/
-├── basics/               # Basic information
-│   ├── rules.md
-│   └── getting_started.md
-├── advanced/             # Advanced content
-│   ├── redstone_guide.md
-│   └── building_tips.md
-└── reference/            # Reference materials
-    ├── commands.md
-    └── item_prices.md
-```
-
-**Advantages**:
-- Clear structure
-- Suitable for large servers
-- Can load on demand
-
----
-
 ## 🔍 Retrieval Mechanism Details
 
 ### Intelligent Segmentation Algorithm
@@ -302,7 +280,7 @@ Kilacraft-AI uses a **three-tier fallback segmentation strategy**, automatically
 ```
 Strategy 1: Split by Markdown headings (Priority)
   ↓ If no headings
-Strategy 2: Split by paragraphs (empty line separator)
+Strategy 2: Split by paragraphs (empty-line separator)
   ↓ If no empty lines
 Strategy 3: Split by fixed size (Fallback)
 ```
@@ -311,13 +289,15 @@ Strategy 3: Split by fixed size (Fallback)
 
 #### Strategy 1: Split by Markdown Headings ⭐ **Recommended**
 
-**Trigger Condition**: Document contains `#` to `######` headings
+**Trigger Condition**: The document contains `#` to `######` headings
 
 **Segmentation Rules**:
-- Start from heading, read subsequent content
-- Stop when encountering **empty line** or **next heading**
-- Includes heading + immediate content (excluding content after empty line)
-- If single chunk exceeds `max_size (500 chars)` → automatically fallback to Strategy 2
+- Start from the heading, read the subsequent content
+- Stop when encountering an **empty line** or **the next heading**
+- Includes the heading + the content immediately following it (content after an empty line is excluded)
+- If a single chunk exceeds `max_size (500 chars)` → automatically falls back to Strategy 2
+
+**⚠️ Crucial implication**: An empty line **ends** the current heading's chunk. Content after an empty line (until the next heading) becomes a separate **headerless** chunk. So **do not put an empty line between a heading and the content you want grouped with it** — put them on consecutive lines, and use `###` sub-headings to split long content.
 
 **Example 1: Standard Command Documentation**
 
@@ -337,14 +317,14 @@ All players can use this.
 
 **Segmentation Result**:
 ```
-Chunk 1: "# Server Commands" (10 chars)
-Chunk 2: "## /back - Return to Death Point\nAfter you die...Cooldown: 30 seconds\nPermission: None" (180 chars) ✅
-Chunk 3: "## /spawn - Teleport to Spawn\nTeleport to the server's spawn area...All players can use this." (140 chars) ✅
+Chunk 1: "# Server Commands" (17 chars)
+Chunk 2: "## /back - Return to Death Point\nAfter you die...Cooldown: 30 seconds\nPermission: None" (~180 chars) ✅
+Chunk 3: "## /spawn - Teleport to Spawn\nTeleport to the server's spawn area...All players can use this." (~140 chars) ✅
 ```
 
 **✅ Advantages**:
 - Each command maintains complete context
-- Heading information preserved (BM25 heading bonus +15 points)
+- Heading information is preserved (BM25 heading bonus +15 × keyword weight)
 - Best semantic integrity
 
 ---
@@ -358,33 +338,33 @@ This is very useful when exploring caves or fighting bosses.
 (400 chars of detailed explanation omitted...)
 Notes:
 1. Cooldown: 30 seconds
-2. Cannot use in combat
+2. Cannot be used in combat
 3. Need to stand still for 3 seconds
 ```
 
 **Segmentation Result**:
 ```
-Strategy 1 Attempt: Single chunk 700 chars > max_size (500)
-  ↓ Fallback to Strategy 2
-Strategy 2 Split by paragraphs:
-  Chunk 1: "## /back - Return to Death Point\nAfter you die..." (~350 chars) ✅
+Strategy 1 attempt: Single chunk 600 chars > max_size (500)
+  ↓ Triggers Strategy 2
+Strategy 2 splits by paragraphs:
+  Chunk 1: "## /back - Return to Death Point\nAfter you die..." (~300 chars) ✅
   Chunk 2: "Notes:\n1. Cooldown: 30 seconds..." (~200 chars) ✅
 ```
 
 **⚠️ Note**:
-- Heading only in chunk 1, chunk 2 loses heading bonus
-- User searching "back cooldown" may match chunk 2 without heading bonus
+- The heading is only in chunk 1; chunk 2 loses the heading bonus
+- A user searching "back cooldown" may match chunk 2 without the heading bonus
 
 ---
 
 #### Strategy 2: Split by Paragraphs 📄 **Alternative**
 
-**Trigger Condition**: Markdown segmentation fails or document has no headings
+**Trigger Condition**: Markdown segmentation fails, or the document has no headings
 
 **Segmentation Rules**:
 - Use **empty lines** (`\n\n`) as separators
-- Each paragraph must be `≥ min_size (25 chars)`
-- Paragraphs shorter than 25 chars will be **filtered out**
+- Each paragraph must be `≥ min_size (20 chars)`
+- Paragraphs shorter than 20 chars will be **filtered out**
 
 **Example 3: TXT Command Documentation (with empty lines)**
 
@@ -394,14 +374,14 @@ After you die, you can use this command.
 Cooldown: 30 seconds
 
 /spawn - Teleport to spawn
-Teleport to server's spawn area.
+Teleport to the server's spawn area.
 All players can use this.
 ```
 
 **Segmentation Result**:
 ```
-Chunk 1: "/back - Return to death point\nAfter you die...Cooldown: 30 seconds" (100 chars) ✅
-Chunk 2: "/spawn - Teleport to spawn\nTeleport to server's spawn area...All players can use this." (120 chars) ✅
+Chunk 1: "/back - Return to death point\nAfter you die...Cooldown: 30 seconds" (~70 chars) ✅
+Chunk 2: "/spawn - Teleport to spawn\nTeleport to the server's spawn area...All players can use this." (~80 chars) ✅
 ```
 
 **✅ Advantages**:
@@ -409,8 +389,8 @@ Chunk 2: "/spawn - Teleport to spawn\nTeleport to server's spawn area...All play
 - Maintains command integrity
 
 **⚠️ Note**:
-- No heading markers → loses BM25 heading bonus (-15 points)
-- Command names in plain text have lower weight
+- No heading markers → loses the BM25 heading bonus (-15 × weight)
+- Command names in plain text carry lower weight
 
 ---
 
@@ -421,7 +401,7 @@ Chunk 2: "/spawn - Teleport to spawn\nTeleport to server's spawn area...All play
 After you die, you can use this command.
 Cooldown: 30 seconds
 /spawn - Teleport to spawn
-Teleport to server's spawn area.
+Teleport to the server's spawn area.
 /home - Go home
 Teleport to your home.
 ```
@@ -429,55 +409,55 @@ Teleport to your home.
 **Segmentation Result**:
 ```
 Strategy 1: No # headings → Failed
-Strategy 2: No empty lines → Entire document as 1 paragraph (180 chars)
-  ↓ 180 < max_size (500)
+Strategy 2: No empty lines → Entire document as 1 paragraph (~170 chars)
+  ↓ 170 < max_size (500)
   Result: 1 large chunk containing all commands ❌
 ```
 
 **❌ Problem**:
-- All commands mixed together
-- Cannot distinguish during BM25 retrieval
-- User searching "back" returns large chunk with all commands
+- All commands are mixed together
+- BM25 retrieval cannot distinguish them
+- A user searching "back" gets a large chunk containing all commands
 
-**✅ Correct Approach**: Must add empty lines between commands!
+**✅ Correct Approach**: You must add empty lines between commands!
 
 ---
 
-**Example 5: Short Command List (< 25 chars)** ⚠️ **Will Be Filtered**
+**Example 5: Short Command List (< 20 chars)** ⚠️ **Will Be Filtered**
 
 ```txt
-/back return to death
+/back go back
 
-/spawn go to spawn
+/spawn go spawn
 
 /home go home
 
-/money check balance
+/money balance
 ```
 
 **Segmentation Result**:
 ```
-Chunk 1: "/back return to death" (21 chars) ❌ Less than 25 chars, filtered
-Chunk 2: "/spawn go to spawn" (18 chars) ❌ Less than 25 chars, filtered
-Chunk 3: "/home go home" (13 chars) ❌ Less than 25 chars, filtered
-Chunk 4: "/money check balance" (20 chars) ❌ Less than 25 chars, filtered
+Chunk 1: "/back go back" (13 chars) ❌ Less than 20 chars, filtered
+Chunk 2: "/spawn go spawn" (15 chars) ❌ Less than 20 chars, filtered
+Chunk 3: "/home go home" (13 chars) ❌ Less than 20 chars, filtered
+Chunk 4: "/money balance" (14 chars) ❌ Less than 20 chars, filtered
 
 Result: 0 chunks ❌ All commands filtered!
 ```
 
 **⚠️ Important Note**:
-- `min_size: 25` configuration filters out too-short chunks
-- **One-command-per-line concise format will be filtered!**
-- Must add detailed descriptions to make each command chunk ≥ 25 chars
+- The `min_size: 20` configuration filters out too-short chunks
+- **A one-command-per-line concise format will be filtered!**
+- You must add detailed descriptions so that each command chunk is ≥ 20 chars
 
 **✅ Correct Approach**:
 ```txt
 /back - Return to death point
-After you die, use this command to quickly return to death location.
+After you die, use this command to quickly return to your death location.
 Cooldown: 30 seconds.
 
 /spawn - Teleport to spawn
-Teleport to server's spawn area, all players can use this.
+Teleport to the server's spawn area, all players can use this.
 Spawn is a safe zone where PVP is prohibited.
 ```
 
@@ -490,20 +470,20 @@ Spawn is a safe zone where PVP is prohibited.
 **Segmentation Rules**:
 - Maximum `max_size (500 chars)` per chunk
 - Prefer cutting at **sentence boundaries** (`.` `!` `?` `\n`)
-- Adjacent chunks have `overlap (30 chars)` overlap
+- Adjacent chunks have `overlap (30 chars)` of overlap
 
 **Example 6: Continuous Text (No Headings, No Empty Lines)**
 
 ```txt
-Server has various commands, /back to return to death point, /spawn to return to spawn, /home to go home, /money to check balance, /tpa to request teleport. These commands are very commonly used, beginner players are recommended to familiarize themselves with these basic commands first.
+The server has various commands, /back to return to your death point, /spawn to return to spawn, /home to go home, /money to check balance, /tpa to request teleport. These commands are very commonly used; beginners are recommended to familiarize themselves with these basic commands first.
 ```
 
 **Segmentation Result**:
 ```
 Strategy 1: No headings → Failed
-Strategy 2: No empty lines → Entire as 1 paragraph (200 chars)
-Strategy 3: 200 < max_size (500) → Not triggered
-Result: 1 chunk (200 chars)
+Strategy 2: No empty lines → Entire as 1 paragraph (~230 chars)
+Strategy 3: 230 < max_size (500) → Not triggered
+Result: 1 chunk (~230 chars)
 ```
 
 ---
@@ -511,21 +491,21 @@ Result: 1 chunk (200 chars)
 **Example 7: Ultra-long Continuous Text (>500 chars)**
 
 ```txt
-Server has many commands, including /back to return to death point, /spawn to return to spawn, /home to go home, /money to check balance, /tpa to request teleport, /warp to teleport to landmarks, /kit to claim gift packs, /sell to sell items, /buy to buy items, /pay to transfer to other players, /balance to check balance, /afk to set away status, /nick to change nickname, /hat to wear items on head, /ender to open ender chest, /workbench to open workbench, /anvil to open anvil, /enchant to open enchanting table. These commands cover all aspects of the server, from teleportation to economy systems, from social to practical tools, everything is available. Beginner players are recommended to learn basic commands first, then gradually master advanced commands. Veteran players can use these commands to improve efficiency and optimize gaming experience. Server will also regularly update new commands, please follow announcements.
+The server has many commands, including /back to return to your death point, /spawn to return to spawn, /home to go home, /money to check balance, /tpa to request teleport, /warp to teleport to landmarks, /kit to claim kits, /sell to sell items, /buy to buy items, /pay to transfer to other players, /balance to check balance, /afk to set away status, /nick to change nickname, /hat to wear an item on your head, /ender to open the ender chest, /workbench to open a workbench, /anvil to open an anvil, /enchant to open an enchanting table. These commands cover all aspects of the server, from teleportation to the economy system, from social to practical tools, everything is available. Beginners are recommended to learn the basic commands first, then gradually master the advanced commands. Veteran players can use these commands to improve efficiency and optimize their experience. The server will also regularly update new commands, please follow announcements.
 ```
 
 **Segmentation Result**:
 ```
 Strategy 1: No headings → Failed
-Strategy 2: No empty lines → Entire as 1 paragraph (600 chars)
-Strategy 3: 600 > max_size (500) → Triggered
+Strategy 2: No empty lines → Entire as 1 paragraph (~750 chars)
+Strategy 3: 750 > max_size (500) → Triggered
 ```
 
-**If exceeds 500 chars**:
+**If it exceeds 500 chars**:
 ```
-Chunk 1: "Server has many commands...enchanting table." (~350 chars, cut at period) ✅
-Chunk 2: "These commands cover all...everything is available." (~250 chars, 30 chars overlap) ✅
-Chunk 3: "Beginner players are recommended...follow announcements." (~200 chars) ✅
+Chunk 1: "The server has many commands...enchanting table." (~400 chars, cut at a period) ✅
+Chunk 2: "These commands cover all...everything is available." (~200 chars, 30 chars overlap) ✅
+Chunk 3: "Beginners are recommended...follow announcements." (~150 chars) ✅
 ```
 
 ---
@@ -536,7 +516,7 @@ Chunk 3: "Beginner players are recommended...follow announcements." (~200 chars)
 knowledge:
   segment:
     max_size: 500    # Maximum characters per chunk
-    min_size: 25     # Minimum characters per chunk (filtered if below this)
+    min_size: 20     # Minimum characters per chunk (filtered if below this)
     overlap: 30      # Chunk overlap characters (Strategy 3 only)
 ```
 
@@ -544,8 +524,8 @@ knowledge:
 
 | Parameter | Purpose | Default | Impact |
 |-----------|---------|---------|--------|
-| `max_size` | Limit maximum chunk length | 500 | Prevents chunks being too long affecting retrieval precision |
-| `min_size` | Filter out too-short meaningless chunks | 25 | **⚠️ Short command lists will be filtered!** |
+| `max_size` | Limit the maximum length of a chunk | 500 | Prevents chunks being too long, which hurts retrieval precision |
+| `min_size` | Filter out too-short, meaningless chunks | 20 | **⚠️ Short command lists will be filtered!** |
 | `overlap` | Maintain context between adjacent chunks | 30 | Strategy 3 only, prevents information loss |
 
 **⚠️ `min_size` Important Reminder**:
@@ -554,21 +534,21 @@ If you write command documentation in the following format:
 
 ```txt
 ❌ Wrong: One command per line (will be filtered)
-/back return to death
-/spawn go to spawn
+/back go back
+/spawn go spawn
 /home go home
 ```
 
-Must change to:
+You must change it to:
 
 ```txt
-✅ Correct: Add detailed descriptions (≥ 25 chars)
+✅ Correct: Add detailed descriptions (≥ 20 chars)
 /back - Return to death point
-After you die, use this command to quickly return to death location.
+After you die, use this command to quickly return to your death location.
 Cooldown: 30 seconds.
 
 /spawn - Teleport to spawn
-Teleport to server's spawn area, all players can use this.
+Teleport to the server's spawn area, all players can use this.
 ```
 
 Or use Markdown format:
@@ -576,55 +556,60 @@ Or use Markdown format:
 ```markdown
 ✅ Recommended: Use heading segmentation
 ## /back - Return to death point
-After you die, use this command to quickly return to death location.
+After you die, use this command to quickly return to your death location.
 Cooldown: 30 seconds.
 
 ## /spawn - Teleport to spawn
-Teleport to server's spawn area, all players can use this.
+Teleport to the server's spawn area, all players can use this.
 ```
 
 ---
 
 **Each chunk contains**:
-- Complete content text
-- Heading hierarchy information (for weight calculation)
-- Filename and path (for traceability)
+- The complete content text
+- Heading hierarchy information (used for weight calculation)
+- The filename and path (for traceability)
 
 ---
 
 ### Comprehensive Scoring Algorithm
 
-When a user asks a question, the system scores all segments:
+When a user asks a question, the system scores all chunks:
 
-#### Level 1: Complete Question Match (Highest Priority)
+#### Level 1: Whole Keyword-String Match (+50 bonus)
 
-If segment content directly contains the user's question:
+The system first **tokenizes the user's question, removes stop words, extracts keywords, and joins them with spaces into a "keyword string"** (e.g. "how to claim land" → `claim land`; "I want to build a farm" → `build farm`), then compares it against each chunk. If a chunk **contains this keyword string**, it gets a +50 bonus:
 
 ```
-User Question: "How do I claim land?"
+User question: "How do I claim land?"  →  system extracts keyword string: "claim land"
 
-Matched Segment:
+Matching chunk (contains "claim land"):
 """
 ## How to Claim Land?
 
 You can use the /claim command to define your territory...
 """
 
-Score: 100 points (exact match)
+Score: +50
 ```
+
+**Note**: This +50 is a substring match against the **keyword string**, NOT against the user's raw question (with "?", "how", etc.). Therefore:
+- **Short / single-keyword questions** (e.g. "claim land") match easily, and the +50 bonus is significant.
+- **Long questions** (where the keyword string becomes `kw1 kw2 kw3` with spaces) almost never appear verbatim in natural text, so the +50 usually does NOT trigger — here Level 2/3 per-keyword matching carries the weight.
+- So "writing the core concept words into the document" is more reliable than "copying the player's exact sentence" (see the heading bonus and keyword scoring below).
 
 ---
 
 #### Level 2: BM25 Keyword Scoring
 
-Extract keywords from user's question using HanLP TF-IDF algorithm, then calculate match degree using BM25 formula:
+Keywords are extracted from the user's question using the HanLP TF-IDF algorithm (Chinese) / tokenizer + stop-word filtering (English), then the match degree is calculated using the BM25 formula:
 
 ```
-User Question: "I want to build a farm, what do I need?"
+User question: "I want to build a farm, what do I need?"
 
-Keywords Extracted: ["farm", "need"]
+Extracted keywords: ["farm", "need"]
 
-Matched Segment:
+Matching chunk:
 """
 ## Farm Building Guide
 
@@ -635,33 +620,33 @@ Building a farm requires preparation:
 """
 ```
 
-**Chinese Word Segmentation Optimization (v1.4.3 update)**：
-- **Three-layer keyword extraction strategy**: Original query + segmentation result + TF-IDF keywords, compatible with both short text and long documents
-- **Single-character query optimization**: Supports single-character queries like "bow", "sword" through custom dictionary and stop word checks
-- **Intelligent stop word filtering**: Filters meaningless words
-- **TF-IDF automatic important keyword extraction**: Based on HanLP TF-IDF algorithm to calculate keyword weights
-- **Built-in vocabulary support**: Loads built-in vocabulary from internal/vocabulary/ directory in JAR package, merges with custom vocabulary and automatically deduplicates
+**Chinese Word Segmentation Optimization (v1.4.3 update)**:
+- **Three-layer keyword extraction strategy**: original query + segmentation result + TF-IDF keywords, compatible with both short text and long documents
+- **Single-character query optimization**: supports single-character queries like "bow", "sword" via the custom dictionary and stop-word checks
+- **Intelligent stop-word filtering**: filters meaningless words like "的", "了", "吗"
+- **TF-IDF automatic important-keyword extraction**: calculates keyword weights based on the HanLP TF-IDF algorithm
+- **Built-in vocabulary support**: loads built-in vocabulary from the `internal/vocabulary/` directory inside the JAR, merges it with the custom vocabulary, and deduplicates automatically
 
 ---
 
-#### Level 3: Title Match (Base Priority)
+#### Level 3: Heading Match (Base Priority)
 
-If content and keywords don't match, then match titles:
+If neither the content nor the keywords match, it matches headings:
 
 ```
-User Question: "What are the rules?"
+User question: "What are the rules?"
 
-Matched Segment Titles:
-- "# Server Rules" → Score 50 points
-- "## Basic Rules" → Score 45 points
+Matching chunk headings:
+- "# Server Rules" → +15 × keyword weight
+- "## Basic Rules" → +15 × keyword weight
 ```
 
 ---
 
 **Scoring Formula**:
 
-#### Level 1: Complete Question Match
-- If segment content contains complete user question: +50.0 points
+#### Level 1: Whole Keyword-String Match
+- If chunk content contains the whole keyword string: +50.0
 
 #### Level 2: BM25 Keyword Scoring
 ```
@@ -669,11 +654,11 @@ Base Score = TF × (k1 + 1) / (TF + k1 × lengthNorm)
 ```
 
 **BM25 Formula Components**:
-- **TF (Term Frequency)**: Number of times keyword appears in document
-- **IDF (Inverse Document Frequency)**: Automatically calculated by HanLP TF-IDF
+- **TF (Term Frequency)**: number of times the keyword appears in the document
+- **IDF (Inverse Document Frequency)**: automatically calculated by HanLP TF-IDF
 - **lengthNorm (Document Length Normalization)**: `1 - b + b × (docLength / avgDocLength)`
-- **k1 (Term Frequency Saturation Parameter)**: Default 1.5 (recommended 1.2-2.0)
-- **b (Document Length Normalization Parameter)**: Default 0.75 (recommended 0.5-0.8)
+- **k1 (Term Frequency Saturation Parameter)**: default 1.5 (recommended 1.2-2.0)
+- **b (Document Length Normalization Parameter)**: default 0.75 (recommended 0.5-0.8)
 
 **Calculation Formula**:
 ```
@@ -685,21 +670,23 @@ Keyword Score = TF × (k1 + 1) / (TF + k1 × lengthNorm)
 - Length = 3: weight 2
 - Length < 3: weight 1
 
+(The BM25 score is then multiplied by `keyword weight × 5`.)
+
 #### Level 3: Position Weighting
-If keyword appears in heading (line starting with `#`):
+If a keyword appears in a heading (a line starting with `#`):
 ```
 Keyword Score += 15.0 × Keyword Weight
 ```
 
 #### Level 4: Exact Match Bonus
-If any keyword appears in document:
+If any keyword appears in the document:
 ```
 Total Score += 10.0
 ```
 
 #### Final Score
 ```
-Total Score = 50.0 (complete match, if present) 
+Total Score = 50.0 (whole-string match, if present)
     + Sum of all keywords' BM25 scores
     + Sum of all heading-weighted BM25 scores
     + 10.0 (exact match bonus, if present)
@@ -709,9 +696,9 @@ Total Score = 50.0 (complete match, if present)
 
 **Example Calculation**:
 
-User Question: "Claim land method"
-Extracted Keywords: ["claim", "land", "method"]
-Document Segment:
+User question: "claim land method"
+Extracted keywords: ["claim", "land", "method"]
+Document chunk:
 ```
 ## How to Claim Land?
 
@@ -721,17 +708,17 @@ Document Segment:
 ```
 
 Scoring Process:
-1. Complete Question Match: × (doesn't contain complete question)
+1. Whole-string match: × (does not contain "claim land method")
 2. Keyword "claim" (length=5, weight=3):
    - TF=2, Score = 2 × 2.5 / (2 + 1.5 × 0.8) = 2.08 × 3 = 6.24
 3. Keyword "land" (length=4, weight=3):
    - TF=4, Score = 4 × 2.5 / (4 + 1.5 × 0.8) = 1.85 × 3 = 5.55
 4. Keyword "method" (length=6, weight=3):
    - TF=0, Score = 0
-5. Position Weighting: Check "## How to Claim Land?" for keywords
+5. Position Weighting: check "## How to Claim Land?" for keywords
    - Contains "claim" and "land": +15.0 × 3 + 15.0 × 3 = +90.0
-6. Exact Match: √ (any keyword present in document)
-   
+6. Exact Match: √ (some keyword present in the document)
+
 Final Score ≈ 6.24 + 5.55 + 0 + 90.0 + 10.0 = 111.79
 
 ---
@@ -742,12 +729,12 @@ Final Score ≈ 6.24 + 5.55 + 0 + 90.0 + 10.0 = 111.79
 1. Traverse all knowledge files
 2. Parse and segment (intelligent segmentation strategy)
 3. Calculate similarity scores
-4. Cache segment results
-5. Return Top-K results
+4. Cache the segmentation results
+5. Return the Top-K results
 
-**Second Retrieval (Same File)**:
-- Read segments directly from cache
-- Speed improved by approximately **70%**
+**Second Retrieval (same file)**:
+- Read chunks directly from the cache
+- Speed improved by roughly **70%**
 
 **Cache Invalidation Conditions**:
 - Execute `/kilacraft knowledge reload`
@@ -760,41 +747,41 @@ Final Score ≈ 6.24 + 5.55 + 0 + 90.0 + 10.0 = 111.79
 ### Configuration File Location
 
 ```
-plugins/Kilacraft-AI/config.yml
+plugins/Kilacraft-AI/knowledge.yml
 ```
 
 ### Related Configuration Items
 
 ```yaml
 knowledge:
-  enabled: true                    # Whether to enable knowledge base
-  max_relevant_chunks: 3           # Maximum segments returned per query
-  
+  enabled: true                    # Whether to enable the knowledge base
+  max_relevant_chunks: 3           # Maximum number of chunks returned per retrieval
+
   segment:
     max_size: 500                  # Maximum characters per chunk
-    min_size: 25                   # Minimum characters per chunk
+    min_size: 20                   # Minimum characters per chunk
     overlap: 30                    # Chunk overlap characters (context retention)
-  
+
   keywords:
     top_k: 10                      # Number of keywords extracted per query
-  
+
   bm25:
     k1: 1.5                        # Term frequency saturation parameter (1.2-2.0)
     b: 0.75                        # Document length normalization parameter (0.5-0.8)
-  
+
   custom_dictionary:
-    enabled: true                    # Whether to enable custom dictionary
+    enabled: true                    # Whether to enable the custom dictionary
     words:
-      - "claim"  # claim land
-      - "territory"  # territory
-      - "redstone"  # redstone
+      - "claim"
+      - "territory"
+      - "redstone"
 ```
 
 ### Configuration Explanation
 
 #### `max_relevant_chunks`
 
-Controls the number of knowledge segments returned per retrieval:
+Controls the number of knowledge chunks returned per retrieval:
 
 | Value | Effect | Applicable Scenario |
 |-------|--------|-------------------|
@@ -802,17 +789,17 @@ Controls the number of knowledge segments returned per retrieval:
 | 3-5 | Balanced | Most scenarios (recommended) |
 | 6+ | Comprehensive but verbose | Complex questions |
 
-**Note**: Too many segments will increase token consumption and response time.
+**Note**: Too many chunks increase token consumption and response time.
 
 ---
 
 #### `segment.max_size` / `min_size` / `overlap`
 
-**For detailed explanation, please refer to the "Segmentation Configuration Parameters" section above**.
+**For a detailed explanation, see the "Segmentation Configuration Parameters" section above**.
 
 Brief description:
 - `max_size`: Maximum characters per chunk (default 500)
-- `min_size`: Minimum characters per chunk (default 25, **chunks below this will be filtered**)
+- `min_size`: Minimum characters per chunk (default 20, **chunks below this will be filtered**)
 - `overlap`: Chunk overlap characters (default 30, Strategy 3 only)
 
 ---
@@ -824,7 +811,7 @@ Controls the number of keywords extracted per query:
 | Value | Effect |
 |-------|--------|
 | 5-10 | Balanced (recommended) |
-| 10-15 | More recall, but may introduce noise |
+| 10-15 | Higher recall, but may introduce noise |
 | 15+ | High recall, but lower precision |
 
 ---
@@ -835,7 +822,7 @@ BM25 algorithm parameters:
 
 | Parameter | Effect | Recommended Value |
 |-----------|--------|------------------|
-| k1 | Term frequency saturation point (higher values value frequency more) | 1.2-2.0 |
+| k1 | Term frequency saturation point (higher values weight frequency more) | 1.2-2.0 |
 | b | Document length normalization (higher values penalize long documents more) | 0.5-0.8 |
 
 ---
@@ -848,65 +835,52 @@ Custom dictionary for adding professional terminology and server-specific vocabu
 custom_dictionary:
   enabled: true
   words:
-    - "claim"  # claim land
-    - "territory"  # territory
-    - "redstone"  # redstone
-    - "mob_farm"  # mob farm
+    - "claim"
+    - "territory"
+    - "redstone"
+    - "mob farm"
 ```
 
-**Benefits**: Improves Chinese word segmentation accuracy, enhances retrieval effectiveness.
+**Benefits**: Improves Chinese word segmentation accuracy and enhances retrieval effectiveness.
 
 ---
 
-## 🧠 Embedding Semantic Retrieval (v2.0.0)
+#### `embedding` - Embedding Semantic Retrieval (added in v2.0.0)
 
-In addition to the HanLP TF-IDF + BM25 keyword-based retrieval, v2.0.0 introduces **Embedding-based semantic retrieval** for improved recall on semantically similar but lexically different queries.
+v2.0.0 adds Embedding-API-based semantic retrieval, which uses cosine similarity as an alternative to the BM25 algorithm to more accurately understand the user's query intent.
 
-### How It Works
-
+**Working Principle**:
 ```
-Knowledge Base documents
-  ↓
-EmbeddingService.generateEmbeddings()
-  ├── Chunk text → LLM Embedding API → Vector
-  ├── Store in EmbeddingCache (JSON file, persistent)
-  └── Query time:
-       ├── Generate query embedding vector
-       ├── Cosine similarity search across cached vectors
-       └── Hybrid ranking: TF-IDF score + similarity score
-            ↓
-       Top-K relevant chunks → LLM context injection
+User query → Embedding API → text vector
+Knowledge chunks → Embedding API → pre-computed vectors (persisted cache)
+Cosine similarity match → return the most similar chunks
 ```
 
-### Configuration
-
+**Configuration Example** (knowledge.yml):
 ```yaml
-# knowledge.yml
 knowledge:
   embedding:
-    enabled: true                     # Enable embedding retrieval
-    api_url: ""                       # Embedding API endpoint (uses llm config if empty)
-    api_key: ""                       # API key (uses llm config if empty)
-    model: "text-embedding-3-small"   # Embedding model
-    similarity_threshold: 0.7         # Minimum similarity score (0.0-1.0)
-    max_results: 5                    # Max chunks from embedding search
+    enabled: true                                 # Enable Embedding retrieval (auto-falls back to BM25 if api_url/api_key/model are not configured)
+    # Note: this plugin specifies the provider via api_url; there is no `provider` field
+    api_url: "https://open.bigmodel.cn/api/paas/v4/embeddings"   # Requires restart after change
+    api_key: "your-embedding-api-key"             # Requires restart after change
+    model: "embedding-3"                          # Requires restart after change (vectors from different models are incompatible)
+    dimensions: 1024                              # Vector dimensions (embedding-3: 2048/1024/512/256; bge-large-zh/m3: 1024; text-embedding-3-small: 1536). Requires restart after change.
+    min_similarity: 0.5                           # Minimum similarity threshold (cosine similarity 0~1). Recommended range: 0.45~0.65
+    timeout_seconds: 10                           # API timeout (seconds). Requires restart after change.
+    cache_enabled: true                           # Vector cache persistence (avoids recomputation on every startup)
 ```
 
-### Key Features
+**Relationship with BM25**:
+- When Embedding is enabled, semantic retrieval is used
+- When not configured, it automatically falls back to the original BM25 algorithm
+- Embedding vectors are persisted to a cache to avoid recomputation on every startup
+- Supports an Embedding provider different from the LLM provider (e.g. ZhipuAI, SiliconFlow, OpenAI)
 
-- ✅ **Hybrid Retrieval**: Combines TF-IDF keyword matching with Embedding semantic matching
-- ✅ **Persistent Cache**: Embedding vectors cached to JSON file, no re-computation on restart
-- ✅ **Incremental Update**: Only re-computes embeddings for new/changed documents
-- ✅ **Auto-Fallback**: Falls back to pure TF-IDF if embedding API is unavailable
-
-### When Embedding Helps
-
-| Query Type | TF-IDF Alone | With Embedding |
-|------------|-------------|----------------|
-| Exact keyword match | ✅ Good | ✅ Good |
-| Semantic paraphrase | ❌ May miss | ✅ Catches |
-| Synonym variation | ⚠️ Partial | ✅ Better |
-| Cross-language query | ❌ Misses | ✅ Matches |
+**Applicable Scenarios**:
+- Knowledge content is semantically rich and keyword matching is not accurate enough
+- User queries are expressed in varied ways (different phrasings of the same concept)
+- You expect smarter semantic understanding rather than keyword matching
 
 ---
 
@@ -915,11 +889,11 @@ knowledge:
 ### 1. File Size Control
 
 **Recommendations**:
-- Single file not exceeding **50 KB**
-- Total segments controlled within **500**
+- A single file should not exceed **50 KB**
+- Keep the total number of chunks within **500**
 - Regularly clean up outdated content
 
-**Check Method**:
+**How to Check**:
 ```bash
 # Linux/Mac
 ls -lh plugins/Kilacraft-AI/knowledge/
@@ -936,7 +910,7 @@ Get-ChildItem plugins\Kilacraft-AI\knowledge\ | Select-Object Name, Length
 ```
 # file1.md
 ## How to Claim Land
-Use /claim command to claim land.
+Use the /claim command to claim land.
 
 # file2.md
 ## Claiming Method
@@ -947,7 +921,7 @@ Execute /claim to claim land.
 ```
 # rules.md
 ## How to Claim Land
-Use /claim command to claim land. Requires 10 gold coins.
+Use the /claim command to claim land. Requires 10 gold coins.
 
 ### Detailed Explanation
 Claiming land can protect your builds...
@@ -959,20 +933,20 @@ Claiming land can protect your builds...
 
 ❌ **Verbose**:
 ```
-Regarding the question of how to claim a piece of land belonging to yourself on our server through specific commands and protect it from being destroyed by other players, you need to first ensure that you have enough gold coins (specifically you need 10 gold coins), then stand at the center position of the territory you want to claim, and finally input the /claim command in the chat box.
+Regarding the question of how to claim a piece of land belonging to yourself on our server through a specific command and protect it from being destroyed by other players, you need to first ensure that you have enough gold coins (specifically you need 10 gold coins), then stand at the center position of the territory you want to claim, and finally input the /claim command in the chat box.
 ```
 
 ✅ **Concise**:
 ```
 ## How to Claim Land
 
-**Requirements**: Have 10 gold coins
+**Requirement**: Have 10 gold coins
 
 **Steps**:
-1. Stand at territory center
+1. Stand at the territory center
 2. Execute `/claim`
 
-**Effect**: Protect builds within territory from destruction
+**Effect**: Protects builds within the territory from destruction
 ```
 
 ---
@@ -983,33 +957,33 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 
 **Checklist**:
 
-1. **Confirm Knowledge Base Enabled**
+1. **Confirm the knowledge base is enabled**
    ```yaml
    knowledge:
      enabled: true
    ```
 
-2. **Confirm Files Loaded**
+2. **Confirm files are loaded**
    ```
    /kilacraft knowledge reload
    ```
-   Check console output:
+   Check the console output:
    ```
-   [Kilacraft-AI] Loaded 5 knowledge files, total 128 segments
+   [Kilacraft-AI] Loaded 5 knowledge files, 128 chunks total
    ```
 
-3. **Check File Format**
-   - File extension must be `.md` or `.txt`
-   - File encoding must be UTF-8
+3. **Check the file format**
+   - The file extension must be `.md` or `.txt`
+   - The file encoding must be UTF-8
 
-4. **Adjust Returned Segment Count**
+4. **Adjust the returned chunk count**
    ```yaml
-   max_relevant_chunks: 5  # Increase return count
+   max_relevant_chunks: 5  # Increase the return count
    ```
 
-5. **Enable Debug Mode**
+5. **Enable debug mode**
    Set `settings.debug_mode: true` in config.yml
-   View retrieval logs to confirm if there are matching results.
+   View the retrieval logs to confirm whether there are matching results.
 
 ---
 
@@ -1017,29 +991,29 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 
 **Optimization Methods**:
 
-1. **Improve Document Structure**
+1. **Improve document structure**
    - Use clear headings
    - Add keywords and synonyms
    - Provide specific examples
 
-2. **Increase Related Content Density**
+2. **Increase related-content density**
    ````
-   ## Claim Land/Territory/Protection
-   
+   ## Claim Land / Territory / Protection
+
    Claiming land (territory, protected area) is...
-   
+
    Related commands:
    - /claim (claim land)
    - /unclaim (unclaim land)
-   ```
+   ````
 
-3. **Adjust Returned Segment Count**
+3. **Adjust the returned chunk count**
    ```yaml
-   max_relevant_chunks: 5  # Increase return count
+   max_relevant_chunks: 5  # Increase the return count
    ```
 
-4. **Check Segmentation Quality**
-   Enable debug mode to view actual segment content for reasonableness.
+4. **Check segmentation quality**
+   Enable debug mode and review the actual chunk content for reasonableness.
 
 ---
 
@@ -1047,13 +1021,13 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 
 **Optimization Methods**:
 
-1. **Reduce Knowledge Base Scale**
+1. **Reduce the knowledge base scale**
    - Delete outdated content
    - Merge similar documents
-   - Control single file size
+   - Control single-file size
 
-2. **Use SSD Storage**
-   Storing knowledge base files on SSD can significantly improve read speed.
+2. **Use SSD storage**
+   Storing knowledge base files on an SSD can significantly improve read speed.
 
 ---
 
@@ -1061,54 +1035,147 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 
 **Known Issues**:
 - Chinese word segmentation is more complex than English
-- More synonyms and near-synonyms
+- There are many synonyms and near-synonyms
 
 **Solutions**:
 
-1. **Add Synonyms in Documents**
+1. **Add synonyms in documents**
    ````
-   ## Claim Land/Territory/Protected Area/Claim
-   
+   ## Claim Land / Territory / Protected Area / Claim
+
    Claiming land (also known as territory, protected area, Claim) is...
-   ```
+   ````
 
-2. **Adjust Returned Segment Count**
+2. **Adjust the returned chunk count**
    ```yaml
-   max_relevant_chunks: 5  # Increase return count
+   max_relevant_chunks: 5  # Increase the return count
    ```
 
-3. **Increase Keyword Density**
-   Mention different expressions of core concepts multiple times in documents.
+3. **Increase keyword density**
+   Mention different expressions of the core concept multiple times in the document.
 
-4. **Provide FAQ List**
+4. **Provide an FAQ list**
    ````
    ## Frequently Asked Questions
-   
+
    Q: How do I claim land?
-   Q: How to protect my build?
-   Q: How to get territory?
-   
-   A: Use /claim command...
-   ```
+   Q: How do I protect my build?
+   Q: How do I get territory?
+
+   A: Use the /claim command...
+   ````
 
 ---
 
-## 📈 Monitoring and Maintenance
+## 🧱 Standard File Template (Copy and Use Directly)
 
-### Regular Inspection Checklist
+> The full template is in the same directory: **Knowledge Base File Template.md** (Chinese version: `doc/文档/知识库文件模板.md`). Below is a ready-to-copy working sample — replace the content with your server's real information.
+> The `<!-- -->` comments in the file are the writing rules; understanding them lets you optimize any knowledge file.
 
-- [ ] Whether knowledge base content is synchronized with server version
-- [ ] Whether there are outdated rules or commands
-- [ ] Whether file sizes are within reasonable range
-- [ ] Whether retrieval accuracy meets requirements
-- [ ] Whether new knowledge documents need to be added
+```markdown
+# Server Rules and Common Commands
+
+<!-- Writing rules (ordered by impact on recall, high to low):
+   1. Use ## / ### headings to split concepts, and put core words + synonyms in headings.
+   2. Do NOT leave an empty line between a heading and its content (an empty line orphans the content into a headerless chunk).
+   3. Keep each heading section ≤ 500 chars; if longer, split with ### sub-headings.
+   4. Each chunk must be ≥ 20 chars (shorter chunks are dropped).
+   5. Also put core words in the body; write command/proper names in full (longer words weigh more).
+   6. After each rule, add a "Q:" line listing 2~3 phrasings players might use (adds keyword coverage).
+   7. Do not repeat.
+   The system uses BOTH keyword matching and semantic matching, so write clear core words AND explain in plain language.-->
+
+## Claim Land / Territory / Protected Area
+<!-- Heading contains core words + synonyms. -->
+Claiming land (also known as territory, protected area) protects your builds from being destroyed or stolen by other players.
+Q: How do I claim land? / How do I protect my home? / How do I apply for territory?
+
+### Claim Steps
+1. Prepare 10 gold coins
+2. Stand at the center of the area to protect
+3. Type `/claim`
+
+### Related Commands
+- `/claim` —— Define territory
+- `/unclaim` —— Remove territory
+- `/trust <player>` —— Add a trusted member
+
+---
+
+## Death Protection / Return to Death Point
+When you die you drop items, but you can use `/back` within 30 seconds to return to your death point and recover them.
+`/back` cannot be used in combat and requires standing still for 3 seconds.
+Q: How do I go back after dying? / Can I recover dropped items? / What's the /back cooldown?
+
+### Related Commands
+- `/back` —— Return to your last death point (30 second cooldown)
+
+---
+
+## Economy / Item Prices
+The server's currency unit is Gold. Players can trade freely with each other.
+Q: How much is a diamond? / How do I make money? / Where is the price list?
+
+### Common Item Price Reference
+| Item | Unit Price (Gold) | Note |
+|------|------|------|
+| Diamond | 80-120 | Fluctuates with the market |
+| Netherite Ingot | 500-800 | Rare material |
+| Mending Enchanted Book | 2000-3000 | Top-tier enchantment |
+
+### Ways to Earn Money
+- Mine and sell minerals
+- Fish and sell fish
+- Participate in server events
+
+---
+
+## Frequently Asked Questions (FAQ)
+Q: How do I get started as a beginner?
+A: First claim the beginner kit at spawn (`/kit starter`), then use `/spawn` to return to spawn and check the shops.
+Q: How do I privately message another player?
+A: Use `/msg <player> <content>` to send a private message.
+```
+
+**Checklist** (go through this when optimizing any file):
+- ☐ Does every `##` heading contain a core word and at least one synonym?
+- ☐ Is there **no empty line between each heading and its content** (content not orphaned into a headerless chunk)?
+- ☐ Is each section < 500 chars (split with `###` sub-headings if longer)?
+- ☐ Is each chunk ≥ 20 chars (not dropped)?
+- ☐ Do core words appear in the body (not only in the heading)?
+- ☐ Does each rule come with 2~3 likely player phrasings (`Q:`)?
+- ☐ Are commands/prices/steps in lists or tables, right under the heading (no empty lines splitting them)?
+- ☐ Is no rule duplicated anywhere in the file?
+- ☐ Is the file UTF-8 encoded, with a `.md` or `.txt` extension, placed in the `knowledge/` directory?
+
+---
+
+## 🎯 How to Write High-Recall Knowledge Files (Quick Reference)
+
+This translates the retrieval system's concrete behavior into "what to do when writing", ordered by impact on recall (high to low):
+
+| Rank | Writing Rule | Underlying System Behavior | Code Location |
+|---|---|---|---|
+| 1 | Use `##` / `###` headings to split concepts, and **put core words + synonyms in headings** | Splits by Markdown headings; keywords in headings get extra weighting `+15 × keyword weight`, stackable across keywords | `splitByMarkdownHeaders`, `calculateRelevance:301-310` |
+| 2 | **Do NOT leave an empty line between a heading and its content** | An empty line cuts off the heading chunk, orphaning the following content into a headerless chunk (loses heading bonus, and may be dropped if < 20 chars) | `splitByMarkdownHeaders:394-417` |
+| 3 | Also put core words in the body; write command/proper names in **full** | BM25 term-frequency score (× keyword weight × 5) + exact-hit `+10`; longer keywords weigh more (≥4 → ×3, =3 → ×2) | `calculateRelevance:298,313-316`, `BM25Scorer:74-82` |
+| 4 | Write out synonyms/aliases for the same concept | A different phrasing by the player can still hit (the query is tokenized before matching) | `Chinese/EnglishTextProcessor.toSearchQuery` |
+| 5 | Keep each heading section under **500 chars**; split with `###` if longer | Sections exceeding `max_size` are secondarily split, and sub-chunks lose the heading | `splitIntoChunks:341-347` |
+| 6 | Each chunk must be **≥ 20 chars** | Chunks below `min_size` are dropped | `splitByParagraphs:464` (`min_size:20`) |
+| 7 | Use lists or tables for commands/prices/steps, **right under the heading, with no empty lines between items** | List items with no empty lines stay in one heading chunk and are recalled together; empty lines cut them apart | `splitByMarkdownHeaders` (empty line = cut boundary) |
+| 8 | Add 2~3 likely player phrasings (`Q:`) per rule | Adds keyword coverage; for short questions the keyword string may match as a whole for `+50` | `calculateRelevance:293-295` |
+| 9 | Write each rule only once; do not repeat | Duplicates are recalled as two chunks, taking up `max_relevant_chunks` slots and possibly contradicting | `max_relevant_chunks` limit |
+
+> **The two paths to better recall**:
+> - ① **Writing optimization** (the table above) — where the value of a paid maintenance service lies;
+> - ② **Retrieval-engine tuning** (see `wiki/待实施/知识库检索引擎增强设计文档.md`: BM25+Embedding RRF fusion, optional rerank, soft thresholds).
+>
+> Important: engine tuning **does not change the segmentation/parsing logic** (the three segmentation strategies, `min_size`/`max_size`, and heading weighting all stay the same), so **the writing rules in this table apply both before and after engine upgrades** — the file template needs no changes due to an engine upgrade.
 
 ---
 
 ## 📚 Related Documentation
 
 - [Server Owner Guide](./Server%20Owner%20Guide) - Complete configuration, troubleshooting
-- [Personality System Configuration Guide](./Personality%20System%20Guide) - How to make AI better utilize knowledge base
-- [Bukkit API Reference Manual](./Bukkit%20API%20Reference) - Advanced usage combining API and knowledge base
-
-
+- [Personality System Configuration Guide](./Personality%20System%20Guide) - How to make AI better utilize the knowledge base
+- [Bukkit API Reference Manual](./Bukkit%20API%20Reference) - Advanced usage combining the API and the knowledge base

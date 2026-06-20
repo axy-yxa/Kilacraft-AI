@@ -21,16 +21,6 @@ knowledge:
   # Maximum number of relevant knowledge chunks returned per retrieval (recommended 1-5)
   max_relevant_chunks: 3
   
-  # 最低相关性得分阈值（默认 30.0）
-  # 得分低于此值的片段视为噪声，不会注入到 AI 上下文
-  # 值越高过滤越严格，但可能漏掉一些相关的片段
-  # 建议范围：20.0 - 50.0
-  # Minimum relevance score threshold (default 30.0)
-  # Chunks scoring below this value are treated as noise and will not be injected into AI context
-  # Higher values = stricter filtering, but may miss some relevant chunks
-  # Recommended range: 20.0 - 50.0
-  min_relevance_score: 30.0
-  
   # 知识库分段配置
   # Knowledge base segmentation configuration
   segment:
@@ -70,6 +60,35 @@ knowledge:
     # Larger values = heavier penalty for long documents
     b: 0.75
 
+    # BM25 平均文档长度（用于文档长度归一化）
+    # 0 = 按知识库实际内容自动统计（推荐，一般无需修改）
+    # 填正数 = 使用固定值
+    # BM25 average document length (for document length normalization)
+    # 0 = auto-computed from the actual knowledge base content (recommended, generally no need to change)
+    # Set a positive number = use a fixed value
+    avg_doc_length: 0
+
+  # 检索结果过滤（软阈值）
+  # 只保留得分达到门槛的片段，门槛 = max(noise_floor, 最高得分 × relative_threshold)
+  # 默认偏严格、接近旧版本体验；若希望更宽松（弱相关问题也尽量返回结果、少返回空），可调低下面两个值
+  # Retrieval filtering (soft threshold)
+  # Only keep chunks whose score reaches the threshold: threshold = max(noise_floor, top_score × relative_threshold)
+  # Defaults are strict, close to the old version; for more lenient results (return results for weak questions, fewer empty answers), lower the two values below
+  retrieval:
+    # 噪声地板：得分低于此值的片段视为无关而丢弃（默认 25）
+    # 想更宽松可降到 10~15；想更严格可调高
+    # Noise floor: chunks scoring below this value are dropped as irrelevant (default 25)
+    # Lower to 10~15 for more lenient results; raise for stricter filtering
+    noise_floor: 25.0
+    # 相对阈值：相对本次最高得分再设一道比例门槛（默认 0.3）
+    # 想更宽松可调到 0.5
+    # Relative threshold: a second ratio gate relative to the top score of this query (default 0.3)
+    # Raise to 0.5 for more lenient results
+    relative_threshold: 0.3
+    # RRF 融合常数（仅启用 Embedding 语义检索时生效，普通 BM25 模式忽略此项）
+    # RRF fusion constant (only effective when Embedding semantic retrieval is enabled; ignored in plain BM25 mode)
+    rrf_k: 60
+
   # Embedding 语义检索配置
   # 通过调用 Embedding API 获取文本向量，用余弦相似度替代 BM25 算法进行语义检索
   # Embedding 供应商可以与 LLM 供应商不同（如 LLM 用 DeepSeek，Embedding 用智谱AI）
@@ -83,11 +102,15 @@ knowledge:
   # WARNING: Changes to api_url, api_key, model, dimensions, or timeout_seconds require server restart!
   # These configs affect vector computation or require instance rebuild, /kilacraft reload will NOT recompute vector cache
   embedding:
-    # 是否启用 Embedding 语义检索（替换 BM25 算法检索）
-    # 设为 false 时使用原有的 BM25 算法检索
-    # Enable Embedding semantic retrieval (replaces BM25 algorithm)
-    # Set to false to use original BM25 algorithm retrieval
-    enabled: true
+    # 是否启用 Embedding 语义检索（默认关闭）
+    # 关闭时使用默认的 HanLP + BM25 检索
+    # 启用步骤：先填写下面的 api_url / api_key / model，再把本项改为 true
+    # 启用后检索采用 BM25 + Embedding 融合（RRF），而不是替换 BM25
+    # Enable Embedding semantic retrieval (disabled by default)
+    # When disabled, uses the default HanLP + BM25 retrieval
+    # To enable: fill api_url / api_key / model below, then set this to true
+    # When enabled, retrieval uses BM25 + Embedding fusion (RRF), not a replacement for BM25
+    enabled: false
 
     # Embedding 供应商 API URL（必填，完整 URL）
     # 修改后必须重启服务器

@@ -213,7 +213,9 @@ public class KilacraftCommand implements CommandExecutor {
             // 刷新知识检索器的算法参数（分段大小、BM25、阈值等）
             if (plugin.getKnowledgeRetriever() != null) {
                 ConfigManager cm = plugin.getConfigManager();
-                plugin.getKnowledgeRetriever().refreshConfig(cm.getMaxRelevantChunks(), cm.getMinRelevanceScore(), cm.getKnowledgeMaxChunkSize(), cm.getKnowledgeMinChunkSize(), cm.getKnowledgeChunkOverlap(), cm.getKeywordTopK(), cm.getBm25K1(), cm.getBm25B());
+                plugin.getKnowledgeRetriever().refreshConfig(cm.getMaxRelevantChunks(), cm.getKnowledgeMaxChunkSize(), cm.getKnowledgeMinChunkSize(), cm.getKnowledgeChunkOverlap(), cm.getKeywordTopK(), cm.getBm25K1(), cm.getBm25B());
+                // 软阈值 + BM25 长度归一化参数（setRetrievalConfig 内部会重算 avgDocLength）
+                plugin.getKnowledgeRetriever().setRetrievalConfig(cm.getRetrievalNoiseFloor(), cm.getRetrievalRelativeThreshold(), cm.getRetrievalRrfK(), cm.getBm25AvgDocLength());
             }
 
             // 刷新 Embedding 配置（min_similarity 可热重载）
@@ -231,7 +233,7 @@ public class KilacraftCommand implements CommandExecutor {
             TextProcessorFactory.reset();
             // 重新初始化分词词典（按新语言加载对应词典）
             if (plugin.getConfigManager().isCustomDictionaryEnabled()) {
-                TextProcessorFactory.initialize(plugin.getConfigManager().getAllDictionaryWords());
+                TextProcessorFactory.initialize(plugin.getKnowledgeBase().buildDictionaryWordsWithCorpus(plugin.getConfigManager().getAllDictionaryWords()));
             }
 
             sender.sendMessage(languageManager.getCommandReloadSuccess());
@@ -363,11 +365,20 @@ public class KilacraftCommand implements CommandExecutor {
         try {
             plugin.getKnowledgeBase().reload();
 
-            // 知识库内容变更后，重新分段 + 异步预计算（仅当 Embedding API 已配置时）
+            // 重新分段（对所有用户，含纯 BM25）+ 重算 avgDocLength
+            plugin.getKnowledgeRetriever().buildChunkCache();
+            plugin.getKnowledgeRetriever().computeAvgDocLength();
+
+            // 重新播种词典（知识库内容变更后命令名/标识符可能变化，需重新并入）
+            if (plugin.getConfigManager().isCustomDictionaryEnabled()) {
+                TextProcessorFactory.reset();
+                TextProcessorFactory.initialize(plugin.getKnowledgeBase().buildDictionaryWordsWithCorpus(plugin.getConfigManager().getAllDictionaryWords()));
+            }
+
+            // 知识库内容变更后，异步重算 Embedding 向量（仅当 Embedding API 已配置时）
             EmbeddingService embeddingSvc = plugin.getEmbeddingService();
             if (embeddingSvc != null && embeddingSvc.isAvailable()) {
                 embeddingSvc.clearCache();
-                plugin.getKnowledgeRetriever().buildChunkCache();
                 Map<String, List<String>> asyncChunks = plugin.getKnowledgeBase().getAllChunkCache();
                 CompletableFuture.runAsync(() -> {
                     try {

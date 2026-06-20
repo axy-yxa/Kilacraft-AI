@@ -31,8 +31,6 @@ public class KnowledgeConfigManager {
     private boolean enabled;
     @Getter
     private int maxRelevantChunks;
-    @Getter
-    private double minRelevanceScore;
 
     // 分段配置
     @Getter
@@ -70,6 +68,18 @@ public class KnowledgeConfigManager {
     @Getter
     private boolean embeddingCacheEnabled;
 
+    // 检索结果过滤（软阈值）与融合
+    @Getter
+    private double retrievalNoiseFloor;
+    @Getter
+    private double retrievalRelativeThreshold;
+    @Getter
+    private double retrievalRrfK;
+
+    // BM25 长度归一化
+    @Getter
+    private int bm25AvgDocLength;
+
     // 自定义词典配置
     @Getter
     private boolean customDictionaryEnabled;
@@ -101,7 +111,6 @@ public class KnowledgeConfigManager {
         // 知识库基础配置
         this.enabled = yaml.getBoolean("knowledge.enabled", true);
         this.maxRelevantChunks = yaml.getInt("knowledge.max_relevant_chunks", 3);
-        this.minRelevanceScore = yaml.getDouble("knowledge.min_relevance_score", 30.0);
 
         // 分段配置
         this.maxChunkSize = yaml.getInt("knowledge.segment.max_size", 500);
@@ -114,9 +123,15 @@ public class KnowledgeConfigManager {
         // BM25 配置
         this.bm25K1 = yaml.getDouble("knowledge.bm25.k1", 1.5);
         this.bm25B = yaml.getDouble("knowledge.bm25.b", 0.75);
+        this.bm25AvgDocLength = yaml.getInt("knowledge.bm25.avg_doc_length", 0);
+
+        // 检索结果过滤（软阈值）与融合
+        this.retrievalNoiseFloor = yaml.getDouble("knowledge.retrieval.noise_floor", 25.0);
+        this.retrievalRelativeThreshold = yaml.getDouble("knowledge.retrieval.relative_threshold", 0.3);
+        this.retrievalRrfK = yaml.getDouble("knowledge.retrieval.rrf_k", 60.0);
 
         // Embedding 配置
-        this.embeddingEnabled = yaml.getBoolean("knowledge.embedding.enabled", true);
+        this.embeddingEnabled = yaml.getBoolean("knowledge.embedding.enabled", false);
         this.embeddingModel = yaml.getString("knowledge.embedding.model", "");
         this.embeddingApiUrl = yaml.getString("knowledge.embedding.api_url", "");
         this.embeddingApiKey = yaml.getString("knowledge.embedding.api_key", "");

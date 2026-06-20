@@ -167,8 +167,8 @@ messages:
   "遍历知识库目录失败: {}": "Failed to traverse knowledge base directory: {}"
   "正在重新加载知识库...": "Reloading knowledge base..."
   "知识库加载完成": "Knowledge base loading complete"
-  "剩余片段得分过低（{}），停止返回": "Remaining chunk score too low ({}), stopping retrieval"
   "知识库：{} 个文件，共 {} 字符": "Knowledge base: {} files, {} characters total"
+  "从知识库语料播种 {} 个词典候选词": "Seeded {} dictionary candidate words from the knowledge base corpus"
 
   # ==================== EmbeddingService ====================
   "Embedding API URL: {}": "Embedding API URL: {}"
@@ -188,8 +188,6 @@ messages:
   "关闭 Embedding HTTP 客户端异常: {}": "Error closing Embedding HTTP client: {}"
   "获取问题 Embedding 失败，降级到 BM25": "Failed to get question embedding, falling back to BM25"
   "Embedding 不可用，降级到 BM25": "Embedding unavailable, falling back to BM25"
-  "使用 Embedding 语义检索": "Using Embedding semantic retrieval"
-  "剩余片段相似度过低（{}），停止返回": "Remaining chunk similarity too low ({}), stopping retrieval"
   "Embedding 已关闭，降级到 BM25 检索": "Embedding disabled, falling back to BM25 retrieval"
 
   # ==================== EmbeddingCache ====================
@@ -627,6 +625,10 @@ messages:
   "分段文件：{} - 使用 Markdown 标题分割，得到 {} 个片段，耗时 {}ms": "Segment file: {} - using Markdown header split, got {} chunks, took {}ms"
   "分段文件：{} - 使用段落分割，得到 {} 个片段，耗时 {}ms": "Segment file: {} - using paragraph split, got {} chunks, took {}ms"
   "分段文件：{} - 使用固定大小分割，得到 {} 个片段，耗时 {}ms": "Segment file: {} - using fixed-size split, got {} chunks, took {}ms"
+  "使用 BM25 + Embedding 融合检索": "Using BM25 + Embedding fusion retrieval"
+  "软阈值命中（floor={}），停止返回": "Soft threshold hit (floor={}), stopping retrieval"
+  "avgDocLength 使用配置覆盖：{}": "avgDocLength using config override: {}"
+  "avgDocLength 统计：{} 个片段，平均 {} 字符": "avgDocLength stats: {} chunks, average {} chars"
   "移除最早的历史记录：{}": "Removed oldest history: {}"
   "已保存 AI 回复到最新回复缓存：{}_{}": "Saved AI response to latest cache: {}_{}"
   "已保存新对话，当前历史记录数量：{}": "Saved new conversation, current history count: {}"

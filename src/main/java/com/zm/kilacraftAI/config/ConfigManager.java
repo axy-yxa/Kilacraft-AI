@@ -186,10 +186,6 @@ public class ConfigManager {
         return knowledgeConfigManager.getMaxRelevantChunks();
     }
 
-    public double getMinRelevanceScore() {
-        return knowledgeConfigManager.getMinRelevanceScore();
-    }
-
     public int getKnowledgeMaxChunkSize() {
         return knowledgeConfigManager.getMaxChunkSize();
     }
@@ -212,6 +208,22 @@ public class ConfigManager {
 
     public double getBm25B() {
         return knowledgeConfigManager.getBm25B();
+    }
+
+    public double getRetrievalNoiseFloor() {
+        return knowledgeConfigManager.getRetrievalNoiseFloor();
+    }
+
+    public double getRetrievalRelativeThreshold() {
+        return knowledgeConfigManager.getRetrievalRelativeThreshold();
+    }
+
+    public double getRetrievalRrfK() {
+        return knowledgeConfigManager.getRetrievalRrfK();
+    }
+
+    public int getBm25AvgDocLength() {
+        return knowledgeConfigManager.getBm25AvgDocLength();
     }
 
     public boolean isEmbeddingEnabled() {
