@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.service.afktask;
 import com.google.gson.Gson;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
+import com.zm.kilacraftAI.common.util.LogSnippetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.common.enums.AFKTaskTypeEnum;
@@ -104,7 +105,7 @@ public abstract class AbstractEventWatchTask extends AFKTask implements Listener
                     // 修复后仍然失败，走原始错误处理
                 }
             }
-            PluginLoggerUtil.warn("挂机任务", I18nService.tr("解析回调配置失败: {}", firstError.getMessage()));
+            PluginLoggerUtil.warn("挂机任务", I18nService.tr("解析回调配置失败: {}。原始内容: {}。任务将以仅通知模式运行（回调动作无法执行）", firstError.getMessage(), LogSnippetUtil.truncateForLog(json, 200)));
             return new AFKTaskCallback();
         }
     }

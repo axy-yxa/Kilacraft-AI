@@ -100,19 +100,7 @@ public class AIResponsePipeline {
     }
 
     /**
-     * 启动流式输出（显示"生成中..."占位符）
-     *
-     * <p>在 LLM 请求开始时调用，显示占位符并设置 GENERATING 状态</p>
-     *
-     * @param player  目标玩家
-     * @param channel 输出载体（由调用方传入场景配置）
-     */
-    public void startStream(Player player, OutputChannelEnum channel) {
-        startStream(player, channel, false);
-    }
-
-    /**
-     * 启动流式输出
+     * 启动流式输出。在 LLM 请求开始时调用，设置 GENERATING 状态。
      *
      * @param player  目标玩家
      * @param channel 输出载体（由调用方传入场景配置）

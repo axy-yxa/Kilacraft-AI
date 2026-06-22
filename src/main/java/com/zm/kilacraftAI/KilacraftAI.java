@@ -62,6 +62,7 @@ import lombok.Getter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * 插件入口
@@ -741,7 +742,7 @@ public final class KilacraftAI extends JavaPlugin {
      * 打印启动标志，并异步检查版本更新
      */
     private void printStartupBanner() {
-        java.util.logging.Logger logger = getLogger();
+        Logger logger = getLogger();
         logger.info("╻┏ ╻╻  ┏━┓┏━╸┏━┓┏━┓┏━╸╺┳╸   ┏━┓╻");
         logger.info("┣┻┓┃┃  ┣━┫┃  ┣┳┛┣━┫┣╸  ┃ ╺━╸┣━┫┃");
         logger.info("╹ ╹╹┗━╸╹ ╹┗━╸╹┗╸╹ ╹╹   ╹    ╹ ╹╹");

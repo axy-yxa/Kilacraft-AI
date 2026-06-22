@@ -13,6 +13,7 @@ import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.event.EventCollector;
 import lombok.Setter;
 
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -234,7 +235,7 @@ public class ProfileManager {
                 } catch (Exception e) {
                     PluginLoggerUtil.error("数据库", "flush 画像失败: {} - {}", entry.getKey(), e.getMessage());
                     // 连接级别异常（如连接中断），后续更新必然失败，提前退出
-                    if (e instanceof java.sql.SQLException) {
+                    if (e instanceof SQLException) {
                         connectionAlive = false;
                         PluginLoggerUtil.warn("数据库", "数据库连接异常，剩余 {} 个画像未刷盘", cache.size() - success);
                     }
@@ -386,7 +387,7 @@ public class ProfileManager {
                 } catch (Exception e) {
                     PluginLoggerUtil.warn("数据库", "热重载后补录画像失败: {} - {}", entry.getValue().getName(), e.getMessage());
                     // 连接死亡则停止后续补录，避免 N 次无效尝试
-                    if (e instanceof java.sql.SQLException) connectionAlive = false;
+                    if (e instanceof SQLException) connectionAlive = false;
                 }
             }
         } catch (Exception e) {

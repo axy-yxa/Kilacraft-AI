@@ -12,6 +12,7 @@ import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.greeting.GreetingContext;
 import com.zm.kilacraftAI.model.greeting.PlayerVanillaStats;
@@ -29,6 +30,7 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -56,7 +58,7 @@ public class LoginGreetingHandler implements Listener {
 
         Player player = event.getPlayer();
         final String playerName = player.getName();
-        final java.util.UUID playerUuid = player.getUniqueId();
+        final UUID playerUuid = player.getUniqueId();
 
         // 问候冷却检查
         int cooldownMinutes = config.getGreetingCooldownMinutes();
@@ -79,7 +81,7 @@ public class LoginGreetingHandler implements Listener {
         FoliaCompat.runTaskLater(plugin, () -> generateGreeting(player, playerUuid, playerName), delayTicks);
     }
 
-    private void generateGreeting(Player player, java.util.UUID playerUuid, String playerName) {
+    private void generateGreeting(Player player, UUID playerUuid, String playerName) {
         if (!player.isOnline()) return;
         if (!plugin.getConfigManager().isGreetingEnabled() || !plugin.getConfigManager().isApiKeyConfigured()) return;
 
@@ -146,7 +148,7 @@ public class LoginGreetingHandler implements Listener {
     /**
      * 调用 LLM 生成问候语并发送
      */
-    private void generateAndSend(GreetingContext context, String playerName, java.util.UUID playerUuid) {
+    private void generateAndSend(GreetingContext context, String playerName, UUID playerUuid) {
         Player player = context.getPlayer();
 
         ConfigManager config = plugin.getConfigManager();
@@ -167,7 +169,7 @@ public class LoginGreetingHandler implements Listener {
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
         String userMessage = context.isFirstLogin() ? I18nService.tr("请欢迎新玩家 {}", playerName) : I18nService.tr("请欢迎 {} 回来", playerName);
 
-        PlayerResponseHandler handler = new PlayerResponseHandler(player, OutputScenarioEnum.GREETING);
+        PlayerResponseHandler handler = new PlayerResponseHandler(KilacraftAI.getInstance(), player, OutputScenarioEnum.GREETING, null);
 
         OutputConfigManager outputConfig = plugin.getConfigManager().getOutputConfigManager();
         if (outputConfig.isStreamEnabled()) {
@@ -176,7 +178,8 @@ public class LoginGreetingHandler implements Listener {
         }
 
         plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, playerName, emptyHistory, handler, systemPrompt, false, false, false).thenAccept(greeting -> {
-            if (greeting != null && player.isOnline()) {
+            // 错误响应（§c 开头）已由 handleError 提示玩家，不持久化到 DB、不写入对话历史，避免污染
+            if (greeting != null && !LLMResponseUtil.isErrorResponse(greeting) && player.isOnline()) {
                 ConversationPersistenceService persistence = plugin.getPersistenceService();
                 if (persistence != null) {
                     persistence.submit(playerUuid, "assistant", greeting, "", ConversationSourceEnum.GREETING.getValue());
@@ -194,7 +197,7 @@ public class LoginGreetingHandler implements Listener {
         });
     }
 
-    private void updateGreetingTime(java.util.UUID playerUuid) {
+    private void updateGreetingTime(UUID playerUuid) {
         ProfileManager profileManager = plugin.getProfileManager();
         if (profileManager != null) {
             profileManager.updateGreetingTime(playerUuid);

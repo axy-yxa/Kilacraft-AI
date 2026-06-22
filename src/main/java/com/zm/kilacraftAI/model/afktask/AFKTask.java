@@ -16,6 +16,7 @@ import lombok.Getter;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -272,7 +273,7 @@ public abstract class AFKTask {
      * @param plan 要过滤的任务计划
      */
     protected void stripTrailingNotifyPlayer(TaskPlan plan) {
-        java.util.List<TaskStep> steps = plan.getSteps();
+        List<TaskStep> steps = plan.getSteps();
         if (steps.isEmpty()) return;
 
         // 从末尾开始连续移除 notify_player 步骤

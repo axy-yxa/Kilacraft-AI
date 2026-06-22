@@ -293,7 +293,8 @@ public class UtilitySkill implements Skill {
 
             @Override
             public void handleError(String errorMessage) {
-                responseFuture.completeExceptionally(new RuntimeException(errorMessage));
+                // 后台不重复 §c 玩家串（provider WARN 已含详情），用纯文本标记完成异常
+                responseFuture.completeExceptionally(new RuntimeException(I18nService.tr("全服广播 LLM 分析失败（详见控制台 WARN）")));
             }
 
             @Override

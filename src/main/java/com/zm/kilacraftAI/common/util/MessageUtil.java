@@ -86,7 +86,7 @@ public class MessageUtil {
         // 如果启用流式输出，立即显示流式占位符（窗口期管理）
         if (outputConfigManager.isStreamEnabled()) {
             OutputChannelEnum channel = outputConfigManager.getThinkingChannel();
-            plugin.getStreamOutputManager().startGeneration(player, channel);
+            plugin.getStreamOutputManager().startGeneration(player, channel, false);
             return;
         }
 

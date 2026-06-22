@@ -11,6 +11,7 @@ import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -396,7 +397,7 @@ public class GenericBukkitAPISkill implements Skill {
             return formatMainHand(mainHand);
         }
         // Duration 类型（Paper 特有，用于 AFK 时间）
-        if (result instanceof java.time.Duration duration) {
+        if (result instanceof Duration duration) {
             return formatDuration(duration);
         }
         // 药水效果集合（必须在通用 Collection 分支之前）
@@ -538,7 +539,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化 additional_methods 返回的结果
      */
-    private String formatWithAdditionalMethods(BukkitAPIMetadata api, java.util.Map<?, ?> resultMap) {
+    private String formatWithAdditionalMethods(BukkitAPIMetadata api, Map<?, ?> resultMap) {
         String template = api.getResultTemplate();
         if (template == null || template.isEmpty()) {
             // 如果没有模板，返回所有结果的字符串表示
@@ -608,7 +609,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化天气结果（特殊处理）
      */
-    private String formatWeatherResult(java.util.Map<?, ?> resultMap) {
+    private String formatWeatherResult(Map<?, ?> resultMap) {
         Boolean hasStorm = (Boolean) resultMap.get("has_storm");
         Boolean isThundering = (Boolean) resultMap.get("is_thundering");
 
@@ -624,7 +625,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化经验值结果
      */
-    private String formatExpResult(java.util.Map<?, ?> resultMap) {
+    private String formatExpResult(Map<?, ?> resultMap) {
         Object levelObj = resultMap.get("level");
         Object expObj = resultMap.get("exp_progress");
 
@@ -639,7 +640,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化着火状态结果
      */
-    private String formatFireResult(java.util.Map<?, ?> resultMap) {
+    private String formatFireResult(Map<?, ?> resultMap) {
         Object fireTicksObj = resultMap.get("fire_ticks");
         Object maxFireTicksObj = resultMap.get("max_fire_ticks");
 
@@ -658,7 +659,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化世界时间结果
      */
-    private String formatTimeResult(java.util.Map<?, ?> resultMap) {
+    private String formatTimeResult(Map<?, ?> resultMap) {
         return I18nService.tr("该 API 不应返回 Map 类型");
     }
 
@@ -685,7 +686,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化集合类型（区分玩家列表和世界列表）
      */
-    private String formatCollection(java.util.Collection<?> collection, BukkitAPIMetadata api) {
+    private String formatCollection(Collection<?> collection, BukkitAPIMetadata api) {
         if (collection == null || collection.isEmpty()) {
             // 根据API类型返回不同的空消息
             if (api.getId().equals("get_server_worlds")) {
@@ -710,7 +711,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化在线玩家列表
      */
-    private String formatPlayerCollection(java.util.Collection<?> players) {
+    private String formatPlayerCollection(Collection<?> players) {
         if (players == null || players.isEmpty()) {
             return I18nService.tr("当前没有玩家在线");
         }
@@ -740,7 +741,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化世界列表
      */
-    private String formatWorldCollection(java.util.Collection<?> worlds) {
+    private String formatWorldCollection(Collection<?> worlds) {
         StringBuilder sb = new StringBuilder();
         sb.append(I18nService.tr("服务器世界列表（{}个）：\n", worlds.size()));
 
@@ -759,7 +760,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化 Location（lophine 兼容版本：接收 Map）
      */
-    private String formatLocationFromMap(java.util.Map<?, ?> locMap) {
+    private String formatLocationFromMap(Map<?, ?> locMap) {
         if (locMap == null || locMap.isEmpty()) {
             return I18nService.tr("位置：未知");
         }
@@ -831,7 +832,7 @@ public class GenericBukkitAPISkill implements Skill {
      * <p>注意：字段名必须与 extractThreadSafeData 和 extractDataFromResult 保持一致，
      * 使用标准化命名：item_type, item_name, item_amount</p>
      */
-    private String formatItemStackFromMap(BukkitAPIMetadata api, java.util.Map<?, ?> itemMap) {
+    private String formatItemStackFromMap(BukkitAPIMetadata api, Map<?, ?> itemMap) {
         // 根据API类型确定标签
         String label = I18nService.tr("物品");
         if (api != null) {
@@ -893,7 +894,7 @@ public class GenericBukkitAPISkill implements Skill {
         }
 
         // Lore（物品描述）
-        if (itemMap.containsKey("lore") && itemMap.get("lore") instanceof java.util.List<?> lore) {
+        if (itemMap.containsKey("lore") && itemMap.get("lore") instanceof List<?> lore) {
             if (!lore.isEmpty()) {
                 sb.append(I18nService.tr(" [描述:{}行]", lore.size()));
             }
@@ -910,7 +911,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化 Vector（lophine 兼容版本：接收 Map）
      */
-    private String formatVectorFromMap(java.util.Map<?, ?> vecMap) {
+    private String formatVectorFromMap(Map<?, ?> vecMap) {
         if (vecMap == null || vecMap.isEmpty()) {
             return I18nService.tr("移动状态：未知");
         }
@@ -1044,7 +1045,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化药水效果集合
      */
-    private String formatPotionEffects(java.util.Collection<?> effects) {
+    private String formatPotionEffects(Collection<?> effects) {
         if (effects == null || effects.isEmpty()) {
             return I18nService.tr("药水效果：无");
         }
@@ -1096,7 +1097,7 @@ public class GenericBukkitAPISkill implements Skill {
      * <p>注意：字段名必须与 extractThreadSafeData 保持一致，
      * 使用标准化命名：block_type, x, y, z, world</p>
      */
-    private String formatBlockFromMap(java.util.Map<?, ?> blockMap) {
+    private String formatBlockFromMap(Map<?, ?> blockMap) {
         if (blockMap == null || blockMap.isEmpty()) {
             return I18nService.tr("瞄准方块：无（距离太远或没有方块）");
         }
@@ -1117,7 +1118,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化脚下方块（Folia Map 路径）
      */
-    private String formatFeetBlockFromMap(java.util.Map<?, ?> blockMap) {
+    private String formatFeetBlockFromMap(Map<?, ?> blockMap) {
         if (blockMap == null || blockMap.isEmpty()) {
             return I18nService.tr("脚下方块：未知");
         }
@@ -1138,7 +1139,7 @@ public class GenericBukkitAPISkill implements Skill {
      * {slot}_name, {slot}_type, {slot}_enchantments, {slot}_max_durability, {slot}_remaining_durability
      * slot 名称：boots, leggings, chestplate, helmet
      */
-    private String formatArmorFromMap(java.util.Map<?, ?> armorMap) {
+    private String formatArmorFromMap(Map<?, ?> armorMap) {
         if (armorMap == null || armorMap.isEmpty() || armorMap.containsKey("empty") || armorMap.containsKey("item_count")) {
             // 空 Map 或标记为 empty 或旧格式（只有 item_count/empty_slots）
             if (armorMap != null && armorMap.containsKey("item_count")) {
@@ -1201,7 +1202,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化上次受伤原因（Folia Map 路径）
      */
-    private String formatDamageFromMap(java.util.Map<?, ?> damageMap) {
+    private String formatDamageFromMap(Map<?, ?> damageMap) {
         if (damageMap == null || damageMap.isEmpty()) {
             return I18nService.tr("无受伤记录");
         }
@@ -1348,7 +1349,7 @@ public class GenericBukkitAPISkill implements Skill {
      * 从 ItemStack[] 中提取物品摘要（仅物品名称+数量，不含附魔/耐久）
      */
     private void extractInventorySummary(org.bukkit.inventory.ItemStack[] contents, Map<String, Object> dataMap) {
-        java.util.List<Map<String, Object>> itemsList = new ArrayList<>();
+        List<Map<String, Object>> itemsList = new ArrayList<>();
         for (int i = 0; i < contents.length; i++) {
             org.bukkit.inventory.ItemStack item = contents[i];
             if (item != null && item.getType() != org.bukkit.Material.AIR) {
@@ -1459,7 +1460,7 @@ public class GenericBukkitAPISkill implements Skill {
      *
      * <p>Map 结构：item_count, empty_slots, items(List<Map>，仅摘要模式)</p>
      */
-    private String formatInventoryFromMap(BukkitAPIMetadata api, java.util.Map<?, ?> invMap) {
+    private String formatInventoryFromMap(BukkitAPIMetadata api, Map<?, ?> invMap) {
         String label = api.getId().equals("get_player_ender_chest") ? I18nService.tr("末影箱") : (api.getId().equals("get_player_open_container") ? I18nService.tr("容器") : I18nService.tr("背包"));
 
         if (invMap == null || invMap.isEmpty()) {
@@ -1476,7 +1477,7 @@ public class GenericBukkitAPISkill implements Skill {
 
         // 摘要模式：显示物品列表
         Object itemsObj = invMap.get("items");
-        if (!(itemsObj instanceof java.util.List<?> itemsList) || itemsList.isEmpty()) {
+        if (!(itemsObj instanceof List<?> itemsList) || itemsList.isEmpty()) {
             return label + I18nService.tr("：空");
         }
 
@@ -1502,7 +1503,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化袭击列表
      */
-    private String formatRaids(java.util.Collection<?> raids) {
+    private String formatRaids(Collection<?> raids) {
         if (raids == null || raids.isEmpty()) {
             return I18nService.tr("袭击事件：无");
         }
@@ -1542,7 +1543,7 @@ public class GenericBukkitAPISkill implements Skill {
     /**
      * 格式化时长（用于 AFK 时间）
      */
-    private String formatDuration(java.time.Duration duration) {
+    private String formatDuration(Duration duration) {
         long seconds = duration.getSeconds();
         if (seconds < 60) {
             return I18nService.tr("挂机时间：{} 秒", seconds);

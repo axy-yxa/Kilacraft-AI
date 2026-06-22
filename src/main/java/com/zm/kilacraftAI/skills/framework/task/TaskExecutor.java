@@ -8,6 +8,8 @@ import com.zm.kilacraftAI.skills.framework.*;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 任务执行器 - 按照任务计划的顺序执行每个步骤
@@ -248,8 +250,8 @@ public class TaskExecutor {
         }
 
         // 匹配 {step_xxx.field} 或 {step_xxx.field[0].subfield} 格式的占位符
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\{(step_\\w+)\\.([\\w\\[\\].]+)\\}");
-        java.util.regex.Matcher matcher = pattern.matcher(value);
+        Pattern pattern = Pattern.compile("\\{(step_\\w+)\\.([\\w\\[\\].]+)\\}");
+        Matcher matcher = pattern.matcher(value);
 
         StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
@@ -263,14 +265,14 @@ public class TaskExecutor {
                 Map<String, Object> data = (Map<String, Object>) skillResult.getData();
                 Object fieldValue = resolveFieldPath(data, fieldPath);
                 if (fieldValue != null) {
-                    matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(fieldValue.toString()));
+                    matcher.appendReplacement(sb, Matcher.quoteReplacement(fieldValue.toString()));
                     continue;
                 }
             }
             if (lenient) {
                 // 宽松模式：保留原占位符，留给内层 TaskExecutor 解析
                 PluginLoggerUtil.debug("任务执行", "占位符宽松保留：{} (外层步骤 {} 无 {} 字段，将留给内层解析)", placeholder, stepId, fieldPath);
-                matcher.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(placeholder));
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(placeholder));
                 continue;
             }
             // 严格模式：占位符解析失败，返回失败信息
@@ -280,27 +282,10 @@ public class TaskExecutor {
         matcher.appendTail(sb);
         String resolved = sb.toString();
 
-        // 简单算术求值：占位符替换后可能残留运算表达式（如 {step_0.balance}/2 → 2623.25/2）
-        resolved = evaluateSimpleArithmetic(resolved);
+        // 占位符替换后可能残留运算表达式（如 {step_0.balance}/2 → 2623.25/2），求值固化
+        resolved = ArithmeticUtil.evalAndFormat(resolved);
 
         return new PlaceholderResolveResult(resolved, null);
-    }
-
-    /**
-     * 简单算术表达式求值
-     * <p>
-     * 占位符替换后可能残留运算表达式（如 {step_0.balance}/2 → 2623.25/2），
-     * 下游技能通常用 Double.parseDouble() 无法解析此类表达式。
-     * 本方法仅支持单次二元运算（A op B），不引入脚本引擎，安全无注入风险。
-     * </p>
-     *
-     * <p>实现已抽离至 {@link ArithmeticUtil}，供 {@code CustomWatchTask} 等其他场景复用。</p>
-     *
-     * @param value 可能包含算术表达式的字符串
-     * @return 求值后的字符串，或不匹配时的原始值
-     */
-    private String evaluateSimpleArithmetic(String value) {
-        return ArithmeticUtil.evalAndFormat(value);
     }
 
     /**
@@ -316,7 +301,7 @@ public class TaskExecutor {
             if (current == null) return null;
 
             // 检查是否是数组访问：warps[0]
-            java.util.regex.Matcher arrayMatcher = java.util.regex.Pattern.compile("^(\\w+)\\[(\\d+)\\]$").matcher(part);
+            Matcher arrayMatcher = Pattern.compile("^(\\w+)\\[(\\d+)\\]$").matcher(part);
             if (arrayMatcher.find()) {
                 String arrayKey = arrayMatcher.group(1);
                 int index = Integer.parseInt(arrayMatcher.group(2));

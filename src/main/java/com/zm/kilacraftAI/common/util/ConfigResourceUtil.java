@@ -29,7 +29,6 @@ public class ConfigResourceUtil {
      * 私有构造函数,防止实例化
      */
     private ConfigResourceUtil() {
-        throw new UnsupportedOperationException(I18nService.tr("工具类不允许实例化"));
     }
 
     /**

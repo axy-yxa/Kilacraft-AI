@@ -112,7 +112,6 @@ messages:
   "已创建默认配置文件: {}": "Created default config file: {}"
   "创建配置文件失败: {}": "Failed to create config file: {}"
   "扫描内置资源目录失败: {}": "Failed to scan internal resource directory: {}"
-  "工具类不允许实例化": "Utility class cannot be instantiated"
 
   # ==================== SkillConfigManager ====================
   "已加载 {} 个技能配置": "Loaded {} skill configs"
@@ -171,7 +170,6 @@ messages:
   "从知识库语料播种 {} 个词典候选词": "Seeded {} dictionary candidate words from the knowledge base corpus"
 
   # ==================== EmbeddingService ====================
-  "Embedding API URL: {}": "Embedding API URL: {}"
   "Embedding 模型: {}": "Embedding model: {}"
   "Embedding 未配置，已降级到 BM25 检索": "Embedding not configured, falling back to BM25 search"
   "Embedding 预计算失败，后续请求将走 BM25 降级": "Embedding precomputation failed, subsequent requests will use BM25 fallback"
@@ -920,7 +918,6 @@ messages:
   "需确认": "Needs confirm"
 
   # ==================== LLMProvider ====================
-  "请求失败：{} - {}": "Request failed: {} - {}"
   "API 响应为空": "API response is empty"
   "AI 暂时无法回复，请稍后再试": "AI is temporarily unable to respond, please try again later"
   "读取响应失败：{}": "Failed to read response: {}"
@@ -928,6 +925,15 @@ messages:
   "错误响应体: {}": "Error response body: {}"
   "当前 LLM 不支持 response_format，自动降级为普通模式": "Current LLM does not support response_format, auto-downgrading to normal mode"
   "... (共{} 字符)": "... ({} chars total)"
+  "模型名称可能有误，请检查 llm.yml 的 model 配置": "The model name may be incorrect. Please check the 'model' setting in llm.yml"
+  "API Key 可能无效，请检查 llm.yml 的 api_key 配置": "The API Key may be invalid. Please check the 'api_key' setting in llm.yml"
+  "请求参数有误，请检查 llm.yml 的 api_url 与 model 配置": "Invalid request parameters. Please check 'api_url' and 'model' in llm.yml"
+  "API Key 无效或无访问权限，请检查 llm.yml 的 api_key 配置": "API Key is invalid or lacks permission. Please check the 'api_key' setting in llm.yml"
+  "API 地址可能有误，请检查 llm.yml 的 api_url 配置": "The API URL may be incorrect. Please check the 'api_url' setting in llm.yml"
+  "请求过于频繁或账户额度不足，请稍后重试": "Requests are too frequent or the account quota is insufficient. Please try again later"
+  "AI 服务暂时不可用，请稍后重试": "The AI service is temporarily unavailable. Please try again later"
+  "请求失败，请检查 llm.yml 配置或稍后重试": "Request failed. Please check the llm.yml configuration or try again later"
+  "AI 请求失败（HTTP {}）：{}。原始错误：{}": "AI request failed (HTTP {}): {}. Original error: {}"
 
   # ==================== CMIAPI ====================
   "{}小时{}分钟": "{}hr {}min"
@@ -1073,6 +1079,18 @@ messages:
   "画像管理器配置已刷新": "Profile manager config refreshed"
   "意图识别失败: {}": "Intent recognition failed: {}"
   "LLM 请求失败: {}": "LLM request failed: {}"
+  "AI 响应超时，请稍后重试": "AI response timed out. Please try again later"
+  "AI 请求失败，请稍后重试": "AI request failed. Please try again later"
+  "Phase 1 JSON 解析失败: {}。原始响应: {}": "Phase 1 JSON parse failed: {}. Raw response: {}"
+  "意图识别 JSON 解析失败：{}。原始响应: {}": "Intent recognition JSON parse failed: {}. Raw response: {}"
+  "待确认续体分类解析失败：{}。原始响应: {}": "Pending resume classification parse failed: {}. Raw response: {}"
+  "LLM 返回错误响应，跳过画像更新: {}": "LLM returned an error response, skipping profile update: {}"
+  "解析 LLM 响应 JSON 失败: {}。原始响应: {}": "Failed to parse LLM response JSON: {}. Raw response: {}"
+  "LLM 未输出任何有效画像字段（已过滤未知/旧结构字段），跳过更新: {}": "LLM produced no valid profile fields (unknown/legacy-structure fields filtered out), skipping update: {}"
+  "LLM 画像分析请求失败（详见控制台 WARN）": "LLM profile analysis request failed (see console WARN)"
+  "全服广播 LLM 分析失败（详见控制台 WARN）": "Broadcast LLM analysis failed (see console WARN)"
+  "解析condition_plan JSON失败: {}。原始内容: {}": "Failed to parse condition_plan JSON: {}. Raw content: {}"
+  "解析回调配置失败: {}。原始内容: {}。任务将以仅通知模式运行（回调动作无法执行）": "Failed to parse callback config: {}. Raw content: {}. The task will run in notify-only mode (callback action cannot execute)"
 
   # ==================== PlayerProfileDao ====================
   "创建新玩家画像: {} ({})": "Creating new player profile: {} ({})"
@@ -1207,7 +1225,6 @@ messages:
   "{}上架的 {} 件商品已卖出": "{} listed {} items have been sold"
   "{}收到了 {} 收入": "{} received {} in income"
   "{}收到了 {} 笔款项（共 {}）": "{} received {} payments (totaling {})"
-  "（{}）": "({})"
   "{}挂了 1 次": "{} died once"
   "{}挂了 {} 次（{}）": "{} died {} times ({})"
   "{}挂了 1 次（{}）": "{} died once ({})"
@@ -1356,7 +1373,6 @@ messages:
   "异常指标: ": "Alert metric: "
   "涉及插件: ": "Plugins involved: "
   "热点方法: ": "Hotspot methods: "
-  "、": ", "
   "TPS过低({})，阈值<{}": "TPS too low ({})，threshold<{}"
   "MSPT峰值({}ms)，阈值>{}ms": "MSPT peak ({}ms)，threshold>{}ms"
   "MSPT P95({}ms)，阈值>{}ms": "MSPT P95 ({}ms)，threshold>{}ms"
@@ -1505,7 +1521,6 @@ messages:
   # ==================== Admin - ServerHealthGuardian 通知 ====================
   "§c检测到服务器性能异常！开始自动诊断...": "§cServer performance anomaly detected! Starting auto diagnosis..."
   "§7触发指标: §e{}": "§7Triggered by: §e{}"
-  "§7TPS 1m=§e{}§7 | MSPT(10s) max=§e{}ms§7 | MSPT(1m) p95=§e{}ms": "§7TPS 1m=§e{}§7 | MSPT(10s) max=§e{}ms§7 | MSPT(1m) p95=§e{}ms"
   "采样完成，正在生成诊断报告...": "Sampling complete, generating diagnostic report..."
   "§c服务器性能异常自动诊断完成！报告: {}": "§cAuto health diagnosis complete! Report: {}"
   "§a诊断报告已生成: {}": "§aDiagnostic report generated: {}"
@@ -1720,7 +1735,6 @@ messages:
   # ==================== Admin - AI Diagnostic Prompt (ServerHealthGuardian) ====================
   "AI 推理过程": "AI Reasoning Process"
   "== 当前异常告警 ==": "== Current Anomaly Alerts =="
-  "== Spark Profiler ==": "== Spark Profiler =="
   "== Profiler 元数据摘要 ==": "== Profiler Metadata Summary =="
   "== GC 信息 ==": "== GC Info =="
   "次, 总耗时": " times, total time"

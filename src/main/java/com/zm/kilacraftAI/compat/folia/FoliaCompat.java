@@ -9,6 +9,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 /**
  * Folia 兼容调度工具类
@@ -311,7 +312,7 @@ public class FoliaCompat {
     /**
      * 在主线程/全局区域同步执行 Supplier 并返回结果
      */
-    public static <T> T callSync(Plugin plugin, java.util.function.Supplier<T> supplier, long timeoutSeconds) {
+    public static <T> T callSync(Plugin plugin, Supplier<T> supplier, long timeoutSeconds) {
         ensureInitialized();
         if (FOLIA) {
             CompletableFuture<T> future = new CompletableFuture<>();
@@ -352,7 +353,7 @@ public class FoliaCompat {
      * @param timeoutSeconds 超时时间（秒）
      * @return 执行结果
      */
-    public static <T> T callSyncOnEntity(org.bukkit.entity.Player player, java.util.function.Supplier<T> supplier, long timeoutSeconds) {
+    public static <T> T callSyncOnEntity(org.bukkit.entity.Player player, Supplier<T> supplier, long timeoutSeconds) {
         ensureInitialized();
         if (FOLIA) {
             CompletableFuture<T> future = new CompletableFuture<>();

@@ -55,7 +55,7 @@ public class SkillSecurityFilter implements Listener {
     /**
      * 在线玩家 UUID→名称 映射（线程安全，由事件驱动更新）
      */
-    private static final Map<java.util.UUID, String> ONLINE_UUID_TO_NAME = new ConcurrentHashMap<>();
+    private static final Map<UUID, String> ONLINE_UUID_TO_NAME = new ConcurrentHashMap<>();
 
     /**
      * 近期活跃玩家名缓存：name → 最后活跃时间戳(ms)。
@@ -362,7 +362,7 @@ public class SkillSecurityFilter implements Listener {
      *
      * @return 在线玩家 UUID→名称映射的快照（不可修改）
      */
-    public static Map<java.util.UUID, String> getOnlineUuidToName() {
+    public static Map<UUID, String> getOnlineUuidToName() {
         return Map.copyOf(ONLINE_UUID_TO_NAME);
     }
 

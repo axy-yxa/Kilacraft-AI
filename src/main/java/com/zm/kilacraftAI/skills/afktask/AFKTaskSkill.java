@@ -83,7 +83,7 @@ public class AFKTaskSkill implements Skill {
         if (config != null && config.getActionDescriptions() != null) {
             return new LinkedHashMap<>(config.getActionDescriptions());
         }
-        return java.util.Collections.emptyMap();
+        return Collections.emptyMap();
     }
 
     @Override

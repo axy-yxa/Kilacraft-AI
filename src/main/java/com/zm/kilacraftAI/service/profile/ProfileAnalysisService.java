@@ -5,6 +5,7 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
+import com.zm.kilacraftAI.common.util.LogSnippetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.db.DatabaseManager;
@@ -12,6 +13,7 @@ import com.zm.kilacraftAI.db.dao.ConversationDao;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 
@@ -59,9 +61,9 @@ public class ProfileAnalysisService {
      */
     private static final String DEFAULT_SYSTEM_PROMPT = """
             你是一个玩家行为分析助手。根据玩家的对话历史，分析该玩家的游戏风格、偏好和行为特征。
-
+            
             【画像用途】画像会作为长期记忆注入未来的对话，但刷新间隔较长（按天计）。一旦写入易过期的内容，会长期误导后续回复。务必只提炼长期稳定、不会随单次操作而改变的特征。
-
+            
             请输出一个 JSON 对象，包含以下字段（信息不足则留空字符串）：
             {
               "playstyle": "长期游戏倾向（如：偏探索、偏建造、偏战斗、偏社交等）",
@@ -73,12 +75,12 @@ public class ProfileAnalysisService {
               "facts": "玩家声明的稳定关系或身份（如：某玩家是好友或对手、自称某身份），严禁写数值",
               "notes": "其他值得长期注意的观察"
             }
-
+            
             【数据性质红线 - 最重要】
             1. 严禁记录任何会随时间或他人行为变化的具体数值快照：余额/金币、库存数量与物品清单、当前坐标、血量/饱食、在线状态、在售商品与价格、附近实体数量等。这类数据随时变化，固化进画像只会留下过期错误答案——即使玩家本人在对话里明确说出具体数字，也不要记录。
             2. 只记"定性关系与稳定倾向"，不记"瞬时数值"。判断标准：某信息若是具体数字、或会随单次操作而改变 → 不记；若是关系、身份、偏好、风格等长期属性 → 记。
             3. 只分析对话中明确体现的信息，不要推测。
-
+            
             【输出规范】
             1. 每个字段用简短的短语或句子，整个 JSON 总字符数控制在 500 以内。
             2. 如果某个维度信息不足，对应字段填空字符串。
@@ -87,9 +89,9 @@ public class ProfileAnalysisService {
 
     private static final String DEFAULT_SYSTEM_PROMPT_EN = """
             You are a player behavior analysis assistant. Analyze the player's game style, preferences, and behavioral traits based on their conversation history.
-
+            
             [Profile purpose] The profile is injected into future conversations as long-term memory, but refreshes infrequently (on the order of days). Anything volatile that gets written in will mislead subsequent replies for a long time. Extract only traits that are long-term stable and do not change with a single action.
-
+            
             Output a JSON object with the following fields (use empty string if insufficient information):
             {
               "playstyle": "Long-term game tendency (e.g., explorer-leaning, builder-leaning, combat-leaning, socializer-leaning)",
@@ -101,12 +103,12 @@ public class ProfileAnalysisService {
               "facts": "Stated stable relations or identity (e.g., a player is a friend or rival, self-claimed role); NEVER write numeric values",
               "notes": "Other observations worth remembering long-term"
             }
-
+            
             [Data-nature red lines - most important]
             1. NEVER record numeric snapshots of anything that changes over time or with others' actions: balance/coins, inventory counts and item lists, current coordinates, health/hunger, online status, shop listings and prices, nearby entity counts, etc. Such data is volatile at all times; freezing it into the profile only leaves stale wrong answers — even if the player explicitly states a specific number in the conversation, do not record it.
             2. Record only "qualitative relations and stable tendencies", not "instantaneous values". Test: if a piece of information is a specific number or changes with a single action → do not record; if it is a relation, identity, preference, or style (a long-term attribute) → record it.
             3. Analyze only information explicitly shown in conversations; do not speculate.
-
+            
             [Output rules]
             1. Keep each field as a brief phrase or sentence; keep total JSON within 500 characters.
             2. If a dimension has insufficient information, use empty string.
@@ -120,11 +122,11 @@ public class ProfileAnalysisService {
             你是一个玩家行为分析助手。以下是玩家的历史画像数据（JSON）和新的对话记录。
             请对比历史画像和新对话，**保留仍然准确的内容，修正已经变化的内容**，融合输出更新后的完整画像 JSON。
             不要被最近几句话过度左右 —— 关注长期稳定的特征。
-
+            
             【数据性质红线 - 必须执行】
             1. 融合时一律移除旧画像和新对话中的任何具体数值快照（余额/金币、库存数量与物品清单、当前坐标、血量/饱食、在线状态、在售商品与价格、附近实体数量等）。这类数据随时变化、默认过期——即使旧画像里已存在，或新对话里玩家再次陈述，也不要写入新画像。
             2. 只保留"定性关系与稳定倾向"，丢弃"瞬时数值"。
-
+            
             【输出要求】
             1. 只输出 JSON，不要包含其他内容
             2. 使用以下固定字段输出（旧画像中的 preferences/communication_style 等旧字段请迁移到新结构）：
@@ -138,11 +140,11 @@ public class ProfileAnalysisService {
             You are a player behavior analysis assistant. Below is the player's existing profile data (JSON) and new conversation records.
             Compare the existing profile with new conversations, **retain what still holds true, revise what has changed**, and produce a complete updated profile JSON.
             Do not over-weight the most recent few messages — focus on consistent long-term traits.
-
+            
             [Data-nature red lines - must execute]
             1. On merge, ALWAYS remove any numeric snapshots from both the old profile and new conversations (balance/coins, inventory counts and item lists, current coordinates, health/hunger, online status, shop listings and prices, nearby entity counts, etc.). Such data is volatile and stale by default — even if it already exists in the old profile, or the player restates it in new conversations, do not write it into the new profile.
             2. Keep only "qualitative relations and stable tendencies"; drop "instantaneous values".
-
+            
             [Output requirements]
             1. Output only JSON, no other content
             2. Use the following fixed fields (migrate old fields like preferences/communication_style to the new structure):
@@ -156,6 +158,16 @@ public class ProfileAnalysisService {
      * 注入旧画像时需要过滤掉的元数据字段（非画像内容，由 handleAnalysisResult 自动管理）
      */
     private static final Set<String> METADATA_KEYS = Set.of("version", "analyzed_at");
+
+    /**
+     * 画像有效字段白名单（与 system prompt 约定的 8 维度结构一致）。非本次输出的旧字段（preferences/communication_style 等）或未知键一律过滤，防止脏写。
+     */
+    private static final Set<String> PROFILE_FIELDS = Set.of("playstyle", "personality", "interests", "boundaries", "communication", "spatial", "facts", "notes");
+
+    /**
+     * 单字段最大字符数。提示词约定整个 JSON ≤500 字符 / 8 字段（均值 ~62），上限取 ~3 倍容下较长定性描述，同时截断 LLM 失控输出。
+     */
+    private static final int MAX_PROFILE_FIELD_LENGTH = 200;
 
     private final KilacraftAI plugin;
     private final DatabaseManager databaseManager;
@@ -275,7 +287,8 @@ public class ProfileAnalysisService {
 
             @Override
             public void handleError(String errorMessage) {
-                responseFuture.completeExceptionally(new RuntimeException(errorMessage));
+                // errorMessage 是面向玩家的 §c 串；后台日志不重复详情（provider WARN 已含分类+原始错误），用纯文本标记完成异常
+                responseFuture.completeExceptionally(new RuntimeException(I18nService.tr("LLM 画像分析请求失败（详见控制台 WARN）")));
             }
 
             @Override
@@ -331,6 +344,11 @@ public class ProfileAnalysisService {
             PluginLoggerUtil.warn("画像分析", I18nService.tr("LLM 返回空响应，跳过更新"));
             return;
         }
+        // 防御性兜底：正常错误流走 handleError → 异常完成，不会到这里；若 future 异常地以 §c 串正常完成，也跳过不写画像
+        if (LLMResponseUtil.isErrorResponse(response)) {
+            PluginLoggerUtil.warn("画像分析", I18nService.tr("LLM 返回错误响应，跳过画像更新: {}", LogSnippetUtil.truncateForLog(response, 200)));
+            return;
+        }
 
         String jsonStr = extractJson(response);
 
@@ -346,11 +364,11 @@ public class ProfileAnalysisService {
                     PluginLoggerUtil.debug("画像分析", I18nService.tr("JSON 自动修复成功"));
                 } catch (Exception ignored) {
                     // 修复后仍然失败
-                    PluginLoggerUtil.warn("画像分析", I18nService.tr("解析 LLM 响应 JSON 失败: {}", e.getMessage()));
+                    PluginLoggerUtil.warn("画像分析", I18nService.tr("解析 LLM 响应 JSON 失败: {}。原始响应: {}", e.getMessage(), LogSnippetUtil.truncateForLog(response, 300)));
                     return;
                 }
             } else {
-                PluginLoggerUtil.warn("画像分析", I18nService.tr("解析 LLM 响应 JSON 失败: {}", e.getMessage()));
+                PluginLoggerUtil.warn("画像分析", I18nService.tr("解析 LLM 响应 JSON 失败: {}。原始响应: {}", e.getMessage(), LogSnippetUtil.truncateForLog(response, 300)));
                 return;
             }
         }
@@ -359,6 +377,34 @@ public class ProfileAnalysisService {
             PluginLoggerUtil.warn("画像分析", I18nService.tr("解析结果为空，跳过更新"));
             return;
         }
+
+        // 白名单过滤：只留 8 个目标字段，旧字段/未知键/嵌套结构丢弃，标量化 + 长度截断防脏写
+        Map<String, Object> filtered = new LinkedHashMap<>();
+        for (String key : PROFILE_FIELDS) {
+            Object v = profileData.get(key);
+            if (v == null) continue;
+            String sv;
+            if (v instanceof String s) {
+                sv = s;
+            } else if (v instanceof Number || v instanceof Boolean) {
+                // 标量强制转字符串（画像字段语义为短语）
+                sv = String.valueOf(v);
+            } else {
+                // 嵌套对象/数组不符合画像字段语义，跳过
+                continue;
+            }
+            if (sv.length() > MAX_PROFILE_FIELD_LENGTH) {
+                sv = sv.substring(0, MAX_PROFILE_FIELD_LENGTH);
+            }
+            if (!sv.isEmpty()) {
+                filtered.put(key, sv);
+            }
+        }
+        if (filtered.isEmpty()) {
+            PluginLoggerUtil.warn("画像分析", I18nService.tr("LLM 未输出任何有效画像字段（已过滤未知/旧结构字段），跳过更新: {}", LogSnippetUtil.truncateForLog(response, 200)));
+            return;
+        }
+        profileData = filtered;
 
         // 防御性长度检查：画像 JSON 应控制在 500 字符内，超过 2000 字符输出警告
         if (jsonStr.length() > 2000) {

@@ -11,6 +11,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 人格配置文件管理器
@@ -136,7 +137,7 @@ public class PersonalitiesConfigManager {
      *
      * @return 人格名称集合
      */
-    public java.util.Set<String> getAllPersonalities() {
+    public Set<String> getAllPersonalities() {
         return personalitiesCache.keySet();
     }
 

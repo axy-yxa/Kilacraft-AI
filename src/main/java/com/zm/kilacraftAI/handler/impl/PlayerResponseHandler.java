@@ -4,6 +4,8 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
+import java.util.function.Consumer;
+
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -21,13 +23,9 @@ public class PlayerResponseHandler implements AIResponseHandler {
     private final KilacraftAI plugin;
     private final Player player;
     private final OutputScenarioEnum scenario;
-    private final java.util.function.Consumer<String> customSendResponse;  // 自定义发送逻辑（如公屏广播）
+    private final Consumer<String> customSendResponse;  // 自定义发送逻辑（如公屏广播）
 
-    public PlayerResponseHandler(Player player, OutputScenarioEnum scenario) {
-        this(KilacraftAI.getInstance(), player, scenario, null);
-    }
-
-    public PlayerResponseHandler(KilacraftAI plugin, Player player, OutputScenarioEnum scenario, java.util.function.Consumer<String> customSendResponse) {
+    public PlayerResponseHandler(KilacraftAI plugin, Player player, OutputScenarioEnum scenario, Consumer<String> customSendResponse) {
         this.plugin = plugin;
         this.player = player;
         this.scenario = scenario;

@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.util.AIRequestValidatorUtil;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.common.util.MessageUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.LanguageManager;
@@ -29,7 +30,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 /**
  * AI 请求统一处理器
@@ -52,33 +56,17 @@ public class AIRequestHandler {
     }
 
     /**
-     * 处理玩家 AI 请求（默认私信回复）
-     */
-    public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent) {
-        handleAIRequest(player, message, playerHistory, enableAgent, false, ConversationSourceEnum.CHAT);
-    }
-
-    /**
      * 处理玩家 AI 请求
      *
-     * @param publicReply 是否将AI回复广播给所有在线玩家（公屏回复）
-     */
-    public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply) {
-        handleAIRequest(player, message, playerHistory, enableAgent, publicReply, ConversationSourceEnum.CHAT);
-    }
-
-    /**
-     * 处理玩家 AI 请求（含 source 参数）
-     *
-     * @param publicReply 是否将AI回复广播给所有在线玩家（公屏回复）
+     * @param publicReply 是否将 AI 回复广播给所有在线玩家（公屏回复）
      * @param source      来源标识
      */
     public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply, ConversationSourceEnum source) {
         // 使用统一的响应管线
         AIResponsePipeline pipeline = plugin.getResponsePipeline();
 
-        java.util.function.Consumer<String> sendResponse;
-        java.util.function.Consumer<String> sendError;
+        Consumer<String> sendResponse;
+        Consumer<String> sendError;
 
         if (publicReply) {
             // 公屏模式：先发送给触发者（使用场景配置），再广播给所有人
@@ -94,7 +82,11 @@ public class AIRequestHandler {
             // 私信模式：只发给触发者
             sendResponse = response -> pipeline.send(player, response, OutputScenarioEnum.NORMAL_CHAT);
         }
-        sendError = error -> pipeline.sendError(player, languageManager.getPluginCommandError() + error);
+        sendError = error -> {
+            // 错误回调统一取消流式占位符（非流式时 cancelStream 是 no-op），避免卡在"正在思考中"
+            pipeline.cancelStream(player);
+            pipeline.sendError(player, languageManager.getPluginCommandError() + error);
+        };
 
         RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, sendError, OutputScenarioEnum.NORMAL_CHAT, publicReply, source);
         handleAIRequestInternal(message, ctx, enableAgent);
@@ -155,7 +147,7 @@ public class AIRequestHandler {
                     }
                 }).exceptionally(throwable -> {
                     PluginLoggerUtil.warn("AI请求", "待确认续体分类失败: {}", throwable.getMessage());
-                    ctx.sendError.accept(I18nService.tr("待确认续体分类失败: {}", throwable.getMessage()));
+                    ctx.sendError.accept(I18nService.tr("待确认续体分类失败: {}", formatAsyncError(throwable)));
                     return null;
                 });
                 return;
@@ -189,7 +181,7 @@ public class AIRequestHandler {
             }
         }).exceptionally(throwable -> {
             PluginLoggerUtil.warn("AI请求", "意图识别失败: {}", throwable.getMessage());
-            ctx.sendError.accept(I18nService.tr("意图识别失败: {}", throwable.getMessage()));
+            ctx.sendError.accept(I18nService.tr("意图识别失败: {}", formatAsyncError(throwable)));
             return null;
         });
     }
@@ -317,7 +309,7 @@ public class AIRequestHandler {
             if (resume && ctx.player() != null) {
                 PendingResumeManager.getInstance().clear(ctx.player().getUniqueId());
             }
-            ctx.sendError.accept(throwable.getMessage());
+            ctx.sendError.accept(formatAsyncError(throwable));
             PluginLoggerUtil.error("技能执行", I18nService.tr("技能执行异常: {}", throwable.getMessage()), throwable);
             return null;
         });
@@ -367,9 +359,15 @@ public class AIRequestHandler {
             }
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt, true, true, false).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source())).exceptionally(throwable -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt, true, true, false).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> {
+            // 错误响应已由 handleError 提示玩家；跳过避免错误串污染对话历史
+            if (LLMResponseUtil.isErrorResponse(fullResponse)) {
+                return;
+            }
+            validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
+        }).exceptionally(throwable -> {
             PluginLoggerUtil.warn("AI请求", "LLM 请求失败: {}", throwable.getMessage());
-            ctx.sendError.accept(I18nService.tr("LLM 请求失败: {}", throwable.getMessage()));
+            ctx.sendError.accept(I18nService.tr("LLM 请求失败: {}", formatAsyncError(throwable)));
             return null;
         });
     }
@@ -382,11 +380,35 @@ public class AIRequestHandler {
     }
 
     /**
+     * 把 {@code .exceptionally} 链路里的异常格式化为玩家友好消息：超时→"AI 响应超时"，
+     * message 为 null/空→兜底提示（避免裸露 "LLM 请求失败: null" 或异常类名）。解包 {@link CompletionException}。
+     */
+    private static String formatAsyncError(Throwable throwable) {
+        if (throwable == null) {
+            return I18nService.tr("AI 请求失败，请稍后重试");
+        }
+        // 沿 cause 链查找超时（CompletableFuture 可能把 TimeoutException 包在 CompletionException 里）
+        Throwable t = throwable;
+        while (t != null) {
+            if (t instanceof TimeoutException) {
+                return I18nService.tr("AI 响应超时，请稍后重试");
+            }
+            t = (t.getCause() == t) ? null : t.getCause();
+        }
+        // CompletionException 自身 message 通常是 null，优先用 cause 的 message
+        Throwable cause = throwable.getCause();
+        String msg = (cause != null && cause.getMessage() != null && !cause.getMessage().isBlank()) ? cause.getMessage() : throwable.getMessage();
+        if (msg == null || msg.isBlank()) {
+            return I18nService.tr("AI 请求失败，请稍后重试");
+        }
+        return msg;
+    }
+
+    /**
      * 请求上下文 - 统一玩家和控制台的差异
      */
     private record RequestContext(String name, Player player, Deque<ConversationManager.Message> history,
-                                  java.util.function.Consumer<String> sendResponse,
-                                  java.util.function.Consumer<String> sendError, OutputScenarioEnum scenario,
-                                  boolean isBroadcast, ConversationSourceEnum source) {
+                                  Consumer<String> sendResponse, Consumer<String> sendError,
+                                  OutputScenarioEnum scenario, boolean isBroadcast, ConversationSourceEnum source) {
     }
 }

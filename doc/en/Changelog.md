@@ -1,7 +1,46 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-06-16  
+> **Last Updated**: 2026-06-21  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
+
+---
+
+## v2.1.2 - Knowledge Base Retrieval Filter Refactor, BM25 Length Adaptation, Corpus Seeding Dictionary & RRF Fusion, AI Error Handling Observability
+
+### ✨ New Features
+- **Corpus Seeding Dictionary**: On startup, automatically scans the knowledge base for command names (e.g. `/back` → `back`) and compound identifiers (e.g. `mob-farm`, `ender-dragon`) and adds them to the HanLP tokenizer dictionary. No manual dictionary maintenance — the knowledge base content server owners write is itself the best tokenization reference
+- **Knowledge Base File Templates**: Ready-to-use `.md` templates (Chinese & English) added under `knowledge/` — 7 writing rules + a complete usable sample; filling in per the template yields the best recall
+- **BM25 Document Length Auto-Statistics**: On startup, automatically computes the actual average length of knowledge-base chunks so BM25 scores long and short docs more fairly. Advanced users may set a fixed `avg_doc_length` (default 0 = auto)
+
+### 🔧 Improvements
+- **Retrieval Filter Refactor (hard threshold → soft/adaptive threshold)**: The old `min_relevance_score` (single hard threshold 30) is replaced by two-stage filtering
+  - **Noise floor**: hard cutoff — anything below is dropped (default 25)
+  - **Relative threshold**: soft cutoff — dropped if below top score × ratio (default 0.3)
+  - Final threshold = max(noise floor, top score × relative threshold); mathematically guarantees at least 1 relevant result is returned — no more "relevant content exists but nothing comes back"
+  - Tunable: lower both → more results (weakly related questions also answered); raise both → stricter (stay silent when unsure)
+- **BM25 Parameter Tuning**: chunk overlap 30 → 50 chars (longer-doc context more coherent after segmentation); min chunk 25 → 20 chars (fewer short-but-useful paragraphs wrongly dropped); short-doc protection — chunks under 50 chars are exempt from the length penalty (old command-style docs were severely under-scored for being too short)
+- **Embedding Switches to Fusion Mode**: No longer replaces BM25 with Embedding alone; instead BM25 + Embedding run in parallel and fuse via RRF (Reciprocal Rank Fusion) by rank. Chunks appearing in both paths rank higher, single-path chunks still participate — balancing exact keyword match and semantic understanding
+- **Custom Dictionary Auto-Syncs with Corpus**: Hot-reloading the knowledge base re-scans the corpus and rebuilds the tokenizer dictionary; new command names / identifiers take effect immediately
+- **Project Stability**: Fixed several NPE crashes from extreme inputs; hardened defenses against unknown user-authored docs
+- **AI Error Categorized Hints (highlight of this release)**: When an AI call fails, players now see an actionable, cause-locating hint (e.g. "The model name may be incorrect. Please check the 'model' setting in llm.yml", "API Key is invalid or lacks permission"); the raw error detail is also logged to console WARN for quick troubleshooting. Covers all AI call scenarios: normal chat, skills, tasks, login greeting, AFK notifications, server broadcast
+- **AI Timeout Friendly Hint**: On response timeout, shows "AI response timed out. Please try again later" instead of exposing technical exception class names to the player
+- **AFK Task Callback Degradation Hint**: When an AFK task's callback config fails to parse, clearly states the task will run in "notify-only" mode (callback action cannot execute), with the raw content logged for troubleshooting
+- **Code Standard Cleanup**: Unified utility-class constructor style, removed fully-qualified class names, consolidated redundant method overloads (internal cleanup, no functional impact)
+
+### 🐛 Bug Fixes
+- Fixed NPE from missing null defenses in `BM25Scorer.countOccurrences` / `EmbeddingCache.getVector` / `putVector` / `getNorm`
+- Fixed players getting stuck on "Thinking..." with no error message when an AI call failed due to config errors (wrong model name / Key / URL, rate limiting, server-side failure, etc.)
+- Fixed AI error hints being mistakenly written into conversation history and polluting subsequent chat context (normal chat, login greeting, plugin-command paths)
+- Fixed profile analysis writing dirty data and bumping the version number when the AI returned an abnormal structure (added an 8-field whitelist + length cap)
+- Fixed occasional no-response hang when the AI secondary analysis failed during skill / task execution
+
+### ⚠️ Compatibility
+
+#### Upgrading from v2.1.1
+1. Stop server, replace JAR, start
+2. **Recommended** (for the full retrieval optimization): delete `knowledge.yml` and restart to let the plugin regenerate the latest version with the new config entries, then tweak as needed
+3. Works without deleting `knowledge.yml`: the old `min_relevance_score` is ignored (no longer used), and retrieval filtering auto-applies the default soft thresholds (noise_floor=25, relative_threshold=0.3)
+4. If you previously hand-maintained command names / identifiers in `custom_dictionary.words`, consider trimming them after upgrade — the new corpus-seeding dictionary auto-extracts these from knowledge-base content
 
 ---
 

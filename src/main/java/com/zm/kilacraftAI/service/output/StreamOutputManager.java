@@ -77,20 +77,8 @@ public class StreamOutputManager {
     }
 
     /**
-     * 开始流式生成（窗口期）
-     *
-     * <p>在 AI 请求发起时调用，立即显示"生成中..."占位符</p>
-     * <p>线程安全：如果从异步线程调用，会自动切换到同步线程</p>
-     *
-     * @param player  目标玩家
-     * @param channel 输出载体（由调用方传入场景配置）
-     */
-    public void startGeneration(Player player, OutputChannelEnum channel) {
-        startGeneration(player, channel, false);
-    }
-
-    /**
-     * 开始流式生成
+     * 开始流式生成。在 AI 请求发起时调用，立即显示"生成中..."占位符。
+     * 若从异步线程调用，会自动切换到同步线程。
      *
      * @param player  目标玩家
      * @param channel 输出载体（由调用方传入场景配置）

@@ -5,6 +5,8 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.MessageRoleEnum;
 import com.zm.kilacraftAI.common.exception.EmptyResponseException;
 import com.zm.kilacraftAI.common.exception.LLMException;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
+import com.zm.kilacraftAI.common.util.LogSnippetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.ConfigManager;
@@ -19,6 +21,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -335,9 +338,14 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                             PluginLoggerUtil.warn("LLM请求", "当前 LLM 不支持 response_format，自动降级为普通模式");
                             return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false).join();
                         }
-                        PluginLoggerUtil.debug("LLM请求", "错误响应体: {}", errorBody);
-                        // 错误体仅用于诊断，不暴露给玩家；玩家看到的是 code + reason phrase
-                        return "§c" + I18nService.tr("请求失败：{} - {}", String.valueOf(response.code()), response.message());
+                        // 分类化错误：游戏内只显示分类提示（如"模型名有误，请检查 llm.yml"），
+                        // 厂商原始错误体进控制台 WARN。与异常分支一致地走 handleError，
+                        // 让 PlayerResponseHandler 清掉"正在思考中"占位符并把错误提示给玩家。
+                        String errorMsg = LLMResponseUtil.errorResponse(buildHttpErrorMessage(response.code(), errorBody));
+                        if (responseHandler != null) {
+                            responseHandler.handleError(errorMsg);
+                        }
+                        return errorMsg;
                     }
 
                     // 解析 SSE 流式响应
@@ -348,7 +356,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 // 空响应：走错误处理路径（handleError 会 cancelStream 清理流式状态 + sendError 友好提示）。
                 // 不复用 catch(Exception) 的"LLM 请求失败"措辞与 error 堆栈——空响应是模型空输出而非请求失败，
                 // 其可观测性已由 parseSSEStream 的 warn 日志覆盖。
-                String errorMsg = "§c" + e.getMessage();
+                String errorMsg = LLMResponseUtil.errorResponse(e.getMessage());
                 if (responseHandler != null) {
                     responseHandler.handleError(errorMsg);
                 }
@@ -358,7 +366,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 if (cachedDebugMode) {
                     PluginLoggerUtil.debug("LLM请求", "错误详情：{}", e.getMessage());
                 }
-                String errorMsg = "§c" + I18nService.tr("请求失败：{}", e.getMessage());
+                String errorMsg = LLMResponseUtil.errorResponse(I18nService.tr("请求失败：{}", e.getMessage()));
                 if (responseHandler != null) {
                     responseHandler.handleError(errorMsg);
                 }
@@ -468,7 +476,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
      * </ul>
      */
     private void disableThinkingIfNeeded(JsonObject requestBody) {
-        String model = cachedModel.toLowerCase(java.util.Locale.ROOT);
+        String model = cachedModel.toLowerCase(Locale.ROOT);
 
         // ── Group 1: thinking: {type: "disabled"} (object format) ──
         // MiMo、DeepSeek V4+、GLM 4.5+、Kimi K2+ 均使用此格式
@@ -531,7 +539,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
      * 不需要显式启用的模型（始终思考）: deepseek-reasoner, QwQ, GLM-Z1, o-series
      */
     private void enableThinkingForModel(String modelName, JsonObject requestBody) {
-        String model = modelName.toLowerCase(java.util.Locale.ROOT);
+        String model = modelName.toLowerCase(Locale.ROOT);
 
         // ── thinking: {type: "enabled"} (object format) ──
         if (model.contains("deepseek") || model.contains("mimo") || model.contains("kimi") || model.contains("glm-4.5") || model.contains("glm-4.6") || model.contains("glm-4.7") || model.contains("glm-5")) {
@@ -583,7 +591,12 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     private String parseSSEStream(Response response, AIResponseHandler responseHandler) {
         ResponseBody body = response.body();
         if (body == null) {
-            return "§c" + I18nService.tr("API 响应为空");
+            // 响应体为空：走 handleError 清占位符 + 提示玩家，避免卡在"正在思考中"
+            String errorMsg = LLMResponseUtil.errorResponse(I18nService.tr("API 响应为空"));
+            if (responseHandler != null) {
+                responseHandler.handleError(errorMsg);
+            }
+            return errorMsg;
         }
 
         // 预分配容量，减少扩容开销
@@ -664,7 +677,12 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             } else {
                 PluginLoggerUtil.warn("LLM请求", "读取响应流失败", e);
             }
-            return "§c" + I18nService.tr("读取响应失败：{}", e.getMessage());
+            // 走 handleError 清占位符 + 提示玩家，避免卡在"正在思考中"
+            String errorMsg = LLMResponseUtil.errorResponse(I18nService.tr("读取响应失败：{}", e.getMessage()));
+            if (responseHandler != null) {
+                responseHandler.handleError(errorMsg);
+            }
+            return errorMsg;
         }
 
         // 空响应检测：抛出异常走错误处理路径（handleError），避免玩家收到空消息，
@@ -681,6 +699,81 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         }
 
         return result;
+    }
+
+    /**
+     * 按 HTTP 状态码 + 错误体产出分类提示。游戏内只展示分类提示（不含厂商原始错误），
+     * 原始错误体进控制台 WARN 便于定位。
+     */
+    private String buildHttpErrorMessage(int code, String errorBody) {
+        String providerMsg = extractProviderErrorMessage(errorBody);
+        String lower = providerMsg != null ? providerMsg.toLowerCase(Locale.ROOT) : "";
+
+        String hint;
+        if (code == 400) {
+            if (containsAny(lower, "model")) {
+                hint = I18nService.tr("模型名称可能有误，请检查 llm.yml 的 model 配置");
+            } else if (containsAny(lower, "api key", "apikey", "unauthorized", "invalid_api_key")) {
+                hint = I18nService.tr("API Key 可能无效，请检查 llm.yml 的 api_key 配置");
+            } else {
+                hint = I18nService.tr("请求参数有误，请检查 llm.yml 的 api_url 与 model 配置");
+            }
+        } else if (code == 401 || code == 403) {
+            hint = I18nService.tr("API Key 无效或无访问权限，请检查 llm.yml 的 api_key 配置");
+        } else if (code == 404) {
+            hint = I18nService.tr("API 地址可能有误，请检查 llm.yml 的 api_url 配置");
+        } else if (code == 429) {
+            hint = I18nService.tr("请求过于频繁或账户额度不足，请稍后重试");
+        } else if (code >= 500) {
+            hint = I18nService.tr("AI 服务暂时不可用，请稍后重试");
+        } else {
+            hint = I18nService.tr("请求失败，请检查 llm.yml 配置或稍后重试");
+        }
+
+        PluginLoggerUtil.warn("LLM请求", I18nService.tr("AI 请求失败（HTTP {}）：{}。原始错误：{}", String.valueOf(code), hint, providerMsg != null && !providerMsg.isEmpty() ? providerMsg : errorBody));
+
+        return hint + "（HTTP " + code + "）";
+    }
+
+    /**
+     * 从厂商错误响应体提取可读信息：依次尝试 {@code error.message}、{@code error}（字符串）、
+     * 顶层 {@code message}；都不是则返回折叠空白并截断的原文。仅用于日志诊断。
+     */
+    private String extractProviderErrorMessage(String errorBody) {
+        if (errorBody == null || errorBody.isEmpty()) return null;
+        try {
+            JsonObject json = gson.fromJson(errorBody, JsonObject.class);
+            if (json != null) {
+                if (json.has("error") && !json.get("error").isJsonNull()) {
+                    JsonElement err = json.get("error");
+                    if (err.isJsonObject()) {
+                        JsonObject errObj = err.getAsJsonObject();
+                        if (errObj.has("message") && errObj.get("message").isJsonPrimitive()) {
+                            return errObj.get("message").getAsString();
+                        }
+                    } else if (err.isJsonPrimitive()) {
+                        return err.getAsString();
+                    }
+                }
+                if (json.has("message") && json.get("message").isJsonPrimitive()) {
+                    return json.get("message").getAsString();
+                }
+            }
+        } catch (JsonSyntaxException ignored) {
+            // 非 JSON 错误体，走原文截断
+        }
+        return LogSnippetUtil.truncateForLog(errorBody, 300);
+    }
+
+    /**
+     * 判断 text 是否包含任一关键字（小写匹配）
+     */
+    private static boolean containsAny(String text, String... keywords) {
+        if (text == null || text.isEmpty()) return false;
+        for (String kw : keywords) {
+            if (text.contains(kw)) return true;
+        }
+        return false;
     }
 
     /**

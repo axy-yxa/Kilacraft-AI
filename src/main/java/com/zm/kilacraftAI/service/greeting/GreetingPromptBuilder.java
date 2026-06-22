@@ -248,7 +248,7 @@ public class GreetingPromptBuilder {
                 }
             }
             case PLAYER_USE_TOTEM -> {
-                String suffix = data.isEmpty() ? "" : I18nService.tr("（{}）", formatDamageCause(data));
+                String suffix = data.isEmpty() ? "" : "（" + formatDamageCause(data) + "）";
                 yield events.size() > 1 ? I18nService.tr("{}触发了 {} 次不死图腾", playerName, events.size()) + suffix : I18nService.tr("{}触发了不死图腾", playerName) + suffix;
             }
             case PLAYER_DEFEAT_BOSS ->
@@ -337,7 +337,7 @@ public class GreetingPromptBuilder {
      */
     private String appendDataSuffix(ServerEvent event) {
         if (event.getData() != null && !event.getData().isEmpty()) {
-            return I18nService.tr("（{}）", event.getData());
+            return "（" + event.getData() + "）";
         }
         return "";
     }

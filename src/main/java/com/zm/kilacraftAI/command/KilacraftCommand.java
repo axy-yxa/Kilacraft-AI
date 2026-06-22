@@ -17,6 +17,7 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.i18n.TextProcessorFactory;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.model.afktask.AFKTask;
 import com.zm.kilacraftAI.service.afktask.AFKTaskManager;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
@@ -581,6 +582,11 @@ public class KilacraftCommand implements CommandExecutor {
     private void processPluginCommandLLMRequest(String message, String targetPlayerName, UUID targetPlayerId, Deque<ConversationManager.Message> pluginHistory, AIResponseHandler handler, String personalityPrompt, String finalPersonality, String finalCallbackCommand, CommandSender sender) {
         // 使用统一的 API 处理请求（传入人格提示词）
         plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt, true, true, false).thenAccept(fullResponse -> {
+            // 错误响应（HTTP/异常/空响应）统一以 §c 开头：不写历史、不执行回调命令（避免把错误串替换进
+            // {response} 导致回调命令异常）、不留轮询缓存。错误已由 handleError + 控制台 WARN 覆盖。
+            if (LLMResponseUtil.isErrorResponse(fullResponse)) {
+                return;
+            }
             // 保存对话到历史记录（隔离的），并保存到最新回复缓存
             validator.saveToHistory(pluginHistory, message, fullResponse, targetPlayerId, finalPersonality);
 

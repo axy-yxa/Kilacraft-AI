@@ -751,7 +751,7 @@ public class ServerHealthGuardian implements ManagedTask {
         sb.append("\n");
 
         if (profilerUrl != null) {
-            sb.append(I18nService.tr("== Spark Profiler ==")).append("\n");
+            sb.append("== Spark Profiler ==").append("\n");
             sb.append("Viewer URL: ").append(profilerUrl).append("\n");
             sb.append("Metadata URL: ").append(profilerUrl).append("?raw=1\n\n");
         }
@@ -1022,7 +1022,7 @@ public class ServerHealthGuardian implements ManagedTask {
                 if (PluginPermissionEnum.ADMIN_HEALTH.hasPermission(player)) {
                     player.sendMessage(prefix + I18nService.tr("§c检测到服务器性能异常！开始自动诊断..."));
                     player.sendMessage(prefix + I18nService.tr("§7触发指标: §e{}", alertSummary));
-                    player.sendMessage(prefix + I18nService.tr("§7TPS 1m=§e{}§7 | MSPT(10s) max=§e{}ms§7 | MSPT(1m) p95=§e{}ms", tps1m, mspt10sMax, mspt1mP95));
+                    player.sendMessage(prefix + "§7TPS 1m=§e" + tps1m + "§7 | MSPT(10s) max=§e" + mspt10sMax + "ms§7 | MSPT(1m) p95=§e" + mspt1mP95 + "ms");
                 }
             }
         });

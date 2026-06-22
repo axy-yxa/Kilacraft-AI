@@ -7,12 +7,14 @@ import com.google.gson.JsonSyntaxException;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.HistoryUtil;
 import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
+import com.zm.kilacraftAI.common.util.LogSnippetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.resume.PendingAction;
 import com.zm.kilacraftAI.skills.framework.resume.PendingResume;
@@ -22,6 +24,7 @@ import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 
 /**
  * 技能意图识别器 - 使用 LLM 识别用户意图
@@ -121,6 +124,11 @@ public class SkillIntentRecognizer {
      * @return 选中的 Skill 名称集合（空集合表示无效意图）
      */
     private Set<String> parsePhase1Response(String response) {
+        // Provider 错误响应（HTTP/异常/空响应）以 §c 开头，真实原因已由 handleError 的 WARN 覆盖。
+        // 直接判为非技能请求优雅回退，避免误导性的"JSON 解析失败"日志。
+        if (LLMResponseUtil.isErrorResponse(response)) {
+            return Collections.emptySet();
+        }
         try {
             // 从响应中提取 JSON
             String jsonStr = extractJson(response);
@@ -161,7 +169,8 @@ public class SkillIntentRecognizer {
             }
             return result;
         } catch (JsonSyntaxException | JsonIOException e) {
-            PluginLoggerUtil.debug("意图识别", "Phase 1 JSON 解析失败: {}", e.getMessage());
+            // 真实解析失败（自动修复后仍失败）→ 升级 WARN，附原始响应片段方便定位，无需开 debug 即可见
+            PluginLoggerUtil.warn("意图识别", "Phase 1 JSON 解析失败: {}。原始响应: {}", e.getMessage(), LogSnippetUtil.truncateForLog(response, 150));
             return Collections.emptySet();
         } catch (RuntimeException e) {
             // Gson 解析异常已在上方单独捕获，能走到这里的 RuntimeException 多为代码缺陷（如 NPE）。
@@ -355,15 +364,15 @@ public class SkillIntentRecognizer {
     /**
      * 前导填充噪声（emmm/呃/啊/那个…）。不含"嗯"——"嗯"本身是肯定关键词。
      */
-    private static final java.util.regex.Pattern LEADING_NOISE = java.util.regex.Pattern.compile("^(?:m+|em+|呃+|啊+|哦+|那个|那么|就)+", java.util.regex.Pattern.CASE_INSENSITIVE);
+    private static final Pattern LEADING_NOISE = Pattern.compile("^(?:m+|em+|呃+|啊+|哦+|那个|那么|就)+", Pattern.CASE_INSENSITIVE);
     /**
      * 结尾标点（第一遍剥离，不含语气词——避免破坏"好的/算了"等已收录带尾词）
      */
-    private static final java.util.regex.Pattern TRAILING_PUNCT = java.util.regex.Pattern.compile("[!！。？?~\\s]+$");
+    private static final Pattern TRAILING_PUNCT = Pattern.compile("[!！。？?~\\s]+$");
     /**
      * 结尾语气词（第二遍剥离：吧/了/的/啊…），用于"确认吧/确认了"等命中 base 词
      */
-    private static final java.util.regex.Pattern TRAILING_PARTICLE = java.util.regex.Pattern.compile("[吧了的啊呢哦啦哟哈呀呗]+$");
+    private static final Pattern TRAILING_PARTICLE = Pattern.compile("[吧了的啊呢哦啦哟哈呀呗]+$");
 
     /**
      * 关键词短路分类：明显的确认/取消词直接判定，免 LLM。按 zh 选词集，整句精确匹配（避免"不确认"误判）。
@@ -419,6 +428,10 @@ public class SkillIntentRecognizer {
      * @return 恢复动作，或 null（none / 解析失败）
      */
     PendingAction parsePendingAction(String response) {
+        // Provider 错误响应以 §c 开头，真实原因已由 handleError 的 WARN 覆盖；返回 null 落回正常识别。
+        if (LLMResponseUtil.isErrorResponse(response)) {
+            return null;
+        }
         try {
             String jsonStr = extractJson(response);
             if (jsonStr == null) return null;
@@ -446,7 +459,8 @@ public class SkillIntentRecognizer {
                 default -> null; // "none" 或未知 → 无关，落回正常识别
             };
         } catch (RuntimeException e) {
-            PluginLoggerUtil.debug("意图识别", "待确认续体分类解析失败：{}", e.getMessage());
+            // 真实解析失败（自动修复后仍失败）→ 升级 WARN，附原始响应片段方便定位
+            PluginLoggerUtil.warn("意图识别", "待确认续体分类解析失败：{}。原始响应: {}", e.getMessage(), LogSnippetUtil.truncateForLog(response, 150));
             return null;
         }
     }
@@ -481,6 +495,10 @@ public class SkillIntentRecognizer {
      * 解析 LLM 响应（支持单意图和多步骤任务）
      */
     private Object parseIntentFromResponse(String response) {
+        // Provider 错误响应以 §c 开头，真实原因已由 handleError 的 WARN 覆盖，优雅回退避免误导日志。
+        if (LLMResponseUtil.isErrorResponse(response)) {
+            return createInvalidIntent(I18nService.tr("非技能请求"));
+        }
         try {
             // 提取 JSON 部分
             String jsonStr = extractJson(response);
@@ -541,7 +559,8 @@ public class SkillIntentRecognizer {
             // 否则按单意图处理
             return parseSingleIntentFromResponse(json);
         } catch (JsonSyntaxException | JsonIOException e) {
-            PluginLoggerUtil.debug("意图识别", "意图识别 JSON 解析失败：{}", e.getMessage());
+            // 真实解析失败（自动修复后仍失败）→ 升级 WARN，附原始响应片段方便定位
+            PluginLoggerUtil.warn("意图识别", "意图识别 JSON 解析失败：{}。原始响应: {}", e.getMessage(), LogSnippetUtil.truncateForLog(response, 150));
             return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()));
         } catch (RuntimeException e) {
             PluginLoggerUtil.error("意图识别", "意图识别意外异常", e);

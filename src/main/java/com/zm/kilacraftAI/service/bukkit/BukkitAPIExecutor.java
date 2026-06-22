@@ -9,9 +9,11 @@ import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Bukkit API 执行器
@@ -89,7 +91,7 @@ public class BukkitAPIExecutor {
     /**
      * 执行方法链（用于 method_chain）
      */
-    private Object executeMethodChain(Object target, java.util.List<String> methodChain) throws Exception {
+    private Object executeMethodChain(Object target, List<String> methodChain) throws Exception {
         Object result = target;
         for (String methodName : methodChain) {
             result = invokeMethod(result, methodName);
@@ -165,7 +167,7 @@ public class BukkitAPIExecutor {
      * - getLastDamageCause：访问 Entity 内部的事件数据
      * - getBiome / getTemperature / getHumidity：通过坐标访问 Chunk 中的生物群系/气候数据
      */
-    private static final java.util.Set<String> MAIN_THREAD_METHODS = java.util.Set.of("getLivingEntities", "getEntities", "getTargetBlock", "getBlock", "getStorageContents", "getArmorContents", "getLastDamageCause", "getBiome", "getTemperature", "getHumidity");
+    private static final Set<String> MAIN_THREAD_METHODS = Set.of("getLivingEntities", "getEntities", "getTargetBlock", "getBlock", "getStorageContents", "getArmorContents", "getLastDamageCause", "getBiome", "getTemperature", "getHumidity");
 
     /**
      * 反射调用方法
@@ -306,7 +308,7 @@ public class BukkitAPIExecutor {
         }
 
         // Collection<Player>：提取为玩家名字列表 + 数量（Folia 线程安全）
-        if (result instanceof java.util.Collection<?> collection) {
+        if (result instanceof Collection<?> collection) {
             if (!collection.isEmpty() && collection.iterator().next() instanceof org.bukkit.entity.Player) {
                 List<String> names = new ArrayList<>();
                 for (Object p : collection) {

@@ -9,6 +9,7 @@ import com.zm.kilacraftAI.common.enums.AFKTaskTypeEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.util.ArithmeticUtil;
 import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
+import com.zm.kilacraftAI.common.util.LogSnippetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.i18n.I18nService;
@@ -140,7 +141,7 @@ public class CustomWatchTask extends AFKTask {
                     // 修复后仍然失败
                 }
             }
-            PluginLoggerUtil.warn("挂机任务", I18nService.tr("解析condition_plan JSON失败: {}", e.getMessage()), e);
+            PluginLoggerUtil.warn("挂机任务", I18nService.tr("解析condition_plan JSON失败: {}。原始内容: {}", e.getMessage(), LogSnippetUtil.truncateForLog(json, 200)), e);
             return null;
         }
     }
@@ -215,7 +216,7 @@ public class CustomWatchTask extends AFKTask {
                     // 修复后仍然失败
                 }
             }
-            PluginLoggerUtil.warn("挂机任务", I18nService.tr("解析回调配置失败: {}", e.getMessage()), e);
+            PluginLoggerUtil.warn("挂机任务", I18nService.tr("解析回调配置失败: {}。原始内容: {}。任务将以仅通知模式运行（回调动作无法执行）", e.getMessage(), LogSnippetUtil.truncateForLog(json, 200)), e);
             return new AFKTaskCallback();
         }
     }

@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +75,7 @@ public class CMISkill implements Skill {
         if (config != null && config.getActionDescriptions() != null) {
             return new LinkedHashMap<>(config.getActionDescriptions());
         }
-        return java.util.Collections.emptyMap();
+        return Collections.emptyMap();
     }
 
     @Override
