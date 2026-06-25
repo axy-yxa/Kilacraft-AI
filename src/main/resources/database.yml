@@ -1,6 +1,6 @@
 # ==================== Kilacraft-AI 数据库配置 / Database Configuration ====================
-# 独立配置文件，修改后执行 /kilacraft reload 即时生效
-# Standalone config file, run /kilacraft reload to apply changes
+# 独立配置文件，修改后执行 /kila reload 即时生效
+# Standalone config file, run /kila reload to apply changes
 
 # 数据库类型: H2, MYSQL
 # Database type: H2, MYSQL
@@ -51,10 +51,10 @@ mysql:
 group:
   # 本服唯一标识（群组服中区分不同子服，如 survival / minigame / rpg）
   # 单机服或独立 H2 数据库无需修改
-  # 修改后执行 /kilacraft reload 即时生效（仅影响新写入的数据）
+  # 修改后执行 /kila reload 即时生效（仅影响新写入的数据）
   # Unique identifier for this sub-server (e.g., survival / minigame / rpg)
   # No need to change for single-server or standalone H2 database
-  # Run /kilacraft reload to apply (only affects newly written data)
+  # Run /kila reload to apply (only affects newly written data)
   server_id: ""
 
 # 连接池配置（HikariCP，自适应策略）

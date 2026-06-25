@@ -1,6 +1,6 @@
 # ==================== Intent Recognition System Prompt Configuration ====================
 # This file defines the LLM intent recognition system prompts
-# Supports hot reload via /kilacraft reload
+# Supports hot reload via /kila reload
 # Note: the global rule sections stay generic/abstract and never reference concrete skill or action names (built-in system actions excepted); the afk_task_rules section is a conditionally-injected AFK-task-specific contract and may reference that skill's real name.
 
 # ============================================

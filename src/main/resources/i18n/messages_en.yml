@@ -28,7 +28,6 @@ modules:
   "词典系统": "Dictionary"
   "命令注册": "Command"
   "命令": "Command"
-  "挂机任务": "AFK Task"
   "热重载": "Reload"
   "技能管理": "Skill Mgr"
   "技能执行": "Skill Exec"
@@ -37,14 +36,16 @@ modules:
   "LLM请求": "LLM Request"
   "意图识别": "Intent"
   "技能注册": "Skill Reg"
-  "知识库": "Knowledge"
   "AI请求": "AI Request"
   "AI响应": "AI Response"
   "聊天监听": "Chat"
   "安全过滤器": "Security"
   "物品翻译": "Item Trans"
-  "命令技能": "Cmd Skill"
   "历史管理": "History"
+  "历史": "History"
+  "画像": "Profile"
+  "用量": "Usage"
+  "自检": "Doctor"
   "安全拦截": "Security"
   "音效管理": "Sound"
   "版本": "Version"
@@ -55,7 +56,6 @@ modules:
   "I/O线程池": "I/O Pool"
   "工具技能": "Utility"
   "市场插件": "Market"
-  "数据库": "Database"
   "通知": "Notification"
   "问候系统": "Greeting"
   "定时任务": "Scheduler"
@@ -63,7 +63,6 @@ modules:
   "枚举注册": "Enum Reg"
   "私聊监听": "Private Chat"
   "传送监听": "TPA Monitor"
-  "画像分析": "Profile Analysis"
   "社交关系": "Social Relation"
   "消息分发": "Msg Dispatch"
   "续体": "Resume"
@@ -71,6 +70,8 @@ modules:
   "健康监控": "Health Monitor"
   "审计日志": "Audit"
   "玩家分析": "Player Analysis"
+  "条件评估": "Cond Eval"
+  "AI占位符": "AI Placeholder"
 
 # ==================== 消息翻译 ====================
 # Message Translations
@@ -205,7 +206,7 @@ messages:
   "加载内置枚举失败: {} - {}": "Failed to load internal enums: {} - {}"
 
   # ==================== AIRequestHandler ====================
-  "§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/llm.yml 中的 llm.api_key 后重启服务器或执行 /kilacraft reload": "§c[AI Request] API Key not configured! Please edit llm.api_key in plugins/Kilacraft-AI/llm.yml, then restart server or run /kilacraft reload"
+  "§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/llm.yml 中的 llm.api_key 后重启服务器或执行 /kila reload": "§c[AI Request] API Key not configured! Please edit llm.api_key in plugins/Kilacraft-AI/llm.yml, then restart server or run /kila reload"
   "拒绝请求：API Key 未配置": "Request rejected: API Key not configured"
   "Agent 能力已禁用，进入普通 AI 处理": "Agent capability disabled, entering normal AI processing"
   "开始 LLM 意图识别，用户：{}, 消息：{}": "Starting LLM intent recognition, user: {}, message: {}"
@@ -221,6 +222,8 @@ messages:
   "[系统提示：技能执行失败 - {}]": "[System notice: Skill execution failed - {}]"
 
   # ==================== SkillManager ====================
+  "写入审计日志失败: {}": "Failed to write audit log: {}"
+  "提交审计日志失败: {}": "Failed to submit audit log: {}"
   "检查技能可用性时异常：{} - {}": "Error checking skill availability: {} - {}"
   "开始执行技能：{}, action={}": "Starting skill execution: {}, action={}"
   "技能执行异常（可能为第三方技能）：{} - {}": "Skill execution error (possibly third-party): {} - {}"
@@ -258,6 +261,10 @@ messages:
   "创建无效意图：{}": "Created invalid intent: {}"
   "无法解析响应为 JSON": "Failed to parse response as JSON"
   "解析失败：{}": "Parsing failed: {}"
+  "{} 结果: {}": "{} result: {}"
+  "{} 错误: {}": "{} error: {}"
+  "强制技能 Phase 2 开始：{}": "Forced skill Phase 2 started: {}"
+  "强制技能 {} Phase 2 未返回有效意图": "Forced skill {} Phase 2 returned no valid intent"
 
   # ==================== SkillRegistry ====================
   "未发现第三方 SkillProvider": "No third-party SkillProvider found"
@@ -286,6 +293,7 @@ messages:
   "参数解析失败：{}": "Parameter parsing failed: {}"
 
   # ==================== BukkitStatsSkill ====================
+  "执行统计查询失败": "Failed to execute statistics query"
   "无法获取玩家对象": "Cannot get player object"
   "你没有权限使用此功能: {}": "You do not have permission to use this feature: {}"
   "执行 Bukkit API 失败：{}": "Failed to execute Bukkit API: {}"
@@ -308,6 +316,7 @@ messages:
   "{}: {} 小时 {} 分": "{}: {} hr {} min"
 
   # ==================== BukkitFXSkill ====================
+  "执行音效/粒子效果失败": "Failed to execute sound/particle effect"
   "缺少参数: sound(音效枚举名称)": "Missing parameter: sound (sound enum name)"
   "无效的音效枚举名称: {}": "Invalid sound enum name: {}"
   "缺少参数: particle(粒子枚举名称)": "Missing parameter: particle (particle enum name)"
@@ -316,6 +325,13 @@ messages:
   "粒子效果显示成功: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})": "Particle effect displayed successfully: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})"
 
   # ==================== GenericBukkitAPISkill ====================
+  "是": "Yes"
+  "否": "No"
+  "头盔": "Helmet"
+  "胸甲": "Chestplate"
+  "护腿": "Leggings"
+  "靴子": "Boots"
+  "当前界面：": "Current UI: "
   "SkillConfigManager 未初始化": "SkillConfigManager not initialized"
   "未找到 API：{}": "API not found: {}"
   "无结果": "No result"
@@ -416,6 +432,7 @@ messages:
   "玩家存活": "Player is alive"
 
   # ==================== CommandSkill ====================
+  "玩家 {} 通过 AI 执行命令: /{}": "Player {} executed command via AI: /{}"
   "命令执行仅支持在线玩家使用": "Command execution is only available to online players"
   "命令执行功能当前未启用": "Command execution feature is currently disabled"
   "你没有使用 AI 命令执行的权限": "You do not have permission to use AI command execution"
@@ -490,6 +507,7 @@ messages:
   "\n    [{}] ${} x {}个": "\n    [{}] ${} x {} pcs"
 
   # ==================== MarketActionSkill ====================
+  "读取玩家手持物品失败: {}": "Failed to read player's held item: {}"
   "未知的市场操作: {}": "Unknown market operation: {}"
   "市场操作失败: {}": "Market operation failed: {}"
   "无法识别的物品: {}，请使用标准的物品名称": "Unrecognized item: {}, please use standard item name"
@@ -560,7 +578,7 @@ messages:
   "未知的挂机任务动作：{}。请用自然语言告知玩家操作无法识别，并询问具体需求": "Unknown AFK task action: {}. Please inform the player in natural language that the operation is unrecognized and ask for specific needs"
   "缺少条件计划参数（condition_plan）。请用自然语言描述要监视的条件": "Missing condition plan parameter (condition_plan). Please describe the condition to monitor in natural language"
   "缺少 task_type 参数。请用自然语言询问玩家想监视什么（上线还是下线）": "Missing task_type parameter. Please ask the player in natural language what they want to monitor (online or offline)"
-  "玩家已有一个正在运行的挂机任务（{}）。请用自然语言告知玩家当前有任务在运行，并建议使用 /kilacraft afk cancel 取消旧任务后再创建新的": "Player already has a running AFK task ({}). Please inform the player in natural language and suggest using /kilacraft afk cancel to cancel the old task before creating a new one"
+  "玩家已有一个正在运行的挂机任务（{}）。请用自然语言告知玩家当前有任务在运行，并建议使用 /kila afk cancel 取消旧任务后再创建新的": "Player already has a running AFK task ({}). Please inform the player in natural language and suggest using /kila afk cancel to cancel the old task before creating a new one"
   "目标玩家 {} 当前已在线，PLAYER_ONLINE_WATCH 任务无意义。请用自然语言告知玩家目标已在线，并建议：如果需要监视 TA 下线，可以说\"帮我盯着{}下线\"": "Target player {} is already online, PLAYER_ONLINE_WATCH task is meaningless. Please inform the player and suggest: if they want to monitor the target going offline, say \"help me watch {} go offline\""
   "目标玩家 {} 当前不在线，PLAYER_OFFLINE_WATCH 任务无意义。请用自然语言告知玩家目标不在线，并建议：如果需要监视 TA 上线，可以说\"帮我盯着{}上线\"": "Target player {} is currently offline, PLAYER_OFFLINE_WATCH task is meaningless. Please inform the player and suggest: if they want to monitor the target coming online, say \"help me watch {} come online\""
   "安全限制：该任务类型仅支持监控自身数据，不支持监控其他玩家。请用自然语言告知玩家此限制": "Security restriction: This task type only supports monitoring yourself. Cannot monitor other players. Please inform the player of this restriction"
@@ -568,7 +586,7 @@ messages:
   "玩家当前挂机任务信息：任务ID={}, 类型={}, 描述={}, 状态={}, 创建时间={}。请基于这些信息用自然语言告知玩家当前任务状态": "Player's current AFK task: Task ID={}, Type={}, Description={}, Status={}, Created={}. Please inform the player about the current task status in natural language"
 
   # ==================== AFKTaskManager ====================
-  "玩家已有一个正在运行的挂机任务：{}。请用自然语言告知玩家当前有任务在运行，并建议：可以使用 /kilacraft afk cancel 命令取消旧任务后再创建新的，或使用 /kilacraft afk query 查询详情。": "Player already has a running AFK task: {}. Please inform the player in natural language and suggest: use /kilacraft afk cancel to cancel the old task before creating a new one, or /kilacraft afk query to check details."
+  "玩家已有一个正在运行的挂机任务：{}。请用自然语言告知玩家当前有任务在运行，并建议：可以使用 /kila afk cancel 命令取消旧任务后再创建新的，或使用 /kila afk query 查询详情。": "Player already has a running AFK task: {}. Please inform the player in natural language and suggest: use /kila afk cancel to cancel the old task before creating a new one, or /kila afk query to check details."
   "挂机任务队列已满（当前 {}/{}），暂时无法创建新任务。请用自然语言告知玩家稍后再试。": "AFK task queue is full (current {}/{}), temporarily unable to create new tasks. Please inform the player to try again later in natural language."
   "无法创建该类型的挂机任务，请检查任务参数是否正确。": "Cannot create this type of AFK task, please check if task parameters are correct."
   "挂机任务创建失败：{}": "AFK task creation failed: {}"
@@ -584,6 +602,8 @@ messages:
   "正在关闭 {} 个活跃任务...": "Shutting down {} active tasks..."
 
   # ==================== AFK Task 实现 ====================
+  "监视玩家 {} 破坏方块{}，触发回调任务（{}步）": "Monitoring player {} block breaking{}, trigger callback task ({} steps)"
+  "监视玩家 {} 破坏方块{}，触发回调任务（{}步），目标：{}": "Monitoring player {} block breaking{}, trigger callback task ({} steps), goal: {}"
   "纯通知": "Notification only"
   "回调({}步)": "Callback({} steps)"
   "解析回调配置失败: {}": "Failed to parse callback config: {}"
@@ -849,22 +869,10 @@ messages:
   "降级": "Level down"
 
   # ==================== KilacraftCommand ====================
-  "§c挂机任务命令仅限玩家使用。": "§cAFK task commands are only available to players."
-  "§c挂机任务系统未启用。": "§cAFK task system is not enabled."
-  "§7你当前没有正在运行的挂机任务。": "§7You have no running AFK tasks."
-  "§a已取消挂机任务：§f{}": "§aCancelled AFK task: §f{}"
-  "§f当前挂机任务：": "§fCurrent AFK task:"
-  "§f  任务ID：§e{}": "§f  Task ID: §e{}"
-  "§f  类型：§e{}": "§f  Type: §e{}"
-  "§f  描述：§e{}": "§f  Description: §e{}"
-  "§f  状态：§e{}": "§f  Status: §e{}"
-  "§f  创建时间：§e{}": "§f  Created: §e{}"
-  "§7使用 /kilacraft afk cancel 可取消此任务": "§7Use /kilacraft afk cancel to cancel this task"
-  "§c未知的挂机任务子命令：{}": "§cUnknown AFK task subcommand: {}"
-  "§7用法：/kilacraft afk [query|cancel]": "§7Usage: /kilacraft afk [query|cancel]"
-  "§c你没有权限查看定时任务状态。": "§cYou do not have permission to view scheduled task status."
-  "§cTaskScheduler 未初始化。": "§cTaskScheduler not initialized."
-  "§7当前共加载 {} 个人格": "§7Currently loaded {} personalities"
+  "回调执行耗时: %dms": "Callback execution time: %dms"
+  "回调命令执行完毕，缓存已删除": "Callback command finished, cache deleted"
+  "保留缓存供轮询获取": "Cache retained for polling"
+  "回退到 Spark 本地文件: {}": "Falling back to Spark local file: {}"
   "数据库热重载失败，已回退到旧配置: {}": "Database hot reload failed, rolled back to old config: {}"
   "热重载失败，回退到旧配置: {}": "Hot reload failed, rolled back to old config: {}"
   "[当前玩家上下文]\n": "[Current Player Context]\n"
@@ -918,6 +926,8 @@ messages:
   "需确认": "Needs confirm"
 
   # ==================== LLMProvider ====================
+  "LLM 请求失败": "LLM request failed"
+  "读取响应流失败": "Failed to read response stream"
   "API 响应为空": "API response is empty"
   "AI 暂时无法回复，请稍后再试": "AI is temporarily unable to respond, please try again later"
   "读取响应失败：{}": "Failed to read response: {}"
@@ -1021,6 +1031,7 @@ messages:
   "全服广播摘要 - 发起者: {}, userPrompt: [{}]": "Broadcast summary - initiator: {}, userPrompt: [{}]"
 
   # ==================== EventCollector ====================
+  "无法找到 internal/translate/items_CN.yml 文件": "Cannot find internal/translate/items_CN.yml file"
   "写入服务器事件失败: {}": "Failed to write server event: {}"
   "{} 波": "{} waves"
 
@@ -1054,6 +1065,7 @@ messages:
   "未知的数据库类型: {}，回退到 H2": "Unknown database type: {}, falling back to H2"
 
   # ==================== SchemaManager ====================
+  "未知的 Schema 版本: {}": "Unknown schema version: {}"
   "Schema 版本: 当前={}, 期望={}": "Schema version: current={}, expected={}" 
   "Schema 已迁移到版本 {}": "Schema migrated to version {}"
   "Schema v1 建表完成（6张表）": "Schema v1 table creation complete (6 tables)"
@@ -1125,6 +1137,7 @@ messages:
   "自动回退到 H2 内置数据库，持久化功能正常可用": "Auto-falling back to H2 embedded database, persistence is available"
 
   # ==================== ProfileManager ====================
+  "获取数据库连接失败，无法补录画像: {}": "Failed to get DB connection, cannot backfill profile: {}"
   "加载玩家画像失败: {} - {}": "Failed to load player profile: {} - {}"
   "保存玩家画像失败: {} - {}": "Failed to save player profile: {} - {}"
   "加载画像失败: {} - {}": "Failed to load profile: {} - {}"
@@ -1379,6 +1392,9 @@ messages:
   "CPU过高({}%)，阈值>{}%": "CPU too high ({}%)，threshold>{}%"
 
   # ==================== Notification System ====================
+  "{} 渠道 webhook_url 未配置，跳过": "{} channel webhook_url not configured, skipping"
+  "[钉钉] HTTP {} - {}": "[DingTalk] HTTP {} - {}"
+  "[钉钉] 响应异常: {}": "[DingTalk] response error: {}"
   "服务器健康状态异常告警": "Server Health Status Anomaly Alert"
   "触发告警:": "Triggered Alerts:"
   "实时指标:": "Live Metrics:"
@@ -1396,12 +1412,6 @@ messages:
   "Discord 渠道 webhook_url 未配置，跳过": "Discord channel webhook_url not configured, skipping"
   "钉钉渠道 webhook_url 未配置，跳过": "DingTalk channel webhook_url not configured, skipping"
   "未知通知渠道类型: {}": "Unknown notification channel type: {}"
-  "§c你没有权限使用通知测试功能。": "§cYou don't have permission to use the notification test feature."
-  "§7用法：/kilacraft notify test": "§7Usage: /kilacraft notify test"
-  "§c通知服务未启用或未配置任何渠道。": "§cNotification service is not enabled or no channels are configured."
-  "§7正在测试 {} 个通知渠道...": "§7Testing {} notification channels..."
-  "§f通知渠道测试结果：": "§fNotification channel test results:"
-  "§c发送失败: {}": "§cSend failed: {}"
   "[{}] 发送异常: {}": "[{}] Send exception: {}"
   "测试失败: {}": "Test failed: {}"
 
@@ -1482,6 +1492,8 @@ messages:
   "移除日志捕获器失败: {}": "Failed to remove log capture appender: {}"
 
   # ==================== Admin - StackTraceProcessor ====================
+  "group 字段 {} 未找到 END_GROUP 标记": "group field {} has no END_GROUP marker"
+  "未找到 Server thread，跳过热点分析": "Server thread not found, skipping hotspot analysis"
   "Protobuf 文件不存在，跳过解析": "Protobuf file not found, skipping parse"
   "Protobuf 解析异常: {}": "Protobuf parse exception: {}"
 
@@ -1493,6 +1505,7 @@ messages:
   "报告结束": "End of Report"
 
   # ==================== Admin - SparkDataCollector ====================
+  "等待 Profiler URL 超时（{} {}）": "Timed out waiting for Profiler URL ({} {})"
   "采集 Spark 快照失败: {}": "Failed to collect Spark snapshot: {}"
   "TPS 采集异常: {}": "TPS collection exception: {}"
   "MSPT 采集异常: {}": "MSPT collection exception: {}"
@@ -1502,8 +1515,6 @@ messages:
   # ==================== Admin - AdminConfigManager ====================
   "已生成默认配置文件: {}": "Generated default config file: {}"
   "无法创建默认配置文件: {}": "Cannot create default config file: {}"
-  "启用": "enabled"
-  "禁用": "disabled"
   "未配置": "Not configured"
   "永久": "Permanent"
   "配置已加载（守护线程: 启用，诊断模型: {}）": "Config loaded (Guardian: enabled, diagnostic model: {})"
@@ -1525,14 +1536,14 @@ messages:
   "§c服务器性能异常自动诊断完成！报告: {}": "§cAuto health diagnosis complete! Report: {}"
   "§a诊断报告已生成: {}": "§aDiagnostic report generated: {}"
   "§7报告路径: plugins/Kilacraft-AI/reports/{}": "§7Report path: plugins/Kilacraft-AI/reports/{}"
-  "§c采样数据上传失败（Spark 服务器超时），无法生成诊断报告。": "§cSampling data upload failed (Spark server timeout), unable to generate diagnostic report."
-  "§7可能原因：服务器网络无法访问 Spark 数据服务器。请稍后重试。": "§7Possible cause: Server network cannot access Spark data server. Please try again later."
   "§c采样数据文件未找到，无法生成诊断报告。": "§cSampling data file not found, unable to generate diagnostic report."
   "§c采样数据文件已过期，无法生成诊断报告。请重新采样。": "§cSampling data file is outdated, unable to generate diagnostic report. Please resample."
   "§c分析过程中发生异常，请查看控制台日志。": "§cAn error occurred during analysis. Please check the console log."
   "AI 诊断异常: {}": "AI diagnosis exception: {}"
 
   # ==================== Admin - ServerHealthSkill ====================
+  "（指标: {}）": " (metric: {})"
+  "（插件: {}）": " (plugin: {})"
   "无效的时间范围: {}（支持: 1d/3d/7d/30d）": "Invalid time range: {} (supported: 1d/3d/7d/30d)"
   "数据库未初始化": "Database not initialized"
   "过去 {} 内没有健康告警记录。": "No health alerts in the past {}."
@@ -1584,6 +1595,7 @@ messages:
   "执行失败: {}": "Execution failed: {}"
 
   # ==================== Admin - PlayerAnalysisSkill ====================
+  "在线": "Online"
   "服务器在线趋势查询完成（{}，按{}聚合）": "Server online trend query complete ({}, grouped by {})"
   "查询在线趋势失败": "Failed to query online trend"
   "查询在线趋势失败: {}": "Failed to query online trend: {}"
@@ -1631,21 +1643,6 @@ messages:
   "服主 {} 掉线，中断手动采样": "Admin {} disconnected, aborting manual profiling"
 
   # ==================== Admin - KilacraftCommand (profile) ====================
-  "§c你没有权限使用性能采样功能。": "§cYou do not have permission to use the profiling feature."
-  "§c服务器健康监控不可用：admin.yml 和 llm.yml 均未配置可用模型。请至少在 llm.yml 中填写有效的 llm.api_key。": "§cServer health monitoring unavailable: No available model configured in admin.yml or llm.yml. Please set a valid llm.api_key in llm.yml at minimum."
-  "§c服务器健康监控不可用：守护线程已禁用（admin.yml 中 health_guardian.enabled 为 false）。": "§cServer health monitoring unavailable: Guardian thread disabled (health_guardian.enabled is false in admin.yml)."
-  "§c服务器健康监控不可用：Spark 插件未安装或未加载。": "§cServer health monitoring unavailable: Spark plugin not installed or not loaded."
-  "§c无效的采样时长，请输入 30~120 之间的数字。": "§cInvalid profiling duration, please enter a number between 30 and 120."
-  "§a已启动性能采样，时长 {} 秒。": "§aProfiling started, duration {} seconds."
-  "§7采样完成后将自动生成诊断报告。": "§7Diagnostic report will be generated automatically after profiling completes."
-  "§c已有采样正在进行中，请等待完成或使用 /kilacraft profile stop 中断。": "§cA profiling session is already running. Wait for completion or use /kilacraft profile stop to abort."
-  "§7当前没有正在进行的采样。": "§7No profiling session is currently running."
-  "§a采样已中断，数据已丢弃。": "§aProfiling aborted, data discarded."
-  "§f当前采样状态：§e{}": "§fCurrent profiling status: §e{}"
-  "§7操作者：{}，采样时长：{}秒": "§7Operator: {}, duration: {}s"
-  "§7正在执行深度分析...": "§7Performing deep analysis..."
-  "§c未知的 profile 子命令：{}": "§cUnknown profile subcommand: {}"
-  "§7用法：/kilacraft profile <start|stop|status>": "§7Usage: /kilacraft profile <start|stop|status>"
 
   # ==================== Database - Pool Info ====================
   "H2: 未初始化/已关闭": "H2: not initialized/closed"
@@ -1666,6 +1663,20 @@ messages:
   "无 Profiler 数据": "No Profiler data"
 
   # ==================== Admin - ServerHealthGuardian Log ====================
+  "Spark 本地文件不存在: {}": "Spark local file not found: {}"
+  "Spark 本地文件过旧（文件时间: {}，session 启动: {}），跳过": "Spark local file too old (file time: {}, session start: {}), skipping"
+  "Profiler 数据过大（{}），超过预检阈值（{}），跳过下载。": "Profiler data too large ({}, exceeds pre-check threshold {}), skipping download."
+  "Profiler 数据过大（{}），超过预检阈值（{}），但配置允许下载。": "Profiler data too large ({}, exceeds pre-check threshold {}), but download allowed by config."
+  "startManualAnalysisWithLocalFile: 守护线程已关闭，拒绝请求": "startManualAnalysisWithLocalFile: guardian thread shut down, request rejected"
+  "开始手动模式深度分析（本地文件回退）...": "Starting manual mode deep analysis (local file fallback)..."
+  "服主 {} 请求本地文件分析，但获取分析锁失败": "Admin {} requested local file analysis, but failed to acquire analysis lock"
+  "服主 {} 请求本地文件分析，但已有分析任务在运行": "Admin {} requested local file analysis, but an analysis task is already running"
+  "服主 {} 本地文件分析：锁竞争失败，请稍后重试": "Admin {} local file analysis: lock contention failed, please retry later"
+  "本地文件解析完成：热点 {} 个，Server thread 占比 {}": "Local file parsing complete: {} hotspots, Server thread ratio {}"
+  "本地文件分析完成": "Local file analysis complete"
+  "本地文件分析完成，报告: {}": "Local file analysis complete, report: {}"
+  "诊断模型未配置（admin.yml 和 llm.yml 均未提供有效模型），跳过 AI 诊断": "Diagnostic model not configured (no valid model in admin.yml or llm.yml), skipping AI diagnosis"
+  "采集服务器活动快照失败: {}": "Failed to collect server activity snapshot: {}"
   "{}模式分析完成，报告: {}": "{} mode analysis complete, report: {}"
 
   # ==================== Admin - Diagnostic Report (DiagnosticReportGenerator) ====================
@@ -1808,3 +1819,52 @@ messages:
   "该操作已过期或不存在，请重新描述你的需求。": "This operation has expired or does not exist. Please restate your request."
   "单意图 {} 含未解析占位符 {}，回退普通 AI": "Single intent {} contains unresolved placeholders {}, falling back to normal AI"
   "部分参数未能自动解析，请直接说明具体数值": "Some parameters could not be auto-resolved. Please state the concrete value directly."
+
+  # ==================== 游戏内命令体系扩展 / In-game command extension ====================
+  # QueryTarget
+
+  # AboutCommand
+
+  # SkillsCommand
+
+  # HistoryCommand
+  "查询对话历史失败: {}": "Failed to query conversation history: {}"
+
+  # MemoryCommand
+  "查询玩家画像失败: {}": "Failed to query player profile: {}"
+
+  # UsageCommand
+  "查询用量统计失败: {}": "Failed to query usage stats: {}"
+
+  # DoctorCommand
+  "基础": "Basic"
+  "AI 能力": "AI Capabilities"
+  "可观测与集成": "Observability & Integration"
+  "可用": "available"
+  "不可用": "unavailable"
+  "完整配置详情已输出到控制台。": "Full config details printed to console."
+  "========== Kilacraft-AI 配置详情 ==========": "========== Kilacraft-AI Config Details =========="
+  "LLM API：{}": "LLM API: {}"
+  "LLM 模型：{}": "LLM Model: {}"
+  "LLM Key：{}": "LLM Key: {}"
+  "数据库类型：{}": "Database type: {}"
+  "Spark：{}": "Spark: {}"
+  "知识库：{} | Embedding：{} | 人格：{}套": "Knowledge: {} | Embedding: {} | Personalities: {}"
+  "Agent：{} | 画像分析：{} | 挂机任务：{}": "Agent: {} | Profile: {} | AFK: {}"
+  "命令技能：{} | 待确认续体：{} | 玩家隔离：{}": "Command Skill: {} | Pending Resume: {} | Player Isolation: {}"
+  "健康守护：{} | 外部通知：{}（{}渠道）| 推理模型：{} | 登录问候：{}": "Guardian: {} | Notification: {} ({}ch) | Thinking Model: {} | Greeting: {}"
+  "请回复 ok": "Reply with ok"
+  "你是健康检查助手，只回复 ok。": "You are a health-check assistant. Reply only with ok."
+  "§7完整详情已输出到控制台，可复制后反馈给开发者。": "§7Full details printed to console. Copy them to report to the developer."
+  "（未配置）": "(not configured)"
+  "版本：{}": "Version: {}"
+  "环境：{}{}": "Environment: {}{}"
+  "API 地址：{}": "API URL: {}"
+  "知识库：{} Embedding：{}": "Knowledge: {} Embedding: {}"
+  "LLM ping 响应: {}": "LLM ping response: {}"
+  "LLM ping 错误: {}": "LLM ping error: {}"
+
+  # RunCommand
+  "强制技能 {} 未解析出意图，降级普通 AI": "Forced skill {} parsed no intent, falling back to normal AI"
+  "[系统提示：玩家通过 /kila run {} 指定技能执行，但未能解析出可执行意图。请根据玩家原始需求协助，如需必要参数请直接询问。]": "[System: The player used /kila run {} to force-execute a skill, but no executable intent could be parsed. Help with the player's original request; ask for any required parameters directly.]"
+  "自检执行失败: {}": "Diagnostics failed: {}"

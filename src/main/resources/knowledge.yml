@@ -1,17 +1,17 @@
 # ==================== 知识库配置 / Knowledge Base Configuration ====================
-# 独立配置文件，修改后执行 /kilacraft reload 即时生效（除标注不可热重载的项外）
-# Standalone config file, run /kilacraft reload to apply changes (except items marked as non-hot-reloadable)
+# 独立配置文件，修改后执行 /kila reload 即时生效（除标注不可热重载的项外）
+# Standalone config file, run /kila reload to apply changes (except items marked as non-hot-reloadable)
 
 # 知识库功能说明：
 # 1. 在插件目录/plugins/Kilacraft-AI/knowledge/下创建 Markdown 或 TXT 文件
 # 2. 将服务器特有的知识、规则、FAQ 等内容放入文件中
 # 3. AI 会自动检索相关知识并基于知识回答
-# 4. 使用 /kilacraft knowledge reload 命令重新加载知识库
+# 4. 使用 /kila knowledge reload 命令重新加载知识库
 # Knowledge base feature description:
 # 1. Create Markdown or TXT files under /plugins/Kilacraft-AI/knowledge/
 # 2. Put server-specific knowledge, rules, FAQ, etc. into the files
 # 3. AI automatically retrieves relevant knowledge and answers based on it
-# 4. Use /kilacraft knowledge reload command to reload the knowledge base
+# 4. Use /kila knowledge reload command to reload the knowledge base
 knowledge:
   # 是否启用知识库检索
   # Whether to enable knowledge base retrieval
@@ -94,13 +94,13 @@ knowledge:
   # Embedding 供应商可以与 LLM 供应商不同（如 LLM 用 DeepSeek，Embedding 用智谱AI）
   # 如果供应商同时支持聊天和 Embedding，api_url 和 api_key 填与 LLM 相同的值即可
   # 注意：api_url、api_key、model、dimensions、timeout_seconds 修改后必须重启服务器才能生效！
-  # 这些配置影响向量计算或需要重建实例，/kilacraft reload 不会重新计算向量缓存
+  # 这些配置影响向量计算或需要重建实例，/kila reload 不会重新计算向量缓存
   # Embedding semantic retrieval configuration
   # Uses Embedding API to get text vectors, replaces BM25 with cosine similarity for semantic retrieval
   # Embedding provider can differ from LLM provider (e.g. DeepSeek for LLM, ZhipuAI for Embedding)
   # If your provider supports both chat and embedding, just fill the same api_url and api_key as LLM
   # WARNING: Changes to api_url, api_key, model, dimensions, or timeout_seconds require server restart!
-  # These configs affect vector computation or require instance rebuild, /kilacraft reload will NOT recompute vector cache
+  # These configs affect vector computation or require instance rebuild, /kila reload will NOT recompute vector cache
   embedding:
     # 是否启用 Embedding 语义检索（默认关闭）
     # 关闭时使用默认的 HanLP + BM25 检索

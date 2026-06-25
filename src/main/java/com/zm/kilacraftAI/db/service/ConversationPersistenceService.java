@@ -261,7 +261,7 @@ public class ConversationPersistenceService {
             return;
         }
 
-        // 检查 cleared 标记：玩家执行过 /ai clear，跳过 DB 加载，从空白上下文开始
+        // 检查 cleared 标记：玩家执行过 /kila clear，跳过 DB 加载，从空白上下文开始
         if (conversationManager.consumeCleared(playerUuid)) {
             callback.accept(new ArrayDeque<>());
             return;
@@ -398,7 +398,7 @@ public class ConversationPersistenceService {
     }
 
     /**
-     * 热重载配置（由 /kilacraft reload 触发）
+     * 热重载配置（由 /kila reload 触发）
      *
      * <p>更新可热重载的配置项：历史加载开关、保留天数、表前缀（DAO 重建）、server_id。</p>
      *

@@ -306,6 +306,22 @@ public class ConfigManager {
         return greetingConfigManager.isProfileInjectionEnabled();
     }
 
+    public boolean isCommandSkillEnabled() {
+        return commandSkillEnabled;
+    }
+
+    public boolean isPendingResumeEnabled() {
+        return pendingResumeEnabled;
+    }
+
+    public boolean isAfkTaskEnabled() {
+        return afkTaskEnabled;
+    }
+
+    public boolean isSecurityPlayerIsolationEnabled() {
+        return securityPlayerIsolationEnabled;
+    }
+
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
         this.llmConfigManager = new LLMConfigManager((KilacraftAI) plugin);

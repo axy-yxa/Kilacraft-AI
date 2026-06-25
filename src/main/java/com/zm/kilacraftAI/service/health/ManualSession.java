@@ -7,7 +7,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * 手动采样会话
  *
- * <p>管理 /kilacraft profile 命令的采样生命周期。</p>
+ * <p>管理 /kila profile 命令的采样生命周期。</p>
  *
  * <p>状态模型：IDLE ↔ RUNNING</p>
  * <ul>

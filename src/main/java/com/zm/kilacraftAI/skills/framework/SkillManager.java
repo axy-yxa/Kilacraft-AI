@@ -9,6 +9,7 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.metrics.SkillInfo;
 import com.zm.kilacraftAI.skills.framework.resume.PendingResumeManager;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -94,6 +95,25 @@ public class SkillManager {
      */
     public List<Skill> getAllSkills() {
         return new ArrayList<>(skills.values());
+    }
+
+    /**
+     * 获取调用者有权使用的技能集合（权限预检过滤的唯一真源）。
+     * 过滤规则与意图识别提示词预检一致：技能未声明权限节点、或调用者为 null（控制台）
+     * 时不予过滤；否则按 Player.hasPermission 实时校验，无权限的技能不返回。
+     * 意图识别、/kila skills 列举、/kila run 校验均应调用本方法，保证三处同源。
+     * caller=null 表示控制台（视为拥有所有权限），返回可用技能列表。
+     */
+    public List<Skill> getAvailableSkills(Player caller) {
+        List<Skill> result = new ArrayList<>();
+        for (Skill skill : skills.values()) {
+            String perm = skill.getRequiredPermission();
+            if (perm != null && caller != null && !caller.hasPermission(perm)) {
+                continue;
+            }
+            result.add(skill);
+        }
+        return result;
     }
 
     /**

@@ -93,9 +93,9 @@ health_guardian:
   mspt_consecutive_threshold: 3
 
   # Profiler 采样时长（秒，默认: 30）——仅用于 auto 自动模式
-  # manual 手动模式的采样时长由命令参数控制（/kilacraft profile start [秒]，默认 60，范围 30~120）
+  # manual 手动模式的采样时长由命令参数控制（/kila profile start [秒]，默认 60，范围 30~120）
   # Profiler sampling duration in seconds (default: 30) — auto mode only
-  # manual mode duration is controlled by command argument (/kilacraft profile start [seconds], default 60, range 30~120)
+  # manual mode duration is controlled by command argument (/kila profile start [seconds], default 60, range 30~120)
   auto_profiler_timeout: 30
   
   # Profiler 数据大小预检阈值（字节，默认: 52428800 即 50MB）

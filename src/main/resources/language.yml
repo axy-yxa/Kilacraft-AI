@@ -8,56 +8,70 @@
 # - 内部错误消息（如挂机任务异常）：保持硬编码，不在此配置
 # - 控制台日志：由下方 logs 段控制
 #
-# 修改后使用 /kilacraft reload 热重载即可生效，无需重启服务器
+# 修改后使用 /kila reload 热重载即可生效，无需重启服务器
 
 # ==================== 命令帮助消息 ====================
-# 以下配置控制 /kilacraft 命令显示的帮助信息
+# 统一格式： §b/命令 §7[可选参数] <必填参数> §8- §f说明
+# §b = 命令名  §7 = 参数  §8 = 分隔符  §f = 说明
 help:
-  # 基础帮助消息（每行一条，按顺序显示）
+  # 标题与基础用法（每行一条，所有玩家可见）
   messages:
-    - "§e使用方法：/kilacraft <消息>"
-    - "§e简写：/kila <消息> 或者 /ai <消息> 或者 /zm <消息>"
-    - "§e进入连续对话模式：/kilacraft chat"
-    - "§e重载配置：/kilacraft reload"
-    - "§e重载知识库：/kilacraft knowledge reload"
-    - "§e重载人格配置：/kilacraft personalities reload"
-  
-  # 清除历史提示 — 当玩家有对应权限时显示
-  clear-self: "§e清除历史：/kilacraft clear"
-  # 当玩家有清除他人历史权限时额外显示
-  clear-other: "§e清除玩家历史：/kilacraft clear [玩家名称]"
-  
-  # /kilacraft knowledge 子命令的帮助提示
-  knowledge: "§e使用方法：/kilacraft knowledge reload"
-  
-  # /kilacraft personalities 子命令的帮助提示
-  personalities: "§e使用方法：/kilacraft personalities reload"
-  personalities-subcommands: "§e可用子命令：reload - 重新加载人格配置"
-  
-  # /kilacraft afk 子命令的帮助提示
-  afk: "§e查询挂机任务：/kilacraft afk"
-  afk-subcommands: "§e可用子命令：query(查询), cancel(取消)"
+    - "§b▌§f Kilacraft-AI §7— §f使用 /kila <消息> 与 AI 对话"
+    - "§7也可使用 /kilacraft、/ai、/zm"
+    - " §b/kila chat §8- §f进入/退出连续对话模式"
 
-  # /kilacraft profile 子命令的帮助提示（需要 kilacraft.admin.health 权限）
-  profile: "§e服务器性能采样：/kilacraft profile start [秒数(30~120，默认60)]"
-  profile-subcommands: "§e可用子命令：start(开始采样), stop(中断采样), status(查看状态)"
+  # 重载配置（kilacraft.reload 权限）
+  reload: " §b/kila reload §8- §f热重载全部配置"
+
+  # 清除历史（kilacraft.clear.self / .other 权限）
+  clear-self: " §b/kila clear §8- §f清除自己的对话历史"
+  clear-other: " §b/kila clear §7<玩家名> §8- §f清除指定玩家的历史"
+
+  # 知识库/人格管理（kilacraft.knowledge / .personalities 权限）
+  knowledge: " §b/kila knowledge reload §8- §f重载知识库"
+  personalities: " §b/kila personalities reload §8- §f重载人格配置"
+
+  # 挂机任务（kilacraft.afk 权限）
+  afk: " §b/kila afk §8- §f查询/取消挂机任务"
+
+  # 性能采样（kilacraft.admin.health 权限）
+  profile: " §b/kila profile start §7[秒数] §8- §f启动性能采样 (30~120s)"
+  profile-subcommands: " §b/kila profile stop | status §8- §f中断采样 / 查看状态"
+  # 外部通知（kilacraft.admin.health 权限）
+  notify: " §b/kila notify test §8- §f测试外部通知渠道"
+
+  # 查询命令（kilacraft.query.self 权限，查他人需 .usage.other 等）
+  usage: " §b/kila usage §7[玩家|all] [时间] §8- §f查看 AI 用量"
+  history: " §b/kila history §7[玩家] [页码] §8- §f查看对话历史"
+  memory: " §b/kila memory §7[玩家] §8- §f查看玩家画像"
+
+  # 技能命令（全体可用）
+  skills: " §b/kila skills §7[页码] §8- §f列出可用技能"
+  run: " §b/kila run §7<技能> <提示词> §8- §f强制指定技能执行"
+
+  # 自检与版本（kilacraft.admin.info 权限）
+  doctor: " §b/kila doctor §8- §f配置自检"
+  about: " §b/kila about §8- §f版本与更新检查"
+
+  # 定时任务（kilacraft.tasks 权限）
+  tasks: " §b/kila tasks §8- §f查看定时任务状态"
 
 # ==================== 权限相关消息 ====================
 # 以下配置控制玩家执行没有权限的命令时的提示
 permissions:
-  # 执行 /kilacraft reload 但没有 kilacraft.reload 权限
+  # 执行 /kila reload 但没有 kilacraft.reload 权限
   reload: "§c你没有权限重载配置！"
-  # 执行 /kilacraft clear 但没有 kilacraft.clear.self 权限
+  # 执行 /kila clear 但没有 kilacraft.clear.self 权限
   clear-self: "§c你没有权限清除自己的对话历史记录！"
-  # 执行 /kilacraft clear <玩家> 但没有 kilacraft.clear.other 权限
+  # 执行 /kila clear <玩家> 但没有 kilacraft.clear.other 权限
   clear-other: "§c你没有权限清除其他玩家的历史记录！"
-  # 执行 /kilacraft knowledge 但没有 kilacraft.knowledge 权限
+  # 执行 /kila knowledge 但没有 kilacraft.knowledge 权限
   knowledge: "§c你没有权限管理知识库！"
-  # 执行 /kilacraft personalities 但没有 kilacraft.personalities 权限
+  # 执行 /kila personalities 但没有 kilacraft.personalities 权限
   personalities: "§c你没有权限管理人格配置！"
 
 # ==================== 功能状态消息 ====================
-# 以下配置控制玩家使用连续对话模式（/kilacraft chat）时的提示
+# 以下配置控制玩家使用连续对话模式（/kila chat）时的提示
 features:
   # config.yml 中 chat_mode_enabled=false 时，玩家尝试通过 @ai 触发聊天模式
   chat-mode-disabled: "§c连续对话模式已被禁用！"
@@ -65,49 +79,49 @@ features:
   # 控制台尝试使用聊天模式
   chat-mode-player-only: "§c只有玩家才能使用连续对话模式！"
   
-  # 玩家执行 /kilacraft chat 进入连续对话模式
+  # 玩家执行 /kila chat 进入连续对话模式
   chat-mode-enter: "§a已进入连续对话模式！现在你说的每句话都会发送给 Kilacraft-AI。"
   # 进入连续对话模式时的副标题（Subtitle）
-  chat-mode-enter-subtitle: "§7输入 §e/kilacraft chat§7 退出连续对话模式"
+  chat-mode-enter-subtitle: "§7输入 §b/kila chat§7 退出连续对话模式"
   
-  # 玩家再次执行 /kilacraft chat 退出连续对话模式
+  # 玩家再次执行 /kila chat 退出连续对话模式
   chat-mode-exit: "§7已退出连续对话模式"
 
 # ==================== 命令执行结果消息 ====================
 # 以下配置控制各种命令执行成功/失败后显示给玩家的反馈
 commands:
-  # /kilacraft reload 重载成功（统一提示，涵盖所有子模块重载）
+  # /kila reload 重载成功（统一提示，涵盖所有子模块重载）
   reload-success: "§a配置已重载！"
   
-  # /kilacraft reload 重载失败
+  # /kila reload 重载失败
   reload-failure: "§c配置重载失败："
   
-  # /kilacraft clear 清除自己的对话历史成功
+  # /kila clear 清除自己的对话历史成功
   clear-self-success: "§a已清除你的对话历史记录！"
   
-  # /kilacraft clear <玩家> 清除他人历史成功 — 变量: {player}=目标玩家名
+  # /kila clear <玩家> 清除他人历史成功 — 变量: {player}=目标玩家名
   clear-other-success: "§a已清除玩家 {player} 的对话历史记录！"
   
-  # 控制台执行 /kilacraft clear 但没有指定玩家名
-  clear-console-hint: "§c请在命令中添加玩家名称来清除其历史记录：/kilacraft clear <玩家名称>"
+  # 控制台执行 /kila clear 但没有指定玩家名
+  clear-console-hint: "§c请在命令中添加玩家名称来清除其历史记录：/kila clear <玩家名称>"
   
-  # /kilacraft knowledge reload 重载成功
+  # /kila knowledge reload 重载成功
   knowledge-reload-success: "§a知识库已重载！"
   
-  # /kilacraft knowledge reload 重载失败
+  # /kila knowledge reload 重载失败
   knowledge-reload-failure: "§c知识库重载失败："
   
-  # /kilacraft personalities reload 重载成功
+  # /kila personalities reload 重载成功
   personalities-reload-success: "§a人格配置已重载！"
   
-  # /kilacraft personalities reload 重载失败
+  # /kila personalities reload 重载失败
   personalities-reload-failure: "§c人格配置重载失败："
   
-  # /kilacraft <子命令> 输入了未知的子命令
+  # /kila <子命令> 输入了未知的子命令
   unknown-subcommand: "§c未知的子命令："
   
-  # /kilacraft knowledge 或 personalities 输入未知子命令时提示
-  available-subcommands: "§e可用子命令：reload"
+  # /kila knowledge 或 personalities 输入未知子命令时提示
+  available-subcommands: "§b可用子命令：reload"
   
   # 玩家发送消息但在冷却时间内 — 变量: {seconds}=剩余秒数
   cooldown-warning: "§c请等待 {seconds} 秒后再试！"
@@ -120,24 +134,243 @@ commands:
   # 变量: {ai_name}=AI 名称（来自 config.yml 的 ai_name）
   world-banned-hint: "§c当前世界禁止使用 {ai_name}！"
 
+  # ==================== /kila tasks 定时任务状态 ====================
+  tasks-no-permission: "§c你没有权限查看定时任务状态。"
+  tasks-not-init: "§cTaskScheduler 未初始化。"
+
+  # ==================== /kila notify test 通知渠道测试 ====================
+  notify-no-permission: "§c你没有权限使用通知测试功能。"
+  notify-usage: "§7用法：/kila notify test"
+  notify-not-ready: "§c通知服务未启用或未配置任何渠道。"
+  # 变量: {count}=渠道数
+  notify-testing: "§7正在测试 {count} 个通知渠道..."
+  notify-result-title: "§f通知渠道测试结果："
+  notify-send-success: "发送成功"
+  # 变量: {msg}=失败原因
+  notify-send-failed: "§c发送失败: {msg}"
+
+  # ==================== /kila afk 挂机任务查询/取消 ====================
+  afk-player-only: "§c挂机任务命令仅限玩家使用。"
+  afk-not-enabled: "§c挂机任务系统未启用。"
+  afk-no-task: "§7你当前没有正在运行的挂机任务。"
+  # 变量: {desc}=任务描述
+  afk-cancelled: "§a已取消挂机任务：§f{desc}"
+  afk-current-title: "§f当前挂机任务："
+  # 以下为任务详情行 — 变量: {id}/{type}/{desc}/{status}/{time}=对应字段
+  afk-task-id: "§f  任务ID：§e{id}"
+  afk-task-type: "§f  类型：§e{type}"
+  afk-task-desc: "§f  描述：§e{desc}"
+  afk-task-status: "§f  状态：§e{status}"
+  afk-task-time: "§f  创建时间：§e{time}"
+  afk-cancel-hint: "§7使用 /kila afk cancel 可取消此任务"
+  # 变量: {cmd}=输入的子命令
+  afk-unknown-sub: "§c未知的挂机任务子命令：{cmd}"
+  afk-usage: "§7用法：/kila afk [query|cancel]"
+
+  # ==================== /kila profile 手动性能采样 ====================
+  profile-no-permission: "§c你没有权限使用性能采样功能。"
+  profile-no-model: "§c服务器健康监控不可用：admin.yml 和 llm.yml 均未配置可用模型。请至少在 llm.yml 中填写有效的 llm.api_key。"
+  profile-guardian-disabled: "§c服务器健康监控不可用：守护线程已禁用（admin.yml 中 health_guardian.enabled 为 false）。"
+  profile-no-spark: "§c服务器健康监控不可用：Spark 插件未安装或未加载。"
+  profile-invalid-duration: "§c无效的采样时长，请输入 30~120 之间的数字。"
+  # 变量: {seconds}=采样时长
+  profile-started: "§a已启动性能采样，时长 {seconds} 秒。"
+  profile-will-report: "§7采样完成后将自动生成诊断报告。"
+  profile-already-running: "§c已有采样正在进行中，请等待完成或使用 /kila profile stop 中断。"
+  profile-no-running: "§7当前没有正在进行的采样。"
+  profile-stopped: "§a采样已中断，数据已丢弃。"
+  # 变量: {status}=采样状态
+  profile-status: "§f当前采样状态：§e{status}"
+  # 变量: {name}=操作者名, {seconds}=采样时长
+  profile-operator-info: "§7操作者：{name}，采样时长：{seconds}秒"
+  profile-analyzing: "§7正在执行深度分析..."
+  # 变量: {cmd}=输入的子命令
+  profile-unknown-sub: "§c未知的 profile 子命令：{cmd}"
+  profile-usage: "§7用法：/kila profile <start|stop|status>"
+  profile-upload-failed: "§c采样数据上传失败（Spark 服务器超时），无法生成诊断报告。"
+  profile-upload-fail-reason: "§7可能原因：服务器网络无法访问 Spark 数据服务器。请稍后重试。"
+
+  # ==================== /kila doctor 配置自检 ====================
+  doctor-no-permission: "§c你没有权限使用此命令。"
+  doctor-running: "§7正在执行自检..."
+  doctor-error: "§c自检执行失败，详情见控制台。"
+  doctor-report-title: "§6[Kilacraft-AI] §f自检报告"
+  # 诊断分组标题（游戏内清单的 ▌ 分隔行）
+  doctor-group-base: "基础"
+  doctor-group-ai: "AI 能力"
+  doctor-group-obs: "可观测与集成"
+  doctor-console-hint: "§7完整配置详情已输出到控制台。"
+  # 17 项诊断项名称
+  doctor-check-runtime-env: "运行环境"
+  doctor-check-database: "数据库"
+  doctor-check-llm: "LLM 连通"
+  doctor-check-spark: "Spark"
+  doctor-check-knowledge: "知识库"
+  doctor-check-embedding: "Embedding"
+  doctor-check-persona: "人格"
+  doctor-check-agent: "Agent 能力"
+  doctor-check-profile: "画像分析"
+  doctor-check-afk: "挂机任务"
+  doctor-check-command-skill: "命令技能"
+  doctor-check-pending-resume: "待确认续体"
+  doctor-check-isolation: "玩家数据隔离"
+  doctor-check-guardian: "健康守护"
+  doctor-check-notify: "外部通知"
+  doctor-check-thinking: "推理模型"
+  doctor-check-greeting: "登录问候"
+  # 诊断详情（通用启用/禁用 + 各项特定文案）
+  doctor-enabled: "启用"
+  doctor-disabled: "禁用"
+  # 变量: {count}=人格数量
+  doctor-persona-loaded: "已加载 {count} 套"
+  doctor-persona-none: "未加载"
+  # 变量: {count}=渠道数
+  doctor-notify-on: "启用（{count} 个渠道）"
+  # 变量: {model}=推理模型名
+  doctor-thinking-on: "已配置（{model}）"
+  doctor-thinking-off: "未配置"
+  doctor-db-not-init: "未初始化"
+  doctor-db-ok: "，连接正常"
+  # 变量: {error}=异常信息
+  doctor-db-fail: "，连接失败：{error}"
+  doctor-spark-yes: "可用"
+  doctor-spark-no: "不可用"
+  # Agent 入口范围（聊天监听 / 命令触发）
+  doctor-agent-scope-both: "聊天/命令"
+  doctor-agent-scope-chat: "仅聊天"
+  doctor-agent-scope-cmd: "仅命令"
+  doctor-agent-scope-none: "无入口"
+  # 变量: {scope}=入口范围（上面四项之一）
+  doctor-agent-on: "启用（{scope}）"
+  doctor-llm-no-provider: "未配置 LLM 提供商"
+
+  # ==================== /kila about 版本与更新检查 ====================
+  about-no-permission: "§c你没有权限使用此命令。"
+  about-title: "§6[Kilacraft-AI] §f版本信息"
+  # 变量: {ver}=版本号
+  about-current: "§7当前版本：§fv{ver}"
+  about-checking: "§7正在检查更新..."
+  about-check-failed: "§7更新检查失败，无法连接到发布源。"
+  # 变量: {ver}=最新版本号
+  about-latest: "§7最新版本：§f{ver}"
+  # 变量: {notes}=发布说明（tag 标题）
+  about-release-notes: "§7版本说明：§f{notes}"
+  about-new-version: "§e发现新版本！"
+  about-up-to-date: "§a已是最新版本。"
+  # 变量: {date}=发布日期
+  about-published: "§7发布日期：§f{date}"
+  # 变量: {url}=下载地址
+  about-download: "§7下载地址：§b{url}"
+
+  # ==================== /kila skills 可用技能列表 ====================
+  skills-not-init: "§c技能系统未初始化。"
+  skills-empty: "§7当前没有你可用的技能。"
+  # 变量: {page}=当前页, {total}=总页数
+  skills-title: "§6[Kilacraft-AI] §f可用技能（第 {page}/{total} 页）"
+  # 变量: {total}=总页数
+  skills-pagination: "§7共 {total} 页，使用 /kila skills <页码> 翻页"
+
+  # ==================== /kila run 强制指定技能执行 ====================
+  run-player-only: "§c该命令仅限玩家使用。"
+  run-usage: "§7用法：/kila run <技能名> <提示词>"
+  run-not-init: "§c技能系统未初始化。"
+  # 变量: {skill}=技能名
+  run-skill-not-found: "§c技能不存在或无权使用：{skill}"
+  # 变量: {skill}=技能名
+  run-executing: "§7正在执行 {skill}..."
+  run-error: "§c技能执行异常，请查看控制台日志。"
+  run-task-empty: "§7任务执行完成，无输出。"
+
+  # ==================== /kila usage AI 用量统计 ====================
+  # 口径为活跃度（对话轮数 + 技能调用数），非费用
+  usage-not-init: "§c数据库未初始化。"
+  usage-query-failed: "§c查询用量统计失败。"
+  # 变量: {player}=玩家名, {range}=时间范围
+  usage-title: "§6[Kilacraft-AI] §f{player} 的用量（近 {range}）"
+  # 变量: {range}=时间范围
+  usage-global-title: "§6[Kilacraft-AI] §f全服用量（近 {range}）"
+  # 变量: {value}=对话轮数
+  usage-turns: "§7对话轮数：§f{value}"
+  # 变量: {total}=总调用数, {ok}=成功数, {fail}=失败数, {rate}=成功率
+  usage-skills: "§7技能调用：§f{total}（§a成功 {ok} §c/ 失败 {fail}§7，成功率 {rate}%）"
+  usage-top-skills: "§bTop 技能："
+  # 变量: {skill}=技能名, {action}=动作, {count}=调用次数
+  usage-skill-line: "§f  {skill}§7/{action} §a{count}"
+  usage-scope: "§7口径：活跃度（对话轮数 + 技能调用数），非费用。"
+  usage-active-players: "§b活跃玩家 Top："
+  # 变量: {name}=玩家名, {count}=调用次数
+  usage-player-line: "§f  {name} §a{count} 次"
+  # 变量: {player}=玩家名
+  usage-player-not-found: "§c未找到玩家：{player}"
+
+  # ==================== /kila history 对话历史 ====================
+  history-not-init: "§c数据库未初始化。"
+  # 变量: {player}=玩家名
+  history-player-not-found: "§c未找到玩家：{player}"
+  history-query-failed: "§c查询对话历史失败。"
+  # 变量: {player}=玩家名
+  history-empty: "§7{player} 暂无对话历史。"
+  # 变量: {player}=玩家名, {page}=当前页, {total}=总页数
+  history-title: "§6[Kilacraft-AI] §f{player} 的对话历史（第 {page}/{total} 页）"
+  history-role-user: "§a你"
+  # 变量: {time}=时间, {role}=角色（你/AI）, {content}=内容
+  history-entry-line: "§7[{time}] {role}§7：§f{content}"
+  # 变量: {total}=总页数
+  history-pagination: "§7共 {total} 页，使用 /kila history [玩家] <页码> 翻页"
+
+  # ==================== /kila memory 玩家画像 ====================
+  memory-not-init: "§c数据库未初始化。"
+  # 变量: {player}=玩家名
+  memory-player-not-found: "§c未找到玩家：{player}"
+  memory-query-failed: "§c查询玩家画像失败。"
+  # 变量: {player}=玩家名
+  memory-title: "§6[Kilacraft-AI] §f{player} 的画像"
+  memory-empty: "§7暂无画像数据。"
+  # 以下统计行 — 变量: {value}=对应字段值
+  memory-first-login: "§7首次登录：§f{value}"
+  memory-last-login: "§7最近登录：§f{value}"
+  memory-login-count: "§7登录次数：§f{value}"
+  memory-playtime: "§7累计在线：§f{value}"
+  # 变量: {value}=分析时间
+  memory-analyzed: "§7AI 画像：§a已分析（{value}）"
+  memory-not-analyzed: "§7AI 画像：§7暂未分析"
+  # 八维度详情行 — 变量: {label}=维度标签, {value}=内容（空显示 -）
+  memory-profile-field: "§7{label}：§f{value}"
+  # 画像八维度标签（顺序与 ProfileAnalysisService 写入侧一致）
+  memory-profile-labels:
+    - "游戏风格"
+    - "性格特征"
+    - "兴趣偏好"
+    - "交互禁忌"
+    - "回复偏好"
+    - "空间记忆"
+    - "已知事实"
+    - "特别观察"
+  # 在线时长格式 — 变量: {n}/{m}=数值
+  memory-duration-minutes: "{n}分"
+  memory-duration-days: "{n}天{m}小时"
+  memory-duration-hours: "{n}小时{m}分"
+
+  # /kila personalities reload 加载完成 — 变量: {count}=人格数量
+  personalities-loaded: "§7当前共加载 {count} 个人格"
 # ==================== 插件命令专用消息 ====================
-# 以下配置控制第三方插件通过 /kilacraft plugins 命令调用 AI 时的提示
+# 以下配置控制第三方插件通过 /kila plugins 命令调用 AI 时的提示
 # 此命令为控制台专用，普通玩家不可使用
 plugins-command:
-  # 普通玩家尝试执行 /kilacraft plugins 命令
-  player-blocked: "§c请使用 /kilacraft <消息>"
+  # 普通玩家尝试执行 /kila plugins 命令
+  player-blocked: "§c请使用 /kila <消息>"
   
   # 控制台执行但参数不足
-  insufficient-args: "§c参数不足！使用方法：/kilacraft plugins <人格> <内容> <玩家 UUID> [回调命令...]"
+  insufficient-args: "§c参数不足！使用方法：/kila plugins <人格> <内容> <玩家 UUID> [回调命令...]"
   
   # 参数不足时显示的使用示例
-  usage-example: "§e示例：/kilacraft plugins 严厉教师 你好 069a79f4-44e9-4726-a5be-fca90e38aaf5"
+  usage-example: "§b示例：/kila plugins 严厉教师 你好 069a79f4-44e9-4726-a5be-fca90e38aaf5"
   
   # 回调命令说明
   callback-hint: "§7可选：在末尾添加回调命令，AI 完成后自动执行"
   
   # 带回调命令的使用示例
-  callback-example: "§e带回调：/kilacraft plugins mm_ai 你好 UUID testai handleAI {response} mm_ai"
+  callback-example: "§b带回调：/kila plugins mm_ai 你好 UUID testai handleAI {response} mm_ai"
   
   # {response} 占位符的说明
   callback-placeholder-hint: "§7{response} 会被替换为实际的 AI 回复内容"
@@ -146,13 +379,13 @@ plugins-command:
   invalid-uuid: "§c无效的玩家 UUID 格式："
   
   # UUID 格式提示
-  uuid-format-hint: "§e请确保 UUID 格式正确，例如：069a79f4-44e9-4726-a5be-fca90e38aaf5"
+  uuid-format-hint: "§b请确保 UUID 格式正确，例如：069a79f4-44e9-4726-a5be-fca90e38aaf5"
   
   # 指定的人格名称在 personalities.yml 中不存在
   personality-not-found: "§c未找到人格配置："
   
   # 人格不存在时显示可用列表
-  personality-list-hint: "§e可用的人格列表："
+  personality-list-hint: "§b可用的人格列表："
   
   # 插件命令执行过程中发生错误
   error: "§c发生错误："
@@ -161,13 +394,13 @@ plugins-command:
 # 以下配置控制插件输出到服务器控制台的日志文本
 # 变量: {sender}=执行者名称, {player}=目标玩家名称
 logs:
-  # /kilacraft reload 执行成功
+  # /kila reload 执行成功
   config-reloaded: "配置已由 {sender} 重载"
   
-  # /kilacraft knowledge reload 执行成功
+  # /kila knowledge reload 执行成功
   knowledge-reloaded: "知识库已由 {sender} 重载"
   
-  # /kilacraft personalities reload 执行成功
+  # /kila personalities reload 执行成功
   personalities-reloaded: "人格配置已由 {sender} 重载"
   
   # 玩家进入连续对话模式
@@ -182,14 +415,11 @@ logs:
   # 管理员清除他人的对话历史
   clear-other-logged: "{sender} 已清除玩家 {player} 的对话历史记录"
   
-  # 普通玩家尝试执行控制台专用命令 /kilacraft plugins
-  player-command-attempt: "玩家 {player} 尝试执行控制台专用命令 /kilacraft plugins"
+  # 普通玩家尝试执行控制台专用命令 /kila plugins
+  player-command-attempt: "玩家 {player} 尝试执行控制台专用命令 /kila plugins"
   
   # 玩家通过聊天触发 AI 请求时发生错误
   ai-request-error: "AI 请求发生错误："
-  
-  # 控制台通过命令触发 AI 请求时发生错误
-  console-ai-error: "控制台 AI 请求发生错误："
   
   # 第三方插件通过控制台命令触发 AI 请求时发生错误
   plugin-command-ai-error: "插件命令 AI 请求发生错误："

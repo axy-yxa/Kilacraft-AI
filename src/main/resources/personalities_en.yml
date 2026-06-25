@@ -3,7 +3,7 @@
 # ============================================================
 # 
 # The personality system allows AI to converse with players in different roles
-# Used via plugin command: /kilacraft plugins <personality_name> <message> <player_uuid> [callback_commands]
+# Used via plugin command: /kila plugins <personality_name> <message> <player_uuid> [callback_commands]
 #
 # common_prompt: Base prompt shared by all personalities
 # Other items: Personality name -> Personality-specific prompt

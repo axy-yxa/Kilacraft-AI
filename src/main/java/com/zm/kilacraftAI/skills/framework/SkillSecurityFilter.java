@@ -387,7 +387,7 @@ public class SkillSecurityFilter implements Listener {
      * 获取白名单（从 config.yml 动态配置）
      *
      * <p>白名单统一由 config.yml 的 security.player_isolation.allowed_actions 管理，
-     * 支持通过 /kilacraft reload 热更新。</p>
+     * 支持通过 /kila reload 热更新。</p>
      */
     private static Set<String> getAllowedActions() {
         KilacraftAI plugin = KilacraftAI.getInstance();

@@ -56,7 +56,7 @@ public class AFKTaskManager {
         // 检查是否已有任务
         if (hasTask(playerUUID)) {
             AFKTask existing = taskMap.get(playerUUID);
-            return SkillResult.failure(I18nService.tr("玩家已有一个正在运行的挂机任务：{}。请用自然语言告知玩家当前有任务在运行，并建议：可以使用 /kilacraft afk cancel 命令取消旧任务后再创建新的，或使用 /kilacraft afk query 查询详情。", existing.getTaskDescription()));
+            return SkillResult.failure(I18nService.tr("玩家已有一个正在运行的挂机任务：{}。请用自然语言告知玩家当前有任务在运行，并建议：可以使用 /kila afk cancel 命令取消旧任务后再创建新的，或使用 /kila afk query 查询详情。", existing.getTaskDescription()));
         }
 
         // 检查队列是否已满
@@ -78,7 +78,7 @@ public class AFKTaskManager {
         AFKTask previous = taskMap.putIfAbsent(playerUUID, task);
         if (previous != null) {
             // 极端并发：在 hasTask 检查和注册之间被其他线程抢先注册
-            return SkillResult.failure(I18nService.tr("玩家已有一个正在运行的挂机任务：{}。请用自然语言告知玩家当前有任务在运行，并建议：可以使用 /kilacraft afk cancel 命令取消旧任务后再创建新的，或使用 /kilacraft afk query 查询详情。", previous.getTaskDescription()));
+            return SkillResult.failure(I18nService.tr("玩家已有一个正在运行的挂机任务：{}。请用自然语言告知玩家当前有任务在运行，并建议：可以使用 /kila afk cancel 命令取消旧任务后再创建新的，或使用 /kila afk query 查询详情。", previous.getTaskDescription()));
         }
 
         // 原子检查总数量（防止并发创建超过 maxTasks）

@@ -126,7 +126,32 @@ public enum PluginPermissionEnum {
     /**
      * AuditLogSkill（技能执行记录查询、使用统计、失败日志）
      */
-    ADMIN_AUDIT("kilacraft.admin.audit");
+    ADMIN_AUDIT("kilacraft.admin.audit"),
+
+    /**
+     * 查询类命令自查看统一节点：查看自己的 AI 数据（用量 / 对话历史 / 画像）
+     */
+    QUERY_SELF("kilacraft.query.self"),
+
+    /**
+     * 查看任意玩家的 AI 用量统计 + 全服概览
+     */
+    USAGE_OTHER("kilacraft.usage.other"),
+
+    /**
+     * 查看任意玩家的对话历史
+     */
+    HISTORY_OTHER("kilacraft.history.other"),
+
+    /**
+     * 查看任意玩家的玩家画像 / AI 记忆
+     */
+    MEMORY_OTHER("kilacraft.memory.other"),
+
+    /**
+     * 插件运行信息与配置自检（doctor 自检 + about 版本检查），与性能健康 admin.health 区分
+     */
+    ADMIN_INFO("kilacraft.admin.info");
 
     /**
      * 权限节点

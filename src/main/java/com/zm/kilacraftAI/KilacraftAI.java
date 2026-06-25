@@ -957,7 +957,7 @@ public final class KilacraftAI extends JavaPlugin {
      * 同步守护线程状态（支持热重载）
      *
      * <p>根据当前配置（诊断模型可用性、Spark 可用性、guardian enabled、interval）动态创建、销毁或重启守护线程。</p>
-     * <p>由 {@code /kilacraft reload} 命令调用，使 admin.yml 配置变更即时生效。</p>
+     * <p>由 {@code /kila reload} 命令调用，使 admin.yml 配置变更即时生效。</p>
      */
     public void syncGuardianState() {
         if (adminConfigManager == null || databaseManager == null) {

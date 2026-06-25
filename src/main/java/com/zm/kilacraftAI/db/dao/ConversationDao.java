@@ -126,4 +126,75 @@ public class ConversationDao {
         }
         return messages;
     }
+
+    /**
+     * 统计玩家发言轮数（role='user'）。playerUuid=null 时统计全服。
+     *
+     * @param conn       数据库连接
+     * @param playerUuid 玩家 UUID，null=全服
+     * @param afterTime  起始时间戳（ms，不含）
+     * @param beforeTime 截止时间戳（ms，含）
+     * @return 返回发言轮数
+     */
+    public int countUserTurns(Connection conn, String playerUuid, long afterTime, long beforeTime) throws SQLException {
+        boolean global = playerUuid == null;
+        String sql = global ? "SELECT COUNT(*) FROM " + tablePrefix + "conversation WHERE role = ? AND created_at > ? AND created_at <= ?" : "SELECT COUNT(*) FROM " + tablePrefix + "conversation WHERE role = ? AND created_at > ? AND created_at <= ? AND player_uuid = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, "user");
+            ps.setLong(2, afterTime);
+            ps.setLong(3, beforeTime);
+            if (!global) {
+                ps.setString(4, playerUuid);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 分页查询玩家对话历史（按时间倒序，含时间戳）。
+     *
+     * @param conn       数据库连接
+     * @param playerUuid 玩家 UUID
+     * @param offset     偏移量（页码×页大小）
+     * @param limit      每页条数
+     * @return 返回历史条目列表（时间倒序）
+     */
+    public List<HistoryEntry> queryHistoryPage(Connection conn, String playerUuid, int offset, int limit) throws SQLException {
+        String sql = "SELECT role, content, created_at FROM " + tablePrefix + "conversation " + "WHERE player_uuid = ? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?";
+        List<HistoryEntry> results = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, playerUuid);
+            ps.setInt(2, limit);
+            ps.setInt(3, offset);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new HistoryEntry(rs.getString("role"), rs.getString("content"), rs.getLong("created_at")));
+                }
+            }
+        }
+        return results;
+    }
+
+    /**
+     * 统计玩家对话历史总条数（用于分页总页数）。
+     */
+    public int countByPlayer(Connection conn, String playerUuid) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM " + tablePrefix + "conversation WHERE player_uuid = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, playerUuid);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 对话历史条目（queryHistoryPage 返回值）
+     */
+    public record HistoryEntry(String role, String content, long createdAt) {
+    }
 }

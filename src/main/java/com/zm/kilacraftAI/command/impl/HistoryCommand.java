@@ -1,0 +1,117 @@
+package com.zm.kilacraftAI.command.impl;
+
+import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.command.QueryTarget;
+import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.AdminSkillUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.LanguageManager;
+import com.zm.kilacraftAI.db.DatabaseManager;
+import com.zm.kilacraftAI.db.dao.ConversationDao;
+import com.zm.kilacraftAI.i18n.I18nService;
+import org.bukkit.command.CommandSender;
+
+import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * /kila history [玩家名] [页码]：查看对话历史（双维度，query.self / history.other）。
+ * 数据源 kca_conversation，分页倒序。DB 查询在 IO 线程池执行，结果回主线程。
+ */
+public final class HistoryCommand {
+
+    private static final int PAGE_SIZE = 8;
+
+    private HistoryCommand() {
+    }
+
+    public static void handle(KilacraftAI plugin, CommandSender sender, String[] args) {
+        LanguageManager lm = plugin.getLanguageManager();
+        DatabaseManager dbManager = plugin.getDatabaseManager();
+        if (dbManager == null) {
+            sender.sendMessage(lm.getCommandHistoryNotInit());
+            return;
+        }
+
+        // args[1] 为数字 → 自己 + 页码；否则为玩家名（他人），args[2] 为页码
+        String nameArg = null;
+        String pageArg = null;
+        if (args.length >= 2) {
+            if (isNumeric(args[1])) {
+                pageArg = args[1];
+            } else {
+                nameArg = args[1];
+                if (args.length >= 3) pageArg = args[2];
+            }
+        }
+        int page = parsePage(pageArg);
+
+        QueryTarget.Resolved target = QueryTarget.resolve(sender, nameArg, PluginPermissionEnum.QUERY_SELF, PluginPermissionEnum.HISTORY_OTHER, false);
+        if (target == null) return;
+
+        FoliaCompat.getIOPool().execute(() -> {
+            try (Connection conn = dbManager.getConnection()) {
+                UUID uuid = target.uuid();
+                if (uuid == null) {
+                    uuid = QueryTarget.resolveOfflineUuid(conn, dbManager.getTablePrefix(), target.displayName());
+                    if (uuid == null) {
+                        FoliaCompat.runTask(plugin, () -> sender.sendMessage(lm.replacePlaceholders(lm.getCommandHistoryPlayerNotFound(), "player", target.displayName())));
+                        return;
+                    }
+                }
+                ConversationDao dao = new ConversationDao(dbManager.getTablePrefix());
+                int total = dao.countByPlayer(conn, uuid.toString());
+                int totalPages = Math.max(1, (total + PAGE_SIZE - 1) / PAGE_SIZE);
+                int currentPage = Math.max(1, Math.min(page, totalPages));
+                int offset = (currentPage - 1) * PAGE_SIZE;
+                List<ConversationDao.HistoryEntry> entries = dao.queryHistoryPage(conn, uuid.toString(), offset, PAGE_SIZE);
+                List<String> lines = buildLines(target.displayName(), currentPage, totalPages, entries, lm);
+                FoliaCompat.runTask(plugin, () -> lines.forEach(sender::sendMessage));
+            } catch (Exception e) {
+                PluginLoggerUtil.error("历史", I18nService.tr("查询对话历史失败: {}", e.getMessage()), e);
+                FoliaCompat.runTask(plugin, () -> sender.sendMessage(lm.getCommandHistoryQueryFailed()));
+            }
+        });
+    }
+
+    public static List<String> buildLines(String displayName, int page, int totalPages, List<ConversationDao.HistoryEntry> entries, LanguageManager lm) {
+        List<String> lines = new ArrayList<>();
+        if (entries.isEmpty()) {
+            lines.add(lm.replacePlaceholders(lm.getCommandHistoryEmpty(), "player", displayName));
+            return lines;
+        }
+        lines.add(lm.replacePlaceholders(lm.getCommandHistoryTitle(), "player", displayName, "page", String.valueOf(page), "total", String.valueOf(totalPages)));
+        for (ConversationDao.HistoryEntry e : entries) {
+            String role = "user".equals(e.role()) ? lm.getCommandHistoryRoleUser() : "§bAI";
+            String content = truncate(e.content(), 50);
+            String time = AdminSkillUtil.formatTimestamp(e.createdAt());
+            lines.add(lm.replacePlaceholders(lm.getCommandHistoryEntryLine(), "time", time, "role", role, "content", content));
+        }
+        if (totalPages > 1) {
+            lines.add(lm.replacePlaceholders(lm.getCommandHistoryPagination(), "total", String.valueOf(totalPages)));
+        }
+        return lines;
+    }
+
+    public static boolean isNumeric(String s) {
+        if (s == null || s.isEmpty()) return false;
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    public static int parsePage(String arg) {
+        return SkillsCommand.parsePage(arg);
+    }
+
+    public static String truncate(String value, int max) {
+        if (value == null) return "";
+        return value.length() > max ? value.substring(0, max) + "…" : value;
+    }
+}

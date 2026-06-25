@@ -167,6 +167,60 @@ public class SkillLogDao {
     }
 
     /**
+     * 指定玩家的技能调用分解（按 skill_name + action 分组）。
+     *
+     * @param conn       数据库连接
+     * @param playerUuid 玩家 UUID
+     * @param afterTime  起始时间戳（ms，不含）
+     * @param beforeTime 截止时间戳（ms，含）
+     * @param limit      最大条数
+     * @return 返回该玩家的技能使用统计列表
+     */
+    public List<SkillUsageStat> queryUsageByPlayer(Connection conn, String playerUuid, long afterTime, long beforeTime, int limit) throws SQLException {
+        String sql = "SELECT skill_name, action, " + "COUNT(*) AS total_count, " + "SUM(CASE WHEN success = true THEN 1 ELSE 0 END) AS success_count, " + "SUM(CASE WHEN success = false THEN 1 ELSE 0 END) AS fail_count, " + "AVG(execution_ms) AS avg_duration_ms " + "FROM " + tableName + " " + "WHERE player_uuid = ? AND created_at > ? AND created_at <= ? " + "GROUP BY skill_name, action " + "ORDER BY total_count DESC LIMIT ?";
+
+        List<SkillUsageStat> results = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, playerUuid);
+            ps.setLong(2, afterTime);
+            ps.setLong(3, beforeTime);
+            ps.setInt(4, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new SkillUsageStat(rs.getString("skill_name"), rs.getString("action"), rs.getInt("total_count"), rs.getInt("success_count"), rs.getInt("fail_count"), rs.getDouble("avg_duration_ms")));
+                }
+            }
+        }
+        return results;
+    }
+
+    /**
+     * 全服活跃玩家 Top N（按技能调用次数）。仅返回 UUID，玩家名由调用方反查。
+     *
+     * @param conn       数据库连接
+     * @param afterTime  起始时间戳（ms，不含）
+     * @param beforeTime 截止时间戳（ms，含）
+     * @param limit      最大条数
+     * @return 返回玩家调用排行（仅 UUID）
+     */
+    public List<PlayerUsageStat> queryTopPlayers(Connection conn, long afterTime, long beforeTime, int limit) throws SQLException {
+        String sql = "SELECT player_uuid, " + "COUNT(*) AS total_count, " + "SUM(CASE WHEN success = true THEN 1 ELSE 0 END) AS success_count " + "FROM " + tableName + " " + "WHERE created_at > ? AND created_at <= ? " + "GROUP BY player_uuid " + "ORDER BY total_count DESC LIMIT ?";
+
+        List<PlayerUsageStat> results = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, afterTime);
+            ps.setLong(2, beforeTime);
+            ps.setInt(3, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new PlayerUsageStat(rs.getString("player_uuid"), rs.getInt("total_count"), rs.getInt("success_count")));
+                }
+            }
+        }
+        return results;
+    }
+
+    /**
      * 失败执行日志（error_logs Action）
      *
      * @param conn       数据库连接
@@ -218,5 +272,11 @@ public class SkillLogDao {
      */
     public record SkillUsageStat(String skillName, String action, int totalCount, int successCount, int failCount,
                                  double avgDurationMs) {
+    }
+
+    /**
+     * 玩家调用统计（queryTopPlayers 返回值，仅含 UUID，名字由调用方反查）
+     */
+    public record PlayerUsageStat(String playerUuid, int totalCount, int successCount) {
     }
 }

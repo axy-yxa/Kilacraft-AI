@@ -155,7 +155,7 @@ public class AFKTaskSkill implements Skill {
         // 检查是否已存在任务
         if (manager.hasTask(player.getUniqueId())) {
             AFKTask existingTask = manager.getTask(player.getUniqueId());
-            return SkillResult.failure(I18nService.tr("玩家已有一个正在运行的挂机任务（{}）。请用自然语言告知玩家当前有任务在运行，并建议使用 /kilacraft afk cancel 取消旧任务后再创建新的", existingTask.getTaskDescription()));
+            return SkillResult.failure(I18nService.tr("玩家已有一个正在运行的挂机任务（{}）。请用自然语言告知玩家当前有任务在运行，并建议使用 /kila afk cancel 取消旧任务后再创建新的", existingTask.getTaskDescription()));
         }
 
         // 目标在线/离线合理性检查

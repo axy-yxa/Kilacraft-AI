@@ -209,7 +209,7 @@ public class ServerHealthGuardian implements ManagedTask {
     }
 
     /**
-     * 启动手动分析（由 /kilacraft profile start 采样完成后自动调用）
+     * 启动手动分析（由 /kila profile start 采样完成后自动调用）
      *
      * <p>在 IO 线程池中异步执行，避免阻塞命令线程。</p>
      *

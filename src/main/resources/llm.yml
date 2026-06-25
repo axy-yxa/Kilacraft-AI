@@ -1,6 +1,6 @@
 # ==================== Kilacraft-AI LLM 与 Agent 配置 / LLM & Agent Configuration ====================
-# 独立配置文件，修改后执行 /kilacraft reload 即时生效（除标注不可热重载的项外）
-# Standalone config file, run /kilacraft reload to apply changes (except items marked as non-hot-reloadable)
+# 独立配置文件，修改后执行 /kila reload 即时生效（除标注不可热重载的项外）
+# Standalone config file, run /kila reload to apply changes (except items marked as non-hot-reloadable)
 
 llm:
   # LLM API 配置（通用，支持所有 OpenAI 标准格式的厂商）
@@ -102,12 +102,12 @@ agent:
   # false: Goes directly to normal AI conversation when triggered by keywords
   enable_chat_listener: true
   
-  # KilacraftCommand 入口是否启用 Agent 能力（/kilacraft 命令）
-  # true: 玩家使用/kilacraft 命令时，会先进行意图识别
-  # false: 玩家使用/kilacraft 命令时，直接进入普通 AI 对话
-  # Whether to enable Agent capability for KilacraftCommand entry (/kilacraft command)
-  # true: Intent recognition is performed first when using /kilacraft command
-  # false: Goes directly to normal AI conversation when using /kilacraft command
+  # KilacraftCommand 入口是否启用 Agent 能力（/kila 命令）
+  # true: 玩家使用/kila 命令时，会先进行意图识别
+  # false: 玩家使用/kila 命令时，直接进入普通 AI 对话
+  # Whether to enable Agent capability for KilacraftCommand entry (/kila command)
+  # true: Intent recognition is performed first when using /kila command
+  # false: Goes directly to normal AI conversation when using /kila command
   enable_command: true
   
   # 意图识别时的历史对话上下文数量(轮数)

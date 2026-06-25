@@ -41,7 +41,7 @@ public class ConversationManager {
     /**
      * 已执行 clear 的玩家集合（一次性消耗标记）
      * <p>
-     * 玩家执行 /ai clear 后加入此集合，阻止 {@link com.zm.kilacraftAI.db.service.ConversationPersistenceService#loadHistoryIfNeeded}
+     * 玩家执行 /kila clear 后加入此集合，阻止 {@link com.zm.kilacraftAI.db.service.ConversationPersistenceService#loadHistoryIfNeeded}
      * 从 DB 加载旧历史。标记在下次 loadHistoryIfNeeded 时一次性消耗（移除），
      * 在玩家下线时也会被清理。
      * </p>

@@ -109,7 +109,7 @@ public class AIRequestHandler {
     private void handleAIRequestInternal(String message, RequestContext ctx, boolean enableAgent) {
         // 校验 API Key 是否已配置
         if (!plugin.getConfigManager().isApiKeyConfigured()) {
-            String hint = I18nService.tr("§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/llm.yml 中的 llm.api_key 后重启服务器或执行 /kilacraft reload");
+            String hint = I18nService.tr("§c[AI请求] API Key 未配置！请编辑 plugins/Kilacraft-AI/llm.yml 中的 llm.api_key 后重启服务器或执行 /kila reload");
             ctx.sendError.accept(hint);
             PluginLoggerUtil.warn("AI请求", "拒绝请求：API Key 未配置");
             return;

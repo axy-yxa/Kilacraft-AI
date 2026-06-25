@@ -9,11 +9,11 @@ settings:
   # 插件语言设置
   # zh = 中文，en = English
   # 影响范围：日志输出、技能消息、LLM提示词、AFK任务通知等
-  # 修改后执行 /kilacraft reload 即时生效
+  # 修改后执行 /kila reload 即时生效
   # Plugin language setting
   # zh = Chinese, en = English
   # Scope: log output, skill messages, LLM prompts, AFK task notifications, etc.
-  # Run /kilacraft reload to apply changes immediately
+  # Run /kila reload to apply changes immediately
   language: zh
 
   # 是否在控制台显示API请求日志
@@ -35,11 +35,11 @@ settings:
   metrics: true
 
   # 是否启用聊天命令模式
-  # true: 可以使用/kilacraft chat进入对话模式
-  # false: 禁用聊天模式，只能用/kilacraft命令
+  # true: 可以使用/kila chat进入对话模式
+  # false: 禁用聊天模式，只能用/kila命令
   # Whether to enable chat command mode
-  # true: Use /kilacraft chat to enter conversation mode
-  # false: Disable chat mode, only /kilacraft command available
+  # true: Use /kila chat to enter conversation mode
+  # false: Disable chat mode, only /kila command available
   enable_chat_command: true
 
   # 是否启用关键词触发
@@ -71,10 +71,10 @@ settings:
   cooldown_seconds: 5
 
   # 插件命令专用冷却时间（秒）
-  # 仅针对 /kilacraft plugins 命令生效
+  # 仅针对 /kila plugins 命令生效
   # 设置为 0 可禁用冷却，-1 表示与普通命令共用冷却时间
   # Plugin command-specific cooldown (seconds)
-  # Only applies to /kilacraft plugins command
+  # Only applies to /kila plugins command
   # Set to 0 to disable, -1 to share cooldown with normal commands
   plugins_cooldown_seconds: 3
 
@@ -208,10 +208,10 @@ security:
     enabled: true
     # 允许操作其他玩家的Skill动作白名单（服主可自行添加SPI Skill）
     # 格式：技能名.动作名（精确匹配）或 技能名（技能级白名单）
-    # 修改后执行 /kilacraft reload 即可生效，无需重启服务器
+    # 修改后执行 /kila reload 即可生效，无需重启服务器
     # Whitelist of Skill actions allowed to operate on other players (server owners can add SPI Skills)
     # Format: skill_name.action_name (exact match) or skill_name (skill-level whitelist)
-    # Run /kilacraft reload to apply changes, no server restart required
+    # Run /kila reload to apply changes, no server restart required
     allowed_actions:
       - "cmi.send_tp_request"        # TPA传送请求：target_player是传送目的地 / TPA request: target_player is the teleport destination
       - "market_query.query_seller_items" # 市场查询：查看指定卖家在售商品（公开市场信息） / Market query: view a specific seller's listed items (public market info)
@@ -267,10 +267,10 @@ pending_resume:
 social:
   # 参与社交关系计算的 Skill 白名单
   # 填写 Skill 的 getName() 返回值（区分大小写）
-  # 新增 SPI Skill 后在此处添加即可，修改后执行 /kilacraft reload 生效
+  # 新增 SPI Skill 后在此处添加即可，修改后执行 /kila reload 生效
   # Skill whitelist for social relation calculation
   # Use the exact value returned by Skill.getName() (case-sensitive)
-  # Add new SPI Skills here, run /kilacraft reload to apply
+  # Add new SPI Skills here, run /kila reload to apply
   skill_whitelist:
     - "market_action"    # 市场操作（转账等涉及其他玩家的交易） / Market operations (transactions involving other players such as transfers)
     - "cmi"              # CMI 操作（TPA 传送请求等） / CMI operation (TPA transmission request, etc.)

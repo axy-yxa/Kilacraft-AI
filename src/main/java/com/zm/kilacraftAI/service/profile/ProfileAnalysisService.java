@@ -182,7 +182,7 @@ public class ProfileAnalysisService {
     }
 
     /**
-     * 热重载配置（由 /kilacraft reload 触发）
+     * 热重载配置（由 /kila reload 触发）
      *
      * <p>重建 ConversationDao 以反映最新的表前缀。</p>
      * <p>其他 profile.* 配置（间隔天数、触发阈值、超时、提示词）均通过

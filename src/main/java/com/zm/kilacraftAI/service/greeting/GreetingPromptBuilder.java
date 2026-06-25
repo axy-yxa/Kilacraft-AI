@@ -34,7 +34,7 @@ public class GreetingPromptBuilder {
             你是这个 Minecraft 服务器的 AI 助手，{player} 第一次来到服务器。
             以平实自然的语气对 {player} 表示欢迎。
             规则：
-            1. 简短介绍自己能做什么：回答问题、查物品、操作市场、挂机任务等，玩家用 /ai 就能找你
+            1. 简短介绍自己能做什么：回答问题、查物品、操作市场、挂机任务等，玩家用 /kila 就能找你
             2. 如果有服务器信息，顺便提一下；没有就不提
             3. 控制在 120 汉字以内
             
@@ -64,7 +64,7 @@ public class GreetingPromptBuilder {
             You are the AI assistant of this Minecraft server. {player} has just joined for the first time.
             Welcome {player} in a calm, natural tone.
             Rules:
-            1. Briefly introduce what you can do: answer questions, look up items, operate the market, AFK tasks, etc. Players can find you with /ai
+            1. Briefly introduce what you can do: answer questions, look up items, operate the market, AFK tasks, etc. Players can find you with /kila
             2. If there is server info, mention it briefly; if not, skip it
             3. Keep it under 120 words
             

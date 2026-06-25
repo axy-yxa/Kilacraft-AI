@@ -16,7 +16,7 @@ import java.util.List;
  * <h3>如果你的Skill需要操作其他玩家（白名单）</h3>
  * <p>少数合理场景（如TPA传送）需要target_player指向其他玩家,</p>
  * <p>需要服主在 config.yml 的 security.player_isolation.allowed_actions 中添加白名单条目,</p>
- * <p>格式为 "技能名.动作名" 或 "技能名"，然后执行 /kilacraft reload 生效。</p>
+ * <p>格式为 "技能名.动作名" 或 "技能名"，然后执行 /kila reload 生效。</p>
  *
  * <h3>接入步骤：</h3>
  * <ol>

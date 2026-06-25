@@ -1,7 +1,7 @@
 # 插件名称 / Plugin Name
-name: Kilacraft-AI
+name: ${project.name}
 # 插件版本号 / Plugin version number
-version: '2.1.2'
+version: '${project.version}'
 # 主类路径 / Main class path
 main: com.zm.kilacraftAI.KilacraftAI
 # Bukkit API 版本 / Bukkit API version
@@ -11,7 +11,7 @@ folia-supported: true
 # 作者 / author
 author: Zm_Mmm
 # 描述 / description
-description: "每个服务器都拥有「越用越懂你」的AI智能体插件"
+description: ${project.description}
 # 加载时机 / Loading timing
 load: POSTWORLD
 # 软依赖列表 / Soft Dependency List
@@ -51,6 +51,20 @@ permissions:
     default: true              # 所有玩家可用 / available to all players
   kilacraft.tasks:
     description: 允许查看定时任务运行状态
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+
+  # 查询类命令权限（用量 / 对话历史 / 画像） / Query command permissions (usage / history / profile)
+  kilacraft.query.self:
+    description: 查看自己的 AI 数据（用量 / 对话历史 / 画像）
+    default: true              # 所有玩家可用 / available to all players
+  kilacraft.usage.other:
+    description: 查看任意玩家的 AI 用量统计及全服概览
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+  kilacraft.history.other:
+    description: 查看任意玩家的对话历史
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+  kilacraft.memory.other:
+    description: 查看任意玩家的玩家画像 / AI 记忆
     default: op                # 仅 OP 拥有此权限 / Only OP has this permission
 
   # Bukkit API 技能权限（按功能类别分组）
@@ -149,6 +163,9 @@ permissions:
   kilacraft.admin.audit:
     description: 技能执行审计日志查询（执行记录、使用统计、失败日志）
     default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+  kilacraft.admin.info:
+    description: 插件运行信息与配置自检（/kila doctor 自检、/kila about 版本检查）
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
   kilacraft.admin.*:
     description: 允许使用所有管理员功能（包含以上全部）
     default: op
@@ -156,3 +173,4 @@ permissions:
       kilacraft.admin.health: true
       kilacraft.admin.player: true
       kilacraft.admin.audit: true
+      kilacraft.admin.info: true

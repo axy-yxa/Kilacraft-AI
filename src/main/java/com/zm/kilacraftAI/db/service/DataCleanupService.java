@@ -62,7 +62,7 @@ public class DataCleanupService {
     }
 
     /**
-     * 热重载配置（由 /kilacraft reload 触发）
+     * 热重载配置（由 /kila reload 触发）
      *
      * <p>更新可热重载的配置项：事件保留天数、审计日志保留天数、表前缀（DAO 重建）。</p>
      *

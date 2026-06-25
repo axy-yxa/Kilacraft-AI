@@ -1,5 +1,5 @@
 # ==================== AI Login Greeting Configuration (English) ====================
-# Standalone config file, run /kilacraft reload to apply changes
+# Standalone config file, run /kila reload to apply changes
 
 greeting:
   # Whether to enable AI login greeting
@@ -14,7 +14,7 @@ greeting:
     You are the AI assistant of this Minecraft server. {player} has just joined for the first time.
     Welcome {player} in a calm, natural tone.
     Rules:
-    1. Briefly introduce what you can do: answer questions, look up items, operate the market, AFK tasks, etc. Players can find you with /ai
+    1. Briefly introduce what you can do: answer questions, look up items, operate the market, AFK tasks, etc. Players can find you with /kila
     2. If there is server info, mention it briefly; if not, skip it
     3. Keep it under 120 words
     

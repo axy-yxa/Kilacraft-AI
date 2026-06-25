@@ -140,7 +140,7 @@ public class AuditLogSkill implements Skill {
                 for (SkillLogDao.SkillLogEntry entry : logs) {
                     String pName = AdminSkillUtil.resolvePlayerName(entry.playerUuid(), conn, nameCache);
                     String timeStr = AdminSkillUtil.formatTimestamp(entry.createdAt());
-                    msg.append("\n  - ").append(timeStr).append(" ").append(pName).append(" ").append(entry.skillName()).append("/").append(entry.action()).append(entry.success() ? I18nService.tr(" 成功") : I18nService.tr(" 失败")).append(" (").append(entry.executionMs()).append("ms)");
+                    msg.append("\n  - ").append(timeStr).append(" ").append(pName).append(" ").append(entry.skillName()).append("/").append(entry.action()).append(entry.success() ? " " + I18nService.tr("成功") : " " + I18nService.tr("失败")).append(" (").append(entry.executionMs()).append("ms)");
                 }
 
                 return SkillResult.success(msg.toString(), data);

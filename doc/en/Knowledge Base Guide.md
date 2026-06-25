@@ -1174,6 +1174,37 @@ This translates the retrieval system's concrete behavior into "what to do when w
 
 ---
 
+## 🎬 Scenario Example: Let the AI Execute Custom Commands (commandSkill)
+
+When your server has custom commands (provided by Essentials/CMI etc., such as `/back`, `/home`, `/spawn`, `/tpa`, `/menu`) and you want players to trigger them with natural language, write those commands into the knowledge base and use the commandSkill (enable `command_skill.enabled: true` in `config.yml`).
+
+**Flow**: player speaks → Phase 2 intent recognition [retrieves the knowledge base] → hits commandSkill + extracts the `command` parameter → runs as the player. The knowledge base's job is to teach the Phase 2 LLM the commands and produce the correct `command` (no `/`). commandSkill is a **fallback skill** — don't write in requests a dedicated skill (economy/market) already covers.
+
+The full example, design notes, and checklist are in the standalone document **"CommandSkill Knowledge Base Example.md"**. Core writing:
+
+````markdown
+# Server Custom Commands
+
+## Return to death point / go back to where you were (/back)
+`/back` takes you back to your last position — usually where you died and dropped items. 30-second cooldown; cannot be used in combat.
+Q: I died, how do I go back for my stuff / can I get my dropped items back / take me back to where I was
+AI executes: back
+
+## Go to your home (/home)
+`/home` teleports you to your set home. If you have multiple homes, append the home name, e.g. `/home main-base`.
+Q: go home / take me to my base / go to my home called main-base
+AI executes: home (or `home main-base` when a name is given)
+````
+
+**Key points**:
+- Write commands in full as `/back` → triggers **corpus seeding** (`back` enters the HanLP dictionary) + long-word weighting (×3)
+- Headings stack **Chinese synonyms** (回家/返回/死亡点) → the main driver of Chinese recall; it's what players hit when speaking Chinese, and corpus seeding can't help here
+- Each entry has a `Q:` with player phrasings + an `AI executes: xxx` stating the command value (no `/`)
+- Always give a concrete example for parameterized commands (e.g. `AI executes: tpa Steve`)
+- Only server custom commands — not requests a dedicated skill already covers
+
+---
+
 ## 📚 Related Documentation
 
 - [Server Owner Guide](./Server%20Owner%20Guide) - Complete configuration, troubleshooting

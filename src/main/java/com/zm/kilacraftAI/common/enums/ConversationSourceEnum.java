@@ -13,8 +13,8 @@ import lombok.Getter;
  *
  * <ul>
  *     <li>{@link #CHAT} — 连续对话模式 / 关键词触发</li>
- *     <li>{@link #COMMAND} — /kilacraft 命令触发</li>
- *     <li>{@link #PLUGIN} — 插件命令 /kilacraft plugins（带人格隔离）</li>
+ *     <li>{@link #COMMAND} — /kila 命令触发</li>
+ *     <li>{@link #PLUGIN} — 插件命令 /kila plugins（带人格隔离）</li>
  *     <li>{@link #CONSOLE} — 控制台对话（不持久化）</li>
  *     <li>{@link #GREETING} — 登录问候（Phase 4，仅写 DB 不加载到内存）</li>
  *     <li>{@link #AFK_CALLBACK} — 挂机任务回调（仅写 DB 不加载到内存）</li>
@@ -31,12 +31,12 @@ public enum ConversationSourceEnum {
     CHAT("chat"),
 
     /**
-     * 命令触发（/kilacraft 消息）
+     * 命令触发（/kila 消息）
      */
     COMMAND("command"),
 
     /**
-     * 插件命令（/kilacraft plugins 人格，带人格隔离）
+     * 插件命令（/kila plugins 人格，带人格隔离）
      */
     PLUGIN("plugin"),
 

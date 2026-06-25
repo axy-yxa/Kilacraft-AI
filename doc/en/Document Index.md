@@ -1,6 +1,6 @@
 # Kilacraft-AI Document Index
 
-> **Last Updated**: 2026-05-27  
+> **Last Updated**: 2026-06-25  
 > **Description**: Quick index of all Kilacraft-AI documentation to help you find what you need
 
 ---
@@ -31,6 +31,8 @@
 | [Bukkit Event Listener Reference](./Bukkit%20Event%20Listener%20Reference) | Event listener architecture, registration mechanism, async processing | Developers |
 | [Personality System Guide](./Personality%20System%20Guide) | Multi-personality management, prompt writing, style configuration | Server Owners, Advanced Users |
 | [Knowledge Base Guide](./Knowledge%20Base%20Guide) | RAG principles, document writing standards, retrieval optimization | Server Owners, Content Creators |
+| [Knowledge Base File Template](./Knowledge%20Base%20File%20Template) | General knowledge-base template, 7 writing rules, a copy-ready working sample | Server Owners, Content Creators |
+| [CommandSkill Knowledge Base Example](./CommandSkill%20Knowledge%20Base%20Example) | Writing knowledge-base entries so the AI executes custom commands, with a full example and checklist | Server Owners, Content Creators |
 | [Intent Recognition Prompt Configuration Guide](./Intent%20Recognition%20Prompt%20Configuration%20Guide) | Intent recognition system config, decision rules, constraint rules | Server Owners, Developers |
 | [System Architecture Details](./System%20Architecture%20Details) | Call chains and design philosophy of three interaction modes | Developers, Technical Personnel |
 | [AFK Task System Guide](./AFK%20Task%20System%20Guide) | AFK task architecture, 20 task types, configuration & best practices | Server Owners, Developers |

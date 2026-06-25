@@ -10,7 +10,7 @@
     <packaging>jar</packaging>
 
     <name>Kilacraft-AI</name>
-    <description>一款强大的 Minecraft AI Agent 插件。</description>
+    <description>「越用越懂你」的 Minecraft AI 智能体 | An AI agent that grows smarter with every conversation</description>
 
     <properties>
         <!-- 主版本：Java 17 -->
@@ -98,9 +98,10 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
-                    <!-- forked JVM 超时兜底：任何测试卡死时自动失败并打出线程转储，
-                         而非永久挂起等待手动 kill -->
+                    <!-- forked JVM 超时兜底 -->
                     <forkedProcessTimeoutInSeconds>180</forkedProcessTimeoutInSeconds>
+                    <!-- @{argLine} 接入 JaCoCo 覆盖率 agent（JDK 21 默认禁用） -->
+                    <argLine>@{argLine} -Djdk.attach.allowAttachSelf=true</argLine>
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
@@ -172,7 +173,7 @@
             <id>spigotmc-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
-        
+
         <!-- MythicMobs Repository -->
         <repository>
             <id>nexus</id>
@@ -308,7 +309,7 @@
             <version>8.4.0</version>
             <scope>provided</scope>
         </dependency>
-        
+
         <!-- MythicMobs Dependency (Provided) - 本地 JAR -->
         <dependency>
             <groupId>io.lumine</groupId>
@@ -317,7 +318,7 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/MythicMobs-5.12.0-5765.jar</systemPath>
         </dependency>
-        
+
         <!-- GlobalMarketPlus Dependency (Provided) - 本地 JAR -->
         <dependency>
             <groupId>com.gmp</groupId>

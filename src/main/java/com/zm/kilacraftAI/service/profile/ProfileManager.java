@@ -53,7 +53,7 @@ public class ProfileManager {
     }
 
     /**
-     * 热重载配置（由 /kilacraft reload 触发）
+     * 热重载配置（由 /kila reload 触发）
      *
      * <p>重建 DAO 以反映最新的表前缀。</p>
      * <p>其他配置（保留天数、分析间隔等）均通过

@@ -1,6 +1,6 @@
 # ==================== AI 响应输出管线配置 / AI Response Output Pipeline Configuration ====================
-# 独立配置文件，修改后执行 /kilacraft reload 即时生效
-# Standalone config file, run /kilacraft reload to apply changes
+# 独立配置文件，修改后执行 /kila reload 即时生效
+# Standalone config file, run /kila reload to apply changes
 
 # 说明：统一控制所有 AI 回复的输出载体（聊天栏/ActionBar/BossBar/Title/Sidebar）
 # 默认使用 CHAT，可按场景精细化配置

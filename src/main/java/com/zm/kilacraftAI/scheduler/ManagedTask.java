@@ -60,7 +60,7 @@ public interface ManagedTask {
     /**
      * 格式化累计统计展示文本
      *
-     * <p>用于 {@code /ai tasks} 状态展示。默认 "累计 x 条"，
+     * <p>用于 {@code /kila tasks} 状态展示。默认 "累计 x 条"，
      * 非数据操作类任务（如健康监控）可覆写为其他格式（如 "触发 x 次"）。</p>
      *
      * @param totalProcessed 累计处理数

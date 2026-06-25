@@ -5,16 +5,12 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.common.util.HistoryUtil;
-import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
-import com.zm.kilacraftAI.common.util.LogSnippetUtil;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.common.util.*;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
-import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.resume.PendingAction;
 import com.zm.kilacraftAI.skills.framework.resume.PendingResume;
@@ -46,12 +42,7 @@ public class SkillIntentRecognizer {
     private String buildPhase1SkillDescription(Player caller) {
         StringBuilder sb = new StringBuilder();
         int index = 1;
-        for (Skill skill : skillManager.getAllSkills()) {
-            // 权限预检
-            String requiredPermission = skill.getRequiredPermission();
-            if (requiredPermission != null && caller != null && !caller.hasPermission(requiredPermission)) {
-                continue;
-            }
+        for (Skill skill : skillManager.getAvailableSkills(caller)) {
             sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
         }
         return sb.toString();
@@ -67,17 +58,9 @@ public class SkillIntentRecognizer {
     private String buildPhase2SkillDescription(Player caller, Set<String> selectedSkillNames) {
         StringBuilder sb = new StringBuilder();
         int index = 1;
-        int skippedCount = 0;
-        for (Skill skill : skillManager.getAllSkills()) {
-            // 过滤非选中 Skill
+        // getAvailableSkills 已做权限预检，此处仅按选中集合过滤
+        for (Skill skill : skillManager.getAvailableSkills(caller)) {
             if (!selectedSkillNames.contains(skill.getName())) continue;
-
-            // 权限预检
-            String requiredPermission = skill.getRequiredPermission();
-            if (requiredPermission != null && caller != null && !caller.hasPermission(requiredPermission)) {
-                skippedCount++;
-                continue;
-            }
 
             sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
 
@@ -96,10 +79,6 @@ public class SkillIntentRecognizer {
             }
         }
 
-        if (skippedCount > 0) {
-            PluginLoggerUtil.debug("意图识别", "Phase 2 权限预检过滤：跳过了 {} 个无权限的 Skill", skippedCount);
-        }
-
         return sb.toString();
     }
 
@@ -108,9 +87,7 @@ public class SkillIntentRecognizer {
      */
     private Set<String> getAllSkillNames(Player caller) {
         Set<String> names = new HashSet<>();
-        for (Skill skill : skillManager.getAllSkills()) {
-            String perm = skill.getRequiredPermission();
-            if (perm != null && caller != null && !caller.hasPermission(perm)) continue;
+        for (Skill skill : skillManager.getAvailableSkills(caller)) {
             names.add(skill.getName());
         }
         return names;
@@ -210,39 +187,8 @@ public class SkillIntentRecognizer {
         // 构建用户提示词
         String userPrompt = buildUserPrompt(userInput, history, playerName);
 
-        // 使用空的 Handler（意图识别不显示任何响应给玩家）
-        AIResponseHandler handler = new AIResponseHandler() {
-            @Override
-            public UUID getPlayerId() {
-                return null;
-            }
-
-            @Override
-            public String getPlayerName() {
-                return "IntentRecognizer";
-            }
-
-            @Override
-            public void showResponse(String response) {
-                // 意图识别场景：仅 debug 日志
-                PluginLoggerUtil.debug("意图识别", "意图识别结果: {}", response);
-            }
-
-            @Override
-            public void showStreamChunk(String chunk, String currentMessage) {
-                // 不需要流式输出
-            }
-
-            @Override
-            public void handleError(String errorMessage) {
-                PluginLoggerUtil.debug("意图识别", "意图识别错误: {}", errorMessage);
-            }
-
-            @Override
-            public boolean isStreamOutputEnabled() {
-                return false;
-            }
-        };
+        // 静默 Handler：意图识别不向玩家输出
+        AIResponseHandler handler = buildSilentHandler("意图识别");
 
         // === Phase 1：Skill 分类（关闭知识检索） ===
         String phase1Skills = buildPhase1SkillDescription(caller);
@@ -285,6 +231,99 @@ public class SkillIntentRecognizer {
     }
 
     /**
+     * 构建静默响应处理器：后台 LLM 调用（意图识别等）专用，不向玩家输出，仅 debug 日志。
+     * logLabel 日志标识（同时作为 getPlayerName 返回值），返回静默处理器。
+     */
+    private AIResponseHandler buildSilentHandler(String logLabel) {
+        return new AIResponseHandler() {
+            @Override
+            public UUID getPlayerId() {
+                return null;
+            }
+
+            @Override
+            public String getPlayerName() {
+                return logLabel;
+            }
+
+            @Override
+            public void showResponse(String response) {
+                PluginLoggerUtil.debug("意图识别", "{} 结果: {}", logLabel, response);
+            }
+
+            @Override
+            public void showStreamChunk(String chunk, String currentMessage) {
+            }
+
+            @Override
+            public void handleError(String errorMessage) {
+                PluginLoggerUtil.debug("意图识别", "{} 错误: {}", logLabel, errorMessage);
+            }
+
+            @Override
+            public boolean isStreamOutputEnabled() {
+                return false;
+            }
+        };
+    }
+
+    /**
+     * 强制技能意图识别：跳过 Phase1 分类，对指定技能跑 Phase2（动作选择 + 参数提取）。
+     * 用于 /kila run 命令——玩家显式指定技能，绕过 Phase1 的不确定性。
+     * 仅当目标技能在调用者的可用集合内时执行，与 /kila skills 列举、聊天触发同源。
+     * 返回 SkillIntent（单意图，置信度置 1.0）或 TaskPlan（多步骤）。Phase2 提示词只暴露
+     * 强制技能，产生的步骤必属该技能，由调用方交 TaskExecutor 执行。
+     * userInput       玩家输入（参数提取来源）
+     * history         对话历史（可选，用于上下文理解）
+     * playerName      玩家名（提示词注入）
+     * caller          调用者
+     * forcedSkillName 强制的技能名
+     * 返回 SkillIntent / TaskPlan；技能不存在/无权限/LLM 不可用/解析失败返回 null。
+     */
+    public CompletableFuture<Object> recognizeForcedSkill(String userInput, Deque<ConversationManager.Message> history, String playerName, Player caller, String forcedSkillName) {
+        if (configManager == null || forcedSkillName == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        // 校验技能在调用者可用集合内（与 skills 列举/聊天触发同源）
+        boolean permitted = false;
+        for (Skill skill : skillManager.getAvailableSkills(caller)) {
+            if (forcedSkillName.equals(skill.getName())) {
+                permitted = true;
+                break;
+            }
+        }
+        if (!permitted) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        LLMProvider llmProvider = plugin.getLlmManager().getCurrentProvider();
+        if (llmProvider == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        String userPrompt = buildUserPrompt(userInput, history, playerName);
+        Set<String> selected = Set.of(forcedSkillName);
+        String phase2Skills = buildPhase2SkillDescription(caller, selected);
+        String phase2SystemPrompt = promptConfigManager.buildSystemPrompt(phase2Skills, selected);
+
+        PluginLoggerUtil.debug("意图识别", "强制技能 Phase 2 开始：{}", forcedSkillName);
+
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, buildSilentHandler("强制技能识别"), phase2SystemPrompt, true, false, true).thenApply(response -> {
+            Object parsed = parseIntentFromResponse(response);
+            if (parsed instanceof SkillIntent intent && forcedSkillName.equals(intent.getSkillName())) {
+                // 玩家显式指定技能：置信度置 1.0 通过 isValid 校验，绕过 Phase1 不确定性
+                return new SkillIntent(intent.getSkillName(), intent.getAction(), intent.getEntities(), 1.0, userInput);
+            }
+            if (parsed instanceof TaskPlan taskPlan) {
+                // 多步骤任务：Phase2 提示词仅暴露强制技能，产生的步骤必属该技能，直接交调用方走 TaskExecutor
+                return taskPlan;
+            }
+            PluginLoggerUtil.debug("意图识别", "强制技能 {} Phase 2 未返回有效意图", forcedSkillName);
+            return null;
+        });
+    }
+
+    /**
      * 待确认续体恢复分类。先做关键词短路（免 LLM），命中确认/取消直接返回；
      * 歧义或补值回复走单次 LLM 分类。返回 null 表示与待确认操作无关，由调用方落回正常意图识别。
      *
@@ -308,36 +347,7 @@ public class SkillIntentRecognizer {
         }
 
         String systemPrompt = promptConfigManager.buildPendingClassifyPrompt(slot.getSkillName(), slot.getAction(), slot.getMessage());
-        AIResponseHandler handler = new AIResponseHandler() {
-            @Override
-            public UUID getPlayerId() {
-                return null;
-            }
-
-            @Override
-            public String getPlayerName() {
-                return "PendingClassify";
-            }
-
-            @Override
-            public void showResponse(String response) {
-                PluginLoggerUtil.debug("意图识别", "待确认续体分类结果: {}", response);
-            }
-
-            @Override
-            public void showStreamChunk(String chunk, String currentMessage) {
-            }
-
-            @Override
-            public void handleError(String errorMessage) {
-                PluginLoggerUtil.debug("意图识别", "待确认续体分类错误: {}", errorMessage);
-            }
-
-            @Override
-            public boolean isStreamOutputEnabled() {
-                return false;
-            }
-        };
+        AIResponseHandler handler = buildSilentHandler("待确认续体分类");
 
         PluginLoggerUtil.debug("意图识别", "待确认续体分类开始：{}.{}", slot.getSkillName(), slot.getAction());
 

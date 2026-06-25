@@ -60,11 +60,11 @@ public class UpdateChecker {
     }
 
     /**
-     * 同步请求发布源（按语言选择 Gitee / GitHub）获取最新版本信息
-     *
-     * @return 最新版本信息，请求失败时返回 null
+     * 同步请求发布源（按语言选择 Gitee/GitHub）获取最新版本信息。
+     * 阻塞网络调用，调用方须在 IO 线程池中执行。请求失败时返回 null。
+     * 返回最新版本信息，请求失败时返回 null。
      */
-    private ReleaseInfo fetchLatestRelease() {
+    public ReleaseInfo fetchLatestRelease() {
         // 按语言环境选择发布源：中文环境（国内服务器居多）走 Gitee，其他环境走 GitHub
         ReleaseSource source = I18nService.isZh() ? ReleaseSource.GITEE : ReleaseSource.GITHUB;
         HttpURLConnection conn = null;
@@ -162,7 +162,7 @@ public class UpdateChecker {
      * @param latest  远程最新版本
      * @return true 表示有新版本可用
      */
-    static boolean isNewerVersion(String current, String latest) {
+    public static boolean isNewerVersion(String current, String latest) {
         String c = stripPrefix(current);
         String l = stripPrefix(latest);
 
@@ -363,7 +363,7 @@ public class UpdateChecker {
     /**
      * 版本信息（来源无关）
      */
-    private record ReleaseInfo(String tagName, String name, String htmlUrl, String publishedAt) {
+    public record ReleaseInfo(String tagName, String name, String htmlUrl, String publishedAt) {
     }
 
     /**

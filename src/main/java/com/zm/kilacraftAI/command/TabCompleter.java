@@ -1,8 +1,13 @@
 package com.zm.kilacraftAI.command;
 
+import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillManager;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -59,6 +64,25 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             if (PluginPermissionEnum.ADMIN_HEALTH.hasPermission(sender)) {
                 completions.add("profile");
                 completions.add("notify");
+            }
+
+            // 查询类命令（自查看或对应 other 权限）
+            if (PluginPermissionEnum.QUERY_SELF.hasPermission(sender) || PluginPermissionEnum.USAGE_OTHER.hasPermission(sender)) {
+                completions.add("usage");
+            }
+            if (PluginPermissionEnum.QUERY_SELF.hasPermission(sender) || PluginPermissionEnum.HISTORY_OTHER.hasPermission(sender)) {
+                completions.add("history");
+            }
+            if (PluginPermissionEnum.QUERY_SELF.hasPermission(sender) || PluginPermissionEnum.MEMORY_OTHER.hasPermission(sender)) {
+                completions.add("memory");
+            }
+            // 全体可用
+            completions.add("skills");
+            completions.add("run");
+            // 管理员信息命令
+            if (PluginPermissionEnum.ADMIN_INFO.hasPermission(sender)) {
+                completions.add("doctor");
+                completions.add("about");
             }
 
             return getCompletions(args[0], completions);
@@ -130,6 +154,36 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             completions.add("90");
             completions.add("120");
             return getCompletions(args[2], completions);
+        }
+
+        if (args.length == 2 && "usage".equals(args[0])) {
+            List<String> completions = new ArrayList<>();
+            completions.add("all");
+            completions.add("7d");
+            completions.add("1d");
+            completions.add("30d");
+            if (PluginPermissionEnum.USAGE_OTHER.hasPermission(sender)) {
+                for (Player p : Bukkit.getOnlinePlayers()) completions.add(p.getName());
+            }
+            return getCompletions(args[1], completions);
+        }
+
+        if (args.length == 2 && ("history".equals(args[0]) || "memory".equals(args[0]))) {
+            List<String> completions = new ArrayList<>();
+            PluginPermissionEnum otherPerm = "history".equals(args[0]) ? PluginPermissionEnum.HISTORY_OTHER : PluginPermissionEnum.MEMORY_OTHER;
+            if (otherPerm.hasPermission(sender)) {
+                for (Player p : Bukkit.getOnlinePlayers()) completions.add(p.getName());
+            }
+            return getCompletions(args[1], completions);
+        }
+
+        if (args.length == 2 && "run".equals(args[0]) && sender instanceof Player player) {
+            List<String> completions = new ArrayList<>();
+            SkillManager skillManager = KilacraftAI.getInstance().getSkillManager();
+            if (skillManager != null) {
+                for (Skill skill : skillManager.getAvailableSkills(player)) completions.add(skill.getName());
+            }
+            return getCompletions(args[1], completions);
         }
 
         // 其他情况不补全

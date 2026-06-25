@@ -1,16 +1,24 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-06-21  
+> **Last Updated**: 2026-06-24  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
 
 ---
 
-## v2.1.2 - Knowledge Base Retrieval Filter Refactor, BM25 Length Adaptation, Corpus Seeding Dictionary & RRF Fusion, AI Error Handling Observability
+## v2.1.2 - New In-Game Query & Diagnostic Commands (usage / history / memory / skills / run / doctor / about), Knowledge-Base Retrieval Refactor & AI Error Handling
 
 ### ✨ New Features
 - **Corpus Seeding Dictionary**: On startup, automatically scans the knowledge base for command names (e.g. `/back` → `back`) and compound identifiers (e.g. `mob-farm`, `ender-dragon`) and adds them to the HanLP tokenizer dictionary. No manual dictionary maintenance — the knowledge base content server owners write is itself the best tokenization reference
-- **Knowledge Base File Templates**: Ready-to-use `.md` templates (Chinese & English) added under `knowledge/` — 7 writing rules + a complete usable sample; filling in per the template yields the best recall
+- **Knowledge Base Writing Guide**: The official Wiki provides ready-to-use knowledge-base writing templates (Chinese & English) — 7 writing rules + a complete usable sample; filling in per the template yields the best recall
 - **BM25 Document Length Auto-Statistics**: On startup, automatically computes the actual average length of knowledge-base chunks so BM25 scores long and short docs more fairly. Advanced users may set a fixed `avg_doc_length` (default 0 = auto)
+- **In-Game Query & Diagnostic Commands**: A set of commands for server owners and players to track AI usage and troubleshoot
+  - `/kila usage [player|all] [range]`: AI usage stats (conversation turns, skill-call count & success rate, top skills, active players); supports self / specific player / server-wide views
+  - `/kila history [player] [page]`: paginated conversation history
+  - `/kila memory [player]`: view a player's profile (login stats + AI-analyzed 8-dimension profile)
+  - `/kila skills [page]`: list currently available skills
+- **Force-Execute a Skill**: `/kila run <skill> <prompt>` skips intent recognition and directly executes the named skill; supports multi-step tasks and gracefully falls back to normal chat if the intent can't be parsed
+- **Configuration Self-Diagnostic**: `/kila doctor` runs 17 config checks (database / LLM connectivity / Spark / AI capability switches, etc.) to quickly locate misconfiguration; prints a redacted full-config dump to the console
+- **Version & Update Check**: `/kila about` shows current version, latest version, and download URL
 
 ### 🔧 Improvements
 - **Retrieval Filter Refactor (hard threshold → soft/adaptive threshold)**: The old `min_relevance_score` (single hard threshold 30) is replaced by two-stage filtering
@@ -26,6 +34,9 @@
 - **AI Timeout Friendly Hint**: On response timeout, shows "AI response timed out. Please try again later" instead of exposing technical exception class names to the player
 - **AFK Task Callback Degradation Hint**: When an AFK task's callback config fails to parse, clearly states the task will run in "notify-only" mode (callback action cannot execute), with the raw content logged for troubleshooting
 - **Code Standard Cleanup**: Unified utility-class constructor style, removed fully-qualified class names, consolidated redundant method overloads (internal cleanup, no functional impact)
+- **Complete English Support**: All command output and prompts now fully support Chinese/English bilingual; the English-environment experience is complete
+- **Permission-Aware Help Menu**: `/kila help` shows only the commands the current player has permission to use
+- **Granular Query Permissions**: Viewing self / others / server-wide are authorized separately (`kilacraft.query.self`, `kilacraft.usage.other`, etc.)
 
 ### 🐛 Bug Fixes
 - Fixed NPE from missing null defenses in `BM25Scorer.countOccurrences` / `EmbeddingCache.getVector` / `putVector` / `getNorm`
@@ -41,6 +52,8 @@
 2. **Recommended** (for the full retrieval optimization): delete `knowledge.yml` and restart to let the plugin regenerate the latest version with the new config entries, then tweak as needed
 3. Works without deleting `knowledge.yml`: the old `min_relevance_score` is ignored (no longer used), and retrieval filtering auto-applies the default soft thresholds (noise_floor=25, relative_threshold=0.3)
 4. If you previously hand-maintained command names / identifiers in `custom_dictionary.words`, consider trimming them after upgrade — the new corpus-seeding dictionary auto-extracts these from knowledge-base content
+5. **Recommended to delete the language config files** (`language.yml` / `language_en.yml`): the help-menu format was restructured and many command messages were added this build; keeping the old file leaves new command prompts missing and the help menu outdated. Delete and restart to regenerate the latest version, then re-apply your custom text
+6. **Server owners using English (en) mode should delete `i18n/messages_en.yml`**: player-facing command text was migrated to the `language.yml` system this build, and the corresponding old keys were removed from `messages_en.yml`; deleting and restarting avoids leftover redundancy
 
 ---
 

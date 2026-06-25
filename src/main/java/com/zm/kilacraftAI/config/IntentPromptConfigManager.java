@@ -167,7 +167,7 @@ public class IntentPromptConfigManager {
     }
 
     /**
-     * 重新加载配置（用于 /kilacraft reload 命令）
+     * 重新加载配置（用于 /kila reload 命令）
      */
     public void reload() {
         loadConfig();
