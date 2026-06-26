@@ -63,7 +63,7 @@ Supports all OpenAI-compatible providers (DeepSeek, Zhipu AI, Moonshot, OpenAI, 
 
 If you see an AI response, you're all set.
 
-> Reload config with `/kilacraft reload`, knowledge base with `/kilacraft knowledge reload`, personalities with `/kilacraft personalities reload`.
+> Reload config with `/kila reload`, knowledge base with `/kila knowledge reload`, personalities with `/kila personalities reload`.
 
 ***
 
@@ -78,7 +78,7 @@ If you see an AI response, you're all set.
 /kila How do I get diamonds?
 
 # Continuous chat mode
-/kilacraft chat
+/kila chat
 > I want to build a farm
 > AI: Great idea! What crop do you want to plant?
 
@@ -124,7 +124,7 @@ Let AI understand your server rules, gameplay, and FAQ. Just place Markdown or T
 Use the /claim command to define your territory. Costs at least 10 coins.
 ```
 
-Run `/kilacraft knowledge reload` to load. AI automatically retrieves and cites relevant content when players ask questions. Supports custom dictionaries for server-specific terminology to improve search accuracy.
+Run `/kila knowledge reload` to load. AI automatically retrieves and cites relevant content when players ask questions. Supports custom dictionaries for server-specific terminology to improve search accuracy.
 
 ***
 
@@ -264,7 +264,7 @@ Player: Remind me when my balance goes below 1000
 Player: Check diamond price when I reach level 30
 ```
 
-Management: `/kilacraft afk` to view, `/kilacraft afk cancel` to cancel. One task per player at a time.
+Management: `/kila afk` to view, `/kila afk cancel` to cancel. One task per player at a time.
 
 ### Server Health Monitoring
 
@@ -275,14 +275,14 @@ Real-time server performance monitoring and AI-powered diagnostics based on Spar
 **Manual Profiling:** Use for proactive troubleshooting:
 
 ```bash
-/kilacraft profile start [30-120]    # Start profiling (seconds)
-/kilacraft profile status            # View status
-/kilacraft profile stop              # Abort and discard
+/kila profile start [30-120]    # Start profiling (seconds)
+/kila profile status            # View status
+/kila profile stop              # Abort and discard
 ```
 
 **Diagnostic Reports:** Includes server status overview, plugin timing and hot method trigger paths (self time), AI diagnostic conclusions and optimization recommendations. Reports are saved in `plugins/Kilacraft-AI/reports/` permanently.
 
-**Alert Notifications:** Supports in-game notifications + Discord Webhook / DingTalk bot external push (automatic mode only). Use `/kilacraft notify test` to test notification channels.
+**Alert Notifications:** Supports in-game notifications + Discord Webhook / DingTalk bot external push (automatic mode only). Use `/kila notify test` to test notification channels.
 
 **Historical Queries:** Query historical alerts and reports via natural language:
 - "What alerts have there been in the past day?"
@@ -310,11 +310,26 @@ Query AI skill usage via natural language. Permission: `kilacraft.admin.audit`.
 - **Usage Statistics:** "Show skill usage statistics leaderboard" — Usage count, success/failure, avg duration
 - **Error Tracking:** "Show failed skill execution records" — Failure records, error messages, time distribution
 
+### AI Data Query
+
+A set of read-only commands for players to check their own AI usage; admins can query any player or the whole server. Self-view requires `kilacraft.query.self` (default: everyone); viewing others / server-wide requires `kilacraft.usage.other` / `kilacraft.history.other` / `kilacraft.memory.other` respectively (default: OP).
+
+- **Usage Stats** `/kila usage [player|all] [1d/3d/7d/30d]`: conversation turns, skill-call count & success rate, top skills, top active players. Defaults to your own last 7 days; `all` for server-wide
+- **Conversation History** `/kila history [player] [page] [-f]`: paginated conversation records, chronological within a page (old→new); `-f` shows full content (long entries are truncated by default)
+- **Player Profile** `/kila memory [player]`: login stats (first/last login, login count, total playtime) + AI-analyzed 8-dimension profile (hidden until analyzed)
+
+> Offline players can be queried too: just enter the player name; the UUID is resolved in the background.
+
 ***
 
 ## AI Skill System
 
 AI interacts with the server through Skills, each corresponding to a category of operations. All Skills are read-only queries (except explicitly marked write operations), with fine-grained permission control.
+
+**Listing & manually running skills:**
+
+- `/kila skills [page]`: lists the skills you currently have permission to trigger (same source as the permission pre-filter used during AI chat — you only see skills you can use)
+- `/kila run <skill> <prompt>`: skips intent recognition and directly executes the named skill. Useful for precise triggering or debugging, e.g. `/kila run market_query check diamond price`. Falls back to normal chat if the intent can't be parsed
 
 ### Capabilities Overview
 
@@ -338,7 +353,7 @@ AI interacts with the server through Skills, each corresponding to a category of
 
 ### Data Persistence
 
-Supports both H2 embedded database (default, zero-config) and MySQL. Data persists across restarts. MySQL recommended for multi-server data sharing. Hot-switch with `/kilacraft reload`, auto-fallback on failure.
+Supports both H2 embedded database (default, zero-config) and MySQL. Data persists across restarts. MySQL recommended for multi-server data sharing. Hot-switch with `/kila reload`, auto-fallback on failure.
 
 | Data | Description |
 |------|------|
@@ -374,28 +389,36 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 ### Command List
 
 | Command | Permission | Description |
-| :---: | :---: | :---: |
-| `/kilacraft <message>` | None | Chat with AI |
-| `/kila` `/ai` `/zm` | None | Aliases |
-| `/kilacraft chat` | None | Toggle continuous chat mode |
-| `/kilacraft clear` | `kilacraft.clear.self` | Clear own chat history |
-| `/kilacraft clear <player>` | `kilacraft.clear.other` | Clear specified player's history |
-| `/kilacraft reload` | `kilacraft.reload` | Reload config |
-| `/kilacraft knowledge reload` | `kilacraft.knowledge` | Reload knowledge base |
-| `/kilacraft personalities reload` | `kilacraft.personalities` | Reload personality config |
-| `/kilacraft afk` | `kilacraft.afk` | View AFK tasks |
-| `/kilacraft afk cancel` | `kilacraft.afk` | Cancel AFK task |
-| `/kilacraft tasks` | `kilacraft.tasks` | View scheduled task status (default OP) |
-| `/kilacraft profile start [seconds]` | `kilacraft.admin.health` | Start manual profiling |
-| `/kilacraft profile status` | `kilacraft.admin.health` | View profiling status |
-| `/kilacraft profile stop` | `kilacraft.admin.health` | Abort profiling and discard |
-| `/kilacraft notify test` | `kilacraft.admin.health` | Test external notification channels |
-| `/kilacraft plugins ...` | Console only | Third-party plugin integration |
+| :--- | :--- | :--- |
+| `/kila <message>` | None | Chat with AI (`/kilacraft`, `/ai`, `/zm` all work) |
+| `/kila chat` | None | Toggle continuous chat mode |
+| `/kila clear` | `kilacraft.clear.self` | Clear own chat history |
+| `/kila clear <player>` | `kilacraft.clear.other` | Clear specified player's history |
+| `/kila reload` | `kilacraft.reload` | Reload config and language files |
+| `/kila knowledge reload` | `kilacraft.knowledge` | Reload knowledge base |
+| `/kila personalities reload` | `kilacraft.personalities` | Reload personality config |
+| `/kila afk` | `kilacraft.afk` | View AFK tasks |
+| `/kila afk cancel` | `kilacraft.afk` | Cancel AFK task |
+| `/kila tasks` | `kilacraft.tasks` | View scheduled task status (default OP) |
+| `/kila usage [player\|all] [1d/3d/7d/30d]` | `kilacraft.query.self` / `kilacraft.usage.other` | AI usage stats (see "AI Data Query" section) |
+| `/kila history [player] [page] [-f]` | `kilacraft.query.self` / `kilacraft.history.other` | Conversation history (-f: full) |
+| `/kila memory [player]` | `kilacraft.query.self` / `kilacraft.memory.other` | Player profile & 8 dimensions |
+| `/kila skills [page]` | None | List available skills |
+| `/kila run <skill> <prompt>` | Per-skill | Force-execute a skill, skipping intent recognition (player only) |
+| `/kila doctor` | `kilacraft.admin.info` | 17-item config self-diagnostic |
+| `/kila about` | `kilacraft.admin.info` | Version & update check |
+| `/kila profile start [seconds]` | `kilacraft.admin.health` | Start manual profiling |
+| `/kila profile status` | `kilacraft.admin.health` | View profiling status |
+| `/kila profile stop` | `kilacraft.admin.health` | Abort profiling and discard |
+| `/kila notify test` | `kilacraft.admin.health` | Test external notification channels |
+| `/kila plugins ...` | Console only | Third-party plugin integration |
 
-### Skill Permissions
+### Permission Nodes
+
+> Command and skill permissions are listed together; default `true` = all players, `op` = OP only.
 
 | Permission Node | Default | Description |
-| :---: | :---: | :---: |
+| :--- | :---: | :--- |
 | `kilacraft.api.player.inventory` | true | Query player inventory |
 | `kilacraft.api.player.status` | true | Query player status |
 | `kilacraft.api.player.info` | true | Query player info |
@@ -407,12 +430,17 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 | `kilacraft.bukkit_stats` | true | Vanilla stats queries |
 | `kilacraft.command.execute` | op | Command execution (OP only by default) |
 | `kilacraft.tasks` | op | View scheduled task status (OP by default) |
-| `kilacraft.admin.health` | op | Server health monitoring |
+| `kilacraft.query.self` | true | View own AI data (usage / history / profile) |
+| `kilacraft.usage.other` | op | View others' usage & server-wide overview |
+| `kilacraft.history.other` | op | View others' conversation history |
+| `kilacraft.memory.other` | op | View others' player profile |
+| `kilacraft.admin.health` | op | Server health monitoring, profiling |
 | `kilacraft.admin.player` | op | Player behavior analysis |
 | `kilacraft.admin.audit` | op | Audit log query |
+| `kilacraft.admin.info` | op | Config self-diagnostic (doctor) / version check (about) |
 | `kilacraft.admin.*` | op | All admin features |
 
-> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively.
+> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively; `kilacraft.admin.*` includes all admin permissions (health / player / audit / info).
 
 ***
 

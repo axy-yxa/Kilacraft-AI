@@ -40,8 +40,8 @@ Plugin command mode is a dedicated interface designed by Kilacraft-AI for **thir
 | Mode | Trigger Method | Agent Capability | Knowledge Base Retrieval | Callback Mechanism | Typical Scenario |
 |------|---------------|------------------|-------------------------|-------------------|------------------|
 | **ChatListener** | `@ai` keyword / continuous chat | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Player active interaction |
-| **KilacraftCommand** | `/kilacraft <message>` | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Server owner/admin queries |
-| **Plugin Command** | `/kilacraft plugins ...` | ❌ Disabled | ✅ Normal retrieval | ✅ **Required** | Third-party plugin integration |
+| **KilacraftCommand** | `/kila <message>` | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Server owner/admin queries |
+| **Plugin Command** | `/kila plugins ...` | ❌ Disabled | ✅ Normal retrieval | ✅ **Required** | Third-party plugin integration |
 
 ### Why Doesn't Plugin Command Mode Enable Agent Capability?
 
@@ -65,7 +65,7 @@ Plugin command mode is a dedicated interface designed by Kilacraft-AI for **thir
    - Direct normal AI calls are faster (about 1-3 seconds)
 
 4. **Semantic clarity**
-   - `/kilacraft plugins default Hello UUID` = "Answer 'hello' with default personality"
+   - `/kila plugins default Hello UUID` = "Answer 'hello' with default personality"
    - Not "Help me execute certain tasks"
 
 ---
@@ -75,7 +75,7 @@ Plugin command mode is a dedicated interface designed by Kilacraft-AI for **thir
 ### Basic Format
 
 ```
-/kilacraft plugins <personality_name> <message_content> <player_uuid> [callback_command...]
+/kila plugins <personality_name> <message_content> <player_uuid> [callback_command...]
 ```
 
 ### Parameter Details
@@ -104,7 +104,7 @@ Plugin command mode is a dedicated interface designed by Kilacraft-AI for **thir
 ```
 Third-party plugin triggers event
     ↓
-Execute console command: /kilacraft plugins <personality> <question> <playerUUID> [callback_command]
+Execute console command: /kila plugins <personality> <question> <playerUUID> [callback_command]
     ↓
 Kilacraft-AI generates response with specified personality (async, 2-5 seconds)
     ↓
@@ -438,7 +438,7 @@ commands:
 ```
 Player right-clicks "Fox NPC"
     ↓
-Console executes: /kilacraft plugins Fox What are the server rules xxx-uuid myplugin handle_ai {response} player_name
+Console executes: /kila plugins Fox What are the server rules xxx-uuid myplugin handle_ai {response} player_name
     ↓
 AI generates response (async, about 2-5 seconds)
     ↓
@@ -484,7 +484,7 @@ Adventure Partner: |
 ### Reload Personality Configuration
 
 ```
-/kilacraft personalities reload
+/kila personalities reload
 ```
 
 ### Personality Matching Rules
@@ -526,10 +526,10 @@ settings:
 
 ```
 # Clear specific player's all history
-/kilacraft clear <player_name>
+/kila clear <player_name>
 
 # Player clears own history
-/kilacraft clear
+/kila clear
 ```
 
 ---
@@ -604,10 +604,10 @@ if (player != null && player.isOnline()) {
 
 ```
 # Test basic functionality
-/kilacraft plugins default Hello 069a79f4-44e9-4726-a5be-fca90e38aaf5 myplugin test_callback {response}
+/kila plugins default Hello 069a79f4-44e9-4726-a5be-fca90e38aaf5 myplugin test_callback {response}
 
 # Test different personalities
-/kilacraft plugins Fox What are the server rules 069a79f4-44e9-4726-a5be-fca90e38aaf5 myplugin handle_ai {response} player_name
+/kila plugins Fox What are the server rules 069a79f4-44e9-4726-a5be-fca90e38aaf5 myplugin handle_ai {response} player_name
 ```
 
 ---

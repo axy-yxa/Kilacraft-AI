@@ -244,7 +244,7 @@ AFKTaskManager.onPlayerQuit(playerUUID)
 ### Chain 4: Manual Command Operations
 
 ```
-Player inputs: /kilacraft afk query
+Player inputs: /kila afk query
   ↓
 KilacraftCommand.handleAfkCommand()
   ↓
@@ -260,7 +260,7 @@ Direct formatted output (no LLM):
 ```
 
 ```
-Player inputs: /kilacraft afk cancel
+Player inputs: /kila afk cancel
   ↓
 KilacraftCommand.handleAfkCommand()
   ↓
@@ -514,7 +514,7 @@ hints:
   - '**Important: Output format must be single_intent**: All AFKTask actions (create_task, cancel_task, query_task) must be returned in single-intent JSON format, absolutely not in multi-step task format. callback is a parameter of entities, not an independent step.'
   - '**Task Type Description**: PLAYER_ONLINE_WATCH=Monitor player login, PLAYER_OFFLINE_WATCH=Monitor player logout, PLAYER_DEATH_WATCH=Monitor player death, PLAYER_TELEPORT_WATCH=Monitor player teleport, PLAYER_LEVEL_CHANGE_WATCH=Monitor player level change, PLAYER_CHANGED_WORLD_WATCH=Monitor player world change, WEATHER_CHANGE_WATCH=Monitor weather change, PLAYER_BED_ENTER_WATCH=Monitor player enter bed, PLAYER_BED_LEAVE_WATCH=Monitor player leave bed, PLAYER_RESPAWN_WATCH=Monitor player respawn, PLAYER_ITEM_BREAK_WATCH=Monitor player item break, PLAYER_FISHING_WATCH=Monitor player fishing, PLAYER_CHAT_WATCH=Monitor player chat, BLOCK_BREAK_WATCH=Monitor block break, ENTITY_DEATH_WATCH=Monitor entity death, ENTITY_SPAWN_WATCH=Monitor entity spawn, ENTITY_EXPLODE_WATCH=Monitor entity explosion, FURNACE_EXTRACT_WATCH=Monitor furnace smelt, CROP_GROWTH_WATCH=Monitor crop growth. CUSTOM=Custom condition polling.'
   - '**One-time vs Long-term Tasks (Important)**: This skill only supports one-time tasks, i.e., trigger once and end. Does not accept long-term recurring tasks (e.g., "remind me every 1 hour", "tell me every day at noon"), if user requests such needs, should explain not supported in reasoning and explain reasons.'
-  - '**Concurrency Limit and Task Replacement**: Each player can only have one AFK task at a time. If task creation fails with prompt "already has a running AFK task", should inform player can use /kilacraft afk cancel command to cancel old task, then try creating new task.'
+  - '**Concurrency Limit and Task Replacement**: Each player can only have one AFK task at a time. If task creation fails with prompt "already has a running AFK task", should inform player can use /kila afk cancel command to cancel old task, then try creating new task.'
 ```
 
 ---
@@ -653,7 +653,7 @@ callback_task:
 **Solution**:
 - This is normal behavior, avoid sending messages to offline players
 - Can recreate monitor task after logging back in
-- Can use `/kilacraft afk query` to check if there are incomplete tasks
+- Can use `/kila afk query` to check if there are incomplete tasks
 
 ---
 
@@ -675,8 +675,8 @@ AI: Sorry, AFK task system only supports one-time tasks (trigger once and end), 
 
 **Method 1**: Use command
 ```
-/kilacraft afk        # Query current task
-/kilacraft afk query  # Same as above
+/kila afk        # Query current task
+/kila afk query  # Same as above
 ```
 
 **Method 2**: Through AI conversation
@@ -696,7 +696,7 @@ AI: You currently have one AFK task:
 
 **Method 1**: Use command
 ```
-/kilacraft afk cancel  # Cancel current task
+/kila afk cancel  # Cancel current task
 ```
 
 **Method 2**: Through AI conversation

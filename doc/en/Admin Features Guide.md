@@ -89,19 +89,19 @@ For proactive troubleshooting, use manual diagnostic commands (requires Spark to
 
 **Start profiling:**
 ```bash
-/kilacraft profile start [seconds]
+/kila profile start [seconds]
 ```
 - **Seconds**: Sampling duration, range 30-120 seconds, default 60 seconds
 - A diagnostic report is automatically generated upon completion
 
 **View profiling status:**
 ```bash
-/kilacraft profile status
+/kila profile status
 ```
 
 **Abort profiling and discard data:**
 ```bash
-/kilacraft profile stop
+/kila profile stop
 ```
 
 > If the admin goes offline during manual profiling, the system automatically aborts the sampling.
@@ -111,7 +111,7 @@ For proactive troubleshooting, use manual diagnostic commands (requires Spark to
 #### Trigger Conditions
 
 1. **Automatic**: Generated when the daemon detects a performance anomaly
-2. **Manual**: Generated after `/kilacraft profile start` sampling completes
+2. **Manual**: Generated after `/kila profile start` sampling completes
 
 #### Report Contents
 
@@ -149,7 +149,7 @@ Notification content includes: triggering metric and reason, real-time performan
 
 **Test notification channels:**
 ```bash
-/kilacraft notify test
+/kila notify test
 ```
 Sends a test message to all configured channels to verify webhook URLs and signing keys.
 
@@ -262,7 +262,7 @@ Returns failed execution records, error messages, time distribution.
 
 ## 4. Configuration Guide
 
-All configuration is in `plugins/Kilacraft-AI/admin.yml`. Supports hot-reload via `/kilacraft reload` (configs requiring a daemon restart are handled automatically).
+All configuration is in `plugins/Kilacraft-AI/admin.yml`. Supports hot-reload via `/kila reload` (configs requiring a daemon restart are handled automatically).
 
 ### 4.1 Daemon Thread & Alert Thresholds
 
@@ -362,8 +362,8 @@ Fine-grained control via permission plugins (e.g. LuckPerms):
 When players report lag or you notice it yourself, immediately start manual profiling to pinpoint the issue.
 
 ```bash
-/kilacraft profile start 90        # Standard investigation: 90s sampling
-/kilacraft profile start 30        # Urgent scenario: 30s quick triage
+/kila profile start 90        # Standard investigation: 90s sampling
+/kila profile start 30        # Urgent scenario: 30s quick triage
 ```
 
 After sampling completes, the system auto-generates a diagnostic report. Jump to §2 (plugin timing + hotspot method trigger paths) to identify the lag cause, then follow §3 AI suggestions to take action.
@@ -378,7 +378,7 @@ Ensure `health_guardian.enabled: true`. You can lower alert thresholds to increa
 
 **Strategy B: Proactive Profiling (Manual Sampling During Problem Period)**
 
-Start manual profiling during the performance degradation window: `/kilacraft profile start 120`, then compare peak vs. off-peak reports to locate the bottleneck.
+Start manual profiling during the performance degradation window: `/kila profile start 120`, then compare peak vs. off-peak reports to locate the bottleneck.
 
 ### 6.2 Change Impact Assessment
 
@@ -483,7 +483,7 @@ Adjust alert thresholds in `admin.yml`: lower thresholds for higher sensitivity,
 1. Confirm `notification.enabled` is `true`
 2. Check that each channel's `webhook_url` is complete
 3. If using DingTalk signing, confirm the `secret` matches the bot's security settings
-4. Run `/kilacraft notify test` to verify
+4. Run `/kila notify test` to verify
 5. Check console logs for error messages with the `[Notification]` prefix
 6. Note: External notifications are only sent when **automatic diagnosis succeeds** — manual diagnostics don't trigger them
 

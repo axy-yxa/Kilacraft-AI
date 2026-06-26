@@ -7,7 +7,7 @@
 
 ## 📖 Overview
 
-Kilacraft-AI's **Personality System** allows you to create multiple AI assistants with different styles for your server. Each personality is an independent prompt configuration used through the `/kilacraft plugins` command.
+Kilacraft-AI's **Personality System** allows you to create multiple AI assistants with different styles for your server. Each personality is an independent prompt configuration used through the `/kila plugins` command.
 
 ### Core Features
 
@@ -261,10 +261,10 @@ Economic Advisor: |
 
 ### Using via Plugin Commands
 
-Personality system is only used in **plugin command mode**, called through `/kilacraft plugins` command:
+Personality system is only used in **plugin command mode**, called through `/kila plugins` command:
 
 ```bash
-/kilacraft plugins <message> <player_uuid> [personality] [callback_command]
+/kila plugins <message> <player_uuid> [personality] [callback_command]
 ```
 
 **Parameters**:
@@ -277,13 +277,13 @@ Personality system is only used in **plugin command mode**, called through `/kil
 
 ```bash
 # Use default personality
-/kilacraft plugins "Hello" 069a79f4-44e9-4726-a5be-fca90e38aaf5
+/kila plugins "Hello" 069a79f4-44e9-4726-a5be-fca90e38aaf5
 
 # Specify "Strict Teacher" personality
-/kilacraft plugins "How to make redstone torch?" 069a79f4-44e9-4726-a5be-fca90e38aaf5 "Strict Teacher"
+/kila plugins "How to make redstone torch?" 069a79f4-44e9-4726-a5be-fca90e38aaf5 "Strict Teacher"
 
 # Specify personality and set callback command
-/kilacraft plugins "Where are diamonds?" 069a79f4-44e9-4726-a5be-fca90e38aaf5 "Newbie Mentor" "tell {player} {response}"
+/kila plugins "Where are diamonds?" 069a79f4-44e9-4726-a5be-fca90e38aaf5 "Newbie Mentor" "tell {player} {response}"
 ```
 
 ---
@@ -295,7 +295,7 @@ Personality system is only used in **plugin command mode**, called through `/kil
 After modifying `personalities.yml`, you need to reload for changes to take effect:
 
 ```bash
-/kilacraft personalities reload
+/kila personalities reload
 ```
 
 **Output Example**:
@@ -306,13 +306,13 @@ After modifying `personalities.yml`, you need to reload for changes to take effe
 ### View Help
 
 ```bash
-/kilacraft personalities
+/kila personalities
 ```
 
 **Output Example**:
 ```
 §ePersonality configuration management commands:
-§7/kilacraft personalities reload - Reload personality configuration
+§7/kila personalities reload - Reload personality configuration
 ```
 
 ---
@@ -425,7 +425,7 @@ Assistant: |
 
 **Solution**:
 1. Confirm file format is correct (YAML format)
-2. Execute `/kilacraft personalities reload` to reload
+2. Execute `/kila personalities reload` to reload
 3. Check console for error messages
 4. Verify personality name matches exactly what's used in command (including case)
 
@@ -442,13 +442,13 @@ Assistant: |
 **Test Examples**:
 ```bash
 # Test Strict Teacher
-/kilacraft plugins "How to make crafting table?" <UUID> "Strict Teacher"
+/kila plugins "How to make crafting table?" <UUID> "Strict Teacher"
 
 # Test Humorous Partner
-/kilacraft plugins "Tell me a joke" <UUID> "Humorous Partner"
+/kila plugins "Tell me a joke" <UUID> "Humorous Partner"
 
 # Test Technical Expert
-/kilacraft plugins "What does redstone repeater do?" <UUID> "Technical Expert"
+/kila plugins "What does redstone repeater do?" <UUID> "Technical Expert"
 ```
 
 ---
@@ -500,7 +500,7 @@ serious_mod: "..."
 
 Use correspondingly:
 ```bash
-/kilacraft plugins "Hello" <UUID> mentor
+/kila plugins "Hello" <UUID> mentor
 ```
 
 ---
@@ -510,7 +510,7 @@ Use correspondingly:
 **Method**:
 1. Open `personalities.yml`
 2. Delete the corresponding personality configuration line
-3. Execute `/kilacraft personalities reload`
+3. Execute `/kila personalities reload`
 
 **Note**: Do not delete `common_prompt`, otherwise all personalities will lose their base settings.
 
@@ -529,10 +529,10 @@ Use correspondingly:
 | Feature | Personality System | Intent Recognition System |
 |---------|-------------------|--------------------------|
 | **Configuration File** | `personalities.yml` | `intent_prompts.yml` |
-| **Usage Scenario** | Plugin command mode (`/kilacraft plugins`) | All AI interaction entry points (keyword trigger, continuous conversation, plugin commands) |
+| **Usage Scenario** | Plugin command mode (`/kila plugins`) | All AI interaction entry points (keyword trigger, continuous conversation, plugin commands) |
 | **Core Function** | Define AI's response style and tone | Identify user intent, select Skills, plan task steps |
 | **Configuration Content** | Different personality prompts | Intent recognition rules, response formats, decision logic |
 | **Multiple Instances** | Yes, can configure multiple personalities | No, globally unique rule set |
-| **Reload Command** | `/kilacraft personalities reload` | `/kilacraft reload` |
+| **Reload Command** | `/kila personalities reload` | `/kila reload` |
 
 

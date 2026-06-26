@@ -1800,7 +1800,7 @@ BukkitAPIExecutor uses reflection to call methods, and JVM automatically optimiz
 
 **Solutions**:
 1. Check if YAML format is correct
-2. Execute `/kilacraft reload` to reload configuration
+2. Execute `/kila reload` to reload configuration
 3. Check console for error logs
 
 ---

@@ -730,7 +730,7 @@ PENDING → start() → RUNNING → 事件触发 → complete() → COMPLETED
 
 所有监听器都会在以下情况自动清理资源：
 - ✅ 任务完成（事件触发）
-- ✅ 手动取消（`/kilacraft afk cancel`）
+- ✅ 手动取消（`/kila afk cancel`）
 - ✅ 创建者下线（`AFKTaskListener` 自动清理）
 
 清理操作：

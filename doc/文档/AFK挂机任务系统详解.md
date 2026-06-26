@@ -243,7 +243,7 @@ AFKTaskManager.onPlayerQuit(playerUUID)
 ### 链路四：手动命令操作
 
 ```
-玩家输入: /kilacraft afk query
+玩家输入: /kila afk query
   ↓
 KilacraftCommand.handleAfkCommand()
   ↓
@@ -259,7 +259,7 @@ manager.getTask(playerUUID)
 ```
 
 ```
-玩家输入: /kilacraft afk cancel
+玩家输入: /kila afk cancel
   ↓
 KilacraftCommand.handleAfkCommand()
   ↓
@@ -534,7 +534,7 @@ hints:
   - '**任务类型说明**：PLAYER_ONLINE_WATCH=监视玩家上线, PLAYER_OFFLINE_WATCH=监视玩家下线, PLAYER_DEATH_WATCH=监视玩家死亡, PLAYER_TELEPORT_WATCH=监视玩家传送, PLAYER_LEVEL_CHANGE_WATCH=监视玩家等级变化, PLAYER_CHANGED_WORLD_WATCH=监视玩家切换世界, WEATHER_CHANGE_WATCH=监视天气变化, PLAYER_BED_ENTER_WATCH=监视玩家进入床, PLAYER_BED_LEAVE_WATCH=监视玩家离开床, PLAYER_RESPAWN_WATCH=监视玩家重生, PLAYER_ITEM_BREAK_WATCH=监视玩家物品损坏, PLAYER_FISHING_WATCH=监视玩家钓鱼, PLAYER_CHAT_WATCH=监视玩家聊天, BLOCK_BREAK_WATCH=监视方块破坏, ENTITY_DEATH_WATCH=监视实体死亡, ENTITY_SPAWN_WATCH=监视实体生成, ENTITY_EXPLODE_WATCH=监视实体爆炸, FURNACE_EXTRACT_WATCH=监视熔炉烧炼, CROP_GROWTH_WATCH=监视作物生长。CUSTOM=自定义条件轮询。'
   - '**PLAYER_TELEPORT_WATCH 必填参数**：target_player（目标玩家名称）。callback为可选参数，回调中可使用{from_world}/{to_world}/{from_x}/{from_y}/{from_z}/{to_x}/{to_y}/{to_z}占位符'
   - '**一次性 vs 长期任务（重要）**：本技能只支持一次性任务，即触发条件满足一次就结束。不接受长期循环任务。'
-  - '**并发限制与任务替换**：每个玩家同时只能拥有一个挂机任务。如果创建任务时失败提示"已有一个正在运行的挂机任务"，应告知玩家可以使用 /kilacraft afk cancel 命令取消旧任务。'
+  - '**并发限制与任务替换**：每个玩家同时只能拥有一个挂机任务。如果创建任务时失败提示"已有一个正在运行的挂机任务"，应告知玩家可以使用 /kila afk cancel 命令取消旧任务。'
 ```
 
 ---
@@ -673,7 +673,7 @@ callback_task:
 **解决方案**：
 - 这是正常行为，避免向离线玩家发送消息
 - 上线后可以重新创建挂机任务
-- 可以使用 `/kilacraft afk query` 查看是否有未完成的任务
+- 可以使用 `/kila afk query` 查看是否有未完成的任务
 
 ---
 
@@ -695,8 +695,8 @@ AI: 抱歉，挂机任务系统只支持一次性任务（触发一次就结束�
 
 **方法 1**：使用命令
 ```
-/kilacraft afk        # 查询当前任务
-/kilacraft afk query  # 同上
+/kila afk        # 查询当前任务
+/kila afk query  # 同上
 ```
 
 **方法 2**：通过 AI 对话
@@ -716,7 +716,7 @@ AI: 你当前有一个挂机任务：
 
 **方法 1**：使用命令
 ```
-/kilacraft afk cancel  # 取消当前任务
+/kila afk cancel  # 取消当前任务
 ```
 
 **方法 2**：通过 AI 对话

@@ -21,8 +21,8 @@
 | Mode | Trigger Method | Agent Capability | Knowledge Base Retrieval | Callback Mechanism | Typical Scenarios |
 |------|---------------|------------------|------------------------|------------------|-------------------|
 | **ChatListener** | `@ai` keyword / continuous chat | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Player active interaction |
-| **KilacraftCommand** | `/kilacraft <message>` | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Server owner/admin queries |
-| **Plugin Command** | `/kilacraft plugins ...` | ❌ Disabled | ✅ Normal retrieval | ✅ Required | Third-party plugin integration |
+| **KilacraftCommand** | `/kila <message>` | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Server owner/admin queries |
+| **Plugin Command** | `/kila plugins ...` | ❌ Disabled | ✅ Normal retrieval | ✅ Required | Third-party plugin integration |
 
 ---
 
@@ -137,7 +137,7 @@ This mode is designed for third-party plugin integration, where AI is called via
 ### Complete Call Chain
 
 ```
-Console: "/kilacraft plugins default Hello UUID callback_cmd"
+Console: "/kila plugins default Hello UUID callback_cmd"
   ↓
 【1. Entry Layer】KilacraftCommand.handlePluginsCommand()
   ├─ Validate parameters (personality, UUID, callback command)
@@ -210,7 +210,7 @@ Console: "/kilacraft plugins default Hello UUID callback_cmd"
 - **Mode 3**: Designed for third-party plugin integration, simple and reliable callback mechanism
 
 ### 2. Callback Command Standardization
-**Semantic Clarity**: `/kilacraft plugins default Hello UUID callback_cmd`
+**Semantic Clarity**: `/kila plugins default Hello UUID callback_cmd`
 - `default`: Use server's default personality
 - `Hello`: Optional greeting message
 - `UUID`: Unique identifier for history isolation
@@ -277,7 +277,7 @@ DatabaseManager (HikariCP connection pool)
   ├── DataCleanupService (configurable retention)
   └── DAOs (PlayerProfileDAO, SocialRelationDAO, SkillAuditDAO, etc.)
 
-/database.yml → hot-reload via /kilacraft reload
+/database.yml → hot-reload via /kila reload
 ```
 
 ### 2. Player Profile System
@@ -332,7 +332,7 @@ TaskScheduler (CAS mutual exclusion protection)
   ├── Social relation extraction (periodic)
   └── Profile analysis trigger (on login/logout)
 
-/kilacraft tasks → View all managed task statuses
+/kila tasks → View all managed task statuses
 ```
 
 ### 6. AI Login Greeting System
@@ -419,9 +419,9 @@ ServerHealthGuardian (daemon thread, polls every 10s)
 
 **Manual Sampling** (admin proactive troubleshooting):
 ```
-/kilacraft profile start [30-120]   → Start sampling
-/kilacraft profile status           → View status
-/kilacraft profile stop             → Interrupt and discard
+/kila profile start [30-120]   → Start sampling
+/kila profile status           → View status
+/kila profile stop             → Interrupt and discard
 ```
 
 ### 3. External Notification Push
@@ -435,7 +435,7 @@ NotificationService
       ├── Markdown text
       └── Optional HMAC-SHA256 signature security
 
-/kilacraft notify test → Test notification channel
+/kila notify test → Test notification channel
 ```
 
 **Push Policy**: Only alert summaries are pushed, no full diagnostic report attachments, to prevent sensitive information leakage.

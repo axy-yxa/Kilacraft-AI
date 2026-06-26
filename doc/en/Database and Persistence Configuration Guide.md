@@ -12,7 +12,7 @@ Starting from v2.0.0, Kilacraft-AI introduces a database persistence layer. Play
 ### Core Features
 
 - ✅ **Dual Database Support**: Supports both H2 embedded database (zero-config, single-server friendly) and MySQL (multi-server data sharing)
-- ✅ **Hot-Swap Database**: Switch between H2 and MySQL via `/kilacraft reload`, auto-fallback on failure
+- ✅ **Hot-Swap Database**: Switch between H2 and MySQL via `/kila reload`, auto-fallback on failure
 - ✅ **Auto DDL**: Auto-creates all table structures on first startup (H2/MySQL dual-dialect compatible)
 - ✅ **HikariCP Connection Pool**: High-performance database connection pool
 - ✅ **Async Writes**: All write operations execute asynchronously, never blocks the main thread
@@ -44,7 +44,7 @@ database:
   data_retention_days: 30         # Data retention days
 ```
 
-After configuration, run `/kilacraft reload` for hot-switching. Auto-fallback to old connection pool on failure.
+After configuration, run `/kila reload` for hot-switching. Auto-fallback to old connection pool on failure.
 
 ---
 
@@ -205,7 +205,7 @@ Used for distributed mutual exclusion of scheduled tasks (`SELECT FOR UPDATE` ro
 
 1. Configure the same MySQL connection parameters in each sub-server's `database.yml`
 2. Set a unique `group.server_id` for each sub-server (e.g., `survival`, `minigame`, `rpg`)
-3. Run `/kilacraft reload` to apply changes
+3. Run `/kila reload` to apply changes
 
 > **Note**: `server_id` changes only affect newly written data. Existing data is not automatically migrated.
 
@@ -260,7 +260,7 @@ profile:
   min_messages_to_trigger: 10
   analysis_timeout_seconds: 60
 
-  # Profile analysis system prompt (supports multiline, /kilacraft reload to apply)
+  # Profile analysis system prompt (supports multiline, /kila reload to apply)
   analysis_system_prompt: |
     你是一个玩家行为分析助手。根据玩家的对话历史，分析该玩家的游戏风格、偏好和行为特征。
     请输出一个 JSON 对象，包含以下字段（如果没有足够信息则留空字符串）：
@@ -331,12 +331,12 @@ Use mysqldump or your preferred database backup solution.
 1. Backup `plugins/Kilacraft-AI/` directory
 2. Manually export H2 data
 3. Change `type` to `mysql` in `database.yml`
-4. Run `/kilacraft reload` to apply new configuration
+4. Run `/kila reload` to apply new configuration
 
 ### Switch Back to H2
 
 1. Change `type` back to `h2` in `database.yml`
-2. Run `/kilacraft reload`
+2. Run `/kila reload`
 3. If the switch fails, the plugin auto-falls back to the old connection pool
 
 ---
@@ -353,7 +353,7 @@ Stop the server, delete the `plugins/Kilacraft-AI/data/` directory, then restart
 Check the connection parameters in `database.yml` and whether the MySQL service is running. On failure, the plugin auto-falls back to the old connection pool without data loss.
 
 **Q: How to configure cleanup intervals?**  
-Modify `cleanup_interval_hours` and `data_retention_days` in `database.yml`, then run `/kilacraft reload`.
+Modify `cleanup_interval_hours` and `data_retention_days` in `database.yml`, then run `/kila reload`.
 
 ---
 

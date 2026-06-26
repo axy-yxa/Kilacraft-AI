@@ -1800,7 +1800,7 @@ BukkitAPIExecutor 使用反射调用方法，JVM 会自动优化频繁调用的�
 
 **解决**：
 1. 检查 YAML 格式是否正确
-2. 执行 `/kilacraft reload` 重新加载配置
+2. 执行 `/kila reload` 重新加载配置
 3. 查看控制台是否有错误日志
 
 ---

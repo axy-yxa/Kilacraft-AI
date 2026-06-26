@@ -128,7 +128,7 @@
   - **AI-Powered Diagnostics**: Uses reasoning models (e.g. DeepSeek R1) for deep performance analysis, automatically generating Markdown diagnostic reports with precise bottleneck identification
   - **Server Activity Metrics Collection**: Captures chunk load changes and player distribution across worlds during the sampling window, compensating for Profiler's blind spot for non-CPU activities (I/O, disk, network)
   - **Method-Level Hotspot Identification**: Based on Spark Profiler's call stack analysis, pinpointing issues at the code level and identifying specific plugin performance impacts. Auto mode uses full-duration sampling, consistent with manual mode
-  - **On-Demand Precision Analysis**: Supports `/kilacraft profile start [duration]` command for admins to analyze specific time periods as needed, solving intermittent performance issues
+  - **On-Demand Precision Analysis**: Supports `/kila profile start [duration]` command for admins to analyze specific time periods as needed, solving intermittent performance issues
   - **Intelligent Debouncing**: Alert cooldown, sliding window frequency limits prevent resource exhaustion and ensure system stability
   - **External Notification**: When auto-triggered diagnostic analysis completes, push alert notifications to Discord or DingTalk group bots so admins are informed even when offline. Discord supports Embed card messages; DingTalk supports Markdown text + optional HMAC-SHA256 signature security. Push content only includes alert triggers, real-time snapshot metrics, and AI diagnosis summary — no full report file attachments to prevent sensitive information leakage
   - **Independent Configuration Management**: New `admin.yml` config file for centralized management of monitoring thresholds, reasoning model settings, external notification channels, and diagnostic prompts
@@ -137,7 +137,7 @@
 - **Audit Log Query (AuditLogSkill)**: View AI skill execution records, usage statistics, and failure logs
 - New admin permission nodes: `kilacraft.admin.health`, `kilacraft.admin.player`, `kilacraft.admin.audit` (OP only by default)
 - Spark plugin added as a soft dependency; admin features auto-disable when Spark is absent without affecting other functionality. Paper 1.21+/Folia/Purpur/Leaf/Pufferfish bundles Spark built-in — no separate installation needed
-- New `/kilacraft notify test` command to test Discord/DingTalk notification channel configuration
+- New `/kila notify test` command to test Discord/DingTalk notification channel configuration
 - Diagnostic report file output (Markdown format, auto-saved to `plugins/Kilacraft-AI/reports/`)
 
 ### 🔧 Improvements
@@ -279,7 +279,7 @@
 - **Global Market Query New `query_seller_items` Action**: Query items by seller name using GMP dedicated API, added to security isolation whitelist
 
 - **Global Language Directive for AI**: Automatically injects language constraint directives into all LLM calls, preventing third-party SPI Skill multilingual data from interfering with AI output language consistency
-- **Configurable Profile Analysis Prompt**: Profile analysis system prompt migrated from hardcoded to `database.yml` config file, supports Chinese/English bilingual, supports hot-reload (instant via `/kilacraft reload`)
+- **Configurable Profile Analysis Prompt**: Profile analysis system prompt migrated from hardcoded to `database.yml` config file, supports Chinese/English bilingual, supports hot-reload (instant via `/kila reload`)
 
 ### 🐛 Bug Fixes
 - **Fixed global market transaction amount recorded as -1.0**: `TransactionEvent.getPrice()` returns default value, switched to `TransactionResultEvent` for real transaction data
@@ -369,7 +369,7 @@
   - Configurable minimum similarity threshold, vector dimensions, API timeout, etc.
   - Automatically degrades to original BM25 algorithm when unconfigured
 - **Database Persistence Layer**: Supports both H2 embedded database (zero-config, works out of the box) and MySQL external database (multi-server data sharing)
-  - HikariCP connection pool, supports `/kilacraft reload` hot-reload database type switching (auto-rollback on failure)
+  - HikariCP connection pool, supports `/kila reload` hot-reload database type switching (auto-rollback on failure)
   - `database.yml` standalone config file (type/connection params/table prefix/data retention days)
   - Schema auto-migration, supports both H2 and MySQL dialects
 - **Conversation History Persistence Service**: Player conversations automatically saved to database, persistent across restarts
@@ -407,7 +407,7 @@
 - **Unified Task Scheduler**: All periodic background tasks centrally managed
   - `ManagedTask` interface + `TaskScheduler` unified manager, 5 managed tasks
   - CAS mutual exclusion + structured logging + runtime statistics
-  - `/kilacraft tasks` command to view task status (requires `kilacraft.tasks` permission, default OP)
+  - `/kila tasks` command to view task status (requires `kilacraft.tasks` permission, default OP)
 - **Skill Execution Audit Log**: All skill executions automatically recorded for retrospective analysis
   - Records: player UUID, skill name, action, parameters, execution result, elapsed time, trigger source
   - Async writes to `kca_skill_log` table, no impact on skill execution performance
@@ -439,7 +439,7 @@
 - **Conversation Source Tagging**: All conversation records carry source identification
   - Supports 6 sources: Chat Listener, `/ai` Command, Plugin (console), Console, Login Greeting, AFK Callback
   - Auto-tags source when persisting AI responses, facilitating data analysis and troubleshooting
-- **Hot-Reload Database Config**: `/kilacraft reload` supports hot-reloading database config (including H2/MySQL type switching), auto-rollback on failure
+- **Hot-Reload Database Config**: `/kila reload` supports hot-reloading database config (including H2/MySQL type switching), auto-rollback on failure
 - **Shutdown Sequence Refactor**: Optimized plugin unloading flow to ensure zero data loss
   - New order: cancel scheduled tasks → flush remaining messages → write all player profiles → wait for IO pool completion → close database pool
 - **Thread Safety Enhancement**: `ConversationManager.chatMode` upgraded from `HashMap` to `ConcurrentHashMap`
@@ -462,7 +462,7 @@ This version splits the 847-line `config.yml` into 6 independent files by config
 1. Backup the entire `plugins/Kilacraft-AI/` directory
 2. Start the server to let the plugin generate new config files
 3. Refer to the table below and copy your custom config values from the old `config.yml` to the corresponding new files
-4. Run `/kilacraft reload` to apply the migrated config
+4. Run `/kila reload` to apply the migrated config
 5. After migration, the `llm:`, `agent:`, `output:`, `knowledge:` sections in the old `config.yml` can be deleted (keeping them has no effect, the plugin no longer reads them)
 
 **Config Migration Mapping Table:**
@@ -686,7 +686,7 @@ This version splits the 847-line `config.yml` into 6 independent files by config
 - New configuration file: intent_keywords.yml (BM25 semantic scoring parameters)
 - New configuration item: `check-interval-ticks` in config.yml (CUSTOM task polling interval)
 - analysis_prompt_suffix in config.yml added 400 character limit
-- Fully backward compatible, recommend using /kilacraft reload to reload configuration
+- Fully backward compatible, recommend using /kila reload to reload configuration
 
 ---
 
@@ -702,7 +702,7 @@ This version splits the 847-line `config.yml` into 6 independent files by config
   - Environment: weather change
   - Dual mode: notification (direct alert) + callback (auto-execute multi-step tasks)
   - Auto management: auto-cancel on player offline, auto-cleanup on task completion
-  - Command integration: `/kilacraft afk` (query), `/kilacraft afk cancel` (cancel)
+  - Command integration: `/kila afk` (query), `/kila afk cancel` (cancel)
 - Built-in vocabulary loading: loads vocabulary files from internal/vocabulary/ directory in JAR package
 - Three-layer keyword extraction strategy: original query + segmentation result + TF-IDF keywords, compatible with both short text and long documents
 - Single-character query optimization: supports single-character queries like "bow", "sword" through custom dictionary and stop word checks
@@ -750,10 +750,10 @@ This version splits the 847-line `config.yml` into 6 independent files by config
 - Added 21 new Bukkit API configurations, automatically created on first startup
 - Existing 37 APIs fully compatible, no configuration changes required
 - Total APIs expanded from 37 to 58
-- Supports hot reloading of API configuration via `/kilacraft reload`
+- Supports hot reloading of API configuration via `/kila reload`
 - New permission nodes: kilacraft.api.player.status (armor, potion effects, etc.)
 - New permission nodes: kilacraft.afk (default: all players)
-- Existing features fully compatible, recommended to use /kilacraft reload to reload configuration
+- Existing features fully compatible, recommended to use /kila reload to reload configuration
 - Fully backward compatible, no configuration changes required
 
 ---
@@ -819,7 +819,7 @@ This version splits the 847-line `config.yml` into 6 independent files by config
 ### ⚠️ Compatibility
 - Added intent_prompts.yml configuration file, automatically created on first startup
 - Existing features fully compatible, no other configuration changes required
-- Supports hot reloading of intent recognition prompt configuration via `/kilacraft reload`
+- Supports hot reloading of intent recognition prompt configuration via `/kila reload`
 
 ---
 

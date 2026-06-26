@@ -52,7 +52,7 @@ plugins/Kilacraft-AI/
     └── ...
 ```
 
-On first startup the plugin copies default configs from the JAR. The prompt file is auto-selected by current language (`zh` → `intent_prompts.yml`, `en` → `intent_prompts_en.yml`). After editing, hot-reload with `/kilacraft reload` — no restart needed.
+On first startup the plugin copies default configs from the JAR. The prompt file is auto-selected by current language (`zh` → `intent_prompts.yml`, `en` → `intent_prompts_en.yml`). After editing, hot-reload with `/kila reload` — no restart needed.
 
 ---
 
@@ -299,7 +299,7 @@ grep -vE '^\s*#|^\s*$' intent_prompts.yml | wc -m
 After editing `intent_prompts.yml`, no restart needed:
 
 ```
-/kilacraft reload
+/kila reload
 ```
 
 The log will output "Intent recognition prompt config reload complete".
@@ -358,7 +358,7 @@ All prompt sections can be freely modified. **But note**:
 ## ❓ FAQ
 
 **Q: Why didn't my `intent_prompts.yml` edit take effect?**  
-A: Confirm you ran `/kilacraft reload`; confirm `settings.language` matches the file suffix (Chinese uses `intent_prompts.yml`, English uses `_en.yml`).
+A: Confirm you ran `/kila reload`; confirm `settings.language` matches the file suffix (Chinese uses `intent_prompts.yml`, English uses `_en.yml`).
 
 **Q: How to improve intent recognition accuracy?**  
 A: Prioritize optimizing each skill's own `description` (Phase 1 only reads this one line), then adjust `decision_rules`. If accuracy is below 80%, focus on multi-step task recognition.

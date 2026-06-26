@@ -82,7 +82,7 @@ knowledge/
 ### 3. Load the Knowledge Base
 
 ```
-/kilacraft knowledge reload
+/kila knowledge reload
 ```
 
 ### 4. Test the Effect
@@ -737,7 +737,7 @@ Final Score ≈ 6.24 + 5.55 + 0 + 90.0 + 10.0 = 111.79
 - Speed improved by roughly **70%**
 
 **Cache Invalidation Conditions**:
-- Execute `/kilacraft knowledge reload`
+- Execute `/kila knowledge reload`
 - Server restart
 
 ---
@@ -965,7 +965,7 @@ Regarding the question of how to claim a piece of land belonging to yourself on 
 
 2. **Confirm files are loaded**
    ```
-   /kilacraft knowledge reload
+   /kila knowledge reload
    ```
    Check the console output:
    ```

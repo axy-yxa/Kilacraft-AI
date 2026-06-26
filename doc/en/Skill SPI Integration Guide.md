@@ -214,6 +214,15 @@ Drop both JARs into `plugins/` and start the server. The console will print:
 [Kilacraft-AI] Discovered and registered third-party skill: hello_world (from MyPlugin)
 ```
 
+### Step 5: Verify Registration & Debug
+
+Once registered, use Kilacraft-AI's built-in commands to quickly verify your Skill:
+
+- **Check registration**: Run `/kila skills` in-game — your Skill's name and description should appear (marked "(third-party)"). Only skills the current caller has permission to trigger are listed, so check with an account that holds the required permission
+- **Execute & debug directly**: `/kila run <skill> <prompt>` skips intent recognition and calls your Skill directly — ideal for precise triggering and debugging, e.g. `/kila run hello_world hello`. If it says the skill isn't found, the permission is missing or registration didn't take effect
+
+> These two commands are the fastest way to diagnose "why isn't the AI triggering my skill": first confirm registration & permission with `/kila skills`, then verify the execution logic itself with `/kila run`.
+
 ---
 
 ## 5. Core Interfaces

@@ -113,18 +113,25 @@ Player: Alert me when my health drops below 5
 | Command | Permission | Description |
 |---|---|---|
 | `/kila <message>` | None | Chat with AI (`/kilacraft`, `/ai`, `/zm` all work) |
-| `/kilacraft chat` | None | Toggle continuous chat mode |
-| `/kilacraft clear [player]` | `clear.self` / `clear.other` | Clear chat history |
-| `/kilacraft reload` | OP | Reload config and language files |
-| `/kilacraft knowledge reload` | OP | Reload knowledge base |
-| `/kilacraft personalities reload` | OP | Reload personality config |
-| `/kilacraft afk [cancel]` | None | View/cancel AFK tasks |
-| `/kilacraft tasks` | `kilacraft.tasks` | View scheduled task status (default OP) |
-| `/kilacraft profile start [seconds]` | `admin.health` | Start manual profiling (30-120s) |
-| `/kilacraft profile status` | `admin.health` | View profiling status |
-| `/kilacraft profile stop` | `admin.health` | Abort profiling and discard data |
-| `/kilacraft notify test` | `admin.health` | Test external notification channels |
-| `/kilacraft plugins <personality> <message> <UUID> [callback]` | Console | Third-party plugin integration |
+| `/kila chat` | None | Toggle continuous chat mode |
+| `/kila clear [player]` | `kilacraft.clear.self` / `kilacraft.clear.other` | Clear chat history |
+| `/kila reload` | `kilacraft.reload` | Reload config and language files |
+| `/kila knowledge reload` | `kilacraft.knowledge` | Reload knowledge base |
+| `/kila personalities reload` | `kilacraft.personalities` | Reload personality config |
+| `/kila afk [cancel]` | `kilacraft.afk` | View/cancel AFK tasks |
+| `/kila tasks` | `kilacraft.tasks` | View scheduled task status (default OP) |
+| `/kila usage [player\|all] [1d/3d/7d/30d]` | `kilacraft.query.self` / `kilacraft.usage.other` | AI usage stats (turns / skill calls / top skills) |
+| `/kila history [player] [page] [-f]` | `kilacraft.query.self` / `kilacraft.history.other` | Conversation history (-f: full, no truncation) |
+| `/kila memory [player]` | `kilacraft.query.self` / `kilacraft.memory.other` | Player profile & 8-dimension analysis |
+| `/kila skills [page]` | None | List available skills |
+| `/kila run <skill> <prompt>` | Per-skill | Force-execute a skill, skipping intent recognition (player only) |
+| `/kila doctor` | `kilacraft.admin.info` | 17-item config self-diagnostic |
+| `/kila about` | `kilacraft.admin.info` | Version & update check |
+| `/kila profile start [seconds]` | `kilacraft.admin.health` | Start manual profiling (30-120s) |
+| `/kila profile status` | `kilacraft.admin.health` | View profiling status |
+| `/kila profile stop` | `kilacraft.admin.health` | Abort profiling and discard data |
+| `/kila notify test` | `kilacraft.admin.health` | Test external notification channels |
+| `/kila plugins <personality> <message> <UUID> [callback]` | Console | Third-party plugin integration |
 
 ## Documentation
 

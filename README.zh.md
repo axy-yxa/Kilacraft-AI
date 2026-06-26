@@ -114,18 +114,25 @@ llm:
 | 命令 | 权限 | 说明 |
 |---|---|---|
 | `/kila <消息>` | 无 | 与 AI 对话（`/kilacraft`、`/ai`、`/zm` 均可） |
-| `/kilacraft chat` | 无 | 进入/退出连续对话模式 |
-| `/kilacraft clear [玩家]` | `clear.self` / `clear.other` | 清除对话历史 |
-| `/kilacraft reload` | OP | 重载配置和语言文件 |
-| `/kilacraft knowledge reload` | OP | 重载知识库 |
-| `/kilacraft personalities reload` | OP | 重载人格配置 |
-| `/kilacraft afk [cancel]` | 无 | 查看/取消挂机任务 |
-| `/kilacraft tasks` | `kilacraft.tasks` | 查看定时任务运行状态（默认 OP） |
-| `/kilacraft profile start [秒]` | `admin.health` | 启动手动性能采样（30-120 秒） |
-| `/kilacraft profile status` | `admin.health` | 查看采样状态 |
-| `/kilacraft profile stop` | `admin.health` | 中断采样并丢弃 |
-| `/kilacraft notify test` | `admin.health` | 测试外部通知渠道 |
-| `/kilacraft plugins <人格> <内容> <UUID> [回调]` | 控制台 | 第三方插件集成 |
+| `/kila chat` | 无 | 进入/退出连续对话模式 |
+| `/kila clear [玩家]` | `kilacraft.clear.self` / `kilacraft.clear.other` | 清除对话历史 |
+| `/kila reload` | `kilacraft.reload` | 重载配置和语言文件 |
+| `/kila knowledge reload` | `kilacraft.knowledge` | 重载知识库 |
+| `/kila personalities reload` | `kilacraft.personalities` | 重载人格配置 |
+| `/kila afk [cancel]` | `kilacraft.afk` | 查看/取消挂机任务 |
+| `/kila tasks` | `kilacraft.tasks` | 查看定时任务运行状态（默认 OP） |
+| `/kila usage [玩家\|all] [1d/3d/7d/30d]` | `kilacraft.query.self` / `kilacraft.usage.other` | AI 用量统计（对话轮数/技能调用/热门技能） |
+| `/kila history [玩家] [页码] [-f]` | `kilacraft.query.self` / `kilacraft.history.other` | 对话历史（-f 完整不缩略） |
+| `/kila memory [玩家]` | `kilacraft.query.self` / `kilacraft.memory.other` | 玩家画像与八维度分析 |
+| `/kila skills [页码]` | 无 | 列出可用技能 |
+| `/kila run <技能> <提示词>` | 按技能 | 强制执行指定技能，跳过意图识别（仅玩家） |
+| `/kila doctor` | `kilacraft.admin.info` | 17 项配置自检 |
+| `/kila about` | `kilacraft.admin.info` | 版本与更新检查 |
+| `/kila profile start [秒]` | `kilacraft.admin.health` | 启动手动性能采样（30-120 秒） |
+| `/kila profile status` | `kilacraft.admin.health` | 查看采样状态 |
+| `/kila profile stop` | `kilacraft.admin.health` | 中断采样并丢弃 |
+| `/kila notify test` | `kilacraft.admin.health` | 测试外部通知渠道 |
+| `/kila plugins <人格> <内容> <UUID> [回调]` | 控制台 | 第三方插件集成 |
 
 ## 文档
 

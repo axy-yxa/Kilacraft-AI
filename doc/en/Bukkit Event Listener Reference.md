@@ -659,7 +659,7 @@ PENDING → start() → RUNNING → Event Trigger → complete() → COMPLETED
 
 All listeners automatically clean up resources in the following scenarios:
 - ✅ Task complete (event triggered)
-- ✅ Manual cancellation (`/kilacraft afk cancel`)
+- ✅ Manual cancellation (`/kila afk cancel`)
 - ✅ Creator offline (`AFKTaskListener` auto-cleanup)
 
 Cleanup operation:
