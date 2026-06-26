@@ -248,7 +248,7 @@ public class SkillIntentRecognizer {
 
             @Override
             public void showResponse(String response) {
-                PluginLoggerUtil.debug("意图识别", "{} 结果: {}", logLabel, response);
+                PluginLoggerUtil.debug("意图识别", "{} 结果: {}", I18nService.tr(logLabel), response);
             }
 
             @Override
@@ -257,7 +257,7 @@ public class SkillIntentRecognizer {
 
             @Override
             public void handleError(String errorMessage) {
-                PluginLoggerUtil.debug("意图识别", "{} 错误: {}", logLabel, errorMessage);
+                PluginLoggerUtil.debug("意图识别", "{} 错误: {}", I18nService.tr(logLabel), errorMessage);
             }
 
             @Override
