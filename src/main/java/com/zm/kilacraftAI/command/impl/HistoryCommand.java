@@ -14,11 +14,12 @@ import org.bukkit.command.CommandSender;
 
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * /kila history [玩家名] [页码]：查看对话历史（双维度，query.self / history.other）。
+ * /kila history [玩家名] [页码] [-f]：查看对话历史（双维度，query.self / history.other）；-f 显示完整内容不缩略。
  * 数据源 kca_conversation，分页倒序。DB 查询在 IO 线程池执行，结果回主线程。
  */
 public final class HistoryCommand {
@@ -36,15 +37,24 @@ public final class HistoryCommand {
             return;
         }
 
-        // args[1] 为数字 → 自己 + 页码；否则为玩家名（他人），args[2] 为页码
+        // 先提取 -f（完整内容开关，可出现在任意参数位），剩余位置参数按原逻辑：数字→页码，否则玩家名
+        boolean full = false;
+        List<String> positional = new ArrayList<>();
+        for (int i = 1; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase("-f")) {
+                full = true;
+            } else {
+                positional.add(args[i]);
+            }
+        }
         String nameArg = null;
         String pageArg = null;
-        if (args.length >= 2) {
-            if (isNumeric(args[1])) {
-                pageArg = args[1];
+        if (!positional.isEmpty()) {
+            if (isNumeric(positional.get(0))) {
+                pageArg = positional.get(0);
             } else {
-                nameArg = args[1];
-                if (args.length >= 3) pageArg = args[2];
+                nameArg = positional.get(0);
+                if (positional.size() >= 2) pageArg = positional.get(1);
             }
         }
         int page = parsePage(pageArg);
@@ -52,6 +62,7 @@ public final class HistoryCommand {
         QueryTarget.Resolved target = QueryTarget.resolve(sender, nameArg, PluginPermissionEnum.QUERY_SELF, PluginPermissionEnum.HISTORY_OTHER, false);
         if (target == null) return;
 
+        final boolean fullContent = full; // full 在解析循环中被重新赋值，需 final 副本供 lambda 捕获
         FoliaCompat.getIOPool().execute(() -> {
             try (Connection conn = dbManager.getConnection()) {
                 UUID uuid = target.uuid();
@@ -68,7 +79,8 @@ public final class HistoryCommand {
                 int currentPage = Math.max(1, Math.min(page, totalPages));
                 int offset = (currentPage - 1) * PAGE_SIZE;
                 List<ConversationDao.HistoryEntry> entries = dao.queryHistoryPage(conn, uuid.toString(), offset, PAGE_SIZE);
-                List<String> lines = buildLines(target.displayName(), currentPage, totalPages, entries, lm);
+                Collections.reverse(entries); // DAO 倒序（最新在前）→ 反转为正序，页内从上往下按时间阅读
+                List<String> lines = buildLines(target.displayName(), currentPage, totalPages, entries, lm, fullContent);
                 FoliaCompat.runTask(plugin, () -> lines.forEach(sender::sendMessage));
             } catch (Exception e) {
                 PluginLoggerUtil.error("历史", I18nService.tr("查询对话历史失败: {}", e.getMessage()), e);
@@ -77,7 +89,7 @@ public final class HistoryCommand {
         });
     }
 
-    public static List<String> buildLines(String displayName, int page, int totalPages, List<ConversationDao.HistoryEntry> entries, LanguageManager lm) {
+    public static List<String> buildLines(String displayName, int page, int totalPages, List<ConversationDao.HistoryEntry> entries, LanguageManager lm, boolean full) {
         List<String> lines = new ArrayList<>();
         if (entries.isEmpty()) {
             lines.add(lm.replacePlaceholders(lm.getCommandHistoryEmpty(), "player", displayName));
@@ -86,7 +98,7 @@ public final class HistoryCommand {
         lines.add(lm.replacePlaceholders(lm.getCommandHistoryTitle(), "player", displayName, "page", String.valueOf(page), "total", String.valueOf(totalPages)));
         for (ConversationDao.HistoryEntry e : entries) {
             String role = "user".equals(e.role()) ? lm.getCommandHistoryRoleUser() : "§bAI";
-            String content = truncate(e.content(), 50);
+            String content = full ? e.content() : truncate(e.content(), 50);
             String time = AdminSkillUtil.formatTimestamp(e.createdAt());
             lines.add(lm.replacePlaceholders(lm.getCommandHistoryEntryLine(), "time", time, "role", role, "content", content));
         }

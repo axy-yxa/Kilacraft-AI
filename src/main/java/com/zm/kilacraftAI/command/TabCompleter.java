@@ -170,6 +170,9 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
 
         if (args.length == 2 && ("history".equals(args[0]) || "memory".equals(args[0]))) {
             List<String> completions = new ArrayList<>();
+            if ("history".equals(args[0])) {
+                completions.add("-f"); // 完整内容开关，对自己/他人查看均可用
+            }
             PluginPermissionEnum otherPerm = "history".equals(args[0]) ? PluginPermissionEnum.HISTORY_OTHER : PluginPermissionEnum.MEMORY_OTHER;
             if (otherPerm.hasPermission(sender)) {
                 for (Player p : Bukkit.getOnlinePlayers()) completions.add(p.getName());

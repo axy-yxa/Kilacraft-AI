@@ -91,34 +91,23 @@ public class TaskScheduler {
     }
 
     /**
-     * 获取所有任务运行状态摘要（调试命令用）
+     * 获取所有任务的运行状态数据（供 /kila tasks 命令展示，不含格式化）。
      *
-     * @return 状态摘要行列表
+     * @return 任务状态数据列表
      */
-    public List<String> getStatusSummary() {
-        List<String> lines = new ArrayList<>();
-        lines.add(I18nService.tr("§f[TaskScheduler] §7已注册 §e{} §7个定时任务:", tasks.size()));
-        // 表头
-        lines.add(I18nService.tr("  §8任务     §7| §8周期  §7| §8执行统计     §7| §8上次执行   §7| §8状态"));
-
+    public List<TaskStatus> getTaskStatuses() {
+        List<TaskStatus> list = new ArrayList<>();
         for (ManagedTaskHandle h : tasks) {
-            String intervalStr = formatInterval(h.task.intervalTicks());
-            String stats;
-            if (h.totalProcessed > 0) {
-                stats = h.task.formatStats(h.totalProcessed);
-            } else if (h.lastExecuteTime > 0) {
-                stats = I18nService.tr("§7暂无触发");
-            } else {
-                stats = "§8-";
-            }
-            String lastExec = h.lastExecuteTime > 0 ? I18nService.tr("§f{}前", formatElapsed(System.currentTimeMillis() - h.lastExecuteTime)) : I18nService.tr("§8未执行");
-            String status = h.lastError != null ? I18nService.tr("§c异常: {}", truncate(h.lastError, 30)) : h.lastExecuteTime == 0 ? I18nService.tr("§7等待首次") : I18nService.tr("§a正常");
-
-            String name = String.format("%-8s", h.task.name());
-            String interval = String.format("%-5s", intervalStr);
-            lines.add(String.format("  §f%s §7| §e%s §7| %s §7| %s §7| %s", name, interval, stats, lastExec, status));
+            list.add(new TaskStatus(h.task.name(), h.task.intervalTicks(), h.totalProcessed, h.lastExecuteTime, h.lastError));
         }
-        return lines;
+        return list;
+    }
+
+    /**
+     * 任务运行状态数据（展示由命令层负责，此处只提供原始字段）。
+     */
+    public record TaskStatus(String name, long intervalTicks, long totalProcessed, long lastExecuteTime,
+                             String lastError) {
     }
 
     /**
@@ -147,35 +136,6 @@ public class TaskScheduler {
         } finally {
             handle.running.set(false);
         }
-    }
-
-    /**
-     * 将 ticks 转换为人类可读的时间间隔
-     */
-    private String formatInterval(long ticks) {
-        long seconds = ticks / 20;
-        if (seconds < 60) return seconds + "s";
-        if (seconds < 3600) return (seconds / 60) + "min";
-        long hours = seconds / 3600;
-        if (hours < 24) return hours + "h";
-        return (hours / 24) + "d";
-    }
-
-    /**
-     * 将毫秒转换为人类可读的经过时间
-     */
-    private String formatElapsed(long millis) {
-        long seconds = millis / 1000;
-        if (seconds < 60) return seconds + "s";
-        if (seconds < 3600) return (seconds / 60) + "min";
-        long hours = seconds / 3600;
-        if (hours < 24) return hours + "h";
-        return (hours / 24) + "d";
-    }
-
-    private String truncate(String value, int maxLen) {
-        if (value == null) return "";
-        return value.length() > maxLen ? value.substring(0, maxLen) + "..." : value;
     }
 
     /**

@@ -74,17 +74,17 @@ public final class MemoryCommand {
         lines.add(lm.replacePlaceholders(lm.getCommandMemoryPlaytime(), "value", formatDuration(profile.getTotalPlaytimeMs(), lm)));
         if (profile.getProfileAnalyzedAt() > 0) {
             lines.add(lm.replacePlaceholders(lm.getCommandMemoryAnalyzed(), "value", AdminSkillUtil.formatTimestamp(profile.getProfileAnalyzedAt())));
+            // 画像八维度详情（仅已分析时展示；空值显示 -；标签优先取 language.yml 配置，缺失回退内置常量）
+            Map<String, Object> ext = profile.getExtendedData();
+            List<String> labels = lm.getCommandMemoryProfileLabels();
+            for (int i = 0; i < PROFILE_FIELDS.length; i++) {
+                String label = (labels != null && i < labels.size() && labels.get(i) != null && !labels.get(i).isEmpty()) ? labels.get(i) : PROFILE_LABELS[i];
+                Object raw = ext != null ? ext.get(PROFILE_FIELDS[i]) : null;
+                String value = raw != null ? String.valueOf(raw).trim() : "";
+                lines.add(lm.replacePlaceholders(lm.getCommandMemoryProfileField(), "label", label, "value", value.isEmpty() ? "§7-" : value));
+            }
         } else {
             lines.add(lm.getCommandMemoryNotAnalyzed());
-        }
-        // 画像八维度详情（全显示，空值显示 -）；标签优先取 language.yml 配置，缺失回退内置常量
-        Map<String, Object> ext = profile.getExtendedData();
-        List<String> labels = lm.getCommandMemoryProfileLabels();
-        for (int i = 0; i < PROFILE_FIELDS.length; i++) {
-            String label = (labels != null && i < labels.size() && labels.get(i) != null && !labels.get(i).isEmpty()) ? labels.get(i) : PROFILE_LABELS[i];
-            Object raw = ext != null ? ext.get(PROFILE_FIELDS[i]) : null;
-            String value = raw != null ? String.valueOf(raw).trim() : "";
-            lines.add(lm.replacePlaceholders(lm.getCommandMemoryProfileField(), "label", label, "value", value.isEmpty() ? "§7-" : value));
         }
         return lines;
     }
@@ -95,8 +95,10 @@ public final class MemoryCommand {
         long days = totalMin / (60 * 24);
         long hours = (totalMin % (60 * 24)) / 60;
         long mins = totalMin % 60;
-        if (days > 0) return lm.replacePlaceholders(lm.getCommandMemoryDurationDays(), "n", String.valueOf(days), "m", String.valueOf(hours));
-        if (hours > 0) return lm.replacePlaceholders(lm.getCommandMemoryDurationHours(), "n", String.valueOf(hours), "m", String.valueOf(mins));
+        if (days > 0)
+            return lm.replacePlaceholders(lm.getCommandMemoryDurationDays(), "n", String.valueOf(days), "m", String.valueOf(hours));
+        if (hours > 0)
+            return lm.replacePlaceholders(lm.getCommandMemoryDurationHours(), "n", String.valueOf(hours), "m", String.valueOf(mins));
         return lm.replacePlaceholders(lm.getCommandMemoryDurationMinutes(), "n", String.valueOf(mins));
     }
 

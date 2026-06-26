@@ -1198,16 +1198,6 @@ messages:
   "[{}] 执行完成 (耗时{}ms, 本轮{}条, 累计{}条)": "[{}] Execution complete ({}ms, {} this round, {} total)"
   "[{}] 执行完成 (耗时{}ms, 无新数据)": "[{}] Execution complete ({}ms, no new data)"
   "[{}] 执行失败: {}": "[{}] Execution failed: {}"
-  "§f[TaskScheduler] §7已注册 §e{} §7个定时任务:": "§f[TaskScheduler] §7Registered §e{} §7scheduled tasks:"
-  "  §8任务     §7| §8周期  §7| §8执行统计     §7| §8上次执行   §7| §8状态": "  §8Task     §7| §8Intvl §7| §8Stats        §7| §8Last Run   §7| §8Status"
-  "累计 §e{} §7条": "Total §e{} §7items"
-  "触发 §e{} §7次": "Triggered §e{} §7times"
-  "§7暂无触发": "§7No triggers"
-  "§f{}前": "§f{} ago"
-  "§8未执行": "§8Not yet"
-  "§c异常: {}": "§cError: {}"
-  "§7等待首次": "§7Awaiting first"
-  "§a正常": "§aOK"
 
   # ==================== SoundEffectManager ====================
   "播放音效失败": "Failed to play sound"

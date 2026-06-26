@@ -62,12 +62,19 @@ public class AIRequestHandler {
      * @param source      来源标识
      */
     public void handleAIRequest(Player player, String message, Deque<ConversationManager.Message> playerHistory, boolean enableAgent, boolean publicReply, ConversationSourceEnum source) {
+        RequestContext ctx = buildPlayerContext(player, playerHistory, publicReply, source, null);
+        handleAIRequestInternal(message, ctx, enableAgent);
+    }
+
+    /**
+     * 构建玩家请求上下文（sendResponse/sendError 回调 + RequestContext），
+     * 供 {@link #handleAIRequest} 与 {@link #handleForcedSkillResult} 复用。
+     */
+    private RequestContext buildPlayerContext(Player player, Deque<ConversationManager.Message> history, boolean publicReply, ConversationSourceEnum source, String executionSource) {
         // 使用统一的响应管线
         AIResponsePipeline pipeline = plugin.getResponsePipeline();
 
         Consumer<String> sendResponse;
-        Consumer<String> sendError;
-
         if (publicReply) {
             // 公屏模式：先发送给触发者（使用场景配置），再广播给所有人
             sendResponse = response -> {
@@ -82,14 +89,12 @@ public class AIRequestHandler {
             // 私信模式：只发给触发者
             sendResponse = response -> pipeline.send(player, response, OutputScenarioEnum.NORMAL_CHAT);
         }
-        sendError = error -> {
+        Consumer<String> sendError = error -> {
             // 错误回调统一取消流式占位符（非流式时 cancelStream 是 no-op），避免卡在"正在思考中"
             pipeline.cancelStream(player);
             pipeline.sendError(player, languageManager.getPluginCommandError() + error);
         };
-
-        RequestContext ctx = new RequestContext(player.getName(), player, playerHistory, sendResponse, sendError, OutputScenarioEnum.NORMAL_CHAT, publicReply, source);
-        handleAIRequestInternal(message, ctx, enableAgent);
+        return new RequestContext(player.getName(), player, history, sendResponse, sendError, OutputScenarioEnum.NORMAL_CHAT, publicReply, source, executionSource);
     }
 
     /**
@@ -99,8 +104,17 @@ public class AIRequestHandler {
         UUID consoleUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
         Deque<ConversationManager.Message> consoleHistory = plugin.getConversationManager().getOrCreateHistory(consoleUUID);
 
-        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error), OutputScenarioEnum.NORMAL_CHAT, false, ConversationSourceEnum.CONSOLE);
+        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error), OutputScenarioEnum.NORMAL_CHAT, false, ConversationSourceEnum.CONSOLE, null);
         handleAIRequestInternal(message, ctx, enableAgent);
+    }
+
+    /**
+     * /kila run 强制技能入口：复用正常流程的"执行 + AI 二次总结 / 失败回退"，仅省略 Phase 1 意图识别。
+     * recognized 为 recognizeForcedSkill 的结果（TaskPlan / SkillIntent），由 {@link #dispatchIntentResult} 统一分发。
+     */
+    public void handleForcedSkillResult(Player player, Object recognized, String message, Deque<ConversationManager.Message> history, ConversationSourceEnum source) {
+        RequestContext ctx = buildPlayerContext(player, history, false, source, "manual_run");
+        dispatchIntentResult(recognized, message, ctx);
     }
 
     /**
@@ -168,22 +182,31 @@ public class AIRequestHandler {
             return;
         }
         intentRecognizer.recognizeIntent(message, ctx.history(), ctx.name(), ctx.player()).orTimeout(120, TimeUnit.SECONDS).thenAccept(result -> {
-            if (result instanceof TaskPlan taskPlan && taskPlan.isMultiStep()) {
-                MetricsCollector.getInstance().recordRequestType("skill_execution");
-                handleTaskPlan(taskPlan, message, ctx);
-            } else if (result instanceof SkillIntent intent && intent.isValid()) {
-                MetricsCollector.getInstance().recordRequestType("skill_execution");
-                handleSkillIntent(intent, message, ctx);
-            } else {
-                PluginLoggerUtil.debug("AI请求", "意图识别结束，回退到普通 AI 处理");
-                MetricsCollector.getInstance().recordRequestType("normal_chat");
-                handleNormalAIRequest(message, ctx, null);
-            }
+            dispatchIntentResult(result, message, ctx);
         }).exceptionally(throwable -> {
             PluginLoggerUtil.warn("AI请求", "意图识别失败: {}", throwable.getMessage());
             ctx.sendError.accept(I18nService.tr("意图识别失败: {}", formatAsyncError(throwable)));
             return null;
         });
+    }
+
+    /**
+     * 分发意图识别结果：多步骤任务 → {@link #handleTaskPlan}；单意图 → {@link #handleSkillIntent}；
+     * 其它/无效 → 回退普通 AI。正常两阶段识别（recognizeIntent）与强制技能（recognizeForcedSkill）
+     * 共用此分发，确保"执行 + AI 二次总结 / 失败回退"行为一致。
+     */
+    private void dispatchIntentResult(Object result, String message, RequestContext ctx) {
+        if (result instanceof TaskPlan taskPlan && taskPlan.isMultiStep()) {
+            MetricsCollector.getInstance().recordRequestType("skill_execution");
+            handleTaskPlan(taskPlan, message, ctx);
+        } else if (result instanceof SkillIntent intent && intent.isValid()) {
+            MetricsCollector.getInstance().recordRequestType("skill_execution");
+            handleSkillIntent(intent, message, ctx);
+        } else {
+            PluginLoggerUtil.debug("AI请求", "意图识别结束，回退到普通 AI 处理");
+            MetricsCollector.getInstance().recordRequestType("normal_chat");
+            handleNormalAIRequest(message, ctx, null);
+        }
     }
 
     /**
@@ -194,6 +217,9 @@ public class AIRequestHandler {
 
         TaskExecutor taskExecutor = new TaskExecutor(plugin.getSkillManager());
         SkillContext context = new SkillContext(ctx.player(), null, new HashMap<>());
+        if (ctx.executionSource() != null) {
+            context.withAudit(message, ctx.executionSource());
+        }
 
         // TaskExecutor 返回 AnalysisSummary，通过中间层进行 LLM 二次分析
         taskExecutor.executeTask(taskPlan, context, ctx.history(), message).thenAccept(summary -> {
@@ -229,6 +255,9 @@ public class AIRequestHandler {
             return;
         }
         SkillContext context = new SkillContext(ctx.player(), intent.getAction(), intent.getEntities());
+        if (ctx.executionSource() != null) {
+            context.withAudit(message, ctx.executionSource());
+        }
         executeAndReport(context, intent, message, ctx, false);
     }
 
@@ -409,6 +438,7 @@ public class AIRequestHandler {
      */
     private record RequestContext(String name, Player player, Deque<ConversationManager.Message> history,
                                   Consumer<String> sendResponse, Consumer<String> sendError,
-                                  OutputScenarioEnum scenario, boolean isBroadcast, ConversationSourceEnum source) {
+                                  OutputScenarioEnum scenario, boolean isBroadcast, ConversationSourceEnum source,
+                                  String executionSource) {
     }
 }

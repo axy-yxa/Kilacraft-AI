@@ -39,21 +39,21 @@ public final class AboutCommand {
                 }
                 boolean hasUpdate = UpdateChecker.isNewerVersion(current, latest.tagName());
                 FoliaCompat.runTask(plugin, () -> {
-                    // 始终显示最新 release 标签和版本说明（name 即 tag 发布时填的 title）
+                    // 先陈列最新版本的客观信息（版本号、说明、日期、下载），再以"是否需要更新"的结论收尾，避免彩色状态行夹在灰色信息行中间
                     sender.sendMessage(lm.replacePlaceholders(lm.getCommandAboutLatest(), "ver", latest.tagName()));
                     if (!latest.name().isEmpty() && !latest.name().equals(latest.tagName())) {
                         sender.sendMessage(lm.replacePlaceholders(lm.getCommandAboutReleaseNotes(), "notes", latest.name()));
-                    }
-                    if (hasUpdate) {
-                        sender.sendMessage(lm.getCommandAboutNewVersion());
-                    } else {
-                        sender.sendMessage(lm.getCommandAboutUpToDate());
                     }
                     if (!latest.publishedAt().isEmpty()) {
                         sender.sendMessage(lm.replacePlaceholders(lm.getCommandAboutPublished(), "date", latest.publishedAt()));
                     }
                     if (!latest.htmlUrl().isEmpty()) {
                         sender.sendMessage(lm.replacePlaceholders(lm.getCommandAboutDownload(), "url", latest.htmlUrl()));
+                    }
+                    if (hasUpdate) {
+                        sender.sendMessage(lm.getCommandAboutNewVersion());
+                    } else {
+                        sender.sendMessage(lm.getCommandAboutUpToDate());
                     }
                 });
             } catch (Exception e) {

@@ -42,7 +42,7 @@ help:
 
   # 查询命令（kilacraft.query.self 权限，查他人需 .usage.other 等）
   usage: " §b/kila usage §7[玩家|all] [时间] §8- §f查看 AI 用量"
-  history: " §b/kila history §7[玩家] [页码] §8- §f查看对话历史"
+  history: " §b/kila history §7[玩家] [页码] [-f] §8- §f查看对话历史（-f 显示完整内容）"
   memory: " §b/kila memory §7[玩家] §8- §f查看玩家画像"
 
   # 技能命令（全体可用）
@@ -137,6 +137,23 @@ commands:
   # ==================== /kila tasks 定时任务状态 ====================
   tasks-no-permission: "§c你没有权限查看定时任务状态。"
   tasks-not-init: "§cTaskScheduler 未初始化。"
+  # 变量: {n}=任务数
+  tasks-title: "§6[Kilacraft-AI] §f定时任务状态 §7（共 §e{n} §7个）"
+  tasks-empty: "§7暂无已注册的定时任务。"
+  # 变量: {mark}=状态符号(含颜色) {name}=任务名 {interval}=周期
+  task-header: "{mark} §f{name} §8· §7{interval}"
+  # 变量: {stats}=统计文本
+  tasks-stats-line: "  §7统计 §f{stats}"
+  # 变量: {time}=上次执行时间
+  tasks-last-run-line: "  §7上次 §f{time}"
+  # 变量: {error}=异常信息
+  tasks-error-line: "  §7异常 §c{error}"
+  # 变量: {n}=累计处理数
+  tasks-stats-count: "累计 §e{n} §7条"
+  tasks-no-trigger: "§7暂无触发"
+  tasks-never-run: "§8未执行"
+  # 变量: {n}=时间间隔(如5s/12min)
+  tasks-time-ago: "{n}前"
 
   # ==================== /kila notify test 通知渠道测试 ====================
   notify-no-permission: "§c你没有权限使用通知测试功能。"

@@ -9,23 +9,20 @@ import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.handler.AIRequestHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
-import com.zm.kilacraftAI.skills.framework.*;
-import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
-import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
-import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
+import com.zm.kilacraftAI.skills.framework.Skill;
+import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
+import com.zm.kilacraftAI.skills.framework.SkillManager;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.Arrays;
 import java.util.Deque;
-import java.util.HashMap;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * /kila run <技能名> <提示词>：强制指定技能执行（绕过 Phase1 分类）。
  * 权限由目标技能自身权限约束（经 SkillManager.getAvailableSkills 校验，与聊天触发同源）。
  * 流程：技能可用校验 → SkillIntentRecognizer.recognizeForcedSkill 提取动作与参数 →
- * 单意图走 SkillManager.executeSkillByIntent；多步骤任务走 TaskExecutor（依赖排序/占位符解析/步骤失败不中断）。
+ * 识别结果交 AIRequestHandler.handleForcedSkillResult，复用正常流程的"执行 + AI 二次总结 / 失败回退"，与聊天触发完全一致。
  * 意图识别失败（缺参数/无法解析）时降级普通 AI（带失败上下文），由 AI 合理回应，避免死胡同。仅限玩家使用。
  */
 public final class RunCommand {
@@ -70,49 +67,22 @@ public final class RunCommand {
         player.sendMessage(MessageUtil.getAIPrefix() + lm.replacePlaceholders(lm.getCommandRunExecuting(), "skill", skillName));
 
         Deque<ConversationManager.Message> history = plugin.getConversationManager().getOrCreateHistory(player.getUniqueId());
-        recognizer.recognizeForcedSkill(prompt, history, player.getName(), player, skillName).thenCompose(result -> {
+        AIRequestHandler handler = new AIRequestHandler(plugin);
+        recognizer.recognizeForcedSkill(prompt, history, player.getName(), player, skillName).thenAccept(result -> {
             if (result == null) {
                 // 意图识别失败（缺参数/无法解析）：降级普通 AI，带上失败上下文让 AI 合理回应
                 // （询问必要参数 / 直接满足需求），而不是死胡同提示"换种说法"
                 PluginLoggerUtil.debug("命令", "强制技能 {} 未解析出意图，降级普通 AI", skillName);
                 boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableCommand();
                 String enriched = prompt + "\n" + I18nService.tr("[系统提示：玩家通过 /kila run {} 指定技能执行，但未能解析出可执行意图。请根据玩家原始需求协助，如需必要参数请直接询问。]", skillName);
-                new AIRequestHandler(plugin).handleAIRequest(player, enriched, history, enableAgent, false, ConversationSourceEnum.COMMAND);
-                return CompletableFuture.completedFuture(null);
+                handler.handleAIRequest(player, enriched, history, enableAgent, false, ConversationSourceEnum.COMMAND);
+                return;
             }
-            if (result instanceof SkillIntent intent) {
-                // 单意图：直接执行
-                SkillContext context = new SkillContext(player, intent.getAction(), intent.getEntities()).withAudit(prompt, "manual_run");
-                return skillManager.executeSkillByIntent(intent, context).thenApply(r -> (Object) r);
-            }
-            // 多步骤任务：复用 TaskExecutor 走完整管线（依赖排序/占位符解析/步骤失败不中断）
-            TaskPlan plan = (TaskPlan) result;
-            SkillContext context = new SkillContext(player, null, new HashMap<>()).withAudit(prompt, "manual_run");
-            return new TaskExecutor(skillManager).executeTask(plan, context, history, prompt).thenApply(r -> (Object) r);
-        }).thenAccept(result -> {
-            if (result != null) {
-                FoliaCompat.runTask(plugin, () -> player.sendMessage(MessageUtil.getAIPrefix() + formatResult(result, lm)));
-            }
+            // 复用正常流程：执行 + AI 二次总结（成功）/ 回退普通 AI（失败），与聊天触发完全一致
+            handler.handleForcedSkillResult(player, result, prompt, history, ConversationSourceEnum.COMMAND);
         }).exceptionally(ex -> {
             FoliaCompat.runTask(plugin, () -> player.sendMessage(MessageUtil.getAIPrefix() + lm.getCommandRunError()));
             return null;
         });
-    }
-
-    /**
-     * 格式化执行结果：单意图取 SkillResult 原文；多步骤任务按步骤逐条展示。
-     */
-    private static String formatResult(Object result, LanguageManager lm) {
-        if (result instanceof SkillResult sr) {
-            return sr.isSuccess() ? sr.getMessage() : "§c" + sr.getMessage();
-        }
-        AnalysisSummary summary = (AnalysisSummary) result;
-        StringBuilder sb = new StringBuilder();
-        for (AnalysisSummary.StepResult step : summary.getResults()) {
-            boolean ok = "SUCCESS".equals(step.status());
-            sb.append(ok ? "§a" : "§c").append("• ").append(step.message()).append("\n");
-        }
-        String text = sb.toString();
-        return text.isEmpty() ? lm.getCommandRunTaskEmpty() : text.stripTrailing();
     }
 }

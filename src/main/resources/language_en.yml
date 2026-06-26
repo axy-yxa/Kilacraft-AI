@@ -33,7 +33,7 @@ help:
   notify: " §b/kila notify test §8- §fTest external notification channels"
 
   usage: " §b/kila usage §7[player|all] [range] §8- §fView AI usage stats"
-  history: " §b/kila history §7[player] [page] §8- §fView chat history"
+  history: " §b/kila history §7[player] [page] [-f] §8- §fView chat history (-f show full content)"
   memory: " §b/kila memory §7[player] §8- §fView player profile"
 
   skills: " §b/kila skills §7[page] §8- §fList available skills"
@@ -94,6 +94,23 @@ commands:
   # ==================== /kila tasks Scheduled task status ====================
   tasks-no-permission: "§cYou do not have permission to view scheduled task status."
   tasks-not-init: "§cTaskScheduler not initialized."
+  # var: {n}=task count
+  tasks-title: "§6[Kilacraft-AI] §fScheduled Task Status §7(§e{n} §7total)"
+  tasks-empty: "§7No registered scheduled tasks."
+  # var: {mark}=status symbol(with color) {name}=task name {interval}=interval
+  task-header: "{mark} §f{name} §8· §7{interval}"
+  # var: {stats}=stats text
+  tasks-stats-line: "  §7Stats §f{stats}"
+  # var: {time}=last run time
+  tasks-last-run-line: "  §7Last §f{time}"
+  # var: {error}=error message
+  tasks-error-line: "  §7Error §c{error}"
+  # var: {n}=total processed
+  tasks-stats-count: "Total §e{n} §7items"
+  tasks-no-trigger: "§7No triggers"
+  tasks-never-run: "§8Not yet"
+  # var: {n}=elapsed time(e.g. 5s/12min)
+  tasks-time-ago: "{n} ago"
 
   # ==================== /kila notify test Notification channel test ====================
   notify-no-permission: "§cYou don't have permission to use the notification test feature."

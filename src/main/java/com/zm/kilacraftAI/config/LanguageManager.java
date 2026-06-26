@@ -67,6 +67,26 @@ public class LanguageManager {
     @Getter
     private String commandTasksNotInit;
     @Getter
+    private String commandTasksTitle;
+    @Getter
+    private String commandTasksEmpty;
+    @Getter
+    private String commandTaskHeader;
+    @Getter
+    private String commandTasksStatsLine;
+    @Getter
+    private String commandTasksLastRunLine;
+    @Getter
+    private String commandTasksErrorLine;
+    @Getter
+    private String commandTasksStatsCount;
+    @Getter
+    private String commandTasksNoTrigger;
+    @Getter
+    private String commandTasksNeverRun;
+    @Getter
+    private String commandTasksTimeAgo;
+    @Getter
     private String commandNotifyNoPermission;
     @Getter
     private String commandNotifyUsage;
@@ -493,7 +513,7 @@ public class LanguageManager {
         this.helpProfileSubcommands = config.getString("help.profile-subcommands", "§e可用子命令：start(开始采样), stop(中断采样), status(查看状态)");
         this.helpNotify = config.getString("help.notify", "§e测试外部通知：/kila notify test");
         this.helpUsage = config.getString("help.usage", "§e查看 AI 用量：/kila usage [all|玩家] [7d]");
-        this.helpHistory = config.getString("help.history", "§e查看对话历史：/kila history [玩家] [页码]");
+        this.helpHistory = config.getString("help.history", "§e查看对话历史：/kila history [玩家] [页码] [-f]");
         this.helpMemory = config.getString("help.memory", "§e查看玩家画像：/kila memory [玩家]");
         this.helpSkills = config.getString("help.skills", "§e列出可用技能：/kila skills [页码]");
         this.helpRun = config.getString("help.run", "§e执行指定技能：/kila run <技能> <提示词>");
@@ -534,6 +554,16 @@ public class LanguageManager {
         // 插件命令专用消息
         this.commandTasksNoPermission = config.getString("commands.tasks-no-permission", "§c你没有权限查看定时任务状态。");
         this.commandTasksNotInit = config.getString("commands.tasks-not-init", "§cTaskScheduler 未初始化。");
+        this.commandTasksTitle = config.getString("commands.tasks-title", "§6[Kilacraft-AI] §f定时任务状态 §7（共 §e{n} §7个）");
+        this.commandTasksEmpty = config.getString("commands.tasks-empty", "§7暂无已注册的定时任务。");
+        this.commandTaskHeader = config.getString("commands.task-header", "{mark} §f{name} §8· §7{interval}");
+        this.commandTasksStatsLine = config.getString("commands.tasks-stats-line", "  §7统计 §f{stats}");
+        this.commandTasksLastRunLine = config.getString("commands.tasks-last-run-line", "  §7上次 §f{time}");
+        this.commandTasksErrorLine = config.getString("commands.tasks-error-line", "  §7异常 §c{error}");
+        this.commandTasksStatsCount = config.getString("commands.tasks-stats-count", "累计 §e{n} §7条");
+        this.commandTasksNoTrigger = config.getString("commands.tasks-no-trigger", "§7暂无触发");
+        this.commandTasksNeverRun = config.getString("commands.tasks-never-run", "§8未执行");
+        this.commandTasksTimeAgo = config.getString("commands.tasks-time-ago", "{n}前");
         this.commandNotifyNoPermission = config.getString("commands.notify-no-permission", "§c你没有权限使用通知测试功能。");
         this.commandNotifyUsage = config.getString("commands.notify-usage", "§7用法：/kila notify test");
         this.commandNotifyNotReady = config.getString("commands.notify-not-ready", "§c通知服务未启用或未配置任何渠道。");

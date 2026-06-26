@@ -100,11 +100,6 @@ public class ServerHealthGuardian implements ManagedTask {
     }
 
     @Override
-    public String formatStats(long totalProcessed) {
-        return I18nService.tr("触发 §e{} §7次", totalProcessed);
-    }
-
-    @Override
     public long delayTicks() {
         // 首次延迟 30 秒，等待服务器完全启动
         return 600L;
