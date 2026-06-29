@@ -50,7 +50,7 @@ public class AFKTaskManager {
      * @param taskFactory 任务工厂（用于创建具体的 AFKTask 子类实例）
      * @return 创建结果
      */
-    public SkillResult createTask(Player player, AFKTaskTypeEnum taskType, String description, Map<String, String> params, AFKTaskFactory taskFactory) {
+    public synchronized SkillResult createTask(Player player, AFKTaskTypeEnum taskType, String description, Map<String, String> params, AFKTaskFactory taskFactory) {
         UUID playerUUID = player.getUniqueId();
 
         // 检查是否已有任务

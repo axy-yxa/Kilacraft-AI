@@ -9,7 +9,6 @@ import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.common.util.MessageUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.LanguageManager;
-import com.zm.kilacraftAI.handler.impl.ConsoleResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
@@ -22,7 +21,6 @@ import com.zm.kilacraftAI.skills.framework.resume.PendingResumeManager;
 import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
 import com.zm.kilacraftAI.skills.framework.task.TaskExecutor;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.Deque;
@@ -95,17 +93,6 @@ public class AIRequestHandler {
             pipeline.sendError(player, languageManager.getPluginCommandError() + error);
         };
         return new RequestContext(player.getName(), player, history, sendResponse, sendError, OutputScenarioEnum.NORMAL_CHAT, publicReply, source, executionSource);
-    }
-
-    /**
-     * 处理控制台 AI 请求
-     */
-    public void handleAIRequestForConsole(CommandSender sender, String message, boolean enableAgent) {
-        UUID consoleUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        Deque<ConversationManager.Message> consoleHistory = plugin.getConversationManager().getOrCreateHistory(consoleUUID);
-
-        RequestContext ctx = new RequestContext("Console", null, consoleHistory, response -> sender.sendMessage(MessageUtil.getAIPrefix() + MessageUtil.convertMarkdownToMinecraft(response)), error -> sender.sendMessage(languageManager.getPluginCommandError() + error), OutputScenarioEnum.NORMAL_CHAT, false, ConversationSourceEnum.CONSOLE, null);
-        handleAIRequestInternal(message, ctx, enableAgent);
     }
 
     /**
@@ -372,14 +359,10 @@ public class AIRequestHandler {
 
         String historyMessage = (originalMessage != null) ? originalMessage : message;
 
-        AIResponseHandler handler;
-        if (ctx.player() != null) {
-            handler = new PlayerResponseHandler(plugin, ctx.player(), ctx.scenario(), ctx.sendResponse);
-        } else {
-            handler = new ConsoleResponseHandler(getSenderFromContext(ctx));
-        }
+        // RequestContext 仅由玩家流程构建，ctx.player() 非空
+        AIResponseHandler handler = new PlayerResponseHandler(plugin, ctx.player(), ctx.scenario(), ctx.sendResponse);
 
-        // 构建系统提示词（玩家时注入画像摘要，控制台不注入）
+        // 构建系统提示词（玩家时注入画像摘要）
         String systemPrompt = plugin.getConfigManager().getSystemPrompt();
         if (ctx.player() != null) {
             var profileManager = plugin.getProfileManager();
@@ -399,13 +382,6 @@ public class AIRequestHandler {
             ctx.sendError.accept(I18nService.tr("LLM 请求失败: {}", formatAsyncError(throwable)));
             return null;
         });
-    }
-
-    /**
-     * 从上下文获取 CommandSender（用于控制台）
-     */
-    private CommandSender getSenderFromContext(RequestContext ctx) {
-        return plugin.getServer().getConsoleSender();
     }
 
     /**

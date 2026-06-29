@@ -1,7 +1,38 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-06-24  
+> **Last Updated**: 2026-06-29  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
+
+---
+
+## v2.1.3 - Knowledge-Base Retrieval Quality Boost, AI Request Resource Optimization & Security/Stability Hardening
+
+### ✨ New Features
+- **Built-in CLAUDE.md Reference**: Starting with v2.1.3, the repository root includes a `CLAUDE.md` file for developers using AI coding tools for secondary development. Designed for Claude Code by default (auto-loaded every session), it covers the project architecture, i18n conventions, code conventions, key design constraints, and modification triggers. For other AI code tools (Cline, Cursor, Copilot Chat, etc.), copy the content into that tool's global rules or context file configuration equivalent
+
+### 🔧 Improvements
+- **More Accurate Knowledge-Base Retrieval (highlight of this release)**: The BM25 algorithm now includes the IDF (Inverse Document Frequency) weight — rare, specialized keywords that appear in only a few docs rank higher, while ubiquitous generic words like "player" and "command" no longer dilute results. Recall accuracy of the default BM25 mode (used by the vast majority of servers) improves overall
+- **More Reliable Knowledge-Base Hot Reload**: After switching the server language or toggling Embedding semantic retrieval, `/kila reload` now automatically rebuilds the knowledge-base chunks, statistics, and vector cache — preventing cache/content mismatches that cause retrieval anomalies or slow responses
+- **AI Request Resource Optimization**: AI requests still in progress are automatically cancelled when a player goes offline, no longer continuing to drain API quota and server threads
+- **Embedding Cache Concurrency**: Concurrent queries from multiple players no longer serialize and wait on each other (more noticeable on large servers with Embedding enabled)
+- **More Precise AI Error Hints**: On a 404 error, the hint now distinguishes "model name may be incorrect" from "API URL may be incorrect", so server owners don't troubleshoot in the wrong direction
+- **Faster Security Cache Cleanup on Huge Servers**: Cleanup of the recent-active-player cache no longer slows down noticeably as the player count grows
+- **More Traceable AFK Task Callbacks**: When a callback can't be delivered because the player is offline, a console log is now recorded to help diagnose "the task didn't seem to fire"
+- **Auditable Command-Type Skill Operations**: Command-type skills executed as OP (e.g. `/tpa <target>`) keep their cross-player capability while now also logging an audit trail
+
+### 🐛 Bug Fixes
+- Corrected the comment direction for the retrieval relative threshold (`relative_threshold`) in `knowledge.yml` — the old comment wrongly labeled "raise = stricter" as "raise = more lenient", which could lead server owners to tune in the wrong direction; default value unchanged
+- Hardened a defensive path that could cause a no-response hang when the secondary analysis hit an extreme exception before calling the AI
+- Fixed hot-reloading the output config occasionally causing individual replies to briefly land on the wrong display channel
+- Hardened the concurrency safety of AFK-task creation
+
+### ⚠️ Compatibility
+
+#### Upgrading from v2.1.2
+1. Stop server, replace JAR, start; no database migration needed
+2. **Removed the deprecated console AI-chat entry**: Chatting with the AI directly from the console via `/kila <message>` (an early debugging feature that became unusable as Agent capabilities grew — the console can't use most skills) has been fully removed. The console still keeps `/kila plugins` (third-party plugin integration), `/kila doctor`, `/kila reload`, `/kila knowledge reload`, and other management commands; **the player side is completely unaffected**
+3. This is a quality release: **no new config entries, no permission changes, no database changes** — fully backward compatible
+4. If you customized the `knowledge.yml` comments, you may regenerate it to get the corrected threshold notes (comment-only correction, no new config entries)
 
 ---
 

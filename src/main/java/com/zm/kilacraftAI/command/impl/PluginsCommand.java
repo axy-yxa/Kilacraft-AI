@@ -181,7 +181,9 @@ public final class PluginsCommand {
     }
 
     private static void executeCallback(String callbackCommand, String response) {
-        String finalCommand = callbackCommand.replace("{response}", response.replace("\"", "\\\""));
+        // {response} 来自 LLM 输出（不可信），注入控制台命令前需净化：过滤换行 + 转义双引号
+        String safeResponse = response.replaceAll("[\\r\\n]", " ").replace("\"", "\\\"");
+        String finalCommand = callbackCommand.replace("{response}", safeResponse);
         PluginLoggerUtil.debug("命令", "执行回调命令: {}", finalCommand);
         FoliaCompat.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
     }

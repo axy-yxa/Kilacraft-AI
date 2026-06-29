@@ -24,13 +24,11 @@ public final class NormalChatCommand {
     }
 
     public static void handle(KilacraftAI plugin, CommandSender sender, String[] args) {
-        if (sender instanceof Player player) {
-            handlePlayer(plugin, player, args);
-            return;
-        } else {
-            handleConsole(plugin, sender, args);
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(plugin.getLanguageManager().getCommandRunPlayerOnly());
             return;
         }
+        handlePlayer(plugin, player, args);
     }
 
     private static void handlePlayer(KilacraftAI plugin, Player player, String[] args) {
@@ -72,12 +70,5 @@ public final class NormalChatCommand {
             PluginLoggerUtil.debug("命令", "玩家 {} 的历史记录数量：{}", player.getName(), playerHistory.size());
             aiHandler.handleAIRequest(player, message, playerHistory, enableAgent, false, ConversationSourceEnum.COMMAND);
         }
-    }
-
-    private static void handleConsole(KilacraftAI plugin, CommandSender sender, String[] args) {
-        String message = String.join(" ", args);
-        MessageUtil.sendThinkingMessage(sender);
-        boolean enableAgent = plugin.getConfigManager().isAgentEnabled() && plugin.getConfigManager().isAgentEnableCommand();
-        new AIRequestHandler(plugin).handleAIRequestForConsole(sender, message, enableAgent);
     }
 }

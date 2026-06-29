@@ -208,13 +208,27 @@ public class KnowledgeRetriever {
         List<String> keywords = extractKeywords(question);
         PluginLoggerUtil.debug("知识库", "提取关键词：{}", keywords);
 
-        List<KnowledgeChunk> chunkScores = new ArrayList<>();
+        // 计算 IDF 用的文档频率 df：每个关键词出现在多少个 chunk 里（子串包含，小写）。
+        // 子串匹配无法预建倒排表，故按查询关键词实时统计一遍。
+        Map<String, Integer> documentFrequency = new HashMap<>();
         int totalChunks = 0;
         for (Map.Entry<String, String> entry : allKnowledge.entrySet()) {
             List<String> chunks = getOrSplitChunks(entry.getValue(), entry.getKey());
             totalChunks += chunks.size();
             for (String chunk : chunks) {
-                double score = calculateRelevance(question, chunk, keywords);
+                String lower = chunk.toLowerCase();
+                for (String keyword : keywords) {
+                    if (!keyword.isEmpty() && lower.contains(keyword.toLowerCase())) {
+                        documentFrequency.merge(keyword, 1, Integer::sum);
+                    }
+                }
+            }
+        }
+
+        List<KnowledgeChunk> chunkScores = new ArrayList<>();
+        for (Map.Entry<String, String> entry : allKnowledge.entrySet()) {
+            for (String chunk : getOrSplitChunks(entry.getValue(), entry.getKey())) {
+                double score = calculateRelevance(question, chunk, keywords, documentFrequency, totalChunks);
                 if (score > 0) {
                     chunkScores.add(new KnowledgeChunk(entry.getKey(), chunk, score));
                 }
@@ -359,9 +373,9 @@ public class KnowledgeRetriever {
     }
 
     /**
-     * BM25 相关性评分
+     * BM25 相关性评分。
      */
-    private double calculateRelevance(String question, String content, List<String> keywords) {
+    private double calculateRelevance(String question, String content, List<String> keywords, Map<String, Integer> documentFrequency, int totalDocs) {
         if (question == null || question.trim().isEmpty() || content == null || content.trim().isEmpty()) {
             return 0.0;
         }
@@ -376,8 +390,8 @@ public class KnowledgeRetriever {
             score += 50.0;
         }
 
-        // BM25 评分
-        score += BM25Scorer.score(content, keywords, bm25K1, bm25B, effectiveAvgDocLength());
+        // BM25 评分（含 IDF：稀有词加权、高频通用词降权）
+        score += BM25Scorer.score(content, keywords, bm25K1, bm25B, effectiveAvgDocLength(), totalDocs, documentFrequency);
 
         // 标题位置加权：标题中的关键词额外加分
         for (String keyword : keywords) {

@@ -470,7 +470,8 @@ public class SkillIntentRecognizer {
             };
         } catch (RuntimeException e) {
             // 真实解析失败（自动修复后仍失败）→ 升级 WARN，附原始响应片段方便定位
-            PluginLoggerUtil.warn("意图识别", "待确认续体分类解析失败：{}。原始响应: {}", e.getMessage(), LogSnippetUtil.truncateForLog(response, 150));
+            // 动态内容 + 异常：先 tr() 翻译模板，再传 throwable 重载（否则 throwable 会被当作 {} 参数丢堆栈）
+            PluginLoggerUtil.warn("意图识别", I18nService.tr("待确认续体分类解析失败：{}。原始响应: {}", e.getMessage(), LogSnippetUtil.truncateForLog(response, 150)), e);
             return null;
         }
     }

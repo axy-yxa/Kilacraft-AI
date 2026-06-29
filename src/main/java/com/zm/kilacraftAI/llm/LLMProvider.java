@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 
 import java.util.Deque;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -40,4 +41,12 @@ public interface LLMProvider {
      * 关闭资源（用于插件卸载时）
      */
     void shutdown();
+
+    /**
+     * 取消指定玩家所有在途 LLM 调用。玩家下线时调用，避免 token/IO 线程浪费与离线后错乱回调。
+     *
+     * @param playerId 玩家 UUID
+     */
+    default void cancelInFlight(UUID playerId) {
+    }
 }

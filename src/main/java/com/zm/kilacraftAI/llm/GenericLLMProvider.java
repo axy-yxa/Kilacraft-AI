@@ -19,10 +19,9 @@ import okhttp3.internal.http2.ConnectionShutdownException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Locale;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -63,6 +62,57 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     private volatile Integer cachedMaxTokens;
     private volatile Boolean cachedDebugMode;
     private volatile Boolean cachedKnowledgeEnabled;
+
+    /**
+     * 在途请求注册表：玩家 UUID → 该玩家所有在途 OkHttp Call。玩家下线时取消未完成调用，避免 token/IO 线程浪费与离线后错乱回调。
+     */
+    private final Map<UUID, Set<Call>> inFlightCalls = new ConcurrentHashMap<>();
+
+    /**
+     * 注册在途 Call（请求发出前调用）。playerId 为 null 时（无玩家上下文）不注册。
+     */
+    private void registerInFlight(UUID playerId, Call call) {
+        if (playerId == null || call == null) return;
+        inFlightCalls.computeIfAbsent(playerId, k -> Collections.newSetFromMap(new ConcurrentHashMap<>())).add(call);
+    }
+
+    /**
+     * 注销在途 Call（请求结束后调用）。
+     */
+    private void unregisterInFlight(UUID playerId, Call call) {
+        if (playerId == null || call == null) return;
+        inFlightCalls.computeIfPresent(playerId, (k, calls) -> {
+            calls.remove(call);
+            return calls.isEmpty() ? null : calls;
+        });
+    }
+
+    /**
+     * 取消指定玩家所有在途 LLM 调用。玩家下线时由 ChatListener 调用，中断已发出的 HTTP 请求。
+     *
+     * @param playerId 玩家 UUID
+     */
+    @Override
+    public void cancelInFlight(UUID playerId) {
+        if (playerId == null) return;
+        Set<Call> calls = inFlightCalls.remove(playerId);
+        if (calls != null) {
+            int count = 0;
+            for (Call call : calls) {
+                if (!call.isCanceled()) {
+                    try {
+                        call.cancel();
+                        count++;
+                    } catch (Exception ignored) {
+                        // 取消失败忽略，连接池回收时自然清理
+                    }
+                }
+            }
+            if (count > 0) {
+                PluginLoggerUtil.debug("LLM请求", "已取消玩家 {} 的 {} 个在途 LLM 调用", playerId, count);
+            }
+        }
+    }
 
     public GenericLLMProvider() {
         this.configManager = plugin.getConfigManager();
@@ -319,37 +369,44 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 Request request = buildRequest(requestBody);
 
                 // ========== 使用流式读取 ==========
-                try (Response response = httpClient.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        // 读取错误响应体用于降级判断。注意：response.message() 只是 HTTP reason phrase
-                        // （通常是 "Bad Request"），不含厂商错误详情，无法据此判断是否因 response_format 报错。
-                        String errorBody = "";
-                        try {
-                            if (response.body() != null) {
-                                errorBody = response.body().string();
+                okhttp3.Call httpCall = httpClient.newCall(request);
+                UUID inFlightPlayerId = responseHandler != null ? responseHandler.getPlayerId() : null;
+                registerInFlight(inFlightPlayerId, httpCall);
+                try {
+                    try (Response response = httpCall.execute()) {
+                        if (!response.isSuccessful()) {
+                            // 读取错误响应体用于降级判断。注意：response.message() 只是 HTTP reason phrase
+                            // （通常是 "Bad Request"），不含厂商错误详情，无法据此判断是否因 response_format 报错。
+                            String errorBody = "";
+                            try {
+                                if (response.body() != null) {
+                                    errorBody = response.body().string();
+                                }
+                            } catch (IOException ignored) {
+                                // 读取错误体失败不影响后续错误提示
                             }
-                        } catch (IOException ignored) {
-                            // 读取错误体失败不影响后续错误提示
+                            // 检测是否为 response_format 不支持的错误（错误体含 response_format 字样）
+                            if (enableJsonOutput && response.code() == 400 && errorBody.contains("response_format")) {
+                                // 自动降级：重新调用，不启用 JSON 输出。
+                                // enableJsonOutput=false 后不会再进入此分支（天然防递归）。
+                                PluginLoggerUtil.warn("LLM请求", "当前 LLM 不支持 response_format，自动降级为普通模式");
+                                return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false).join();
+                            }
+                            // 分类化错误：游戏内只显示分类提示（如"模型名有误，请检查 llm.yml"），
+                            // 厂商原始错误体进控制台 WARN。与异常分支一致地走 handleError，
+                            // 让 PlayerResponseHandler 清掉"正在思考中"占位符并把错误提示给玩家。
+                            String errorMsg = LLMResponseUtil.errorResponse(buildHttpErrorMessage(response.code(), errorBody));
+                            if (responseHandler != null) {
+                                responseHandler.handleError(errorMsg);
+                            }
+                            return errorMsg;
                         }
-                        // 检测是否为 response_format 不支持的错误（错误体含 response_format 字样）
-                        if (enableJsonOutput && response.code() == 400 && errorBody.contains("response_format")) {
-                            // 自动降级：重新调用，不启用 JSON 输出。
-                            // enableJsonOutput=false 后不会再进入此分支（天然防递归）。
-                            PluginLoggerUtil.warn("LLM请求", "当前 LLM 不支持 response_format，自动降级为普通模式");
-                            return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false).join();
-                        }
-                        // 分类化错误：游戏内只显示分类提示（如"模型名有误，请检查 llm.yml"），
-                        // 厂商原始错误体进控制台 WARN。与异常分支一致地走 handleError，
-                        // 让 PlayerResponseHandler 清掉"正在思考中"占位符并把错误提示给玩家。
-                        String errorMsg = LLMResponseUtil.errorResponse(buildHttpErrorMessage(response.code(), errorBody));
-                        if (responseHandler != null) {
-                            responseHandler.handleError(errorMsg);
-                        }
-                        return errorMsg;
-                    }
 
-                    // 解析 SSE 流式响应
-                    return parseSSEStream(response, responseHandler);
+                        // 解析 SSE 流式响应
+                        return parseSSEStream(response, responseHandler);
+                    }
+                } finally {
+                    unregisterInFlight(inFlightPlayerId, httpCall);
                 }
 
             } catch (EmptyResponseException e) {
@@ -721,7 +778,12 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         } else if (code == 401 || code == 403) {
             hint = I18nService.tr("API Key 无效或无访问权限，请检查 llm.yml 的 api_key 配置");
         } else if (code == 404) {
-            hint = I18nService.tr("API 地址可能有误，请检查 llm.yml 的 api_url 配置");
+            // 很多 OpenAI 兼容端点的 404 实际是模型名错误（路径对、model 不存在），先查 errorBody 区分
+            if (containsAny(lower, "model")) {
+                hint = I18nService.tr("模型名称可能有误，请检查 llm.yml 的 model 配置");
+            } else {
+                hint = I18nService.tr("API 地址可能有误，请检查 llm.yml 的 api_url 配置");
+            }
         } else if (code == 429) {
             hint = I18nService.tr("请求过于频繁或账户额度不足，请稍后重试");
         } else if (code >= 500) {

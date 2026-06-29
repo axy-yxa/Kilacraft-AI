@@ -192,19 +192,14 @@ public class SkillSecurityFilter implements Listener {
                 if (RECENT_PLAYER_NAMES.remove(entry.getKey()) != null) removed++;
             }
         }
-        // 2. 超上限淘汰最旧（保护内存，大服场景）
-        while (RECENT_PLAYER_NAMES.size() > maxSize) {
-            String oldestKey = null;
-            long oldestTime = Long.MAX_VALUE;
-            for (Map.Entry<String, Long> entry : RECENT_PLAYER_NAMES.entrySet()) {
-                if (entry.getValue() < oldestTime) {
-                    oldestTime = entry.getValue();
-                    oldestKey = entry.getKey();
-                }
+        // 2. 超上限淘汰最旧（保护内存）。快照+排序后淘汰最旧，O(n log n)，避免大服 maxSize 配大时逐个扫描的 O(n²) 开销
+        int excess = RECENT_PLAYER_NAMES.size() - maxSize;
+        if (excess > 0) {
+            List<Map.Entry<String, Long>> snapshot = new ArrayList<>(RECENT_PLAYER_NAMES.entrySet());
+            snapshot.sort(Comparator.comparingLong(Map.Entry::getValue));
+            for (int i = 0; i < excess && i < snapshot.size(); i++) {
+                if (RECENT_PLAYER_NAMES.remove(snapshot.get(i).getKey()) != null) removed++;
             }
-            if (oldestKey == null) break;
-            RECENT_PLAYER_NAMES.remove(oldestKey);
-            removed++;
         }
         return removed;
     }
@@ -264,6 +259,8 @@ public class SkillSecurityFilter implements Listener {
             // 白名单 action（如 command.execute_command，OP-only 受信操作）豁免。
             if (value.indexOf(' ') >= 0) {
                 if (whitelisted) {
+                    // 白名单命令可能合法引用其他玩家（如 /tpa PlayerB），不能替换；但仍做 token 级检测并记审计，便于追溯
+                    auditCommandTokens(value, playerName, actionKey);
                     continue;
                 }
                 String cleaned = sanitizeCommandTokens(value, playerName);
@@ -327,6 +324,29 @@ public class SkillSecurityFilter implements Listener {
             }
         }
         return changed ? String.join(" ", parts) : null;
+    }
+
+    /**
+     * 白名单 action 的复合值检测：仅审计不替换。白名单命令（如 /tpa 目标）合法引用其他玩家，
+     * 替换会破坏命令功能，故只检测并记录审计日志，保证跨玩家操作可追溯。
+     *
+     * @param value      复合值（命令文本）
+     * @param playerName 当前玩家名
+     * @param actionKey  action 标识（用于审计）
+     */
+    private static void auditCommandTokens(String value, String playerName, String actionKey) {
+        for (String part : value.split(" ")) {
+            Matcher m = TOKEN_PARTS.matcher(part);
+            if (!m.matches()) {
+                continue;
+            }
+            String core = m.group(2);
+            if (!couldBePlayerName(core) || core.equals(playerName) || !isKnownPlayer(core)) {
+                continue;
+            }
+            PluginLoggerUtil.info("安全拦截", "白名单操作含其他玩家名（已审计，未替换）：{} → {} [{}]", actionKey, value, core);
+            return; // 一次复合值记一条即可
+        }
     }
 
     /**

@@ -11,7 +11,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.Map;
 
 /**
@@ -39,9 +40,10 @@ public class OutputConfigManager {
     private OutputChannelEnum thinkingChannel;
 
     /**
-     * 场景级载体覆盖配置
+     * 场景级载体覆盖配置。volatile + 不可变快照发布：reload 时先构建新 Map 再整体替换引用，
+     * 避免 clear+put 期间读线程命中空/半 Map 回退到 defaultChannel。
      */
-    private final Map<OutputScenarioEnum, OutputChannelEnum> scenarioChannels = new HashMap<>();
+    private volatile Map<OutputScenarioEnum, OutputChannelEnum> scenarioChannels = Collections.emptyMap();
 
     private BarColor bossBarColor;
     private BarStyle bossBarStyle;
@@ -99,15 +101,16 @@ public class OutputConfigManager {
             this.thinkingChannel = parseChannel(thinkingChannelStr);
         }
 
-        // 场景级配置
-        scenarioChannels.clear();
+        // 场景级配置：构建新 Map 后整体替换（原子发布），避免 reload 期间读到半更新状态
+        Map<OutputScenarioEnum, OutputChannelEnum> built = new EnumMap<>(OutputScenarioEnum.class);
         for (OutputScenarioEnum scenario : OutputScenarioEnum.values()) {
             String key = "output.scenarios." + scenario.name().toLowerCase();
             String value = config.getString(key, "");
             if (!value.isEmpty()) {
-                scenarioChannels.put(scenario, parseChannel(value));
+                built.put(scenario, parseChannel(value));
             }
         }
+        this.scenarioChannels = Collections.unmodifiableMap(built);
 
         // BossBar 配置
         this.bossBarColor = parseBarColor(config.getString("output.boss_bar.color", "PURPLE"));

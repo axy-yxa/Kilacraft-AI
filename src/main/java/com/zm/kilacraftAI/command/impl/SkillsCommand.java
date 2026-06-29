@@ -11,8 +11,7 @@ import java.util.List;
 
 /**
  * /kila skills：列出调用者有权使用的技能（与意图识别权限预过滤同源）。
- * 技能集合来自 SkillManager.getAvailableSkills(Player)，玩家只看到自己能触发的技能；
- * 控制台（caller=null）视为拥有所有权限，列出全部。分页展示。
+ * 技能集合来自 SkillManager.getAvailableSkills(Player)，玩家只看到自己能触发的技能。分页展示。
  */
 public final class SkillsCommand {
 
@@ -29,7 +28,10 @@ public final class SkillsCommand {
             return;
         }
 
-        Player caller = sender instanceof Player p ? p : null;
+        if (!(sender instanceof Player caller)) {
+            sender.sendMessage(lm.getCommandRunPlayerOnly());
+            return;
+        }
         List<Skill> skills = skillManager.getAvailableSkills(caller);
         if (skills.isEmpty()) {
             sender.sendMessage(lm.getCommandSkillsEmpty());

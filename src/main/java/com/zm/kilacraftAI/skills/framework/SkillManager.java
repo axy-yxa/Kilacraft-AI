@@ -99,10 +99,10 @@ public class SkillManager {
 
     /**
      * 获取调用者有权使用的技能集合（权限预检过滤的唯一真源）。
-     * 过滤规则与意图识别提示词预检一致：技能未声明权限节点、或调用者为 null（控制台）
-     * 时不予过滤；否则按 Player.hasPermission 实时校验，无权限的技能不返回。
+     * 过滤规则与意图识别提示词预检一致：技能未声明权限节点时不予过滤；
+     * 否则按 Player.hasPermission 实时校验，无权限的技能不返回。
      * 意图识别、/kila skills 列举、/kila run 校验均应调用本方法，保证三处同源。
-     * caller=null 表示控制台（视为拥有所有权限），返回可用技能列表。
+     * 调用者通常为在线玩家；保留 caller 的 null 防御仅作容错。
      */
     public List<Skill> getAvailableSkills(Player caller) {
         List<Skill> result = new ArrayList<>();

@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.skills.framework.task;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
@@ -67,6 +68,8 @@ public class LLMOutputCoordinator {
      */
     public CompletableFuture<SkillResult> outputAnalysisResult(Player player, AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, OutputScenarioEnum scenario, boolean showPlaceholder) {
         if (player == null || !player.isOnline()) {
+            // 异步 LLM 链执行期间玩家下线：此 failure 会被调用方 thenAccept 静默丢弃，补一条日志便于排查
+            PluginLoggerUtil.warn("挂机任务", "二次分析时玩家已离线，结果未送达：{}", player != null ? player.getName() : "null");
             return CompletableFuture.completedFuture(SkillResult.failure("玩家不在线"));
         }
 

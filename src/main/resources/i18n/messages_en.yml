@@ -205,6 +205,9 @@ messages:
   "已删除 Embedding 磁盘缓存: {}": "Deleted Embedding disk cache: {}"
   "删除 Embedding 磁盘缓存失败: {}": "Failed to delete Embedding disk cache: {}"
 
+  # ==================== ReloadCommand ====================
+  "检测到语言或 Embedding 配置变更，已重建知识库分块、BM25 统计与 Embedding 向量缓存": "Language or Embedding config changed; rebuilt knowledge chunks, BM25 statistics, and Embedding vector cache"
+
   # ==================== InternalEnumRegistry ====================
   "已加载 {} 个音效、{} 个粒子、{} 个统计枚举": "Loaded {} sound, {} particle, {} statistic enums"
   "找不到内置资源: {}": "Internal resource not found: {}"
@@ -255,6 +258,11 @@ messages:
   "LLM 二次分析 - 结果摘要:\n{}": "LLM secondary analysis - result summary:\n{}"
   "Handler 错误处理异常: {}": "Handler error handling exception: {}"
   "分析提示词较长（{}字符），跳过知识库检索以减少噪音": "Analysis prompt is long ({} chars), skipping knowledge retrieval to reduce noise"
+  "二次分析前置阶段异常: {}": "Secondary analysis pre-stage exception: {}"
+  "AI 分析时发生错误，请稍后重试": "An error occurred during AI analysis. Please try again later"
+
+  # ==================== LLMOutputCoordinator ====================
+  "二次分析时玩家已离线，结果未送达：{}": "Player went offline during secondary analysis; result not delivered: {}"
 
   # ==================== SkillIntentRecognizer ====================
   "意图识别结果: {}": "Intent recognition result: {}"
@@ -661,6 +669,7 @@ messages:
   "白名单放行：{} → {}": "Whitelist passed: {} → {}"
   "玩家数据隔离：entities[{}]={} 是其他玩家，已替换为当前玩家 {}": "Player data isolation: entities[{}]={} is another player, replaced with current player {}"
   "复合参数玩家数据隔离：token {} → {}": "Composite param isolation: token {} → {}"
+  "白名单操作含其他玩家名（已审计，未替换）：{} → {} [{}]": "Whitelisted action references another player (audited, not replaced): {} → {} [{}]"
   "预热近期活跃玩家缓存：{} 个": "Preloaded recent active player cache: {} entries"
   "预热近期活跃玩家缓存失败: {}": "Failed to preload recent active player cache: {}"
   "获取玩家余额失败: {}": "Failed to get player balance: {}"
@@ -943,6 +952,7 @@ messages:
   "错误响应体: {}": "Error response body: {}"
   "当前 LLM 不支持 response_format，自动降级为普通模式": "Current LLM does not support response_format, auto-downgrading to normal mode"
   "... (共{} 字符)": "... ({} chars total)"
+  "已取消玩家 {} 的 {} 个在途 LLM 调用": "Player {}: cancelled {} in-flight LLM call(s)"
   "模型名称可能有误，请检查 llm.yml 的 model 配置": "The model name may be incorrect. Please check the 'model' setting in llm.yml"
   "API Key 可能无效，请检查 llm.yml 的 api_key 配置": "The API Key may be invalid. Please check the 'api_key' setting in llm.yml"
   "请求参数有误，请检查 llm.yml 的 api_url 与 model 配置": "Invalid request parameters. Please check 'api_url' and 'model' in llm.yml"

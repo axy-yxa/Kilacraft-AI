@@ -3,12 +3,18 @@ package com.zm.kilacraftAI.command.impl;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.db.model.DatabaseConfig;
 import com.zm.kilacraftAI.i18n.TextProcessorFactory;
+import com.zm.kilacraftAI.service.knowledge.EmbeddingService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * /kila reload：热重载全部配置（reload 权限）。
@@ -26,6 +32,9 @@ public final class ReloadCommand {
         }
 
         String senderName = sender instanceof Player p ? p.getName() : "Console";
+        // 快照重载前的语言/Embedding 状态，用于检测是否需要重建知识库（避免缓存与新语言 chunk 失配）
+        boolean prevIsChinese = plugin.getConfigManager().isChinese();
+        boolean prevEmbeddingEnabled = plugin.getConfigManager().isEmbeddingEnabled();
         try {
             plugin.getConfigManager().loadConfig();
             plugin.getI18nService().reload();
@@ -90,6 +99,13 @@ public final class ReloadCommand {
                 }
             }
 
+            // 检测语言或 Embedding 开关变更：触发知识库全刷新，避免 Embedding 缓存与新语言 chunk 失配
+            boolean langOrEmbeddingChanged = (plugin.getConfigManager().isChinese() != prevIsChinese) || (plugin.getConfigManager().isEmbeddingEnabled() != prevEmbeddingEnabled);
+            if (langOrEmbeddingChanged) {
+                refreshKnowledgeAfterConfigChange(plugin);
+                PluginLoggerUtil.info("热重载", "检测到语言或 Embedding 配置变更，已重建知识库分块、BM25 统计与 Embedding 向量缓存");
+            }
+
             TextProcessorFactory.reset();
             if (plugin.getConfigManager().isCustomDictionaryEnabled()) {
                 TextProcessorFactory.initialize(plugin.getKnowledgeBase().buildDictionaryWordsWithCorpus(plugin.getConfigManager().getAllDictionaryWords()));
@@ -100,6 +116,28 @@ public final class ReloadCommand {
         } catch (Exception e) {
             sender.sendMessage(lm.getCommandReloadFailure() + e.getMessage());
             PluginLoggerUtil.error("命令", lm.getLogAiRequestError() + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 语言或 Embedding 配置变更后，重建知识库：分块、BM25 统计、Embedding 向量缓存。
+     * 复用 /kila knowledge reload 的核心流程，避免 /kila reload 切语言后缓存与 chunk 失配。
+     */
+    private static void refreshKnowledgeAfterConfigChange(KilacraftAI plugin) {
+        plugin.getKnowledgeBase().reload();
+        plugin.getKnowledgeRetriever().buildChunkCache();
+        plugin.getKnowledgeRetriever().computeAvgDocLength();
+        EmbeddingService embeddingSvc = plugin.getEmbeddingService();
+        if (embeddingSvc != null && embeddingSvc.isAvailable()) {
+            embeddingSvc.clearCache();
+            Map<String, List<String>> asyncChunks = plugin.getKnowledgeBase().getAllChunkCache();
+            CompletableFuture.runAsync(() -> {
+                try {
+                    embeddingSvc.precomputeAllChunks(asyncChunks);
+                } catch (Exception e) {
+                    PluginLoggerUtil.warn("热重载", "Embedding 异步预计算异常: {}", e.getMessage());
+                }
+            }, FoliaCompat.getIOPool());
         }
     }
 }

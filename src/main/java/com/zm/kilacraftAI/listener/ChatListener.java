@@ -151,6 +151,15 @@ public class ChatListener implements Listener {
         Player player = event.getPlayer();
         plugin.getConversationManager().onPlayerQuit(player);
 
+        // 取消该玩家所有在途 LLM 调用，避免下线后请求继续消耗 token/IO 线程与离线后的错乱回调
+        try {
+            if (plugin.getLlmManager() != null && plugin.getLlmManager().getCurrentProvider() != null) {
+                plugin.getLlmManager().getCurrentProvider().cancelInFlight(player.getUniqueId());
+            }
+        } catch (Exception ignored) {
+            // 取消失败不影响下线清理
+        }
+
         // 清理玩家的流式生成状态
         if (plugin.getStreamOutputManager() != null) {
             plugin.getStreamOutputManager().cancelGeneration(player);

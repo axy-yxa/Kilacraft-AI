@@ -3,7 +3,6 @@ package com.zm.kilacraftAI.common.util;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.config.OutputConfigManager;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.regex.Pattern;
@@ -96,19 +95,6 @@ public class MessageUtil {
 
         // 通过 AIResponsePipeline 发送思考消息（使用动态配置的载体）
         plugin.getResponsePipeline().sendThinking(player, message, channel);
-    }
-
-    /**
-     * 向命令发送者发送"正在思考"消息
-     *
-     * <p>控制台发送者始终使用 CHAT 载体（sendMessage）。</p>
-     *
-     * @param sender 命令发送者
-     */
-    public static void sendThinkingMessage(CommandSender sender) {
-        if (sender != null) {
-            sender.sendMessage(getFullThinkingMessage());
-        }
     }
 
     // Markdown 加粗匹配模式：**text**

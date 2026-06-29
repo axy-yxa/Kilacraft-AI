@@ -50,6 +50,9 @@ public class LLMAnalysisService {
      * @return 分析后的最终回复
      */
     public CompletableFuture<SkillResult> analyzeResultWithHandler(AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, AIResponseHandler handler) {
+        // responseFuture 提前创建：前置阶段（提示词构建/画像注入/Provider 获取）抛异常时也保证 Future 被 complete，避免调用链挂起
+        CompletableFuture<String> responseFuture = new CompletableFuture<>();
+        try {
         String promptContent = summary.buildPrompt();
 
         PluginLoggerUtil.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n{}", promptContent);
@@ -79,9 +82,6 @@ public class LLMAnalysisService {
         if (llmProvider == null) {
             return CompletableFuture.completedFuture(SkillResult.failure("LLM Provider 未初始化"));
         }
-
-        // 创建 Future 用于返回 SkillResult
-        CompletableFuture<String> responseFuture = new CompletableFuture<>();
 
         // 包装 Handler，在完成 response 时同时完成 responseFuture
         AIResponseHandler wrapperHandler = new AIResponseHandler() {
@@ -134,6 +134,16 @@ public class LLMAnalysisService {
             PluginLoggerUtil.debug("LLM分析", I18nService.tr("分析提示词较长（{}字符），跳过知识库检索以减少噪音", analysisPrompt.length()));
         }
         llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, enableKnowledge, false, false);
+        } catch (RuntimeException e) {
+            // 前置阶段异常（非 LLM 调用本身）：记完整堆栈 + 通知 handler + 完成 Future，确保调用链不挂起
+            PluginLoggerUtil.error("LLM分析", I18nService.tr("二次分析前置阶段异常: {}", e.getMessage()), e);
+            try {
+                handler.handleError(I18nService.tr("AI 分析时发生错误，请稍后重试"));
+            } catch (Exception ignored) {
+                // handler 自身错误处理失败不影响 Future 完成
+            }
+            responseFuture.completeExceptionally(e);
+        }
 
         return responseFuture.thenApply(SkillResult::success);
     }
