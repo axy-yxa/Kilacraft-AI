@@ -7,8 +7,10 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
+import org.bukkit.entity.Player;
 
 import java.util.Deque;
 import java.util.UUID;
@@ -53,87 +55,94 @@ public class LLMAnalysisService {
         // responseFuture 提前创建：前置阶段（提示词构建/画像注入/Provider 获取）抛异常时也保证 Future 被 complete，避免调用链挂起
         CompletableFuture<String> responseFuture = new CompletableFuture<>();
         try {
-        String promptContent = summary.buildPrompt();
+            String promptContent = summary.buildPrompt();
 
-        PluginLoggerUtil.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n{}", promptContent);
+            PluginLoggerUtil.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n{}", promptContent);
 
-        String playerName = context.getPlayer() != null ? context.getPlayer().getName() : "Console";
+            String playerName = context.getPlayer() != null ? context.getPlayer().getName() : "Console";
 
-        // 构建分析提示词：执行结果 + 后缀
-        String suffix = configManager.getAgentAnalysisPromptSuffix();
-        String systemPrompt = configManager.getAgentSystemPrompt();
+            // 构建分析提示词：执行结果 + 后缀
+            String suffix = configManager.getAgentAnalysisPromptSuffix();
+            String systemPrompt = configManager.getAgentSystemPrompt();
 
-        // 画像注入
-        var profileManager = plugin.getProfileManager();
-        if (context.getPlayer() != null && profileManager != null) {
-            systemPrompt = profileManager.injectProfileSummary(systemPrompt, context.getPlayer().getUniqueId());
-        }
-
-        StringBuilder promptBuilder = new StringBuilder();
-        promptBuilder.append(promptContent);
-        if (suffix != null && !suffix.isEmpty()) {
-            promptBuilder.append(suffix);
-        }
-
-        String analysisPrompt = promptBuilder.toString();
-
-        // 每次都获取最新的实例
-        LLMProvider llmProvider = plugin.getLlmManager().getCurrentProvider();
-        if (llmProvider == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("LLM Provider 未初始化"));
-        }
-
-        // 包装 Handler，在完成 response 时同时完成 responseFuture
-        AIResponseHandler wrapperHandler = new AIResponseHandler() {
-            @Override
-            public UUID getPlayerId() {
-                return handler.getPlayerId();
-            }
-
-            @Override
-            public String getPlayerName() {
-                return handler.getPlayerName();
-            }
-
-            @Override
-            public void showResponse(String response) {
-                // 调用原始 Handler 的输出逻辑
-                handler.showResponse(response);
-                // 完成 Future（让调用链继续）
-                responseFuture.complete(response);
-            }
-
-            @Override
-            public void showStreamChunk(String chunk, String currentMessage) {
-                handler.showStreamChunk(chunk, currentMessage);
-            }
-
-            @Override
-            public void handleError(String errorMessage) {
-                try {
-                    handler.handleError(errorMessage);
-                } catch (Exception e) {
-                    // 记录 Handler 错误处理异常，但不影响 Future 完成
-                    PluginLoggerUtil.warn("LLM分析", I18nService.tr("Handler 错误处理异常: {}", e.getMessage()), e);
-                } finally {
-                    // 确保 Future 一定被完成，防止调用链挂起
-                    responseFuture.completeExceptionally(new RuntimeException(errorMessage));
+            // 玩家实时元数据（追加在 agent 提示词尾部，画像之前）：agent 提示词保持为可缓存前缀
+            Player player = context.getPlayer();
+            if (player != null) {
+                String playerMeta = PlayerMetaCollector.collect(player);
+                if (!playerMeta.isEmpty()) {
+                    systemPrompt = systemPrompt + "\n\n" + playerMeta;
+                }
+                var profileManager = plugin.getProfileManager();
+                if (profileManager != null) {
+                    systemPrompt = profileManager.injectProfileSummary(systemPrompt, player.getUniqueId());
                 }
             }
 
-            @Override
-            public boolean isStreamOutputEnabled() {
-                return handler.isStreamOutputEnabled();
+            StringBuilder promptBuilder = new StringBuilder();
+            promptBuilder.append(promptContent);
+            if (suffix != null && !suffix.isEmpty()) {
+                promptBuilder.append(suffix);
             }
-        };
 
-        // 调用 LLM，传入包装后的 Handler
-        // 当分析提示词已包含完整技能执行结果时（如诊断报告全文），知识库检索是纯噪音
-        boolean enableKnowledge = analysisPrompt.length() < KNOWLEDGE_DISABLE_THRESHOLD;
-        if (!enableKnowledge) {
-            PluginLoggerUtil.debug("LLM分析", I18nService.tr("分析提示词较长（{}字符），跳过知识库检索以减少噪音", analysisPrompt.length()));
-        }
-        llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, enableKnowledge, false, false);
+            String analysisPrompt = promptBuilder.toString();
+
+            // 每次都获取最新的实例
+            LLMProvider llmProvider = plugin.getLlmManager().getCurrentProvider();
+            if (llmProvider == null) {
+                return CompletableFuture.completedFuture(SkillResult.failure("LLM Provider 未初始化"));
+            }
+
+            // 包装 Handler，在完成 response 时同时完成 responseFuture
+            AIResponseHandler wrapperHandler = new AIResponseHandler() {
+                @Override
+                public UUID getPlayerId() {
+                    return handler.getPlayerId();
+                }
+
+                @Override
+                public String getPlayerName() {
+                    return handler.getPlayerName();
+                }
+
+                @Override
+                public void showResponse(String response) {
+                    // 调用原始 Handler 的输出逻辑
+                    handler.showResponse(response);
+                    // 完成 Future（让调用链继续）
+                    responseFuture.complete(response);
+                }
+
+                @Override
+                public void showStreamChunk(String chunk, String currentMessage) {
+                    handler.showStreamChunk(chunk, currentMessage);
+                }
+
+                @Override
+                public void handleError(String errorMessage) {
+                    try {
+                        handler.handleError(errorMessage);
+                    } catch (Exception e) {
+                        // 记录 Handler 错误处理异常，但不影响 Future 完成
+                        PluginLoggerUtil.warn("LLM分析", I18nService.tr("Handler 错误处理异常: {}", e.getMessage()), e);
+                    } finally {
+                        // 确保 Future 一定被完成，防止调用链挂起
+                        responseFuture.completeExceptionally(new RuntimeException(errorMessage));
+                    }
+                }
+
+                @Override
+                public boolean isStreamOutputEnabled() {
+                    return handler.isStreamOutputEnabled();
+                }
+            };
+
+            // 调用 LLM，传入包装后的 Handler
+            // 当分析提示词已包含完整技能执行结果时（如诊断报告全文），知识库检索是纯噪音
+            boolean enableKnowledge = analysisPrompt.length() < KNOWLEDGE_DISABLE_THRESHOLD;
+            if (!enableKnowledge) {
+                PluginLoggerUtil.debug("LLM分析", I18nService.tr("分析提示词较长（{}字符），跳过知识库检索以减少噪音", analysisPrompt.length()));
+            }
+            llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, enableKnowledge, false, false);
         } catch (RuntimeException e) {
             // 前置阶段异常（非 LLM 调用本身）：记完整堆栈 + 通知 handler + 完成 Future，确保调用链不挂起
             PluginLoggerUtil.error("LLM分析", I18nService.tr("二次分析前置阶段异常: {}", e.getMessage()), e);

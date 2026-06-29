@@ -12,6 +12,7 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
 import com.zm.kilacraftAI.skills.framework.resume.PendingAction;
 import com.zm.kilacraftAI.skills.framework.resume.PendingResume;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
@@ -192,7 +193,7 @@ public class SkillIntentRecognizer {
 
         // === Phase 1：Skill 分类（关闭知识检索） ===
         String phase1Skills = buildPhase1SkillDescription(caller);
-        String phase1SystemPrompt = promptConfigManager.buildPhase1SystemPrompt(phase1Skills);
+        String phase1SystemPrompt = withPlayerMeta(promptConfigManager.buildPhase1SystemPrompt(phase1Skills), caller);
 
         PluginLoggerUtil.debug("意图识别", "Phase 1 Skill 分类开始");
 
@@ -215,7 +216,7 @@ public class SkillIntentRecognizer {
             boolean hasAfkTask = selectedSkills.contains("AFKTask");
             Set<String> phase2SkillFilter = hasAfkTask ? getAllSkillNames(caller) : selectedSkills;
             String phase2Skills = buildPhase2SkillDescription(caller, phase2SkillFilter);
-            String phase2SystemPrompt = promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills);
+            String phase2SystemPrompt = withPlayerMeta(promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills), caller);
 
             PluginLoggerUtil.debug("意图识别", "Phase 2 开始，选中技能: {}", selectedSkills);
 
@@ -304,7 +305,7 @@ public class SkillIntentRecognizer {
         String userPrompt = buildUserPrompt(userInput, history, playerName);
         Set<String> selected = Set.of(forcedSkillName);
         String phase2Skills = buildPhase2SkillDescription(caller, selected);
-        String phase2SystemPrompt = promptConfigManager.buildSystemPrompt(phase2Skills, selected);
+        String phase2SystemPrompt = withPlayerMeta(promptConfigManager.buildSystemPrompt(phase2Skills, selected), caller);
 
         PluginLoggerUtil.debug("意图识别", "强制技能 Phase 2 开始：{}", forcedSkillName);
 
@@ -474,6 +475,20 @@ public class SkillIntentRecognizer {
             PluginLoggerUtil.warn("意图识别", I18nService.tr("待确认续体分类解析失败：{}。原始响应: {}", e.getMessage(), LogSnippetUtil.truncateForLog(response, 150)), e);
             return null;
         }
+    }
+
+    /**
+     * 在 system prompt 尾部追加玩家实时元数据块（位置/状态/装备等硬事实），
+     * 帮助选 Skill、提参数与消歧义（如"帮我回去"需坐标判断是传送还是步行）。
+     * 追加而非前置：意图识别的静态提示词（角色/技能列表/规则，跨所有玩家相同）保持为可缓存前缀。
+     * 控制台（caller=null）或无元数据时原样返回。
+     */
+    private static String withPlayerMeta(String systemPrompt, Player caller) {
+        if (caller == null) {
+            return systemPrompt;
+        }
+        String meta = PlayerMetaCollector.collect(caller);
+        return meta.isEmpty() ? systemPrompt : systemPrompt + "\n\n" + meta;
     }
 
     /**

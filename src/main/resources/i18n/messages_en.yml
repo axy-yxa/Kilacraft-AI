@@ -77,6 +77,7 @@ modules:
   "玩家分析": "Player Analysis"
   "条件评估": "Cond Eval"
   "AI占位符": "AI Placeholder"
+  "玩家元数据": "Player Meta"
 
 # ==================== 消息翻译 ====================
 # Message Translations
@@ -1831,12 +1832,6 @@ messages:
   "部分参数未能自动解析，请直接说明具体数值": "Some parameters could not be auto-resolved. Please state the concrete value directly."
 
   # ==================== 游戏内命令体系扩展 / In-game command extension ====================
-  # QueryTarget
-
-  # AboutCommand
-
-  # SkillsCommand
-
   # HistoryCommand
   "查询对话历史失败: {}": "Failed to query conversation history: {}"
 
@@ -1878,3 +1873,44 @@ messages:
   "强制技能 {} 未解析出意图，降级普通 AI": "Forced skill {} parsed no intent, falling back to normal AI"
   "[系统提示：玩家通过 /kila run {} 指定技能执行，但未能解析出可执行意图。请根据玩家原始需求协助，如需必要参数请直接询问。]": "[System: The player used /kila run {} to force-execute a skill, but no executable intent could be parsed. Help with the player's original request; ask for any required parameters directly.]"
   "自检执行失败: {}": "Diagnostics failed: {}"
+
+  # ==================== PlayerMetaCollector ====================
+  "[玩家实时状态]": "[Player Real-time Status]"
+  "玩家名称: {}": "Player name: {}"
+  "游戏模式: {} | 管理员: {}": "Game mode: {} | Admin: {}"
+  "所在世界: {} ({}, 难度: {}, PVP: {})": "World: {} ({}, Difficulty: {}, PVP: {})"
+  "所在位置: X={}, Y={}, Z={} ({})": "Location: X={}, Y={}, Z={} ({})"
+  "环境信息: {} ({})": "Environment: {} ({})"
+  "生命状态: {}/{}, 吸收 {}, 饥饿 {}, 经验 Lv.{}": "Health: {}/{}, Absorption {}, Hunger {}, Lv.{}"
+  "水下, 剩余氧气 {} 秒": "Underwater, {}s air left"
+  "装备信息: {}": "Equipment: {}"
+  "主手[{}]": "Main[{}]"
+  "副手[{}]": "Off[{}]"
+  "盔甲[{}]": "Armor[{}]"
+  "(耐久 {}/{})": "(Durability {}/{})"
+  "药水效果: {}": "Potion effects: {}"
+  "(剩余 {})": "({} left)"
+  "动作状态: {}": "Action: {}"
+  "生存模式": "Survival"
+  "创造模式": "Creative"
+  "冒险模式": "Adventure"
+  "旁观模式": "Spectator"
+  "自定义": "Custom"
+  "和平": "Peaceful"
+  "简单": "Easy"
+  "普通": "Normal"
+  "困难": "Hard"
+  "清晨": "Dawn"
+  "正午": "Noon"
+  "黄昏": "Dusk"
+  "夜晚": "Night"
+  "雷雨": "Thunderstorm"
+  "雨天": "Rain"
+  "开": "On"
+  "关": "Off"
+  "飞行中": "Flying"
+  "鞘翅滑翔中": "Elytra Gliding"
+  "游泳中": "Swimming"
+  "着火中": "On Fire"
+  "采集耗时超过{}ms，已跳过剩余字段": "Collection exceeded {}ms; skipped remaining fields"
+  "采集分组[{}]失败: {}": "Failed to collect section [{}]: {}"

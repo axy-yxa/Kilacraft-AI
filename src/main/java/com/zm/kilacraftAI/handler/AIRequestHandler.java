@@ -6,7 +6,6 @@ import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.util.AIRequestValidatorUtil;
 import com.zm.kilacraftAI.common.util.LLMResponseUtil;
-import com.zm.kilacraftAI.common.util.MessageUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
@@ -14,6 +13,7 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
+import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
 import com.zm.kilacraftAI.skills.framework.*;
 import com.zm.kilacraftAI.skills.framework.resume.PendingAction;
 import com.zm.kilacraftAI.skills.framework.resume.PendingResume;
@@ -362,9 +362,14 @@ public class AIRequestHandler {
         // RequestContext 仅由玩家流程构建，ctx.player() 非空
         AIResponseHandler handler = new PlayerResponseHandler(plugin, ctx.player(), ctx.scenario(), ctx.sendResponse);
 
-        // 构建系统提示词（玩家时注入画像摘要）
+        // 构建系统提示词：人格 → 实时元数据 → 画像摘要
+        // 人格在前保持为可缓存前缀；元数据与画像都是动态内容，追加在尾部
         String systemPrompt = plugin.getConfigManager().getSystemPrompt();
         if (ctx.player() != null) {
+            String playerMeta = PlayerMetaCollector.collect(ctx.player());
+            if (!playerMeta.isEmpty()) {
+                systemPrompt = systemPrompt + "\n\n" + playerMeta;
+            }
             var profileManager = plugin.getProfileManager();
             if (profileManager != null) {
                 systemPrompt = profileManager.injectProfileSummary(systemPrompt, ctx.player().getUniqueId());

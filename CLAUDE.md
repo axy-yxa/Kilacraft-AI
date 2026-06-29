@@ -118,7 +118,7 @@ ChatListener（玩家聊天 / 连续对话模式 / 关键词触发）
 | `scheduler` | 定时任务调度（分布式水位锁、社交衰减、对话/事件清理） |
 | `service/afktask(/impl)` | 挂机任务系统：`AFKTaskManager`、事件型/条件型任务、`ConditionEvaluator` |
 | `service/conversation` | `ConversationManager`（内存历史，上限 100） |
-| `service/{event,greeting,health,knowledge,notification,output,profile,translate,update}` | 各业务服务（事件采集、问候、健康监控、RAG、通知、输出管线、画像、物品翻译、版本检查） |
+| `service/{event,greeting,health,knowledge,notification,output,player,profile,translate,update}` | 各业务服务（事件采集、问候、健康监控、RAG、通知、输出管线、玩家实时元数据采集、画像、物品翻译、版本检查） |
 | `skills/framework(/resume,task)` | 技能框架核心：`Skill`/`SkillProvider` SPI、`SkillManager`/`SkillRegistry`、`SkillSecurityFilter`、`SkillIntentRecognizer`、`TaskExecutor`、`LLMAnalysisService`、`PendingResumeManager` |
 | `skills/{admin,afktask,bukkit,cmi,command,globalmarketplus,utility}` | 内置技能实现 |
 
