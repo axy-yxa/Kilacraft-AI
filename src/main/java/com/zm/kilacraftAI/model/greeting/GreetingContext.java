@@ -94,4 +94,9 @@ public class GreetingContext {
      * 离线期间的系统健康告警事件（仅对有 kilacraft.admin.health 权限的管理员填充）
      */
     private final List<ServerEvent> healthAlerts;
+
+    /**
+     * 离线期间检测到的新版本提醒事件（仅对有 kilacraft.admin.info 权限的管理员填充）
+     */
+    private final List<ServerEvent> updateReminders;
 }

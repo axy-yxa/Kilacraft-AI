@@ -29,7 +29,7 @@ public final class AboutCommand {
         sender.sendMessage(lm.replacePlaceholders(lm.getCommandAboutCurrent(), "ver", current));
         sender.sendMessage(lm.getCommandAboutChecking());
 
-        UpdateChecker checker = new UpdateChecker(plugin);
+        UpdateChecker checker = plugin.getUpdateChecker() != null ? plugin.getUpdateChecker() : new UpdateChecker(plugin);
         FoliaCompat.getIOPool().execute(() -> {
             try {
                 UpdateChecker.ReleaseInfo latest = checker.fetchLatestRelease();

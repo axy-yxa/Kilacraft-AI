@@ -52,6 +52,7 @@ modules:
   "安全拦截": "Security"
   "音效管理": "Sound"
   "版本": "Version"
+  "版本更新": "Update"
   "语言配置": "Lang Config"
   "意图提示词": "Intent Prompt"
   "统计": "Statistics"
@@ -1400,6 +1401,18 @@ messages:
   "MSPT峰值({}ms)，阈值>{}ms": "MSPT peak ({}ms)，threshold>{}ms"
   "MSPT P95({}ms)，阈值>{}ms": "MSPT P95 ({}ms)，threshold>{}ms"
   "CPU过高({}%)，阈值>{}%": "CPU too high ({}%)，threshold>{}%"
+
+  # ==================== GreetingPromptBuilder - Update Reminders ====================
+  "【新版本可用】\n": "[New Version Available]\n"
+  "插件检测到新版本 {}（发布于 {}）：": "A new plugin version {} was detected (released on {}):"
+  "插件检测到新版本 {}：": "A new plugin version {} was detected:"
+  "更新内容：{}": "Release notes: {}"
+  "下载地址：{}": "Download: {}"
+  "版本信息不可用": "Version info unavailable"
+  "版本信息解析失败": "Version info parse failed"
+  "你应在问候中简短提醒管理员有新版本可用，指出具体版本号，必要时提及更新内容或下载地址，然后继续常规问候。": "You should briefly remind the admin of the new version in the greeting. State the exact version number and, if relevant, the release notes or download link, then proceed with the regular greeting."
+  "检测到新版本 {}，已写入问候提醒事件": "New version {} detected, greeting reminder event written"
+  "问候更新检测失败: {}": "Greeting update check failed: {}"
 
   # ==================== Notification System ====================
   "{} 渠道 webhook_url 未配置，跳过": "{} channel webhook_url not configured, skipping"

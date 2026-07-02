@@ -138,6 +138,12 @@ public final class KilacraftAI extends JavaPlugin {
     private OfflineEventAggregator offlineEventAggregator;
 
     /**
+     * 版本更新检测器（单例，供问候系统与管理员命令复用）
+     */
+    @Getter
+    private UpdateChecker updateChecker;
+
+    /**
      * 画像分析服务
      */
     @Getter
@@ -747,8 +753,9 @@ public final class KilacraftAI extends JavaPlugin {
         logger.info((I18nService.isZh() ? "版本：v" : "Version: v") + getDescription().getVersion());
         logger.info(I18nService.isZh() ? "作者：Zm_Mmm" : "Author: Zm_Mmm");
 
-        // 异步检查版本更新（有新版本时控制台输出彩色提示，失败或已是最新则静默）
-        new UpdateChecker(this).checkAsync();
+        // 初始化版本检测单例并异步检查（有新版本时控制台输出彩色提示，失败或已是最新则静默）
+        updateChecker = new UpdateChecker(this);
+        updateChecker.checkAsync();
     }
 
     /**

@@ -2,8 +2,12 @@ package com.zm.kilacraftAI.service.update;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.model.event.ServerEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -13,6 +17,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -39,6 +44,11 @@ public class UpdateChecker {
 
     private final String currentVersion;
 
+    /**
+     * 最近一次问候检测的时间戳（实例级冷却，避免管理员频繁登录反复发 HTTP 请求）
+     */
+    private volatile long lastCheckAt;
+
     public UpdateChecker(JavaPlugin plugin) {
         this.currentVersion = plugin.getDescription().getVersion();
     }
@@ -57,6 +67,59 @@ public class UpdateChecker {
             // 请求失败静默处理，不打扰启动日志
             return null;
         });
+    }
+
+    /**
+     * 在问候聚合的 IO 线程中同步检测新版本，有新版本且库内无该 tag 记录时写入事件
+     *
+     * <p>管理员登录触发问候时由 {@code OfflineEventAggregator} 调用：先做实例级冷却判断，
+     * 冷却期内直接返回不发请求；冷却过期则同步请求发布源，检测到新版本且事件表内尚无该 tag
+     * 记录时，写入一条 {@code UPDATE_AVAILABLE} 系统事件，供离线增量查询在本次问候中取出。</p>
+     *
+     * <p>本方法全程 try-catch 静默，任何异常都不影响问候流程。调用方必须保证当前处于 IO 线程
+     * 且持有有效的数据库连接。</p>
+     *
+     * @param conn       数据库连接（调用方在 IO 线程持有）
+     * @param dao        服务器事件 DAO
+     * @param serverId   子服 ID
+     * @param cooldownMs 冷却毫秒，距上次检测不足此时长则跳过
+     */
+    public void checkAndPersistIfNeeded(Connection conn, ServerEventDao dao, String serverId, long cooldownMs) {
+        long now = System.currentTimeMillis();
+        if (now - lastCheckAt < cooldownMs) {
+            return;
+        }
+        lastCheckAt = now;
+
+        try {
+            ReleaseInfo latest = fetchLatestRelease();
+            if (latest == null || !isNewerVersion(currentVersion, latest.tagName())) {
+                return;
+            }
+            // 同一 tag 只写一条事件，避免服务器长时间运行重复检测造成堆积
+            if (dao.existsUpdateReminder(conn, latest.tagName())) {
+                return;
+            }
+            String data = buildUpdateEventData(latest);
+            ServerEvent event = ServerEvent.of(ServerEventTypeEnum.UPDATE_AVAILABLE, null, data);
+            dao.insert(conn, event, serverId);
+            PluginLoggerUtil.info("版本更新", "检测到新版本 {}，已写入问候提醒事件", latest.tagName());
+        } catch (Exception e) {
+            // 检测/写库失败静默处理，不影响问候
+            PluginLoggerUtil.debug("版本更新", "问候更新检测失败: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 构造 UPDATE_AVAILABLE 事件的 data JSON
+     */
+    private String buildUpdateEventData(ReleaseInfo release) {
+        JsonObject json = new JsonObject();
+        json.addProperty("tag", release.tagName());
+        json.addProperty("name", release.name() != null ? release.name() : "");
+        json.addProperty("url", release.htmlUrl() != null ? release.htmlUrl() : "");
+        json.addProperty("date", release.publishedAt() != null ? release.publishedAt() : "");
+        return json.toString();
     }
 
     /**

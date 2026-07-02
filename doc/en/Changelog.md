@@ -1,15 +1,16 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-06-29  
+> **Last Updated**: 2026-07-02  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
 
 ---
 
-## v2.1.3 - Player Real-Time State Awareness, Knowledge-Base Retrieval Quality Boost, AI Request Resource Optimization & Security/Stability Hardening
+## v2.1.3 - Player Real-Time State Awareness, Greeting System Update Reminders, Knowledge-Base Retrieval Quality Boost, AI Request Resource Optimization & Security/Stability Hardening
 
 ### ✨ New Features
 - **Built-in CLAUDE.md Reference**: Starting with v2.1.3, the repository root includes a `CLAUDE.md` file for developers using AI coding tools for secondary development. Designed for Claude Code by default (auto-loaded every session), it covers the project architecture, i18n conventions, code conventions, key design constraints, and modification triggers. For other AI code tools (Cline, Cursor, Copilot Chat, etc.), copy the content into that tool's global rules or context file configuration equivalent
 - **AI Real-Time Player State Awareness**: The AI can now automatically sense the player's current state — coordinates, health and hunger, held items and worn armor, current world, weather, and time of day — without the player having to explain repeatedly or trigger extra skill queries. For state-dependent requests like "take me back", "can this mine diamonds?", or "is there a desert nearby?", the AI responds with context-aware answers and advice. Enabled by default for all players — fully automatic, zero-config, and stores no data
+- **AI Login Greeting Proactively Notifies of New Versions**: Long-running servers that are never restarted can still learn about plugin updates in time. When an admin with the `kilacraft.admin.info` permission logs in, the AI proactively mentions in the greeting whether a new version is available, stating the exact version number and download URL. Each version is announced to each admin only once — no repeated nagging. Network-check failures are handled silently without disrupting the normal greeting
 
 ### 🔧 Improvements
 - **More Accurate Knowledge-Base Retrieval (highlight of this release)**: The BM25 algorithm now includes the IDF (Inverse Document Frequency) weight — rare, specialized keywords that appear in only a few docs rank higher, while ubiquitous generic words like "player" and "command" no longer dilute results. Recall accuracy of the default BM25 mode (used by the vast majority of servers) improves overall
