@@ -146,9 +146,14 @@ public class GreetingPromptBuilder {
         String lastLocationSection = buildLastLocationSection(context.getProfile(), playerName);
         String summarySection = buildSummarySection(context.getSummaryStats(), context.getVanillaStats());
         String healthAlertsSection = buildHealthAlertsSection(context.getHealthAlerts(), playerName);
+        String updateReminderSection = buildUpdateReminderSection(context.getUpdateReminders(), playerName);
 
         String prompt = customPrompt.replace("{player}", playerName).replace("{offline_duration}", offlineDuration).replace("{own_events_section}", ownEventsSection).replace("{friend_events_section}", friendEventsSection).replace("{online_friends_section}", onlineFriendsSection).replace("{last_location}", lastLocationSection).replace("{summary_section}", summarySection);
 
+        // 更新提醒段落前置拼接（优先级次于告警）
+        if (updateReminderSection != null && !updateReminderSection.isEmpty()) {
+            prompt = updateReminderSection + "\n" + prompt;
+        }
         // 告警段落插入到系统提示词最前面（最高优先级）
         if (healthAlertsSection != null && !healthAlertsSection.isEmpty()) {
             return healthAlertsSection + "\n" + prompt + "\n";
@@ -373,6 +378,64 @@ public class GreetingPromptBuilder {
         sb.append(I18nService.tr("你必须在问候的第一时间主动告知管理员以上异常，用口语化的方式简述时间、严重程度和涉及插件，并指出可以查看完整报告。然后再进行常规问候。"));
 
         return sb.toString();
+    }
+
+    /**
+     * 构建新版本提醒段落（仅对有 kilacraft.admin.info 权限的管理员）
+     *
+     * <p>从 UPDATE_AVAILABLE 事件的 data JSON 中解析版本信息，格式化为纯文本
+     * 注入到问候提示词的前部（优先级次于服务器异常告警）。</p>
+     *
+     * @param updateReminders 离线期间检测到的新版本提醒事件列表
+     * @param playerName      玩家名称
+     * @return 提醒段落文本，无提醒时返回空字符串
+     */
+    public String buildUpdateReminderSection(List<ServerEvent> updateReminders, String playerName) {
+        if (updateReminders == null || updateReminders.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(I18nService.tr("【新版本可用】\n"));
+        for (int i = 0; i < updateReminders.size(); i++) {
+            sb.append(formatUpdateReminder(updateReminders.get(i).getData()));
+            if (i < updateReminders.size() - 1) {
+                sb.append("\n\n");
+            }
+        }
+        sb.append("\n").append(I18nService.tr("你应在问候中简短提醒管理员有新版本可用，指出具体版本号，必要时提及更新内容或下载地址，然后继续常规问候。"));
+        return sb.toString();
+    }
+
+    /**
+     * 格式化单条 UPDATE_AVAILABLE 的 data JSON 为 AI 可读的简洁文本
+     */
+    private String formatUpdateReminder(String dataJson) {
+        if (dataJson == null || dataJson.isEmpty()) return I18nService.tr("版本信息不可用");
+
+        try {
+            var root = com.google.gson.JsonParser.parseString(dataJson).getAsJsonObject();
+            String tag = root.has("tag") && !root.get("tag").isJsonNull() ? root.get("tag").getAsString() : "";
+            String name = root.has("name") && !root.get("name").isJsonNull() ? root.get("name").getAsString() : "";
+            String url = root.has("url") && !root.get("url").isJsonNull() ? root.get("url").getAsString() : "";
+            String date = root.has("date") && !root.get("date").isJsonNull() ? root.get("date").getAsString() : "";
+
+            StringBuilder sb = new StringBuilder();
+            if (!date.isEmpty()) {
+                sb.append(I18nService.tr("插件检测到新版本 {}（发布于 {}）：", tag, date));
+            } else {
+                sb.append(I18nService.tr("插件检测到新版本 {}：", tag));
+            }
+            if (!name.isEmpty() && !name.equals(tag)) {
+                sb.append("\n").append(I18nService.tr("更新内容：{}", name));
+            }
+            if (!url.isEmpty()) {
+                sb.append("\n").append(I18nService.tr("下载地址：{}", url));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return I18nService.tr("版本信息解析失败");
+        }
     }
 
     /**

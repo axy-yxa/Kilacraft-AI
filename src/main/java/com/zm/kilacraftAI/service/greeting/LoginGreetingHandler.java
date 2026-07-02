@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.ConfigManager;
@@ -12,7 +13,6 @@ import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.greeting.GreetingContext;
 import com.zm.kilacraftAI.model.greeting.PlayerVanillaStats;
@@ -26,11 +26,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -105,6 +101,7 @@ public class LoginGreetingHandler implements Listener {
 
         // 主线程提前缓存权限检查结果
         final boolean isAdminHealth = PluginPermissionEnum.ADMIN_HEALTH.hasPermission(player);
+        final boolean isAdminInfo = PluginPermissionEnum.ADMIN_INFO.hasPermission(player);
 
         profileManager.getProfile(playerUuid, profile -> {
             if (profile == null) {
@@ -117,7 +114,7 @@ public class LoginGreetingHandler implements Listener {
             // loginCount == 1: 首次登录的正常路径（onPlayerJoin 中 updateLogin 后 loginCount = 1）
 
             if (isFirstLogin) {
-                GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(true).offlineDurationMs(0).offlineEvents(Collections.emptyList()).onlineFriends(Collections.emptyList()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).healthAlerts(Collections.emptyList()).build();
+                GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(true).offlineDurationMs(0).offlineEvents(Collections.emptyList()).onlineFriends(Collections.emptyList()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).healthAlerts(Collections.emptyList()).updateReminders(Collections.emptyList()).build();
                 generateAndSend(context, playerName, playerUuid);
 
             } else {
@@ -132,12 +129,13 @@ public class LoginGreetingHandler implements Listener {
                 int maxFriendEvents = config.getGreetingMaxFriendOfflineEvents();
                 int maxSummaryEvents = config.getGreetingMaxSummaryEvents();
 
-                eventAggregator.loadAllOfflineDataForGreeting(playerUuid, lastLogout, profile.getLastGreetingTime(), maxOwnEvents, maxFriendEvents, maxSummaryEvents, isAdminHealth, data -> {
+                eventAggregator.loadAllOfflineDataForGreeting(playerUuid, lastLogout, profile.getLastGreetingTime(), maxOwnEvents, maxFriendEvents, maxSummaryEvents, isAdminHealth, isAdminInfo, data -> {
                     SummaryStats summaryStats = computeSummaryStats(profile, data.highlights(), data.lastSessionDurationMs());
 
                     List<ServerEvent> healthAlerts = isAdminHealth && data.healthAlerts() != null ? data.healthAlerts() : Collections.emptyList();
+                    List<ServerEvent> updateReminders = isAdminInfo && data.updateReminders() != null ? data.updateReminders() : Collections.emptyList();
 
-                    GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(false).offlineDurationMs(offlineDuration).offlineEvents(data.ownEvents()).friendEvents(data.friendEvents()).summaryStats(summaryStats).onlineFriends(data.onlineFriends()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).offlineFriends(data.offlineFriends()).globalEventCount(data.globalEventCount()).friendLoginCounts(data.friendLoginCounts()).healthAlerts(healthAlerts).build();
+                    GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(false).offlineDurationMs(offlineDuration).offlineEvents(data.ownEvents()).friendEvents(data.friendEvents()).summaryStats(summaryStats).onlineFriends(data.onlineFriends()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).offlineFriends(data.offlineFriends()).globalEventCount(data.globalEventCount()).friendLoginCounts(data.friendLoginCounts()).healthAlerts(healthAlerts).updateReminders(updateReminders).build();
 
                     generateAndSend(context, playerName, playerUuid);
                 });

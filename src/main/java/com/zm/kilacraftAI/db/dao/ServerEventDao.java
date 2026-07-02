@@ -290,6 +290,53 @@ public class ServerEventDao {
     }
 
     /**
+     * 查询离线期间新增的更新提醒事件
+     *
+     * <p>与 {@link #loadHealthAlerts} 同构，仅 event_type 不同。</p>
+     *
+     * @param conn      数据库连接
+     * @param afterTime 起始时间戳（ms，不含）
+     * @param limit     最大条数
+     * @return 更新提醒事件列表（时间倒序，最新的在前）
+     */
+    public List<ServerEvent> loadUpdateReminders(Connection conn, long afterTime, int limit) throws SQLException {
+        String sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE event_type = 'UPDATE_AVAILABLE' AND player_uuid IS NULL AND created_at > ? " + "ORDER BY created_at DESC LIMIT ?";
+
+        List<ServerEvent> events = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, afterTime);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    events.add(mapRow(rs));
+                }
+            }
+        }
+        return events;
+    }
+
+    /**
+     * 去重查询：是否已存在指定 tag 的更新提醒事件
+     *
+     * <p>用于在写入前避免重复记录同一个发布版本。UPDATE_AVAILABLE 事件量极小
+     * （一版本一条），用 data LIKE 匹配即可，无需额外索引。</p>
+     *
+     * @param conn    数据库连接
+     * @param tagName 版本标签（如 v2.1.3）
+     * @return true 表示该 tag 的提醒事件已存在
+     */
+    public boolean existsUpdateReminder(Connection conn, String tagName) throws SQLException {
+        String sql = "SELECT 1 FROM " + tablePrefix + "server_event " + "WHERE event_type = 'UPDATE_AVAILABLE' AND player_uuid IS NULL AND data LIKE ? LIMIT 1";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, "%\"tag\":\"" + tagName + "\"%");
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    /**
      * 按时间桶统计指定事件类型的数量（在线趋势/新玩家流入）
      *
      * <p>返回每个时间桶内各事件类型的计数，用于 PlayerAnalysisSkill 的 online_trend / new_players Action。</p>

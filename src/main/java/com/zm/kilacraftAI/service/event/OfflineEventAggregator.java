@@ -1,18 +1,18 @@
 package com.zm.kilacraftAI.service.event;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.db.dao.SocialRelationDao;
 import com.zm.kilacraftAI.db.dao.SocialRelationDao.SocialRelation;
-import com.zm.kilacraftAI.model.greeting.FriendStatus;
 import com.zm.kilacraftAI.model.event.ServerEvent;
+import com.zm.kilacraftAI.model.greeting.FriendStatus;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.profile.ProfileManager;
 import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -31,6 +31,11 @@ public class OfflineEventAggregator {
      * 好友推荐的最低关系强度阈值
      */
     private static final double FRIEND_STRENGTH_THRESHOLD = 0.1;
+
+    /**
+     * 问候更新检测的实例级冷却（1 小时），避免管理员频繁登录反复发 HTTP 请求
+     */
+    private static final long UPDATE_CHECK_COOLDOWN_MS = 3600_000L;
 
     private final KilacraftAI plugin;
     private final DatabaseManager databaseManager;
@@ -59,15 +64,17 @@ public class OfflineEventAggregator {
     /**
      * 聚合查询
      *
-     * @param playerUuid       目标玩家 UUID
-     * @param afterTime        上次登出时间戳（ms）
-     * @param lastGreetingTime 上次问候时间戳（ms），0 表示从未问候过
-     * @param maxOwnEvents     分类一最大条数
-     * @param maxFriendEvents  分类二最大条数
-     * @param maxSummaryEvents 分类三最大条数
-     * @param callback         完成回调（在 IO 线程执行）
+     * @param playerUuid          目标玩家 UUID
+     * @param afterTime           上次登出时间戳（ms）
+     * @param lastGreetingTime    上次问候时间戳（ms），0 表示从未问候过
+     * @param maxOwnEvents        分类一最大条数
+     * @param maxFriendEvents     分类二最大条数
+     * @param maxSummaryEvents    分类三最大条数
+     * @param loadHealthAlerts    是否查询健康告警（仅管理员）
+     * @param loadUpdateReminders 是否检测并查询新版本提醒（仅管理员）
+     * @param callback            完成回调（在 IO 线程执行）
      */
-    public void loadAllOfflineDataForGreeting(UUID playerUuid, long afterTime, long lastGreetingTime, int maxOwnEvents, int maxFriendEvents, int maxSummaryEvents, boolean loadHealthAlerts, Consumer<GreetingOfflineData> callback) {
+    public void loadAllOfflineDataForGreeting(UUID playerUuid, long afterTime, long lastGreetingTime, int maxOwnEvents, int maxFriendEvents, int maxSummaryEvents, boolean loadHealthAlerts, boolean loadUpdateReminders, Consumer<GreetingOfflineData> callback) {
         if (databaseManager == null) {
             callback.accept(GreetingOfflineData.empty());
             return;
@@ -107,7 +114,16 @@ public class OfflineEventAggregator {
                 // 系统健康告警事件（仅管理员需要）
                 List<ServerEvent> healthAlerts = loadHealthAlerts ? serverEventDao.loadHealthAlerts(conn, afterTime, 50) : Collections.emptyList();
 
-                callback.accept(new GreetingOfflineData(ownEvents, friendEvents, highlights, onlineFriends, offlineFriends, lastSessionDurationMs, globalEventCount, friendLoginCounts, healthAlerts));
+                // 新版本可用提醒（仅管理员需要：先做带冷却的检测写库，再离线增量查询）
+                List<ServerEvent> updateReminders;
+                if (loadUpdateReminders && plugin.getUpdateChecker() != null) {
+                    plugin.getUpdateChecker().checkAndPersistIfNeeded(conn, serverEventDao, "", UPDATE_CHECK_COOLDOWN_MS);
+                    updateReminders = serverEventDao.loadUpdateReminders(conn, afterTime, 5);
+                } else {
+                    updateReminders = Collections.emptyList();
+                }
+
+                callback.accept(new GreetingOfflineData(ownEvents, friendEvents, highlights, onlineFriends, offlineFriends, lastSessionDurationMs, globalEventCount, friendLoginCounts, healthAlerts, updateReminders));
             } catch (SQLException e) {
                 PluginLoggerUtil.warn("数据库", "离线数据聚合失败: {}", e.getMessage());
                 callback.accept(GreetingOfflineData.empty());
@@ -182,9 +198,9 @@ public class OfflineEventAggregator {
                                       List<ServerEvent> highlights, List<FriendStatus> onlineFriends,
                                       List<FriendStatus> offlineFriends, long lastSessionDurationMs,
                                       int globalEventCount, Map<String, Integer> friendLoginCounts,
-                                      List<ServerEvent> healthAlerts) {
+                                      List<ServerEvent> healthAlerts, List<ServerEvent> updateReminders) {
         public static GreetingOfflineData empty() {
-            return new GreetingOfflineData(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, 0, Collections.emptyMap(), Collections.emptyList());
+            return new GreetingOfflineData(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, 0, Collections.emptyMap(), Collections.emptyList(), Collections.emptyList());
         }
     }
 }
