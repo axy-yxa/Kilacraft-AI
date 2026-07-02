@@ -78,6 +78,7 @@ modules:
   "条件评估": "Cond Eval"
   "AI占位符": "AI Placeholder"
   "玩家元数据": "Player Meta"
+  "守护系统": "Guardian"
 
 # ==================== 消息翻译 ====================
 # Message Translations
@@ -1914,3 +1915,17 @@ messages:
   "着火中": "On Fire"
   "采集耗时超过{}ms，已跳过剩余字段": "Collection exceeded {}ms; skipped remaining fields"
   "采集分组[{}]失败: {}": "Failed to collect section [{}]: {}"
+
+  # ==================== PlayerStateService ====================
+  "采集附近实体失败: {}": "Failed to collect nearby entities: {}"
+
+  # ==================== Monitor ====================
+  "非法状态迁移: {}→{}（monitor={}）": "Illegal state transition: {}->{} (monitor={})"
+
+  # ==================== GuardianEngine ====================
+  "守护引擎已标记关闭": "Guardian engine marked for shutdown"
+  "守护心跳": "Guardian Heartbeat"
+  "守护系统轮询心跳": "Guardian system polling heartbeat"
+  "不支持的事件类型（需在 GuardianEventListener 登记）: {}": "Unsupported event type (must be registered in GuardianEventListener): {}"
+  "monitor 求值异常: {}": "Monitor evaluation error: {}"
+  "守护快照采集失败（玩家 {}）: {}": "Guardian snapshot failed (player {}): {}"
