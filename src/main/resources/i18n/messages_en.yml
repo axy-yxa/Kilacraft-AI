@@ -1876,7 +1876,7 @@ messages:
   "自检执行失败: {}": "Diagnostics failed: {}"
 
   # ==================== PlayerMetaCollector ====================
-  "[玩家实时状态]": "[Player Real-time Status]"
+  "【玩家实时状态】": "[Player Real-time Status]"
   "玩家名称: {}": "Player name: {}"
   "游戏模式: {} | 管理员: {}": "Game mode: {} | Admin: {}"
   "所在世界: {} ({}, 难度: {}, PVP: {})": "World: {} ({}, Difficulty: {}, PVP: {})"

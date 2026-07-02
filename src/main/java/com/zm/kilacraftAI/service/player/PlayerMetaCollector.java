@@ -39,7 +39,7 @@ public final class PlayerMetaCollector {
             return "";
         }
         long start = System.nanoTime();
-        String header = I18nService.tr("[玩家实时状态]");
+        String header = I18nService.tr("【玩家实时状态】");
         StringBuilder sb = new StringBuilder(320);
         sb.append(header);
 

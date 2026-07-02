@@ -334,12 +334,10 @@ public final class KilacraftAI extends JavaPlugin {
         // 知识检索器（依赖 configManager + knowledgeBase）
         knowledgeRetriever = new KnowledgeRetriever(knowledgeBase, configManager.getMaxRelevantChunks(), configManager.getKnowledgeMaxChunkSize(), configManager.getKnowledgeMinChunkSize(), configManager.getKnowledgeChunkOverlap(), configManager.getKeywordTopK(), configManager.getBm25K1(), configManager.getBm25B());
 
-        // 软阈值 + BM25 长度归一化参数
-        knowledgeRetriever.setRetrievalConfig(configManager.getRetrievalNoiseFloor(), configManager.getRetrievalRelativeThreshold(), configManager.getRetrievalRrfK(), configManager.getBm25AvgDocLength());
-
-        // 对所有用户预构建分段缓存（使 avgDocLength 可统计，同时预热检索）
+        // 先预构建分段缓存（使 avgDocLength 可统计，同时预热检索）；
+        // 再注入软阈值 + BM25 长度归一化参数（setRetrievalConfig 内部已触发 computeAvgDocLength）
         knowledgeRetriever.buildChunkCache();
-        knowledgeRetriever.computeAvgDocLength();
+        knowledgeRetriever.setRetrievalConfig(configManager.getRetrievalNoiseFloor(), configManager.getRetrievalRelativeThreshold(), configManager.getRetrievalRrfK(), configManager.getBm25AvgDocLength());
 
         // Embedding 语义检索服务
         if (configManager.isEmbeddingEnabled()) {

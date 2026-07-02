@@ -338,8 +338,6 @@ public class KnowledgeRetriever {
             chunks = splitIntoChunks(content, fileName);
             knowledgeBase.setChunkCache(fileName, chunks);
             PluginLoggerUtil.debug("知识库", "缓存文件：{} - 首次分段并缓存，耗时 {}ms", fileName, System.currentTimeMillis() - cacheStartTime);
-        } else {
-            PluginLoggerUtil.debug("知识库", "缓存文件：{} - 使用缓存的分段（{} 个片段）", fileName, chunks.size());
         }
         return chunks;
     }
