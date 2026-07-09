@@ -39,11 +39,6 @@ public enum PluginPermissionEnum {
     PERSONALITIES("kilacraft.personalities"),
 
     /**
-     * 查询和取消挂机任务
-     */
-    AFK("kilacraft.afk"),
-
-    /**
      * AI 命令执行（以玩家身份执行服务器命令）
      */
     COMMAND_EXECUTE("kilacraft.command.execute"),
@@ -104,14 +99,14 @@ public enum PluginPermissionEnum {
     BUKKIT_API("kilacraft.api.*"),
 
     /**
-     * 挂机任务技能
-     */
-    AFK_TASK("kilacraft.afk"),
-
-    /**
      * 查看定时任务运行状态
      */
     TASKS("kilacraft.tasks"),
+
+    /**
+     * 守护系统（启用/停用守护、查看状态、反馈静音）
+     */
+    GUARDIAN("kilacraft.guardian"),
 
     /**
      * 服务器健康管理（手动采样命令 + 告警/报告通知接收 + 历史告警查询 + 外部通知渠道测试）

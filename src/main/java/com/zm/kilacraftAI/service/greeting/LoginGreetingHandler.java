@@ -164,6 +164,15 @@ public class LoginGreetingHandler implements Listener {
 
         PluginLoggerUtil.debug("问候系统", "问候语摘要: {}", systemPrompt);
 
+        // 全局预算熔断闸门：问候属被动输出，runaway 时降级跳过（问候自身 30min 冷却保证正常极低频）
+        if (plugin.getLlmOutputCoordinator() != null) {
+            var budget = plugin.getLlmOutputCoordinator().getBudgetManager();
+            if (!budget.tryAcquire(playerUuid, com.zm.kilacraftAI.skills.framework.task.LLMBudgetManager.Priority.GREETING)) {
+                PluginLoggerUtil.debug("问候系统", "LLM 预算熔断中，跳过本次问候（玩家 {}）", playerName);
+                return;
+            }
+        }
+
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
         String userMessage = context.isFirstLogin() ? I18nService.tr("请欢迎新玩家 {}", playerName) : I18nService.tr("请欢迎 {} 回来", playerName);
 

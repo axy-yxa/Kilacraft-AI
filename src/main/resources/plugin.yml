@@ -46,12 +46,12 @@ permissions:
   kilacraft.personalities:
     description: 允许管理人格配置
     default: op                # 仅 OP 拥有此权限 / Only OP has this permission
-  kilacraft.afk:
-    description: 允许查询和取消挂机任务
-    default: true              # 所有玩家可用 / available to all players
   kilacraft.tasks:
     description: 允许查看定时任务运行状态
     default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+  kilacraft.guardian:
+    description: 允许启用/停用守护系统（AI 主动陪伴）
+    default: true              # 所有玩家可用（opt-in，玩家需主动开启）/ available to all (opt-in)
 
   # 查询类命令权限（用量 / 对话历史 / 画像） / Query command permissions (usage / history / profile)
   kilacraft.query.self:

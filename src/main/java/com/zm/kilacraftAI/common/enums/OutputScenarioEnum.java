@@ -10,7 +10,7 @@ package com.zm.kilacraftAI.common.enums;
  *   <li>NORMAL_CHAT - 普通 AI 对话（无技能调用）</li>
  *   <li>SKILL_RESULT - 单意图技能执行结果（含 LLM 二次分析）</li>
  *   <li>TASK_RESULT - 多步骤任务执行结果（含 LLM 二次分析）</li>
- *   <li>AFK_CALLBACK - 挂机任务回调通知</li>
+ *   <li>GUARDIAN - 守护系统主动输出（L1 模板/L3 陪聊）</li>
  *   <li>ERROR - 错误消息</li>
  * </ul>
  *
@@ -38,10 +38,11 @@ public enum OutputScenarioEnum {
     TASK_RESULT,
 
     /**
-     * 挂机任务回调通知
-     * <p>来源：AFKTask.notifyPlayer() / notifyCallbackResult()</p>
+     * 守护系统主动输出（L1 模板告警 / L3 陪聊）
+     * <p>来源：TemplatedNotifyAction / GuardianLlmAction。
+     * L1 走 {@link #GUARDIAN} 场景但用模板不经 LLM；L3 走 {@code outputAnalysisResult} 经预算层治理。</p>
      */
-    AFK_CALLBACK,
+    GUARDIAN,
 
     /**
      * AI 登录问候

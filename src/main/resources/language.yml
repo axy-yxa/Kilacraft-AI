@@ -5,7 +5,7 @@
 #
 # 说明：此文件仅控制"玩家在游戏中看到的消息"
 # - AI 回复内容（由 LLM 生成）：由 config.yml 的 agent.prompts 控制
-# - 内部错误消息（如挂机任务异常）：保持硬编码，不在此配置
+# - 内部错误消息（如守护系统异常）：保持硬编码，不在此配置
 # - 控制台日志：由下方 logs 段控制
 #
 # 修改后使用 /kila reload 热重载即可生效，无需重启服务器
@@ -31,8 +31,8 @@ help:
   knowledge: " §b/kila knowledge reload §8- §f重载知识库"
   personalities: " §b/kila personalities reload §8- §f重载人格配置"
 
-  # 挂机任务（kilacraft.afk 权限）
-  afk: " §b/kila afk §8- §f查询/取消挂机任务"
+  # 守护系统（kilacraft.guardian 权限）
+  guardian: " §b/kila guardian §7<on|off|status|silence> §8- §fAI 主动守护"
 
   # 性能采样（kilacraft.admin.health 权限）
   profile: " §b/kila profile start §7[秒数] §8- §f启动性能采样 (30~120s)"
@@ -155,6 +155,23 @@ commands:
   # 变量: {n}=时间间隔(如5s/12min)
   tasks-time-ago: "{n}前"
 
+  # ==================== /kila guardian 守护系统 ====================
+  guardian-no-permission: "§c你没有权限使用守护系统。"
+  guardian-not-init: "§c守护系统尚未初始化。"
+  guardian-disabled-global: "§c守护系统已被服主全局关闭。"
+  guardian-already-on: "§7守护系统已开启。"
+  guardian-already-off: "§7守护系统未开启。"
+  guardian-on-success: "§a守护已开启，共激活 §e{n} §a个监听。AI 会适时主动提醒你。"
+  guardian-off: "§7守护已关闭。"
+  guardian-status: "§6[Kilacraft-AI] §f守护系统 §7| 状态: §e{state} §7| 全服活跃: §e{n}§7人"
+  guardian-state-on: "§a开启"
+  guardian-state-off: "§7关闭"
+  guardian-usage: "§7用法: /kila guardian <§eon§7|§coff§7|§estatus§7|§esilence <分类>§7|§eunsilence <分类>§7>"
+  guardian-silence-usage: "§7用法: /kila guardian silence <DANGER|RESOURCE|GOAL|COMPANION|GENERAL>"
+  guardian-silenced: "§7已静音 §e{cat} §7分类的守护提醒。"
+  guardian-unsilenced: "§7已恢复 §e{cat} §7分类的守护提醒。"
+  guardian-invalid-category: "§c无效分类，可选: DANGER/RESOURCE/GOAL/COMPANION/GENERAL"
+
   # ==================== /kila notify test 通知渠道测试 ====================
   notify-no-permission: "§c你没有权限使用通知测试功能。"
   notify-usage: "§7用法：/kila notify test"
@@ -165,24 +182,6 @@ commands:
   notify-send-success: "发送成功"
   # 变量: {msg}=失败原因
   notify-send-failed: "§c发送失败: {msg}"
-
-  # ==================== /kila afk 挂机任务查询/取消 ====================
-  afk-player-only: "§c挂机任务命令仅限玩家使用。"
-  afk-not-enabled: "§c挂机任务系统未启用。"
-  afk-no-task: "§7你当前没有正在运行的挂机任务。"
-  # 变量: {desc}=任务描述
-  afk-cancelled: "§a已取消挂机任务：§f{desc}"
-  afk-current-title: "§f当前挂机任务："
-  # 以下为任务详情行 — 变量: {id}/{type}/{desc}/{status}/{time}=对应字段
-  afk-task-id: "§f  任务ID：§e{id}"
-  afk-task-type: "§f  类型：§e{type}"
-  afk-task-desc: "§f  描述：§e{desc}"
-  afk-task-status: "§f  状态：§e{status}"
-  afk-task-time: "§f  创建时间：§e{time}"
-  afk-cancel-hint: "§7使用 /kila afk cancel 可取消此任务"
-  # 变量: {cmd}=输入的子命令
-  afk-unknown-sub: "§c未知的挂机任务子命令：{cmd}"
-  afk-usage: "§7用法：/kila afk [query|cancel]"
 
   # ==================== /kila profile 手动性能采样 ====================
   profile-no-permission: "§c你没有权限使用性能采样功能。"
@@ -227,7 +226,6 @@ commands:
   doctor-check-persona: "人格"
   doctor-check-agent: "Agent 能力"
   doctor-check-profile: "画像分析"
-  doctor-check-afk: "挂机任务"
   doctor-check-command-skill: "命令技能"
   doctor-check-pending-resume: "待确认续体"
   doctor-check-isolation: "玩家数据隔离"

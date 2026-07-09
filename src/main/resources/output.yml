@@ -33,7 +33,10 @@ output:
     normal_chat: ""
     skill_result: ""
     task_result: ""
-    afk_callback: ""
+    # guardian 场景：守护系统的主动告警（L1 模板 + L3 陪聊）
+    # 留空则走 default_channel(CHAT)；设为 ACTION_BAR 可让告警不顶聊天
+    # Guardian scenarios: leave empty for CHAT, or set ACTION_BAR so alerts don't push chat
+    guardian: ""
     greeting: ""
     error: ""
   

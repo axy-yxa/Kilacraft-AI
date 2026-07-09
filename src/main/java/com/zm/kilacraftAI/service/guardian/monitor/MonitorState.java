@@ -1,7 +1,7 @@
 package com.zm.kilacraftAI.service.guardian.monitor;
 
 /**
- * 监听单元状态机（§3.7）。
+ * 监听单元状态机。
  *
  * <pre>
  *        ┌─────────── re-arm 间隔 ───────────┐
@@ -26,7 +26,7 @@ package com.zm.kilacraftAI.service.guardian.monitor;
 public enum MonitorState {
     /** 求值中 / 一轮执行中。 */
     RUNNING,
-    /** re-arm 间隔中（两轮之间，「持续」的关键，旧系统没有）。 */
+    /** re-arm 间隔中（两轮之间）。 */
     WAITING,
     /** 瞬时失败退避重试中（有预算上限，超预算 → FAILED）。 */
     BLOCKED,

@@ -84,17 +84,6 @@ public class SkillIntentRecognizer {
     }
 
     /**
-     * 获取所有可用 Skill 的名称集合（经过权限预检过滤）
-     */
-    private Set<String> getAllSkillNames(Player caller) {
-        Set<String> names = new HashSet<>();
-        for (Skill skill : skillManager.getAvailableSkills(caller)) {
-            names.add(skill.getName());
-        }
-        return names;
-    }
-
-    /**
      * 解析 Phase 1 响应 → 提取 skill_names 集合
      * 包含 Skill 名称校验，过滤不存在的名称并记录警告日志
      *
@@ -210,12 +199,7 @@ public class SkillIntentRecognizer {
             }
 
             // === Phase 2：Action 选择 + 参数提取（开启知识检索） ===
-            // AFK 挂机任务特殊处理：callback 的 condition_plan 和 callback_steps 可以引用任意 Skill（包括 SPI 注册的），
-            // 但 Phase 1 可能漏选这些 Skill。因此当 AFKTask 被选中时，Phase 2 必须拿到全量 Skill 的完整信息，
-            // 确保 LLM 能为 condition_plan 和 callback_steps 选择正确的技能和 API。
-            boolean hasAfkTask = selectedSkills.contains("AFKTask");
-            Set<String> phase2SkillFilter = hasAfkTask ? getAllSkillNames(caller) : selectedSkills;
-            String phase2Skills = buildPhase2SkillDescription(caller, phase2SkillFilter);
+            String phase2Skills = buildPhase2SkillDescription(caller, selectedSkills);
             String phase2SystemPrompt = withPlayerMeta(promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills), caller);
 
             PluginLoggerUtil.debug("意图识别", "Phase 2 开始，选中技能: {}", selectedSkills);

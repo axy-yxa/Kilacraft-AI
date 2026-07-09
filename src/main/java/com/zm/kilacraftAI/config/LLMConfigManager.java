@@ -59,6 +59,10 @@ public class LLMConfigManager {
     @Getter
     private volatile String agentAnalysisPromptSuffixEn;
 
+    // 全局预算/熔断（D6/D13）：正常使用绝对达不到，仅防 runaway。≤0 禁用治理。
+    @Getter
+    private volatile int budgetPerPlayerPerHour;
+
     public LLMConfigManager(KilacraftAI plugin) {
         this.plugin = plugin;
         ConfigResourceUtil.saveDefaultResource(plugin, CONFIG_FILE);
@@ -91,6 +95,9 @@ public class LLMConfigManager {
         this.agentSystemPromptEn = yaml.getString("agent.prompts.system_prompt_en", "");
         this.agentAnalysisPromptSuffix = yaml.getString("agent.prompts.analysis_prompt_suffix", "");
         this.agentAnalysisPromptSuffixEn = yaml.getString("agent.prompts.analysis_prompt_suffix_en", "");
+
+        // 全局预算/熔断（D6/D13）。默认 200：正常使用绝对达不到，仅防 runaway。
+        this.budgetPerPlayerPerHour = yaml.getInt("llm.budget_per_player_per_hour", 200);
     }
 
     /**

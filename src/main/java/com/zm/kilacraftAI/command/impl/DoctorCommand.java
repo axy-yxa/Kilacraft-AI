@@ -23,7 +23,7 @@ import java.util.UUID;
 
 /**
  * /kila doctor：配置自检（管理员专用，admin.info）。
- * 17 项诊断分三组：基础（DB/LLM/Spark/环境）、AI 能力（知识库/Embedding/人格/Agent/画像/挂机/命令技能/续体/隔离）、
+ * 17 项诊断分三组：基础（DB/LLM/Spark/环境）、AI 能力（知识库/Embedding/人格/Agent/画像/守护/命令技能/续体/隔离）、
  * 可观测与集成（守护/通知/推理模型/问候）。
  * 游戏内输出分组诊断清单；控制台输出脱敏配置详情（不重复诊断结论，便于反馈）。
  */
@@ -73,7 +73,11 @@ public final class DoctorCommand {
         checks.add(personaCount > 0 ? pass(Group.AI, lm.getCommandDoctorCheckPersona(), lm.replacePlaceholders(lm.getCommandDoctorPersonaLoaded(), "count", String.valueOf(personaCount))) : warn(Group.AI, lm.getCommandDoctorCheckPersona(), lm.getCommandDoctorPersonaNone()));
         checks.add(checkAgent(cm, lm));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckProfile(), boolLabel(lm, cm != null && cm.isProfileInjectionEnabled())));
-        checks.add(pass(Group.AI, lm.getCommandDoctorCheckAfk(), boolLabel(lm, cm != null && cm.isAfkTaskEnabled())));
+        // 守护系统自检：GuardianManager 是否初始化 + 当前活跃守护数
+        var guardianManager = plugin.getGuardianManager();
+        checks.add(guardianManager != null
+                ? pass(Group.AI, lm.getCommandDoctorCheckGuardian(), lm.getCommandDoctorEnabled() + "（" + guardianManager.activeCount() + "）")
+                : warn(Group.AI, lm.getCommandDoctorCheckGuardian(), lm.getCommandDoctorDisabled()));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckCommandSkill(), boolLabel(lm, cm != null && cm.isCommandSkillEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckPendingResume(), boolLabel(lm, cm != null && cm.isPendingResumeEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckIsolation(), boolLabel(lm, cm != null && cm.isSecurityPlayerIsolationEnabled())));
@@ -203,7 +207,7 @@ public final class DoctorCommand {
         if (cm != null) {
             var pcm = plugin.getPersonalitiesConfigManager();
             PluginLoggerUtil.info("自检", "知识库：{} | Embedding：{} | 人格：{}套", cm.isKnowledgeEnabled(), cm.isEmbeddingEnabled(), pcm != null ? pcm.getAllPersonalities().size() : 0);
-            PluginLoggerUtil.info("自检", "Agent：{} | 画像分析：{} | 挂机任务：{}", cm.isAgentEnabled(), cm.isProfileInjectionEnabled(), cm.isAfkTaskEnabled());
+            PluginLoggerUtil.info("自检", "Agent：{} | 画像分析：{} | 守护系统：{}", cm.isAgentEnabled(), cm.isProfileInjectionEnabled(), plugin.getGuardianManager() != null ? plugin.getGuardianManager().activeCount() : "N/A");
             PluginLoggerUtil.info("自检", "命令技能：{} | 待确认续体：{} | 玩家隔离：{}", cm.isCommandSkillEnabled(), cm.isPendingResumeEnabled(), cm.isSecurityPlayerIsolationEnabled());
         }
         PluginLoggerUtil.info("自检", "----- {}", I18nService.tr(Group.OBS.label));

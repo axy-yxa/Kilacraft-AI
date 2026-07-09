@@ -47,12 +47,26 @@ public class LLMOutputCoordinator {
     private final OutputConfigManager config;
     private final AIResponsePipeline pipeline;
     private final LLMAnalysisService analysisService;
+    /** 跨入口预算/全局熔断。单例，reload 时更新阈值。 */
+    private final LLMBudgetManager budgetManager;
 
     public LLMOutputCoordinator(KilacraftAI plugin) {
         this.plugin = plugin;
         this.config = plugin.getConfigManager().getOutputConfigManager();
         this.pipeline = plugin.getResponsePipeline();
         this.analysisService = new LLMAnalysisService();
+        int budget = plugin.getConfigManager().getLlmBudgetPerHour();
+        this.budgetManager = new LLMBudgetManager(budget);
+    }
+
+    /** 取预算管理器（守护输出/问候等需要预检的调用方用）。 */
+    public LLMBudgetManager getBudgetManager() {
+        return budgetManager;
+    }
+
+    /** reload 后刷新预算阈值（volatile 快照发布，跨线程立即可见）。 */
+    public void refreshBudget() {
+        budgetManager.updateBudget(plugin.getConfigManager().getLlmBudgetPerHour());
     }
 
     /**
@@ -71,6 +85,14 @@ public class LLMOutputCoordinator {
             // 异步 LLM 链执行期间玩家下线：此 failure 会被调用方 thenAccept 静默丢弃，补一条日志便于排查
             PluginLoggerUtil.warn("挂机任务", "二次分析时玩家已离线，结果未送达：{}", player != null ? player.getName() : "null");
             return CompletableFuture.completedFuture(SkillResult.failure("玩家不在线"));
+        }
+
+        // 熔断闸门（仅判定，不记账——记账已下沉到 GenericLLMProvider 全局咽喉，覆盖所有 LLM 入口）。
+        // 玩家主动请求永不熔断，被动输出在熔断窗口内被拒。
+        LLMBudgetManager.Priority priority = LLMBudgetManager.priorityOf(scenario);
+        if (!budgetManager.tryAcquire(player.getUniqueId(), priority)) {
+            PluginLoggerUtil.warn("守护系统", "LLM 预算熔断中，跳过本次输出（玩家 {}，场景 {}）", player.getName(), scenario);
+            return CompletableFuture.completedFuture(SkillResult.failure("LLM 预算熔断"));
         }
 
         // 如果启用流式输出，启动流式状态机

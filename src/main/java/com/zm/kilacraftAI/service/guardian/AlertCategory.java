@@ -1,8 +1,8 @@
 package com.zm.kilacraftAI.service.guardian;
 
 /**
- * 守护告警的内部分类（D4：模式合并为自动选择——保镖/管家/陪聊降级为此枚举）。
- * 用于 {@link GuardianCooldownHub} 的分类冷却 / 静音列表 / 画像相关性过滤。
+ * 守护告警的内部分类，
+ * 用于 {@link GuardianCooldownHub} 的分类冷却 / 静音 / 画像相关性。
  *
  * <p>{@link #GENERAL} 为未分类默认值——仅受全局冷却约束，不受分类冷却，
  * 避免未显式归类的 monitor 被过度压制。</p>

@@ -17,13 +17,13 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * 原子监听单元（§4.4）：一束五维——触发源 + 触发谓词 + 动作 + 策略 + 终止谓词。
+ * 原子监听单元：触发源 + 触发谓词 + 动作 + 策略 + 终止谓词。
  *
- * <p>{@link #eval} 是核心：按策略决定是否开火 → 执行动作 → 按统一 {@link Outcome} 迁移状态机（§3.7）。
- * 新增任何 skill 不改本类——它只认 Outcome 与目标谓词，这正是「换 skill 报不同错」的根治。</p>
+ * <p>{@link #eval} 按策略决定是否开火 → 执行动作 → 按统一 {@link Outcome} 迁移状态机。
+ * Monitor 只认 Outcome，动作层（含 skill）的失败语义经 Outcome 归一化。</p>
  *
- * <p>线程模型：同一 monitor 的 eval 由 {@code GuardianEngine} 单线程串行派发（按 (玩家, monitor)），
- * 内部状态字段无需加锁；{@code state} 等用 volatile 仅防跨线程可见性（如下线时引擎读状态）。</p>
+ * <p>线程模型：同一 monitor 的 eval 由 {@link GuardianEngine} 的 per-player lock 串行化，
+ * 内部状态字段无需加锁；{@code state} 等用 volatile 保证 lifecycle 线程（markPaused/resume）可见。</p>
  *
  * @author Zm_Mmm
  * @since 2026-07-01
@@ -125,7 +125,7 @@ public final class Monitor {
             return Optional.empty();
         }
 
-        // 自我去抖冷却（跨 monitor 的协调归 GuardianCooldownHub，§4.5/Step 4）；首火不受约束
+        // 自身冷却去抖；首火不受约束
         if (hasFired && ctx.nowMillis() - lastFireMillis < cooldownMillis) {
             transitionTo(MonitorState.WAITING);
             return Optional.empty();
@@ -159,7 +159,7 @@ public final class Monitor {
         };
     }
 
-    /** Outcome → 状态迁移（§3.7）。 */
+    /** Outcome → 状态迁移。 */
     private void applyOutcome(Outcome outcome, GuardianContext ctx) {
         switch (outcome) {
             case SUCCESS -> {
@@ -203,8 +203,6 @@ public final class Monitor {
         state = next;
     }
 
-    // ==================== 引擎查询 API ====================
-
     public String id() {
         return id;
     }
@@ -243,7 +241,7 @@ public final class Monitor {
         return source instanceof PollingTriggerSource p ? p.cadenceTicks() : 0L;
     }
 
-    /** 触发谓词 + 目标谓词需要快照额外读取的熔炉位置并集（引擎单快照策略用，§6.7）。 */
+    /** 触发谓词 + 目标谓词需要快照额外读取的熔炉位置并集（引擎单快照策略用，一次 snapshot 喂所有谓词）。 */
     public Set<BlockPos> requestedFurnacePositions() {
         Set<BlockPos> all = new HashSet<>();
         if (triggerPredicate != null) {
@@ -272,7 +270,7 @@ public final class Monitor {
         transitionTo(MonitorState.CANCELLED);
     }
 
-    /** 全配置构造器（Step 7 配置加载 / 守护协调层测试用）。必备项入参，其余链式可选。 */
+    /** 全配置构造器。必备项入参，其余链式可选。 */
     public static Builder builder(String id, TriggerSource source, GuardianAction action, Policy policy) {
         return new Builder(id, source, action, policy);
     }

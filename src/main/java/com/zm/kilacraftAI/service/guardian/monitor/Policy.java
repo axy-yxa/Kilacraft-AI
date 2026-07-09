@@ -1,7 +1,7 @@
 package com.zm.kilacraftAI.service.guardian.monitor;
 
 /**
- * 监听单元的重新武装策略（§3.6）：决定条件命中后何时触发、何时收尾。
+ * 监听单元的重新武装策略：决定条件命中后何时触发、何时收尾。
  *
  * <ul>
  *   <li>{@link #WATCH_EDGE} — 条件假→真跃迁时触发一次，带去抖/冷却。看门狗、危险告警。</li>
@@ -11,8 +11,9 @@ package com.zm.kilacraftAI.service.guardian.monitor;
  *   <li>{@link #ONE_SHOT} — 触发→执行→结束。一次性事件回调。</li>
  * </ul>
  *
- * <p>边沿（{@link #WATCH_EDGE}）与电平（{@link #WHILE_TRUE}）必须显式区分（D14）：
- * 前者记忆上一态、仅跃迁触发；后者电平触发。混淆是刷屏的隐藏来源。</p>
+ * <p>边沿（{@link #WATCH_EDGE}）与电平（{@link #WHILE_TRUE}）必须显式区分：
+ * 前者记忆上一态、仅跃迁触发；后者电平触发。混淆是刷屏的隐藏来源——电平策略若误用边沿语义，
+ * 会在条件持续为真期间反复开火。</p>
  *
  * @author Zm_Mmm
  * @since 2026-07-01

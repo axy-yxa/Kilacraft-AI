@@ -40,6 +40,18 @@ public final class ReloadCommand {
             plugin.getI18nService().reload();
             plugin.getLanguageManager().loadConfig();
 
+            // 刷新 LLM 预算/熔断阈值（D6/D13），使 llm.yml 改动即时生效
+            if (plugin.getLlmOutputCoordinator() != null) {
+                plugin.getLlmOutputCoordinator().refreshBudget();
+            }
+
+            // 重载守护系统配置（guardian.yml 模板/冷却/套餐）
+            if (plugin.getGuardianConfigManager() != null) {
+                plugin.getGuardianConfigManager().reload();
+                // 已启用玩家的 Guardian 用的是旧模板，新模板对后续启用生效；已启用玩家需 off→on 才应用新配置
+                PluginLoggerUtil.info("热重载", "守护配置已重载（已启用玩家需 /kila guardian off→on 才应用新模板）");
+            }
+
             if (plugin.getSkillConfigManager() != null) {
                 plugin.getSkillConfigManager().reloadAllConfigs();
             }

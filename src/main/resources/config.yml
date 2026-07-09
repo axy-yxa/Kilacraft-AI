@@ -8,11 +8,11 @@
 settings:
   # 插件语言设置
   # zh = 中文，en = English
-  # 影响范围：日志输出、技能消息、LLM提示词、AFK任务通知等
+  # 影响范围：日志输出、技能消息、LLM提示词、守护系统通知等
   # 修改后执行 /kila reload 即时生效
   # Plugin language setting
   # zh = Chinese, en = English
-  # Scope: log output, skill messages, LLM prompts, AFK task notifications, etc.
+  # Scope: log output, skill messages, LLM prompts, guardian notifications, etc.
   # Run /kila reload to apply changes immediately
   language: zh
 
@@ -24,12 +24,12 @@ settings:
 
   # 是否启用匿名统计（bStats）
   # 收集匿名使用数据帮助改进插件，不收集任何敏感信息
-  # 统计内容：技能调用次数、请求类型分布、挂机任务类型、LLM模型名、服务端类型
+  # 统计内容：技能调用次数、请求类型分布、LLM模型名、服务端类型
   # 数据公开查看：https://bstats.org/plugin/bukkit/Kilacraft-AI
   # 注意：修改此项后需要重启服务器才能生效，热重载不会更新此配置
   # Whether to enable anonymous statistics (bStats)
   # Collects anonymous usage data to help improve the plugin, no sensitive information collected
-  # Statistics: skill call counts, request type distribution, AFK task types, LLM model names, server type
+  # Statistics: skill call counts, request type distribution, LLM model names, server type
   # Public data: https://bstats.org/plugin/bukkit/Kilacraft-AI
   # Note: Requires server restart to take effect, hot reload will not update this config
   metrics: true
@@ -160,42 +160,6 @@ command_skill:
   # Note: After enabling config, players still need kilacraft.command.execute permission assigned
   enabled: false
 
-# ==================== 挂机任务配置 / AFK Task Configuration ====================
-# 挂机任务功能说明：
-# 1. 玩家可以通过 AI 对话或命令创建后台监控任务
-# 2. 条件满足时自动通知玩家并执行动作
-# 3. 每个玩家同时只能拥有一个挂机任务
-# 4. 玩家下线或任务完成后自动释放资源
-# AFK task feature description:
-# 1. Players can create background monitoring tasks via AI conversation or commands
-# 2. Automatically notifies player and executes actions when conditions are met
-# 3. Each player can only have one AFK task at a time
-# 4. Resources are automatically released when player goes offline or task completes
-afk_task:
-  # 是否启用挂机任务功能
-  # Whether to enable AFK task feature
-  enabled: true
-  
-  # 最大并发任务数（全局限制）
-  # 同时运行的最大挂机任务数量
-  # Maximum concurrent tasks (global limit)
-  # Maximum number of AFK tasks running simultaneously
-  max_tasks: 10
-  
-  # 定时轮询间隔（单位：ticks，20 ticks = 1秒）
-  # 仅用于没有对应 Bukkit 事件的场景
-  # Polling interval (unit: ticks, 20 ticks = 1 second)
-  # Only used for scenarios without corresponding Bukkit events
-  check_interval_ticks: 20
-  
-  # 最大连续评估失败次数
-  # 当条件评估连续失败超过此次数时，自动终止任务并通知玩家
-  # 建议值：5-15，值太小可能误杀正常任务，值太大会浪费资源
-  # Maximum consecutive evaluation failures
-  # When condition evaluation fails consecutively beyond this count, task is automatically terminated and player is notified
-  # Recommended: 5-15, too small may kill normal tasks, too large wastes resources
-  max_consecutive_failures: 10
-
 # ==================== 安全配置 / Security Configuration ====================
 # 玩家数据隔离：防止通过AI技能查询/操作其他玩家的敏感数据
 # 安全拦截器会扫描所有Skill参数值，如果匹配到在线玩家名且不是调用者自己，则自动替换为调用者名
@@ -215,7 +179,6 @@ security:
     allowed_actions:
       - "cmi.send_tp_request"        # TPA传送请求：target_player是传送目的地 / TPA request: target_player is the teleport destination
       - "market_query.query_seller_items" # 市场查询：查看指定卖家在售商品（公开市场信息） / Market query: view a specific seller's listed items (public market info)
-      - "AFKTask.create_task"        # 挂机任务：只允许监控其他玩家上线和下线 / AFK Task: Only allow monitoring of other players' online and offline activities
       - "command.execute_command"    # 命令执行：以玩家身份执行命令，权限边界等于玩家自身权限 / Command execution: executes as the player, permission boundary equals player's own permissions
       - "market_action.transfer_money" # 转账：target_player是收款人，需要允许指定其他玩家 / Money transfer: target_player is the recipient, must allow specifying other players
       - "utility.notify_player"      # 中途通知：仅通知文本，不执行操作，消息中可包含其他玩家名 / Mid-task notification: text-only, no operations, message may contain other player names
@@ -274,4 +237,3 @@ social:
   skill_whitelist:
     - "market_action"    # 市场操作（转账等涉及其他玩家的交易） / Market operations (transactions involving other players such as transfers)
     - "cmi"              # CMI 操作（TPA 传送请求等） / CMI operation (TPA transmission request, etc.)
-    - "AFKTask"          # 挂机任务（监控其他玩家上线/下线） / Hanging task (monitoring other players online/offline)

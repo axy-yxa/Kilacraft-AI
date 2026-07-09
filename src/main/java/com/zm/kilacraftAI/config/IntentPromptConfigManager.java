@@ -77,9 +77,6 @@ public class IntentPromptConfigManager {
     @Getter
     private String outputFormatRules;
 
-    @Getter
-    private String afkTaskRules;
-
     // 待确认续体分类提示词（pending_resume.classify_prompt）
     @Getter
     private String pendingClassifyPrompt;
@@ -154,9 +151,6 @@ public class IntentPromptConfigManager {
         // 输出格式强制要求
         this.outputFormatRules = config.getString("output_format_rules", "");
 
-        // 第七部分：挂机任务专用规则
-        this.afkTaskRules = config.getString("afk_task_rules", "");
-
         // 待确认续体分类提示词
         this.pendingClassifyPrompt = config.getString("pending_resume.classify_prompt", DEFAULT_PENDING_CLASSIFY_PROMPT);
 
@@ -194,7 +188,7 @@ public class IntentPromptConfigManager {
      * 将所有部分按固定模板组合
      *
      * @param skillsDescription 技能描述文本（由调用方动态生成）
-     * @param selectedSkills    Phase 1 选中的 Skill 名称集合（用于条件注入 afk_task_rules）
+     * @param selectedSkills    Phase 1 选中的 Skill 名称集合
      * @return 完整的系统提示词
      */
     public String buildSystemPrompt(String skillsDescription, Set<String> selectedSkills) {
@@ -257,12 +251,7 @@ public class IntentPromptConfigManager {
             sb.append(skillNameRestrictionRule).append("\n\n");
         }
 
-        // 7. 挂机任务专用规则（条件注入：仅当 Phase 1 选中 AFKTask 时注入）
-        if (selectedSkills != null && selectedSkills.contains("AFKTask") && afkTaskRules != null && !afkTaskRules.isEmpty()) {
-            sb.append(afkTaskRules).append("\n\n");
-        }
-
-        // 8. 输出质量要求
+        // 7. 输出质量要求
         sb.append(I18nService.tr("【输出质量要求】")).append("\n");
         sb.append(outputQualityRequirements).append("\n");
 

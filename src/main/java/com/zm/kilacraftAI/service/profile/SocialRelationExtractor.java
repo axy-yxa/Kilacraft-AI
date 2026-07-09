@@ -130,7 +130,7 @@ public class SocialRelationExtractor {
     /**
      * 构建当前配置的 Skill 白名单 SQL 片段（每次查询时动态读取，支持热重载）
      *
-     * @return SQL IN 子句内容，如 {@code 'market_action','cmi','AFKTask'}
+     * @return SQL IN 子句内容，如 {@code 'market_action','cmi','Guardian'}
      */
     private String buildSkillFilter() {
         ConfigManager configManager = KilacraftAI.getInstance().getConfigManager();

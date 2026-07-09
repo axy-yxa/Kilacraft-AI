@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
- * 事件型触发源（§4.1）：声明关心的 Bukkit 事件类型 + 过滤函数。
+ * 事件型触发源：声明关心的 Bukkit 事件类型 + 过滤函数。
  *
  * <p>{@link #bind} 经 {@link GuardianRuntime#registerEventMonitor} 注册到引擎的全局 Listener；
  * 命中过滤后引擎异步提交信号。复用问候系统的 Listener 模式，不轮询、延迟最低。</p>

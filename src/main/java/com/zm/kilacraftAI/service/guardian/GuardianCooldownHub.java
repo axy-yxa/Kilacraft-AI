@@ -9,18 +9,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 /**
- * 跨 monitor 的防刷屏协调层（§4.5 / §14.4）。每玩家一个，由 {@link Guardian} 持有。
+ * 跨 monitor 的防刷屏协调层。每玩家一个，由 {@link Guardian} 持有。
  *
  * <p>五重闸门，按优先级递降求值（命中即抑制）：
  * <ol>
  *   <li><b>静音列表</b>（反馈即配置）：玩家显式静音的分类，绝对压制（含 CRITICAL）——玩家意愿最高。</li>
  *   <li><b>CRITICAL 抢占</b>：{@link AlertPriority#CRITICAL} 直接放行，跳过下方的相关性/冷却。</li>
- *   <li><b>画像相关性</b>（D15，默认 always-relevant，ProfileManager 后续接入）：建筑党压制战斗等。</li>
+ *   <li><b>画像相关性</b>（默认所有分类都相关）：建筑党压制战斗等。</li>
  *   <li><b>全局冷却</b>：任一 monitor 开火后所有 monitor 静默 N 秒（防连珠）。</li>
  *   <li><b>分类冷却</b>：同分类 M 秒内不重复（5 分钟内不重复「食物不够」）。{@link AlertCategory#GENERAL} 不受此约束。</li>
  * </ol>
  *
- * <p>无硬编码频率阈值（D5/D6）——频率由「冷却/滞回 + 玩家反馈」驱动。线程安全：字段用 volatile/Concurrent，
+ * <p>无硬编码频率阈值（由冷却/滞回 + 玩家反馈驱动）。线程安全：字段用 volatile/Concurrent，
  * shouldEvaluate 与 onFired 由 GuardianEngine 的 per-monitor 锁串行内调用。</p>
  *
  * @author Zm_Mmm
@@ -98,8 +98,6 @@ public final class GuardianCooldownHub {
         lastCategoryFireMillis.put(monitor.category(), nowMillis);
     }
 
-    // ==================== 反馈即配置（静音列表） ====================
-
     public void silence(AlertCategory category) {
         silenced.add(category);
     }
@@ -112,12 +110,10 @@ public final class GuardianCooldownHub {
         return silenced.contains(category);
     }
 
-    /** 当前静音的分类快照（持久化 Step 7 写 guardian_profile.silence_list）。 */
+    /** 当前静音的分类快照（持久化到 guardian_profile.silence_list）。 */
     public Set<AlertCategory> silencedCategories() {
         return Set.copyOf(silenced);
     }
-
-    // ==================== 测试/调试查询 ====================
 
     public long globalCooldownMillis() {
         return globalCooldownMillis;

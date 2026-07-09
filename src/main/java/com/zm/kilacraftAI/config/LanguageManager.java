@@ -38,7 +38,7 @@ public class LanguageManager {
     @Getter
     private String helpPersonalities;
     @Getter
-    private String helpAfk;
+    private String helpGuardian;
     @Getter
     private String helpProfile;
     @Getter
@@ -86,6 +86,21 @@ public class LanguageManager {
     private String commandTasksNeverRun;
     @Getter
     private String commandTasksTimeAgo;
+    @Getter private String commandGuardianNoPermission;
+    @Getter private String commandGuardianNotInit;
+    @Getter private String commandGuardianDisabledGlobal;
+    @Getter private String commandGuardianAlreadyOn;
+    @Getter private String commandGuardianAlreadyOff;
+    @Getter private String commandGuardianOnSuccess;
+    @Getter private String commandGuardianOff;
+    @Getter private String commandGuardianStatus;
+    @Getter private String commandGuardianStateOn;
+    @Getter private String commandGuardianStateOff;
+    @Getter private String commandGuardianUsage;
+    @Getter private String commandGuardianSilenceUsage;
+    @Getter private String commandGuardianSilenced;
+    @Getter private String commandGuardianUnsilenced;
+    @Getter private String commandGuardianInvalidCategory;
     @Getter
     private String commandNotifyNoPermission;
     @Getter
@@ -100,32 +115,6 @@ public class LanguageManager {
     private String commandNotifySendSuccess;
     @Getter
     private String commandNotifySendFailed;
-    @Getter
-    private String commandAfkPlayerOnly;
-    @Getter
-    private String commandAfkNotEnabled;
-    @Getter
-    private String commandAfkNoTask;
-    @Getter
-    private String commandAfkCancelled;
-    @Getter
-    private String commandAfkCurrentTitle;
-    @Getter
-    private String commandAfkTaskId;
-    @Getter
-    private String commandAfkTaskType;
-    @Getter
-    private String commandAfkTaskDesc;
-    @Getter
-    private String commandAfkTaskStatus;
-    @Getter
-    private String commandAfkTaskTime;
-    @Getter
-    private String commandAfkCancelHint;
-    @Getter
-    private String commandAfkUnknownSub;
-    @Getter
-    private String commandAfkUsage;
     @Getter
     private String commandProfileNoPermission;
     @Getter
@@ -194,8 +183,6 @@ public class LanguageManager {
     private String commandDoctorCheckAgent;
     @Getter
     private String commandDoctorCheckProfile;
-    @Getter
-    private String commandDoctorCheckAfk;
     @Getter
     private String commandDoctorCheckCommandSkill;
     @Getter
@@ -508,7 +495,7 @@ public class LanguageManager {
         this.helpClearOther = config.getString("help.clear-other", "§e清除玩家历史：/kila clear [玩家名称]");
         this.helpKnowledge = config.getString("help.knowledge", "§e使用方法：/kila knowledge reload");
         this.helpPersonalities = config.getString("help.personalities", "§e使用方法：/kila personalities reload");
-        this.helpAfk = config.getString("help.afk", "§e查询挂机任务：/kila afk");
+        this.helpGuardian = config.getString("help.guardian", "§e守护系统：/kila guardian <on|off|status|silence>");
         this.helpProfile = config.getString("help.profile", "§e服务器性能采样：/kila profile start [秒数(30~120，默认60)]");
         this.helpProfileSubcommands = config.getString("help.profile-subcommands", "§e可用子命令：start(开始采样), stop(中断采样), status(查看状态)");
         this.helpNotify = config.getString("help.notify", "§e测试外部通知：/kila notify test");
@@ -564,6 +551,23 @@ public class LanguageManager {
         this.commandTasksNoTrigger = config.getString("commands.tasks-no-trigger", "§7暂无触发");
         this.commandTasksNeverRun = config.getString("commands.tasks-never-run", "§8未执行");
         this.commandTasksTimeAgo = config.getString("commands.tasks-time-ago", "{n}前");
+
+        // 守护系统文案（玩家可见，走 language.yml）
+        this.commandGuardianNoPermission = config.getString("commands.guardian-no-permission", "§c你没有权限使用守护系统。");
+        this.commandGuardianNotInit = config.getString("commands.guardian-not-init", "§c守护系统尚未初始化。");
+        this.commandGuardianDisabledGlobal = config.getString("commands.guardian-disabled-global", "§c守护系统已被服主全局关闭。");
+        this.commandGuardianAlreadyOn = config.getString("commands.guardian-already-on", "§7守护系统已开启。");
+        this.commandGuardianAlreadyOff = config.getString("commands.guardian-already-off", "§7守护系统未开启。");
+        this.commandGuardianOnSuccess = config.getString("commands.guardian-on-success", "§a守护已开启，共激活 §e{n} §a个监听。AI 会适时主动提醒你。");
+        this.commandGuardianOff = config.getString("commands.guardian-off", "§7守护已关闭。");
+        this.commandGuardianStatus = config.getString("commands.guardian-status", "§6[Kilacraft-AI] §f守护系统 §7| 状态: §e{state} §7| 全服活跃: §e{n}§7人");
+        this.commandGuardianStateOn = config.getString("commands.guardian-state-on", "§a开启");
+        this.commandGuardianStateOff = config.getString("commands.guardian-state-off", "§7关闭");
+        this.commandGuardianUsage = config.getString("commands.guardian-usage", "§7用法: /kila guardian <§eon§7|§coff§7|§estatus§7|§esilence <分类>§7|§eunsilence <分类>§7>");
+        this.commandGuardianSilenceUsage = config.getString("commands.guardian-silence-usage", "§7用法: /kila guardian silence <DANGER|RESOURCE|GOAL|COMPANION|GENERAL>");
+        this.commandGuardianSilenced = config.getString("commands.guardian-silenced", "§7已静音 §e{cat} §7分类的守护提醒。");
+        this.commandGuardianUnsilenced = config.getString("commands.guardian-unsilenced", "§7已恢复 §e{cat} §7分类的守护提醒。");
+        this.commandGuardianInvalidCategory = config.getString("commands.guardian-invalid-category", "§c无效分类，可选: DANGER/RESOURCE/GOAL/COMPANION/GENERAL");
         this.commandNotifyNoPermission = config.getString("commands.notify-no-permission", "§c你没有权限使用通知测试功能。");
         this.commandNotifyUsage = config.getString("commands.notify-usage", "§7用法：/kila notify test");
         this.commandNotifyNotReady = config.getString("commands.notify-not-ready", "§c通知服务未启用或未配置任何渠道。");
@@ -571,19 +575,6 @@ public class LanguageManager {
         this.commandNotifyResultTitle = config.getString("commands.notify-result-title", "§f通知渠道测试结果：");
         this.commandNotifySendSuccess = config.getString("commands.notify-send-success", "发送成功");
         this.commandNotifySendFailed = config.getString("commands.notify-send-failed", "§c发送失败: {msg}");
-        this.commandAfkPlayerOnly = config.getString("commands.afk-player-only", "§c挂机任务命令仅限玩家使用。");
-        this.commandAfkNotEnabled = config.getString("commands.afk-not-enabled", "§c挂机任务系统未启用。");
-        this.commandAfkNoTask = config.getString("commands.afk-no-task", "§7你当前没有正在运行的挂机任务。");
-        this.commandAfkCancelled = config.getString("commands.afk-cancelled", "§a已取消挂机任务：§f{desc}");
-        this.commandAfkCurrentTitle = config.getString("commands.afk-current-title", "§f当前挂机任务：");
-        this.commandAfkTaskId = config.getString("commands.afk-task-id", "§f  任务ID：§e{id}");
-        this.commandAfkTaskType = config.getString("commands.afk-task-type", "§f  类型：§e{type}");
-        this.commandAfkTaskDesc = config.getString("commands.afk-task-desc", "§f  描述：§e{desc}");
-        this.commandAfkTaskStatus = config.getString("commands.afk-task-status", "§f  状态：§e{status}");
-        this.commandAfkTaskTime = config.getString("commands.afk-task-time", "§f  创建时间：§e{time}");
-        this.commandAfkCancelHint = config.getString("commands.afk-cancel-hint", "§7使用 /kila afk cancel 可取消此任务");
-        this.commandAfkUnknownSub = config.getString("commands.afk-unknown-sub", "§c未知的挂机任务子命令：{cmd}");
-        this.commandAfkUsage = config.getString("commands.afk-usage", "§7用法：/kila afk [query|cancel]");
         this.commandProfileNoPermission = config.getString("commands.profile-no-permission", "§c你没有权限使用性能采样功能。");
         this.commandProfileNoModel = config.getString("commands.profile-no-model", "§c服务器健康监控不可用：admin.yml 和 llm.yml 均未配置可用模型。请至少在 llm.yml 中填写有效的 llm.api_key。");
         this.commandProfileGuardianDisabled = config.getString("commands.profile-guardian-disabled", "§c服务器健康监控不可用：守护线程已禁用（admin.yml 中 health_guardian.enabled 为 false）。");
@@ -618,7 +609,6 @@ public class LanguageManager {
         this.commandDoctorCheckPersona = config.getString("commands.doctor-check-persona", "人格");
         this.commandDoctorCheckAgent = config.getString("commands.doctor-check-agent", "Agent 能力");
         this.commandDoctorCheckProfile = config.getString("commands.doctor-check-profile", "画像分析");
-        this.commandDoctorCheckAfk = config.getString("commands.doctor-check-afk", "挂机任务");
         this.commandDoctorCheckCommandSkill = config.getString("commands.doctor-check-command-skill", "命令技能");
         this.commandDoctorCheckPendingResume = config.getString("commands.doctor-check-pending-resume", "待确认续体");
         this.commandDoctorCheckIsolation = config.getString("commands.doctor-check-isolation", "玩家数据隔离");

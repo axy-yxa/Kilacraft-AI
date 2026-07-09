@@ -1,8 +1,7 @@
 package com.zm.kilacraftAI.service.guardian.action;
 
 /**
- * 守护动作的统一结果契约（§3.5）。任务的唯一解读对象——新增任何 skill，驱动器不用改，
- * 它只认 Outcome 与目标谓词，这正是「换 skill 报不同错」的根治。
+ * 守护动作的统一结果契约。任务的唯一解读对象——驱动器只认 Outcome，不耦合具体 skill。
  *
  * <ul>
  *   <li>{@link #SUCCESS} — 动作成功 → 交 Policy 决定 re-arm / 收尾</li>

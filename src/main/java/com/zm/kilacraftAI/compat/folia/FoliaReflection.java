@@ -141,11 +141,11 @@ class FoliaReflection {
         invokeGlobalRun(plugin, task);
     }
 
-    void invokeGlobalRunDelayed(Plugin plugin, Runnable task, long delay) {
+    Object invokeGlobalRunDelayed(Plugin plugin, Runnable task, long delay) {
         try {
             Object scheduler = mhGetGlobalScheduler.invoke();
             Consumer<Object> consumer = t -> task.run();
-            mhGlobalRunDelayed.invoke(scheduler, plugin, consumer, delay);
+            return mhGlobalRunDelayed.invoke(scheduler, plugin, consumer, delay);
         } catch (Throwable e) {
             throw new RuntimeException(I18nService.tr("[FoliaCompat] GlobalRegionScheduler.runDelayed 调用失败"), e);
         }

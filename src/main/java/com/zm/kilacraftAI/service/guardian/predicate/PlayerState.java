@@ -13,7 +13,7 @@ import java.util.Map;
  *
  * <p>字段按「身份/生命/物品/环境/状态标志」分组；分组只为可读，不影响语义。
  * {@link #nearbyEntities} 已按距离升序，长度受 {@code PlayerStateService.maxNearbyEntities} 上限约束。
- * {@link #furnaceReads} 仅包含本快照显式请求读取的熔炉位置（拉取式，§6.7）。</p>
+ * {@link #furnaceReads} 仅包含本快照显式请求读取的熔炉位置（拉取式采集，按需读取而非全量）。</p>
  *
  * @author Zm_Mmm
  * @since 2026-07-01

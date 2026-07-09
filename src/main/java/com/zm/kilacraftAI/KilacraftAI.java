@@ -18,7 +18,6 @@ import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.model.profile.SocialGraph;
 import com.zm.kilacraftAI.scheduler.ManagedTask;
 import com.zm.kilacraftAI.scheduler.TaskScheduler;
-import com.zm.kilacraftAI.service.afktask.AFKTaskManager;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.event.EventCollector;
 import com.zm.kilacraftAI.service.event.MarketEventCollector;
@@ -43,7 +42,6 @@ import com.zm.kilacraftAI.service.update.UpdateChecker;
 import com.zm.kilacraftAI.skills.admin.AuditLogSkill;
 import com.zm.kilacraftAI.skills.admin.PlayerAnalysisSkill;
 import com.zm.kilacraftAI.skills.admin.ServerHealthSkill;
-import com.zm.kilacraftAI.skills.afktask.AFKTaskSkill;
 import com.zm.kilacraftAI.skills.bukkit.BukkitFXSkill;
 import com.zm.kilacraftAI.skills.bukkit.BukkitStatsSkill;
 import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
@@ -164,9 +162,6 @@ public final class KilacraftAI extends JavaPlugin {
     @Getter
     private LLMManager llmManager;
     private ItemTranslator itemTranslator;
-    @Getter
-    private AFKTaskManager afkTaskManager;
-    private AFKTaskListener afkTaskListener;
 
     /**
      * 国际化服务
@@ -197,6 +192,22 @@ public final class KilacraftAI extends JavaPlugin {
      */
     @Getter
     private LLMOutputCoordinator llmOutputCoordinator;
+
+    /**
+     * 守护系统配置管理器（guardian.yml）
+     */
+    @Getter
+    private com.zm.kilacraftAI.config.GuardianConfigManager guardianConfigManager;
+    /**
+     * 守护系统管理器（玩家 Guardian 生命周期）
+     */
+    @Getter
+    private com.zm.kilacraftAI.service.guardian.GuardianManager guardianManager;
+    /**
+     * 守护引擎（心跳 + 事件分发 + fan-out）
+     */
+    @Getter
+    private com.zm.kilacraftAI.service.guardian.GuardianEngine guardianEngine;
 
     /**
      * 统一定时任务调度器
@@ -241,8 +252,8 @@ public final class KilacraftAI extends JavaPlugin {
         initializeChatAndCommands();
         registerMythicMobsPlaceholders();
         initializeSkillsSystem();
-        initializeAFKTaskSystem();
         initializeAdminSystem();   // 初始化服主管理功能
+        initializeGuardianSystem(); // 初始化守护系统（依赖 skill/taskScheduler/pipeline 全部就绪）
 
         // 设置 MetricsCollector 的 SkillManager 引用（用于动态获取 Skill 列表）
         MetricsCollector.getInstance().setSkillManager(skillManager);
@@ -774,11 +785,6 @@ public final class KilacraftAI extends JavaPlugin {
         // 注册通用工具技能（始终可用）
         skillManager.registerSkill(new UtilitySkill());
 
-        // 注册挂机任务技能
-        if (configManager.isAfkTaskEnabled()) {
-            skillManager.registerSkill(new AFKTaskSkill());
-        }
-
         // 注册命令执行技能（条件注册：需 config.yml 中 command_skill.enabled=true）
         if (configManager.isCommandSkillEnabled()) {
             skillManager.registerSkill(new CommandSkill());
@@ -802,25 +808,6 @@ public final class KilacraftAI extends JavaPlugin {
     }
 
     /**
-     * 初始化挂机任务系统
-     */
-    private void initializeAFKTaskSystem() {
-        if (!configManager.isAfkTaskEnabled()) {
-            PluginLoggerUtil.info("挂机任务", "挂机任务功能已禁用");
-            return;
-        }
-
-        // 创建任务管理器
-        afkTaskManager = new AFKTaskManager(configManager.getAfkTaskMaxTasks());
-
-        // 注册事件监听器（玩家下线自动清理）
-        afkTaskListener = new AFKTaskListener(this);
-        getServer().getPluginManager().registerEvents(afkTaskListener, this);
-
-        PluginLoggerUtil.info("挂机任务", "初始化挂机任务系统（最大并发任务数：{}）", configManager.getAfkTaskMaxTasks());
-    }
-
-    /**
      * 同步条件技能的注册状态（支持热重载）
      *
      * <p>根据当前配置动态注册或注销条件技能，使 reload 命令能够即时生效。</p>
@@ -829,9 +816,6 @@ public final class KilacraftAI extends JavaPlugin {
         // 同步命令执行技能（条件：config.yml command_skill.enabled）
         syncSkill("command", configManager.isCommandSkillEnabled(), () -> skillManager.registerSkill(new CommandSkill()));
 
-        // 同步挂机任务技能（条件：config.yml afk_task.enabled）
-        syncSkill("AFKTask", configManager.isAfkTaskEnabled(), () -> skillManager.registerSkill(new AFKTaskSkill()));
-
         // 注意：第三方插件技能（CMI、GlobalMarketPlus）无需热重载同步
         // 插件在运行时不会被动态装卸，注册时已经通过 isAvailable() 检查
 
@@ -839,9 +823,6 @@ public final class KilacraftAI extends JavaPlugin {
         syncSkill("server_health", true, () -> skillManager.registerSkill(new ServerHealthSkill()));
         syncSkill("player_analysis", true, () -> skillManager.registerSkill(new PlayerAnalysisSkill()));
         syncSkill("audit_log", true, () -> skillManager.registerSkill(new AuditLogSkill()));
-
-        // 同步挂机任务系统（管理器和监听器）
-        syncAFKTaskSystem();
     }
 
     /**
@@ -860,32 +841,6 @@ public final class KilacraftAI extends JavaPlugin {
         } else if (!shouldBeRegistered && isRegistered) {
             skillManager.unregisterSkill(skillName);
             PluginLoggerUtil.info("热重载", "已注销技能 {}", skillName);
-        }
-    }
-
-    /**
-     * 同步挂机任务系统状态
-     */
-    private void syncAFKTaskSystem() {
-        boolean shouldBeEnabled = configManager.isAfkTaskEnabled();
-
-        if (shouldBeEnabled && afkTaskManager == null) {
-            afkTaskManager = new AFKTaskManager(configManager.getAfkTaskMaxTasks());
-            // 仅在 listener 未注册时注册，避免热重载时重复注册
-            if (afkTaskListener == null) {
-                afkTaskListener = new AFKTaskListener(this);
-                getServer().getPluginManager().registerEvents(afkTaskListener, this);
-            }
-            PluginLoggerUtil.info("热重载", "挂机任务系统已初始化");
-        } else if (!shouldBeEnabled && afkTaskManager != null) {
-            afkTaskManager.shutdown();
-            // 注销监听器，防止内存泄漏
-            if (afkTaskListener != null) {
-                org.bukkit.event.HandlerList.unregisterAll(afkTaskListener);
-                afkTaskListener = null;
-            }
-            afkTaskManager = null;
-            PluginLoggerUtil.info("热重载", "挂机任务系统已关闭");
         }
     }
 
@@ -923,6 +878,61 @@ public final class KilacraftAI extends JavaPlugin {
         } else {
             // Spark 暂未检测到（Leaf 等服务端延迟注册），2 分钟后重试
             scheduleSparkRetry();
+        }
+    }
+
+    /**
+     * 初始化守护系统。须在 adminSystem 之后调用——依赖 SkillManager、TaskScheduler、
+     * ResponsePipeline、LLMOutputCoordinator 全部就绪。
+     */
+    private void initializeGuardianSystem() {
+        try {
+            guardianConfigManager = new com.zm.kilacraftAI.config.GuardianConfigManager(this);
+            guardianConfigManager.loadConfig();
+
+            if (!guardianConfigManager.isEnabled()) {
+                com.zm.kilacraftAI.common.util.PluginLoggerUtil.info("守护系统", com.zm.kilacraftAI.i18n.I18nService.tr("守护系统已被全局关闭（guardian.yml settings.enabled=false）"));
+                return;
+            }
+
+            // 谓词注册表 + 原语
+            com.zm.kilacraftAI.service.guardian.predicate.PredicateRegistry predicateRegistry =
+                    new com.zm.kilacraftAI.service.guardian.predicate.PredicateRegistry();
+            com.zm.kilacraftAI.service.guardian.predicate.BuiltInPredicates.registerDefaults(predicateRegistry);
+
+            // 状态服务（Folia 安全快照，无参构造，用静态 FoliaCompat）
+            com.zm.kilacraftAI.service.guardian.predicate.PlayerStateService playerStateService =
+                    new com.zm.kilacraftAI.service.guardian.predicate.PlayerStateService();
+
+            // 引擎（心跳 + 事件分发）——先创建，GuardianManager 注册玩家时用
+            guardianEngine = new com.zm.kilacraftAI.service.guardian.GuardianEngine(this, playerStateService,
+                    guardianConfigManager.getHeartbeatIntervalTicks());
+
+            // monitor 工厂 + 管理器
+            com.zm.kilacraftAI.service.guardian.MonitorFactory monitorFactory =
+                    new com.zm.kilacraftAI.service.guardian.MonitorFactory(
+                            predicateRegistry, responsePipeline, skillManager, llmOutputCoordinator);
+            guardianManager = new com.zm.kilacraftAI.service.guardian.GuardianManager(
+                    this, guardianConfigManager, monitorFactory, guardianEngine, databaseManager);
+
+            // 注册事件 Listener（join/quit 走 manager 生命周期，事件型 monitor 走 engine 分发）
+            guardianEngine.start(guardianManager);
+
+            // 注册心跳（复用 TaskScheduler，仿 ServerHealthGuardian 模式）
+            if (taskScheduler != null) {
+                taskScheduler.register(guardianEngine);
+            }
+
+            // 入口 skill（自然语言）——无条件注册，LLM 经 description 识别
+            if (skillManager != null) {
+                skillManager.registerSkill(new com.zm.kilacraftAI.skills.guardian.GuardianSkill(guardianManager));
+            }
+
+            com.zm.kilacraftAI.common.util.PluginLoggerUtil.info("守护系统",
+                    com.zm.kilacraftAI.i18n.I18nService.tr("守护系统初始化完成，心跳 {} tick", guardianConfigManager.getHeartbeatIntervalTicks()));
+        } catch (Exception e) {
+            com.zm.kilacraftAI.common.util.PluginLoggerUtil.error("守护系统",
+                    com.zm.kilacraftAI.i18n.I18nService.tr("守护系统初始化失败，降级跳过: {}", e.getMessage()), e);
         }
     }
 
@@ -1032,14 +1042,17 @@ public final class KilacraftAI extends JavaPlugin {
             embeddingService.shutdown();
         }
 
-        // 关闭挂机任务系统
-        if (afkTaskManager != null) {
-            afkTaskManager.shutdown();
-        }
-
         // 关闭守护线程（必须在 taskScheduler.shutdownAll() 之前，设置 shutdown 标志）
         if (serverHealthGuardian != null) {
             serverHealthGuardian.shutdown();
+        }
+
+        // 关闭守护系统（引擎 shutdown 标志 + 清理所有玩家 Guardian，须在 taskScheduler.shutdownAll 之前）
+        if (guardianEngine != null) {
+            guardianEngine.shutdown();
+        }
+        if (guardianManager != null) {
+            guardianManager.shutdown();
         }
 
         // 关闭外部通知服务（释放自建 OkHttpClient 线程池）

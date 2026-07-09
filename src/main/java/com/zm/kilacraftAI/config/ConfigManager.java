@@ -100,16 +100,6 @@ public class ConfigManager {
     @Getter
     private int pendingResumeMaxRounds;
 
-    // 挂机任务配置
-    @Getter
-    private boolean afkTaskEnabled;
-    @Getter
-    private int afkTaskMaxTasks;
-    @Getter
-    private int afkTaskCheckIntervalTicks;
-    @Getter
-    private int afkTaskMaxConsecutiveFailures;
-
     // 社交关系配置
     @Getter
     private List<String> socialSkillWhitelist;
@@ -127,6 +117,11 @@ public class ConfigManager {
 
     public int getMaxTokens() {
         return llmConfigManager.getMaxTokens();
+    }
+
+    /** 全局 LLM 预算/熔断阈值（D6/D13），转发 llm.yml。 */
+    public int getLlmBudgetPerHour() {
+        return llmConfigManager.getBudgetPerPlayerPerHour();
     }
 
     public String getSystemPrompt() {
@@ -314,10 +309,6 @@ public class ConfigManager {
         return pendingResumeEnabled;
     }
 
-    public boolean isAfkTaskEnabled() {
-        return afkTaskEnabled;
-    }
-
     public boolean isSecurityPlayerIsolationEnabled() {
         return securityPlayerIsolationEnabled;
     }
@@ -378,16 +369,10 @@ public class ConfigManager {
         this.pendingResumeTtlSeconds = config.getInt("pending_resume.ttl_seconds", 300);
         this.pendingResumeMaxRounds = config.getInt("pending_resume.max_rounds", 5);
 
-        // 挂机任务配置
-        this.afkTaskEnabled = config.getBoolean("afk_task.enabled", true);
-        this.afkTaskMaxTasks = config.getInt("afk_task.max_tasks", 10);
-        this.afkTaskCheckIntervalTicks = config.getInt("afk_task.check_interval_ticks", 20);
-        this.afkTaskMaxConsecutiveFailures = config.getInt("afk_task.max_consecutive_failures", 10);
-
         // 社交关系配置
         this.socialSkillWhitelist = config.getStringList("social.skill_whitelist");
         if (this.socialSkillWhitelist.isEmpty()) {
-            this.socialSkillWhitelist = List.of("market_action", "cmi", "AFKTask");
+            this.socialSkillWhitelist = List.of("market_action", "cmi", "Guardian");
         }
 
         // 加载子 Manager 配置（语言已从主配置读取，传递给需要语言感知的子 Manager）

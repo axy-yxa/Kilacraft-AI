@@ -31,9 +31,6 @@ public class MetricsCollector {
     // 请求类型计数：key = "normal_chat" / "skill_execution"
     private final ConcurrentHashMap<String, AtomicLong> requestTypeCounts = new ConcurrentHashMap<>();
 
-    // 挂机任务类型计数：key = "PLAYER_ONLINE_WATCH" / "CUSTOM" / ...
-    private final ConcurrentHashMap<String, AtomicLong> afkTaskTypeCounts = new ConcurrentHashMap<>();
-
     // Skill 来源计数：key = "built_in" / "third_party"
     private final ConcurrentHashMap<String, AtomicLong> skillSourceCounts = new ConcurrentHashMap<>();
 
@@ -114,15 +111,6 @@ public class MetricsCollector {
     }
 
     /**
-     * 记录挂机任务类型创建
-     *
-     * @param taskType 任务类型名称（如 "PLAYER_ONLINE_WATCH"）
-     */
-    public void recordAfkTaskType(String taskType) {
-        afkTaskTypeCounts.computeIfAbsent(taskType, k -> new AtomicLong(0)).incrementAndGet();
-    }
-
-    /**
      * 记录 Skill 来源
      *
      * @param skill Skill 实例
@@ -177,13 +165,6 @@ public class MetricsCollector {
      */
     public Map<String, Integer> getRequestTypeSnapshot() {
         return getSnapshot(requestTypeCounts);
-    }
-
-    /**
-     * 获取挂机任务类型次数快照
-     */
-    public Map<String, Integer> getAfkTaskTypeSnapshot() {
-        return getSnapshot(afkTaskTypeCounts);
     }
 
     /**

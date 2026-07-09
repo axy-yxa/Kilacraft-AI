@@ -31,7 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 /**
- * 守护运行时引擎（§4.6）：外层心跳合批 + IO 池 fan-out + 频率治理。
+ * 守护运行时引擎：外层心跳合批 + IO 池 fan-out + 频率治理。
  *
  * <p>实现 {@link ManagedTask}（注册为单个高频心跳，CAS 防重入由 {@code TaskScheduler} 负责），
  * 同时实现 {@link GuardianRuntime}（事件型/定时型源的注册与信号提交）。三路信号汇聚到
@@ -40,9 +40,6 @@ import java.util.function.Predicate;
  * <p>线程模型：心跳在异步定时线程跑；每玩家 tick 与每信号 eval 都 fan-out 到 IO 池。
  * 同一 monitor 的 eval 用 per-monitor {@link ReentrantLock} {@code tryLock} 串行——
  * 重叠的 eval 直接跳过（守护低频，下一轮/下次事件重试），避免并发改写谓词/退避计数。</p>
- *
- * <p>本期为内存态（guardian map）；持久化与 onEnable 接入是 Step 7。事件 Listener 在 {@link #start()} 注册，
- * 支持的事件类型见 {@link GuardianEventListener}（按场景逐步扩展）。</p>
  *
  * @author Zm_Mmm
  * @since 2026-07-01
@@ -57,7 +54,7 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
     private final PlayerStateService playerStateService;
     private final long tickIntervalTicks;
 
-    /** 玩家 → Guardian（内存态；Step 7 接入持久化）。 */
+    /** 玩家 → Guardian（内存态）。 */
     private final Map<UUID, Guardian> guardians = new ConcurrentHashMap<>();
     /** Monitor → 所属玩家（事件/定时信号时反查 player）。 */
     private final Map<Monitor, UUID> monitorOwner = new ConcurrentHashMap<>();
@@ -65,8 +62,8 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
     private final Map<Monitor, EventRegistration<?>> eventRegistrations = new ConcurrentHashMap<>();
     /** Monitor → 定时任务句柄（定时型源）。 */
     private final Map<Monitor, FoliaCompat.ScheduledTask> scheduledTasks = new ConcurrentHashMap<>();
-    /** Monitor → eval 串行锁（tryLock 跳过重叠）。 */
-    private final Map<Monitor, ReentrantLock> monitorLocks = new ConcurrentHashMap<>();
+    /** Player → eval 串行锁：同一玩家的所有 monitor eval 串行，保证 hub 闸门 check-then-fire 原子（防跨 monitor 竞态绕过冷却）。 */
+    private final Map<UUID, ReentrantLock> playerEvalLocks = new ConcurrentHashMap<>();
 
     private volatile boolean shutdown = false;
     private GuardianEventListener eventListener;
@@ -81,10 +78,10 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
         this.tickIntervalTicks = tickIntervalTicks;
     }
 
-    /** 注册全局事件 Listener（插件 onEnable 调用）。 */
-    public void start() {
+    /** 注册全局事件 Listener（插件 onEnable 调用）。manager 用于 join/quit 生命周期。 */
+    public void start(GuardianManager manager) {
         if (eventListener == null) {
-            eventListener = new GuardianEventListener(this);
+            eventListener = new GuardianEventListener(this, manager);
             Bukkit.getPluginManager().registerEvents(eventListener, plugin);
         }
     }
@@ -100,10 +97,13 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
             task.cancel();
         }
         scheduledTasks.clear();
+        // 释放全部引用，防止热重载/独立调用 shutdown 时残留
+        guardians.clear();
+        monitorOwner.clear();
+        eventRegistrations.clear();
+        playerEvalLocks.clear();
         PluginLoggerUtil.info(LOG_MODULE, I18nService.tr("守护引擎已标记关闭"));
     }
-
-    // ==================== ManagedTask 心跳 ====================
 
     @Override
     public String name() {
@@ -136,8 +136,14 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
         if (shutdown) {
             return 0;
         }
+        // 全局开关关闭时不跑心跳——防"服主关了开关但已启用玩家仍在被烧 token/发告警"
+        if (plugin.getGuardianConfigManager() != null && !plugin.getGuardianConfigManager().isEnabled()) {
+            return 0;
+        }
         final long now = System.currentTimeMillis();
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        // 快照在线玩家列表，避免遍历期间玩家上下线导致 CME
+        List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
+        for (Player player : online) {
             Guardian g = guardians.get(player.getUniqueId());
             if (g == null) {
                 continue;
@@ -177,7 +183,7 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
         }
     }
 
-    /** 到点的轮询型 monitor（非终态/非暂停、cadence 已过）。包私有供单测。 */
+    /** 到点的轮询型 monitor（非终态/非暂停、cadence 已过）。 */
     List<Monitor> duePollingMonitors(Guardian guardian, long nowMillis) {
         List<Monitor> out = new ArrayList<>();
         for (Monitor m : guardian.monitors()) {
@@ -196,7 +202,7 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
         return out;
     }
 
-    /** 收集一组 monitor 的熔炉位置并集（一次 snapshot 喂所有，拉取式 §6.7）。包私有供单测。 */
+    /** 收集一组 monitor 的熔炉位置并集（一次 snapshot 喂所有，拉取式采集避免每个谓词各自同步取数）。 */
     static Set<BlockPos> collectFurnacePositions(List<Monitor> monitors) {
         Set<BlockPos> all = new HashSet<>();
         for (Monitor m : monitors) {
@@ -204,8 +210,6 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
         }
         return all;
     }
-
-    // ==================== GuardianRuntime ====================
 
     @Override
     public <T extends Event> void registerEventMonitor(Monitor monitor, Class<T> eventType, Predicate<T> filter) {
@@ -218,11 +222,14 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
 
     @Override
     public void scheduleMonitor(Monitor monitor, long delayTicks, long intervalTicks) {
+        FoliaCompat.ScheduledTask task;
         if (intervalTicks > 0) {
-            FoliaCompat.ScheduledTask task = FoliaCompat.runAsyncTimer(plugin, () -> fireScheduled(monitor), delayTicks, intervalTicks);
-            scheduledTasks.put(monitor, task);
+            task = FoliaCompat.runAsyncTimer(plugin, () -> fireScheduled(monitor), delayTicks, intervalTicks);
         } else {
-            FoliaCompat.runTaskLater(plugin, () -> fireScheduled(monitor), delayTicks);
+            task = FoliaCompat.runTaskLater(plugin, () -> fireScheduled(monitor), delayTicks);
+        }
+        if (task != null) {
+            scheduledTasks.put(monitor, task);
         }
     }
 
@@ -244,7 +251,6 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
         if (task != null) {
             task.cancel();
         }
-        monitorLocks.remove(monitor);
     }
 
     @Override
@@ -252,8 +258,17 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
         if (shutdown) {
             return;
         }
+        // 全局开关关闭时不处理信号（与心跳一致，防已启用玩家在关后被烧 token）
+        if (plugin.getGuardianConfigManager() != null && !plugin.getGuardianConfigManager().isEnabled()) {
+            return;
+        }
         Player player = ctx.player();
         if (player == null || !player.isOnline()) {
+            return;
+        }
+        // 轻量冷却预检：snapshot 前先挡掉冷却中的信号，避免事件风暴时每次都做主线程快照
+        GuardianCooldownHub hub = hubFor(player);
+        if (hub != null && !hub.shouldEvaluate(monitor, ctx.nowMillis())) {
             return;
         }
         Set<BlockPos> furnaces = monitor.requestedFurnacePositions();
@@ -285,7 +300,14 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
             }
             try {
                 if (((Predicate<T>) reg.filter).test(event)) {
-                    submitSignal(m, GuardianContext.of(player, m.id(), Optional.empty()));
+                    // 异步化：Folia 下事件分发在区域线程，submitSignal 内的 snapshot 会 callSyncOnEntity
+                    // 投递回同一区域线程，若在事件线程同步等会自死锁。投到 IO 池异步处理避免阻塞事件链。
+                    final GuardianContext ctx = GuardianContext.of(player, m.id(), Optional.empty());
+                    try {
+                        FoliaCompat.getIOPool().execute(() -> submitSignal(m, ctx));
+                    } catch (RejectedExecutionException ignored2) {
+                        // IO 池饱和——跳过本次事件
+                    }
                 }
             } catch (ClassCastException ignored) {
                 // 类型不匹配的注册不应出现（注册时校验），防御跳过
@@ -293,21 +315,38 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
         }
     }
 
-    /** 异步求值一个 monitor：先经 GuardianCooldownHub 闸门，tryLock 跳过重叠 eval，开火后回写冷却锚点。 */
+    /**
+     * 异步求值一个 monitor。hub 闸门的 check 与 onFired 都在 per-player lock 内，
+     * 保证同一玩家跨 monitor 的 check-then-fire 原子（防两个不同 monitor 的事件并发绕过冷却）。
+     * tryLock 跳过重叠 eval（守护低频，下轮/下次事件重试）。
+     */
     private void evalAsync(Monitor monitor, PlayerState state, GuardianContext ctx) {
-        GuardianCooldownHub hub = hubFor(ctx.player());
-        if (hub != null && !hub.shouldEvaluate(monitor, ctx.nowMillis())) {
-            return; // 静音/冷却中/画像不相关——跳过
-        }
         try {
             FoliaCompat.getIOPool().execute(() -> {
-                ReentrantLock lock = monitorLocks.computeIfAbsent(monitor, k -> new ReentrantLock());
+                // per-player 锁：串行化同玩家的 monitor eval，保证 hub 冷却闸门不被并发绕过
+                ReentrantLock lock = playerEvalLocks.computeIfAbsent(ctx.player().getUniqueId(), k -> new ReentrantLock());
                 if (!lock.tryLock()) {
                     return;
                 }
                 try {
+                    // shutdown 后在途 eval 不再执行动作（防关服后仍烧 LLM token）
+                    if (shutdown) {
+                        return;
+                    }
+                    // eval 前再次校验在线：hub==null 检查到 eval 之间玩家可能下线
+                    if (!ctx.player().isOnline()) {
+                        return;
+                    }
+                    GuardianCooldownHub hub = hubFor(ctx.player());
+                    // hub==null 表示该玩家已无活跃 Guardian（下线/停用），不应再 eval——否则会对已下线玩家发输出
+                    if (hub == null) {
+                        return;
+                    }
+                    if (!hub.shouldEvaluate(monitor, ctx.nowMillis())) {
+                        return;
+                    }
                     Optional<Outcome> result = monitor.eval(state, ctx);
-                    if (result.isPresent() && hub != null) {
+                    if (result.isPresent()) {
                         hub.onFired(monitor, ctx.nowMillis());
                     }
                 } catch (Exception e) {
@@ -329,8 +368,6 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
         return g != null ? g.hub() : null;
     }
 
-    // ==================== Guardian 生命周期（Step 7 接入持久化） ====================
-
     public void registerGuardian(UUID playerId, Guardian guardian) {
         guardians.put(playerId, guardian);
         for (Monitor m : guardian.monitors()) {
@@ -350,6 +387,8 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
             m.source().unbind(this, m);
             monitorOwner.remove(m);
         }
+        // 释放 per-player eval 锁，避免长期离线玩家累积
+        playerEvalLocks.remove(playerId);
     }
 
     public Guardian getGuardian(UUID playerId) {
@@ -360,8 +399,6 @@ public final class GuardianEngine implements ManagedTask, GuardianRuntime {
         UUID id = monitorOwner.get(monitor);
         return id != null ? Bukkit.getPlayer(id) : null;
     }
-
-    // ==================== 内部 ====================
 
     /** 事件注册记录（类型 + 过滤谓词）。 */
     private static final class EventRegistration<T extends Event> {

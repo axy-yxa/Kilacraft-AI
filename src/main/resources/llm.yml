@@ -80,6 +80,16 @@ llm:
     [SKILL SYSTEM FALLBACK] The skill system uniformly tags results with [SUCCESS]/[FAILURE]/[NEED_INFO]/[SKIPPED]. When the user message contains these markers: [FAILURE]=failed, [NEED_INFO]=needs the player to supply info or confirm, [SKIPPED]=step skipped. Explain or relay the content to the player naturally in your own words (for [NEED_INFO], convey what needs confirming/supplementing). Never mention 'system prompt' or internal mechanisms, and never expose these markers to the player.
     [CURRENCY UNIT] This server's economy uses $ as the currency symbol (e.g. $100.00). NEVER use 'emerald' or any other Minecraft item name to refer to currency. All prices and amounts are in $ currency.
 
+  # 全局 LLM 调用预算（每小时/玩家）——异常兜底，非调参旋钮
+  # Global LLM call budget (per hour per player) — anomaly backstop, NOT a tuning knob
+  # 正常使用绝对达不到此上限；仅在异常工况（刷怪塔信号风暴、闸门 bug、配置错误导致狂调）下触发熔断
+  # 触发后：玩家主动请求仍响应，守护被动输出/问候被降级或丢弃 1 小时
+  # 设为 0 或负数可完全禁用此治理（不推荐）
+  # Normal usage will NEVER reach this limit; only trips on anomalies (mob-farm signal storm, gate bug,
+  # misconfiguration causing runaway calls). When tripped: player-active requests still respond,
+  # guardian passive output / greeting are degraded or dropped for 1 hour. Set to 0 or negative to disable.
+  budget_per_player_per_hour: 200
+
 # ==================== Agent 能力配置 / Agent Capability Configuration ====================
 # Agent 能力说明：
 # 1. 启用后，AI 会先进行意图识别，判断是否需要调用技能（单意图或多步骤任务）

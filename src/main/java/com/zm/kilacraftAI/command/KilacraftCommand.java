@@ -47,7 +47,7 @@ public class KilacraftCommand implements CommandExecutor {
             case "knowledge" -> KnowledgeCommand.handle(plugin, sender, args);
             case "plugins" -> PluginsCommand.handle(plugin, sender, args);
             case "personalities" -> PersonalitiesCommand.handle(plugin, sender, args);
-            case "afk" -> AfkCommand.handle(plugin, sender, args);
+            case "guardian" -> GuardianCommand.handle(plugin, sender, args);
             case "tasks" -> TasksCommand.handle(plugin, sender, args);
             case "profile" -> ProfileCommand.handle(plugin, sender, args);
             case "notify" -> NotifyCommand.handle(plugin, sender, args);
@@ -96,9 +96,9 @@ public class KilacraftCommand implements CommandExecutor {
         if (PluginPermissionEnum.KNOWLEDGE.hasPermission(sender) || PluginPermissionEnum.PERSONALITIES.hasPermission(sender))
             sender.sendMessage("");
 
-        // 挂机任务
-        if (PluginPermissionEnum.AFK.hasPermission(sender)) {
-            sender.sendMessage(languageManager.getHelpAfk());
+        // 守护系统
+        if (PluginPermissionEnum.GUARDIAN.hasPermission(sender)) {
+            sender.sendMessage(languageManager.getHelpGuardian());
             sender.sendMessage("");
         }
 

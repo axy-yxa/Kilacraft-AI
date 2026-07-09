@@ -10,10 +10,7 @@ import org.bukkit.entity.EntityType;
  * 视野外实体计数原语：在快照扫描半径内统计「类型匹配 + 距离 &le; radius + 处于玩家视野外」的实体数，
  * 按比较符与阈值求值。
  *
- * <p>价值定位（守护系统 UX 红线）：玩家 HUD 已能看到的不再提醒；
- * 此原语专攻玩家<strong>非即时感知</strong>的场景——「背后摸过来一个苦力怕」。
- * 区别于 {@link NearbyEntityPredicate}（任意方向，用于「刷怪塔混进一只僵尸村民」这类
- * 注意力/罕见场景，玩家在盯着但分不清）。</p>
+ * <p>统计处于玩家视野外（侧方及背后）的指定类型实体数。</p>
  *
  * <p>「视野外」= 相对玩家朝向角度 &ge; {@value #OUT_OF_VIEW_MIN_ANGLE}°（侧方及背后，
  * 不转身看不到）。角度由 {@code PlayerStateService} 在快照采集时按玩家 yaw + 实体相对位置预算，

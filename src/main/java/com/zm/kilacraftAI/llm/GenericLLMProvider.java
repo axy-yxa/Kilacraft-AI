@@ -372,6 +372,14 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 okhttp3.Call httpCall = httpClient.newCall(request);
                 UUID inFlightPlayerId = responseHandler != null ? responseHandler.getPlayerId() : null;
                 registerInFlight(inFlightPlayerId, httpCall);
+                // 全局预算记账（所有 LLM 入口的唯一咽喉）：无论调用方是谁，每次实际调 LLM 都记一次，
+                // 使预算层的 per-player 计数覆盖意图识别/画像/问候/守护/玩家主动等全部路径。
+                if (inFlightPlayerId != null) {
+                    var budget = plugin.getLlmOutputCoordinator();
+                    if (budget != null) {
+                        budget.getBudgetManager().recordCall(inFlightPlayerId);
+                    }
+                }
                 try {
                     try (Response response = httpCall.execute()) {
                         if (!response.isSuccessful()) {

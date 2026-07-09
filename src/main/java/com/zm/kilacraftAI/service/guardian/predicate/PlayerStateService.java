@@ -30,7 +30,7 @@ import java.util.Set;
  * <p>Folia 安全：Spigot 主线程直跑；否则经 {@link FoliaCompat#callSyncOnEntity} 切玩家区域线程。
  * 整条采集在一次同步回合内完成，避免多次跨线程往返。谓词在 IO 线程只读快照，永不裸调 Bukkit API。</p>
  *
- * <p>拉取式采集（§6.7）：仅当「守护已启用 + 玩家在线 + 某轮询 monitor 到点」时才取数；
+ * <p>拉取式采集：仅当「守护已启用 + 玩家在线 + 某轮询 monitor 到点」时才取数；
  * 单 tick 工作量 = (启用守护的在线玩家) × (到点的轮询 monitor)，不随全员膨胀。</p>
  *
  * <p>与 {@link com.zm.kilacraftAI.service.player.PlayerMetaCollector} 并行：后者产出文本喂 LLM prompt，
@@ -45,8 +45,8 @@ public final class PlayerStateService {
     private static final long SYNC_TIMEOUT_SECONDS = 5L;
     private static final int DEFAULT_MAX_NEARBY = 200;
 
-    /** 附近实体扫描半径（格）。谓词请求半径不应超过此值，否则会少计。 */
-    private volatile double scanRadius = 32.0;
+    /** 附近实体扫描半径（格）。守护关心"附近威胁"，16 格覆盖多数感知场景，避免密集区域卡 tick。 */
+    private volatile double scanRadius = 16.0;
     /** 单次快照最多保留的附近实体条数，防御刷怪塔等极端场景。 */
     private volatile int maxNearbyEntities = DEFAULT_MAX_NEARBY;
 
@@ -83,7 +83,7 @@ public final class PlayerStateService {
 
     /**
      * 实际采集逻辑：直接调 Bukkit API，必须在主线程/玩家区域线程执行。
-     * 包私有以供单元测试在不触发 Folia 调度的前提下直测采集正确性。
+     * 包私有：避免触发 Folia 调度，可直接验证采集逻辑。
      */
     PlayerState doSnapshot(Player player, Set<BlockPos> furnacePositions) {
         // 生命

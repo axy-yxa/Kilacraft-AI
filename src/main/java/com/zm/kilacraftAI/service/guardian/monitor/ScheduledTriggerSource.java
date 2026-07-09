@@ -1,7 +1,7 @@
 package com.zm.kilacraftAI.service.guardian.monitor;
 
 /**
- * 定时型触发源（§4.1）：声明一次性 {@code delayTicks} 或周期 {@code intervalTicks}。
+ * 定时型触发源：声明一次性 {@code delayTicks} 或周期 {@code intervalTicks}。
  * 经 {@link GuardianRuntime#scheduleMonitor} 排程；纯时间驱动，不读状态。
  *
  * <p>典型：每日查商店、定时喂动物（周期）；N 分钟后提醒（一次性）。</p>

@@ -16,7 +16,7 @@ import lombok.Getter;
  *     <li>{@link #COMMAND} — /kila 命令触发</li>
  *     <li>{@link #PLUGIN} — 插件命令 /kila plugins（带人格隔离）</li>
  *     <li>{@link #GREETING} — 登录问候（Phase 4，仅写 DB 不加载到内存）</li>
- *     <li>{@link #AFK_CALLBACK} — 挂机任务回调（仅写 DB 不加载到内存）</li>
+ *     <li>{@link #GUARDIAN} — 守护系统主动输出（L3 陪聊，交互式，纳入画像分析上下文）</li>
  * </ul>
  *
  * @author Zm_Mmm
@@ -45,9 +45,14 @@ public enum ConversationSourceEnum {
     GREETING("greeting"),
 
     /**
-     * 挂机任务回调（仅写 DB，不加载到内存历史）
+     * 守护系统主动输出（L3 陪聊等真实 AI 对话，写入 DB 且纳入画像分析的上下文）
+     *
+     * <p>与 greeting 的关键区别：守护是交互式的（AI 发起、玩家可回应），
+     * 玩家的回应经 ChatListener 记成 {@link #CHAT}。画像分析把 guardian 纳入加载，
+     * LLM 才能看到完整上下文（玩家回应 + 守护提问），否则只看到玩家单方面的话反而是噪音。
+     * 计数门控仍只数 chat/command（玩家主动说的），守护 AI 消息不虚抬触发阈值。</p>
      */
-    AFK_CALLBACK("afk_callback");
+    GUARDIAN("guardian");
 
     /**
      * 字段值

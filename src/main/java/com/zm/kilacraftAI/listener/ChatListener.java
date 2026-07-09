@@ -165,6 +165,11 @@ public class ChatListener implements Listener {
             plugin.getStreamOutputManager().cancelGeneration(player);
         }
 
+        // 清理守护系统资源（释放 per-player lock、预算窗口、引擎注册）
+        if (plugin.getGuardianManager() != null) {
+            plugin.getGuardianManager().onPlayerQuit(player.getUniqueId());
+        }
+
         // 清理玩家的 Scoreboard / BossBar（防止离线后定时器仍在运行导致内存泄漏）
         if (plugin.getResponsePipeline() != null && plugin.getResponsePipeline().getDispatcher() != null) {
             plugin.getResponsePipeline().getDispatcher().getScoreboardManager().removeSidebar(player.getUniqueId());

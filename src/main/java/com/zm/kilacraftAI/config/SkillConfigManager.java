@@ -127,7 +127,7 @@ public class SkillConfigManager {
 
             for (File configFile : configFiles) {
                 String skillName = configFile.getName().replace(".yml", "");
-                // 剥离语言后缀：AFKTaskSkill_en → AFKTaskSkill，确保缓存 key 不含语言后缀
+                // 剥离语言后缀：GenericBukkitAPISkill_en → GenericBukkitAPISkill，确保缓存 key 不含语言后缀
                 if (!isZh) {
                     skillName = skillName.replaceAll("_" + lang + "$", "");
                 }
@@ -164,10 +164,10 @@ public class SkillConfigManager {
                                 // 判断该文件是否属于当前语言
                                 boolean isForCurrentLang;
                                 if (isZh) {
-                                    // zh 模式：不带语言后缀的文件（如 AFKTaskSkill.yml）
+                                    // zh 模式：不带语言后缀的文件（如 GenericBukkitAPISkill.yml）
                                     isForCurrentLang = !fileName.matches(".*_[a-z]{2}\\.yml$");
                                 } else {
-                                    // 非 zh 模式：带 _{lang}.yml 后缀的文件（如 AFKTaskSkill_en.yml）
+                                    // 非 zh 模式：带 _{lang}.yml 后缀的文件（如 GenericBukkitAPISkill_en.yml）
                                     isForCurrentLang = fileName.endsWith("_" + lang + ".yml");
                                 }
 

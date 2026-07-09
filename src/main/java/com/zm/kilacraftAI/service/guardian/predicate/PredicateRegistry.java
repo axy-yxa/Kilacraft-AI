@@ -11,10 +11,10 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>用途：
  * <ol>
- *   <li>反序列化守护配置 JSON 重建谓词树（Step 3 接入）；</li>
- *   <li>聚合描述符喂给「建-monitor」LLM 提示词，让 LLM 可发现可用原语（§4.7：注册即 LLM 可发现）。</li>
+ *   <li>反序列化守护配置 JSON 重建谓词树；</li>
+ *   <li>聚合描述符喂给「建-monitor」LLM 提示词，让 LLM 可发现可用原语（注册即 LLM 可发现）。</li>
  * </ol>
- * 首批内置原语由 {@link BuiltInPredicates#registerDefaults} 落地。</p>
+ * 内置原语由 {@link BuiltInPredicates#registerDefaults} 落地。</p>
  *
  * @author Zm_Mmm
  * @since 2026-07-01
@@ -74,7 +74,7 @@ public final class PredicateRegistry {
         }
     }
 
-    /** 从配置参数重建谓词实例。Step 3 的 JSON 反序列化器按 Descriptor.params 解析 Map 后调用。 */
+    /** 从配置参数重建谓词实例。配置 JSON 反序列化器按 Descriptor.params 解析 Map 后调用。 */
     @FunctionalInterface
     public interface Factory {
         Predicate create(Map<String, ?> params);

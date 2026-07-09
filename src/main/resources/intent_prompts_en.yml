@@ -1,7 +1,7 @@
 # ==================== Intent Recognition System Prompt Configuration ====================
 # This file defines the LLM intent recognition system prompts
 # Supports hot reload via /kila reload
-# Note: the global rule sections stay generic/abstract and never reference concrete skill or action names (built-in system actions excepted); the afk_task_rules section is a conditionally-injected AFK-task-specific contract and may reference that skill's real name.
+# Note: the global rule sections stay generic/abstract and never reference concrete skill or action names (built-in system actions excepted).
 
 # ============================================
 # Part 1: Role Definition
@@ -98,7 +98,7 @@ critical_rules:
 
     **Core principle**: All operations on player entities may only query/operate on the player themselves (the player in the current conversation). Querying or operating on OTHER players' data is absolutely forbidden!
 
-    **Scope**: This rule applies to all skills — built-in and third-party SPI-integrated — whether single intent, multi-step tasks, or AFK-task callbacks.
+    **Scope**: This rule applies to all skills — built-in and third-party SPI-integrated — whether single intent, multi-step tasks, or guardian proactive trigger.
 
     **Specific restrictions**:
     1. If a skill has a target_player parameter and its value is not the current player themselves, execution must be refused — this is a general principle covering ALL of that player's personal data (status, location, holdings, account, etc.). If the user says "query xxx", "where is xxx", "show xxx's info" (xxx being another player's name), return an invalid intent and explain the security restriction in reasoning
@@ -180,10 +180,11 @@ critical_rules:
 
     **Temporal-semantics recognition (extremely important)**
     - When the user's request contains temporal expressions like "...after...", "...once...", "...when...", "once grown...and...", "wait until...then...", a later action must depend on the precondition being met
-    - Judgment: if action B only makes sense after condition A is satisfied, B must be implemented via the callback mechanism, NOT as a parallel step
+    - Judgment: if action B only makes sense after condition A is satisfied, B cannot be a parallel step of the current multi-step task; it should be handed off to the **Guardian skill** (守护系统) for continuous monitoring of condition A, and triggered once the condition is met
     - Counter-example: user says "watch some target, tell me when the condition is met AND look up related info" -> splitting into parallel steps (watch + lookup) is WRONG, because the lookup should happen after the condition is met
-    - Correct: use the AFK-task skill's callback mechanism — create the watch task as the main step, the follow-up actions as callback steps
-    - **Any follow-up action involving temporal markers like "wait/until/after/grown/done" MUST be handled via the callback mechanism, never as a parallel step**
+    - Correct: use the Guardian skill — the guardian system currently supports enabling a preset bodyguard bundle (proactively alerting about out-of-view threats behind the player). When the player says "help me turn on guardian / watch my back", recognize it as Guardian's enable action
+    - **Note the guardian system's current capability boundary**: it only supports toggling the preset bundle and silence feedback; **custom monitoring targets are NOT supported yet** (e.g., "watch the furnace until it's done" or "watch the wheat until ripe" which require specifying concrete locations/conditions). When encountering such requests, honestly inform the player that the guardian currently only supports bodyguard mode
+    - **Any follow-up action involving temporal markers like "wait/until/after/grown/done" should be routed to the guardian system (Guardian skill) for continuous monitoring, never as a parallel step of a one-shot multi-step task**
 
     **Step 1: Match skills and actions one by one**
     - For each sub-question, find a semantically matching skill/action in the [Available Skills List]
@@ -269,41 +270,6 @@ output_quality_requirements: |
   Multi-step (independent-query) <- multiple independent queries / comprehensive evaluation
   Invalid intent  <- chitchat / real-life topic / no matching skill
   When unsure -> always multi-step (multi-step is not confidence-gated and can auto-degrade; single intent silently falls back or fails at runtime)
-
-# ============================================
-# Part 7: AFK Task Specific Rules
-# ============================================
-# Note: this section is only injected when AFK-task intent is detected
-# Complements AFKTaskSkill.yml hints: hints give parameter-level guidance, this section gives decision-level guidance
-# ============================================
-afk_task_rules: |
-  [AFK Task Decision Rules]
-
-  When the user's request involves "monitor / wait / condition-trigger", use the AFKTask skill.
-
-  **I. Choose Event type vs CUSTOM type**
-  - A monitoring target with a corresponding Event type (see the AFKTask skill's task-type description) -> use that Event type
-  - Numeric condition monitoring (below X, above X, reaches X, etc.) -> use CUSTOM type
-  - Only a single condition is supported; multi-condition combinations are not
-
-  **II. CUSTOM task essentials**
-  - Pass condition configuration via condition_plan (a JSON object) in entities
-  - result_path must be a field name actually returned by condition_action (refer to that action's description); fabrication is forbidden
-  - threshold is the value compared against the polled return value. It can be an absolute number (e.g., the 5 in "health below 5"), and also supports arithmetic placeholders based on a prior query's result
-  - [Arithmetic supported] threshold supports single binary operations `{step_X.field} operator number` (+ - * /). E.g., the user says "notify me when health is 5 below now" -> first fetch the current health via a query action (step_0), set threshold="{step_0.health}-5"; the system replaces the placeholder with the actual value and evaluates it at task creation, fixing a concrete number
-  - Only single binary operations are supported (no compound like /2+100, no parentheses, no percent signs). If the user's need cannot be expressed as a single operation, first fetch the current value via a query, tell the user, and ask for an absolute threshold
-
-  **III. Callback rules**
-  - Pure notification (user only says "tell me"): do not add a callback
-  - Needs follow-up actions: add a callback
-  - **Temporal actions must use callback**: if the user says "do Y after X", "once X and Y", "when X, Y", where Y is a follow-up after X is satisfied, Y must be placed in the callback, not as a parallel step
-  - **The last callback step must not be notify_player**: after all callback steps complete the system auto-outputs an AI summary; a trailing notify_player would duplicate it. When the user says "tell me when done", "wait X seconds then tell me" — the "tell me" part is handled automatically; just arrange the actual execution steps
-
-  **IV. One-task-per-player limit (system hard limit)**
-  - Each player may hold only one AFK task at a time; this is a system-level resource limit that cannot be bypassed
-  - When the user's need involves monitoring multiple independent events simultaneously (e.g., "watch both my wheat and my furnace"), pick the one the user cares about most, create a task for it, explain the limit in natural language, and suggest the user finish the current task before creating the next
-  - Creating new AFK tasks inside a callback is forbidden (AFKTask recursion is already blocked in callbacks)
-  - If the user already has an AFK task but wants a new one, cancel_task first, then create_task
 
 # ============================================
 # Two-Phase Intent Recognition — Phase 1 Configuration

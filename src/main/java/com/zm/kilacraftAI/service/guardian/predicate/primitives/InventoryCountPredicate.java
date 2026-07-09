@@ -7,7 +7,7 @@ import com.zm.kilacraftAI.service.guardian.predicate.ValuePredicate;
 import org.bukkit.Material;
 
 /**
- * 背包某物聚合数量原语：跨背包所有格聚合（替代旧 {@code items[]} 单字段缺陷），按比较符与阈值求值。
+ * 背包某物聚合数量原语：跨背包所有格聚合，按比较符与阈值求值。
  *
  * <p>典型：铁锭 &gt;= 64（凑够目标）、火把 &lt; 16（资源提醒）。</p>
  *
