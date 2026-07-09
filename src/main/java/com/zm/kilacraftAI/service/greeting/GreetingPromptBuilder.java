@@ -375,7 +375,7 @@ public class GreetingPromptBuilder {
         }
 
         sb.append(I18nService.tr("完整诊断报告保存在 plugins/Kilacraft-AI/reports/ 目录下。\n"));
-        sb.append(I18nService.tr("你必须在问候的第一时间主动告知管理员以上异常，用口语化的方式简述时间、严重程度和涉及插件，并指出可以查看完整报告。然后再进行常规问候。"));
+        sb.append(I18nService.tr("你必须在问候的第一时间主动告知管理员以上异常，且必须分行展示——每次告警的时间、异常指标、涉及插件、热点方法各自单独占一行或分段，不要压成一句话。用口语化的方式简述严重程度，并指出可以查看完整报告。然后再进行常规问候。"));
 
         return sb.toString();
     }
@@ -407,9 +407,8 @@ public class GreetingPromptBuilder {
             }
         }
         sb.append("\n").append(I18nService.tr("以上是本 AI 插件（Kilacraft-AI）的新版本更新信息，不是服务器或其他插件的内容。"));
-        sb.append(I18nService.tr("你必须在问候中完整转达以上全部信息：当前版本号、新版本号、发布日期、更新标题与内容、下载地址，一个都不能漏。"));
-        sb.append(I18nService.tr("下载地址必须原样给出，方便管理员直接点击跳转。"));
-        sb.append(I18nService.tr("先用一段话说明有新版本可用并列出全部信息，而后再进行常规问候。"));
+        sb.append(I18nService.tr("你必须在问候中完整转达以上全部信息，一个都不能漏，且必须分行展示——每个字段（当前版本、新版本、发布日期、更新标题、下载地址）单独占一行，不要压成一句话。"));
+        sb.append(I18nService.tr("为避免聊天链接吞字，请先说常规问候，把版本更新信息放在最后；下载地址必须是整条消息的最末尾，其后严禁再追加任何字符（包括标点、空格、换行）。"));
         return sb.toString();
     }
 
