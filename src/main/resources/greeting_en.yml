@@ -39,7 +39,7 @@ greeting:
     3. Only mention player stats if they meet one of these HARD criteria: (a) reaches a meaningful milestone, (b) has a direct causal link to an offline event this session. If nothing qualifies, do not mention any stats at all. When mentioning, you MUST state exact numbers — do NOT use vague phrases like "quite a lot", "a long way", or "quite a few".
     4. Last location is for background context only. Do not mention it unless an offline event occurred there. When mentioned, do not reveal coordinates or world name.
     5. Do not end with a question.
-    6. If the prompt begins with a version-update reminder section (e.g. "Kilacraft-AI plugin new version available"), the greeting is exempt from the word limit below — convey the full update info first, then proceed with the regular greeting; otherwise keep it under 120 words. If there is nothing worth mentioning, just say "Welcome back, let me know if you need anything."
+    6. If the prompt contains high-priority sections such as "Kilacraft-AI plugin new version available" or server anomaly alerts, the greeting is exempt from the word limit below — you must fully convey all info from these sections before wrapping up; otherwise keep it under 120 words. If there is nothing worth mentioning, just say "Welcome back, let me know if you need anything."
 
   # Max own offline events to include in returning greeting
   max_own_offline_events: 20

@@ -1390,7 +1390,7 @@ messages:
   "【告警 {}】": "[Alert {}]"
   "管理员 {} 离线期间，服务器检测到 {} 次性能异常：\n\n": "While admin {} was offline, the server detected {} performance anomalies:\n\n"
   "完整诊断报告保存在 plugins/Kilacraft-AI/reports/ 目录下。\n": "Full diagnostic reports are saved in the plugins/Kilacraft-AI/reports/ directory.\n"
-  "你必须在问候的第一时间主动告知管理员以上异常，且必须分行展示——每次告警的时间、异常指标、涉及插件、热点方法各自单独占一行或分段，不要压成一句话。用口语化的方式简述严重程度，并指出可以查看完整报告。然后再进行常规问候。": "You MUST proactively inform the admin of the above anomalies at the very beginning of the greeting, and present them across multiple lines — each alert's time, abnormal metric, involved plugins, and hotspot method on its own line or section, not crammed into a single sentence. Briefly describe the severity in a conversational tone and point out that full reports are available. Then proceed with the regular greeting."
+  "你必须在问候的第一时间主动告知管理员以上异常，分行展示每次告警的时间、异常指标等已有字段。注意：只转达上面实际给出的内容，没有涉及插件或热点方法就不要提及，禁止编造「无特定插件」「无具体方法」之类的占位话。用口语化的方式简述严重程度，并指出可以查看完整报告。然后再进行常规问候。": "You MUST proactively inform the admin of the above anomalies at the very beginning of the greeting, presenting each alert's time, abnormal metric, and other available fields on separate lines. Note: only convey what is actually given above — if involved plugins or hotspot methods are absent, do not mention them at all; do NOT fabricate placeholder phrases like "no specific plugin" or "no specific method". Briefly describe the severity in a conversational tone and point out that full reports are available. Then proceed with the regular greeting."
   "告警详情不可用": "Alert details unavailable"
   "告警详情解析失败": "Alert details parse failed"
   "异常指标: ": "Alert metric: "
@@ -1412,7 +1412,7 @@ messages:
   "版本信息解析失败": "Version info parse failed"
   "以上是本 AI 插件（Kilacraft-AI）的新版本更新信息，不是服务器或其他插件的内容。": "The above is the new-version update info for this AI plugin (Kilacraft-AI), not the server or any other plugin."
   "你必须在问候中完整转达以上全部信息，一个都不能漏，且必须分行展示——每个字段（当前版本、新版本、发布日期、更新标题、下载地址）单独占一行，不要压成一句话。": "You MUST convey all of the above in full — omit nothing — and present it across multiple lines: each field (current version, new version, release date, release title, download URL) on its own line, not crammed into a single sentence."
-  "为避免聊天链接吞字，请先说常规问候，把版本更新信息放在最后；下载地址必须是整条消息的最末尾，其后严禁再追加任何字符（包括标点、空格、换行）。": "To avoid the chat link swallowing trailing text, give the regular greeting first and put the version-update info last; the download URL must be the very end of the message — append NO characters after it (no punctuation, no space, no newline)."
+  "下载地址必须单独占一行，且这一行不能有其他字符；如果下载地址后面还有内容，中间必须空一行隔开，避免游戏聊天把链接后面的文字也吞进链接里。": "The download URL must occupy a line by itself with no other characters on that line; if any content follows the download URL, separate them with a blank line to prevent the in-game chat from swallowing the trailing text into the link."
   "检测到新版本 {}，已写入问候提醒事件": "New version {} detected, greeting reminder event written"
   "问候更新检测失败: {}": "Greeting update check failed: {}"
 
