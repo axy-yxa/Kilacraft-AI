@@ -152,11 +152,11 @@ public class GreetingPromptBuilder {
 
         // 更新提醒段落前置拼接（优先级次于告警）
         if (updateReminderSection != null && !updateReminderSection.isEmpty()) {
-            prompt = updateReminderSection + "\n" + prompt;
+            prompt = updateReminderSection + "\n\n" + prompt;
         }
         // 告警段落插入到系统提示词最前面（最高优先级）
         if (healthAlertsSection != null && !healthAlertsSection.isEmpty()) {
-            return healthAlertsSection + "\n" + prompt + "\n";
+            return healthAlertsSection + "\n\n" + prompt + "\n";
         }
         return prompt;
     }
@@ -395,20 +395,28 @@ public class GreetingPromptBuilder {
             return "";
         }
 
+        String currentVersion = KilacraftAI.getInstance().getDescription().getVersion();
+
         StringBuilder sb = new StringBuilder();
-        sb.append(I18nService.tr("【新版本可用】\n"));
+        sb.append(I18nService.tr("【Kilacraft-AI 插件新版本可用】\n"));
+        sb.append(I18nService.tr("当前运行版本: v{}\n", currentVersion));
         for (int i = 0; i < updateReminders.size(); i++) {
             sb.append(formatUpdateReminder(updateReminders.get(i).getData()));
             if (i < updateReminders.size() - 1) {
                 sb.append("\n\n");
             }
         }
-        sb.append("\n").append(I18nService.tr("你应在问候中简短提醒管理员有新版本可用，指出具体版本号，必要时提及更新内容或下载地址，然后继续常规问候。"));
+        sb.append("\n").append(I18nService.tr("以上是本 AI 插件（Kilacraft-AI）的新版本更新信息，不是服务器或其他插件的内容。"));
+        sb.append(I18nService.tr("你必须在问候中完整转达以上全部信息：当前版本号、新版本号、发布日期、更新标题与内容、下载地址，一个都不能漏。"));
+        sb.append(I18nService.tr("下载地址必须原样给出，方便管理员直接点击跳转。"));
+        sb.append(I18nService.tr("先用一段话说明有新版本可用并列出全部信息，而后再进行常规问候。"));
         return sb.toString();
     }
 
     /**
-     * 格式化单条 UPDATE_AVAILABLE 的 data JSON 为 AI 可读的简洁文本
+     * 格式化单条 UPDATE_AVAILABLE 的 data JSON 为 AI 可读的完整文本
+     *
+     * <p>全字段输出：新版本号、发布日期、更新标题（含内容说明）、下载地址，不遗漏。</p>
      */
     private String formatUpdateReminder(String dataJson) {
         if (dataJson == null || dataJson.isEmpty()) return I18nService.tr("版本信息不可用");
@@ -421,16 +429,15 @@ public class GreetingPromptBuilder {
             String date = root.has("date") && !root.get("date").isJsonNull() ? root.get("date").getAsString() : "";
 
             StringBuilder sb = new StringBuilder();
+            sb.append(I18nService.tr("新版本号: {}", tag));
             if (!date.isEmpty()) {
-                sb.append(I18nService.tr("插件检测到新版本 {}（发布于 {}）：", tag, date));
-            } else {
-                sb.append(I18nService.tr("插件检测到新版本 {}：", tag));
+                sb.append("\n").append(I18nService.tr("发布日期: {}", date));
             }
             if (!name.isEmpty() && !name.equals(tag)) {
-                sb.append("\n").append(I18nService.tr("更新内容：{}", name));
+                sb.append("\n").append(I18nService.tr("更新标题: {}", name));
             }
             if (!url.isEmpty()) {
-                sb.append("\n").append(I18nService.tr("下载地址：{}", url));
+                sb.append("\n").append(I18nService.tr("下载地址: {}", url));
             }
             return sb.toString();
         } catch (Exception e) {
