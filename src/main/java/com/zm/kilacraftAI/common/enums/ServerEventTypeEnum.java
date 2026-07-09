@@ -31,6 +31,9 @@ public enum ServerEventTypeEnum {
     // 新版本可用提醒（系统级事件，不参与玩家统计）
     UPDATE_AVAILABLE("更新可用", Category.SYSTEM),
 
+    // 新版本已通知标记（记录某管理员已被通知某版本，带 player_uuid，每玩家每版本一条）
+    UPDATE_NOTIFIED("更新已通知", Category.SYSTEM),
+
     // 玩家行为（面向玩家的事件，参与统计）
     PLAYER_DEATH("玩家死亡", Category.PLAYER), PLAYER_ADVANCEMENT("达成成就", Category.PLAYER), PLAYER_LEVEL_UP("玩家升级", Category.PLAYER),
 

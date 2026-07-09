@@ -290,21 +290,23 @@ public class ServerEventDao {
     }
 
     /**
-     * 查询离线期间新增的更新提醒事件
+     * 查询该管理员尚未被通知的新版本提醒事件
      *
-     * <p>与 {@link #loadHealthAlerts} 同构，仅 event_type 不同。</p>
+     * <p>查全局存在的 UPDATE_AVAILABLE 事件（player_uuid IS NULL），再用该管理员已有的
+     * UPDATE_NOTIFIED 标记（player_uuid = ?）过滤掉已通知过的版本。每个管理员每版本
+     * 只会返回一次。</p>
      *
-     * @param conn      数据库连接
-     * @param afterTime 起始时间戳（ms，不含）
-     * @param limit     最大条数
-     * @return 更新提醒事件列表（时间倒序，最新的在前）
+     * @param conn       数据库连接
+     * @param playerUuid 管理员 UUID
+     * @param limit      最大条数
+     * @return 待通知的更新提醒事件列表（时间倒序，最新的在前）
      */
-    public List<ServerEvent> loadUpdateReminders(Connection conn, long afterTime, int limit) throws SQLException {
-        String sql = "SELECT * FROM " + tablePrefix + "server_event " + "WHERE event_type = 'UPDATE_AVAILABLE' AND player_uuid IS NULL AND created_at > ? " + "ORDER BY created_at DESC LIMIT ?";
+    public List<ServerEvent> loadUnnotifiedUpdateReminders(Connection conn, UUID playerUuid, int limit) throws SQLException {
+        String sql = "SELECT a.* FROM " + tablePrefix + "server_event a " + "WHERE a.event_type = 'UPDATE_AVAILABLE' AND a.player_uuid IS NULL " + "AND NOT EXISTS (SELECT 1 FROM " + tablePrefix + "server_event n " + "WHERE n.event_type = 'UPDATE_NOTIFIED' AND n.player_uuid = ? AND n.data = a.data) " + "ORDER BY a.created_at DESC LIMIT ?";
 
         List<ServerEvent> events = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setLong(1, afterTime);
+            ps.setString(1, playerUuid.toString());
             ps.setInt(2, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -313,6 +315,21 @@ public class ServerEventDao {
             }
         }
         return events;
+    }
+
+    /**
+     * 写入"已通知"标记，记录某管理员已被通知某版本
+     *
+     * <p>data 字段与对应的 UPDATE_AVAILABLE 事件保持一致，便于后续查询精确匹配。</p>
+     *
+     * @param conn       数据库连接
+     * @param playerUuid 管理员 UUID
+     * @param eventData  版本信息 JSON（与 UPDATE_AVAILABLE 的 data 相同）
+     * @param serverId   子服 ID
+     */
+    public void markUpdateNotified(Connection conn, UUID playerUuid, String eventData, String serverId) throws SQLException {
+        ServerEvent event = ServerEvent.of(ServerEventTypeEnum.UPDATE_NOTIFIED, playerUuid, eventData);
+        insert(conn, event, serverId);
     }
 
     /**

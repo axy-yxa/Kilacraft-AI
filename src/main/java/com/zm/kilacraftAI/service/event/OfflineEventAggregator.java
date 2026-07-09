@@ -114,11 +114,15 @@ public class OfflineEventAggregator {
                 // 系统健康告警事件（仅管理员需要）
                 List<ServerEvent> healthAlerts = loadHealthAlerts ? serverEventDao.loadHealthAlerts(conn, afterTime, 50) : Collections.emptyList();
 
-                // 新版本可用提醒（仅管理员需要：先做带冷却的检测写库，再离线增量查询）
+                // 新版本可用提醒（仅管理员需要：先做带冷却的检测写库，再查该管理员尚未被通知的版本）
                 List<ServerEvent> updateReminders;
                 if (loadUpdateReminders && plugin.getUpdateChecker() != null) {
                     plugin.getUpdateChecker().checkAndPersistIfNeeded(conn, serverEventDao, "", UPDATE_CHECK_COOLDOWN_MS);
-                    updateReminders = serverEventDao.loadUpdateReminders(conn, afterTime, 5);
+                    updateReminders = serverEventDao.loadUnnotifiedUpdateReminders(conn, playerUuid, 5);
+                    // 查到即标记该管理员已通知，保证每版本每管理员只提醒一次
+                    for (ServerEvent reminder : updateReminders) {
+                        serverEventDao.markUpdateNotified(conn, playerUuid, reminder.getData(), "");
+                    }
                 } else {
                     updateReminders = Collections.emptyList();
                 }
