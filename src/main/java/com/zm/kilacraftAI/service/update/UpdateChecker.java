@@ -125,49 +125,115 @@ public class UpdateChecker {
     /**
      * 同步请求发布源（按语言选择 Gitee/GitHub）获取最新版本信息。
      * 阻塞网络调用，调用方须在 IO 线程池中执行。请求失败时返回 null。
-     * 返回最新版本信息，请求失败时返回 null。
+     *
+     * @return 最新版本信息，请求失败时返回 null
      */
     public ReleaseInfo fetchLatestRelease() {
-        // 按语言环境选择发布源：中文环境（国内服务器居多）走 Gitee，其他环境走 GitHub
         ReleaseSource source = I18nService.isZh() ? ReleaseSource.GITEE : ReleaseSource.GITHUB;
+        return fetchRelease(source.latestUrl, source);
+    }
+
+    /**
+     * 按 tag 查询指定版本的完整信息（含更新日志 body）
+     *
+     * <p>阻塞网络调用，调用方须在 IO 线程池中执行。</p>
+     *
+     * @param tag 版本标签（如 v2.1.2），可不带 v 前缀
+     * @return 指定版本信息，请求失败或版本不存在时返回 null
+     */
+    public ReleaseInfo fetchReleaseByTag(String tag) {
+        if (tag == null || tag.isBlank()) return null;
+        ReleaseSource source = I18nService.isZh() ? ReleaseSource.GITEE : ReleaseSource.GITHUB;
+        String url = String.format(source.tagUrlTemplate, tag);
+        return fetchRelease(url, source);
+    }
+
+    /**
+     * 列出近期发布的版本列表（不含 body，避免列表场景 token 浪费）
+     *
+     * <p>阻塞网络调用，调用方须在 IO 线程池中执行。</p>
+     *
+     * @param limit 最大返回条数
+     * @return 版本列表，请求失败时返回空列表
+     */
+    public List<ReleaseInfo> fetchReleases(int limit) {
+        ReleaseSource source = I18nService.isZh() ? ReleaseSource.GITEE : ReleaseSource.GITHUB;
+        String url = String.format(source.listUrlTemplate, Math.max(1, Math.min(limit, 30)));
         HttpURLConnection conn = null;
         try {
-            URL url = new URL(source.apiUrl);
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("User-Agent", "Kilacraft-AI/" + currentVersion);
-            conn.setRequestProperty("Accept", source.accept);
-            conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
-            conn.setReadTimeout(READ_TIMEOUT_MS);
+            conn = openConnection(url, source);
+            if (conn.getResponseCode() != 200) {
+                return List.of();
+            }
+            String body = readResponseBody(conn);
+            if (body == null) return List.of();
 
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
+            var arr = JsonParser.parseString(body).getAsJsonArray();
+            List<ReleaseInfo> releases = new ArrayList<>();
+            for (var elem : arr) {
+                releases.add(parseRelease(elem.getAsJsonObject(), source));
+            }
+            return releases;
+        } catch (Exception e) {
+            return List.of();
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    /**
+     * 通用 HTTP 请求 + JSON 解析（单个 release 对象）
+     *
+     * <p>承载 HTTP 连接/超时/限流/异常静默逻辑，供 {@link #fetchLatestRelease()}
+     * 和 {@link #fetchReleaseByTag(String)} 复用。</p>
+     */
+    private ReleaseInfo fetchRelease(String urlStr, ReleaseSource source) {
+        HttpURLConnection conn = null;
+        try {
+            conn = openConnection(urlStr, source);
+            if (conn.getResponseCode() != 200) {
                 return null;
             }
-
-            StringBuilder sb = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                int totalChars = 0;
-                while ((line = reader.readLine()) != null) {
-                    totalChars += line.length();
-                    if (totalChars > MAX_RESPONSE_CHARS) {
-                        // 响应体异常（超过 256 KB），静默放弃
-                        return null;
-                    }
-                    sb.append(line);
-                }
-            }
-
-            return parseRelease(JsonParser.parseString(sb.toString()).getAsJsonObject(), source);
+            String body = readResponseBody(conn);
+            if (body == null) return null;
+            return parseRelease(JsonParser.parseString(body).getAsJsonObject(), source);
         } catch (Exception e) {
-            // 网络异常/超时/JSON解析失败均静默处理
             return null;
         } finally {
-            if (conn != null) {
-                conn.disconnect();
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    /**
+     * 打开 HTTP 连接并设置通用请求头
+     */
+    private HttpURLConnection openConnection(String urlStr, ReleaseSource source) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("User-Agent", "Kilacraft-AI/" + currentVersion);
+        conn.setRequestProperty("Accept", source.accept);
+        conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        conn.setReadTimeout(READ_TIMEOUT_MS);
+        return conn;
+    }
+
+    /**
+     * 读取响应体，超过 MAX_RESPONSE_CHARS 返回 null
+     */
+    private String readResponseBody(HttpURLConnection conn) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            int totalChars = 0;
+            while ((line = reader.readLine()) != null) {
+                totalChars += line.length();
+                if (totalChars > MAX_RESPONSE_CHARS) {
+                    return null;
+                }
+                sb.append(line);
             }
         }
+        return sb.toString();
     }
 
     /**
@@ -198,7 +264,10 @@ public class UpdateChecker {
             publishedAt = readDateField(json, "created_at");
         }
 
-        return new ReleaseInfo(tagName, name, htmlUrl, publishedAt);
+        // 完整更新日志（Markdown），两个平台都以 body 字段返回
+        String body = json.has("body") && !json.get("body").isJsonNull() ? json.get("body").getAsString() : "";
+
+        return new ReleaseInfo(tagName, name, htmlUrl, publishedAt, body);
     }
 
     /**
@@ -426,7 +495,7 @@ public class UpdateChecker {
     /**
      * 版本信息（来源无关）
      */
-    public record ReleaseInfo(String tagName, String name, String htmlUrl, String publishedAt) {
+    public record ReleaseInfo(String tagName, String name, String htmlUrl, String publishedAt, String body) {
     }
 
     /**
@@ -438,16 +507,24 @@ public class UpdateChecker {
         /**
          * Gitee 镜像（国内可达；API 不返回 html_url，需拼接）
          */
-        GITEE("https://gitee.com/api/v5/repos/zm_mmm/kilacraft-ai/releases/latest", "application/json", "https://gitee.com/zm_mmm/kilacraft-ai/releases/tag/"),
+        GITEE("https://gitee.com/api/v5/repos/zm_mmm/kilacraft-ai/releases/latest", "https://gitee.com/api/v5/repos/zm_mmm/kilacraft-ai/releases/tags/%s", "https://gitee.com/api/v5/repos/zm_mmm/kilacraft-ai/releases?per_page=%d&direction=desc", "application/json", "https://gitee.com/zm_mmm/kilacraft-ai/releases/tag/"),
         /**
          * GitHub（海外可达；API 字段完整）
          */
-        GITHUB("https://api.github.com/repos/axy-yxa/Kilacraft-AI/releases/latest", "application/vnd.github.v3+json", null);
+        GITHUB("https://api.github.com/repos/axy-yxa/Kilacraft-AI/releases/latest", "https://api.github.com/repos/axy-yxa/Kilacraft-AI/releases/tags/%s", "https://api.github.com/repos/axy-yxa/Kilacraft-AI/releases?per_page=%d", "application/vnd.github.v3+json", null);
 
         /**
-         * Releases API 地址
+         * latest release API 地址
          */
-        final String apiUrl;
+        final String latestUrl;
+        /**
+         * 按 tag 查询的 API 地址模板（%s = tag_name）
+         */
+        final String tagUrlTemplate;
+        /**
+         * 列出 releases 的 API 地址模板（%d = 每页条数）
+         */
+        final String listUrlTemplate;
         /**
          * Accept 请求头
          */
@@ -457,8 +534,10 @@ public class UpdateChecker {
          */
         final String htmlUrlPrefix;
 
-        ReleaseSource(String apiUrl, String accept, String htmlUrlPrefix) {
-            this.apiUrl = apiUrl;
+        ReleaseSource(String latestUrl, String tagUrlTemplate, String listUrlTemplate, String accept, String htmlUrlPrefix) {
+            this.latestUrl = latestUrl;
+            this.tagUrlTemplate = tagUrlTemplate;
+            this.listUrlTemplate = listUrlTemplate;
             this.accept = accept;
             this.htmlUrlPrefix = htmlUrlPrefix;
         }

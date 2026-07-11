@@ -42,6 +42,7 @@ import com.zm.kilacraftAI.service.update.UpdateChecker;
 import com.zm.kilacraftAI.skills.admin.AuditLogSkill;
 import com.zm.kilacraftAI.skills.admin.PlayerAnalysisSkill;
 import com.zm.kilacraftAI.skills.admin.ServerHealthSkill;
+import com.zm.kilacraftAI.skills.admin.VersionInfoSkill;
 import com.zm.kilacraftAI.skills.bukkit.BukkitFXSkill;
 import com.zm.kilacraftAI.skills.bukkit.BukkitStatsSkill;
 import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
@@ -801,10 +802,11 @@ public final class KilacraftAI extends JavaPlugin {
             skillManager.registerSkill(new CMISkill());
         }
 
-        // 管理员技能（无外部依赖，数据源为项目数据库表）
+        // 管理员技能（无外部依赖，数据源为项目数据库表或 Release API）
         skillManager.registerSkill(new ServerHealthSkill());
         skillManager.registerSkill(new PlayerAnalysisSkill());
         skillManager.registerSkill(new AuditLogSkill());
+        skillManager.registerSkill(new VersionInfoSkill());
     }
 
     /**

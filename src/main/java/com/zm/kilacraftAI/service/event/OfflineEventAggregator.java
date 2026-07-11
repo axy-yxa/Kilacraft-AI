@@ -1,18 +1,18 @@
 package com.zm.kilacraftAI.service.event;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.db.dao.SocialRelationDao;
 import com.zm.kilacraftAI.db.dao.SocialRelationDao.SocialRelation;
-import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.greeting.FriendStatus;
+import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.profile.ProfileManager;
 import com.zm.kilacraftAI.skills.framework.SkillSecurityFilter;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -111,14 +111,27 @@ public class OfflineEventAggregator {
                 List<FriendStatus> offlineFriends = new ArrayList<>();
                 loadAllFriendsWithStatus(conn, relations, onlineFriends, offlineFriends);
 
-                // 系统健康告警事件（仅管理员需要）
-                List<ServerEvent> healthAlerts = loadHealthAlerts ? serverEventDao.loadHealthAlerts(conn, afterTime, 50) : Collections.emptyList();
+                // 系统健康告警事件（仅管理员需要：查离线期间尚未被问候通知过的告警）
+                List<ServerEvent> healthAlerts;
+                if (loadHealthAlerts) {
+                    healthAlerts = serverEventDao.loadUnnotifiedHealthAlerts(conn, playerUuid, afterTime, 50);
+                    // 标记已通知，保证每条告警每管理员只提醒一次
+                    for (ServerEvent alert : healthAlerts) {
+                        serverEventDao.markHealthAlertNotified(conn, playerUuid, alert.getData(), "");
+                    }
+                } else {
+                    healthAlerts = Collections.emptyList();
+                }
 
-                // 新版本可用提醒（仅管理员需要：先做带冷却的检测写库，再离线增量查询）
+                // 新版本可用提醒（仅管理员需要：先做带冷却的检测写库，再查该管理员尚未被通知的版本）
                 List<ServerEvent> updateReminders;
                 if (loadUpdateReminders && plugin.getUpdateChecker() != null) {
                     plugin.getUpdateChecker().checkAndPersistIfNeeded(conn, serverEventDao, "", UPDATE_CHECK_COOLDOWN_MS);
-                    updateReminders = serverEventDao.loadUpdateReminders(conn, afterTime, 5);
+                    updateReminders = serverEventDao.loadUnnotifiedUpdateReminders(conn, playerUuid, 5);
+                    // 查到即标记该管理员已通知，保证每版本每管理员只提醒一次
+                    for (ServerEvent reminder : updateReminders) {
+                        serverEventDao.markUpdateNotified(conn, playerUuid, reminder.getData(), "");
+                    }
                 } else {
                     updateReminders = Collections.emptyList();
                 }

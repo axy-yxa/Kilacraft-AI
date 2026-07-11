@@ -152,11 +152,11 @@ public class GreetingPromptBuilder {
 
         // 更新提醒段落前置拼接（优先级次于告警）
         if (updateReminderSection != null && !updateReminderSection.isEmpty()) {
-            prompt = updateReminderSection + "\n" + prompt;
+            prompt = updateReminderSection + "\n\n" + prompt;
         }
         // 告警段落插入到系统提示词最前面（最高优先级）
         if (healthAlertsSection != null && !healthAlertsSection.isEmpty()) {
-            return healthAlertsSection + "\n" + prompt + "\n";
+            return healthAlertsSection + "\n\n" + prompt + "\n";
         }
         return prompt;
     }
@@ -375,7 +375,7 @@ public class GreetingPromptBuilder {
         }
 
         sb.append(I18nService.tr("完整诊断报告保存在 plugins/Kilacraft-AI/reports/ 目录下。\n"));
-        sb.append(I18nService.tr("你必须在问候的第一时间主动告知管理员以上异常，用口语化的方式简述时间、严重程度和涉及插件，并指出可以查看完整报告。然后再进行常规问候。"));
+        sb.append(I18nService.tr("你必须在问候的第一时间主动告知管理员以上异常，分行展示每次告警的时间、异常指标等已有字段。注意：只转达上面实际给出的内容，没有涉及插件或热点方法就不要提及，禁止编造「无特定插件」「无具体方法」之类的占位话。用口语化的方式简述严重程度，并指出可以查看完整报告。然后再进行常规问候。"));
 
         return sb.toString();
     }
@@ -395,20 +395,29 @@ public class GreetingPromptBuilder {
             return "";
         }
 
+        String currentVersion = KilacraftAI.getInstance().getDescription().getVersion();
+
         StringBuilder sb = new StringBuilder();
-        sb.append(I18nService.tr("【新版本可用】\n"));
+        sb.append(I18nService.tr("【Kilacraft-AI 插件新版本可用】\n"));
+        sb.append(I18nService.tr("当前运行版本: v{}\n", currentVersion));
         for (int i = 0; i < updateReminders.size(); i++) {
             sb.append(formatUpdateReminder(updateReminders.get(i).getData()));
             if (i < updateReminders.size() - 1) {
                 sb.append("\n\n");
             }
         }
-        sb.append("\n").append(I18nService.tr("你应在问候中简短提醒管理员有新版本可用，指出具体版本号，必要时提及更新内容或下载地址，然后继续常规问候。"));
+        sb.append("\n").append(I18nService.tr("以上是本 AI 插件（Kilacraft-AI）的新版本更新信息，不是服务器或其他插件的内容。"));
+        sb.append(I18nService.tr("你必须在问候中完整转达以上全部信息，一个都不能漏，且必须分行展示——每个字段（当前版本、新版本、发布日期、更新标题、下载地址）单独占一行，不要压成一句话。"));
+        sb.append(I18nService.tr("转达时先说一句引导，例如「Kilacraft-AI 插件有新版本发布了，以下是详情：」，让管理员知道接下来要看的是什么。"));
+        sb.append(I18nService.tr("下载地址必须单独占一行，且这一行不能有其他字符；如果下载地址后面还有内容，中间必须空一行隔开，避免游戏聊天把链接后面的文字也吞进链接里。"));
+        sb.append(I18nService.tr("告知有新版本可用并给出信息即可。若管理员追问版本详情（更新内容、功能解读），可用版本查询技能回答；但不要主动承诺帮忙下载或安装——插件更新需服主自行操作。"));
         return sb.toString();
     }
 
     /**
-     * 格式化单条 UPDATE_AVAILABLE 的 data JSON 为 AI 可读的简洁文本
+     * 格式化单条 UPDATE_AVAILABLE 的 data JSON 为 AI 可读的完整文本
+     *
+     * <p>全字段输出：新版本号、发布日期、更新标题（含内容说明）、下载地址，不遗漏。</p>
      */
     private String formatUpdateReminder(String dataJson) {
         if (dataJson == null || dataJson.isEmpty()) return I18nService.tr("版本信息不可用");
@@ -421,16 +430,15 @@ public class GreetingPromptBuilder {
             String date = root.has("date") && !root.get("date").isJsonNull() ? root.get("date").getAsString() : "";
 
             StringBuilder sb = new StringBuilder();
+            sb.append(I18nService.tr("新版本号: {}", tag));
             if (!date.isEmpty()) {
-                sb.append(I18nService.tr("插件检测到新版本 {}（发布于 {}）：", tag, date));
-            } else {
-                sb.append(I18nService.tr("插件检测到新版本 {}：", tag));
+                sb.append("\n").append(I18nService.tr("发布日期: {}", date));
             }
             if (!name.isEmpty() && !name.equals(tag)) {
-                sb.append("\n").append(I18nService.tr("更新内容：{}", name));
+                sb.append("\n").append(I18nService.tr("更新标题: {}", name));
             }
             if (!url.isEmpty()) {
-                sb.append("\n").append(I18nService.tr("下载地址：{}", url));
+                sb.append("\n").append(I18nService.tr("下载地址: {}", url));
             }
             return sb.toString();
         } catch (Exception e) {
