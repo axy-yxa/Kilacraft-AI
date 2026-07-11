@@ -111,8 +111,17 @@ public class OfflineEventAggregator {
                 List<FriendStatus> offlineFriends = new ArrayList<>();
                 loadAllFriendsWithStatus(conn, relations, onlineFriends, offlineFriends);
 
-                // 系统健康告警事件（仅管理员需要）
-                List<ServerEvent> healthAlerts = loadHealthAlerts ? serverEventDao.loadHealthAlerts(conn, afterTime, 50) : Collections.emptyList();
+                // 系统健康告警事件（仅管理员需要：查离线期间尚未被问候通知过的告警）
+                List<ServerEvent> healthAlerts;
+                if (loadHealthAlerts) {
+                    healthAlerts = serverEventDao.loadUnnotifiedHealthAlerts(conn, playerUuid, afterTime, 50);
+                    // 标记已通知，保证每条告警每管理员只提醒一次
+                    for (ServerEvent alert : healthAlerts) {
+                        serverEventDao.markHealthAlertNotified(conn, playerUuid, alert.getData(), "");
+                    }
+                } else {
+                    healthAlerts = Collections.emptyList();
+                }
 
                 // 新版本可用提醒（仅管理员需要：先做带冷却的检测写库，再查该管理员尚未被通知的版本）
                 List<ServerEvent> updateReminders;

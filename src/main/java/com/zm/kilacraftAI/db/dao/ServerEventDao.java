@@ -290,6 +290,51 @@ public class ServerEventDao {
     }
 
     /**
+     * 查询该管理员尚未被问候通知的健康告警事件
+     *
+     * <p>与 {@link #loadHealthAlerts} 的区别：在离线期间时间过滤基础上，再用该管理员已有的
+     * HEALTH_ALERT_NOTIFIED 标记（player_uuid = ?）过滤掉已通知过的告警。每个管理员每条告警
+     * 通过问候最多收到一次。</p>
+     *
+     * @param conn       数据库连接
+     * @param playerUuid 管理员 UUID
+     * @param afterTime  起始时间戳（ms，不含）
+     * @param limit      最大条数
+     * @return 待通知的告警事件列表（时间倒序，最新的在前）
+     */
+    public List<ServerEvent> loadUnnotifiedHealthAlerts(Connection conn, UUID playerUuid, long afterTime, int limit) throws SQLException {
+        String sql = "SELECT a.* FROM " + tablePrefix + "server_event a " + "WHERE a.event_type = 'HEALTH_ALERT' AND a.player_uuid IS NULL AND a.created_at > ? " + "AND NOT EXISTS (SELECT 1 FROM " + tablePrefix + "server_event n " + "WHERE n.event_type = 'HEALTH_ALERT_NOTIFIED' AND n.player_uuid = ? AND n.data = a.data) " + "ORDER BY a.created_at DESC LIMIT ?";
+
+        List<ServerEvent> events = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, afterTime);
+            ps.setString(2, playerUuid.toString());
+            ps.setInt(3, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    events.add(mapRow(rs));
+                }
+            }
+        }
+        return events;
+    }
+
+    /**
+     * 写入健康告警"已通知"标记，记录某管理员已被问候通知某条告警
+     *
+     * <p>data 字段与对应的 HEALTH_ALERT 事件保持一致，便于后续查询精确匹配。</p>
+     *
+     * @param conn       数据库连接
+     * @param playerUuid 管理员 UUID
+     * @param eventData  告警事件的 data JSON（与 HEALTH_ALERT 的 data 相同）
+     * @param serverId   子服 ID
+     */
+    public void markHealthAlertNotified(Connection conn, UUID playerUuid, String eventData, String serverId) throws SQLException {
+        ServerEvent event = ServerEvent.of(ServerEventTypeEnum.HEALTH_ALERT_NOTIFIED, playerUuid, eventData);
+        insert(conn, event, serverId);
+    }
+
+    /**
      * 查询该管理员尚未被通知的新版本提醒事件
      *
      * <p>查全局存在的 UPDATE_AVAILABLE 事件（player_uuid IS NULL），再用该管理员已有的

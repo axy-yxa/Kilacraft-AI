@@ -28,6 +28,9 @@ public enum ServerEventTypeEnum {
     // 健康告警（系统级事件，不参与玩家统计）
     HEALTH_ALERT("健康告警", Category.SYSTEM),
 
+    // 健康告警已通知标记（带 player_uuid，data 与对应 HEALTH_ALERT 一致用于精确匹配）
+    HEALTH_ALERT_NOTIFIED("告警已通知", Category.SYSTEM),
+
     // 新版本可用提醒（系统级事件，不参与玩家统计）
     UPDATE_AVAILABLE("更新可用", Category.SYSTEM),
 

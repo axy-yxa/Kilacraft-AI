@@ -1,16 +1,17 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-07-02  
+> **Last Updated**: 2026-07-10  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
 
 ---
 
-## v2.1.3 - Player Real-Time State Awareness, Greeting System Update Reminders, Knowledge-Base Retrieval Quality Boost, AI Request Resource Optimization & Security/Stability Hardening
+## v2.1.3 - Player Real-Time State Awareness, Greeting System Update Reminders, Version Info Query Skill, Knowledge-Base Retrieval Quality Boost, AI Request Resource Optimization & Security/Stability Hardening
 
 ### ✨ New Features
 - **Built-in CLAUDE.md Reference**: Starting with v2.1.3, the repository root includes a `CLAUDE.md` file for developers using AI coding tools for secondary development. Designed for Claude Code by default (auto-loaded every session), it covers the project architecture, i18n conventions, code conventions, key design constraints, and modification triggers. For other AI code tools (Cline, Cursor, Copilot Chat, etc.), copy the content into that tool's global rules or context file configuration equivalent
 - **AI Real-Time Player State Awareness**: The AI can now automatically sense the player's current state — coordinates, health and hunger, held items and worn armor, current world, weather, and time of day — without the player having to explain repeatedly or trigger extra skill queries. For state-dependent requests like "take me back", "can this mine diamonds?", or "is there a desert nearby?", the AI responds with context-aware answers and advice. Enabled by default for all players — fully automatic, zero-config, and stores no data
 - **AI Login Greeting Proactively Notifies of New Versions**: Long-running servers that are never restarted can still learn about plugin updates in time. When an admin with the `kilacraft.admin.info` permission logs in, the AI proactively mentions in the greeting whether a new version is available, stating the exact version number and download URL. Each version is announced to each admin only once — no repeated nagging. Network-check failures are handled silently without disrupting the normal greeting
+- **Version Info Query Skill**: Admins can now ask the AI about plugin version info in natural language — "is there a new version", "what did the latest version update", "what is the download URL", "what features does v2.1.0 have". The AI fetches version info from Gitee/GitHub in real time and answers with the version number, release date, download URL, and full changelog. Requires the `kilacraft.admin.info` permission (default OP)
 
 ### 🔧 Improvements
 - **More Accurate Knowledge-Base Retrieval (highlight of this release)**: The BM25 algorithm now includes the IDF (Inverse Document Frequency) weight — rare, specialized keywords that appear in only a few docs rank higher, while ubiquitous generic words like "player" and "command" no longer dilute results. Recall accuracy of the default BM25 mode (used by the vast majority of servers) improves overall
@@ -21,6 +22,7 @@
 - **Faster Security Cache Cleanup on Huge Servers**: Cleanup of the recent-active-player cache no longer slows down noticeably as the player count grows
 - **More Traceable AFK Task Callbacks**: When a callback can't be delivered because the player is offline, a console log is now recorded to help diagnose "the task didn't seem to fire"
 - **Auditable Command-Type Skill Operations**: Command-type skills executed as OP (e.g. `/tpa <target>`) keep their cross-player capability while now also logging an audit trail
+- **More Reliable Server Anomaly Alert Notifications**: Server performance anomaly alerts are now delivered to every authorized admin via the login greeting, instead of only the first one who comes online. Each alert is announced to each admin only once — no repeated nagging
 
 ### 🐛 Bug Fixes
 - Corrected the comment direction for the retrieval relative threshold (`relative_threshold`) in `knowledge.yml` — the old comment wrongly labeled "raise = stricter" as "raise = more lenient", which could lead server owners to tune in the wrong direction; default value unchanged

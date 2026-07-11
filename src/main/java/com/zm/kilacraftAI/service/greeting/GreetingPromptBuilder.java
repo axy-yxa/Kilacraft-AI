@@ -408,7 +408,9 @@ public class GreetingPromptBuilder {
         }
         sb.append("\n").append(I18nService.tr("以上是本 AI 插件（Kilacraft-AI）的新版本更新信息，不是服务器或其他插件的内容。"));
         sb.append(I18nService.tr("你必须在问候中完整转达以上全部信息，一个都不能漏，且必须分行展示——每个字段（当前版本、新版本、发布日期、更新标题、下载地址）单独占一行，不要压成一句话。"));
+        sb.append(I18nService.tr("转达时先说一句引导，例如「Kilacraft-AI 插件有新版本发布了，以下是详情：」，让管理员知道接下来要看的是什么。"));
         sb.append(I18nService.tr("下载地址必须单独占一行，且这一行不能有其他字符；如果下载地址后面还有内容，中间必须空一行隔开，避免游戏聊天把链接后面的文字也吞进链接里。"));
+        sb.append(I18nService.tr("告知有新版本可用并给出信息即可。若管理员追问版本详情（更新内容、功能解读），可用版本查询技能回答；但不要主动承诺帮忙下载或安装——插件更新需服主自行操作。"));
         return sb.toString();
     }
 
