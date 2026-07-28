@@ -6,7 +6,7 @@
 description: 'Query player Minecraft vanilla statistics (cumulative/lifetime records). Only supports built-in Minecraft gameplay statistics (e.g. death count, kill count, walking distance, mining count, items crafted, items used, etc.), does NOT support non-game queries (e.g. recipes, nutrition advice). Note: this skill queries lifetime cumulative values, not current real-time status (e.g. health, hunger).'
 
 action_descriptions:
-  query_statistic: 'Query the value of a specified statistic. Required parameters: statistic (Minecraft gameplay statistic enum name or game-related description, e.g. DEATHS, death count, MOB_KILLS, kill count, etc. — must be a statistic directly related to Minecraft gameplay). Some statistics require additional parameters: entity_type (e.g. ZOMBIE), material (e.g. DIAMOND_ORE). Returned data contains statistic, value, statistic_type fields, available for subsequent step references.'
+  query_statistic: 'Query the value of a specified statistic. Required parameters: statistic (Minecraft gameplay statistic enum name or game-related description, e.g. DEATHS, death count, MOB_KILLS, kill count, etc. — must be a statistic directly related to Minecraft gameplay). Some statistics require additional parameters: entity_type (e.g. ZOMBIE), material (e.g. DIAMOND_ORE). Returned data contains statistic (string: statistic enum name), value (number: statistic value), statistic_type (string: statistic type) fields, available for subsequent step references.'
 
 hints:
   - "**Cumulative stats vs current status**: This skill queries lifetime cumulative values (e.g. total deaths), not suitable for current real-time status (e.g. health/hunger/level)."

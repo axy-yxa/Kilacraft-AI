@@ -1,61 +1,43 @@
 package com.zm.kilacraftAI.service.guardian;
 
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-
-import java.util.Set;
+import org.bukkit.event.entity.EntityTargetEvent;
 
 /**
- * 守护全局事件 Listener：精选受支持的事件类型，命中后转发引擎分发到匹配的事件型 monitor。
+ * 守护全局事件 Listener：精选受支持的预见性事件类型，命中后转发引擎分发到匹配的事件型 monitor。
  *
- * <p>Bukkit 的事件分发按 @EventHandler 方法签名的事件类型匹配——无法用单一方法接收任意事件类型。
- * 故采用「精选白名单」：每种受支持事件一个 @EventHandler 方法。
- * {@link GuardianEngine#registerEventMonitor} 拒绝未登记的类型并告警。</p>
+ * <p>Folia 兼容：事件在实体所属区域线程触发。Listener 只读事件实体的固有属性（EntityType 枚举、
+ * TargetReason 枚举），零跨区域读。单玩家归属（{@code event.getTarget() == player}），O(1) 定位，
+ * 不遍历在线玩家。距离/视野判定延迟到引擎的 PlayerState snapshot（经 callSyncOnEntity 安全采集）。</p>
  *
  * <p>{@link EventPriority#MONITOR} + {@code ignoreCancelled=true}：只读观察（在所有处理之后），
  * 已取消的事件不触发——守护是旁观者，不参与事件处理链。</p>
- *
- * <p>玩家上下线（join/quit）走 {@link GuardianManager} 生命周期（持久化恢复/资源释放），
- * 不经引擎事件分发——它们不是「monitor 触发源」，而是「系统生命周期事件」。</p>
  *
  * @author Zm_Mmm
  * @since 2026-07-01
  */
 public final class GuardianEventListener implements Listener {
 
-    /** 受支持的事件类型白名单（@EventHandler 方法一一对应）。新增场景时在此登记 + 加对应方法）。 */
-    private static final Set<Class<? extends org.bukkit.event.Event>> SUPPORTED =
-            Set.of(EntityDamageEvent.class);
-
     private final GuardianEngine engine;
-    private final GuardianManager manager;
 
-    GuardianEventListener(GuardianEngine engine, GuardianManager manager) {
+    GuardianEventListener(GuardianEngine engine) {
         this.engine = engine;
-        this.manager = manager;
     }
 
-    static boolean isSupported(Class<? extends org.bukkit.event.Event> type) {
-        return SUPPORTED.contains(type);
-    }
-
+    /**
+     * 怪物锁定玩家（预见性：尚未造成伤害，玩家可能不知道背后有怪锁定自己）。
+     * 单玩家归属——event.getTarget() 即被锁定者，O(1) 定位，无需遍历在线玩家。
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onEntityDamage(EntityDamageEvent event) {
-        // 仅玩家受伤对玩家守护有意义
-        if (!(event.getEntity() instanceof Player player)) {
+    public void onEntityTarget(EntityTargetEvent event) {
+        if (!(event.getTarget() instanceof Player player)) {
             return;
         }
-        engine.dispatchEvent(EntityDamageEvent.class, event, player);
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        if (manager != null) {
-            manager.onPlayerJoin(event.getPlayer());
-        }
+        EntityType targetType = event.getEntity().getType();
+        engine.dispatchEvent(EntityTargetEvent.class, event, player, targetType);
     }
 }

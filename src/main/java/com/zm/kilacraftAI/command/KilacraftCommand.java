@@ -48,6 +48,7 @@ public class KilacraftCommand implements CommandExecutor {
             case "plugins" -> PluginsCommand.handle(plugin, sender, args);
             case "personalities" -> PersonalitiesCommand.handle(plugin, sender, args);
             case "guardian" -> GuardianCommand.handle(plugin, sender, args);
+            case "suggestion" -> SuggestionCommand.handle(plugin, sender, args);
             case "tasks" -> TasksCommand.handle(plugin, sender, args);
             case "profile" -> ProfileCommand.handle(plugin, sender, args);
             case "notify" -> NotifyCommand.handle(plugin, sender, args);
@@ -121,6 +122,8 @@ public class KilacraftCommand implements CommandExecutor {
         // 技能命令
         sender.sendMessage(languageManager.getHelpSkills());
         sender.sendMessage(languageManager.getHelpRun());
+        // 对话推荐（全体可用）
+        sender.sendMessage(languageManager.getHelpSuggestion());
         sender.sendMessage("");
 
         // 管理员信息

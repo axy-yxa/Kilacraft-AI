@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.common.util.MessageUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -134,7 +135,7 @@ public class ScoreboardManager {
         String[] rawLines = message.split("\n");
 
         // 根据当前语言获取每行最大字符数
-        int maxCharsPerLine = config.getSidebarMaxCharsPerLine(plugin.getConfigManager().isChinese());
+        int maxCharsPerLine = config.getSidebarMaxCharsPerLine(I18nService.isZh());
 
         for (String rawLine : rawLines) {
             // 移除颜色代码后再计算可见字符长度

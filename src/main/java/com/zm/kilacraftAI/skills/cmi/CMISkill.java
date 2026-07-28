@@ -5,18 +5,11 @@ import com.zm.kilacraftAI.common.util.BukkitCommandUtil;
 import com.zm.kilacraftAI.compat.cmi.CMIAPI;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -31,9 +24,16 @@ import static java.util.Map.entry;
  * @author Zm_Mmm
  * @since 2026-03-27
  */
-public class CMISkill implements Skill {
+public class CMISkill implements Skill, ProbeSource {
 
     private final SkillConfigManager configManager;
+
+    private static final java.util.Set<String> PROBEABLE_ACTIONS = java.util.Set.of("query_homes", "query_warps", "query_player_info", "query_kits", "query_online_players");
+
+    @Override
+    public java.util.Set<String> getProbeableActions() {
+        return PROBEABLE_ACTIONS;
+    }
 
     public CMISkill() {
         this.configManager = SkillConfigManager.getInstance();

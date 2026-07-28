@@ -11,6 +11,7 @@ import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.db.dao.SocialRelationDao;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.skills.framework.*;
+import org.bukkit.entity.Player;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -81,6 +82,12 @@ public class PlayerAnalysisSkill implements Skill {
 
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
+        // 权限校验：player 为 null 视为无权限（正常调用路径必有在线 player）
+        Player caller = context.getPlayer();
+        if (caller == null || !PluginPermissionEnum.ADMIN_PLAYER.hasPermission(caller)) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.ADMIN_PLAYER.getNode())));
+        }
+
         String action = context.getAction();
         if (action == null || action.isEmpty()) {
             action = "online_trend";

@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.common.enums.DatabaseTypeEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.DatabaseConfigManager;
 import com.zm.kilacraftAI.db.model.DatabaseConfig;
+import com.zm.kilacraftAI.i18n.I18nService;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -88,7 +89,7 @@ public class DatabaseManager {
 
             // 验证连接
             if (!provider.testConnection()) {
-                throw new SQLException("连接测试失败");
+                throw new SQLException(I18nService.tr("连接测试失败"));
             }
 
             // 新配置成功，关闭旧 Provider
@@ -153,7 +154,7 @@ public class DatabaseManager {
      */
     public Connection getConnection() throws SQLException {
         if (provider == null) {
-            throw new SQLException("数据库未初始化");
+            throw new SQLException(I18nService.tr("数据库未初始化"));
         }
         return provider.getConnection();
     }

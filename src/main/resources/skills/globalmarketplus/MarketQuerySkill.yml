@@ -10,11 +10,11 @@ action_descriptions:
   query_balance: "查询玩家账户余额。返回的 data 中包含 balance 字段，可供后续步骤引用。当用户问'我有多少钱'、'余额'、'我的钱'时使用"
   query_price: "查询指定物品的市场价格。需要参数：item（物品名称和数量，格式为'物品名:数量'）。返回的 data 中包含 total_price、item_count 字段，单物品查询时还包含 item_name 和 price 字段，可供后续步骤引用。当用户询问物品价格（如'钻石多少钱'、'5 个木棍多少钱'）时使用。注意：此操作仅为价格查询，不能用于购买"
   query_items: "查询市场上架的商品列表。返回的 data 中包含 items 字段（商品名称列表）和 count 字段（商品数量），可供后续步骤引用。当用户问'市场上有什么'、'列出所有商品'、'市场商品列表'时使用"
-  query_availability: "查询指定物品是否在售、在售数量和卖家信息。需要参数：item（物品名称）。返回的 data 中包含 available（布尔：是否在售）、total_stock（在售总数量）、min_price（最低价）、max_price（最高价）、seller_count（卖家数）字段，可供后续步骤引用或作为挂机任务 condition_plan 的 result_path。当用户问'这个物品有人卖吗'、'市场上有没有xxx'、'我手上的东西市场有卖吗'时使用"
+  query_availability: "查询指定物品是否在售、在售数量和卖家信息。需要参数：item（物品名称）。返回的 data 中包含 available（布尔：是否在售）、total_stock（数值：在售总数量）、min_price（数值：最低价）、max_price（数值：最高价）、seller_count（数值：卖家数）字段，可供后续步骤引用或作为挂机任务 condition_plan 的 result_path。当用户问'这个物品有人卖吗'、'市场上有没有xxx'、'我手上的东西市场有卖吗'时使用"
   query_my_items: "查询玩家自己在售的商品。返回的 data 中包含 my_items 字段（商品数组，每个商品包含 item_name、english_name、amount、price、seller_name 字段）和 count 字段（商品数量），可供后续步骤引用。当用户问'我在卖什么'、'我的商品'、'我上架了什么'时使用"
   query_seller_items: "查询指定卖家在售的商品。需要参数：seller_name（卖家玩家名称）。返回的 data 中包含 seller_items 字段（商品数组，每个商品包含 item_name、english_name、amount、price、seller_name 字段）和 count 字段（商品数量），可供后续步骤引用。当用户问'xxx在卖什么'、'xxx的商店'、'xxx卖什么呢'时使用"
   query_mailbox: "查询玩家邮箱待领取邮件。返回的 data 中包含 mails 字段（邮件数组，每封邮件包含 item_name、english_name、amount、sender_name 字段）和 count 字段（邮件数量），可供后续步骤引用。当用户问'我有邮件吗'、'邮箱里有什么'、'查邮箱'时使用"
-  query_market_stats: "查询市场统计信息。返回的 data 中包含 total_items 字段（商品总数）和 total_sellers 字段（卖家总数），可供后续步骤引用或作为挂机任务 condition_plan 的 result_path。当用户问'市场有多少商品'、'市场统计'、'市场总数'时使用"
+  query_market_stats: "查询市场统计信息。返回的 data 中包含 total_items 字段（数值：商品总数）和 total_sellers 字段（数值：卖家总数），可供后续步骤引用或作为挂机任务 condition_plan 的 result_path。当用户问'市场有多少商品'、'市场统计'、'市场总数'时使用"
 
 # 额外提示信息（用于指导 LLM 正确使用技能）
 hints:

@@ -14,6 +14,7 @@ import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
 import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
+import com.zm.kilacraftAI.service.suggestion.SuggestionService;
 import com.zm.kilacraftAI.skills.framework.*;
 import com.zm.kilacraftAI.skills.framework.resume.PendingAction;
 import com.zm.kilacraftAI.skills.framework.resume.PendingResume;
@@ -216,6 +217,7 @@ public class AIRequestHandler {
             plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.TASK_RESULT, false).thenAccept(result -> {
                 // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, result.getMessage(), ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
+                triggerSuggestion(ctx, OutputScenarioEnum.TASK_RESULT);
 
                 // 公屏广播（outputAnalysisResult只输出给触发者，公屏需要额外广播）
                 // 如果场景载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
@@ -314,6 +316,7 @@ public class AIRequestHandler {
             if (finalResult.isSuccess()) {
                 // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, finalResult.getMessage(), ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
+                triggerSuggestion(ctx, OutputScenarioEnum.SKILL_RESULT);
             } else {
                 PluginLoggerUtil.debug("技能执行", "技能执行失败：{}", finalResult.getMessage());
                 PluginLoggerUtil.debug("技能执行", "已回退到普通 AI 处理");
@@ -382,6 +385,7 @@ public class AIRequestHandler {
                 return;
             }
             validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
+            triggerSuggestion(ctx, OutputScenarioEnum.NORMAL_CHAT);
         }).exceptionally(throwable -> {
             PluginLoggerUtil.warn("AI请求", "LLM 请求失败: {}", throwable.getMessage());
             ctx.sendError.accept(I18nService.tr("LLM 请求失败: {}", formatAsyncError(throwable)));
@@ -412,6 +416,18 @@ public class AIRequestHandler {
             return I18nService.tr("AI 请求失败，请稍后重试");
         }
         return msg;
+    }
+
+    /**
+     * 触发对话推荐。须在 saveToHistory 之后调用：此时 history 末尾已含本轮 user/assistant，
+     * 推荐服务从截断 history 获取完整多轮上下文。门控与来源过滤集中在 SuggestionService。
+     */
+    private void triggerSuggestion(RequestContext ctx, OutputScenarioEnum scenario) {
+        SuggestionService ss = plugin.getSuggestionService();
+        if (ss == null || ctx.player() == null) {
+            return;
+        }
+        ss.generateAsync(ctx.player(), ctx.history(), ctx.name(), scenario, ctx.source());
     }
 
     /**

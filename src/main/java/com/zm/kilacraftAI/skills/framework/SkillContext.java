@@ -36,7 +36,7 @@ public class SkillContext {
     private String triggerMessage;
 
     /**
-     * 审计用：触发来源（可选，如 "agent" / "afk_callback"）
+     * 审计用：触发来源（可选，如 "agent" / "pending_resume"）
      */
     private String executionSource;
 

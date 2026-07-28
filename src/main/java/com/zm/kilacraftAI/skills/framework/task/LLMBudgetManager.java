@@ -24,18 +24,24 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class LLMBudgetManager {
 
-    /** 默认预算上限：正常使用绝对达不到，仅防 runaway。服主可在 llm.yml 覆盖。 */
+    /**
+     * 默认预算上限：正常使用绝对达不到，仅防 runaway。服主可在 llm.yml 覆盖。
+     */
     static final int DEFAULT_BUDGET_PER_HOUR = 200;
     private static final long WINDOW_MILLIS = 60L * 60L * 1000L;
 
-    /** 玩家主动请求优先级最高，守护被动输出可被丢弃/降级，问候次之。 */
+    /**
+     * 调用优先级：二元熔断——玩家主动永不熔断，被动调用熔断时统一拒绝。
+     */
     public enum Priority {
-        /** 玩家主动发起（聊天/skill/task）——最高优先级，不受守护熔断降级影响。 */
+        /**
+         * 玩家主动发起（聊天/skill/task）——永不熔断，即使超预算也响应。
+         */
         PLAYER_ACTIVE,
-        /** 登录问候——次高，被动但玩家可见。 */
-        GREETING,
-        /** 守护被动输出——最低，熔断时降级为模板/丢弃。 */
-        GUARDIAN
+        /**
+         * 被动调用（问候/推荐/守护/第三方插件）——熔断窗口内统一拒绝。
+         */
+        PASSIVE
     }
 
     private volatile int budgetPerHour;
@@ -47,30 +53,33 @@ public class LLMBudgetManager {
         this.budgetPerHour = budgetPerHour;
     }
 
-    /** reload 时更新预算上限（volatile 快照发布，跨线程立即可见）。≤0 禁用。 */
+    /**
+     * reload 时更新预算上限（volatile 快照发布，跨线程立即可见）。≤0 禁用。
+     */
     public void updateBudget(int newBudget) {
         this.budgetPerHour = newBudget;
     }
 
-    /** 由输出场景推导优先级。守护专用 GUARDIAN 场景映射为被动优先级（熔断时可降级）。 */
+    /**
+     * 由输出场景推导优先级：玩家可见回复场景为 PLAYER_ACTIVE，被动输出场景为 PASSIVE。
+     */
     public static Priority priorityOf(OutputScenarioEnum scenario) {
-        if (scenario == null) return Priority.GUARDIAN;
+        if (scenario == null) return Priority.PASSIVE;
         return switch (scenario) {
+            // 玩家主动发起的请求产生的回复——永不熔断
             case NORMAL_CHAT, SKILL_RESULT, TASK_RESULT -> Priority.PLAYER_ACTIVE;
-            case GREETING -> Priority.GREETING;
-            // 守护主动输出（L1 模板不经此处，L3 走 coordinator 经预算层）+ 错误：被动优先级。
-            case GUARDIAN, ERROR -> Priority.GUARDIAN;
+            // 被动输出（问候/推荐/守护/错误）——熔断时统一拒绝
+            case GREETING, SUGGESTION, GUARDIAN, ERROR -> Priority.PASSIVE;
         };
     }
 
     /**
      * 判断本次 LLM 调用是否被允许。
      *
-     * <p>熔断语义按优先级区分（玩家主动 > 守护被动，不让玩家等）：
-     * PLAYER_ACTIVE 永不熔断（玩家自己发起的请求必须响应，即使超预算也照常，仅记 warn）；
-     * GREETING / GUARDIAN 在熔断窗口内被拒。budgetPerHour≤0 视为禁用治理（全部放行）。</p>
+     * <p>二元熔断语义：PLAYER_ACTIVE 永不熔断（玩家自己发起的请求必须响应，即使超预算也照常，仅记 warn）；
+     * PASSIVE 在熔断窗口内被拒。budgetPerHour≤0 视为禁用治理（全部放行）。</p>
      *
-     * @return true 放行；false 当前处于熔断窗口、且本调用属可降级优先级。
+     * @return true 放行；false 当前处于熔断窗口、且本调用属 PASSIVE 优先级。
      */
     public boolean tryAcquire(UUID playerId, Priority priority) {
         if (budgetPerHour <= 0) return true;
@@ -87,16 +96,12 @@ public class LLMBudgetManager {
     }
 
     /**
-     * 记一次实际发生的 LLM 调用（无论优先级）。
+     * 记一次实际发生的 LLM 调用，维护滑动窗口计数；超阈值时设置熔断窗口。
      *
-     * <p>PLAYER_ACTIVE 超预算时仅记 warn（不熔断玩家），但 GREETING/GUARDIAN 后续调用会被熔断。
-     * 即：玩家风暴时，守护/问候先被压，玩家请求仍响应——保护玩家体验。</p>
+     * <p>玩家主动请求（PLAYER_ACTIVE）在 {@link #tryAcquire} 处永不熔断，
+     * 但其调用仍计入窗口——风暴时把被动输出先压下去，玩家请求继续响应。</p>
      */
     public void recordCall(UUID playerId) {
-        recordCall(playerId, Priority.PLAYER_ACTIVE);
-    }
-
-    public void recordCall(UUID playerId, Priority priority) {
         if (budgetPerHour <= 0) return;
         long now = System.currentTimeMillis();
         ConcurrentLinkedDeque<Long> window = callWindows.computeIfAbsent(playerId, k -> new ConcurrentLinkedDeque<>());
@@ -115,25 +120,19 @@ public class LLMBudgetManager {
                 Long prev = trippedUntil.get(playerId);
                 if (prev == null || prev < tripUntil) {
                     trippedUntil.put(playerId, tripUntil);
-                    if (priority != Priority.PLAYER_ACTIVE) {
-                        PluginLoggerUtil.warn("守护系统", "LLM 预算熔断：玩家 {} 1 小时内调用 {} 次超阈值 {}，被动输出降级 1 小时",
-                                playerId, window.size(), budgetPerHour);
-                    } else {
-                        PluginLoggerUtil.warn("守护系统", "LLM 预算超限：玩家 {} 1 小时内调用 {} 次超阈值 {}（玩家主动请求仍响应）",
-                                playerId, window.size(), budgetPerHour);
-                    }
+                    PluginLoggerUtil.warn("预算熔断", "玩家 {} 1 小时内调用 {} 次超阈值 {}，被动输出降级 1 小时", playerId, window.size(), budgetPerHour);
                 }
             }
         }
     }
 
-    /** 玩家下线/清理时释放窗口（避免长期离线玩家的 Deque 累积）。 */
+    /**
+     * 玩家下线/清理时释放窗口（避免长期离线玩家的 Deque 累积）。
+     */
     public void clearPlayer(UUID playerId) {
         callWindows.remove(playerId);
         trippedUntil.remove(playerId);
     }
-
-    // —— 测试可见性（包私有，仅单测用）——
 
     int currentCount(UUID playerId) {
         ConcurrentLinkedDeque<Long> window = callWindows.get(playerId);
@@ -153,7 +152,9 @@ public class LLMBudgetManager {
 
     AtomicInteger activePlayerCount() {
         AtomicInteger n = new AtomicInteger();
-        callWindows.forEachValue(32, w -> { if (!w.isEmpty()) n.incrementAndGet(); });
+        callWindows.forEachValue(32, w -> {
+            if (!w.isEmpty()) n.incrementAndGet();
+        });
         return n;
     }
 }

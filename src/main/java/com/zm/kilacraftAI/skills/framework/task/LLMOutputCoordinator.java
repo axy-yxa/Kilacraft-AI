@@ -91,7 +91,7 @@ public class LLMOutputCoordinator {
         // 玩家主动请求永不熔断，被动输出在熔断窗口内被拒。
         LLMBudgetManager.Priority priority = LLMBudgetManager.priorityOf(scenario);
         if (!budgetManager.tryAcquire(player.getUniqueId(), priority)) {
-            PluginLoggerUtil.warn("守护系统", "LLM 预算熔断中，跳过本次输出（玩家 {}，场景 {}）", player.getName(), scenario);
+            PluginLoggerUtil.warn("预算熔断", "LLM 预算熔断中，跳过本次输出（玩家 {}，场景 {}）", player.getName(), scenario);
             return CompletableFuture.completedFuture(SkillResult.failure("LLM 预算熔断"));
         }
 

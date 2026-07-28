@@ -32,7 +32,10 @@ help:
   personalities: " §b/kila personalities reload §8- §f重载人格配置"
 
   # 守护系统（kilacraft.guardian 权限）
-  guardian: " §b/kila guardian §7<on|off|status|silence> §8- §fAI 主动守护"
+  guardian: " §b/kila guardian §7<on|off|status> §8- §fAI 主动守护"
+
+  # 对话推荐（全体可用）
+  suggestion: " §b/kila suggestion §7<on|off|status> §8- §f管理对话推荐"
 
   # 性能采样（kilacraft.admin.health 权限）
   profile: " §b/kila profile start §7[秒数] §8- §f启动性能采样 (30~120s)"
@@ -161,16 +164,23 @@ commands:
   guardian-disabled-global: "§c守护系统已被服主全局关闭。"
   guardian-already-on: "§7守护系统已开启。"
   guardian-already-off: "§7守护系统未开启。"
-  guardian-on-success: "§a守护已开启，共激活 §e{n} §a个监听。AI 会适时主动提醒你。"
+  guardian-on-success: "§a守护已开启！我会帮你盯着你看不见的地方——比如背后有怪、背包快满等。§7想关掉就说「关守护」。共激活 §e{n} §a个监控。"
   guardian-off: "§7守护已关闭。"
-  guardian-status: "§6[Kilacraft-AI] §f守护系统 §7| 状态: §e{state} §7| 全服活跃: §e{n}§7人"
+  guardian-status: "§6[Kilacraft-AI] §f守护系统 §7| 状态: §e{state} §7| 监控: §e{n}§7个"
   guardian-state-on: "§a开启"
   guardian-state-off: "§7关闭"
-  guardian-usage: "§7用法: /kila guardian <§eon§7|§coff§7|§estatus§7|§esilence <分类>§7|§eunsilence <分类>§7>"
-  guardian-silence-usage: "§7用法: /kila guardian silence <DANGER|RESOURCE|GOAL|COMPANION|GENERAL>"
-  guardian-silenced: "§7已静音 §e{cat} §7分类的守护提醒。"
-  guardian-unsilenced: "§7已恢复 §e{cat} §7分类的守护提醒。"
-  guardian-invalid-category: "§c无效分类，可选: DANGER/RESOURCE/GOAL/COMPANION/GENERAL"
+  guardian-usage: "§7用法: /kila guardian <§eon§7|§coff§7|§estatus§7>"
+  guardian-monitor-line: "§7  - §e{name}"
+
+  # ==================== /kila suggestion 对话推荐开关 ====================
+  suggestion-not-init: "§c对话推荐系统未初始化！"
+  suggestion-already-on: "§7对话推荐已经是开启状态。"
+  suggestion-already-off: "§7对话推荐已经是关闭状态。"
+  suggestion-on: "§a对话推荐已开启。AI 回复后将推荐你可能想问的问题。"
+  suggestion-off: "§a对话推荐已关闭。"
+  suggestion-status-on: "§a对话推荐：开启 §7（/kila suggestion off 关闭）"
+  suggestion-status-off: "§c对话推荐：关闭 §7（/kila suggestion on 开启）"
+  suggestion-usage: " §b/kila suggestion §7<on|off|status> §8- §f管理对话推荐"
 
   # ==================== /kila notify test 通知渠道测试 ====================
   notify-no-permission: "§c你没有权限使用通知测试功能。"
@@ -229,7 +239,8 @@ commands:
   doctor-check-command-skill: "命令技能"
   doctor-check-pending-resume: "待确认续体"
   doctor-check-isolation: "玩家数据隔离"
-  doctor-check-guardian: "健康守护"
+  doctor-check-guardian-system: "守护系统"
+  doctor-check-health-guardian: "健康监控"
   doctor-check-notify: "外部通知"
   doctor-check-thinking: "推理模型"
   doctor-check-greeting: "登录问候"
@@ -258,6 +269,14 @@ commands:
   # 变量: {scope}=入口范围（上面四项之一）
   doctor-agent-on: "启用（{scope}）"
   doctor-llm-no-provider: "未配置 LLM 提供商"
+  # 对话推荐 / 监听系统 / Web 搜索与抓取
+  doctor-check-suggestion: "对话推荐"
+  doctor-check-watch: "监听系统"
+  doctor-check-web-search: "Web 搜索"
+  doctor-check-web-fetch: "Web 抓取"
+  # 变量: {provider}=已配置的搜索供应商（可能多个，逗号分隔）
+  doctor-search-on: "启用（{provider}）"
+  doctor-search-no-provider: "启用，但未配置任何搜索供应商"
 
   # ==================== /kila about 版本与更新检查 ====================
   about-no-permission: "§c你没有权限使用此命令。"

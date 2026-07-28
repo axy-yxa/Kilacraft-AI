@@ -104,9 +104,19 @@ public enum PluginPermissionEnum {
     TASKS("kilacraft.tasks"),
 
     /**
-     * 守护系统（启用/停用守护、查看状态、反馈静音）
+     * 守护系统（启用/停用守护、查看状态）
      */
     GUARDIAN("kilacraft.guardian"),
+
+    /**
+     * 跨玩家上下线订阅（PlayerWatchSkill）
+     */
+    PLAYER_WATCH("kilacraft.player_watch"),
+
+    /**
+     * 玩家自定义监听（WatchSkill）
+     */
+    WATCH("kilacraft.watch"),
 
     /**
      * 服务器健康管理（手动采样命令 + 告警/报告通知接收 + 历史告警查询 + 外部通知渠道测试）
@@ -146,7 +156,17 @@ public enum PluginPermissionEnum {
     /**
      * 插件运行信息与配置自检（doctor 自检 + about 版本检查），与性能健康 admin.health 区分
      */
-    ADMIN_INFO("kilacraft.admin.info");
+    ADMIN_INFO("kilacraft.admin.info"),
+
+    /**
+     * 联网搜索技能（WebSearchSkill）
+     */
+    WEB_SEARCH("kilacraft.websearch"),
+
+    /**
+     * 网页抓取技能（WebFetchSkill）
+     */
+    WEB_FETCH("kilacraft.webfetch");
 
     /**
      * 权限节点

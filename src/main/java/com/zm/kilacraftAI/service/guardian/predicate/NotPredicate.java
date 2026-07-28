@@ -3,10 +3,10 @@ package com.zm.kilacraftAI.service.guardian.predicate;
 import com.zm.kilacraftAI.service.guardian.GuardianContext;
 
 import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
 
 /**
- * 非门组合：对子谓词取反。{@code lastValue} 为空。
+ * 非门组合：对子谓词取反。{@code lastValue} 委托内部谓词。
  *
  * @author Zm_Mmm
  * @since 2026-07-01
@@ -24,12 +24,8 @@ public final class NotPredicate implements Predicate {
         return !inner.test(state, ctx);
     }
 
-    public Predicate inner() {
-        return inner;
-    }
-
     @Override
-    public Set<BlockPos> requestedFurnacePositions() {
-        return inner.requestedFurnacePositions();
+    public Optional<Double> lastValue() {
+        return inner.lastValue();
     }
 }

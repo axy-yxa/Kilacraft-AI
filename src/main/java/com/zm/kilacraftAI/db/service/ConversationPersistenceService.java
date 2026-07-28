@@ -230,7 +230,7 @@ public class ConversationPersistenceService {
         try (Connection conn = databaseManager.getConnection()) {
             conversationDao.batchInsert(conn, rows, serverId);
         } catch (SQLException e) {
-            throw new RuntimeException("写入对话记录失败", e);
+            throw new RuntimeException(I18nService.tr("写入对话记录失败"), e);
         }
     }
 

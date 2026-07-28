@@ -7,6 +7,7 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.db.model.DatabaseConfig;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.i18n.TextProcessorFactory;
 import com.zm.kilacraftAI.service.knowledge.EmbeddingService;
 import org.bukkit.command.CommandSender;
@@ -45,11 +46,33 @@ public final class ReloadCommand {
                 plugin.getLlmOutputCoordinator().refreshBudget();
             }
 
-            // 重载守护系统配置（guardian.yml 模板/冷却/套餐）
+            // 重载守护系统配置
             if (plugin.getGuardianConfigManager() != null) {
                 plugin.getGuardianConfigManager().reload();
-                // 已启用玩家的 Guardian 用的是旧模板，新模板对后续启用生效；已启用玩家需 off→on 才应用新配置
-                PluginLoggerUtil.info("热重载", "守护配置已重载（已启用玩家需 /kila guardian off→on 才应用新模板）");
+                if (plugin.getGuardianManager() != null) {
+                    plugin.getGuardianManager().reloadAll();
+                }
+                PluginLoggerUtil.info("热重载", I18nService.tr("守护配置已重载，在线玩家守护已重建"));
+            }
+
+            // 重载自定义监听配置，重建轮询定时器
+            if (plugin.getWatchConfigManager() != null) {
+                plugin.getWatchConfigManager().reload();
+                if (plugin.getWatchService() != null) {
+                    plugin.getWatchService().onConfigReload();
+                }
+                PluginLoggerUtil.info("热重载", I18nService.tr("自定义监听配置已重载"));
+            }
+
+            // 重载 Web 搜索与抓取配置
+            if (plugin.getWebConfigManager() != null) {
+                plugin.getWebConfigManager().reload();
+                PluginLoggerUtil.info("热重载", I18nService.tr("Web 搜索配置已重载"));
+            }
+
+            // 重载对话推荐配置
+            if (plugin.getSuggestionConfigManager() != null) {
+                plugin.getSuggestionConfigManager().reload();
             }
 
             if (plugin.getSkillConfigManager() != null) {

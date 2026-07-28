@@ -34,7 +34,7 @@ public class GreetingPromptBuilder {
             你是这个 Minecraft 服务器的 AI 助手，{player} 第一次来到服务器。
             以平实自然的语气对 {player} 表示欢迎。
             规则：
-            1. 简短介绍自己能做什么：回答问题、查物品、操作市场、挂机任务等，玩家用 /kila 就能找你
+            1. 简短介绍自己：你是 AI 助手，玩家用 /kila 或 /ai 就能随时找你——游戏问题、查信息、或任何需要帮忙的事，都可以找我
             2. 如果有服务器信息，顺便提一下；没有就不提
             3. 控制在 120 汉字以内
             
@@ -64,7 +64,7 @@ public class GreetingPromptBuilder {
             You are the AI assistant of this Minecraft server. {player} has just joined for the first time.
             Welcome {player} in a calm, natural tone.
             Rules:
-            1. Briefly introduce what you can do: answer questions, look up items, operate the market, AFK tasks, etc. Players can find you with /kila
+            1. Briefly introduce yourself: you're the server AI assistant. Players can reach you anytime with /kila or /ai — questions, info lookup, or anything they need help with in-game
             2. If there is server info, mention it briefly; if not, skip it
             3. Keep it under 120 words
             
@@ -91,19 +91,11 @@ public class GreetingPromptBuilder {
             """;
 
     public static String getDefaultFirstLoginPrompt() {
-        return isEnglish() ? DEFAULT_FIRST_LOGIN_PROMPT_EN : DEFAULT_FIRST_LOGIN_PROMPT;
+        return !I18nService.isZh() ? DEFAULT_FIRST_LOGIN_PROMPT_EN : DEFAULT_FIRST_LOGIN_PROMPT;
     }
 
     public static String getDefaultReturningPrompt() {
-        return isEnglish() ? DEFAULT_RETURNING_PROMPT_EN : DEFAULT_RETURNING_PROMPT;
-    }
-
-    private static boolean isEnglish() {
-        try {
-            return !"zh".equals(KilacraftAI.getInstance().getConfigManager().getLanguage());
-        } catch (Exception e) {
-            return false;
-        }
+        return !I18nService.isZh() ? DEFAULT_RETURNING_PROMPT_EN : DEFAULT_RETURNING_PROMPT;
     }
 
     /**
@@ -132,7 +124,14 @@ public class GreetingPromptBuilder {
             serverInfo = "";
         }
 
-        return customPrompt.replace("{player}", playerName).replace("{server_info}", serverInfo);
+        String prompt = customPrompt.replace("{player}", playerName).replace("{server_info}", serverInfo);
+
+        // 守护推荐（仅未开启时注入）
+        String guardianSection = buildGuardianRecommendationSection(context.isGuardianEnabled());
+        if (guardianSection != null && !guardianSection.isEmpty()) {
+            prompt = prompt + "\n\n" + guardianSection;
+        }
+        return prompt;
     }
 
     /**
@@ -147,9 +146,14 @@ public class GreetingPromptBuilder {
         String summarySection = buildSummarySection(context.getSummaryStats(), context.getVanillaStats());
         String healthAlertsSection = buildHealthAlertsSection(context.getHealthAlerts(), playerName);
         String updateReminderSection = buildUpdateReminderSection(context.getUpdateReminders(), playerName);
+        String guardianSection = buildGuardianRecommendationSection(context.isGuardianEnabled());
 
         String prompt = customPrompt.replace("{player}", playerName).replace("{offline_duration}", offlineDuration).replace("{own_events_section}", ownEventsSection).replace("{friend_events_section}", friendEventsSection).replace("{online_friends_section}", onlineFriendsSection).replace("{last_location}", lastLocationSection).replace("{summary_section}", summarySection);
 
+        // 守护推荐段落拼接到末尾（最低优先级，仅未开启时）
+        if (guardianSection != null && !guardianSection.isEmpty()) {
+            prompt = prompt + "\n\n" + guardianSection;
+        }
         // 更新提醒段落前置拼接（优先级次于告警）
         if (updateReminderSection != null && !updateReminderSection.isEmpty()) {
             prompt = updateReminderSection + "\n\n" + prompt;
@@ -276,7 +280,7 @@ public class GreetingPromptBuilder {
             case PLAYER_CRAFT_ENCH_GOLDEN_APPLE ->
                     events.size() > 1 ? I18nService.tr("{}合成了 {} 个附魔金苹果", playerName, events.size()) : I18nService.tr("{}合成了附魔金苹果", playerName);
             case PLAYER_BUILD_WITHER ->
-                    events.size() > 1 ? I18nService.tr("{}召唤了 {} 次凋零", playerName, events.size()) : I18nService.tr("{}召唤了凋零", playerName);
+                    events.size() > 1 ? I18nService.tr("{}召唤了 {} 次凋灵", playerName, events.size()) : I18nService.tr("{}召唤了凋灵", playerName);
             default ->
                     I18nService.tr("{}触发了 {} 次 {}", playerName, events.size(), I18nService.tr(type.getDescription()));
         };
@@ -411,6 +415,27 @@ public class GreetingPromptBuilder {
         sb.append(I18nService.tr("转达时先说一句引导，例如「Kilacraft-AI 插件有新版本发布了，以下是详情：」，让管理员知道接下来要看的是什么。"));
         sb.append(I18nService.tr("下载地址必须单独占一行，且这一行不能有其他字符；如果下载地址后面还有内容，中间必须空一行隔开，避免游戏聊天把链接后面的文字也吞进链接里。"));
         sb.append(I18nService.tr("告知有新版本可用并给出信息即可。若管理员追问版本详情（更新内容、功能解读），可用版本查询技能回答；但不要主动承诺帮忙下载或安装——插件更新需服主自行操作。"));
+        return sb.toString();
+    }
+
+    /**
+     * 构建守护系统推荐段落（仅在玩家未开启守护时注入，LLM 自行决定是否提及）。
+     *
+     * @param guardianEnabled 玩家是否已开启守护
+     * @return 推荐段落文本；已开启时返回空字符串
+     */
+    public String buildGuardianRecommendationSection(boolean guardianEnabled) {
+        if (guardianEnabled) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(I18nService.tr("【守护系统推荐（可选提及）】\n"));
+        sb.append(I18nService.tr("该玩家尚未开启 AI 守护系统。守护开启后，AI 会在玩家非即时感知的场景下主动提醒，"));
+        sb.append(I18nService.tr("例如：背后出现威胁、背包快满、装备耐久临界等。\n"));
+        sb.append(I18nService.tr("你可以根据玩家的画像偏好和当前对话氛围，自然地提一句这个功能——"));
+        sb.append(I18nService.tr("但不要每次都提，更不要强行推销。如果玩家明显在忙别的事，或之前已多次提及被忽略，就不再提。\n"));
+        sb.append(I18nService.tr("提及方式示例：「对了，我可以帮你盯着你看不见的地方，比如背后有怪之类的。需要的话跟我说一声就好。」\n"));
+        sb.append(I18nService.tr("玩家说「开守护」或「/kila guardian on」即可开启。"));
         return sb.toString();
     }
 
@@ -728,7 +753,7 @@ public class GreetingPromptBuilder {
         if (entityType == null || entityType.isEmpty()) return I18nService.tr("未知生物");
         return switch (entityType) {
             case "ENDER_DRAGON" -> I18nService.tr("末影龙");
-            case "WITHER" -> I18nService.tr("凋零");
+            case "WITHER" -> I18nService.tr("凋灵");
             case "ELDER_GUARDIAN" -> I18nService.tr("远古守卫者");
             case "WARDEN" -> I18nService.tr("监守者");
             default -> entityType;
@@ -892,7 +917,7 @@ public class GreetingPromptBuilder {
                 sb.append("\n").append(I18nService.tr("击杀末影龙: {} 次，被末影龙击杀: {} 次", vanillaStats.dragonKills(), vanillaStats.dragonDeaths()));
             }
             if (vanillaStats.witherKills() > 0 || vanillaStats.witherDeaths() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀凋零: {} 次，被凋零击杀: {} 次", vanillaStats.witherKills(), vanillaStats.witherDeaths()));
+                sb.append("\n").append(I18nService.tr("击杀凋灵: {} 次，被凋灵击杀: {} 次", vanillaStats.witherKills(), vanillaStats.witherDeaths()));
             }
             if (vanillaStats.elderGuardianKills() > 0) {
                 sb.append("\n").append(I18nService.tr("击杀远古守卫者: {} 次", vanillaStats.elderGuardianKills()));

@@ -26,7 +26,9 @@ help:
   knowledge: " §b/kila knowledge reload §8- §fReload knowledge base"
   personalities: " §b/kila personalities reload §8- §fReload personalities"
 
-  guardian: " §b/kila guardian §7<on|off|status|silence> §8- §fAI proactive guardian"
+  guardian: " §b/kila guardian §7<on|off|status> §8- §fAI proactive guardian"
+
+  suggestion: " §b/kila suggestion §7<on|off|status> §8- §fManage conversation suggestions"
 
   profile: " §b/kila profile start §7[seconds] §8- §fStart performance profiling (30~120s)"
   profile-subcommands: " §b/kila profile stop | status §8- §fAbort profiling / View status"
@@ -118,16 +120,23 @@ commands:
   guardian-disabled-global: "§cGuardian system is globally disabled by the server owner."
   guardian-already-on: "§7Guardian is already on."
   guardian-already-off: "§7Guardian is not currently on."
-  guardian-on-success: "§aGuardian activated with §e{n} §amonitors. AI will proactively alert you."
+  guardian-on-success: "§aGuardian activated! I'll watch your blind spots — mobs behind you, inventory full, etc. §7Say 'turn off guardian' to stop. §e{n} §amonitors active."
   guardian-off: "§7Guardian turned off."
-  guardian-status: "§6[Kilacraft-AI] §fGuardian §7| State: §e{state} §7| Active players: §e{n}"
+  guardian-status: "§6[Kilacraft-AI] §fGuardian §7| State: §e{state} §7| Monitors: §e{n}"
   guardian-state-on: "§aOn"
   guardian-state-off: "§7Off"
-  guardian-usage: "§7Usage: /kila guardian <§eon§7|§coff§7|§estatus§7|§esilence <category>§7|§eunsilence <category>§7>"
-  guardian-silence-usage: "§7Usage: /kila guardian silence <DANGER|RESOURCE|GOAL|COMPANION|GENERAL>"
-  guardian-silenced: "§7Silenced §e{cat} §7guardian alerts."
-  guardian-unsilenced: "§7Restored §e{cat} §7guardian alerts."
-  guardian-invalid-category: "§cInvalid category. Options: DANGER/RESOURCE/GOAL/COMPANION/GENERAL"
+  guardian-usage: "§7Usage: /kila guardian <§eon§7|§coff§7|§estatus§7>"
+  guardian-monitor-line: "§7  - §e{name}"
+
+  # ==================== /kila suggestion Conversation suggestion toggle ====================
+  suggestion-not-init: "§cConversation suggestion system is not initialized!"
+  suggestion-already-on: "§7Conversation suggestions are already enabled."
+  suggestion-already-off: "§7Conversation suggestions are already disabled."
+  suggestion-on: "§aConversation suggestions enabled. AI will suggest questions you may want to ask after replying."
+  suggestion-off: "§aConversation suggestions disabled."
+  suggestion-status-on: "§aSuggestions: On §7(/kila suggestion off to disable)"
+  suggestion-status-off: "§cSuggestions: Off §7(/kila suggestion on to enable)"
+  suggestion-usage: " §b/kila suggestion §7<on|off|status> §8- §fManage conversation suggestions"
 
   # ==================== /kila notify test Notification channel test ====================
   notify-no-permission: "§cYou don't have permission to use the notification test feature."
@@ -186,7 +195,8 @@ commands:
   doctor-check-command-skill: "Command Skills"
   doctor-check-pending-resume: "Pending Resume"
   doctor-check-isolation: "Player Data Isolation"
-  doctor-check-guardian: "Health Guardian"
+  doctor-check-guardian-system: "Guardian System"
+  doctor-check-health-guardian: "Health Monitor"
   doctor-check-notify: "External Notifications"
   doctor-check-thinking: "Reasoning Model"
   doctor-check-greeting: "Login Greeting"
@@ -215,6 +225,14 @@ commands:
   # var: {scope}=entry scope (one of the four above)
   doctor-agent-on: "Enabled ({scope})"
   doctor-llm-no-provider: "No LLM provider configured"
+  # Suggestion / Watch system / Web search & fetch
+  doctor-check-suggestion: "Suggestions"
+  doctor-check-watch: "Watch System"
+  doctor-check-web-search: "Web Search"
+  doctor-check-web-fetch: "Web Fetch"
+  # var: {provider}=configured search provider(s), comma-separated if multiple
+  doctor-search-on: "Enabled ({provider})"
+  doctor-search-no-provider: "Enabled, but no search provider configured"
 
   # ==================== /kila about Version & update check ====================
   about-no-permission: "§cYou do not have permission to use this command."

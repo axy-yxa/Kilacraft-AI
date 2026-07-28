@@ -1,0 +1,17 @@
+# WebFetchSkill 网页抓取技能配置
+# 此文件由插件自动生成，可根据需要修改
+#
+# 此描述会发送给LLM，帮助其理解何时调用此技能
+description: '网页抓取——获取指定网页的内容并提取正文。当玩家提供网页链接并希望了解其内容时使用。零配置无需 API Key，支持 SSRF 安全防护。抓取后的内容会由 AI 自动总结。'
+
+# 动作描述（Map 格式，key=动作名称，value=动作描述）
+# 每个动作的描述会发送给LLM，帮助其选择正确的action并提取参数
+action_descriptions:
+  fetch: '抓取网页内容。url 为网页地址（必填，需完整 http/https），question 为用户对该页面的具体问题（可选）。返回的 data 中包含 url（网页地址）、title（页面标题）、content（提取的正文文本）、cached（是否来自缓存）、question（用户问题，若提供）字段，可供后续步骤引用。'
+
+# 额外提示信息（用于指导 LLM 正确使用技能）
+hints:
+  - '用户说"帮我看看这个链接 https://xxx.com" → url="https://xxx.com"'
+  - '用户说"这个网页说了什么 https://xxx.com 教程在哪" → url="https://xxx.com", question="教程在哪"'
+  - 'url 必须是完整的 http:// 或 https:// 开头的地址'
+  - '若需搜索而非抓取指定链接，应使用 web_search 技能'

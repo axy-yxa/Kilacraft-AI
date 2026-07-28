@@ -373,7 +373,9 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 UUID inFlightPlayerId = responseHandler != null ? responseHandler.getPlayerId() : null;
                 registerInFlight(inFlightPlayerId, httpCall);
                 // 全局预算记账（所有 LLM 入口的唯一咽喉）：无论调用方是谁，每次实际调 LLM 都记一次，
-                // 使预算层的 per-player 计数覆盖意图识别/画像/问候/守护/玩家主动等全部路径。
+                // 使预算层的 per-player 计数覆盖画像/问候/守护/玩家主动等全部路径。
+                // 意图识别 handler 的 getPlayerId 返回 null，不计入——玩家感知的是"问一次答一次"，
+                // 内部步骤不应消耗其预算。
                 if (inFlightPlayerId != null) {
                     var budget = plugin.getLlmOutputCoordinator();
                     if (budget != null) {
@@ -913,18 +915,18 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
                 String errorBody = response.body() != null ? response.body().string() : "unknown";
-                throw new LLMException("推理模型请求失败: HTTP " + response.code() + " - " + errorBody);
+                throw new LLMException(I18nService.tr("推理模型请求失败: HTTP {}", response.code()));
             }
 
             ResponseBody body = response.body();
             if (body == null) {
-                throw new LLMException("推理模型响应为空");
+                throw new LLMException(I18nService.tr("推理模型响应为空"));
             }
 
             String responseBody = body.string();
             return parseThinkingModelResponse(responseBody);
         } catch (IOException e) {
-            throw new LLMException("推理模型请求异常: " + e.getMessage(), e);
+            throw new LLMException(I18nService.tr("推理模型请求异常: {}", e.getMessage()), e);
         }
     }
 
@@ -935,18 +937,18 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         try {
             JsonObject json = gson.fromJson(responseBody, JsonObject.class);
             if (json == null) {
-                throw new LLMException("响应 JSON 为空");
+                throw new LLMException(I18nService.tr("响应 JSON 为空"));
             }
 
             JsonArray choices = json.getAsJsonArray("choices");
             if (choices == null || choices.isEmpty()) {
-                throw new LLMException("响应中无 choices");
+                throw new LLMException(I18nService.tr("响应中无 choices"));
             }
 
             JsonObject choice = choices.get(0).getAsJsonObject();
             JsonObject message = choice.getAsJsonObject("message");
             if (message == null) {
-                throw new LLMException("响应中无 message");
+                throw new LLMException(I18nService.tr("响应中无 message"));
             }
 
             // 提取 content
@@ -975,7 +977,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         } catch (LLMException e) {
             throw e;
         } catch (Exception e) {
-            throw new LLMException("解析推理模型响应失败: " + e.getMessage(), e);
+            throw new LLMException(I18nService.tr("解析推理模型响应失败: {}", e.getMessage()), e);
         }
     }
 

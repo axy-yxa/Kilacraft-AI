@@ -78,6 +78,13 @@ public class SkillIntentRecognizer {
                     sb.append("    - ").append(hint).append("\n");
                 }
             }
+
+            if (skill instanceof DynamicContextProvider dcp) {
+                String dynCtx = dcp.getDynamicContext(caller);
+                if (dynCtx != null && !dynCtx.isBlank()) {
+                    sb.append(dynCtx).append("\n");
+                }
+            }
         }
 
         return sb.toString();
@@ -321,7 +328,7 @@ public class SkillIntentRecognizer {
             return CompletableFuture.completedFuture(null);
         }
         // 关键词短路：明显的确认/取消词直接分类，免 LLM 调用
-        PendingAction keywordMatch = classifyByKeyword(userInput, configManager == null || "zh".equals(configManager.getLanguage()));
+        PendingAction keywordMatch = classifyByKeyword(userInput, I18nService.isZh());
         if (keywordMatch != null) {
             PluginLoggerUtil.debug("意图识别", "待确认续体关键词短路：{} → {}", userInput, keywordMatch.getType());
             return CompletableFuture.completedFuture(keywordMatch);

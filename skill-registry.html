@@ -202,13 +202,21 @@
         }
         
         /**
-         * Merge Skill data reported from multiple servers (accumulate serverCount)
+         * Merge Skill data reported from multiple servers (accumulate serverCount).
+         *
+         * Merge key: skill.name.
+         * When the same skill name is reported by different servers with different
+         * sourcePlugin values, KilacraftAI/Kilacraft-AI always wins for the identity
+         * fields (type, sourcePlugin). Non-official entries only contribute to
+         * serverCount. This prevents a renamed fork from hijacking the registry
+         * display just by being the first entry in the API response.
          */
         function parseAndMergeSkills(rawSkills) {
             const skillMap = new Map();
 
             for (const skill of rawSkills) {
-                if (!skillMap.has(skill.name)) {
+                const existing = skillMap.get(skill.name);
+                if (!existing) {
                     skillMap.set(skill.name, {
                         name: skill.name,
                         type: skill.type,
@@ -216,7 +224,18 @@
                         serverCount: skill.serverCount
                     });
                 } else {
-                    skillMap.get(skill.name).serverCount += skill.serverCount;
+                    // Accumulate server count regardless of source
+                    existing.serverCount += skill.serverCount;
+
+                    // If the existing entry is NOT official but the incoming one IS,
+                    // promote the identity fields to the official source.
+                    const isOfficial = function (sp) {
+                        return sp === 'KilacraftAI' || sp === 'Kilacraft-AI';
+                    };
+                    if (!isOfficial(existing.sourcePlugin) && isOfficial(skill.sourcePlugin)) {
+                        existing.type = skill.type;
+                        existing.sourcePlugin = skill.sourcePlugin;
+                    }
                 }
             }
 

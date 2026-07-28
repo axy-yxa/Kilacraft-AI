@@ -14,6 +14,7 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.skills.framework.task.LLMBudgetManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -132,6 +133,16 @@ public final class PluginsCommand {
     }
 
     private static void processLLM(KilacraftAI plugin, LanguageManager lm, AIRequestValidatorUtil validator, String message, String targetPlayerName, UUID targetPlayerId, Deque<ConversationManager.Message> pluginHistory, AIResponseHandler handler, String personalityPrompt, String finalPersonality, String finalCallbackCommand, CommandSender sender) {
+        // 全局预算预检：被动调用在熔断窗口内被拒，回调不执行。
+        // 第三方插件代玩家发起的调用，玩家整体调用过多时应降级，避免打爆外部 LLM 配额。
+        if (plugin.getLlmOutputCoordinator() != null) {
+            LLMBudgetManager budget = plugin.getLlmOutputCoordinator().getBudgetManager();
+            if (!budget.tryAcquire(targetPlayerId, LLMBudgetManager.Priority.PASSIVE)) {
+                PluginLoggerUtil.warn("命令", I18nService.tr("LLM 预算熔断，跳过插件命令调用（玩家 {}）", targetPlayerName));
+                return;
+            }
+        }
+
         plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt, true, true, false).thenAccept(fullResponse -> {
             if (LLMResponseUtil.isErrorResponse(fullResponse)) return;
 

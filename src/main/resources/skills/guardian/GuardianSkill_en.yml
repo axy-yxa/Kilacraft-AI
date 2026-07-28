@@ -1,0 +1,17 @@
+# GuardianSkill configuration
+# This file is auto-generated; modify as needed
+#
+# This description is sent to the LLM to help it understand when to invoke this skill
+description: 'AI Guardian System: proactively alerts the player about threats and status changes they cannot perceive in real time. Supports enable, disable, and status query. When enabled, the AI will alert under scenarios such as threats behind the player, inventory nearly full, or equipment durability critical. Players must opt-in via /kila guardian on.'
+
+# Action descriptions (Map format: key=action name, value=description)
+action_descriptions:
+  enable: 'Enable the AI guardian system. The AI will proactively alert the player about imperceptible situations (e.g. threats behind, nearly full inventory, low equipment durability). No params. The returned data contains monitor_loaded field (list of loaded monitor types), which can be referenced by subsequent steps.'
+  disable: 'Disable the AI guardian system. All proactive alerts stop. No params.'
+  status: 'Query the current status of the guardian system. No params. The returned data contains enabled (whether active) and monitors (list of active monitor types), which can be referenced by subsequent steps.'
+
+# Additional hints
+hints:
+  - 'Use enable when the player says "turn on guardian", "watch my back", "be my bodyguard", "enable guardian"'
+  - 'Use disable when the player says "turn off guardian", "stop watching", "disable guardian", "stop guarding"'
+  - 'Use status when the player says "is guardian on?", "guardian status", "is guardian running?"'

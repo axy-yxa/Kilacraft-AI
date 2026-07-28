@@ -100,7 +100,7 @@ public class SkillConfigManager {
             return;
         }
 
-        String lang = plugin.getConfigManager().getLanguage();
+        String lang = plugin.getI18nService().getLanguage();
         boolean isZh = "zh".equals(lang);
 
         // 确保当前语言版本的配置文件已从 JAR 拷贝到磁盘（解决语言切换后文件缺失问题）
@@ -196,7 +196,7 @@ public class SkillConfigManager {
         }
 
         // 根据当前语言选择 apis.yml 或 apis_en.yml
-        String lang = plugin.getConfigManager().getLanguage();
+        String lang = plugin.getI18nService().getLanguage();
         String apisResourceName = "zh".equals(lang) ? "apis.yml" : "apis_" + lang + ".yml";
         ConfigResourceUtil.saveDefaultResourceToDir(plugin, "skills/bukkit/" + apisResourceName, bukkitFolder);
 
@@ -300,7 +300,7 @@ public class SkillConfigManager {
      * 保存默认技能配置文件 (如果不存在)
      */
     public void saveDefaultSkillConfig(String packageName, String skillName) {
-        String lang = plugin.getConfigManager().getLanguage();
+        String lang = plugin.getI18nService().getLanguage();
         String fileName = "zh".equals(lang) ? skillName + ".yml" : skillName + "_" + lang + ".yml";
         String resourcePath = "skills/" + packageName + "/" + fileName;
         ConfigResourceUtil.saveDefaultResource(plugin, resourcePath);
@@ -323,7 +323,7 @@ public class SkillConfigManager {
      * @return 加载后的配置，失败返回 null
      */
     public SkillConfig loadSingleSkillConfig(String packageName, String skillName) {
-        String lang = plugin.getConfigManager().getLanguage();
+        String lang = plugin.getI18nService().getLanguage();
         String fileName = "zh".equals(lang) ? skillName + ".yml" : skillName + "_" + lang + ".yml";
         File configFile = new File(skillsFolder, packageName + "/" + fileName);
         if (!configFile.exists()) {

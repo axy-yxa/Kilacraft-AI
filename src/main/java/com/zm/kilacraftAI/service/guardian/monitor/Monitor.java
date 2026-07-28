@@ -1,309 +1,228 @@
 package com.zm.kilacraftAI.service.guardian.monitor;
 
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.service.guardian.AlertCategory;
-import com.zm.kilacraftAI.service.guardian.AlertPriority;
 import com.zm.kilacraftAI.service.guardian.GuardianContext;
-import com.zm.kilacraftAI.service.guardian.action.GuardianAction;
-import com.zm.kilacraftAI.service.guardian.action.Outcome;
-import com.zm.kilacraftAI.service.guardian.predicate.BlockPos;
+import com.zm.kilacraftAI.service.guardian.action.GuardianLlmAction;
 import com.zm.kilacraftAI.service.guardian.predicate.PlayerState;
 import com.zm.kilacraftAI.service.guardian.predicate.Predicate;
+import lombok.Getter;
+import org.bukkit.event.Event;
 
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * 原子监听单元：触发源 + 触发谓词 + 动作 + 策略 + 终止谓词。
- *
- * <p>{@link #eval} 按策略决定是否开火 → 执行动作 → 按统一 {@link Outcome} 迁移状态机。
- * Monitor 只认 Outcome，动作层（含 skill）的失败语义经 Outcome 归一化。</p>
- *
- * <p>线程模型：同一 monitor 的 eval 由 {@link GuardianEngine} 的 per-player lock 串行化，
- * 内部状态字段无需加锁；{@code state} 等用 volatile 保证 lifecycle 线程（markPaused/resume）可见。</p>
+ * 常驻内置提醒单元。一个 monitor = 触发源 + 事后过滤谓词 + LLM 发声 + 冷却。
  *
  * @author Zm_Mmm
  * @since 2026-07-01
  */
 public final class Monitor {
 
-    private static final String LOG_MODULE = "守护系统";
-    private static final int DEFAULT_MAX_RETRIES = 3;
-    private static final long DEFAULT_COOLDOWN_MS = 5_000L;
-    private static final long BACKOFF_BASE_MS = 2_000L;
-    private static final long BACKOFF_CAP_MS = 60_000L;
-
     private final String id;
-    private final TriggerSource source;
-    private final Predicate triggerPredicate;   // null = 无条件（事件/定时源，已由源过滤）
-    private final GuardianAction action;
-    private final Policy policy;
-    private final Predicate goalPredicate;      // null = 无终止目标
-    private final int maxRetries;
+    private final String displayName;
+    /**
+     * 轮询 cadence（ticks）；事件型为 0。
+     */
+    private final long cadenceTicks;
+    /**
+     * 事件型的事件类型；轮询型为 null。
+     */
+    private final Class<? extends Event> eventType;
+    /**
+     * 事件型的过滤器（命中才提交信号）；轮询型为 null。
+     */
+    private final java.util.function.Predicate<Event> eventFilter;
+    /**
+     * 事后过滤谓词；null = 无条件触发（事件 filter 即门控）。
+     */
+    private final Predicate triggerPredicate;
+    private final GuardianLlmAction action;
     private final long cooldownMillis;
-    private final AlertCategory category;
-    private final AlertPriority priority;
 
-    private volatile MonitorState state = MonitorState.RUNNING;
-    private volatile boolean previousTrigger;    // WATCH_EDGE 边沿检测：上一态（跨 IO 线程可见）
-    private volatile boolean hasFired;           // 是否已开过火（首火不受冷却约束）
-    private volatile int retryCount;
-    private volatile long lastEvalMillis;
-    private volatile long nextRetryMillis;      // BLOCKED 退避到点
-    private volatile long lastFireMillis;
+    @Getter
+    private volatile boolean paused;             // 下线挂起（上线恢复）
+    private volatile boolean previousTrigger;    // 轮询边沿检测：上一态
+    private volatile boolean hasFired;           // 是否已触发过（首触发不受冷却约束）
+    private volatile long lastEvalMillis;        // 上次 eval 时刻（cadence 门控）
+    private volatile long lastFireMillis;        // 上次触发时刻（冷却门控）
 
-    public Monitor(String id, TriggerSource source, Predicate triggerPredicate,
-                   GuardianAction action, Policy policy, Predicate goalPredicate) {
-        this(id, source, triggerPredicate, action, policy, goalPredicate,
-                DEFAULT_MAX_RETRIES, DEFAULT_COOLDOWN_MS, AlertCategory.GENERAL, AlertPriority.NORMAL);
-    }
-
-    public Monitor(String id, TriggerSource source, Predicate triggerPredicate,
-                   GuardianAction action, Policy policy, Predicate goalPredicate,
-                   int maxRetries, long cooldownMillis) {
-        this(id, source, triggerPredicate, action, policy, goalPredicate,
-                maxRetries, cooldownMillis, AlertCategory.GENERAL, AlertPriority.NORMAL);
-    }
-
-    public Monitor(String id, TriggerSource source, Predicate triggerPredicate,
-                   GuardianAction action, Policy policy, Predicate goalPredicate,
-                   int maxRetries, long cooldownMillis,
-                   AlertCategory category, AlertPriority priority) {
+    private Monitor(String id, String displayName, long cadenceTicks, Class<? extends Event> eventType, java.util.function.Predicate<Event> eventFilter, Predicate triggerPredicate, GuardianLlmAction action, long cooldownMillis) {
         this.id = Objects.requireNonNull(id, "id");
-        this.source = Objects.requireNonNull(source, "source");
-        this.action = Objects.requireNonNull(action, "action");
-        this.policy = Objects.requireNonNull(policy, "policy");
-        this.triggerPredicate = triggerPredicate;
-        this.goalPredicate = goalPredicate;
-        if (policy == Policy.UNTIL_GOAL && goalPredicate == null) {
-            throw new IllegalArgumentException("UNTIL_GOAL 策略必须提供 goalPredicate: " + id);
-        }
-        if (maxRetries < 0) {
-            throw new IllegalArgumentException("maxRetries 不得为负: " + maxRetries);
+        this.displayName = (displayName == null || displayName.isBlank()) ? id : displayName;
+        if (cadenceTicks < 0) {
+            throw new IllegalArgumentException(I18nService.tr("cadenceTicks 不得为负: {}", cadenceTicks));
         }
         if (cooldownMillis < 0) {
-            throw new IllegalArgumentException("cooldownMillis 不得为负: " + cooldownMillis);
+            throw new IllegalArgumentException(I18nService.tr("cooldownMillis 不得为负: {}", cooldownMillis));
         }
-        this.maxRetries = maxRetries;
+        this.cadenceTicks = cadenceTicks;
+        this.eventType = eventType;
+        this.eventFilter = eventFilter;
+        this.triggerPredicate = triggerPredicate;
+        this.action = Objects.requireNonNull(action, "action");
         this.cooldownMillis = cooldownMillis;
-        this.category = Objects.requireNonNull(category, "category");
-        this.priority = Objects.requireNonNull(priority, "priority");
     }
 
     /**
-     * 求值一轮。由引擎在 polling cadence 到点 / 事件信号 / 定时到点时调用。
+     * 轮询型求值：cadence 门控 + 边沿/每轮判定 + 冷却检查。仅引擎对轮询型 monitor 调用。
      *
-     * @return 若本轮流过动作则含 Outcome；否则空（未到点 / 谓词未满足 / 冷却中 / 终态）
+     * @return 若本轮应触发则含回填 triggerValue 的 ctx；否则空（未到点/未满足/冷却中/挂起）
      */
-    public Optional<Outcome> eval(PlayerState state, GuardianContext ctx) {
+    public Optional<GuardianContext> eval(PlayerState state, GuardianContext ctx) {
         Objects.requireNonNull(state, "state");
         Objects.requireNonNull(ctx, "ctx");
-        if (this.state.isTerminal() || this.state == MonitorState.PAUSED) {
+        if (paused) {
             return Optional.empty();
         }
-        // BLOCKED 退避未到点
-        if (this.state == MonitorState.BLOCKED && ctx.nowMillis() < nextRetryMillis) {
+        long now = ctx.nowMillis();
+        long cadenceMs = cadenceTicks * 50L;
+        if (now - lastEvalMillis < cadenceMs) {
             return Optional.empty();
         }
-        // 到点 → RUNNING（WAITING/BLOCKED 都先回 RUNNING 再判定）
-        if (this.state != MonitorState.RUNNING) {
-            transitionTo(MonitorState.RUNNING);
-        }
-        this.lastEvalMillis = ctx.nowMillis();
+        lastEvalMillis = now;
 
-        // UNTIL_GOAL：先查目标，已达成 → DONE（不开火）
-        if (policy == Policy.UNTIL_GOAL && goalPredicate.test(state, ctx)) {
-            transitionTo(MonitorState.DONE);
-            return Optional.empty();
-        }
-
-        if (!decideFire(state, ctx)) {
-            transitionTo(MonitorState.WAITING);
-            return Optional.empty();
+        boolean current = triggerPredicate == null || triggerPredicate.test(state, ctx);
+        // 有 triggerPredicate → 边沿（假→真才触发）；无 → 每轮到点即触发
+        if (triggerPredicate != null) {
+            boolean edge = !previousTrigger && current;
+            previousTrigger = current;
+            if (!edge) {
+                return Optional.empty();
+            }
         }
 
-        // 自身冷却去抖；首火不受约束
-        if (hasFired && ctx.nowMillis() - lastFireMillis < cooldownMillis) {
-            transitionTo(MonitorState.WAITING);
+        if (hasFired && now - lastFireMillis < cooldownMillis) {
             return Optional.empty();
         }
-
         hasFired = true;
-        lastFireMillis = ctx.nowMillis();
-        Outcome outcome = action.perform(ctx).join();
-        applyOutcome(outcome, ctx);
-        return Optional.of(outcome);
-    }
-
-    /** 按策略决定本轮是否开火。 */
-    private boolean decideFire(PlayerState state, GuardianContext ctx) {
-        if (policy == Policy.UNTIL_GOAL) {
-            return true; // 目标已在 eval 前检查
-        }
-        boolean current = (triggerPredicate != null) ? triggerPredicate.test(state, ctx) : true;
-        return switch (policy) {
-            case WATCH_EDGE -> {
-                boolean edge = !previousTrigger && current;
-                previousTrigger = current;
-                yield edge;
-            }
-            case WHILE_TRUE -> {
-                previousTrigger = current;
-                yield current;
-            }
-            case RECURRING, ONE_SHOT -> true;
-            default -> false;
-        };
-    }
-
-    /** Outcome → 状态迁移。 */
-    private void applyOutcome(Outcome outcome, GuardianContext ctx) {
-        switch (outcome) {
-            case SUCCESS -> {
-                retryCount = 0;
-                transitionTo(policy.isOneShot() ? MonitorState.DONE : MonitorState.WAITING);
-            }
-            case IN_PROGRESS -> transitionTo(MonitorState.WAITING);
-            case NEED_INFO -> transitionTo(MonitorState.WAITING); // 暂停 re-arm；PendingResumeManager 接管续体
-            case TRANSIENT_FAIL -> {
-                retryCount++;
-                if (retryCount > maxRetries) {
-                    transitionTo(MonitorState.FAILED);
-                } else {
-                    nextRetryMillis = ctx.nowMillis() + backoffMillis(retryCount);
-                    transitionTo(MonitorState.BLOCKED);
-                }
-            }
-            case PERMANENT_FAIL -> transitionTo(MonitorState.FAILED);
-        }
-    }
-
-    /** 指数退避：2s, 4s, 8s ... cap 60s。 */
-    private static long backoffMillis(int retry) {
-        long ms = BACKOFF_BASE_MS << Math.min(retry - 1, 5);
-        return Math.min(ms, BACKOFF_CAP_MS);
+        lastFireMillis = now;
+        return Optional.of(enrichTriggerValue(ctx));
     }
 
     /**
-     * 原子化状态迁移：synchronized 保证 check-then-set 不被 lifecycle（markPaused/resume/cancel）
-     * 跨线程打断——否则 RUNNING→WAITING 与 RUNNING→CANCELLED 并发会 last-writer-wins，取消信号丢失。
-     * 不在动作执行段持锁（eval 调用本方法后才 perform），lifecycle 不会被动作阻塞。
+     * 异步执行 LLM 发声（不阻塞调用线程）。返回 true=已发声，false=本轮跳过
+     * （玩家离线/守护被关/预算熔断/LLM 失败）。调用方应在锁外调用。
      */
-    private synchronized void transitionTo(MonitorState next) {
-        if (next == state) {
-            return;
+    public CompletableFuture<Boolean> executeAction(GuardianContext ctx) {
+        return action.perform(ctx);
+    }
+
+    /**
+     * 从触发谓词的 lastValue 提取数值，回填到 ctx 供 LLM 消息渲染。
+     * 谓词在 eval 内已执行 test（含 recordValue），此处紧邻读取。
+     */
+    private GuardianContext enrichTriggerValue(GuardianContext ctx) {
+        if (triggerPredicate == null) {
+            return ctx;
         }
-        if (!state.canTransitionTo(next)) {
-            PluginLoggerUtil.warn(LOG_MODULE, I18nService.tr("非法状态迁移: {}→{}（monitor={}）", state, next, id));
-            return;
-        }
-        state = next;
+        Optional<Double> tv = triggerPredicate.lastValue();
+        return tv.map(aDouble -> GuardianContext.withTriggerValue(ctx, aDouble)).orElse(ctx);
     }
 
     public String id() {
         return id;
     }
 
-    public MonitorState state() {
-        return state;
+    /**
+     * 玩家可见的人类可读名。
+     */
+    public String displayName() {
+        return displayName;
     }
 
-    public Policy policy() {
-        return policy;
+    public boolean isPolling() {
+        return eventType == null;
     }
 
-    public TriggerSource source() {
-        return source;
+    /**
+     * 是否带事后过滤谓词（事件型用它决定是否需要快照求值）。
+     */
+    public boolean hasTriggerPredicate() {
+        return triggerPredicate != null;
     }
 
-    public AlertCategory category() {
-        return category;
+    public long cadenceTicks() {
+        return cadenceTicks;
     }
 
-    public AlertPriority priority() {
-        return priority;
+    public Class<? extends Event> eventType() {
+        return eventType;
+    }
+
+    public java.util.function.Predicate<Event> eventFilter() {
+        return eventFilter;
     }
 
     public long lastEvalMillis() {
         return lastEvalMillis;
     }
 
-    /** 是否为轮询型（引擎心跳按 cadence 调度）。 */
-    public boolean isPolling() {
-        return source instanceof PollingTriggerSource;
-    }
-
-    /** 轮询 cadence（ticks）；非轮询返回 0。 */
-    public long cadenceTicks() {
-        return source instanceof PollingTriggerSource p ? p.cadenceTicks() : 0L;
-    }
-
-    /** 触发谓词 + 目标谓词需要快照额外读取的熔炉位置并集（引擎单快照策略用，一次 snapshot 喂所有谓词）。 */
-    public Set<BlockPos> requestedFurnacePositions() {
-        Set<BlockPos> all = new HashSet<>();
-        if (triggerPredicate != null) {
-            all.addAll(triggerPredicate.requestedFurnacePositions());
-        }
-        if (goalPredicate != null) {
-            all.addAll(goalPredicate.requestedFurnacePositions());
-        }
-        return all;
-    }
-
-    /** 引擎在下线/取消时调用。 */
+    /**
+     * 引擎在下线时调用。
+     */
     public void markPaused() {
-        transitionTo(MonitorState.PAUSED);
+        paused = true;
     }
 
-    /** 引擎在上线恢复时调用。 */
+    /**
+     * 引擎在上线恢复时调用：解除挂起 + 重置边沿状态（避免恢复后误触发假→真边沿）。
+     */
     public void resume() {
-        if (state == MonitorState.PAUSED) {
+        if (paused) {
             previousTrigger = false;
-            transitionTo(MonitorState.RUNNING);
+            paused = false;
         }
     }
 
-    public void cancel() {
-        transitionTo(MonitorState.CANCELLED);
+    /**
+     * 全配置构造器。触发方式二选一：polling(cadence) 或 event(type+filter)。
+     */
+    public static Builder polling(String id, GuardianLlmAction action, long cadenceTicks) {
+        return new Builder(id, action, cadenceTicks, null, null);
     }
 
-    /** 全配置构造器。必备项入参，其余链式可选。 */
-    public static Builder builder(String id, TriggerSource source, GuardianAction action, Policy policy) {
-        return new Builder(id, source, action, policy);
+    public static <T extends Event> Builder event(String id, GuardianLlmAction action, Class<T> eventType, java.util.function.Predicate<T> filter) {
+        return new Builder(id, action, 0L, eventType, filter);
     }
 
     public static final class Builder {
         private final String id;
-        private final TriggerSource source;
-        private final GuardianAction action;
-        private final Policy policy;
+        private final GuardianLlmAction action;
+        private final long cadenceTicks;
+        private final Class<? extends Event> eventType;
+        private final java.util.function.Predicate<Event> eventFilter;
+        private String displayName;
         private Predicate triggerPredicate;
-        private Predicate goalPredicate;
-        private int maxRetries = DEFAULT_MAX_RETRIES;
-        private long cooldownMillis = DEFAULT_COOLDOWN_MS;
-        private AlertCategory category = AlertCategory.GENERAL;
-        private AlertPriority priority = AlertPriority.NORMAL;
+        private long cooldownMillis = 5_000L;
 
-        private Builder(String id, TriggerSource source, GuardianAction action, Policy policy) {
+        @SuppressWarnings("unchecked")
+        <T extends Event> Builder(String id, GuardianLlmAction action, long cadenceTicks, Class<T> eventType, java.util.function.Predicate<T> filter) {
             this.id = id;
-            this.source = source;
             this.action = action;
-            this.policy = policy;
+            this.cadenceTicks = cadenceTicks;
+            this.eventType = eventType;
+            this.eventFilter = (java.util.function.Predicate<Event>) filter;
         }
 
-        public Builder trigger(Predicate triggerPredicate) { this.triggerPredicate = triggerPredicate; return this; }
-        public Builder goal(Predicate goalPredicate) { this.goalPredicate = goalPredicate; return this; }
-        public Builder maxRetries(int maxRetries) { this.maxRetries = maxRetries; return this; }
-        public Builder cooldownMillis(long cooldownMillis) { this.cooldownMillis = cooldownMillis; return this; }
-        public Builder category(AlertCategory category) { this.category = category; return this; }
-        public Builder priority(AlertPriority priority) { this.priority = priority; return this; }
+        public Builder displayName(String displayName) {
+            this.displayName = displayName;
+            return this;
+        }
+
+        public Builder trigger(Predicate triggerPredicate) {
+            this.triggerPredicate = triggerPredicate;
+            return this;
+        }
+
+        public Builder cooldownMillis(long cooldownMillis) {
+            this.cooldownMillis = cooldownMillis;
+            return this;
+        }
 
         public Monitor build() {
-            return new Monitor(id, source, triggerPredicate, action, policy, goalPredicate,
-                    maxRetries, cooldownMillis, category, priority);
+            return new Monitor(id, displayName, cadenceTicks, eventType, eventFilter, triggerPredicate, action, cooldownMillis);
         }
     }
 }

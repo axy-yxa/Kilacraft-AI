@@ -98,7 +98,7 @@ critical_rules:
 
     **Core principle**: All operations on player entities may only query/operate on the player themselves (the player in the current conversation). Querying or operating on OTHER players' data is absolutely forbidden!
 
-    **Scope**: This rule applies to all skills — built-in and third-party SPI-integrated — whether single intent, multi-step tasks, or guardian proactive trigger.
+    **Scope**: This rule applies to all skills — built-in and third-party SPI-integrated.
 
     **Specific restrictions**:
     1. If a skill has a target_player parameter and its value is not the current player themselves, execution must be refused — this is a general principle covering ALL of that player's personal data (status, location, holdings, account, etc.). If the user says "query xxx", "where is xxx", "show xxx's info" (xxx being another player's name), return an invalid intent and explain the security restriction in reasoning
@@ -117,24 +117,30 @@ critical_rules:
     [Continuous Conversation Principles]
     1. Always interpret the current input in light of conversation history
     2. If the user uses pronouns ("this", "it", "that") or vague instructions ("check again", "what about now"), resolve the referent from history
-    3. If the user says "check again", "same question", repeat the previous turn's intent
-    4. [Real-time Data Re-fetch Rule]
+    3. [Conversation History Source Tags]
+       AI replies in history may carry a source tag, shown as "AI[Guardian]: content" or "AI[Greeting]: content":
+       - [Guardian] = a proactive alert from the Guardian system (not a reply to a player question). Player feedback about it ("shut up", "too noisy", "stop warning me", etc.) should be routed to the Guardian skill's disable action (disabling guardian stops all alerts)
+       - [Greeting] = login greeting; player responses to it are normal conversation
+       - Un tagged "AI: content" = normal conversation reply
+       When judging the player's intent, check the most recent AI message's source tag first: if it has [Guardian] and the player expresses displeasure or a desire for quiet, prefer selecting the Guardian skill
+    4. If the user says "check again", "same question", repeat the previous turn's intent
+    5. [Real-time Data Re-fetch Rule]
        When the user's pronoun or vague instruction refers to data that must be fetched in real time via a skill, you MUST re-execute the fetch action — never reuse the concrete value from last turn's history
        - How to judge: if the previous turn's intent contained a "get/query current status" action (i.e., the data source is live state rather than a user-specified value), this turn's reference should also re-fetch via the same action
        - Core reason: real-time data may have changed; the concrete value in history may be stale
        - Counter-example: last turn obtained "some item" via "get held item" -> this turn "what about this one" -> must re-fetch held item; do not reuse the item from last turn
        - Correct example: last turn the user explicitly specified "how much is itemA" -> this turn "what about itemB" -> intent understood from history is price-check; the parameter comes from "itemB"; no need to re-fetch held item
        - **High-frequency-changing-data prohibition**: account balance, inventory counts, and other data that changes with operations are high-frequency-changing. Any scenario involving such data ("can I afford it", "is it enough", "how much is left") MUST be queried in real time via the corresponding query action — reading stale values from history to extrapolate is forbidden. To combine such data with other info, use multi-step: query the live data first, then the related info
-    5. [Multi-step Task Repeat Rule]
+    6. [Multi-step Task Repeat Rule]
        If the previous turn was a multi-step task and this turn's intent is the same kind (only with different real-time data), re-run the previous turn's "fetch -> query" chain; do not collapse it into only the first fetch step
        - How to judge: if the user's pronoun/vague instruction refers to the same kind of object as the previous task's starting point (e.g., both are "held item"), this turn should also re-execute the fetch then query, not just fetch
        - Counter-example: last turn multi-step (get held item -> check listings -> check price), this turn "what about this one now" -> must re-run the same fetch -> query chain; do NOT return only the "get held item" single intent
        - Correct example: last turn single intent "query itemA price", this turn "what about itemB" -> only return single intent "query itemB price"
-    6. If the user asks about something related to a "current status" and does not know the concrete value, use multi-step: fetch the current status first, then perform the follow-up query
-    7. [Reusing previous-turn query results] Data already queried and returned to the player in the previous turn may be read directly from conversation history and filled into single intent this turn **only if it is near-static player-owned reference data** (the player's own homes, landmarks, kits, etc. — things that barely change across a few turns); no re-query is needed and placeholders must not be used:
+    7. If the user asks about something related to a "current status" and does not know the concrete value, use multi-step: fetch the current status first, then perform the follow-up query
+    8. [Reusing previous-turn query results] Data already queried and returned to the player in the previous turn may be read directly from conversation history and filled into single intent this turn **only if it is near-static player-owned reference data** (the player's own homes, landmarks, kits, etc. — things that barely change across a few turns); no re-query is needed and placeholders must not be used:
        - Ordinal/name reference: when the user refers to an item of last turn's list by "the first / the second / the last" or by a direct name, read the concrete value of the corresponding item from history. E.g., last turn returned a list [itemA, itemB]; this turn "operate on the first" -> single intent, fill the parameter directly with "itemA"; "the second" -> fill "itemB"
-       - Boundary (consistent with rule 4, by principle not by list): **any data that changes over time or due to others' actions MUST be re-queried** — not limited to balance, inventory, held item, current location, health; it also includes online-player lists, items listed on the market, nearby entity counts, weather, etc.; reading these from history yields stale, wrong answers. **Only near-static player-owned reference data** (the player's own homes, landmarks, kits — data owned by that player and rarely changing) may be read from history
-    8. [Pending-operation / parameter-supplement — managed automatically by the framework continuation]
+       - Boundary (consistent with rule 5, by principle not by list): **any data that changes over time or due to others' actions MUST be re-queried** — not limited to balance, inventory, held item, current location, health; it also includes online-player lists, items listed on the market, nearby entity counts, weather, etc.; reading these from history yields stale, wrong answers. **Only near-static player-owned reference data** (the player's own homes, landmarks, kits — data owned by that player and rarely changing) may be read from history
+    9. [Pending-operation / parameter-supplement — managed automatically by the framework continuation]
        When the previous turn's execution action returned [NEED_INFO] (asking to confirm or supply a parameter), the framework has already snapshotted the collected params and will resume execution automatically after the player replies this turn — **you do NOT need to reconstruct any parameter value from history, nor fill a confirmation flag such as confirmed**.
        - If the player replies with affirmative intent ("confirm"/"yes"/"ok"/"do it") or supplies a new value (e.g. "transfer 300"), the framework resumes accordingly; if the player talks about something else, the framework falls back to normal intent recognition.
        - Your only job: decide whether this turn also has OTHER new actions (e.g. the "check my balance" inside "confirm, then check my balance"); if so, output that intent normally. For a pure confirm/supply-value you do nothing (do NOT emit a skill intent that re-calls the same action).
@@ -180,11 +186,12 @@ critical_rules:
 
     **Temporal-semantics recognition (extremely important)**
     - When the user's request contains temporal expressions like "...after...", "...once...", "...when...", "once grown...and...", "wait until...then...", a later action must depend on the precondition being met
-    - Judgment: if action B only makes sense after condition A is satisfied, B cannot be a parallel step of the current multi-step task; it should be handed off to the **Guardian skill** (守护系统) for continuous monitoring of condition A, and triggered once the condition is met
-    - Counter-example: user says "watch some target, tell me when the condition is met AND look up related info" -> splitting into parallel steps (watch + lookup) is WRONG, because the lookup should happen after the condition is met
-    - Correct: use the Guardian skill — the guardian system currently supports enabling a preset bodyguard bundle (proactively alerting about out-of-view threats behind the player). When the player says "help me turn on guardian / watch my back", recognize it as Guardian's enable action
-    - **Note the guardian system's current capability boundary**: it only supports toggling the preset bundle and silence feedback; **custom monitoring targets are NOT supported yet** (e.g., "watch the furnace until it's done" or "watch the wheat until ripe" which require specifying concrete locations/conditions). When encountering such requests, honestly inform the player that the guardian currently only supports bodyguard mode
-    - **Any follow-up action involving temporal markers like "wait/until/after/grown/done" should be routed to the guardian system (Guardian skill) for continuous monitoring, never as a parallel step of a one-shot multi-step task**
+    - If action B only makes sense after condition A is satisfied, B cannot be a parallel step of the current multi-step task. Classify by the user's actual intent:
+      · User wants "wait N seconds then Y" → multi-step with delay_wait (see [Output Quality Requirements] for orchestration rules)
+      · User wants "continuously monitor a condition, notify me when met" → use a custom-condition watch skill (select an appropriate probe from that skill's available probe list and fill in the parameters); do NOT add it as a step in a one-shot multi-step task
+      · User wants "watch my back / be my bodyguard" without specifying a condition → use a built-in proactive guard skill
+    - Counter-example: user says "watch some target, tell me when the condition is met" → splitting into parallel steps (watch + follow-up) is WRONG, because the follow-up should only trigger after the condition is met
+    - Correct: "wait 5 seconds then check inventory" → delay_wait; "tell me when iron ingots hit 64" → custom-condition watch skill; "enable guardian" → built-in proactive guard skill
 
     **Step 1: Match skills and actions one by one**
     - For each sub-question, find a semantically matching skill/action in the [Available Skills List]
@@ -290,6 +297,7 @@ phase1:
     - Correct: the user asks a real-life topic outside the game -> no skill description serves such a real-life intent -> no match, return null
     - **"A skill's retrieved data might help answer the question" is NOT the same as "the skill matches the intent". A match exists only when the question itself requires fetching that data**
     - Note: if the previous turn has clear context, interpret intent using history rather than returning null directly
+    - AI replies in conversation history may carry a source tag (e.g. "AI[Guardian]: content" means a proactive Guardian alert). If the player expresses displeasure or a desire for quiet about such messages ("shut up", "too noisy", etc.), include the Guardian skill (the player wants to disable it, which maps to the disable action)
 
     [Skill Name Strict Restriction — highest priority]
     - Absolutely forbidden to fabricate skill names; use only names explicitly listed in the [Available Skills List]

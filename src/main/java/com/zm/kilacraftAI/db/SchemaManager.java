@@ -23,7 +23,7 @@ public class SchemaManager {
     /**
      * 当前代码期望的 Schema 版本号
      */
-    private static final int CURRENT_VERSION = 3;
+    private static final int CURRENT_VERSION = 2;
 
     private final DatabaseProvider provider;
     private final String tablePrefix;
@@ -92,7 +92,6 @@ public class SchemaManager {
         switch (version) {
             case 1 -> migrateV1(conn);
             case 2 -> migrateV2(conn);
-            case 3 -> migrateV3(conn);
             default -> PluginLoggerUtil.warn("数据库", "未知的 Schema 版本: {}", version);
         }
     }
@@ -184,26 +183,5 @@ public class SchemaManager {
         createIndex(conn, "idx_snapshot_player_time", "profile_snapshot", "player_uuid, analyzed_at DESC");
 
         PluginLoggerUtil.info("数据库", "Schema v2 群组服索引已创建（3个 server_id 索引）+ 画像快照表");
-    }
-
-    /**
-     * Schema v3：守护系统配置表（§7.1）。
-     *
-     * <p>纯加法迁移——仅新增 {@code guardian_profile} 表（每玩家守护配置），无 DROP/ALTER，
-     * 对 H2/MySQL 双库安全。跨服共享（无 server_id，对齐 player_profile/social_relation 语义）——
-     * 守护配置是玩家属性，与子服无关。</p>
-     */
-    private void migrateV3(Connection conn) throws SQLException {
-        try (Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS " + tablePrefix + "guardian_profile (" +
-                    "uuid VARCHAR(36) NOT NULL COMMENT '玩家UUID / Player UUID'," +
-                    "enabled BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否启用守护 / Guardian enabled'," +
-                    "config_json TEXT COMMENT 'monitor 定义树JSON / Monitor config JSON'," +
-                    "silence_list TEXT COMMENT '静音分类列表（逗号分隔）/ Silenced categories'," +
-                    "updated_at BIGINT NOT NULL DEFAULT 0 COMMENT '最后更新时间ms / Last updated ms'," +
-                    "PRIMARY KEY (uuid)" +
-                    ")");
-        }
-        PluginLoggerUtil.info("数据库", "Schema v3 守护系统配置表已创建（guardian_profile）");
     }
 }

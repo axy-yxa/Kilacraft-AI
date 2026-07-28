@@ -51,7 +51,13 @@ permissions:
     default: op                # 仅 OP 拥有此权限 / Only OP has this permission
   kilacraft.guardian:
     description: 允许启用/停用守护系统（AI 主动陪伴）
-    default: true              # 所有玩家可用（opt-in，玩家需主动开启）/ available to all (opt-in)
+    default: true              # 所有玩家可用 / available to all players
+  kilacraft.player_watch:
+    description: 允许订阅其他玩家上线/下线通知
+    default: true              # 所有玩家可用 / available to all players
+  kilacraft.watch:
+    description: 允许使用玩家自定义监听系统
+    default: true              # 所有玩家可 / available to all players
 
   # 查询类命令权限（用量 / 对话历史 / 画像） / Query command permissions (usage / history / profile)
   kilacraft.query.self:
@@ -174,3 +180,11 @@ permissions:
       kilacraft.admin.player: true
       kilacraft.admin.audit: true
       kilacraft.admin.info: true
+
+  # Web 搜索与抓取技能权限 / Web search & fetch skill permissions
+  kilacraft.websearch:
+    description: 允许使用联网搜索技能（WebSearchSkill）
+    default: true              # 所有玩家可用（需服主配置搜索 API Key）/ available to all players (requires API Key config)
+  kilacraft.webfetch:
+    description: 允许使用网页抓取技能（WebFetchSkill）
+    default: true              # 所有玩家可用（零配置）/ available to all players (zero config)

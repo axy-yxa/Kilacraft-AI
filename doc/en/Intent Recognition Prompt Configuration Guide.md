@@ -79,7 +79,7 @@ Phase 2 is assembled by `IntentPromptConfigManager.buildSystemPrompt()` and cont
 
 ```
 [Role Definition] role_definition (includes "Three Inviolable Rules")
-[Available Skills] matched skills' name + description + all actions + all hints
+[Available Skills] matched skills' name + description + all actions + all hints (+ optional dynamic context)
 [Response Format Spec] single_intent / invalid_intent / multi_step_task (3 JSON templates)
 [output_format_rules]              ← JSON output requirements
 [Decision Rules] when_use_single_intent / when_use_multi_step / when_return_invalid
@@ -90,6 +90,8 @@ Phase 2 is assembled by `IntentPromptConfigManager.buildSystemPrompt()` and cont
 ```
 
 > **Conditional injection of afk_task_rules**: AFK task rules are long and only needed in AFK scenarios. During Phase 2 assembly, the code checks `selectedSkills.contains("AFKTask")` and only injects `afk_task_rules` when matched, avoiding Token waste in normal scenarios.
+
+> **Skill-level dynamic context injection**: Beyond the yml-section conditional injection above, there is a **skill-level dynamic content entry point**. When assembling each matched skill's info in Phase 2, the code checks `instanceof DynamicContextProvider` — skills implementing this interface may append a runtime-assembled dynamic block (typical case: WatchSkill injects the available probe list, which is defined in Java code and cannot be written into static yml). This is an **internal enhancement interface** (`skills/framework/DynamicContextProvider`), not included in the SPI jar; third parties cannot access it. Built-in skills needing dynamic content simply implement the interface — no change to the `Skill` contract required.
 
 ---
 

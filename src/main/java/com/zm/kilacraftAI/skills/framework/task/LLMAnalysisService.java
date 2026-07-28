@@ -30,8 +30,7 @@ public class LLMAnalysisService {
     private final ConfigManager configManager;
 
     /**
-     * 知识库检索禁用阈值：当分析提示词超过此长度时，说明技能执行结果已包含完整信息（如诊断报告全文），
-     * 知识库检索的边际价值极低且增加噪音，应禁用。
+     * 经验阈值：分析提示词较长时（通常意味着技能结果已含较完整文本），跳过知识库检索以减少噪音与延迟。
      */
     private static final int KNOWLEDGE_DISABLE_THRESHOLD = 2000;
 
@@ -65,7 +64,10 @@ public class LLMAnalysisService {
             String suffix = configManager.getAgentAnalysisPromptSuffix();
             String systemPrompt = configManager.getAgentSystemPrompt();
 
-            // 玩家实时元数据（追加在 agent 提示词尾部，画像之前）：agent 提示词保持为可缓存前缀
+            // 注入当前时间（位于 agent 提示词尾部，保持 agent 提示词为可缓存前缀）
+            systemPrompt = systemPrompt + "\n\n" + I18nService.getCurrentTimeString();
+
+            // 玩家实时元数据（追加在时间之后）：agent 提示词保持为可缓存前缀
             Player player = context.getPlayer();
             if (player != null) {
                 String playerMeta = PlayerMetaCollector.collect(player);

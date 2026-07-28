@@ -40,6 +40,8 @@ public class LanguageManager {
     @Getter
     private String helpGuardian;
     @Getter
+    private String helpSuggestion;
+    @Getter
     private String helpProfile;
     @Getter
     private String helpProfileSubcommands;
@@ -97,10 +99,15 @@ public class LanguageManager {
     @Getter private String commandGuardianStateOn;
     @Getter private String commandGuardianStateOff;
     @Getter private String commandGuardianUsage;
-    @Getter private String commandGuardianSilenceUsage;
-    @Getter private String commandGuardianSilenced;
-    @Getter private String commandGuardianUnsilenced;
-    @Getter private String commandGuardianInvalidCategory;
+    @Getter private String commandGuardianMonitorLine;
+    @Getter private String commandSuggestionNotInit;
+    @Getter private String commandSuggestionAlreadyOn;
+    @Getter private String commandSuggestionAlreadyOff;
+    @Getter private String commandSuggestionOn;
+    @Getter private String commandSuggestionOff;
+    @Getter private String commandSuggestionStatusOn;
+    @Getter private String commandSuggestionStatusOff;
+    @Getter private String commandSuggestionUsage;
     @Getter
     private String commandNotifyNoPermission;
     @Getter
@@ -190,7 +197,9 @@ public class LanguageManager {
     @Getter
     private String commandDoctorCheckIsolation;
     @Getter
-    private String commandDoctorCheckGuardian;
+    private String commandDoctorCheckGuardianSystem;
+    @Getter
+    private String commandDoctorCheckHealthGuardian;
     @Getter
     private String commandDoctorCheckNotify;
     @Getter
@@ -233,6 +242,18 @@ public class LanguageManager {
     private String commandDoctorAgentOn;
     @Getter
     private String commandDoctorLlmNoProvider;
+    @Getter
+    private String commandDoctorCheckSuggestion;
+    @Getter
+    private String commandDoctorCheckWatch;
+    @Getter
+    private String commandDoctorCheckWebSearch;
+    @Getter
+    private String commandDoctorCheckWebFetch;
+    @Getter
+    private String commandDoctorSearchOn;
+    @Getter
+    private String commandDoctorSearchNoProvider;
     @Getter
     private String commandAboutNoPermission;
     @Getter
@@ -466,7 +487,7 @@ public class LanguageManager {
      */
     public void loadConfig() {
         // 根据当前语言选择配置文件（zh=language.yml, en=language_en.yml）
-        String lang = ((KilacraftAI) plugin).getConfigManager().getLanguage();
+        String lang = ((KilacraftAI) plugin).getI18nService().getLanguage();
         String fileName = "zh".equals(lang) ? "language.yml" : "language_" + lang + ".yml";
 
         // 复制默认配置
@@ -491,22 +512,23 @@ public class LanguageManager {
         // 帮助消息
         this.helpMessages = config.getStringList("help.messages");
         this.helpReload = config.getString("help.reload", " §b/kila reload §8- §f热重载全部配置");
-        this.helpClearSelf = config.getString("help.clear-self", "§e清除历史：/kila clear");
-        this.helpClearOther = config.getString("help.clear-other", "§e清除玩家历史：/kila clear [玩家名称]");
-        this.helpKnowledge = config.getString("help.knowledge", "§e使用方法：/kila knowledge reload");
-        this.helpPersonalities = config.getString("help.personalities", "§e使用方法：/kila personalities reload");
-        this.helpGuardian = config.getString("help.guardian", "§e守护系统：/kila guardian <on|off|status|silence>");
-        this.helpProfile = config.getString("help.profile", "§e服务器性能采样：/kila profile start [秒数(30~120，默认60)]");
-        this.helpProfileSubcommands = config.getString("help.profile-subcommands", "§e可用子命令：start(开始采样), stop(中断采样), status(查看状态)");
-        this.helpNotify = config.getString("help.notify", "§e测试外部通知：/kila notify test");
-        this.helpUsage = config.getString("help.usage", "§e查看 AI 用量：/kila usage [all|玩家] [7d]");
-        this.helpHistory = config.getString("help.history", "§e查看对话历史：/kila history [玩家] [页码] [-f]");
-        this.helpMemory = config.getString("help.memory", "§e查看玩家画像：/kila memory [玩家]");
-        this.helpSkills = config.getString("help.skills", "§e列出可用技能：/kila skills [页码]");
-        this.helpRun = config.getString("help.run", "§e执行指定技能：/kila run <技能> <提示词>");
-        this.helpDoctor = config.getString("help.doctor", "§e配置自检：/kila doctor");
-        this.helpAbout = config.getString("help.about", "§e版本与更新检查：/kila about");
-        this.helpTasks = config.getString("help.tasks", " §e/kila tasks §8- §f查看定时任务状态");
+        this.helpClearSelf = config.getString("help.clear-self", " §b/kila clear §8- §f清除自己的对话历史");
+        this.helpClearOther = config.getString("help.clear-other", " §b/kila clear §7<玩家名> §8- §f清除指定玩家的历史");
+        this.helpKnowledge = config.getString("help.knowledge", " §b/kila knowledge reload §8- §f重载知识库");
+        this.helpPersonalities = config.getString("help.personalities", " §b/kila personalities reload §8- §f重载人格配置");
+        this.helpGuardian = config.getString("help.guardian", " §b/kila guardian §7<on|off|status> §8- §fAI 主动守护");
+        this.helpSuggestion = config.getString("help.suggestion", " §b/kila suggestion §7<on|off|status> §8- §f管理对话推荐");
+        this.helpProfile = config.getString("help.profile", " §b/kila profile start §7[秒数] §8- §f启动性能采样 (30~120s)");
+        this.helpProfileSubcommands = config.getString("help.profile-subcommands", " §b/kila profile stop | status §8- §f中断采样 / 查看状态");
+        this.helpNotify = config.getString("help.notify", " §b/kila notify test §8- §f测试外部通知渠道");
+        this.helpUsage = config.getString("help.usage", " §b/kila usage §7[玩家|all] [时间] §8- §f查看 AI 用量");
+        this.helpHistory = config.getString("help.history", " §b/kila history §7[玩家] [页码] [-f] §8- §f查看对话历史（-f 显示完整内容）");
+        this.helpMemory = config.getString("help.memory", " §b/kila memory §7[玩家] §8- §f查看玩家画像");
+        this.helpSkills = config.getString("help.skills", " §b/kila skills §7[页码] §8- §f列出可用技能");
+        this.helpRun = config.getString("help.run", " §b/kila run §7<技能> <提示词> §8- §f强制指定技能执行");
+        this.helpDoctor = config.getString("help.doctor", " §b/kila doctor §8- §f配置自检");
+        this.helpAbout = config.getString("help.about", " §b/kila about §8- §f版本与更新检查");
+        this.helpTasks = config.getString("help.tasks", " §b/kila tasks §8- §f查看定时任务状态");
 
         // 权限相关消息
         this.permissionReload = config.getString("permissions.reload", "§c你没有权限重载配置！");
@@ -519,7 +541,7 @@ public class LanguageManager {
         this.featureChatModeDisabled = config.getString("features.chat-mode-disabled", "§c连续对话模式已被禁用！");
         this.featureChatModePlayerOnly = config.getString("features.chat-mode-player-only", "§c只有玩家才能使用连续对话模式！");
         this.featureChatModeEnter = config.getString("features.chat-mode-enter", "§a已进入连续对话模式！现在你说的每句话都会发送给 Kilacraft-AI。");
-        this.featureChatModeEnterSubtitle = config.getString("features.chat-mode-enter-subtitle", "§7输入 §e/kila chat§7 退出连续对话模式");
+        this.featureChatModeEnterSubtitle = config.getString("features.chat-mode-enter-subtitle", "§7输入 §b/kila chat§7 退出连续对话模式");
         this.featureChatModeExit = config.getString("features.chat-mode-exit", "§7已退出连续对话模式");
 
         // 命令执行结果消息
@@ -533,7 +555,7 @@ public class LanguageManager {
         this.commandPersonalitiesReloadSuccess = config.getString("commands.personalities-reload-success", "§a人格配置已重载！");
         this.commandPersonalitiesReloadFailure = config.getString("commands.personalities-reload-failure", "§c人格配置重载失败：");
         this.commandUnknownSubcommand = config.getString("commands.unknown-subcommand", "§c未知的子命令：");
-        this.commandAvailableSubcommands = config.getString("commands.available-subcommands", "§e可用子命令：reload");
+        this.commandAvailableSubcommands = config.getString("commands.available-subcommands", "§b可用子命令：reload");
         this.cooldownWarning = config.getString("commands.cooldown-warning", "§c请等待 {seconds} 秒后再试！");
         this.pluginCommandCooldownWarning = config.getString("commands.plugin-command-cooldown-warning", "§c玩家 {player} 正在冷却中，请等待 {seconds} 秒后再试！");
         this.worldBannedHint = config.getString("commands.world-banned-hint", "§c当前世界禁止使用 {ai_name}！");
@@ -558,16 +580,21 @@ public class LanguageManager {
         this.commandGuardianDisabledGlobal = config.getString("commands.guardian-disabled-global", "§c守护系统已被服主全局关闭。");
         this.commandGuardianAlreadyOn = config.getString("commands.guardian-already-on", "§7守护系统已开启。");
         this.commandGuardianAlreadyOff = config.getString("commands.guardian-already-off", "§7守护系统未开启。");
-        this.commandGuardianOnSuccess = config.getString("commands.guardian-on-success", "§a守护已开启，共激活 §e{n} §a个监听。AI 会适时主动提醒你。");
+        this.commandGuardianOnSuccess = config.getString("commands.guardian-on-success", "§a守护已开启！我会帮你盯着你看不见的地方——比如背后有怪、背包快满等。§7想关掉就说「关守护」。共激活 §e{n} §a个监控。");
         this.commandGuardianOff = config.getString("commands.guardian-off", "§7守护已关闭。");
-        this.commandGuardianStatus = config.getString("commands.guardian-status", "§6[Kilacraft-AI] §f守护系统 §7| 状态: §e{state} §7| 全服活跃: §e{n}§7人");
+        this.commandGuardianStatus = config.getString("commands.guardian-status", "§6[Kilacraft-AI] §f守护系统 §7| 状态: §e{state} §7| 监控: §e{n}§7个");
         this.commandGuardianStateOn = config.getString("commands.guardian-state-on", "§a开启");
         this.commandGuardianStateOff = config.getString("commands.guardian-state-off", "§7关闭");
-        this.commandGuardianUsage = config.getString("commands.guardian-usage", "§7用法: /kila guardian <§eon§7|§coff§7|§estatus§7|§esilence <分类>§7|§eunsilence <分类>§7>");
-        this.commandGuardianSilenceUsage = config.getString("commands.guardian-silence-usage", "§7用法: /kila guardian silence <DANGER|RESOURCE|GOAL|COMPANION|GENERAL>");
-        this.commandGuardianSilenced = config.getString("commands.guardian-silenced", "§7已静音 §e{cat} §7分类的守护提醒。");
-        this.commandGuardianUnsilenced = config.getString("commands.guardian-unsilenced", "§7已恢复 §e{cat} §7分类的守护提醒。");
-        this.commandGuardianInvalidCategory = config.getString("commands.guardian-invalid-category", "§c无效分类，可选: DANGER/RESOURCE/GOAL/COMPANION/GENERAL");
+        this.commandGuardianUsage = config.getString("commands.guardian-usage", "§7用法: /kila guardian <§eon§7|§coff§7|§estatus§7>");
+        this.commandGuardianMonitorLine = config.getString("commands.guardian-monitor-line", "§7  - §e{name}");
+        this.commandSuggestionNotInit = config.getString("commands.suggestion-not-init", "§c对话推荐系统未初始化！");
+        this.commandSuggestionAlreadyOn = config.getString("commands.suggestion-already-on", "§7对话推荐已经是开启状态。");
+        this.commandSuggestionAlreadyOff = config.getString("commands.suggestion-already-off", "§7对话推荐已经是关闭状态。");
+        this.commandSuggestionOn = config.getString("commands.suggestion-on", "§a对话推荐已开启。AI 回复后将推荐你可能想问的问题。");
+        this.commandSuggestionOff = config.getString("commands.suggestion-off", "§a对话推荐已关闭。");
+        this.commandSuggestionStatusOn = config.getString("commands.suggestion-status-on", "§a对话推荐：开启 §7（/kila suggestion off 关闭）");
+        this.commandSuggestionStatusOff = config.getString("commands.suggestion-status-off", "§c对话推荐：关闭 §7（/kila suggestion on 开启）");
+        this.commandSuggestionUsage = config.getString("commands.suggestion-usage", " §b/kila suggestion §7<on|off|status> §8- §f管理对话推荐");
         this.commandNotifyNoPermission = config.getString("commands.notify-no-permission", "§c你没有权限使用通知测试功能。");
         this.commandNotifyUsage = config.getString("commands.notify-usage", "§7用法：/kila notify test");
         this.commandNotifyNotReady = config.getString("commands.notify-not-ready", "§c通知服务未启用或未配置任何渠道。");
@@ -612,7 +639,8 @@ public class LanguageManager {
         this.commandDoctorCheckCommandSkill = config.getString("commands.doctor-check-command-skill", "命令技能");
         this.commandDoctorCheckPendingResume = config.getString("commands.doctor-check-pending-resume", "待确认续体");
         this.commandDoctorCheckIsolation = config.getString("commands.doctor-check-isolation", "玩家数据隔离");
-        this.commandDoctorCheckGuardian = config.getString("commands.doctor-check-guardian", "健康守护");
+        this.commandDoctorCheckGuardianSystem = config.getString("commands.doctor-check-guardian-system", "守护系统");
+        this.commandDoctorCheckHealthGuardian = config.getString("commands.doctor-check-health-guardian", "健康监控");
         this.commandDoctorCheckNotify = config.getString("commands.doctor-check-notify", "外部通知");
         this.commandDoctorCheckThinking = config.getString("commands.doctor-check-thinking", "推理模型");
         this.commandDoctorCheckGreeting = config.getString("commands.doctor-check-greeting", "登录问候");
@@ -634,6 +662,12 @@ public class LanguageManager {
         this.commandDoctorAgentScopeNone = config.getString("commands.doctor-agent-scope-none", "无入口");
         this.commandDoctorAgentOn = config.getString("commands.doctor-agent-on", "启用（{scope}）");
         this.commandDoctorLlmNoProvider = config.getString("commands.doctor-llm-no-provider", "未配置 LLM 提供商");
+        this.commandDoctorCheckSuggestion = config.getString("commands.doctor-check-suggestion", "对话推荐");
+        this.commandDoctorCheckWatch = config.getString("commands.doctor-check-watch", "监听系统");
+        this.commandDoctorCheckWebSearch = config.getString("commands.doctor-check-web-search", "Web 搜索");
+        this.commandDoctorCheckWebFetch = config.getString("commands.doctor-check-web-fetch", "Web 抓取");
+        this.commandDoctorSearchOn = config.getString("commands.doctor-search-on", "启用（{provider}）");
+        this.commandDoctorSearchNoProvider = config.getString("commands.doctor-search-no-provider", "启用，但未配置任何搜索供应商");
         this.commandAboutNoPermission = config.getString("commands.about-no-permission", "§c你没有权限使用此命令。");
         this.commandAboutTitle = config.getString("commands.about-title", "§6[Kilacraft-AI] §f版本信息");
         this.commandAboutCurrent = config.getString("commands.about-current", "§7当前版本：§fv{ver}");
@@ -695,14 +729,14 @@ public class LanguageManager {
         this.commandPersonalitiesLoaded = config.getString("commands.personalities-loaded", "§7当前共加载 {count} 个人格");
         this.pluginCommandPlayerBlocked = config.getString("plugins-command.player-blocked", "§c请使用 /kila <消息>");
         this.pluginCommandInsufficientArgs = config.getString("plugins-command.insufficient-args", "§c参数不足！使用方法：/kila plugins <人格> <内容> <玩家 UUID> [回调命令...]");
-        this.pluginCommandUsageExample = config.getString("plugins-command.usage-example", "§e示例：/kila plugins 严厉教师 你好 069a79f4-44e9-4726-a5be-fca90e38aaf5");
+        this.pluginCommandUsageExample = config.getString("plugins-command.usage-example", "§b示例：/kila plugins 严厉教师 你好 069a79f4-44e9-4726-a5be-fca90e38aaf5");
         this.pluginCommandCallbackHint = config.getString("plugins-command.callback-hint", "§7可选：在末尾添加回调命令，AI 完成后自动执行");
-        this.pluginCommandCallbackExample = config.getString("plugins-command.callback-example", "§e带回调：/kila plugins mm_ai 你好 UUID testai handleAI {response} mm_ai");
+        this.pluginCommandCallbackExample = config.getString("plugins-command.callback-example", "§b带回调：/kila plugins mm_ai 你好 UUID testai handleAI {response} mm_ai");
         this.pluginCommandCallbackPlaceholderHint = config.getString("plugins-command.callback-placeholder-hint", "§7{response} 会被替换为实际的 AI 回复内容");
         this.pluginCommandInvalidUuid = config.getString("plugins-command.invalid-uuid", "§c无效的玩家 UUID 格式：");
-        this.pluginCommandUuidFormatHint = config.getString("plugins-command.uuid-format-hint", "§e请确保 UUID 格式正确，例如：069a79f4-44e9-4726-a5be-fca90e38aaf5");
+        this.pluginCommandUuidFormatHint = config.getString("plugins-command.uuid-format-hint", "§b请确保 UUID 格式正确，例如：069a79f4-44e9-4726-a5be-fca90e38aaf5");
         this.pluginCommandPersonalityNotFound = config.getString("plugins-command.personality-not-found", "§c未找到人格配置：");
-        this.pluginCommandPersonalityListHint = config.getString("plugins-command.personality-list-hint", "§e可用的人格列表：");
+        this.pluginCommandPersonalityListHint = config.getString("plugins-command.personality-list-hint", "§b可用的人格列表：");
         this.pluginCommandError = config.getString("plugins-command.error", "§c发生错误：");
 
         // 日志消息

@@ -1,14 +1,4 @@
 # ==================== 守护系统配置 / Guardian System Configuration ====================
-# 守护系统是 AI 的主动层：监控游戏状态变化，在玩家非即时感知的场景下主动提醒/辅助。
-# 与登录问候（被动单点）互补，覆盖玩家游戏全程。
-# Guardian system is the AI's proactive layer: monitors game state changes and proactively
-# alerts/assists in scenarios the player cannot perceive in real time.
-#
-# 价值轴（§1.3）：只对玩家非即时感知的发声。
-#   - 视野外威胁（背后苦力怕）、远端状态（熔炉房）、罕见事件（僵尸村民）= 高价值
-#   - HUD 可见的血量/饥饿/氧气/着火 = 冗余，不配独立告警（降级为复合上下文）
-# Value axis: only speak for what the player CANNOT perceive in real time.
-
 settings:
   # 守护系统总开关（全局）。玩家个人开关默认关闭，需 /kila guardian on 开启。
   # Master switch (global). Per-player switch defaults to off; requires /kila guardian on.
@@ -18,86 +8,21 @@ settings:
   # Heartbeat interval (ticks). Polling monitors are checked within heartbeat per their cadence.
   heartbeat_interval_ticks: 20
 
-  # 每玩家冷却中心默认参数（GuardianCooldownHub）
-  # Per-player cooldown hub defaults
-  global_cooldown_millis: 5000       # 任一告警后全局静默毫秒数 / Global silence after any alert
-  category_cooldown_millis: 300000   # 同分类告警最小间隔（5 分钟）/ Min interval per category (5 min)
+  # 挂机判定阈值（秒）。玩家无操作超过此时长视为 AFK，守护系统暂停。
+  # AFK threshold (seconds). Player inactive beyond this is considered AFK; guardian pauses to save resources.
+  afk_threshold_seconds: 300
 
-# ==================== Monitor 模板库 / Monitor Template Library ====================
-# 预定义的 monitor 模板。玩家 /kila guardian on 启用 default_bundle 指定的套餐，
-# 或通过 GuardianSkill 自然语言让 LLM 从模板库选 + 填参数。
-# Predefined monitor templates. Players enable via /kila guardian on (default_bundle)
-# or via GuardianSkill natural language (LLM picks + fills params).
-#
-# 每个模板字段说明 / Template fields:
-#   predicate: 谓词原语名（PredicateRegistry 注册名）+ 参数
-#   action: 动作类型（template=模板通知 / skill=调skill / llm=LLM判断）
-#   policy: WATCH_EDGE(边沿触发一次) / WHILE_TRUE(持续) / UNTIL_GOAL(到目标止) / RECURRING(定时)
-#   category/priority: 冷却中心分类与优先级（DANGER/RESOURCE/GOAL/COMPANION，CRITICAL 抢占）
-templates:
-  # 视野外敌对实体告警（高价值：玩家看不见的背后威胁）
-  # Hostile entity out of view alert (high value: threats player can't see)
-  # 视野外敌对实体告警（高价值：玩家看不见的背后威胁）
-  # Hostile entity out of view alert (high value: threats player can't see)
-  # policy=WHILE_TRUE + cooldown_millis=10s：持续在背后时每 10s 重复提醒（CRITICAL 跳过 hub 全局冷却，靠自身 cooldown 去抖）
-  creeper_behind:
-    predicate:
-      type: nearby_entity_out_of_view
-      params:
-        entity_type: CREEPER
-        radius: 5
-        comparison: GREATER_EQUAL
-        threshold: 1
-    action:
-      type: template
-      template: "§c⚠ 你身后有苦力怕！快躲开！"
-    policy: WHILE_TRUE
-    cadence_ticks: 40
-    cooldown_millis: 10000
-    category: DANGER
-    priority: CRITICAL
+# ==================== LLM 系统提示词 / LLM System Prompt ====================
+prompts:
+  # 中文提示词（language=zh 时使用）
+  system_prompt: |
+    你是玩家的 Minecraft 游戏守护 AI。你会在玩家非即时感知的场景下主动提醒。
+    请用1-2句简短自然的话提醒玩家，语气亲切、像朋友提醒。不要用固定模板句式，根据情况变化措辞。
+    只输出提醒内容本身，不加前缀标签，不做分析总结，不问玩家要不要帮忙。
 
-  # 通用敌对实体视野外告警（僵尸/骷髅等，可配 entity_type）
-  # Generic hostile out-of-view alert (zombie/skeleton etc., configurable entity_type)
-  hostile_behind:
-    predicate:
-      type: nearby_entity_out_of_view
-      params:
-        entity_type: ZOMBIE
-        radius: 5
-        comparison: GREATER_EQUAL
-        threshold: 1
-    action:
-      type: template
-      template: "§c⚠ 你身后有 {trigger_value} 靠近！"
-    policy: WHILE_TRUE
-    cadence_ticks: 40
-    cooldown_millis: 10000
-    category: DANGER
-    priority: HIGH
-
-  # 熔炉烧完成批告警（熔炉房场景：一组炉子有任意一个烧好即提醒）
-  # Furnace batch ready alert (furnace room: alert when any furnace finishes)
-  # 注：positions 需玩家通过自然语言或命令指定坐标，模板留空占位
-  # Note: positions must be specified by player via natural language or command
-  furnace_room:
-    predicate:
-      type: furnace_ready_count
-      params:
-        positions: ""  # 由玩家配置时填充 / filled when player configures
-        comparison: GREATER_EQUAL
-        threshold: 1
-    action:
-      type: template
-      template: "§a⚒ 熔炉有东西烧好了！"
-    policy: WATCH_EDGE
-    cadence_ticks: 600
-    category: RESOURCE
-    priority: NORMAL
-
-# ==================== 默认套餐 / Default Bundle ====================
-# /kila guardian on 时启用的模板列表（保镖模式子集：只含高价值、低打扰的告警）
-# Templates enabled on /kila guardian on (bodyguard subset: high-value, low-disturbance only)
-default_bundle:
-  - creeper_behind
-  - hostile_behind
+  # English prompt (used when language is not zh)
+  system_prompt_en: |
+    You are the player's Minecraft guardian AI. You proactively alert the player about
+    things they cannot perceive in real time. Keep your message to 1-2 short, natural sentences,
+    like a friend giving a heads-up. Do not use template phrasing — vary your wording based on context.
+    Output only the alert content itself: no labels, no analysis, no asking if the player wants help.

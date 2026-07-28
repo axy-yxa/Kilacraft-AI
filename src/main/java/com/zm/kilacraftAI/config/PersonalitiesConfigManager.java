@@ -50,7 +50,7 @@ public class PersonalitiesConfigManager {
      * 根据当前语言更新配置文件路径，并拷贝对应语言的默认配置
      */
     private void updateConfigFile() {
-        String lang = plugin.getConfigManager().getLanguage();
+        String lang = plugin.getI18nService().getLanguage();
         String fileName = "zh".equals(lang) ? "personalities.yml" : "personalities_" + lang + ".yml";
         this.personalitiesFile = new File(plugin.getDataFolder(), fileName);
         ConfigResourceUtil.saveDefaultResource(plugin, fileName);

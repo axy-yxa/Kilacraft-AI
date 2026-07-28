@@ -6,9 +6,7 @@ import com.zm.kilacraftAI.common.util.AdminSkillUtil;
 import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.config.AdminConfigManager;
-import com.zm.kilacraftAI.config.ConfigManager;
-import com.zm.kilacraftAI.config.LanguageManager;
+import com.zm.kilacraftAI.config.*;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
@@ -73,24 +71,27 @@ public final class DoctorCommand {
         checks.add(personaCount > 0 ? pass(Group.AI, lm.getCommandDoctorCheckPersona(), lm.replacePlaceholders(lm.getCommandDoctorPersonaLoaded(), "count", String.valueOf(personaCount))) : warn(Group.AI, lm.getCommandDoctorCheckPersona(), lm.getCommandDoctorPersonaNone()));
         checks.add(checkAgent(cm, lm));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckProfile(), boolLabel(lm, cm != null && cm.isProfileInjectionEnabled())));
-        // 守护系统自检：GuardianManager 是否初始化 + 当前活跃守护数
+        // 守护系统自检：GuardianManager 是否初始化 + 当前在线活跃守护玩家数
         var guardianManager = plugin.getGuardianManager();
-        checks.add(guardianManager != null
-                ? pass(Group.AI, lm.getCommandDoctorCheckGuardian(), lm.getCommandDoctorEnabled() + "（" + guardianManager.activeCount() + "）")
-                : warn(Group.AI, lm.getCommandDoctorCheckGuardian(), lm.getCommandDoctorDisabled()));
+        checks.add(guardianManager != null ? pass(Group.AI, lm.getCommandDoctorCheckGuardianSystem(), lm.getCommandDoctorEnabled() + "（" + guardianManager.activeCount() + " 个在线玩家）") : warn(Group.AI, lm.getCommandDoctorCheckGuardianSystem(), lm.getCommandDoctorDisabled()));
+        checks.add(checkWatch(plugin, lm));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckCommandSkill(), boolLabel(lm, cm != null && cm.isCommandSkillEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckPendingResume(), boolLabel(lm, cm != null && cm.isPendingResumeEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckIsolation(), boolLabel(lm, cm != null && cm.isSecurityPlayerIsolationEnabled())));
 
         // ===== 可观测与集成 =====
+        // admin.yml 的 health_guardian（服务器健康监控，非守护系统）
         boolean guardian = admin != null && admin.isGuardianEnabled();
-        checks.add(guardian ? pass(Group.OBS, lm.getCommandDoctorCheckGuardian(), lm.getCommandDoctorEnabled()) : warn(Group.OBS, lm.getCommandDoctorCheckGuardian(), lm.getCommandDoctorDisabled()));
+        checks.add(guardian ? pass(Group.OBS, lm.getCommandDoctorCheckHealthGuardian(), lm.getCommandDoctorEnabled()) : warn(Group.OBS, lm.getCommandDoctorCheckHealthGuardian(), lm.getCommandDoctorDisabled()));
         boolean notify = admin != null && admin.isNotificationEnabled();
         int channels = admin != null ? admin.getNotificationChannels().size() : 0;
         checks.add(pass(Group.OBS, lm.getCommandDoctorCheckNotify(), notify ? lm.replacePlaceholders(lm.getCommandDoctorNotifyOn(), "count", String.valueOf(channels)) : lm.getCommandDoctorDisabled()));
         boolean thinking = admin != null && admin.isThinkingModelConfigured();
         checks.add(thinking ? pass(Group.OBS, lm.getCommandDoctorCheckThinking(), lm.replacePlaceholders(lm.getCommandDoctorThinkingOn(), "model", admin.getThinkingModelConfig().model())) : warn(Group.OBS, lm.getCommandDoctorCheckThinking(), lm.getCommandDoctorThinkingOff()));
         checks.add(pass(Group.OBS, lm.getCommandDoctorCheckGreeting(), boolLabel(lm, cm != null && cm.isGreetingEnabled())));
+        checks.add(checkSuggestion(plugin, lm));
+        checks.add(checkWebSearch(plugin, lm));
+        checks.add(checkWebFetch(plugin, lm));
 
         return checks;
     }
@@ -128,6 +129,61 @@ public final class DoctorCommand {
         else if (cmd) scope = lm.getCommandDoctorAgentScopeCmd();
         else scope = lm.getCommandDoctorAgentScopeNone();
         return pass(Group.AI, lm.getCommandDoctorCheckAgent(), lm.replacePlaceholders(lm.getCommandDoctorAgentOn(), "scope", scope));
+    }
+
+    private static CheckResult checkWatch(KilacraftAI plugin, LanguageManager lm) {
+        WatchConfigManager wcm = plugin.getWatchConfigManager();
+        if (wcm == null || !wcm.isEnabled()) {
+            return warn(Group.AI, lm.getCommandDoctorCheckWatch(), lm.getCommandDoctorDisabled());
+        }
+        return pass(Group.AI, lm.getCommandDoctorCheckWatch(), lm.getCommandDoctorEnabled());
+    }
+
+    private static CheckResult checkSuggestion(KilacraftAI plugin, LanguageManager lm) {
+        SuggestionConfigManager scm = plugin.getSuggestionConfigManager();
+        if (scm == null || !scm.isEnabled()) {
+            return warn(Group.OBS, lm.getCommandDoctorCheckSuggestion(), lm.getCommandDoctorDisabled());
+        }
+        return pass(Group.OBS, lm.getCommandDoctorCheckSuggestion(), lm.getCommandDoctorEnabled());
+    }
+
+    private static CheckResult checkWebFetch(KilacraftAI plugin, LanguageManager lm) {
+        WebConfigManager wcm = plugin.getWebConfigManager();
+        if (wcm == null || !wcm.isFetchEnabled()) {
+            return warn(Group.OBS, lm.getCommandDoctorCheckWebFetch(), lm.getCommandDoctorDisabled());
+        }
+        return pass(Group.OBS, lm.getCommandDoctorCheckWebFetch(), lm.getCommandDoctorEnabled());
+    }
+
+    /**
+     * Web 搜索自检：启用开关与供应商配置是两码事。
+     * 启用但未配置任何供应商 API Key → FAIL（误导性配置：开了却用不了）；
+     * 启用且至少一个供应商已配置 → PASS（列出已配置供应商）。
+     */
+    private static CheckResult checkWebSearch(KilacraftAI plugin, LanguageManager lm) {
+        WebConfigManager wcm = plugin.getWebConfigManager();
+        if (wcm == null || !wcm.isSearchEnabled()) {
+            return warn(Group.OBS, lm.getCommandDoctorCheckWebSearch(), lm.getCommandDoctorDisabled());
+        }
+        String providers = collectConfiguredProviders(wcm);
+        if (providers.isEmpty()) {
+            return fail(Group.OBS, lm.getCommandDoctorCheckWebSearch(), lm.getCommandDoctorSearchNoProvider());
+        }
+        return pass(Group.OBS, lm.getCommandDoctorCheckWebSearch(), lm.replacePlaceholders(lm.getCommandDoctorSearchOn(), "provider", providers));
+    }
+
+    private static String collectConfiguredProviders(WebConfigManager wcm) {
+        List<String> configured = new ArrayList<>();
+        if (wcm.isTavilyConfigured()) configured.add("tavily");
+        if (wcm.isBraveConfigured()) configured.add("brave");
+        if (wcm.isExaConfigured()) configured.add("exa");
+        if (wcm.isYouComConfigured()) configured.add("you_com");
+        if (wcm.isZhipuConfigured()) configured.add("zhipu");
+        if (wcm.isBaiduQianfanConfigured()) configured.add("baidu_qianfan");
+        if (wcm.isVolcengineDoubaoConfigured()) configured.add("volcengine_doubao");
+        if (wcm.isQiniuBaiduConfigured()) configured.add("qiniu_baidu");
+        if (wcm.isAlibabaIqsConfigured()) configured.add("alibaba_iqs");
+        return String.join(", ", configured);
     }
 
     /**
@@ -212,8 +268,20 @@ public final class DoctorCommand {
         }
         PluginLoggerUtil.info("自检", "----- {}", I18nService.tr(Group.OBS.label));
         if (admin != null) {
-            PluginLoggerUtil.info("自检", "健康守护：{} | 外部通知：{}（{}渠道）| 推理模型：{} | 登录问候：{}", admin.isGuardianEnabled(), admin.isNotificationEnabled(), admin.getNotificationChannels().size(), admin.isThinkingModelConfigured() ? admin.getThinkingModelConfig().model() : "N/A", cm != null && cm.isGreetingEnabled());
+            PluginLoggerUtil.info("自检", "健康监控：{} | 外部通知：{}（{}渠道）| 推理模型：{} | 登录问候：{}", admin.isGuardianEnabled(), admin.isNotificationEnabled(), admin.getNotificationChannels().size(), admin.isThinkingModelConfigured() ? admin.getThinkingModelConfig().model() : "N/A", cm != null && cm.isGreetingEnabled());
         }
+        WebConfigManager webcm = plugin.getWebConfigManager();
+        String suggestionStatus = onOff(plugin.getSuggestionConfigManager() != null && plugin.getSuggestionConfigManager().isEnabled());
+        String watchStatus = onOff(plugin.getWatchConfigManager() != null && plugin.getWatchConfigManager().isEnabled());
+        String searchStatus;
+        if (webcm == null || !webcm.isSearchEnabled()) {
+            searchStatus = "off";
+        } else {
+            String providers = collectConfiguredProviders(webcm);
+            searchStatus = providers.isEmpty() ? "on (no provider)" : "on (" + providers + ")";
+        }
+        String fetchStatus = onOff(webcm != null && webcm.isFetchEnabled());
+        PluginLoggerUtil.info("自检", "对话推荐：{} | 监听系统：{} | Web 搜索：{} | Web 抓取：{}", suggestionStatus, watchStatus, searchStatus, fetchStatus);
         PluginLoggerUtil.info("自检", "================================================");
     }
 
@@ -221,6 +289,10 @@ public final class DoctorCommand {
         if (key == null || key.isEmpty()) return I18nService.tr("（未配置）");
         if (key.length() <= 4) return "****";
         return "****" + key.substring(key.length() - 4);
+    }
+
+    private static String onOff(boolean enabled) {
+        return enabled ? "on" : "off";
     }
 
     private static AIResponseHandler silentHandler() {

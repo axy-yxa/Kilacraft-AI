@@ -185,6 +185,7 @@ security:
       - "utility.broadcast_message"    # 全服广播：仅输出公告文本，消息中可能包含其他玩家名 / Server-wide broadcast: announcement text output only, message may contain other player names
       - "player_analysis.player_relations" # 玩家社交关系查询：管理员查询指定玩家的社交关系 / Player social relation query: admin queries a specific player's social relations
       - "audit_log.query_logs"         # 技能执行日志查询：管理员查询指定玩家的技能使用记录 / Skill execution log query: admin queries a specific player's skill usage logs
+      - "player_watch"                 # 跨玩家上下线订阅：target_player是被订阅玩家名，社交功能 / Cross-player join/quit subscription: target_player is the player being watched, social feature
     # 近期活跃玩家缓存配置（防止通过离线玩家名绕过隔离）
     # 仅缓存"在线 + 近期离线"玩家，有界 + TTL 淘汰，避免大服历史玩家名全量驻留内存
     # 覆盖盲区：从未在本服活跃、或长期未上线的玩家不在缓存内（此类玩家无可读画像数据，风险低）
@@ -237,3 +238,4 @@ social:
   skill_whitelist:
     - "market_action"    # 市场操作（转账等涉及其他玩家的交易） / Market operations (transactions involving other players such as transfers)
     - "cmi"              # CMI 操作（TPA 传送请求等） / CMI operation (TPA transmission request, etc.)
+    - "player_watch"     # 跨玩家上下线订阅（target_player 是被订阅玩家，社交关注信号） / Cross-player join/quit subscription (target_player is the watched player, a social-follow signal)

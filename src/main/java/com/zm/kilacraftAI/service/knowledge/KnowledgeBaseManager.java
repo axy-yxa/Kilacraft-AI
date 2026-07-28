@@ -57,7 +57,7 @@ public class KnowledgeBaseManager {
      * 根据当前语言更新 effectiveDir，并拷贝对应语言的默认知识库资源
      */
     private void updateEffectiveDir() {
-        String lang = plugin.getConfigManager().getLanguage();
+        String lang = plugin.getI18nService().getLanguage();
         if ("zh".equals(lang)) {
             this.effectiveDir = knowledgeDir;
             ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge", 1);

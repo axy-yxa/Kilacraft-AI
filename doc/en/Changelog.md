@@ -1,7 +1,109 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-07-10  
+> **Last Updated**: 2026-07-28  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
+
+---
+
+## v2.2.0 - Guardian System (Proactive AI Watch), Web Search & Fetch, Player Custom Watches, Chat Suggestions, LLM Budget Governance
+
+### ✨ New Features
+
+- **Guardian System (highlight of this release)**: The AI evolves from "answers only when asked" to "proactively watches over you." Once enabled, the AI acts like a personal butler, speaking up at moments when you're **not currently watching but will care about later**. Enable with `/kila guardian on`, or just tell the AI "turn on guardian." Proactive alerts cover three scenarios players easily miss:
+  - **Inventory nearly full**: alerts you when free slots run low, preventing overflow mid-combat or mining
+  - **Low equipment durability**: alerts when held or worn gear is about to break, avoiding critical-moment breakage
+  - **Hostile mob locking onto you from behind/side**: warns when a hostile mob outside your field of view (within 8 blocks) targets you, preventing ambushes
+  - Alert text is generated live by the AI (no fixed templates), 1-2 natural sentences; stays silent when you have any inventory/GUI open (you're already checking); auto-pauses after 5 minutes of inactivity (no wasted resources), resumes the moment you act
+  - **Deliberately not done** for things players can perceive themselves: hunger, health, oxygen, fire, negative effects, day/night, weather — anything visible on the HUD or felt via the body. Creeper fuse (1.5s), projectile flight, and other windows shorter than AI response latency are also skipped (the threat is already realized by the time the alert arrives)
+  - Requires `kilacraft.guardian` permission (default: all players, opt-in — player must enable it); `off`/`status` need no permission (so a player can always turn it off even if permission was revoked)
+
+- **Web Search (highlight of this release)**: The in-game AI can now look up real-time information on the internet — Minecraft version updates, mod recommendations, today's gold price / exchange rates, sports scores, wiki entries — no longer limited by training-data cutoff. **9 search-engine providers** built in, auto-selected by server language:
+  - 5 China providers: Zhipu AI, Baidu Qianfan, Volcengine Doubao, Qiniu Baidu, Alibaba Cloud IQS
+  - 4 international providers: Tavily, Brave, Exa, You.com
+  - Most offer free tiers, so you can start at zero cost; multiple can be configured as backups. Server owners fill in one API Key in `web.yml` to get started; `provider: auto` routes by language, or pin a specific one. Supports time-range filtering (today / past week / past month) and automatic multi-step search (complex questions split into up to 5 sub-searches). Requires `kilacraft.websearch` permission (default: all players, but requires server owner to configure an API Key to function)
+
+- **Web Fetch**: Hand the AI a specific URL and it fetches the page body, reads it, and answers questions about that page — e.g. "what does this tutorial page say" or "what's the crafting recipe on this mod's wiki page." Complementary to Web Search: search gives keywords → page list; fetch gives a URL → reads the body. **Zero-config, no API Key needed**, works out of the box. Enterprise-grade security built in (see "Security Hardening" below). Requires `kilacraft.webfetch` permission (default: all players)
+
+- **Player Custom Watches (WatchSkill)**: Set an "auto-watch" with a single natural-language sentence; when the condition is met or the event fires, the AI proactively notifies you. Replaces the removed AFK-task system with stronger, safer capabilities:
+  - **Condition watch**: watch a number or state — "watch my iron ingots until 64", "remind me when health drops below 30%", "notify me when balance hits 10000". Supports probing built-in skills' read-only queries (Bukkit stats, CMI, market queries, vanilla API); value types (number/boolean/string) are auto-detected at runtime
+  - **Event watch**: watch 11 high-value game events — furnace smelt complete, crop mature, entity killed (boss), nearby entity spawn, player death, teleport, level change, world change, block break, fishing, chat keyword
+  - On trigger it **notifies the AI only, does not auto-execute actions** (safer than the old AFK tasks — no rogue operations while the player is away)
+  - Brief disconnects (within 5 minutes) and reconnect resume watches automatically (old system deleted on disconnect)
+  - Optimized via a global singleton event listener + reverse index — zero cost when nobody is subscribed; all of a player's condition watches merge into a single timer
+  - Requires `kilacraft.watch` permission (default: all players). Per-player limits: 3 condition / 5 event watches / 200 server-wide
+
+- **Cross-Player Online/Offline Subscription (PlayerWatchSkill)**: Subscribe to friends' login/logout notifications in natural language — "tell me when Steve logs in", "notify me on both for Alex". Replaces the same-named capability in the removed AFK-task system with **stronger features**: supports subscribing to multiple players at once (old system could only watch one at a time), includes anti-reordering (a logout event cancels a not-yet-sent login notification, preventing "logout before login" inversion), and delays login notifications by 2 seconds to wait until the player is fully loaded. Positioned as light social interaction; subscriptions are in-memory only, cleared when the subscriber goes offline. Requires `kilacraft.player_watch` permission (default: all players), up to 5 subscriptions per player
+
+- **Chat Suggestions**: After the AI replies, 1-5 clickable "you may also want to ask" follow-up questions are appended below the chat, clickable to send as a command — no typing needed. Generated intelligently from multi-turn history + currently available skills, with a strict "quality over quantity" rule (if unsure, output nothing). **Triggers only in command mode, never in continuous-chat mode** — to preserve the natural conversational feel. Players can turn it off via `/kila suggestion off` (on by default, opt-out, no permission needed); server owners can configure count, timeout, excluded scenarios/skills, and display text in `suggestion.yml`. Suggestion messages now use the unified AI prefix; title and separator colors are customizable via config
+
+- **LLM Budget Governance**: A safety net across all LLM entry points. Tracks per-player hourly call counts; exceeding the threshold (default 200/hour/player, configurable via `budget_per_player_per_hour` in `llm.yml`) triggers a 1-hour circuit break. Uses **binary circuit breaking** — player-initiated requests (chat/skill/task) never trip and always respond even over budget; passive calls (greeting/suggestion/guardian/third-party plugin callbacks) are uniformly rejected during the trip window. Normal use never notices it (200/hour is unreachable in practice); it only kicks in under abnormal conditions (mob-farm signal storms, misconfiguration causing runaway calls, third-party plugin runaway) — **prioritizing player experience and the server owner's wallet**. Set to 0 or negative to disable entirely
+
+### 🔧 Improvements
+
+- **Greeting config consolidation**: `greeting.yml` and `greeting_en.yml` merged into a single bilingual file (like `admin.yml`); switching server language no longer requires re-filling config — one fewer file to manage
+- **Greeting messages written to conversation history**: login greetings are now written to session history with a `GREETING` marker, so players can directly ask follow-up questions about greeting content and the AI can respond with context
+- **Soft guardian recommendation in greetings**: when a player hasn't enabled guardian, the login greeting injects a soft recommendation ("I can watch your blind spots for you…"), but the AI decides whether to mention it — never forced
+- **Health-alert greeting prompt hardening**: the greeting prompt for server anomaly alerts now explicitly forbids the AI from fabricating placeholder phrases like "no specific plugin" or "no specific method", requiring it to present real information field by field — alerts are more trustworthy, with no more invented plugin or method names
+- **Profile analysis synergy with guardian**: when guardian is enabled, profile analysis sees the real guardian interactions (AI prompts + player responses included in the analysis context) without letting the guardian's proactive AI messages inflate the analysis trigger frequency (the trigger gate only counts player-initiated conversations) — player profiles are more accurate
+- **Database table-prefix validation**: the `mysql.table_prefix` config now validates characters (only letters/digits/underscores allowed); invalid values fall back to the default `kca_` with an error log — since this prefix is concatenated directly into SQL, the check prevents misconfiguration or malicious config from injecting arbitrary SQL fragments
+- **Current time injected into AI context**: the AI can now sense the precise current time (with timezone, to the minute), handling time-dependent requests like "what time is it" or "search today's news" more accurately; minute-level precision also preserves prompt-cache hit rate
+- **`/kila doctor` self-check updated**: the old "AFK task" check item is now "Guardian System" (shows online active guardian players); the observability group's `guardian` is renamed to `health_guardian` (server health monitor) to distinguish it from the guardian system and avoid naming confusion; also adds four new subsystem checks — **custom watches, chat suggestions, web search (with provider-config detection), and web fetch** — so you can tell at a glance whether each new feature is enabled and whether its API Key is in place
+- **`/kila reload` enhanced**: now reloads guardian/watch/web/suggestion configs; online players' guardians auto-rebuild on reload; budget threshold refreshes immediately
+- **Documentation archiving**: the AFK task system's user guide and detailed documentation have been archived to `doc/归档/` following the system's removal; updated the intent recognition prompt configuration guide
+
+### 🐛 Bug Fixes
+
+- **Security hardening (WebFetch SSRF protection)**: the web-fetch feature has three layers of security built in, so server owners can enable it with confidence:
+  - **Internal-address blocking**: by default, access to the server's own or LAN addresses (`127.x`/`10.x`/`192.168.x`/`172.16-31.x`) is forbidden — players cannot use the AI to probe the server's internal network
+  - **DNS rebinding protection**: IP validation is welded directly into the DNS resolution step, guaranteeing "the IP that's checked is the IP that's connected" — eliminating the check-then-connect time window that's a common blind spot in similar plugins
+  - **Forced HTTPS + per-hop redirect re-check**: when protection is on, `http://` is upgraded to `https://`; redirects are handled hop-by-hop manually (max 3 hops), re-validating protocol and IP on each hop to prevent "normal link → redirect to internal network" bypasses
+  - Response bodies are read with a hard byte cap (prevents oversized pages from blowing up memory); upstream errors are redacted (raw errors go to logs only, never echoed to player chat)
+- **Entity name localization & typo fixes**: Minecraft entity names (Creeper, Zombie, Skeleton, Wither, etc. — 26 in total) appearing in guardian alerts, stat queries, greetings, and event statistics are now localized — English servers show Creeper/Zombie/Skeleton, Chinese servers show official translations. Also fixed historical typos: the Chinese name of "wither" is unified to the official "凋灵" (previously misspelled as "凋零" — 凋零 is a status effect, 凋灵 is the boss), along with "蠹虫" (previously "蠢虫") and others
+- **Fixed YAML syntax error in English i18n config**: some translations in `messages_en.yml` contained nested double quotes that broke YAML parsing — English servers may have failed to load the corresponding greeting/alert text; now corrected
+- **Stateless hardening of the vanilla-API executor**: the executor's internal mutable "current calling player" field has been replaced with parameter-only pass-through, making it a stateless component — the current execution chain is serial, so there is no actual concurrency issue; this is purely a code-standardization defensive measure to eliminate the risk of inadvertently introducing concurrency in future maintenance
+- **Fixed bStats skill registry hijacking by renamed forks**: when multiple servers reported the same skill name, if the first to report was a renamed unofficial fork (sourcePlugin other than KilacraftAI/Kilacraft-AI), it would override the official skill's identity (type, source plugin). Now the official source always wins for identity fields; unofficial entries only contribute to the server count and no longer hijack the registry display
+
+### ⚠️ Compatibility
+
+#### 📋 Configuration File Changes
+
+The plugin only generates configuration files if they don't already exist — existing files are never overwritten. To get the full configuration optimizations of this version, **it is recommended to delete all of the following files and restart to regenerate**. The following new config files are auto-generated on first start: `guardian.yml`, `watch.yml`, `suggestion.yml`, `web.yml`, and new skill config files under `skills/`.
+
+The following **existing** configuration files have changed in this version:
+
+| File | Description of changes | Action |
+|------|----------------------|--------|
+| `intent_prompts.yml` / `_en.yml` | Intent recognition prompt rewrite: afk_task callback rules → guardian system + watch skill routing rules, rule renumbering, new source-label parsing | ❌ Must delete (will route to the deleted afk_task system otherwise) |
+| `greeting.yml` | Merged `greeting_en.yml` into single-file bilingual mode, added version-update reminders, guardian recommendation, high-priority full relay rules. English-mode server owners **must** delete, or all English greeting content will be lost | ❌ Must delete |
+| `language.yml` / `_en.yml` | Added text for `/kila guardian` and `/kila suggestion` commands; `/kila doctor` self-check items restructured (guardian system split from health monitor; added suggestion/watch/web checks); help menu format fully rewritten (unified argument coloring); all afk command text removed | 📋 Recommended (command text/help menu/doctor show old format or placeholders otherwise) |
+| `output.yml` | The `afk_callback` scenario is renamed to `guardian`, default channel changed from main chat to `ACTION_BAR` (guardian alerts appear on the action bar to avoid spamming main chat) | ✅ Optional (keeping it routes guardian alerts to the old default main channel; no functional impact) |
+| `llm.yml` | Added `budget_per_player_per_hour: 200` (LLM budget governance threshold) | ✅ Optional (uses built-in default 200) |
+| `config.yml` | Removed `afk_task` section; `security.allowed_actions` drops `AFKTask.create_task` and adds `player_watch`; `social.skill_whitelist` default no longer contains `AFKTask`; comments AFK→guardian | ✅ Optional (old section has no effect if kept; if you had customized `allowed_actions`, manually add `player_watch` or cross-player subscriptions may be blocked by data isolation) |
+| `greeting_en.yml` | Merged into `greeting.yml` single-file bilingual | 🗑️ Delete (this file is obsolete) |
+| `skills/afktask/AFKTaskSkill.yml` + `_en.yml` | AFK task system removed | 🗑️ Delete (these files are obsolete) |
+
+> Except for 🗑️ entries, keeping any of the above files will not break functionality — new config keys all have built-in Java-level defaults. Deleting them is only to obtain the full set of new configuration optimizations.
+
+#### Upgrading from v2.1.3
+
+1. Stop server, replace JAR, start; no database migration needed
+
+2. **Removed the AFK task system (breaking change)**: the legacy AFK-task system (`/kila afk query/cancel`, the `afk_task` config section, the `kilacraft.afk` permission) has been removed entirely. Its capabilities are **replaced by three new systems**:
+   - **Guardian System**: the default proactive-watch bundle (inventory/durability/threat) — flip the switch and it works, no setup needed
+   - **Player Custom Watches (WatchSkill)**: players set condition/event watches in natural language (watch item counts, watch boss spawns, etc.) — more capable than the old AFK tasks
+   - **Cross-Player Online/Offline Subscription (PlayerWatchSkill)**: subscribe to friends' logins/logouts (replaces the same-named capability in the old system, now supports multiple targets)
+   - If any players relied on the old `/kila afk` command, guide them to `/kila guardian` or just tell the AI "watch xxx for me"
+
+3. **New permission nodes** (all default: all players, opt-in — players must enable them or server owner must configure to activate):
+   - `kilacraft.guardian` (guardian system toggle)
+   - `kilacraft.watch` (player custom watches)
+   - `kilacraft.player_watch` (cross-player online/offline subscription)
+   - `kilacraft.websearch` (web search — needs server owner to configure an API Key)
+   - `kilacraft.webfetch` (web fetch — zero-config)
+
+4. **Removed permission node**: `kilacraft.afk` (AFK tasks, replaced by new systems)
+
+5. This is a major feature release: **four flagship additions — internet capability + proactive AI layer + player custom watches + chat suggestions**. Server owners are encouraged to read this changelog to learn the new possibilities
 
 ---
 

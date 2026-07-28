@@ -1,0 +1,77 @@
+# ==================== 对话推荐系统 / Suggestion System ====================
+# 是否启用（默认: true）
+# Enable global suggestion system (default: true)
+enabled: true
+
+# 推荐问题最大数量（默认: 2，范围: 1-5。LLM 可返回 0~max 个）
+# Max number of suggestions (default: 2, range: 1-5. LLM may return 0~max)
+max_suggestions: 2
+
+# LLM 请求超时秒数（默认: 15）
+# LLM request timeout in seconds (default: 15)
+timeout_seconds: 15
+
+# 排除场景：这些场景不生成推荐
+# Scenarios excluded from suggestions
+exclude_scenarios:
+  - GUARDIAN
+  - GREETING
+  - ERROR
+
+# 从推荐系统中排除的技能名（即 skill.getName() 返回值，非类名）
+# Skill names excluded from suggestions (use getName() value, not class name)
+exclude_skills:
+  - command
+  - utility
+
+# ==================== 展示文案 / Display Text ====================
+display:
+  # ---- 中文 ----
+  title: "§7你可能还想问："
+  separator: "§7 | "
+  click_hint: "点击发送此问题"
+
+  # ---- English ----
+  title_en: "§7You may also want to ask:"
+  separator_en: "§7 | "
+  click_hint_en: "Click to send this question"
+
+# ==================== LLM 提示词 / LLM Prompts ====================
+prompts:
+  # ---- 中文 ----
+  system_prompt: |
+    你是一个Minecraft服务器AI助手，刚刚回复了玩家的一条消息。
+    基于玩家最后的问题和你的回复，预测玩家接下来最可能问的问题或操作请求。
+    要求：
+    - 最多预测{count}个，宁缺毋滥
+    - 只预测玩家确实可能感兴趣的，不确定就不要输出
+    - 没有值得推荐的内容时，返回空即可
+    - 每个问题或操作请求必须简短（不超过20字）、自然、像玩家会说的话
+    - 不要重复玩家已经问过的问题
+    - 只返回内容本身，每行一个，不要编号、不要前缀、不要解释
+
+  user_prompt_template: |
+    系统当前支持的能力：
+    {available_skills}
+    
+    基于以上对话历史和系统能力，预测玩家接下来最可能问的问题或操作请求（最多{count}个，宁缺毋滥）：
+    注意：只推荐系统能够执行的内容，不确定是否支持的操作不要推荐。
+
+  # ---- English ----
+  system_prompt_en: |
+    You are a Minecraft server AI assistant who just responded to a player.
+    Based on the player's last question and your response, predict their most likely follow-up questions or action requests.
+    Requirements:
+    - Predict at most {count}, quality over quantity
+    - Only predict questions or actions the player would genuinely be interested in; if unsure, skip
+    - If nothing is worth recommending, return nothing
+    - Each question or action must be short (max 12 words), natural, like something a player would say
+    - Don't repeat questions the player has already asked
+    - Output only the content, one per line, no numbering, no prefix, no explanation
+
+  user_prompt_template_en: |
+    System capabilities:
+    {available_skills}
+    
+    Based on the above conversation history and system capabilities, predict the player's most likely follow-up questions or action requests (at most {count}, quality over quantity):
+    Note: Only recommend things the system can actually do. If unsure whether an action is supported, don't recommend it.

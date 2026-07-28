@@ -1,17 +1,14 @@
 package com.zm.kilacraftAI.skills.bukkit;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.SkillConfigManager;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.knowledge.InternalEnumRegistry;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.Material;
 import org.bukkit.Statistic;
 import org.bukkit.entity.EntityType;
@@ -26,9 +23,16 @@ import java.util.concurrent.CompletableFuture;
  * @author Zm_Mmm
  * @since 2026-04-19
  */
-public class BukkitStatsSkill implements Skill {
+public class BukkitStatsSkill implements Skill, ProbeSource {
 
     private static final String ACTION_QUERY_STATISTIC = "query_statistic";
+
+    private static final Set<String> PROBEABLE_ACTIONS = Set.of(ACTION_QUERY_STATISTIC);
+
+    @Override
+    public Set<String> getProbeableActions() {
+        return PROBEABLE_ACTIONS;
+    }
 
     /**
      * 距离统计后缀（厘米），需要自动转换单位
@@ -451,7 +455,7 @@ public class BukkitStatsSkill implements Skill {
                 case SPIDER -> "蜘蛛";
                 case ENDERMAN -> "末影人";
                 case ENDER_DRAGON -> "末影龙";
-                case WITHER -> "调灵";
+                case WITHER -> "凋灵";
                 case WITCH -> "女巫";
                 case BLAZE -> "烈焰人";
                 case GHAST -> "恶魂";
@@ -464,13 +468,13 @@ public class BukkitStatsSkill implements Skill {
                 case VEX -> "恼鬼";
                 case GUARDIAN -> "守卫者";
                 case ELDER_GUARDIAN -> "远古守卫者";
-                case SILVERFISH -> "蠢虫";
+                case SILVERFISH -> "蠹虫";
                 case ENDERMITE -> "末影螨";
                 case CAVE_SPIDER -> "洞穴蜘蛛";
                 case HUSK -> "尸壳";
                 case STRAY -> "流浪者";
                 case DROWNED -> "溺尸";
-                case WITHER_SKELETON -> "调灵骷髅";
+                case WITHER_SKELETON -> "凋灵骷髅";
                 case PIGLIN -> "猪灵";
                 case HOGLIN -> "疣猪兽";
                 case ZOGLIN -> "僵尸疣猪兽";

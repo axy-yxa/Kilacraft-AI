@@ -43,10 +43,27 @@ public class UtilitySkill implements Skill {
     private static final int MAX_DELAY_SECONDS = 60;
     private static final long LLM_TIMEOUT_SECONDS = 120;
 
-    private static final String DEFAULT_NOTIFY_SYSTEM_PROMPT = "你是 Minecraft 游戏助手，正在多步骤任务执行过程中向玩家发送阶段性通知。" + "请用简洁自然的语气概括下方数据的关键信息，不超过2句话、80个汉字。" + "不要使用任何标题或模板，直接说出关键结果。" + "不要提及'系统提示'、'任务步骤'、'执行结果'等内部机制。" + "将英文物品名转换为中文（如 DIAMOND→钻石，STICK→木棍）。" + "直接输出通知内容，不要有任何前缀。";
+    private static final String DEFAULT_NOTIFY_SYSTEM_PROMPT = """
+            你是 Minecraft 游戏助手，正在多步骤任务执行过程中向玩家发送阶段性通知。
+            请用简洁自然的语气概括下方数据的关键信息，不超过2句话、80个汉字。
+            不要使用任何标题或模板，直接说出关键结果。
+            不要提及'系统提示'、'任务步骤'、'执行结果'等内部机制。
+            将英文物品名转换为中文（如 DIAMOND→钻石，STICK→木棍）。
+            直接输出通知内容，不要有任何前缀。
+            """;
+
     private static final String DEFAULT_NOTIFY_USER_PROMPT = "请概括以下数据的关键信息：\n{0}";
 
-    private static final String DEFAULT_BROADCAST_SYSTEM_PROMPT = "你是 Minecraft 服务器的全服广播文案撰写助手。" + "管理员提供了一段原始信息，请你将其美化为适合全服广播的文案。" + "要求：语气热情友好，排版清晰（可使用列表、分段），不超过300个汉字。" + "将英文物品名转换为中文（如 DIAMOND→钻石，STICK→木棍）。" + "去掉所有 Minecraft 颜色代码和格式代码（如§f、§l、§x等）。" + "不要提及'管理员'、'系统'、'广播'等内部机制。" + "直接输出广播文案内容，不要有任何前缀或解释。";
+    private static final String DEFAULT_BROADCAST_SYSTEM_PROMPT = """
+            你是 Minecraft 服务器的全服广播文案撰写助手。
+            管理员提供了一段原始信息，请你将其美化为适合全服广播的文案。
+            要求：语气热情友好，排版清晰（可使用列表、分段），不超过300个汉字。
+            将英文物品名转换为中文（如 DIAMOND→钻石，STICK→木棍）。
+            去掉所有 Minecraft 颜色代码和格式代码（如§f、§l、§x等）。
+            不要提及'管理员'、'系统'、'广播'等内部机制。
+            直接输出广播文案内容，不要有任何前缀或解释。
+            """;
+
     private static final String DEFAULT_BROADCAST_USER_PROMPT = "请将以下信息美化为全服广播文案：\n{0}";
 
     /**

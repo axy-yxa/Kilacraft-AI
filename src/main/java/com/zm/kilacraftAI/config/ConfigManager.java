@@ -40,6 +40,8 @@ public class ConfigManager {
     private final KnowledgeConfigManager knowledgeConfigManager;
     @Getter
     private final GreetingConfigManager greetingConfigManager;
+    @Getter
+    private final WebConfigManager webConfigManager;
 
     @Getter
     private boolean enableChatCommand;
@@ -319,6 +321,7 @@ public class ConfigManager {
         this.knowledgeConfigManager = new KnowledgeConfigManager((KilacraftAI) plugin);
         this.greetingConfigManager = new GreetingConfigManager((KilacraftAI) plugin);
         this.outputConfigManager = new OutputConfigManager((KilacraftAI) plugin);
+        this.webConfigManager = new WebConfigManager((KilacraftAI) plugin);
         loadConfig();
     }
 
@@ -371,15 +374,13 @@ public class ConfigManager {
 
         // 社交关系配置
         this.socialSkillWhitelist = config.getStringList("social.skill_whitelist");
-        if (this.socialSkillWhitelist.isEmpty()) {
-            this.socialSkillWhitelist = List.of("market_action", "cmi", "Guardian");
-        }
 
         // 加载子 Manager 配置（语言已从主配置读取，传递给需要语言感知的子 Manager）
         llmConfigManager.loadConfig();
         knowledgeConfigManager.loadConfig(this.language);
         greetingConfigManager.loadConfig(this.language);
         outputConfigManager.loadConfig();
+        webConfigManager.loadConfig();
 
         // 加载内置词汇表（语言变化时重新加载）
         if (vocabularyLoadedLanguage == null || !vocabularyLoadedLanguage.equals(this.language)) {

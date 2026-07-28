@@ -18,7 +18,7 @@ output:
   # - normal_chat: 普通 AI 对话（无技能调用）
   # - skill_result: 单意图技能执行结果（含 LLM 二次分析）
   # - task_result: 多步骤任务执行结果（含 LLM 二次分析）
-  # - afk_callback: 挂机任务回调通知
+  # - guardian: 守护系统主动提醒（含 LLM 个性化发声）
   # - greeting: AI 登录问候
   # - error: 错误消息
   # Scenario-level override configuration (optional, leave empty to use default_channel)
@@ -26,17 +26,14 @@ output:
   # - normal_chat: Normal AI conversation (no skill invocation)
   # - skill_result: Single-intent skill execution result (with LLM secondary analysis)
   # - task_result: Multi-step task execution result (with LLM secondary analysis)
-  # - afk_callback: AFK task callback notification
+  # - guardian: Guardian system proactive alerts (with LLM personalized phrasing)
   # - greeting: AI login greeting
   # - error: Error messages
   scenarios:
     normal_chat: ""
     skill_result: ""
     task_result: ""
-    # guardian 场景：守护系统的主动告警（L1 模板 + L3 陪聊）
-    # 留空则走 default_channel(CHAT)；设为 ACTION_BAR 可让告警不顶聊天
-    # Guardian scenarios: leave empty for CHAT, or set ACTION_BAR so alerts don't push chat
-    guardian: ""
+    guardian: "ACTION_BAR"
     greeting: ""
     error: ""
   

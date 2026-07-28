@@ -20,15 +20,13 @@ import java.util.Set;
  *
  * <p>使用反射动态调用 Bukkit API</p>
  *
+ * <p>本类为无状态对象：所有方法通过参数透传 {@link Player}，无任何实例字段。
+ * 同一实例可被并发安全调用——不同线程的调用各自携带自己的 player，互不干扰。</p>
+ *
  * @author Zm_Mmm
  * @since 2026-04-01
  */
 public class BukkitAPIExecutor {
-
-    /**
-     * 当前执行上下文中的玩家引用，用于为需要 Location 参数的方法提供默认值
-     */
-    private Player currentPlayer;
 
     /**
      * 执行 API 调用
@@ -41,9 +39,6 @@ public class BukkitAPIExecutor {
     public Object execute(BukkitAPIMetadata api, Player player, Map<String, String> entities) throws Exception {
         // TODO: 未来版本将支持从 entities 中提取参数传递给方法
         // 当前版本忽略 entities 参数，只支持无参数方法调用
-
-        // 保存玩家引用，供方法链中的默认参数使用
-        this.currentPlayer = player;
 
         // 权限检查
         if (api.getRequiredPermission() != null && !api.getRequiredPermission().isEmpty()) {
@@ -70,10 +65,10 @@ public class BukkitAPIExecutor {
         Object result;
         if (api.getMethodChain() != null && !api.getMethodChain().isEmpty()) {
             // 模式 1：method_chain - 链式调用返回复杂对象
-            result = executeMethodChain(target, api.getMethodChain());
+            result = executeMethodChain(target, api.getMethodChain(), player);
         } else if (api.getAdditionalMethods() != null && !api.getAdditionalMethods().isEmpty()) {
             // 模式 2：additional_methods - 并行调用多个独立方法
-            result = executeAdditionalMethods(target, api.getAdditionalMethods());
+            result = executeAdditionalMethods(target, api.getAdditionalMethods(), player);
         } else {
             throw new IllegalStateException(I18nService.tr("API 必须配置 method_chain 或 additional_methods"));
         }
@@ -91,10 +86,10 @@ public class BukkitAPIExecutor {
     /**
      * 执行方法链（用于 method_chain）
      */
-    private Object executeMethodChain(Object target, List<String> methodChain) throws Exception {
+    private Object executeMethodChain(Object target, List<String> methodChain, Player player) throws Exception {
         Object result = target;
         for (String methodName : methodChain) {
-            result = invokeMethod(result, methodName);
+            result = invokeMethod(result, methodName, player);
 
             // 如果中间结果为 null，提前结束
             if (result == null) {
@@ -108,7 +103,7 @@ public class BukkitAPIExecutor {
     /**
      * 执行额外方法集合（用于 additional_methods）
      */
-    private Map<String, Object> executeAdditionalMethods(Object target, Map<String, String> additionalMethods) throws Exception {
+    private Map<String, Object> executeAdditionalMethods(Object target, Map<String, String> additionalMethods, Player player) throws Exception {
         Map<String, Object> results = new HashMap<>();
 
         for (Map.Entry<String, String> entry : additionalMethods.entrySet()) {
@@ -118,9 +113,9 @@ public class BukkitAPIExecutor {
             // 支持简单链式调用（如 "getLocation.getX"）
             Object value;
             if (methodName.contains(".")) {
-                value = executeSimpleMethodChain(target, methodName);
+                value = executeSimpleMethodChain(target, methodName, player);
             } else {
-                value = invokeMethod(target, methodName);
+                value = invokeMethod(target, methodName, player);
             }
 
             results.put(placeholderName, value);
@@ -132,12 +127,12 @@ public class BukkitAPIExecutor {
     /**
      * 执行简单的两层方法链（用于 additional_methods 中的链式调用）
      */
-    private Object executeSimpleMethodChain(Object target, String methodChain) throws Exception {
+    private Object executeSimpleMethodChain(Object target, String methodChain, Player player) throws Exception {
         String[] methods = methodChain.split("\\.");
         Object current = target;
 
         for (String method : methods) {
-            current = invokeMethod(current, method);
+            current = invokeMethod(current, method, player);
             if (current == null) {
                 return null;
             }
@@ -172,7 +167,7 @@ public class BukkitAPIExecutor {
     /**
      * 反射调用方法
      */
-    private Object invokeMethod(Object target, String methodName) throws Exception {
+    private Object invokeMethod(Object target, String methodName, Player player) throws Exception {
         if (target == null) {
             return null;
         }
@@ -180,7 +175,7 @@ public class BukkitAPIExecutor {
         Class<?> clazz = target.getClass();
 
         // 查找方法
-        Method method = findMethod(clazz, methodName);
+        Method method = findMethod(clazz, methodName, player);
 
         if (method == null) {
             throw new NoSuchMethodException(I18nService.tr("方法不存在：{} in {}", methodName, clazz.getName()));
@@ -191,11 +186,11 @@ public class BukkitAPIExecutor {
 
         // 检查是否需要在主线程执行（Folia 下始终需要调度，因为无全局主线程）
         if (MAIN_THREAD_METHODS.contains(methodName) && !FoliaCompat.isPrimaryThread()) {
-            return invokeOnMainThread(target, method);
+            return invokeOnMainThread(target, method, player);
         }
 
         // 调用方法（无参数版本，或带默认参数的特殊方法）
-        return invokeMethodWithFallback(target, method);
+        return invokeMethodWithFallback(target, method, player);
     }
 
     /**
@@ -206,13 +201,13 @@ public class BukkitAPIExecutor {
      * <p>lophine/Folia 特殊处理：对于 Player 相关方法，使用 EntityScheduler 而非 GlobalRegionScheduler</p>
      * <p>重要：必须在区域线程内提取线程敏感对象为纯数据，否则跨线程访问会报 getCurrentWorldData() is null</p>
      */
-    private Object invokeOnMainThread(Object target, Method method) throws Exception {
+    private Object invokeOnMainThread(Object target, Method method, Player player) throws Exception {
         try {
             // 如果 target 是 Player，使用 EntityScheduler（lophine 要求）
-            if (target instanceof org.bukkit.entity.Player player) {
-                return FoliaCompat.callSyncOnEntity(player, () -> {
+            if (target instanceof org.bukkit.entity.Player targetPlayer) {
+                return FoliaCompat.callSyncOnEntity(targetPlayer, () -> {
                     try {
-                        Object result = invokeMethodWithFallback(target, method);
+                        Object result = invokeMethodWithFallback(target, method, player);
                         // Folia 端：在区域线程内立即提取为线程安全数据
                         if (FoliaCompat.isFolia()) {
                             return extractThreadSafeData(result, method.getName());
@@ -227,7 +222,7 @@ public class BukkitAPIExecutor {
             // 其他对象使用 GlobalRegionScheduler
             return FoliaCompat.callSync(KilacraftAI.getInstance(), () -> {
                 try {
-                    Object result = invokeMethodWithFallback(target, method);
+                    Object result = invokeMethodWithFallback(target, method, player);
                     // Folia 端：在区域线程内立即提取为线程安全数据
                     if (FoliaCompat.isFolia()) {
                         return extractThreadSafeData(result, method.getName());
@@ -537,7 +532,7 @@ public class BukkitAPIExecutor {
     /**
      * 调用方法，对需要参数的特殊方法提供默认参数
      */
-    private Object invokeMethodWithFallback(Object target, Method method) throws Exception {
+    private Object invokeMethodWithFallback(Object target, Method method, Player player) throws Exception {
         if (method.getParameterCount() == 0) {
             return method.invoke(target);
         }
@@ -545,7 +540,7 @@ public class BukkitAPIExecutor {
         // 对需要参数的方法，根据方法名提供默认参数
         String methodName = method.getName();
         int paramCount = method.getParameterCount();
-        Object[] defaultArgs = buildDefaultArgs(methodName, paramCount);
+        Object[] defaultArgs = buildDefaultArgs(methodName, paramCount, player);
 
         if (defaultArgs != null) {
             return method.invoke(target, defaultArgs);
@@ -570,7 +565,7 @@ public class BukkitAPIExecutor {
      * getTargetBlock(int, FluidCollisionMode) — 新版
      * 两者都是 2 参数，但传入 {null, 100} 只兼容旧版签名。</p>
      */
-    private Method findMethod(Class<?> clazz, String methodName) {
+    private Method findMethod(Class<?> clazz, String methodName, Player player) {
         Method bestWithDefaults = null;
         int bestDefaultsParamCount = Integer.MAX_VALUE;
         Method bestFallback = null;
@@ -587,7 +582,7 @@ public class BukkitAPIExecutor {
             }
 
             // 检查 buildDefaultArgs 是否能为此方法提供参数
-            Object[] defaultArgs = buildDefaultArgs(methodName, pc);
+            Object[] defaultArgs = buildDefaultArgs(methodName, pc, player);
             if (defaultArgs != null) {
                 // 关键：检查默认参数类型与方法参数类型是否兼容
                 if (isArgsCompatible(method, defaultArgs)) {
@@ -665,7 +660,7 @@ public class BukkitAPIExecutor {
      *   <li>LivingEntity.getTargetBlock(Set<Material>, int) — Set + int</li>
      * </ul>
      */
-    private Object[] buildDefaultArgs(String methodName, int paramCount) {
+    private Object[] buildDefaultArgs(String methodName, int paramCount, Player player) {
         // Player.getTargetBlock(Set<Material>, int)
         // 注意：transparent 参数传 null 表示只有空气被视为透明（射线穿过空气命中第一个实体方块）
         // 传 emptySet() 会导致空气也不透明，直接返回眼睛位置的空气方块
@@ -674,9 +669,9 @@ public class BukkitAPIExecutor {
         }
 
         // World.getBiome / getTemperature / getHumidity
-        if (("getBiome".equals(methodName) || "getTemperature".equals(methodName) || "getHumidity".equals(methodName)) && currentPlayer != null) {
-            int blockX = currentPlayer.getLocation().getBlockX();
-            int blockZ = currentPlayer.getLocation().getBlockZ();
+        if (("getBiome".equals(methodName) || "getTemperature".equals(methodName) || "getHumidity".equals(methodName)) && player != null) {
+            int blockX = player.getLocation().getBlockX();
+            int blockZ = player.getLocation().getBlockZ();
 
             if (paramCount == 2) {
                 // getBiome(int x, int z) / getTemperature(int x, int z) / getHumidity(int x, int z)
@@ -684,12 +679,12 @@ public class BukkitAPIExecutor {
             }
             if (paramCount == 3) {
                 // getBiome(int x, int y, int z) — y 用玩家当前 y
-                int blockY = currentPlayer.getLocation().getBlockY();
+                int blockY = player.getLocation().getBlockY();
                 return new Object[]{blockX, blockY, blockZ};
             }
             if (paramCount == 1) {
                 // 高版本 Spigot: getBiome(Location)
-                return new Object[]{currentPlayer.getLocation()};
+                return new Object[]{player.getLocation()};
             }
         }
 

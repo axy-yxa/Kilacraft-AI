@@ -102,6 +102,9 @@ public class LoginGreetingHandler implements Listener {
         // 主线程提前缓存权限检查结果
         final boolean isAdminHealth = PluginPermissionEnum.ADMIN_HEALTH.hasPermission(player);
         final boolean isAdminInfo = PluginPermissionEnum.ADMIN_INFO.hasPermission(player);
+        // 守护状态（主线程读取，传入 context 供问候推荐）
+        // guardianManager==null 时设为 true——守护系统不可用，不注入推荐段落（避免玩家开启后失败）
+        final boolean guardianEnabled = plugin.getGuardianManager() == null || plugin.getGuardianManager().isGuardianEnabled(playerUuid);
 
         profileManager.getProfile(playerUuid, profile -> {
             if (profile == null) {
@@ -114,7 +117,7 @@ public class LoginGreetingHandler implements Listener {
             // loginCount == 1: 首次登录的正常路径（onPlayerJoin 中 updateLogin 后 loginCount = 1）
 
             if (isFirstLogin) {
-                GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(true).offlineDurationMs(0).offlineEvents(Collections.emptyList()).onlineFriends(Collections.emptyList()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).healthAlerts(Collections.emptyList()).updateReminders(Collections.emptyList()).build();
+                GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(true).offlineDurationMs(0).offlineEvents(Collections.emptyList()).onlineFriends(Collections.emptyList()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).healthAlerts(Collections.emptyList()).updateReminders(Collections.emptyList()).guardianEnabled(guardianEnabled).build();
                 generateAndSend(context, playerName, playerUuid);
 
             } else {
@@ -135,7 +138,7 @@ public class LoginGreetingHandler implements Listener {
                     List<ServerEvent> healthAlerts = isAdminHealth && data.healthAlerts() != null ? data.healthAlerts() : Collections.emptyList();
                     List<ServerEvent> updateReminders = isAdminInfo && data.updateReminders() != null ? data.updateReminders() : Collections.emptyList();
 
-                    GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(false).offlineDurationMs(offlineDuration).offlineEvents(data.ownEvents()).friendEvents(data.friendEvents()).summaryStats(summaryStats).onlineFriends(data.onlineFriends()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).offlineFriends(data.offlineFriends()).globalEventCount(data.globalEventCount()).friendLoginCounts(data.friendLoginCounts()).healthAlerts(healthAlerts).updateReminders(updateReminders).build();
+                    GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(false).offlineDurationMs(offlineDuration).offlineEvents(data.ownEvents()).friendEvents(data.friendEvents()).summaryStats(summaryStats).onlineFriends(data.onlineFriends()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).offlineFriends(data.offlineFriends()).globalEventCount(data.globalEventCount()).friendLoginCounts(data.friendLoginCounts()).healthAlerts(healthAlerts).updateReminders(updateReminders).guardianEnabled(guardianEnabled).build();
 
                     generateAndSend(context, playerName, playerUuid);
                 });
@@ -167,7 +170,7 @@ public class LoginGreetingHandler implements Listener {
         // 全局预算熔断闸门：问候属被动输出，runaway 时降级跳过（问候自身 30min 冷却保证正常极低频）
         if (plugin.getLlmOutputCoordinator() != null) {
             var budget = plugin.getLlmOutputCoordinator().getBudgetManager();
-            if (!budget.tryAcquire(playerUuid, com.zm.kilacraftAI.skills.framework.task.LLMBudgetManager.Priority.GREETING)) {
+            if (!budget.tryAcquire(playerUuid, com.zm.kilacraftAI.skills.framework.task.LLMBudgetManager.Priority.PASSIVE)) {
                 PluginLoggerUtil.debug("问候系统", "LLM 预算熔断中，跳过本次问候（玩家 {}）", playerName);
                 return;
             }
@@ -194,7 +197,7 @@ public class LoginGreetingHandler implements Listener {
 
                 // 写入内存对话历史，使玩家能对问候内容进行追问
                 Deque<ConversationManager.Message> history = plugin.getConversationManager().getOrCreateHistory(playerUuid);
-                history.add(new ConversationManager.Message("assistant", greeting));
+                history.add(new ConversationManager.Message("assistant", greeting, ConversationSourceEnum.GREETING.getValue()));
 
                 updateGreetingTime(playerUuid);
             }

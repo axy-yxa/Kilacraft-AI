@@ -5,6 +5,7 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.common.util.LogSnippetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
@@ -13,7 +14,6 @@ import com.zm.kilacraftAI.db.dao.ConversationDao;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
-import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 
@@ -51,18 +51,18 @@ public class ProfileAnalysisService {
     /**
      * 触发分析的消息来源（计数门控用）：仅玩家主动发起的对话。
      *
-     * <p>玩家对守护 L3 的回复经 ChatListener 记成 source=chat，已计入这里；
+     * <p>玩家对守护的回复经 ChatListener 记成 source=chat，已计入这里；
      * 守护 AI 主动消息（source=guardian）是 AI 发起、非玩家主动，不计入触发阈值，
      * 否则会因守护频繁主动而虚抬画像分析频率。</p>
      */
     private static final String TRIGGER_SOURCE_FILTER = "'chat','command'";
 
     /**
-     * 加载给 LLM 分析的消息来源（含守护 L3 上下文）。
+     * 加载给 LLM 分析的消息来源。
      *
      * <p>守护是交互式主动层：AI 提问、玩家回应。加载时须把 guardian 的 AI 消息一并纳入，
      * 否则只看到玩家单方面的回应而看不到 AI 提了什么，上下文断裂反而是噪音。
-     * 仍排除 greeting/afk_callback（单向模板广播，无玩家交互信号）与 plugin（人格隔离场景）。</p>
+     * 仍排除 greeting（单向模板广播，无玩家交互信号）与 plugin（人格隔离场景）。</p>
      */
     private static final String ANALYSIS_SOURCE_FILTER = "'chat','command','guardian'";
 
@@ -237,8 +237,8 @@ public class ProfileAnalysisService {
             int minMessages = databaseManager.getConfig().getProfileMinMessagesToTrigger();
 
             try (Connection conn = databaseManager.getConnection()) {
-            // 门控2：新消息数不足（只数玩家主动发起的 chat/command，守护 AI 消息不虚抬阈值）
-            int newMessageCount = conversationDao.countMessagesSince(conn, playerUuid.toString(), TRIGGER_SOURCE_FILTER, lastAnalyzed);
+                // 门控2：新消息数不足（只数玩家主动发起的 chat/command，守护 AI 消息不虚抬阈值）
+                int newMessageCount = conversationDao.countMessagesSince(conn, playerUuid.toString(), TRIGGER_SOURCE_FILTER, lastAnalyzed);
 
                 if (newMessageCount < minMessages) {
                     PluginLoggerUtil.debug("画像分析", I18nService.tr("玩家 {} 新消息数 {} < 最低阈值 {}，跳过分析", playerUuid, newMessageCount, minMessages));
@@ -444,7 +444,7 @@ public class ProfileAnalysisService {
      * 用户可在 database.yml 中自定义提示词，留空则使用内置默认值。</p>
      */
     private String getAnalysisSystemPrompt(PlayerProfile profile) {
-        boolean isChinese = plugin.getConfigManager().isChinese();
+        boolean isChinese = I18nService.isZh();
         boolean hasExistingProfile = profile.getExtendedData() != null && !profile.getExtendedData().isEmpty();
 
         if (hasExistingProfile) {

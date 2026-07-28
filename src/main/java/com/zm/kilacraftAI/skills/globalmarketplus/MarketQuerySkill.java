@@ -9,10 +9,7 @@ import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -29,7 +26,16 @@ import static java.util.Map.entry;
  * @author Zm_Mmm
  * @since 2026-03-30
  */
-public class MarketQuerySkill implements Skill {
+public class MarketQuerySkill implements Skill, ProbeSource {
+
+    private static final Set<String> PROBEABLE_ACTIONS = Set.of(
+            "query_balance", "query_price", "query_items", "query_availability",
+            "query_my_items", "query_seller_items", "query_mailbox", "query_market_stats");
+
+    @Override
+    public Set<String> getProbeableActions() {
+        return PROBEABLE_ACTIONS;
+    }
 
     private final SkillConfigManager configManager;
 

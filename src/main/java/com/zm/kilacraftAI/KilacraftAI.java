@@ -11,7 +11,10 @@ import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.db.service.DataCleanupService;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.i18n.TextProcessorFactory;
-import com.zm.kilacraftAI.listener.*;
+import com.zm.kilacraftAI.listener.AdminListener;
+import com.zm.kilacraftAI.listener.ChatListener;
+import com.zm.kilacraftAI.listener.PrivateChatListener;
+import com.zm.kilacraftAI.listener.TpaListener;
 import com.zm.kilacraftAI.llm.LLMManager;
 import com.zm.kilacraftAI.metrics.MetricsBootstrap;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
@@ -23,6 +26,10 @@ import com.zm.kilacraftAI.service.event.EventCollector;
 import com.zm.kilacraftAI.service.event.MarketEventCollector;
 import com.zm.kilacraftAI.service.event.OfflineEventAggregator;
 import com.zm.kilacraftAI.service.greeting.LoginGreetingHandler;
+import com.zm.kilacraftAI.service.guardian.GuardianEngine;
+import com.zm.kilacraftAI.service.guardian.GuardianManager;
+import com.zm.kilacraftAI.service.guardian.PlayerActivityTracker;
+import com.zm.kilacraftAI.service.guardian.predicate.PlayerStateService;
 import com.zm.kilacraftAI.service.health.ServerHealthGuardian;
 import com.zm.kilacraftAI.service.health.SparkDataCollector;
 import com.zm.kilacraftAI.service.knowledge.EmbeddingService;
@@ -33,12 +40,16 @@ import com.zm.kilacraftAI.service.notification.NotificationService;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
 import com.zm.kilacraftAI.service.output.SoundEffectManager;
 import com.zm.kilacraftAI.service.output.StreamOutputManager;
+import com.zm.kilacraftAI.service.playerwatch.PlayerWatchService;
 import com.zm.kilacraftAI.service.profile.ProfileAnalysisService;
 import com.zm.kilacraftAI.service.profile.ProfileEventCollector;
 import com.zm.kilacraftAI.service.profile.ProfileManager;
 import com.zm.kilacraftAI.service.profile.SocialRelationExtractor;
+import com.zm.kilacraftAI.service.suggestion.SuggestionManager;
+import com.zm.kilacraftAI.service.suggestion.SuggestionService;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
 import com.zm.kilacraftAI.service.update.UpdateChecker;
+import com.zm.kilacraftAI.service.watch.WatchService;
 import com.zm.kilacraftAI.skills.admin.AuditLogSkill;
 import com.zm.kilacraftAI.skills.admin.PlayerAnalysisSkill;
 import com.zm.kilacraftAI.skills.admin.ServerHealthSkill;
@@ -56,8 +67,13 @@ import com.zm.kilacraftAI.skills.framework.resume.PendingResumeManager;
 import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketActionSkill;
 import com.zm.kilacraftAI.skills.globalmarketplus.MarketQuerySkill;
+import com.zm.kilacraftAI.skills.playerwatch.PlayerWatchSkill;
 import com.zm.kilacraftAI.skills.utility.UtilitySkill;
+import com.zm.kilacraftAI.skills.watch.WatchSkill;
+import com.zm.kilacraftAI.skills.webfetch.WebFetchSkill;
+import com.zm.kilacraftAI.skills.websearch.WebSearchSkill;
 import lombok.Getter;
+import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
@@ -198,17 +214,52 @@ public final class KilacraftAI extends JavaPlugin {
      * 守护系统配置管理器（guardian.yml）
      */
     @Getter
-    private com.zm.kilacraftAI.config.GuardianConfigManager guardianConfigManager;
+    private GuardianConfigManager guardianConfigManager;
     /**
      * 守护系统管理器（玩家 Guardian 生命周期）
      */
     @Getter
-    private com.zm.kilacraftAI.service.guardian.GuardianManager guardianManager;
+    private GuardianManager guardianManager;
     /**
      * 守护引擎（心跳 + 事件分发 + fan-out）
      */
     @Getter
-    private com.zm.kilacraftAI.service.guardian.GuardianEngine guardianEngine;
+    private GuardianEngine guardianEngine;
+    /**
+     * 玩家活动跟踪器（AFK 判定，挂机时守护暂停）
+     */
+    @Getter
+    private PlayerActivityTracker playerActivityTracker;
+
+    /**
+     * 跨玩家上下线订阅服务（PlayerWatch，独立于守护系统）
+     */
+    @Getter
+    private PlayerWatchService playerWatchService;
+
+    /**
+     * 玩家自定义监听服务（WatchSkill，独立于守护系统）
+     */
+    @Getter
+    private WatchService watchService;
+    @Getter
+    private WatchConfigManager watchConfigManager;
+
+    /**
+     * 对话推荐系统配置管理器（suggestion.yml）
+     */
+    @Getter
+    private SuggestionConfigManager suggestionConfigManager;
+    /**
+     * 对话推荐系统玩家级开关管理器（opt-out 内存态）
+     */
+    @Getter
+    private SuggestionManager suggestionManager;
+    /**
+     * 对话推荐编排服务
+     */
+    @Getter
+    private SuggestionService suggestionService;
 
     /**
      * 统一定时任务调度器
@@ -221,6 +272,9 @@ public final class KilacraftAI extends JavaPlugin {
      */
     @Getter
     private AdminConfigManager adminConfigManager;
+
+    @Getter
+    private WebConfigManager webConfigManager;
 
     /**
      * 服务器健康守护线程（非 static 单例，由本类持有）
@@ -255,6 +309,9 @@ public final class KilacraftAI extends JavaPlugin {
         initializeSkillsSystem();
         initializeAdminSystem();   // 初始化服主管理功能
         initializeGuardianSystem(); // 初始化守护系统（依赖 skill/taskScheduler/pipeline 全部就绪）
+        initializePlayerWatchSystem(); // 初始化跨玩家上下线订阅（依赖 skillManager 就绪）
+        initializeWatchSystem();      // 初始化玩家自定义监听（依赖 skillManager 就绪）
+        initializeSuggestionSystem(); // 初始化对话推荐（依赖 skillManager + llmManager 就绪）
 
         // 设置 MetricsCollector 的 SkillManager 引用（用于动态获取 Skill 列表）
         MetricsCollector.getInstance().setSkillManager(skillManager);
@@ -268,6 +325,8 @@ public final class KilacraftAI extends JavaPlugin {
      */
     private void initializeManagers() {
         configManager = new ConfigManager(this);
+        // WebConfigManager 由 ConfigManager 构造时初始化并 loadConfig，此处取引用供后续技能注册使用
+        webConfigManager = configManager.getWebConfigManager();
         i18nService = new I18nService(this);
         i18nService.load();
         languageManager = new LanguageManager(this);
@@ -308,7 +367,7 @@ public final class KilacraftAI extends JavaPlugin {
             // 注册 TPA 传送监听器（与私聊监听器同模式，覆盖直接使用 /tpa、/tpahere 的场景）
             getServer().getPluginManager().registerEvents(new TpaListener(socialGraph, databaseManager), this);
 
-            // 对话持久化服务初始化（不再自行启动定时任务）
+            // 对话持久化服务初始化（定时任务由 TaskScheduler 统一调度）
             initializePersistenceService();
 
             // 初始化画像分析服务
@@ -438,7 +497,7 @@ public final class KilacraftAI extends JavaPlugin {
 
         PluginLoggerUtil.info("数据库", "对话持久化服务已初始化（历史加载: {}, 保留天数: {}）", loadHistoryEnabled, retentionDays > 0 ? retentionDays : "永久");
 
-        // 初始化事件数据清理服务（不再自行启动定时任务）
+        // 初始化事件数据清理服务（定时任务由 TaskScheduler 统一调度）
         int eventRetentionDays = dbConfig.getEventRetentionDays();
         dataCleanupService = new DataCleanupService(databaseManager, eventRetentionDays, dbConfig.getSkillLogRetentionDays());
 
@@ -807,6 +866,14 @@ public final class KilacraftAI extends JavaPlugin {
         skillManager.registerSkill(new PlayerAnalysisSkill());
         skillManager.registerSkill(new AuditLogSkill());
         skillManager.registerSkill(new VersionInfoSkill());
+
+        // Web 搜索技能（条件注册：需 web.yml search.enabled=true）
+        if (webConfigManager != null && webConfigManager.isSearchEnabled()) {
+            skillManager.registerSkill(new WebSearchSkill());
+        }
+        if (webConfigManager != null && webConfigManager.isFetchEnabled()) {
+            skillManager.registerSkill(new WebFetchSkill());
+        }
     }
 
     /**
@@ -825,6 +892,9 @@ public final class KilacraftAI extends JavaPlugin {
         syncSkill("server_health", true, () -> skillManager.registerSkill(new ServerHealthSkill()));
         syncSkill("player_analysis", true, () -> skillManager.registerSkill(new PlayerAnalysisSkill()));
         syncSkill("audit_log", true, () -> skillManager.registerSkill(new AuditLogSkill()));
+
+        syncSkill("web_search", webConfigManager != null && webConfigManager.isSearchEnabled(), () -> skillManager.registerSkill(new WebSearchSkill()));
+        syncSkill("web_fetch", webConfigManager != null && webConfigManager.isFetchEnabled(), () -> skillManager.registerSkill(new WebFetchSkill()));
     }
 
     /**
@@ -889,36 +959,29 @@ public final class KilacraftAI extends JavaPlugin {
      */
     private void initializeGuardianSystem() {
         try {
-            guardianConfigManager = new com.zm.kilacraftAI.config.GuardianConfigManager(this);
+            guardianConfigManager = new GuardianConfigManager(this);
             guardianConfigManager.loadConfig();
 
             if (!guardianConfigManager.isEnabled()) {
-                com.zm.kilacraftAI.common.util.PluginLoggerUtil.info("守护系统", com.zm.kilacraftAI.i18n.I18nService.tr("守护系统已被全局关闭（guardian.yml settings.enabled=false）"));
+                PluginLoggerUtil.info("守护系统", I18nService.tr("守护系统已被全局关闭（guardian.yml settings.enabled=false）"));
                 return;
             }
 
-            // 谓词注册表 + 原语
-            com.zm.kilacraftAI.service.guardian.predicate.PredicateRegistry predicateRegistry =
-                    new com.zm.kilacraftAI.service.guardian.predicate.PredicateRegistry();
-            com.zm.kilacraftAI.service.guardian.predicate.BuiltInPredicates.registerDefaults(predicateRegistry);
-
             // 状态服务（Folia 安全快照，无参构造，用静态 FoliaCompat）
-            com.zm.kilacraftAI.service.guardian.predicate.PlayerStateService playerStateService =
-                    new com.zm.kilacraftAI.service.guardian.predicate.PlayerStateService();
+            PlayerStateService playerStateService = new PlayerStateService();
+
+            // 活动跟踪器（AFK 判定，挂机时守护暂停）
+            playerActivityTracker = new PlayerActivityTracker(guardianConfigManager);
+            getServer().getPluginManager().registerEvents(playerActivityTracker, this);
 
             // 引擎（心跳 + 事件分发）——先创建，GuardianManager 注册玩家时用
-            guardianEngine = new com.zm.kilacraftAI.service.guardian.GuardianEngine(this, playerStateService,
-                    guardianConfigManager.getHeartbeatIntervalTicks());
+            guardianEngine = new GuardianEngine(this, playerStateService, playerActivityTracker, guardianConfigManager.getHeartbeatIntervalTicks());
 
-            // monitor 工厂 + 管理器
-            com.zm.kilacraftAI.service.guardian.MonitorFactory monitorFactory =
-                    new com.zm.kilacraftAI.service.guardian.MonitorFactory(
-                            predicateRegistry, responsePipeline, skillManager, llmOutputCoordinator);
-            guardianManager = new com.zm.kilacraftAI.service.guardian.GuardianManager(
-                    this, guardianConfigManager, monitorFactory, guardianEngine, databaseManager);
+            // 管理器（opt-in 纯内存态，无 DB 依赖）
+            guardianManager = new GuardianManager(this, guardianConfigManager, guardianEngine);
 
-            // 注册事件 Listener（join/quit 走 manager 生命周期，事件型 monitor 走 engine 分发）
-            guardianEngine.start(guardianManager);
+            // 注册事件 Listener（事件型 monitor 走 engine 分发）
+            guardianEngine.start();
 
             // 注册心跳（复用 TaskScheduler，仿 ServerHealthGuardian 模式）
             if (taskScheduler != null) {
@@ -927,14 +990,72 @@ public final class KilacraftAI extends JavaPlugin {
 
             // 入口 skill（自然语言）——无条件注册，LLM 经 description 识别
             if (skillManager != null) {
-                skillManager.registerSkill(new com.zm.kilacraftAI.skills.guardian.GuardianSkill(guardianManager));
+                skillManager.registerSkill(new com.zm.kilacraftAI.skills.guardian.GuardianSkill());
             }
 
-            com.zm.kilacraftAI.common.util.PluginLoggerUtil.info("守护系统",
-                    com.zm.kilacraftAI.i18n.I18nService.tr("守护系统初始化完成，心跳 {} tick", guardianConfigManager.getHeartbeatIntervalTicks()));
+            PluginLoggerUtil.info("守护系统", I18nService.tr("守护系统初始化完成，心跳 {} tick", guardianConfigManager.getHeartbeatIntervalTicks()));
         } catch (Exception e) {
-            com.zm.kilacraftAI.common.util.PluginLoggerUtil.error("守护系统",
-                    com.zm.kilacraftAI.i18n.I18nService.tr("守护系统初始化失败，降级跳过: {}", e.getMessage()), e);
+            PluginLoggerUtil.error("守护系统", I18nService.tr("守护系统初始化失败，降级跳过: {}", e.getMessage()), e);
+        }
+    }
+
+    /**
+     * 初始化跨玩家上下线订阅系统（PlayerWatch）。
+     *
+     * <p>独立于守护系统：守护是 AI 主动看护玩家自身状态，PlayerWatch 是玩家订阅他人状态。
+     * 内存订阅（不持久化），玩家下线自动清空。失败降级跳过。</p>
+     */
+    private void initializePlayerWatchSystem() {
+        try {
+            this.playerWatchService = new PlayerWatchService(this);
+            getServer().getPluginManager().registerEvents(playerWatchService, this);
+            if (skillManager != null) {
+                skillManager.registerSkill(new PlayerWatchSkill());
+            }
+            PluginLoggerUtil.info("跨玩家监控", I18nService.tr("PlayerWatch 系统已初始化"));
+        } catch (Exception e) {
+            PluginLoggerUtil.error("跨玩家监控", I18nService.tr("PlayerWatch 初始化失败，降级跳过: {}", e.getMessage()), e);
+        }
+    }
+
+    /**
+     * 初始化玩家自定义监听系统（依赖 skillManager 就绪）。
+     */
+    private void initializeWatchSystem() {
+        try {
+            this.watchConfigManager = new WatchConfigManager(this);
+            this.watchConfigManager.loadConfig();
+            if (!watchConfigManager.isEnabled()) {
+                return;
+            }
+            this.watchService = new WatchService(this, watchConfigManager);
+            this.watchService.initGlobalListener();
+            getServer().getPluginManager().registerEvents(watchService, this);
+            if (skillManager != null) {
+                skillManager.registerSkill(new WatchSkill());
+            }
+            PluginLoggerUtil.info("自定义监听", I18nService.tr("WatchSkill 系统已初始化"));
+        } catch (Exception e) {
+            PluginLoggerUtil.error("自定义监听", I18nService.tr("WatchSkill 初始化失败，降级跳过: {}", e.getMessage()), e);
+        }
+    }
+
+    /**
+     * 初始化对话推荐系统（suggestion.yml + 玩家级开关 + 编排服务）。
+     * 依赖 skillManager（技能摘要）与 llmManager（LLM 调用）已就绪，须在两者之后调用。
+     */
+    private void initializeSuggestionSystem() {
+        try {
+            this.suggestionConfigManager = new SuggestionConfigManager(this);
+            this.suggestionConfigManager.loadConfig();
+            if (!suggestionConfigManager.isEnabled()) {
+                return;
+            }
+            this.suggestionManager = new SuggestionManager();
+            this.suggestionService = new SuggestionService(this);
+            PluginLoggerUtil.info("对话推荐", I18nService.tr("对话推荐系统已初始化"));
+        } catch (Exception e) {
+            PluginLoggerUtil.error("对话推荐", I18nService.tr("对话推荐初始化失败，降级跳过: {}", e.getMessage()), e);
         }
     }
 
@@ -1050,11 +1171,29 @@ public final class KilacraftAI extends JavaPlugin {
         }
 
         // 关闭守护系统（引擎 shutdown 标志 + 清理所有玩家 Guardian，须在 taskScheduler.shutdownAll 之前）
+        if (playerActivityTracker != null) {
+            HandlerList.unregisterAll(playerActivityTracker);
+            playerActivityTracker.shutdown();
+        }
         if (guardianEngine != null) {
             guardianEngine.shutdown();
         }
         if (guardianManager != null) {
             guardianManager.shutdown();
+        }
+
+        // 关闭跨玩家订阅（注销 Listener + 清空订阅，避免延迟任务回调进入已关闭的 LLM 链）
+        if (playerWatchService != null) {
+            HandlerList.unregisterAll(playerWatchService);
+            playerWatchService.shutdown();
+            playerWatchService = null;
+        }
+
+        // 关闭玩家自定义监听（注销 Listener + 取消定时器 + 清空监听）
+        if (watchService != null) {
+            HandlerList.unregisterAll(watchService);
+            watchService.shutdown();
+            watchService = null;
         }
 
         // 关闭外部通知服务（释放自建 OkHttpClient 线程池）
@@ -1067,7 +1206,7 @@ public final class KilacraftAI extends JavaPlugin {
             taskScheduler.shutdownAll();
         }
 
-        // 刷盘对话持久化服务剩余消息（不再取消定时器，已由 TaskScheduler 取消）
+        // 刷盘对话持久化服务剩余消息（定时器已由 TaskScheduler 取消）
         if (persistenceService != null) {
             persistenceService.shutdown();
         }

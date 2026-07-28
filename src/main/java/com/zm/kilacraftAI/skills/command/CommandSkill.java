@@ -12,11 +12,7 @@ import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -102,25 +98,15 @@ public class CommandSkill implements Skill {
 
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
+        // isAvailable 已保证玩家在线 + 全局开关开启（executeSkillByIntent 执行前会实时调用 isAvailable）
         Player player = context.getPlayer();
-        if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("命令执行仅支持在线玩家使用"));
-        }
-
-        // 再次检查全局开关（防止运行中被关闭）
-        KilacraftAI plugin = KilacraftAI.getInstance();
-        if (!plugin.getConfigManager().isCommandSkillEnabled()) {
-            return CompletableFuture.completedFuture(SkillResult.failure("命令执行功能当前未启用"));
-        }
-
-        // 权限检查
         if (!PluginPermissionEnum.COMMAND_EXECUTE.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure("你没有使用 AI 命令执行的权限"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.COMMAND_EXECUTE.getNode())));
         }
 
         String action = context.getAction();
         if (action == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("未指定命令执行动作"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未指定命令执行动作")));
         }
 
         try {

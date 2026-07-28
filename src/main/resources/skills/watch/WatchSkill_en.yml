@@ -1,0 +1,25 @@
+# WatchSkill Player Custom Watch Skill Configuration (English)
+# This file is auto-generated; modify as needed
+#
+# This description is sent to the LLM to help it understand when to invoke this skill
+description: 'Player custom watch system: the player specifies a watch source and trigger condition, the system continuously monitors, and notifies the AI when the condition is met (the AI decides how to respond). Supports two watch types: conditional watch (polling, periodically executes a skill query to compare values, e.g. "watch my health below 10", "watch iron ingots until 64") and event watch (event-driven, triggers on Bukkit event match, e.g. "tell me when furnace is done", "notify me when crops mature", "alert me when a BOSS spawns"). Use this skill when players mention ongoing monitoring needs such as "watch X until Y", "remind me once X", "tell me when X is done", "notify me when X happens". Keywords: watch, monitor, keep an eye on, once, when, reached, enough, below, above, changed, done, ready, spawned, remind, notify, tell me. The watch condition is specified by the player; when triggered, only the AI is notified—no automatic callback execution. For subscribing to other players online/offline status, use the PlayerWatch skill; for AI proactive guardian, use the Guardian skill.'
+
+# Action descriptions (Map format: key=action name, value=description)
+# Each action description is sent to the LLM to help it select the correct action and extract parameters
+action_descriptions:
+  create_watch: 'Create a watch. Required: mode (watch mode: polling=conditional/event=event-driven). For polling mode also required: source (watch source in skill.action format, choose from the watchable list in getDynamicContext, e.g. bukkit_api.get_player_health), result_path (field name to extract from skill return value, e.g. health), operator (comparison operator: number uses greater_than_or_equal/greater_than/less_than_or_equal/less_than/equal/not_equal, string uses equal/not_equal/contains), threshold (threshold value: number for numeric, match value like OBSIDIAN for string). For event mode also required: event_type (event type, choose from the event watch list in getDynamicContext, e.g. furnace_smelt/player_death/block_break). Optional: filter_ prefixed params (event filters, e.g. filter_result_type=IRON_INGOT), intent (context for the AI when triggered), single_shot (one-time watch, default true), display_name (human-readable watch name). Returns data containing watch_id, display_name fields for subsequent step references.'
+  cancel_watch: 'Cancel a watch. Parameters: watch_id (watch ID) or description (watch description for fuzzy matching). Returns data containing watch_id, cancelled fields for subsequent step references.'
+  list_watches: 'Query all active watches for the current player. No parameters. Returns data containing watches (watch list, each with watch_id/display_name/mode/source or event_type), total fields for subsequent step references.'
+
+# Additional hints (used to guide the LLM in correct skill usage)
+hints:
+  - 'Use create_watch with mode=polling when players say "watch my iron ingots until 64", "remind me when health below 30%" or other monitoring requests with specific numeric conditions'
+  - 'Use create_watch with mode=event when players say "tell me when furnace is done", "alert me when BOSS spawns", "notify me when crops mature" or other event-based monitoring requests'
+  - 'Use cancel_watch when players say "cancel the iron watch", "stop watching"'
+  - 'Use list_watches when players say "what am I watching", "list my watches"'
+  - 'For polling mode, choose source from the conditional watch list injected by getDynamicContext, in skill.action format (e.g. bukkit_api.get_player_health). Infer result_path from the action description (it states "returned data contains xxx field")'
+  - 'For event mode, choose event_type from the event watch list injected by getDynamicContext (e.g. furnace_smelt/crop_mature/entity_death/player_death/block_break/player_fish/player_chat)'
+  - 'Polling mode values have types: number (e.g. health/item count) uses comparison operators; string (e.g. block type/weather) uses equal/not_equal/contains. Infer type from skill return field description'
+  - 'Event mode can include filter params (filter_ prefix), e.g. filter_result_type=IRON_INGOT for specific furnace product, filter_block_type=DIAMOND_ORE for specific block break, filter_keyword=OK for chat containing specific word'
+  - 'Subscribing to other players online/offline status (e.g. "tell me when Steve comes online") does NOT use this skill—route to PlayerWatch skill'
+  - 'When players say "enable guardian" or "be my bodyguard" without specifying a condition, do NOT use this skill—route to Guardian skill'

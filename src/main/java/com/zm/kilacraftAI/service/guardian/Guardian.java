@@ -4,46 +4,30 @@ import com.zm.kilacraftAI.service.guardian.monitor.Monitor;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * 单个玩家的守护协调器：持有一束 {@link Monitor} + 共享冷却/静音/画像相关性。
+ * 单个玩家的守护协调器：持有一束 {@link Monitor}。
  *
- * <p>跨 monitor 的防刷屏协调委托给 {@link GuardianCooldownHub}。</p>
+ * <p>monitors 列表在启用时一次性装配（默认套餐），运行期不变。
+ * 防刷屏由每个 Monitor 自身的 {@code cooldownMillis} 承担。</p>
  *
  * @author Zm_Mmm
  * @since 2026-07-01
  */
 public final class Guardian {
 
-    private final UUID playerId;
     private final List<Monitor> monitors;
-    private final GuardianCooldownHub hub;
 
-    public Guardian(UUID playerId, Collection<Monitor> monitors) {
-        this(playerId, monitors, new GuardianCooldownHub());
+    public Guardian(Collection<Monitor> monitors) {
+        this.monitors = new CopyOnWriteArrayList<>(new ArrayList<>(monitors));
     }
 
-    public Guardian(UUID playerId, Collection<Monitor> monitors, GuardianCooldownHub hub) {
-        this.playerId = Objects.requireNonNull(playerId, "playerId");
-        this.monitors = Collections.unmodifiableList(new ArrayList<>(monitors));
-        this.hub = Objects.requireNonNull(hub, "hub");
-    }
-
-    public UUID playerId() {
-        return playerId;
-    }
-
-    /** 该玩家的全部监听单元（不可变）。 */
+    /**
+     * 该玩家的全部监听单元。
+     */
     public List<Monitor> monitors() {
         return monitors;
-    }
-
-    /** 跨 monitor 防刷屏协调层（静音/分类冷却/优先级抢占/画像相关性）。 */
-    public GuardianCooldownHub hub() {
-        return hub;
     }
 }

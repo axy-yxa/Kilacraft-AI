@@ -1,49 +1,150 @@
 package com.zm.kilacraftAI.service.guardian.action;
 
+import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
+import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.task.AnalysisSummary;
-import com.zm.kilacraftAI.skills.framework.task.LLMOutputCoordinator;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.config.GuardianConfigManager;
+import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
+import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.service.guardian.EntityNameI18n;
 import com.zm.kilacraftAI.service.guardian.GuardianContext;
+import com.zm.kilacraftAI.skills.framework.task.LLMBudgetManager;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayDeque;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
- * L3 动作：LLM 判断/陪聊。模糊信号经 LLM 组织语言，走 {@link LLMOutputCoordinator}
- * 的预算/熔断治理（{@link OutputScenarioEnum#GUARDIAN} → 被动优先级，熔断时可降级/丢弃）。
- *
- * <p>输出经 LLM 生成（信号模糊、措辞需个性化），写 conversation（source=guardian），计入画像上下文。</p>
- *
- * <p>经 coordinator 统一治理，不绕过预算层。</p>
+ * 守护 LLM 动作：直接调 LLM Provider（不经 LLMOutputCoordinator 的技能分析路径），
+ * 用守护专属系统提示词，输出自然语言提醒。
  *
  * @author Zm_Mmm
  * @since 2026-07-07
  */
-public final class GuardianLlmAction implements GuardianAction {
+public final class GuardianLlmAction {
 
-    private final LLMOutputCoordinator coordinator;
+    private static final String LOG_MODULE = "守护系统";
+    private static final long LLM_TIMEOUT_SECONDS = 60L;
 
-    public GuardianLlmAction(LLMOutputCoordinator coordinator) {
-        this.coordinator = Objects.requireNonNull(coordinator, "coordinator");
+    private final GuardianConfigManager configManager;
+    private final String scenarioDescription;
+
+    public GuardianLlmAction(GuardianConfigManager configManager, String scenarioDescription) {
+        this.configManager = Objects.requireNonNull(configManager, "configManager");
+        this.scenarioDescription = Objects.requireNonNull(scenarioDescription);
     }
 
-    @Override
-    public CompletableFuture<Outcome> perform(GuardianContext ctx) {
+    public CompletableFuture<Boolean> perform(GuardianContext ctx) {
         Player player = ctx.player();
         if (player == null || !player.isOnline()) {
-            return CompletableFuture.completedFuture(Outcome.PERMANENT_FAIL);
+            return CompletableFuture.completedFuture(false);
         }
-        String trigger = ctx.monitorId() != null ? "guardian:" + ctx.monitorId() : "guardian";
-        String tv = ctx.triggerValue().map(Object::toString).orElse("");
-        AnalysisSummary summary = new AnalysisSummary()
-                .userMessage("守护系统主动输出")
-                .taskGoal(tv.isEmpty() ? "monitor=" + ctx.monitorId() : "monitor=" + ctx.monitorId() + "，触发值=" + tv)
-                .addResult("guardian", "SUCCESS", tv.isEmpty() ? "守护触发" : "守护触发：" + tv);
-        SkillContext sc = new SkillContext(player, "guardian_proactive", java.util.Map.of()).withAudit(trigger, "guardian");
-        return coordinator.outputAnalysisResult(player, summary, sc, new ArrayDeque<>(), OutputScenarioEnum.GUARDIAN, false)
-                .thenApply(sr -> sr.isSuccess() ? Outcome.SUCCESS : Outcome.TRANSIENT_FAIL);
+
+        KilacraftAI plugin = KilacraftAI.getInstance();
+        UUID playerUuid = player.getUniqueId();
+
+        // 全局开关关闭时不发声——reload 关闭期间在途动作也要抑制
+        if (!configManager.isEnabled()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        // disable 下线后 in-flight action 深度防护：玩家刚关守护，仍可能收到延迟告警
+        var gm = plugin.getGuardianManager();
+        if (gm != null && !gm.isGuardianEnabled(playerUuid)) {
+            return CompletableFuture.completedFuture(false);
+        }
+
+        if (plugin.getLlmOutputCoordinator() != null) {
+            LLMBudgetManager budget = plugin.getLlmOutputCoordinator().getBudgetManager();
+            if (!budget.tryAcquire(playerUuid, LLMBudgetManager.Priority.PASSIVE)) {
+                PluginLoggerUtil.debug(LOG_MODULE, "LLM 预算熔断中，跳过守护输出（玩家 {}）", player.getName());
+                return CompletableFuture.completedFuture(false);
+            }
+        }
+
+        // shutdown 窗口防护：子系统可能已在 onDisable 早阶段清理
+        if (plugin.getLlmManager() == null || plugin.getLlmManager().getCurrentProvider() == null || plugin.getResponsePipeline() == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+
+        String systemPrompt = configManager.getGuardianSystemPrompt();
+        String userMessage = buildUserMessage(ctx);
+
+        PlayerResponseHandler handler = new PlayerResponseHandler(plugin, player, OutputScenarioEnum.GUARDIAN, null);
+
+        boolean streamEnabled = plugin.getConfigManager().getOutputConfigManager().isStreamEnabled();
+        if (streamEnabled) {
+            OutputChannelEnum channel = plugin.getResponsePipeline().getChannelForScenario(OutputScenarioEnum.GUARDIAN);
+            plugin.getResponsePipeline().startStream(player, channel, true);
+        }
+
+        return plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, player.getName(), new ArrayDeque<>(), handler, systemPrompt, false, false, false).orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).thenApply(response -> {
+            if (response == null || LLMResponseUtil.isErrorResponse(response)) {
+                PluginLoggerUtil.debug(LOG_MODULE, "守护 LLM 输出失败或为空（玩家 {}）", player.getName());
+                // 流式 UI 收尾由 handler.handleError 负责，此处不再重复 cancelStream
+                return false;
+            }
+            if (player.isOnline()) {
+                writeToConversation(plugin, playerUuid, response);
+            }
+            return true;
+        }).exceptionally(throwable -> {
+            PluginLoggerUtil.warn(LOG_MODULE, I18nService.tr("守护 LLM 调用异常: {}", throwable.getMessage()));
+            // 超时/异常：provider 不会回调 handleError，须手动收尾流式 UI + 中断在途 HTTP Call（防连接/线程泄漏）
+            // 注意：超时可能在 shutdown 后触发（provider 可能已被 null 掉），复查避免 NPE
+            cancelStreamIfActive(plugin, player, streamEnabled);
+            var mgr = plugin.getLlmManager();
+            if (mgr != null && mgr.getCurrentProvider() != null) {
+                // cancelInFlight 按 playerUuid 取消该玩家全部在途调用（含普通聊天）——reload/quit 是低频用户操作，可接受
+                mgr.getCurrentProvider().cancelInFlight(playerUuid);
+            }
+            return false;
+        });
+    }
+
+    /**
+     * 超时或异常时收尾流式输出，避免 UI 永久卡在「思考中」。
+     */
+    private static void cancelStreamIfActive(KilacraftAI plugin, Player player, boolean streamEnabled) {
+        if (!streamEnabled) {
+            return;
+        }
+        try {
+            plugin.getResponsePipeline().cancelStream(player);
+        } catch (Exception ignored) {
+            // 收尾失败不影响状态机
+        }
+    }
+
+    private String buildUserMessage(GuardianContext ctx) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(I18nService.tr(scenarioDescription));
+        ctx.entityType().ifPresent(et -> sb.append(I18nService.tr("（{}）", EntityNameI18n.name(et))));
+        Optional.ofNullable(ctx.triggerValue()).ifPresent(tv -> {
+            double d = tv;
+            String val = (d == Math.floor(d)) ? String.valueOf((long) d) : String.valueOf(d);
+            sb.append(I18nService.tr("，当前数值：{}", val));
+        });
+        sb.append(I18nService.tr("。请用1-2句简短自然的话提醒玩家。"));
+        return sb.toString();
+    }
+
+    private void writeToConversation(KilacraftAI plugin, UUID playerUuid, String response) {
+        ConversationPersistenceService persistence = plugin.getPersistenceService();
+        if (persistence != null) {
+            persistence.submit(playerUuid, "assistant", response, "", ConversationSourceEnum.GUARDIAN.getValue());
+        }
+        ConversationManager cm = plugin.getConversationManager();
+        if (cm != null) {
+            cm.getOrCreateHistory(playerUuid).add(new ConversationManager.Message("assistant", response, ConversationSourceEnum.GUARDIAN.getValue()));
+        }
     }
 }
