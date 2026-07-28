@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
  *   <li>根据配置决定使用流式还是非流式输出</li>
  *   <li>统一调用 AIResponsePipeline 输出</li>
  *   <li>避免调用方重复输出</li>
- *   <li>处理占位符显示逻辑（主动请求显示，挂机回调不显示）</li>
+ *   <li>处理占位符显示逻辑（主动请求显示，主动通知不显示）</li>
  * </ul>
  *
  * <h3>架构定位：</h3>
@@ -75,15 +75,15 @@ public class LLMOutputCoordinator {
      * @param player          目标玩家
      * @param summary         分析摘要（结构化数据，面向 LLM）
      * @param context         执行上下文
-     * @param history         对话历史（挂机任务传空）
+     * @param history         对话历史（守护/监听等主动通知场景传空）
      * @param scenario        输出场景
-     * @param showPlaceholder 是否显示占位符（主动请求=true，挂机回调=false）
+     * @param showPlaceholder 是否显示占位符（主动请求=true，主动通知=false）
      * @return CompletableFuture<SkillResult> 分析结果
      */
     public CompletableFuture<SkillResult> outputAnalysisResult(Player player, AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, OutputScenarioEnum scenario, boolean showPlaceholder) {
         if (player == null || !player.isOnline()) {
             // 异步 LLM 链执行期间玩家下线：此 failure 会被调用方 thenAccept 静默丢弃，补一条日志便于排查
-            PluginLoggerUtil.warn("挂机任务", "二次分析时玩家已离线，结果未送达：{}", player != null ? player.getName() : "null");
+            PluginLoggerUtil.warn("LLM输出", "二次分析时玩家已离线，结果未送达：{}", player != null ? player.getName() : "null");
             return CompletableFuture.completedFuture(SkillResult.failure("玩家不在线"));
         }
 

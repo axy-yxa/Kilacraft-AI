@@ -251,7 +251,6 @@ messages:
   "执行步骤 [{}/{}]: {} - {}": "Executing step [{}/{}]: {} - {}"
   "步骤 {} 因参数解析失败被跳过: {}": "Step {} skipped due to param parsing failure: {}"
   "检测到循环依赖：{}": "Circular dependency detected: {}"
-  "占位符宽松保留：{} (外层步骤 {} 无 {} 字段，将留给内层解析)": "Placeholder lenient keep: {} (outer step {} has no {} field, left for inner parsing)"
   "占位符解析失败：{} (步骤 {} 不存在或路径 {} 无效)": "Placeholder resolution failed: {} (step {} not found or path {} invalid)"
   "所有步骤执行完成，开始汇总结果...": "All steps completed, summarizing results..."
   "任务计划存在循环依赖，无法执行": "Task plan has circular dependency, cannot execute"
@@ -901,8 +900,6 @@ messages:
   "LLM 未输出任何有效画像字段（已过滤未知/旧结构字段），跳过更新: {}": "LLM produced no valid profile fields (unknown/legacy-structure fields filtered out), skipping update: {}"
   "LLM 画像分析请求失败（详见控制台 WARN）": "LLM profile analysis request failed (see console WARN)"
   "全服广播 LLM 分析失败（详见控制台 WARN）": "Broadcast LLM analysis failed (see console WARN)"
-  "解析condition_plan JSON失败: {}。原始内容: {}": "Failed to parse condition_plan JSON: {}. Raw content: {}"
-  "解析回调配置失败: {}。原始内容: {}。任务将以仅通知模式运行（回调动作无法执行）": "Failed to parse callback config: {}. Raw content: {}. The task will run in notify-only mode (callback action cannot execute)"
 
   # ==================== PlayerProfileDao ====================
   "创建新玩家画像: {} ({})": "Creating new player profile: {} ({})"

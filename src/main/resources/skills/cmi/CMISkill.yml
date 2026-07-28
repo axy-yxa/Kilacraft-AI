@@ -18,6 +18,5 @@ action_descriptions:
 
 # 额外提示信息（用于指导 LLM 正确使用技能）
 hints:
-  - "**target_player 通用规则（极其重要）**：AFKTask 的 target_player 参数可以是任意玩家名称（不限于玩家自己）。如果用户说\"帮我盯着我自己\"、\"帮我盯着我\"等监控自己的需求，应主动识别为监控自己场景，在 entities 中填入当前玩家的名称作为 target_player 值。如果用户说\"帮我盯着xxx\"（xxx 为其他玩家名），应提取目标玩家名称并填入。如果用户未明确指定目标玩家但上下文中提到了某个玩家名称，应优先使用上下文中的玩家名"
   - "**前置查询约束与占位符格式（极其重要）**：teleport_home 必须先调用 query_homes，teleport_to_warp 必须先调用 query_warps。不要凭空编造家名或地标名。**占位符格式说明**：query_homes 返回 homes 数组，query_warps 返回 warps 数组。在多步骤任务中引用查询结果时，必须使用数组索引占位符，如 {step_X.homes[0].home_name} 取第一个家的名称，{step_X.warps[0].warp_name} 取第一个地标名称。不存在 {step_X.home_name} 或 {step_X.warp_name} 这种直接字段，写成那样会解析失败。**用户明确指定名称时**：当用户明确指定了具体名称（如\"回名叫base的家\"、\"去皮肤站地标\"），应在单意图调用中直接将名称字符串填入 entities（如 home_name=base），无需占位符或前置查询。当用户未指定名称时（如\"回家\"、\"去地标\"、\"随便传个\"），应输出多步骤TaskPlan（先query再teleport），使用数组索引占位符引用查询结果。"
   - "**多步骤任务强制规则**：teleport_home 和 teleport_to_warp 的 home_name/warp_name 参数不能为空或null。当用户未指定具体名称时（如'回家'、'去地标'、'随便传一个'），必须输出多步骤TaskPlan（先query再teleport），禁止输出单意图。只有用户明确指定了名称（如'回名叫base的家'、'去皮肤站地标'）时才能作为单意图直接调用。查询需 kilacraft.cmi.query 权限，传送需 kilacraft.cmi.teleport 权限"

@@ -389,7 +389,7 @@ public class MarketQuerySkill implements Skill, ProbeSource {
             sb.append("- ").append(translator.translateToChinese(itemName)).append(pricePart).append("\n");
         }
 
-        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        // 构建 dataMap，供多步骤任务引用和监听系统(Watch)轮询条件评估
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("items", items);
         dataMap.put("count", items.size());
@@ -443,7 +443,7 @@ public class MarketQuerySkill implements Skill, ProbeSource {
             uniqueSellers.add(detail.getSellerName());
         }
 
-        // 构建 dataMap，供挂机任务条件评估和多步骤任务引用
+        // 构建 dataMap，供监听系统(Watch)轮询条件评估和多步骤任务引用
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("available", true);
         dataMap.put("total_stock", totalStock);
@@ -512,7 +512,7 @@ public class MarketQuerySkill implements Skill, ProbeSource {
             sb.append(I18nService.tr("... 还有 {} 个商品", myItems.size() - 10));
         }
 
-        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        // 构建 dataMap，供多步骤任务引用和监听系统(Watch)轮询条件评估
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("my_items", myItemsData);
         dataMap.put("count", myItems.size());
@@ -607,7 +607,7 @@ public class MarketQuerySkill implements Skill, ProbeSource {
             sb.append(I18nService.tr("... 还有 {} 封邮件", mails.size() - 5));
         }
 
-        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        // 构建 dataMap，供多步骤任务引用和监听系统(Watch)轮询条件评估
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("mails", mailsData);
         dataMap.put("count", mails.size());
@@ -630,7 +630,7 @@ public class MarketQuerySkill implements Skill, ProbeSource {
 
         String sb = I18nService.tr("市场统计: 商品总数 {} 个, 卖家数量 {} 人", stats.getTotalItems(), stats.getTotalSellers());
 
-        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        // 构建 dataMap，供多步骤任务引用和监听系统(Watch)轮询条件评估
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("total_items", stats.getTotalItems());
         dataMap.put("total_sellers", stats.getTotalSellers());
