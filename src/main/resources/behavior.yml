@@ -94,12 +94,12 @@ suggestion:
   # ==================== 展示文案 / Display Text ====================
   display:
     # ---- 中文 ----
-    title: "§7你可能还想问："
+    title: "§7继续问："
     separator: "§7 | "
     click_hint: "点击发送此问题"
 
     # ---- English ----
-    title_en: "§7You may also want to ask:"
+    title_en: "§7Ask more:"
     separator_en: "§7 | "
     click_hint_en: "Click to send this question"
 

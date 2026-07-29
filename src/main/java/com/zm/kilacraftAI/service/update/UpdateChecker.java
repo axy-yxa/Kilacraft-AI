@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.common.util.TextWidthUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.i18n.I18nService;
@@ -413,49 +414,6 @@ public class UpdateChecker {
     }
 
     /**
-     * 计算字符串在等宽终端的可见显示宽度
-     *
-     * <p>全角字符（中日韩表意、假名、全角符号等）计 2 列，半角计 1 列。
-     * 用于控制台制表符框线的右侧对齐。</p>
-     *
-     * @param s 文本
-     * @return 可见列宽
-     */
-    private static int displayWidth(String s) {
-        int width = 0;
-        for (int i = 0; i < s.length(); ) {
-            int cp = s.codePointAt(i);
-            width += isFullWidth(cp) ? 2 : 1;
-            i += Character.charCount(cp);
-        }
-        return width;
-    }
-
-    /**
-     * 判断码点是否为全角字符（占用 2 个等宽列）
-     *
-     * <p>覆盖主要的中日韩表意文字、假名、谚文及全角符号区间。</p>
-     *
-     * @param cp Unicode 码点
-     * @return true 表示该字符为全角
-     */
-    private static boolean isFullWidth(int cp) {
-        return (cp >= 0x1100 && cp <= 0x115F)   // 谚文 Jamo
-                || (cp >= 0x2E80 && cp <= 0x303E) // CJK 部首与标点
-                || (cp >= 0x3041 && cp <= 0x33FF) // 假名 / 谚文 / CJK 符号
-                || (cp >= 0x3400 && cp <= 0x4DBF) // CJK 扩展 A
-                || (cp >= 0x4E00 && cp <= 0x9FFF) // CJK 统一表意
-                || (cp >= 0xA000 && cp <= 0xA4CF) // 彝文
-                || (cp >= 0xAC00 && cp <= 0xD7A3) // 谚文音节
-                || (cp >= 0xF900 && cp <= 0xFAFF) // CJK 兼容表意
-                || (cp >= 0xFE30 && cp <= 0xFE4F) // CJK 兼容形式
-                || (cp >= 0xFF00 && cp <= 0xFF60) // 全角 ASCII
-                || (cp >= 0xFFE0 && cp <= 0xFFE6) // 全角符号
-                || (cp >= 0x20000 && cp <= 0x2FFFD) // CJK 扩展 B-F
-                || (cp >= 0x30000 && cp <= 0x3FFFD); // CJK 扩展 G+
-    }
-
-    /**
      * 构建带色的提示行，同时维护去色后的可见文本，用于框线宽度计算
      */
     private static final class LineBuilder {
@@ -488,7 +446,7 @@ public class UpdateChecker {
          * @return 去色后文本的可见列宽
          */
         int width() {
-            return displayWidth(plain.toString());
+            return TextWidthUtil.displayWidth(plain.toString());
         }
     }
 

@@ -75,10 +75,10 @@ public class SuggestionConfigManager {
         this.excludeScenarios = new HashSet<>(yaml.getStringList("suggestion.exclude_scenarios"));
         this.excludeSkills = new HashSet<>(yaml.getStringList("suggestion.exclude_skills"));
 
-        this.displayTitle = yaml.getString("suggestion.display.title", "§7你可能还想问：");
+        this.displayTitle = yaml.getString("suggestion.display.title", "§7继续问：");
         this.displaySeparator = yaml.getString("suggestion.display.separator", "§7 | ");
         this.displayClickHint = yaml.getString("suggestion.display.click_hint", "点击发送此问题");
-        this.displayTitleEn = yaml.getString("suggestion.display.title_en", "§7You may also want to ask:");
+        this.displayTitleEn = yaml.getString("suggestion.display.title_en", "§7Ask more:");
         this.displaySeparatorEn = yaml.getString("suggestion.display.separator_en", "§7 | ");
         this.displayClickHintEn = yaml.getString("suggestion.display.click_hint_en", "Click to send this question");
 

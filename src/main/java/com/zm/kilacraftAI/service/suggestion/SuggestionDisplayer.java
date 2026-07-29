@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.service.suggestion;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.MessageUtil;
+import com.zm.kilacraftAI.common.util.TextWidthUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.SuggestionConfigManager;
 import net.md_5.bungee.api.ChatColor;
@@ -19,15 +20,18 @@ import java.util.List;
  * <p>不走 {@code AIResponsePipeline}（那处理纯 String 的 Markdown→MC 转换 + 载体路由），
  * 推荐是带 ClickEvent/HoverEvent 的 UI 元素，必须直接 {@code player.spigot().sendMessage}。</p>
  *
+ * <p>布局采用贪婪宽度换行：首行以 AI 前缀 + title 起始，后续推荐项按显示宽度
+ * 逐项追加；当前行剩余空间不足时自动换行。</p>
+ *
  * @author Zm_Mmm
  * @since 2026-07-27
  */
 public class SuggestionDisplayer {
 
     /**
-     * 紧凑单行布局与逐行布局的分界：≤3 项单行，≥4 项逐行（避免超出聊天框宽度）。
+     * 聊天框单行保守宽度预算（约对应默认 310px 聊天框下 50 个标准 ASCII 字符）。
      */
-    private static final int LIST_LAYOUT_THRESHOLD = 4;
+    private static final int LINE_BUDGET = 50;
     /**
      * 单条推荐文本上限（字符数），超长截断避免推荐溢出聊天框。
      */
@@ -50,21 +54,32 @@ public class SuggestionDisplayer {
         String separator = config.getDisplaySeparator();
         String hint = config.getDisplayClickHint();
 
-        boolean listLayout = suggestions.size() >= LIST_LAYOUT_THRESHOLD;
+        String prefix = MessageUtil.getAIPrefix();
+        int titleWidth = TextWidthUtil.displayWidth(TextWidthUtil.stripColors(prefix + title));
+        int lineRemaining = LINE_BUDGET - titleWidth;
+        // 分隔符显示宽度（去色后测量）
+        int sepWidth = TextWidthUtil.displayWidth(TextWidthUtil.stripColors(separator));
 
-        TextComponent full = new TextComponent(MessageUtil.getAIPrefix() + title);
-        if (listLayout) {
-            full.addExtra(new TextComponent("\n"));
-        }
+        TextComponent full = new TextComponent(prefix + title);
+        boolean firstOnLine = true;
 
-        int size = suggestions.size();
-        for (int i = 0; i < size; i++) {
-            String question = truncate(suggestions.get(i));
-            String label;
-            if (listLayout) {
-                label = " §b[" + (i + 1) + "] " + question;
-            } else {
-                label = "§b[" + question + "]";
+        for (String suggestion : suggestions) {
+            String question = truncate(suggestion);
+            String plainLabel = "[" + question + "]";
+            String label = "§b" + plainLabel;
+            int itemWidth = TextWidthUtil.displayWidth(plainLabel);
+
+            // 当前行剩余空间不足时换行
+            int needWidth = firstOnLine ? itemWidth : sepWidth + itemWidth;
+            if (lineRemaining < needWidth) {
+                full.addExtra(new TextComponent("\n"));
+                lineRemaining = LINE_BUDGET;
+                firstOnLine = true;
+                needWidth = itemWidth;
+            }
+
+            if (!firstOnLine) {
+                full.addExtra(new TextComponent(separator));
             }
 
             TextComponent clickable = new TextComponent(label);
@@ -72,9 +87,8 @@ public class SuggestionDisplayer {
             clickable.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(ChatColor.GRAY + hint).create()));
             full.addExtra(clickable);
 
-            if (i < size - 1) {
-                full.addExtra(new TextComponent(listLayout ? "\n" : separator));
-            }
+            lineRemaining -= needWidth;
+            firstOnLine = false;
         }
 
         // runTask 是 fire-and-forget 投递，排队期间玩家可能下线；
