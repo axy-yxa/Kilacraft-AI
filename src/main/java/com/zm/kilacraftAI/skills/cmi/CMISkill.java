@@ -28,10 +28,10 @@ public class CMISkill implements Skill, ProbeSource {
 
     private final SkillConfigManager configManager;
 
-    private static final java.util.Set<String> PROBEABLE_ACTIONS = java.util.Set.of("query_homes", "query_warps", "query_player_info", "query_kits", "query_online_players");
+    private static final Set<String> PROBEABLE_ACTIONS = Set.of("query_homes", "query_warps", "query_player_info", "query_kits", "query_online_players");
 
     @Override
-    public java.util.Set<String> getProbeableActions() {
+    public Set<String> getProbeableActions() {
         return PROBEABLE_ACTIONS;
     }
 
