@@ -114,8 +114,10 @@ public final class PlayerStateService {
         candidates[0] = inv.getItemInMainHand();
         candidates[1] = inv.getItemInOffHand();
         ItemStack[] armor = inv.getArmorContents();
-        for (int i = 0; i < 4 && i < armor.length; i++) {
-            candidates[2 + i] = armor[i];
+        if (armor != null) {
+            for (int i = 0; i < 4 && i < armor.length; i++) {
+                candidates[2 + i] = armor[i];
+            }
         }
 
         PlayerState.LowDurabilityItem lowest = null;
