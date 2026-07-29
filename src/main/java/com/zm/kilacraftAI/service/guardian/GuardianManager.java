@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.GuardianConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.scheduler.TaskScheduler;
 import com.zm.kilacraftAI.service.guardian.monitor.Monitor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -147,6 +148,13 @@ public final class GuardianManager {
             }
         }
         PluginLoggerUtil.info("守护系统", I18nService.tr("reload 完成，重建 {} 个在线玩家的守护", onlineIds.size()));
+
+        // 心跳间隔可能变化：取消旧定时器、用新 intervalTicks 重新注册
+        TaskScheduler scheduler = plugin.getTaskScheduler();
+        if (scheduler != null) {
+            scheduler.unregister(engine);
+            scheduler.register(engine);
+        }
     }
 
     /**

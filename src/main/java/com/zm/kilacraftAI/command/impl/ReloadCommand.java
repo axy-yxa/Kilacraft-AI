@@ -75,6 +75,16 @@ public final class ReloadCommand {
                 plugin.getSuggestionConfigManager().reload();
             }
 
+            // 重载问候配置（behavior.yml greeting 段）
+            if (plugin.getConfigManager().getGreetingConfigManager() != null) {
+                plugin.getConfigManager().getGreetingConfigManager().reload();
+            }
+
+            // 重载工具通知提示词（behavior.yml utility 段）
+            if (plugin.getUtilityConfigManager() != null) {
+                plugin.getUtilityConfigManager().reload();
+            }
+
             if (plugin.getSkillConfigManager() != null) {
                 plugin.getSkillConfigManager().reloadAllConfigs();
             }

@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.service.guardian;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.GuardianConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.scheduler.ManagedTask;
 import com.zm.kilacraftAI.service.guardian.monitor.Monitor;
@@ -45,7 +46,6 @@ public final class GuardianEngine implements ManagedTask {
     private final KilacraftAI plugin;
     private final PlayerStateService playerStateService;
     private final PlayerActivityTracker activityTracker;
-    private final long tickIntervalTicks;
 
     /**
      * 玩家 → Guardian（内存态）。
@@ -60,14 +60,13 @@ public final class GuardianEngine implements ManagedTask {
     private volatile GuardianEventListener eventListener;
 
     public GuardianEngine(KilacraftAI plugin, PlayerStateService playerStateService) {
-        this(plugin, playerStateService, null, DEFAULT_TICK_INTERVAL_TICKS);
+        this(plugin, playerStateService, null);
     }
 
-    public GuardianEngine(KilacraftAI plugin, PlayerStateService playerStateService, PlayerActivityTracker activityTracker, long tickIntervalTicks) {
+    public GuardianEngine(KilacraftAI plugin, PlayerStateService playerStateService, PlayerActivityTracker activityTracker) {
         this.plugin = plugin;
         this.playerStateService = playerStateService;
         this.activityTracker = activityTracker;
-        this.tickIntervalTicks = tickIntervalTicks;
     }
 
     /**
@@ -123,7 +122,8 @@ public final class GuardianEngine implements ManagedTask {
 
     @Override
     public long intervalTicks() {
-        return tickIntervalTicks;
+        GuardianConfigManager cm = plugin != null ? plugin.getGuardianConfigManager() : null;
+        return cm != null ? cm.getHeartbeatIntervalTicks() : DEFAULT_TICK_INTERVAL_TICKS;
     }
 
     @Override

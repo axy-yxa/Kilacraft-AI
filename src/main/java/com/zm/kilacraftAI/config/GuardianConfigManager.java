@@ -18,7 +18,7 @@ import java.io.File;
  */
 public class GuardianConfigManager {
 
-    private static final String CONFIG_FILE = "guardian.yml";
+    private static final String CONFIG_FILE = "behavior.yml";
 
     private static final String DEFAULT_SYSTEM_PROMPT_ZH = """
             你是玩家的 Minecraft 游戏守护 AI。你会在玩家非即时感知的场景下主动提醒。
@@ -65,12 +65,12 @@ public class GuardianConfigManager {
         }
         FileConfiguration yaml = YamlConfiguration.loadConfiguration(configFile);
 
-        this.enabled = yaml.getBoolean("settings.enabled", true);
+        this.enabled = yaml.getBoolean("guardian.settings.enabled", true);
         // 心跳间隔下限保护：过小会导致每 tick 采样风暴
-        this.heartbeatIntervalTicks = Math.max(10L, yaml.getLong("settings.heartbeat_interval_ticks", 20L));
-        this.afkThresholdSeconds = yaml.getLong("settings.afk_threshold_seconds", 300L);
+        this.heartbeatIntervalTicks = Math.max(10L, yaml.getLong("guardian.settings.heartbeat_interval_ticks", 20L));
+        this.afkThresholdSeconds = yaml.getLong("guardian.settings.afk_threshold_seconds", 300L);
         // 单文件双语：按当前语言选段（zh → system_prompt，其他 → system_prompt_en）
-        String key = I18nService.isZh() ? "prompts.system_prompt" : "prompts.system_prompt_en";
+        String key = I18nService.isZh() ? "guardian.prompts.system_prompt" : "guardian.prompts.system_prompt_en";
         this.guardianSystemPrompt = yaml.getString(key, I18nService.isZh() ? DEFAULT_SYSTEM_PROMPT_ZH : DEFAULT_SYSTEM_PROMPT_EN);
 
         PluginLoggerUtil.info("守护系统", I18nService.tr("配置加载完成"));

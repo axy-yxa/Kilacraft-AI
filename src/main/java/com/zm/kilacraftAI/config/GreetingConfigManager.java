@@ -12,38 +12,38 @@ import java.io.File;
 /**
  * AI 登录问候配置管理器
  *
- * <p>管理独立的 greeting.yml 配置文件，支持热重载。</p>
+ * <p>管理 behavior.yml 中 greeting 配置段，支持热重载。</p>
  *
  * @author Zm_Mmm
  * @since 2026-05-07
  */
 public class GreetingConfigManager {
 
-    private static final String CONFIG_FILE = "greeting.yml";
+    private static final String CONFIG_FILE = "behavior.yml";
 
     private final KilacraftAI plugin;
     private File configFile;
 
     @Getter
-    private boolean enabled;
+    private volatile boolean enabled;
     @Getter
-    private int delayTicks;
+    private volatile int delayTicks;
     @Getter
-    private String firstLoginPrompt;
+    private volatile String firstLoginPrompt;
     @Getter
-    private String returningLoginPrompt;
+    private volatile String returningLoginPrompt;
     @Getter
-    private int maxOwnOfflineEvents;
+    private volatile int maxOwnOfflineEvents;
     @Getter
-    private int maxFriendOfflineEvents;
+    private volatile int maxFriendOfflineEvents;
     @Getter
-    private int maxSummaryEvents;
+    private volatile int maxSummaryEvents;
     @Getter
-    private String serverInfo;
+    private volatile String serverInfo;
     @Getter
-    private int greetingCooldownMinutes;
+    private volatile int greetingCooldownMinutes;
     @Getter
-    private boolean profileInjectionEnabled;
+    private volatile boolean profileInjectionEnabled;
 
     public GreetingConfigManager(KilacraftAI plugin) {
         this.plugin = plugin;
@@ -56,7 +56,7 @@ public class GreetingConfigManager {
 
     /**
      * 带语言参数加载配置（由 ConfigManager 在知道语言后调用）。
-     * 始终读 greeting.yml 单文件，按语言选提示词段。
+     * 始终读 behavior.yml 的 greeting 段，按语言选提示词段。
      */
     public void loadConfig(String language) {
         this.configFile = new File(plugin.getDataFolder(), CONFIG_FILE);
@@ -75,11 +75,11 @@ public class GreetingConfigManager {
         String returningKey = isZh ? "greeting.returning_login_prompt" : "greeting.returning_login_prompt_en";
         this.firstLoginPrompt = yaml.getString(firstKey, GreetingPromptBuilder.getDefaultFirstLoginPrompt());
         this.returningLoginPrompt = yaml.getString(returningKey, GreetingPromptBuilder.getDefaultReturningPrompt());
-        this.maxOwnOfflineEvents = yaml.getInt("greeting.max_own_offline_events", 10);
-        this.maxFriendOfflineEvents = yaml.getInt("greeting.max_friend_offline_events", 5);
-        this.maxSummaryEvents = yaml.getInt("greeting.max_summary_events", 3);
+        this.maxOwnOfflineEvents = yaml.getInt("greeting.max_own_offline_events", 20);
+        this.maxFriendOfflineEvents = yaml.getInt("greeting.max_friend_offline_events", 10);
+        this.maxSummaryEvents = yaml.getInt("greeting.max_summary_events", 5);
         this.serverInfo = yaml.getString("greeting.server_info", "");
-        this.greetingCooldownMinutes = yaml.getInt("greeting.greeting_cooldown_minutes", 0);
+        this.greetingCooldownMinutes = yaml.getInt("greeting.greeting_cooldown_minutes", 30);
         this.profileInjectionEnabled = yaml.getBoolean("greeting.profile_injection_enabled", true);
     }
 

@@ -16,7 +16,7 @@ import java.io.File;
  */
 public class WatchConfigManager {
 
-    private static final String CONFIG_FILE = "watch.yml";
+    private static final String CONFIG_FILE = "behavior.yml";
     private static final long MIN_POLL_INTERVAL_TICKS = 20L;
 
     private final KilacraftAI plugin;

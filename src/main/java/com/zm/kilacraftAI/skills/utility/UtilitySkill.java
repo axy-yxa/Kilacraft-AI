@@ -5,6 +5,7 @@ import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.SkillConfigManager;
+import com.zm.kilacraftAI.config.UtilityConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
@@ -77,9 +78,12 @@ public class UtilitySkill implements Skill {
     });
 
     private final SkillConfigManager configManager;
+    private final UtilityConfigManager utilityConfigManager;
 
     public UtilitySkill() {
         this.configManager = SkillConfigManager.getInstance();
+        KilacraftAI plugin = KilacraftAI.getInstance();
+        this.utilityConfigManager = (plugin != null) ? plugin.getUtilityConfigManager() : null;
 
         // 如果配置不存在，保存默认配置并动态加载
         if (configManager != null && configManager.getSkillConfig("utility", "UtilitySkill") == null) {
@@ -147,11 +151,46 @@ public class UtilitySkill implements Skill {
     }
 
     /**
-     * 从 SkillConfig 缓存读取自定义字段（零磁盘 IO，支持热重载）
+     * 从 UtilityConfigManager 读取提示词，配置缺失时用代码常量兜底。
      */
-    private String getConfigField(String key, String defaultValue) {
-        SkillConfig config = getConfig();
-        return (config != null) ? config.getCustomField(key, defaultValue) : defaultValue;
+    private String getNotifySystemPrompt() {
+        if (utilityConfigManager != null) {
+            String val = utilityConfigManager.getNotifySystemPrompt();
+            if (val != null && !val.isEmpty()) {
+                return val;
+            }
+        }
+        return DEFAULT_NOTIFY_SYSTEM_PROMPT;
+    }
+
+    private String getNotifyUserPrompt() {
+        if (utilityConfigManager != null) {
+            String val = utilityConfigManager.getNotifyUserPrompt();
+            if (val != null && !val.isEmpty()) {
+                return val;
+            }
+        }
+        return DEFAULT_NOTIFY_USER_PROMPT;
+    }
+
+    private String getBroadcastSystemPrompt() {
+        if (utilityConfigManager != null) {
+            String val = utilityConfigManager.getBroadcastSystemPrompt();
+            if (val != null && !val.isEmpty()) {
+                return val;
+            }
+        }
+        return DEFAULT_BROADCAST_SYSTEM_PROMPT;
+    }
+
+    private String getBroadcastUserPrompt() {
+        if (utilityConfigManager != null) {
+            String val = utilityConfigManager.getBroadcastUserPrompt();
+            if (val != null && !val.isEmpty()) {
+                return val;
+            }
+        }
+        return DEFAULT_BROADCAST_USER_PROMPT;
     }
 
 
@@ -215,15 +254,15 @@ public class UtilitySkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.failure("LLM Provider 未初始化"));
         }
 
-        // 从配置缓存读取提示词
-        String systemPrompt = getConfigField("notify_system_prompt", DEFAULT_NOTIFY_SYSTEM_PROMPT);
+        // 从 behavior.yml 读取提示词
+        String systemPrompt = getNotifySystemPrompt();
 
         // 画像注入
         var profileManager = plugin.getProfileManager();
         if (profileManager != null) {
             systemPrompt = profileManager.injectProfileSummary(systemPrompt, context.getPlayer().getUniqueId());
         }
-        String userPromptTemplate = getConfigField("notify_user_prompt", DEFAULT_NOTIFY_USER_PROMPT);
+        String userPromptTemplate = getNotifyUserPrompt();
         String userPrompt = userPromptTemplate.replace("{0}", message);
 
         PluginLoggerUtil.debug("工具技能", I18nService.tr("阶段性通知摘要 - 玩家: {}, systemPrompt: [{}]", playerName, systemPrompt));
@@ -272,8 +311,8 @@ public class UtilitySkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.failure("LLM Provider 未初始化"));
         }
 
-        // 从配置缓存读取提示词
-        String systemPrompt = getConfigField("broadcast_system_prompt", DEFAULT_BROADCAST_SYSTEM_PROMPT);
+        // 从 behavior.yml 读取提示词
+        String systemPrompt = getBroadcastSystemPrompt();
 
         // 画像注入
         var profileManager = plugin.getProfileManager();
@@ -281,7 +320,7 @@ public class UtilitySkill implements Skill {
             systemPrompt = profileManager.injectProfileSummary(systemPrompt, player.getUniqueId());
         }
 
-        String userPromptTemplate = getConfigField("broadcast_user_prompt", DEFAULT_BROADCAST_USER_PROMPT);
+        String userPromptTemplate = getBroadcastUserPrompt();
         String userPrompt = userPromptTemplate.replace("{0}", message);
 
         PluginLoggerUtil.debug("工具技能", I18nService.tr("全服广播摘要 - 发起者: {}, systemPrompt: [{}]", playerName, systemPrompt));

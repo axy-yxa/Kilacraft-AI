@@ -15,14 +15,14 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 对话推荐系统配置管理器。独立 suggestion.yml 文件。
+ * 对话推荐系统配置管理器。配置段位于 behavior.yml 的 suggestion.* 下。
  *
  * @author Zm_Mmm
  * @since 2026-07-27
  */
 public class SuggestionConfigManager {
 
-    private static final String CONFIG_FILE = "suggestion.yml";
+    private static final String CONFIG_FILE = "behavior.yml";
 
     private final KilacraftAI plugin;
 
@@ -66,26 +66,26 @@ public class SuggestionConfigManager {
         }
         FileConfiguration yaml = YamlConfiguration.loadConfiguration(configFile);
 
-        this.enabled = yaml.getBoolean("enabled", true);
+        this.enabled = yaml.getBoolean("suggestion.enabled", true);
         // max_suggestions 钳位 1~5，防配置越界
-        int max = yaml.getInt("max_suggestions", 2);
+        int max = yaml.getInt("suggestion.max_suggestions", 2);
         this.maxSuggestions = Math.max(1, Math.min(5, max));
-        this.timeoutSeconds = Math.max(1, yaml.getInt("timeout_seconds", 15));
+        this.timeoutSeconds = Math.max(1, yaml.getInt("suggestion.timeout_seconds", 15));
 
-        this.excludeScenarios = new HashSet<>(yaml.getStringList("exclude_scenarios"));
-        this.excludeSkills = new HashSet<>(yaml.getStringList("exclude_skills"));
+        this.excludeScenarios = new HashSet<>(yaml.getStringList("suggestion.exclude_scenarios"));
+        this.excludeSkills = new HashSet<>(yaml.getStringList("suggestion.exclude_skills"));
 
-        this.displayTitle = yaml.getString("display.title", "§7你可能还想问：");
-        this.displaySeparator = yaml.getString("display.separator", "§7 | ");
-        this.displayClickHint = yaml.getString("display.click_hint", "点击发送此问题");
-        this.displayTitleEn = yaml.getString("display.title_en", "§7You may also want to ask:");
-        this.displaySeparatorEn = yaml.getString("display.separator_en", "§7 | ");
-        this.displayClickHintEn = yaml.getString("display.click_hint_en", "Click to send this question");
+        this.displayTitle = yaml.getString("suggestion.display.title", "§7你可能还想问：");
+        this.displaySeparator = yaml.getString("suggestion.display.separator", "§7 | ");
+        this.displayClickHint = yaml.getString("suggestion.display.click_hint", "点击发送此问题");
+        this.displayTitleEn = yaml.getString("suggestion.display.title_en", "§7You may also want to ask:");
+        this.displaySeparatorEn = yaml.getString("suggestion.display.separator_en", "§7 | ");
+        this.displayClickHintEn = yaml.getString("suggestion.display.click_hint_en", "Click to send this question");
 
-        this.systemPrompt = yaml.getString("prompts.system_prompt", "");
-        this.systemPromptEn = yaml.getString("prompts.system_prompt_en", "");
-        this.userPromptTemplate = yaml.getString("prompts.user_prompt_template", "");
-        this.userPromptTemplateEn = yaml.getString("prompts.user_prompt_template_en", "");
+        this.systemPrompt = yaml.getString("suggestion.prompts.system_prompt", "");
+        this.systemPromptEn = yaml.getString("suggestion.prompts.system_prompt_en", "");
+        this.userPromptTemplate = yaml.getString("suggestion.prompts.user_prompt_template", "");
+        this.userPromptTemplateEn = yaml.getString("suggestion.prompts.user_prompt_template_en", "");
 
         PluginLoggerUtil.info("对话推荐", I18nService.tr("配置加载完成"));
     }

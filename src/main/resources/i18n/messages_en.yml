@@ -1820,7 +1820,7 @@ messages:
   "LLM 预算熔断中，跳过本次输出（玩家 {}，场景 {}）": "LLM budget tripped, skipping output (player {}, scenario {})"
   "LLM 预算熔断：玩家 {} 1 小时内调用 {} 次超阈值 {}，被动输出降级 1 小时": "LLM budget tripped: player {} made {} calls within 1 hour exceeding threshold {}, passive output degraded for 1 hour"
   "LLM 预算超限：玩家 {} 1 小时内调用 {} 次超阈值 {}（玩家主动请求仍响应）": "LLM budget exceeded: player {} made {} calls within 1 hour exceeding threshold {} (player-active requests still served)"
-  "守护系统已被全局关闭（guardian.yml settings.enabled=false）": "Guardian system globally disabled (guardian.yml settings.enabled=false)"
+  "守护系统已被全局关闭（behavior.yml guardian.settings.enabled=false）": "Guardian system globally disabled (behavior.yml guardian.settings.enabled=false)"
   "守护系统初始化完成，心跳 {} tick": "Guardian system initialized, heartbeat {} ticks"
   "守护系统初始化失败，降级跳过: {}": "Guardian system initialization failed, degrading: {}"
   "配置文件不存在: {}": "Config file not found: {}"

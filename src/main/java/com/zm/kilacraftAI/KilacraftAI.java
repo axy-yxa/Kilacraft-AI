@@ -211,7 +211,7 @@ public final class KilacraftAI extends JavaPlugin {
     private LLMOutputCoordinator llmOutputCoordinator;
 
     /**
-     * 守护系统配置管理器（guardian.yml）
+     * 守护系统配置管理器（behavior.yml guardian 段）
      */
     @Getter
     private GuardianConfigManager guardianConfigManager;
@@ -246,7 +246,7 @@ public final class KilacraftAI extends JavaPlugin {
     private WatchConfigManager watchConfigManager;
 
     /**
-     * 对话推荐系统配置管理器（suggestion.yml）
+     * 对话推荐系统配置管理器（behavior.yml suggestion 段）
      */
     @Getter
     private SuggestionConfigManager suggestionConfigManager;
@@ -260,6 +260,12 @@ public final class KilacraftAI extends JavaPlugin {
      */
     @Getter
     private SuggestionService suggestionService;
+
+    /**
+     * 工具通知提示词配置管理器（behavior.yml utility.prompts）
+     */
+    @Getter
+    private UtilityConfigManager utilityConfigManager;
 
     /**
      * 统一定时任务调度器
@@ -795,6 +801,10 @@ public final class KilacraftAI extends JavaPlugin {
         // 意图识别提示词配置管理器（依赖 plugin）
         intentPromptConfigManager = new IntentPromptConfigManager(this);
 
+        // 工具通知提示词配置（UtilitySkill 构造时读取，须先于 registerDefaultSkills）
+        utilityConfigManager = new UtilityConfigManager(this);
+        utilityConfigManager.loadConfig();
+
         // Skills 系统（依赖 skillConfigManager）
         skillManager = new SkillManager();
         registerDefaultSkills();
@@ -963,7 +973,7 @@ public final class KilacraftAI extends JavaPlugin {
             guardianConfigManager.loadConfig();
 
             if (!guardianConfigManager.isEnabled()) {
-                PluginLoggerUtil.info("守护系统", I18nService.tr("守护系统已被全局关闭（guardian.yml settings.enabled=false）"));
+                PluginLoggerUtil.info("守护系统", I18nService.tr("守护系统已被全局关闭（behavior.yml guardian.settings.enabled=false）"));
                 return;
             }
 
@@ -975,7 +985,7 @@ public final class KilacraftAI extends JavaPlugin {
             getServer().getPluginManager().registerEvents(playerActivityTracker, this);
 
             // 引擎（心跳 + 事件分发）——先创建，GuardianManager 注册玩家时用
-            guardianEngine = new GuardianEngine(this, playerStateService, playerActivityTracker, guardianConfigManager.getHeartbeatIntervalTicks());
+            guardianEngine = new GuardianEngine(this, playerStateService, playerActivityTracker);
 
             // 管理器（opt-in 纯内存态，无 DB 依赖）
             guardianManager = new GuardianManager(this, guardianConfigManager, guardianEngine);
@@ -1041,7 +1051,7 @@ public final class KilacraftAI extends JavaPlugin {
     }
 
     /**
-     * 初始化对话推荐系统（suggestion.yml + 玩家级开关 + 编排服务）。
+     * 初始化对话推荐系统（behavior.yml suggestion 段 + 玩家级开关 + 编排服务）。
      * 依赖 skillManager（技能摘要）与 llmManager（LLM 调用）已就绪，须在两者之后调用。
      */
     private void initializeSuggestionSystem() {
