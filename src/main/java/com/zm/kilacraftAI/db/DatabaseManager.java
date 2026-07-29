@@ -13,6 +13,7 @@ import java.sql.SQLException;
  * 数据库统一管理器（适配器入口）
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class DatabaseManager {
 

@@ -24,6 +24,7 @@ import java.util.function.Consumer;
  * 离线事件聚合器
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class OfflineEventAggregator {
 

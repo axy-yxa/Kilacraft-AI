@@ -15,6 +15,7 @@ import lombok.Getter;
  * 无需在 SQL 中硬编码排除列表。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 @Getter
 public enum ServerEventTypeEnum {

@@ -22,6 +22,9 @@ import java.util.regex.Pattern;
  *
  * <p>这是社交关系系统的核心数据通道之一，弥补私聊监听无法覆盖的场景
  * （如 TPA 传送、市场转账等通过 AI Skill 触发的交互）。</p>
+ *
+ * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class SocialRelationExtractor {
 

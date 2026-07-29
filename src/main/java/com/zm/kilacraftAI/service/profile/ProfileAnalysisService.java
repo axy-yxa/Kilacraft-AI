@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
  * {@code tryAnalyze()} → 异步查 DB → 静默 LLM 调用 → JSON 解析 → {@code putExtendedData()} 写回
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class ProfileAnalysisService {
 

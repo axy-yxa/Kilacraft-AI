@@ -12,6 +12,7 @@ import lombok.Getter;
  * <p>由 {@link DatabaseConfigManager} 从 database.yml 解析后构建。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 @Getter
 @Builder

@@ -20,6 +20,7 @@ import lombok.Getter;
  * </ul>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 @Getter
 public enum ConversationSourceEnum {

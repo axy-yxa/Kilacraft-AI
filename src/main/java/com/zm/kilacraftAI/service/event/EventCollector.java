@@ -32,6 +32,7 @@ import java.util.Set;
  * <p>监听 Bukkit 事件，异步写入 {@code kca_server_event} 表。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class EventCollector implements Listener {
 

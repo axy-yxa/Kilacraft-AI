@@ -13,6 +13,7 @@ import java.util.UUID;
  * <p>存储玩家的登录统计、行为偏好、LLM 分析结果等画像信息。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 @Getter
 @Setter

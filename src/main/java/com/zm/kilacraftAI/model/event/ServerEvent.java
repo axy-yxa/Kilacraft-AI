@@ -12,6 +12,7 @@ import java.util.UUID;
  * <p>对应 {@code kca_server_event} 表的一条记录。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 @Getter
 @Builder

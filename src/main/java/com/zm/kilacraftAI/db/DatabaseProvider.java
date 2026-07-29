@@ -12,6 +12,7 @@ import java.sql.SQLException;
  * <p>定义数据库连接池的生命周期管理。H2 和 MySQL 各自实现此接口。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public interface DatabaseProvider {
 

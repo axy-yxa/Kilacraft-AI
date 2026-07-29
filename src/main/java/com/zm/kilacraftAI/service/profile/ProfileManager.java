@@ -31,6 +31,7 @@ import java.util.function.Consumer;
  * </ul>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class ProfileManager {
 
