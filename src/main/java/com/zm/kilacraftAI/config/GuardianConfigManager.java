@@ -45,11 +45,8 @@ public class GuardianConfigManager {
      */
     @Getter
     private volatile long afkThresholdSeconds = 300L;
-    /**
-     * 守护 LLM 系统提示词，按当前语言选段。
-     */
-    @Getter
-    private volatile String guardianSystemPrompt = DEFAULT_SYSTEM_PROMPT_ZH;
+    private volatile String guardianSystemPromptZh = DEFAULT_SYSTEM_PROMPT_ZH;
+    private volatile String guardianSystemPromptEn = DEFAULT_SYSTEM_PROMPT_EN;
 
     public GuardianConfigManager(KilacraftAI plugin) {
         this.plugin = plugin;
@@ -60,7 +57,8 @@ public class GuardianConfigManager {
         this.configFile = new File(plugin.getDataFolder(), CONFIG_FILE);
         if (!configFile.exists()) {
             PluginLoggerUtil.warn("守护系统", I18nService.tr("配置文件不存在: {}", CONFIG_FILE));
-            this.guardianSystemPrompt = I18nService.isZh() ? DEFAULT_SYSTEM_PROMPT_ZH : DEFAULT_SYSTEM_PROMPT_EN;
+            this.guardianSystemPromptZh = DEFAULT_SYSTEM_PROMPT_ZH;
+            this.guardianSystemPromptEn = DEFAULT_SYSTEM_PROMPT_EN;
             return;
         }
         FileConfiguration yaml = YamlConfiguration.loadConfiguration(configFile);
@@ -69,11 +67,18 @@ public class GuardianConfigManager {
         // 心跳间隔下限保护：过小会导致每 tick 采样风暴
         this.heartbeatIntervalTicks = Math.max(10L, yaml.getLong("guardian.settings.heartbeat_interval_ticks", 20L));
         this.afkThresholdSeconds = yaml.getLong("guardian.settings.afk_threshold_seconds", 300L);
-        // 单文件双语：按当前语言选段（zh → system_prompt，其他 → system_prompt_en）
-        String key = I18nService.isZh() ? "guardian.prompts.system_prompt" : "guardian.prompts.system_prompt_en";
-        this.guardianSystemPrompt = yaml.getString(key, I18nService.isZh() ? DEFAULT_SYSTEM_PROMPT_ZH : DEFAULT_SYSTEM_PROMPT_EN);
+        // 存双语言，getter 时实时选——语言切换即时生效，不依赖 reload 顺序
+        this.guardianSystemPromptZh = yaml.getString("guardian.prompts.system_prompt", DEFAULT_SYSTEM_PROMPT_ZH);
+        this.guardianSystemPromptEn = yaml.getString("guardian.prompts.system_prompt_en", DEFAULT_SYSTEM_PROMPT_EN);
 
         PluginLoggerUtil.info("守护系统", I18nService.tr("配置加载完成"));
+    }
+
+    /**
+     * 按当前语言返回守护系统提示词（实时判定，语言切换即时生效）。
+     */
+    public String getGuardianSystemPrompt() {
+        return I18nService.isZh() ? guardianSystemPromptZh : guardianSystemPromptEn;
     }
 
     public void reload() {
