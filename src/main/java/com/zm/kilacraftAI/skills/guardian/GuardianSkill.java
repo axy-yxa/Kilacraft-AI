@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.skills.guardian;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.guardian.Guardian;
@@ -23,25 +24,27 @@ import java.util.concurrent.CompletableFuture;
  */
 public class GuardianSkill implements Skill {
 
-    private static final String PACKAGE = "guardian";
-    private static final String SKILL_NAME = "GuardianSkill";
+    private static final String SKILL_NAME = "guardian";
+    private static final String LOG_PREFIX = "守护系统";
+
+    private final SkillConfigManager configManager;
 
     public GuardianSkill() {
         SkillConfigManager cm = SkillConfigManager.getInstance();
-        if (cm != null && cm.getSkillConfig(PACKAGE, SKILL_NAME) == null) {
-            cm.saveDefaultSkillConfig(PACKAGE, SKILL_NAME);
-            cm.loadSingleSkillConfig(PACKAGE, SKILL_NAME);
+        this.configManager = cm;
+        if (cm != null && cm.getSkillConfig(this) == null) {
+            cm.saveDefaultSkillConfig(this);
+            cm.loadSingleSkillConfig(this);
         }
     }
 
     private SkillConfig getConfig() {
-        SkillConfigManager cm = SkillConfigManager.getInstance();
-        return cm != null ? cm.getSkillConfig(PACKAGE, SKILL_NAME) : null;
+        return configManager != null ? configManager.getSkillConfig(this) : null;
     }
 
     @Override
     public String getName() {
-        return "guardian";
+        return SKILL_NAME;
     }
 
     @Override
@@ -78,7 +81,7 @@ public class GuardianSkill implements Skill {
         String action = context.getAction();
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("守护仅玩家可用")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
         }
         if (!PluginPermissionEnum.GUARDIAN.hasPermission(player)) {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.GUARDIAN.getNode())));
@@ -87,19 +90,24 @@ public class GuardianSkill implements Skill {
         if (gm == null) {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("守护系统未初始化")));
         }
+        // action 为 null 时回退空串，避免 switch 抛 NullPointerException
+        String safeAction = action == null ? "" : action;
         UUID playerId = player.getUniqueId();
-        return CompletableFuture.completedFuture(switch (action) {
+        PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("守护动作请求：玩家={}, 动作={}", player.getName(), safeAction));
+        return CompletableFuture.completedFuture(switch (safeAction) {
             case "enable" -> {
                 Optional<List<String>> result = gm.enable(player);
                 if (result.isEmpty()) {
                     yield SkillResult.failure(I18nService.tr("守护系统已全局禁用，无法开启"));
                 }
+                PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("守护已开启：玩家={}, monitor={}", player.getName(), result.get()));
                 Map<String, Object> data = new LinkedHashMap<>();
                 data.put("monitor_loaded", result.get());
                 yield SkillResult.success(I18nService.tr("守护已开启，{} 个 monitor 就绪", result.get().size()), data);
             }
             case "disable" -> {
                 gm.disable(playerId);
+                PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("守护已关闭：玩家={}", player.getName()));
                 yield SkillResult.success(I18nService.tr("守护已关闭"));
             }
             case "status" -> {
@@ -116,7 +124,7 @@ public class GuardianSkill implements Skill {
                 data.put("monitors", monitors);
                 yield SkillResult.success(on ? I18nService.tr("守护已开启，活跃 monitor：{}", monitors.size()) : I18nService.tr("守护未开启"), data);
             }
-            default -> SkillResult.failure(I18nService.tr("未支持的守护操作: {}", action));
+            default -> SkillResult.failure(I18nService.tr("未知动作: {}", safeAction));
         });
     }
 }

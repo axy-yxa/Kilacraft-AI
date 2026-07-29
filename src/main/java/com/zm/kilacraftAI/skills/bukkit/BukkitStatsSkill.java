@@ -25,6 +25,9 @@ import java.util.concurrent.CompletableFuture;
  */
 public class BukkitStatsSkill implements Skill, ProbeSource {
 
+    private static final String SKILL_NAME = "bukkit_stats";
+    private static final String LOG_PREFIX = "原版统计";
+
     private static final String ACTION_QUERY_STATISTIC = "query_statistic";
 
     private static final Set<String> PROBEABLE_ACTIONS = Set.of(ACTION_QUERY_STATISTIC);
@@ -49,9 +52,9 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
     public BukkitStatsSkill() {
         this.configManager = SkillConfigManager.getInstance();
 
-        if (configManager != null && configManager.getSkillConfig("bukkit", "BukkitStatsSkill") == null) {
-            configManager.saveDefaultSkillConfig("bukkit", "BukkitStatsSkill");
-            configManager.loadSingleSkillConfig("bukkit", "BukkitStatsSkill");
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
@@ -59,12 +62,12 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
         if (configManager == null) {
             return null;
         }
-        return configManager.getSkillConfig("bukkit", "BukkitStatsSkill");
+        return configManager.getSkillConfig(this);
     }
 
     @Override
     public String getName() {
-        return "bukkit_stats";
+        return SKILL_NAME;
     }
 
     @Override
@@ -105,7 +108,7 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("无法获取玩家对象")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
         }
 
         if (!PluginPermissionEnum.BUKKIT_STATS.hasPermission(player)) {
@@ -131,25 +134,25 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
                 return future;
             }
         } catch (Exception e) {
-            PluginLoggerUtil.error("BukkitStats", "执行统计查询失败", e);
+            PluginLoggerUtil.error(LOG_PREFIX, "执行统计查询失败", e);
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("执行失败: {}", e.getMessage())));
         }
     }
 
     private SkillResult executeSync(String action, Player player, Map<String, String> entities) {
-        return switch (action) {
-            case ACTION_QUERY_STATISTIC -> queryStatistic(player, entities);
-            default -> SkillResult.failure(I18nService.tr("未知动作: {}", action));
-        };
+        if (!ACTION_QUERY_STATISTIC.equals(action)) {
+            return SkillResult.failure(I18nService.tr("未知动作: {}", action));
+        }
+        return queryStatistic(player, entities);
     }
 
     /**
      * 查询统计项
      */
     private SkillResult queryStatistic(Player player, Map<String, String> entities) {
-        String statisticName = entities.get("statistic");
-        if (statisticName == null || statisticName.isEmpty()) {
-            return SkillResult.failure(I18nService.tr("缺少参数: statistic（统计枚举名称）"));
+        String statisticName = SkillEntityHelper.getString(entities, "statistic");
+        if (statisticName == null) {
+            return SkillResult.needInfo(I18nService.tr("要查询哪项统计？请告诉我统计项的英文名或中文描述（如：DEATHS、死亡次数、MOB_KILLS）。"));
         }
 
         // 解析统计枚举：精确匹配 → 内置注册表模糊匹配
@@ -162,6 +165,8 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
         try {
             int value;
             String formattedResult;
+            String materialName = null;
+            String entityTypeName = null;
 
             switch (statistic.getType()) {
                 case UNTYPED -> {
@@ -169,9 +174,9 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
                     formattedResult = formatResult(statistic, value);
                 }
                 case ITEM -> {
-                    String materialName = entities.get("material");
-                    if (materialName == null || materialName.isEmpty()) {
-                        return SkillResult.failure(I18nService.tr("统计项 {} 需要 material 参数（物品材质名，如 DIAMOND_SWORD）", statisticName));
+                    materialName = SkillEntityHelper.getString(entities, "material");
+                    if (materialName == null) {
+                        return SkillResult.needInfo(I18nService.tr("统计项 {} 需要指定物品材质名（如：DIAMOND_SWORD），请告诉我要查询哪种物品。", statisticName));
                     }
                     Material material = parseMaterial(materialName);
                     if (material == null || !material.isItem()) {
@@ -181,9 +186,9 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
                     formattedResult = formatResult(statistic, value, materialName);
                 }
                 case BLOCK -> {
-                    String materialName = entities.get("material");
-                    if (materialName == null || materialName.isEmpty()) {
-                        return SkillResult.failure(I18nService.tr("统计项 {} 需要 material 参数（方块材质名，如 DIAMOND_ORE）", statisticName));
+                    materialName = SkillEntityHelper.getString(entities, "material");
+                    if (materialName == null) {
+                        return SkillResult.needInfo(I18nService.tr("统计项 {} 需要指定方块材质名（如：DIAMOND_ORE），请告诉我要查询哪种方块。", statisticName));
                     }
                     Material material = parseMaterial(materialName);
                     if (material == null || !material.isBlock()) {
@@ -193,9 +198,9 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
                     formattedResult = formatResult(statistic, value, materialName);
                 }
                 case ENTITY -> {
-                    String entityTypeName = entities.get("entity_type");
-                    if (entityTypeName == null || entityTypeName.isEmpty()) {
-                        return SkillResult.failure(I18nService.tr("统计项 {} 需要 entity_type 参数（实体类型名，如 ZOMBIE）", statisticName));
+                    entityTypeName = SkillEntityHelper.getString(entities, "entity_type");
+                    if (entityTypeName == null) {
+                        return SkillResult.needInfo(I18nService.tr("统计项 {} 需要指定实体类型名（如：ZOMBIE），请告诉我要查询哪种实体。", statisticName));
                     }
                     EntityType entityType = parseEntityType(entityTypeName);
                     if (entityType == null) {
@@ -215,14 +220,14 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
             dataMap.put("value", value);
             dataMap.put("statistic_type", statistic.getType().name());
             if (statistic.getType() == Statistic.Type.ITEM || statistic.getType() == Statistic.Type.BLOCK) {
-                dataMap.put("material", entities.get("material"));
+                dataMap.put("material", materialName);
             } else if (statistic.getType() == Statistic.Type.ENTITY) {
-                dataMap.put("entity_type", entities.get("entity_type"));
+                dataMap.put("entity_type", entityTypeName);
             }
 
             return SkillResult.success(formattedResult, dataMap);
         } catch (Exception e) {
-            PluginLoggerUtil.error("BukkitStats", I18nService.tr("查询统计失败: {}", statisticName), e);
+            PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询统计失败: {}", statisticName), e);
             return SkillResult.failure(I18nService.tr("查询统计失败: {}", e.getMessage()));
         }
     }

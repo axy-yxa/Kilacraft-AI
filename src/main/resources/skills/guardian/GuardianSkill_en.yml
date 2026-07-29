@@ -1,17 +1,32 @@
-# GuardianSkill configuration
-# This file is auto-generated; modify as needed
-#
-# This description is sent to the LLM to help it understand when to invoke this skill
-description: 'AI Guardian System: proactively alerts the player about threats and status changes they cannot perceive in real time. Supports enable, disable, and status query. When enabled, the AI will alert under scenarios such as threats behind the player, inventory nearly full, or equipment durability critical. Players must opt-in via /kila guardian on.'
+# English version of GuardianSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Guardian System Skill (GuardianSkill)
+# Natural-language entry to the AI guardian system: enable/disable/query proactive alerts.
+# Prerequisite: the guardian system must be initialized; the player must opt in via /kila guardian on.
+# ═══════════════════════════════════════════════════════════
 
-# Action descriptions (Map format: key=action name, value=description)
+description: |
+  Enables/disables/queries the AI Guardian System, a capability that proactively alerts the player about situations they cannot perceive in real time (e.g. threats behind them, inventory nearly full, equipment durability critical).
+  Triggers: when the player wants to turn on, turn off, or query a "guardian / bodyguard / watch my back" proactive-alerting capability, e.g. "turn on guardian", "turn off guardian", "is guardian on?".
+  Reverse boundary: NOT for one-shot queries or passive Q&A (those go to the corresponding query skills); NOT for manually watching a specific target (that is the continuous monitoring of PlayerWatchSkill/WatchSkill).
+
 action_descriptions:
-  enable: 'Enable the AI guardian system. The AI will proactively alert the player about imperceptible situations (e.g. threats behind, nearly full inventory, low equipment durability). No params. The returned data contains monitor_loaded field (list of loaded monitor types), which can be referenced by subsequent steps.'
-  disable: 'Disable the AI guardian system. All proactive alerts stop. No params.'
-  status: 'Query the current status of the guardian system. No params. The returned data contains enabled (whether active) and monitors (list of active monitor types), which can be referenced by subsequent steps.'
+  enable: |
+    Function: Enable the AI guardian system. Once enabled, the AI will proactively alert the player about imperceptible situations (e.g. threats behind, nearly full inventory, low equipment durability).
+    Parameters: none.
+    Returns data fields: monitor_loaded (array, list of loaded monitor type strings).
+    Precondition: the guardian system is initialized and not globally disabled.
+  disable: |
+    Function: Disable the AI guardian system. All proactive alerts stop.
+    Parameters: none.
+    Returns data fields: none.
+  status: |
+    Function: Query the current status of the guardian system.
+    Parameters: none.
+    Returns data fields: enabled (boolean, whether active), monitors (array, list of currently active monitor type strings).
 
-# Additional hints
 hints:
-  - 'Use enable when the player says "turn on guardian", "watch my back", "be my bodyguard", "enable guardian"'
-  - 'Use disable when the player says "turn off guardian", "stop watching", "disable guardian", "stop guarding"'
-  - 'Use status when the player says "is guardian on?", "guardian status", "is guardian running?"'
+  - |
+    Action dispatch: use enable when the player wants to "turn on guardian"; use disable when they want to "turn off / stop guardian"; use status when they want to "query guardian state".
+  - |
+    Guardian is an opt-in proactive-alerting capability and is off by default. When the player expresses concern about environmental safety or their own status changes (e.g. "afraid of being ambushed", "keep an eye on my gear durability"), or when you judge they are in a high-risk scenario, you may proactively suggest enabling Guardian, but the final decision to enable is the player's.

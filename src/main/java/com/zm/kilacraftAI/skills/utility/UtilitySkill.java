@@ -11,10 +11,7 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -39,6 +36,9 @@ import java.util.concurrent.TimeUnit;
  * @since 2026-04-29
  */
 public class UtilitySkill implements Skill {
+
+    private static final String SKILL_NAME = "utility";
+    private static final String LOG_PREFIX = "工具技能";
 
     private static final int MIN_DELAY_SECONDS = 1;
     private static final int MAX_DELAY_SECONDS = 60;
@@ -86,15 +86,15 @@ public class UtilitySkill implements Skill {
         this.utilityConfigManager = (plugin != null) ? plugin.getUtilityConfigManager() : null;
 
         // 如果配置不存在，保存默认配置并动态加载
-        if (configManager != null && configManager.getSkillConfig("utility", "UtilitySkill") == null) {
-            configManager.saveDefaultSkillConfig("utility", "UtilitySkill");
-            configManager.loadSingleSkillConfig("utility", "UtilitySkill");
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
     @Override
     public String getName() {
-        return "utility";
+        return SKILL_NAME;
     }
 
     @Override
@@ -127,27 +127,30 @@ public class UtilitySkill implements Skill {
 
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
-        String action = context.getAction();
-        if (action == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("未指定工具动作"));
-        }
-
         Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("工具技能仅支持在线玩家"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
+        }
+        // 基础权限复查（防御纵深：/kila run 可绕过意图识别）
+        if (!PluginPermissionEnum.UTILITY.hasPermission(player)) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.UTILITY.getNode())));
+        }
+
+        String action = context.getAction();
+        if (action == null) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未知动作: {}", "")));
         }
 
         return switch (action) {
             case "delay_wait" -> handleDelayWait(context);
             case "notify_player" -> handleNotifyPlayer(context);
             case "broadcast_message" -> handleBroadcastMessage(context);
-            default ->
-                    CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未知工具动作: {}", action)));
+            default -> CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未知动作: {}", action)));
         };
     }
 
     private SkillConfig getConfig() {
-        return (configManager != null) ? configManager.getSkillConfig("utility", "UtilitySkill") : null;
+        return (configManager != null) ? configManager.getSkillConfig(this) : null;
     }
 
     /**
@@ -204,27 +207,18 @@ public class UtilitySkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.UTILITY_DELAY_WAIT.getNode())));
         }
 
-        String secondsStr = context.getEntity("seconds");
-        if (secondsStr == null || secondsStr.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure("缺少 seconds 参数"));
+        String secondsStr = SkillEntityHelper.getString(context, "seconds");
+        if (secondsStr == null) {
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("缺少参数: seconds（等待秒数，{}-{}）", MIN_DELAY_SECONDS, MAX_DELAY_SECONDS)));
         }
 
-        int seconds;
-        try {
-            seconds = Integer.parseInt(secondsStr);
-        } catch (NumberFormatException e) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("无效的秒数: {}", secondsStr)));
-        }
-
-        // 校验范围
-        seconds = Math.max(MIN_DELAY_SECONDS, Math.min(seconds, MAX_DELAY_SECONDS));
-
-        final int delaySeconds = seconds;
-        PluginLoggerUtil.debug("工具技能", "延迟等待: {}秒", delaySeconds);
+        // getIntClamped：解析失败/越界一律兜底到默认值并裁剪到 [min, max]
+        final int delaySeconds = SkillEntityHelper.getIntClamped(context, "seconds", MIN_DELAY_SECONDS, MIN_DELAY_SECONDS, MAX_DELAY_SECONDS);
+        PluginLoggerUtil.debug(LOG_PREFIX, "延迟等待: {}秒", delaySeconds);
 
         CompletableFuture<SkillResult> future = new CompletableFuture<>();
         DELAY_SCHEDULER.schedule(() -> {
-            PluginLoggerUtil.debug("工具技能", "延迟完成: {}秒", delaySeconds);
+            PluginLoggerUtil.debug(LOG_PREFIX, "延迟完成: {}秒", delaySeconds);
             future.complete(SkillResult.success(I18nService.tr("已等待{}秒", delaySeconds)));
         }, delaySeconds, TimeUnit.SECONDS);
         return future;
@@ -240,18 +234,18 @@ public class UtilitySkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.UTILITY_NOTIFY_PLAYER.getNode())));
         }
 
-        String message = context.getEntity("message");
-        if (message == null || message.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure("缺少 message 参数"));
+        String message = SkillEntityHelper.getString(context, "message");
+        if (message == null) {
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("缺少参数: message（要通知的内容）")));
         }
 
         final String playerName = player.getName();
-        PluginLoggerUtil.debug("工具技能", "主动通知玩家: {}", playerName);
+        PluginLoggerUtil.debug(LOG_PREFIX, "主动通知玩家: {}", playerName);
 
         KilacraftAI plugin = KilacraftAI.getInstance();
         LLMProvider llmProvider = requireLLMProvider();
         if (llmProvider == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("LLM Provider 未初始化"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("LLM Provider 未初始化")));
         }
 
         // 从 behavior.yml 读取提示词
@@ -265,8 +259,8 @@ public class UtilitySkill implements Skill {
         String userPromptTemplate = getNotifyUserPrompt();
         String userPrompt = userPromptTemplate.replace("{0}", message);
 
-        PluginLoggerUtil.debug("工具技能", I18nService.tr("阶段性通知摘要 - 玩家: {}, systemPrompt: [{}]", playerName, systemPrompt));
-        PluginLoggerUtil.debug("工具技能", I18nService.tr("阶段性通知摘要 - 玩家: {}, userPrompt: [{}]", playerName, userPrompt));
+        PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("阶段性通知摘要 - 玩家: {}, systemPrompt: [{}]", playerName, systemPrompt));
+        PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("阶段性通知摘要 - 玩家: {}, userPrompt: [{}]", playerName, userPrompt));
 
         // 动态流式输出配置
         AIResponsePipeline pipeline = plugin.getResponsePipeline();
@@ -279,11 +273,11 @@ public class UtilitySkill implements Skill {
 
         return llmFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {
-                PluginLoggerUtil.warn("工具技能", "通知玩家 {} 失败: {}", playerName, ex.getMessage());
+                PluginLoggerUtil.warn(LOG_PREFIX, "通知玩家 {} 失败: {}", playerName, ex.getMessage());
                 return SkillResult.failure(I18nService.tr("通知玩家失败: {}", ex.getMessage()));
             }
-            PluginLoggerUtil.debug("工具技能", "通知完成: {}", playerName);
-            return SkillResult.success("已通知玩家");
+            PluginLoggerUtil.debug(LOG_PREFIX, "通知完成: {}", playerName);
+            return SkillResult.success(I18nService.tr("已通知玩家"));
         });
     }
 
@@ -294,21 +288,21 @@ public class UtilitySkill implements Skill {
         Player player = context.getPlayer();
 
         if (!PluginPermissionEnum.UTILITY_BROADCAST.hasPermission(player)) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用全服广播功能: {}", PluginPermissionEnum.UTILITY_BROADCAST.getNode())));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.UTILITY_BROADCAST.getNode())));
         }
 
-        String message = context.getEntity("message");
-        if (message == null || message.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure("缺少 message 参数"));
+        String message = SkillEntityHelper.getString(context, "message");
+        if (message == null) {
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("缺少参数: message（要广播的内容）")));
         }
 
         final String playerName = player.getName();
-        PluginLoggerUtil.debug("工具技能", "全服广播请求，发起者: {}, 消息长度: {}", playerName, message.length());
+        PluginLoggerUtil.debug(LOG_PREFIX, "全服广播请求，发起者: {}, 消息长度: {}", playerName, message.length());
 
         KilacraftAI plugin = KilacraftAI.getInstance();
         LLMProvider llmProvider = requireLLMProvider();
         if (llmProvider == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("LLM Provider 未初始化"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("LLM Provider 未初始化")));
         }
 
         // 从 behavior.yml 读取提示词
@@ -323,8 +317,8 @@ public class UtilitySkill implements Skill {
         String userPromptTemplate = getBroadcastUserPrompt();
         String userPrompt = userPromptTemplate.replace("{0}", message);
 
-        PluginLoggerUtil.debug("工具技能", I18nService.tr("全服广播摘要 - 发起者: {}, systemPrompt: [{}]", playerName, systemPrompt));
-        PluginLoggerUtil.debug("工具技能", I18nService.tr("全服广播摘要 - 发起者: {}, userPrompt: [{}]", playerName, userPrompt));
+        PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("全服广播摘要 - 发起者: {}, systemPrompt: [{}]", playerName, systemPrompt));
+        PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("全服广播摘要 - 发起者: {}, userPrompt: [{}]", playerName, userPrompt));
 
         // 强制 CHAT 载体，不开启流式，仅收集 LLM 美化后的文本
         CompletableFuture<String> responseFuture = new CompletableFuture<>();
@@ -365,13 +359,13 @@ public class UtilitySkill implements Skill {
 
         return responseFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {
-                PluginLoggerUtil.warn("工具技能", "全服广播 LLM 分析失败，发起者: {}, 错误: {}", playerName, ex.getMessage());
+                PluginLoggerUtil.warn(LOG_PREFIX, "全服广播 LLM 分析失败，发起者: {}, 错误: {}", playerName, ex.getMessage());
                 return SkillResult.failure(I18nService.tr("全服广播失败: {}", ex.getMessage()));
             }
 
             // 通过 pipeline.broadcast 全服广播（强制 CHAT 载体）
             plugin.getResponsePipeline().broadcast(response, null);
-            PluginLoggerUtil.debug("工具技能", "全服广播完成，发起者: {}", playerName);
+            PluginLoggerUtil.debug(LOG_PREFIX, "全服广播完成，发起者: {}", playerName);
             return SkillResult.success(I18nService.tr("已全服广播消息"));
         });
     }

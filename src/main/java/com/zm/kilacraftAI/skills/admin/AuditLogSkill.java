@@ -9,10 +9,7 @@ import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.PlayerProfileDao;
 import com.zm.kilacraftAI.db.dao.SkillLogDao;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.entity.Player;
 
 import java.sql.Connection;
@@ -32,24 +29,25 @@ import java.util.concurrent.CompletableFuture;
  */
 public class AuditLogSkill implements Skill {
 
+    private static final String SKILL_NAME = "audit_log";
     private static final String LOG_PREFIX = "审计日志";
     private final SkillConfigManager configManager;
 
     public AuditLogSkill() {
         this.configManager = SkillConfigManager.getInstance();
-        if (configManager != null && configManager.getSkillConfig("admin", "AuditLogSkill") == null) {
-            configManager.saveDefaultSkillConfig("admin", "AuditLogSkill");
-            configManager.loadSingleSkillConfig("admin", "AuditLogSkill");
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
     private SkillConfig getConfig() {
-        return configManager != null ? configManager.getSkillConfig("admin", "AuditLogSkill") : null;
+        return configManager != null ? configManager.getSkillConfig(this) : null;
     }
 
     @Override
     public String getName() {
-        return "audit_log";
+        return SKILL_NAME;
     }
 
     @Override
@@ -92,7 +90,7 @@ public class AuditLogSkill implements Skill {
             case "query_logs" -> executeQueryLogs(context);
             case "skill_stats" -> executeSkillStats(context);
             case "error_logs" -> executeErrorLogs(context);
-            default -> SkillResult.failure(I18nService.tr("未知的动作: {}", action)).toFuture();
+            default -> SkillResult.failure(I18nService.tr("未知动作: {}", action)).toFuture();
         };
     }
 
@@ -101,10 +99,10 @@ public class AuditLogSkill implements Skill {
      */
     private CompletableFuture<SkillResult> executeQueryLogs(SkillContext context) {
         return AdminSkillUtil.executeAsync(() -> {
-            String timeRangeStr = context.getEntity("time_range");
-            String playerName = context.getEntity("player_name");
-            String skillName = context.getEntity("skill_name");
-            String limitStr = context.getEntity("limit");
+            String timeRangeStr = SkillEntityHelper.getString(context, "time_range");
+            String playerName = SkillEntityHelper.getString(context, "player_name");
+            String skillName = SkillEntityHelper.getString(context, "skill_name");
+            String limitStr = SkillEntityHelper.getString(context, "limit");
 
             String timeRange = (timeRangeStr == null || timeRangeStr.isEmpty()) ? "7d" : timeRangeStr;
             int limit = AdminSkillUtil.parseLimit(limitStr, 20);
@@ -153,7 +151,7 @@ public class AuditLogSkill implements Skill {
                 return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询技能日志失败: {}", e.getMessage()), e);
-                return SkillResult.failure("查询技能日志失败", e);
+                return SkillResult.failure(I18nService.tr("查询技能日志失败: {}", e.getMessage()));
             }
         }, LOG_PREFIX);
     }
@@ -163,8 +161,8 @@ public class AuditLogSkill implements Skill {
      */
     private CompletableFuture<SkillResult> executeSkillStats(SkillContext context) {
         return AdminSkillUtil.executeAsync(() -> {
-            String timeRangeStr = context.getEntity("time_range");
-            String limitStr = context.getEntity("limit");
+            String timeRangeStr = SkillEntityHelper.getString(context, "time_range");
+            String limitStr = SkillEntityHelper.getString(context, "limit");
 
             String timeRange = (timeRangeStr == null || timeRangeStr.isEmpty()) ? "7d" : timeRangeStr;
             int limit = AdminSkillUtil.parseLimit(limitStr, 10);
@@ -202,7 +200,7 @@ public class AuditLogSkill implements Skill {
                 return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询技能统计失败: {}", e.getMessage()), e);
-                return SkillResult.failure("查询技能统计失败", e);
+                return SkillResult.failure(I18nService.tr("查询技能统计失败: {}", e.getMessage()));
             }
         }, LOG_PREFIX);
     }
@@ -212,9 +210,9 @@ public class AuditLogSkill implements Skill {
      */
     private CompletableFuture<SkillResult> executeErrorLogs(SkillContext context) {
         return AdminSkillUtil.executeAsync(() -> {
-            String timeRangeStr = context.getEntity("time_range");
-            String skillName = context.getEntity("skill_name");
-            String limitStr = context.getEntity("limit");
+            String timeRangeStr = SkillEntityHelper.getString(context, "time_range");
+            String skillName = SkillEntityHelper.getString(context, "skill_name");
+            String limitStr = SkillEntityHelper.getString(context, "limit");
 
             String timeRange = (timeRangeStr == null || timeRangeStr.isEmpty()) ? "7d" : timeRangeStr;
             int limit = AdminSkillUtil.parseLimit(limitStr, 20);
@@ -248,7 +246,7 @@ public class AuditLogSkill implements Skill {
                 return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询失败日志失败: {}", e.getMessage()), e);
-                return SkillResult.failure("查询失败日志失败", e);
+                return SkillResult.failure(I18nService.tr("查询失败日志失败: {}", e.getMessage()));
             }
         }, LOG_PREFIX);
     }

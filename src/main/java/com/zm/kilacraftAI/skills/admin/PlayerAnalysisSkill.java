@@ -36,25 +36,25 @@ import java.util.stream.Collectors;
  */
 public class PlayerAnalysisSkill implements Skill {
 
+    private static final String SKILL_NAME = "player_analysis";
     private static final String LOG_PREFIX = "玩家分析";
     private final SkillConfigManager configManager;
 
     public PlayerAnalysisSkill() {
         this.configManager = SkillConfigManager.getInstance();
-        // 如果配置不存在，保存默认配置并动态加载
-        if (configManager != null && configManager.getSkillConfig("admin", "PlayerAnalysisSkill") == null) {
-            configManager.saveDefaultSkillConfig("admin", "PlayerAnalysisSkill");
-            configManager.loadSingleSkillConfig("admin", "PlayerAnalysisSkill");
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
     private SkillConfig getConfig() {
-        return configManager != null ? configManager.getSkillConfig("admin", "PlayerAnalysisSkill") : null;
+        return configManager != null ? configManager.getSkillConfig(this) : null;
     }
 
     @Override
     public String getName() {
-        return "player_analysis";
+        return SKILL_NAME;
     }
 
     @Override
@@ -100,7 +100,7 @@ public class PlayerAnalysisSkill implements Skill {
             case "profile_coverage" -> executeProfileCoverage(context);
             case "social_insights" -> executeSocialInsights(context);
             case "player_relations" -> executePlayerRelations(context);
-            default -> SkillResult.failure(I18nService.tr("未知的动作: {}", action)).toFuture();
+            default -> SkillResult.failure(I18nService.tr("未知动作: {}", action)).toFuture();
         };
     }
 
@@ -108,8 +108,8 @@ public class PlayerAnalysisSkill implements Skill {
      * 在线人数趋势 — LOGIN/LOGOUT 事件按时间桶聚合
      */
     private CompletableFuture<SkillResult> executeOnlineTrend(SkillContext context) {
-        String timeRangeStr = context.getEntity("time_range");
-        String groupByStr = context.getEntity("group_by");
+        String timeRangeStr = SkillEntityHelper.getString(context, "time_range");
+        String groupByStr = SkillEntityHelper.getString(context, "group_by");
         return AdminSkillUtil.executeAsync(() -> {
             String timeRange = (timeRangeStr == null || timeRangeStr.isEmpty()) ? "7d" : timeRangeStr;
             String groupBy = (groupByStr == null || groupByStr.isEmpty()) ? "day" : groupByStr;
@@ -155,7 +155,7 @@ public class PlayerAnalysisSkill implements Skill {
                 return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询在线趋势失败: {}", e.getMessage()), e);
-                return SkillResult.failure("查询在线趋势失败", e);
+                return SkillResult.failure(I18nService.tr("查询在线趋势失败: {}", e.getMessage()));
             }
         }, LOG_PREFIX);
     }
@@ -165,11 +165,11 @@ public class PlayerAnalysisSkill implements Skill {
      */
     private CompletableFuture<SkillResult> executeTopActive(SkillContext context) {
         return AdminSkillUtil.executeAsync(() -> {
-            String timeRangeStr = context.getEntity("time_range");
-            String orderByStr = context.getEntity("order_by");
-            String limitStr = context.getEntity("limit");
+            String timeRangeStr = SkillEntityHelper.getString(context, "time_range");
+            String orderByStr = SkillEntityHelper.getString(context, "order_by");
+            String limitStr = SkillEntityHelper.getString(context, "limit");
 
-            String timeRange = (timeRangeStr == null || timeRangeStr.isEmpty()) ? "7d" : timeRangeStr;
+            String timeRange = (timeRangeStr != null) ? timeRangeStr : "7d";
             String orderBy = (orderByStr == null || orderByStr.isEmpty()) ? "login_count" : orderByStr;
             int limit = AdminSkillUtil.parseLimit(limitStr, 10);
 
@@ -203,7 +203,7 @@ public class PlayerAnalysisSkill implements Skill {
                 return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询活跃玩家失败: {}", e.getMessage()), e);
-                return SkillResult.failure("查询活跃玩家失败", e);
+                return SkillResult.failure(I18nService.tr("查询活跃玩家失败: {}", e.getMessage()));
             }
         }, LOG_PREFIX);
     }
@@ -213,10 +213,10 @@ public class PlayerAnalysisSkill implements Skill {
      */
     private CompletableFuture<SkillResult> executeNewPlayers(SkillContext context) {
         return AdminSkillUtil.executeAsync(() -> {
-            String timeRangeStr = context.getEntity("time_range");
-            String groupByStr = context.getEntity("group_by");
+            String timeRangeStr = SkillEntityHelper.getString(context, "time_range");
+            String groupByStr = SkillEntityHelper.getString(context, "group_by");
 
-            String timeRange = (timeRangeStr == null || timeRangeStr.isEmpty()) ? "7d" : timeRangeStr;
+            String timeRange = (timeRangeStr != null) ? timeRangeStr : "7d";
             String groupBy = (groupByStr == null || groupByStr.isEmpty()) ? "day" : groupByStr;
 
             long afterTime = AdminSkillUtil.parseTimeRange(timeRange);
@@ -255,7 +255,7 @@ public class PlayerAnalysisSkill implements Skill {
                 return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询新玩家流入失败: {}", e.getMessage()), e);
-                return SkillResult.failure("查询新玩家流入失败", e);
+                return SkillResult.failure(I18nService.tr("查询新玩家流入失败: {}", e.getMessage()));
             }
         }, LOG_PREFIX);
     }
@@ -265,10 +265,10 @@ public class PlayerAnalysisSkill implements Skill {
      */
     private CompletableFuture<SkillResult> executeProfileCoverage(SkillContext context) {
         return AdminSkillUtil.executeAsync(() -> {
-            String timeRangeStr = context.getEntity("time_range");
-            String limitStr = context.getEntity("limit");
+            String timeRangeStr = SkillEntityHelper.getString(context, "time_range");
+            String limitStr = SkillEntityHelper.getString(context, "limit");
 
-            String timeRange = (timeRangeStr == null || timeRangeStr.isEmpty()) ? "7d" : timeRangeStr;
+            String timeRange = (timeRangeStr != null) ? timeRangeStr : "7d";
             int limit = AdminSkillUtil.parseLimit(limitStr, 20);
 
             long afterTime = AdminSkillUtil.parseTimeRange(timeRange);
@@ -301,7 +301,7 @@ public class PlayerAnalysisSkill implements Skill {
                 return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询画像覆盖率失败: {}", e.getMessage()), e);
-                return SkillResult.failure("查询画像覆盖率失败", e);
+                return SkillResult.failure(I18nService.tr("查询画像覆盖率失败: {}", e.getMessage()));
             }
         }, LOG_PREFIX);
     }
@@ -311,7 +311,7 @@ public class PlayerAnalysisSkill implements Skill {
      */
     private CompletableFuture<SkillResult> executeSocialInsights(SkillContext context) {
         return AdminSkillUtil.executeAsync(() -> {
-            String limitStr = context.getEntity("limit");
+            String limitStr = SkillEntityHelper.getString(context, "limit");
             int limit = AdminSkillUtil.parseLimit(limitStr, 10);
 
             DatabaseManager dbManager = KilacraftAI.getInstance().getDatabaseManager();
@@ -364,7 +364,7 @@ public class PlayerAnalysisSkill implements Skill {
                 return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询社交图谱失败: {}", e.getMessage()), e);
-                return SkillResult.failure("查询社交图谱失败", e);
+                return SkillResult.failure(I18nService.tr("查询社交图谱失败: {}", e.getMessage()));
             }
         }, LOG_PREFIX);
     }
@@ -429,12 +429,12 @@ public class PlayerAnalysisSkill implements Skill {
      */
     private CompletableFuture<SkillResult> executePlayerRelations(SkillContext context) {
         return AdminSkillUtil.executeAsync(() -> {
-            String playerName = context.getEntity("player_name");
-            String limitStr = context.getEntity("limit");
+            String playerName = SkillEntityHelper.getString(context, "player_name");
+            String limitStr = SkillEntityHelper.getString(context, "limit");
             int limit = AdminSkillUtil.parseLimit(limitStr, 20);
 
             if (playerName == null || playerName.isEmpty()) {
-                return SkillResult.failure(I18nService.tr("缺少参数: player_name"));
+                return SkillResult.needInfo(I18nService.tr("请告诉我要查询哪位玩家的社交关系"));
             }
 
             DatabaseManager dbManager = KilacraftAI.getInstance().getDatabaseManager();
@@ -492,7 +492,7 @@ public class PlayerAnalysisSkill implements Skill {
                 return SkillResult.success(msg.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询玩家社交关系失败: {}", e.getMessage()), e);
-                return SkillResult.failure("查询玩家社交关系失败", e);
+                return SkillResult.failure(I18nService.tr("查询玩家社交关系失败: {}", e.getMessage()));
             }
         }, LOG_PREFIX);
     }

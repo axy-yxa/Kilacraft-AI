@@ -6,10 +6,7 @@ import com.zm.kilacraftAI.common.util.BukkitCommandUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -26,15 +23,18 @@ import java.util.concurrent.CompletableFuture;
  */
 public class CommandSkill implements Skill {
 
+    private static final String SKILL_NAME = "command";
+    private static final String LOG_PREFIX = "命令技能";
+
     private final SkillConfigManager configManager;
 
     public CommandSkill() {
         this.configManager = SkillConfigManager.getInstance();
 
         // 如果配置不存在，保存默认配置并动态加载
-        if (configManager != null && configManager.getSkillConfig("command", "CommandSkill") == null) {
-            configManager.saveDefaultSkillConfig("command", "CommandSkill");
-            configManager.loadSingleSkillConfig("command", "CommandSkill");
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
@@ -45,12 +45,12 @@ public class CommandSkill implements Skill {
         if (configManager == null) {
             return null;
         }
-        return configManager.getSkillConfig("command", "CommandSkill");
+        return configManager.getSkillConfig(this);
     }
 
     @Override
     public String getName() {
-        return "command";
+        return SKILL_NAME;
     }
 
     @Override
@@ -98,26 +98,19 @@ public class CommandSkill implements Skill {
 
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
-        // isAvailable 已保证玩家在线 + 全局开关开启（executeSkillByIntent 执行前会实时调用 isAvailable）
         Player player = context.getPlayer();
+        if (player == null) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
+        }
         if (!PluginPermissionEnum.COMMAND_EXECUTE.hasPermission(player)) {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.COMMAND_EXECUTE.getNode())));
         }
 
         String action = context.getAction();
-        if (action == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未指定命令执行动作")));
+        if (!"execute_command".equals(action)) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未知动作: {}", action)));
         }
-
-        try {
-            return switch (action) {
-                case "execute_command" -> executeCommand(player, context);
-                default ->
-                        CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未知动作：{}", action)));
-            };
-        } catch (Exception e) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("命令执行失败：{}", e.getMessage())));
-        }
+        return executeCommand(player, context);
     }
 
     /**
@@ -126,9 +119,9 @@ public class CommandSkill implements Skill {
      * <p>以玩家身份执行命令，通过 BukkitCommandUtil 确保在主线程执行。</p>
      */
     private CompletableFuture<SkillResult> executeCommand(Player player, SkillContext context) {
-        String rawCommand = context.getEntity("command");
-        if (rawCommand == null || rawCommand.trim().isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure("请提供要执行的命令"));
+        String rawCommand = SkillEntityHelper.getString(context, "command");
+        if (rawCommand == null) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("请提供要执行的命令")));
         }
 
         // 移除前导 /（用户可能包含也可能不包含）
@@ -139,7 +132,7 @@ public class CommandSkill implements Skill {
 
         final String finalCommand = command;
 
-        PluginLoggerUtil.debug("命令技能", "玩家 {} 通过 AI 执行命令: /{}", player.getName(), finalCommand);
+        PluginLoggerUtil.debug(LOG_PREFIX, "玩家 {} 通过 AI 执行命令: /{}", player.getName(), finalCommand);
 
         // 使用 dispatchAsync 获取执行结果
         return BukkitCommandUtil.dispatchAsync(player, finalCommand).thenApply(success -> {
@@ -149,7 +142,7 @@ public class CommandSkill implements Skill {
                 return SkillResult.failure(I18nService.tr("命令执行失败，可能没有权限或命令不存在: /{}", finalCommand));
             }
         }).exceptionally(ex -> {
-            PluginLoggerUtil.warn("命令技能", I18nService.tr("命令执行异常: /{} - {}", finalCommand, ex.getMessage()), ex);
+            PluginLoggerUtil.warn(LOG_PREFIX, I18nService.tr("命令执行异常: /{} - {}", finalCommand, ex.getMessage()), ex);
             return SkillResult.failure(I18nService.tr("命令执行异常: /{}", finalCommand));
         });
     }

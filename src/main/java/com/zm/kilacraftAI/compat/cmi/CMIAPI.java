@@ -188,19 +188,4 @@ public class CMIAPI {
         }
         return result;
     }
-
-    /**
-     * 查询指定玩家的 CMI 增强信息（用于查看其他玩家）
-     *
-     * @param targetName 目标玩家名称
-     * @return 玩家信息，如果玩家不在线或不存在返回 null
-     */
-    public static Map<String, Object> getOtherPlayerInfo(String targetName) {
-        if (!isAvailable() || targetName == null) return null;
-
-        Player target = Bukkit.getPlayer(targetName);
-        if (target == null) return null;
-
-        return getPlayerInfo(target);
-    }
 }

@@ -1,25 +1,48 @@
-# WatchSkill Player Custom Watch Skill Configuration (English)
-# This file is auto-generated; modify as needed
-#
-# This description is sent to the LLM to help it understand when to invoke this skill
-description: 'Player custom watch system: the player specifies a watch source and trigger condition, the system continuously monitors, and notifies the AI when the condition is met (the AI decides how to respond). Supports two watch types: conditional watch (polling, periodically executes a skill query to compare values, e.g. "watch my health below 10", "watch iron ingots until 64") and event watch (event-driven, triggers on Bukkit event match, e.g. "tell me when furnace is done", "notify me when crops mature", "alert me when a BOSS spawns"). Use this skill when players mention ongoing monitoring needs such as "watch X until Y", "remind me once X", "tell me when X is done", "notify me when X happens". Keywords: watch, monitor, keep an eye on, once, when, reached, enough, below, above, changed, done, ready, spawned, remind, notify, tell me. The watch condition is specified by the player; when triggered, only the AI is notified—no automatic callback execution. For subscribing to other players online/offline status, use the PlayerWatch skill; for AI proactive guardian, use the Guardian skill.'
+# English version of WatchSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Player Custom Watch Skill (WatchSkill)
+# The player specifies a watch source and trigger condition; the system monitors continuously and notifies the AI when met.
+# Supports conditional (polling) and event watches; only notifies the AI on trigger, no automatic callback.
+# Implements DynamicContextProvider: getDynamicContext injects the currently available [conditional watch] and [event watch] lists for the AI to choose from when creating a watch.
+# ═══════════════════════════════════════════════════════════
 
-# Action descriptions (Map format: key=action name, value=description)
-# Each action description is sent to the LLM to help it select the correct action and extract parameters
+description: |
+  Player custom watch system: the player specifies a watch source and trigger condition, the system continuously monitors, and notifies the AI when the condition is met (the AI decides how to respond, with no automatic callback).
+  Triggers: when the player raises an ongoing monitoring need, e.g. "watch my health below 10", "tell me when iron ingots reach 64", "remind me when the furnace is done", "notify me when crops mature", "ping me when I die once".
+  Reverse boundary: NOT for AI proactively guarding the caller themselves (unconditional "be my bodyguard / enable guardian" goes to Guardian), and NOT for subscribing to other players' online/offline status (that goes to PlayerWatch).
+
 action_descriptions:
-  create_watch: 'Create a watch. Required: mode (watch mode: polling=conditional/event=event-driven). For polling mode also required: source (watch source in skill.action format, choose from the watchable list in getDynamicContext, e.g. bukkit_api.get_player_health), result_path (field name to extract from skill return value, e.g. health), operator (comparison operator: number uses greater_than_or_equal/greater_than/less_than_or_equal/less_than/equal/not_equal, string uses equal/not_equal/contains), threshold (threshold value: number for numeric, match value like OBSIDIAN for string). For event mode also required: event_type (event type, choose from the event watch list in getDynamicContext, e.g. furnace_smelt/player_death/block_break). Optional: filter_ prefixed params (event filters, e.g. filter_result_type=IRON_INGOT), intent (context for the AI when triggered), single_shot (one-time watch, default true), display_name (human-readable watch name). Returns data containing watch_id, display_name fields for subsequent step references.'
-  cancel_watch: 'Cancel a watch. Parameters: watch_id (watch ID) or description (watch description for fuzzy matching). Returns data containing watch_id, cancelled fields for subsequent step references.'
-  list_watches: 'Query all active watches for the current player. No parameters. Returns data containing watches (watch list, each with watch_id/display_name/mode/source or event_type), total fields for subsequent step references.'
+  create_watch: |
+    Function: Create a watch.
+    Parameters:
+      - mode (required, enum name): watch mode, polling=conditional/event=event-driven.
+      - source (required for polling, string): watch source in skill.action format, chosen from the [conditional watch] list injected by getDynamicContext (e.g. GenericBukkitAPI.get_player_health).
+      - result_path (required for polling, string): field name to extract from the skill return value (e.g. health); infer it from that action's returned data field description.
+      - operator (required for polling, string): comparison operator. number uses greater_than_or_equal/greater_than/less_than_or_equal/less_than/equal/not_equal; string uses equal/not_equal/contains.
+      - threshold (required for polling, string): threshold value. number for numeric, match value for string (e.g. OBSIDIAN).
+      - event_type (required for event, string): event type, chosen from the [event watch] list injected by getDynamicContext (e.g. furnace_smelt/player_death/block_break).
+      - filter_ prefixed params (optional, string): event filters, e.g. filter_result_type=IRON_INGOT.
+      - intent (optional, string): context for the AI when triggered.
+      - single_shot (optional, default true, boolean): one-time watch.
+      - display_name (optional, string): human-readable watch name.
+    Returns data fields: watch_id, display_name.
+  cancel_watch: |
+    Function: Cancel a watch.
+    Parameters:
+      - watch_id (optional, string): watch ID, exact match.
+      - description (optional, string): watch description for fuzzy match (use one of watch_id/description).
+    Returns data fields: none.
+  list_watches: |
+    Function: Query all active watches for the current player.
+    Parameters: none.
+    Returns data fields: watches (array, each with watch_id/display_name/mode/source or event_type/condition (polling type: operator and threshold)/intent (if any)), total.
 
-# Additional hints (used to guide the LLM in correct skill usage)
 hints:
-  - 'Use create_watch with mode=polling when players say "watch my iron ingots until 64", "remind me when health below 30%" or other monitoring requests with specific numeric conditions'
-  - 'Use create_watch with mode=event when players say "tell me when furnace is done", "alert me when BOSS spawns", "notify me when crops mature" or other event-based monitoring requests'
-  - 'Use cancel_watch when players say "cancel the iron watch", "stop watching"'
-  - 'Use list_watches when players say "what am I watching", "list my watches"'
-  - 'For polling mode, choose source from the conditional watch list injected by getDynamicContext, in skill.action format (e.g. bukkit_api.get_player_health). Infer result_path from the action description (it states "returned data contains xxx field")'
-  - 'For event mode, choose event_type from the event watch list injected by getDynamicContext (e.g. furnace_smelt/crop_mature/entity_death/player_death/block_break/player_fish/player_chat)'
-  - 'Polling mode values have types: number (e.g. health/item count) uses comparison operators; string (e.g. block type/weather) uses equal/not_equal/contains. Infer type from skill return field description'
-  - 'Event mode can include filter params (filter_ prefix), e.g. filter_result_type=IRON_INGOT for specific furnace product, filter_block_type=DIAMOND_ORE for specific block break, filter_keyword=OK for chat containing specific word'
-  - 'Subscribing to other players online/offline status (e.g. "tell me when Steve comes online") does NOT use this skill—route to PlayerWatch skill'
-  - 'When players say "enable guardian" or "be my bodyguard" without specifying a condition, do NOT use this skill—route to Guardian skill'
+  - |
+    Watch lifecycle orchestration: create_watch to create, list_watches to view existing watches, cancel_watch to cancel (by exact watch_id or fuzzy description). Use cancel_watch when the player says "stop watching / cancel the X watch"; use list_watches for "what am I watching".
+  - |
+    When to use polling: the watched target is a "numeric or string state that changes over time", e.g. health, an item count, a block count — it must be polled periodically and then compared. The condition has four parts: source (chosen from the injected list, format skill.action), result_path (inferred from that action's returned data fields), operator (depends on the field type — number uses comparison operators, string uses equal/not_equal/contains), and threshold (a value of the matching type).
+  - |
+    When to use event: the watched target is "whether some event occurs", e.g. furnace done, crops mature, block broken, player death, chat containing a word — triggers on event match, no polling. Choose event_type from the injected list; narrow the event scope with filter_ prefixed params (e.g. a specific furnace product via filter_result_type=IRON_INGOT, a specific block break via filter_block_type=DIAMOND_ORE, chat containing a word via filter_keyword=OK).
+  - |
+    Boundary routing: subscribing to other players online/offline ("tell me when Steve comes online") uses PlayerWatch; unconditional AI proactive guarding ("enable guardian", "be my bodyguard") uses Guardian.

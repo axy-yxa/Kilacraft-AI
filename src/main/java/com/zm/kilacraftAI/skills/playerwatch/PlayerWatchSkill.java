@@ -2,13 +2,11 @@ package com.zm.kilacraftAI.skills.playerwatch;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.playerwatch.PlayerWatchService;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.*;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -21,25 +19,26 @@ import java.util.concurrent.CompletableFuture;
  */
 public class PlayerWatchSkill implements Skill {
 
-    private static final String PACKAGE = "playerwatch";
-    private static final String SKILL_NAME = "PlayerWatchSkill";
+    private static final String SKILL_NAME = "player_watch";
+    private static final String LOG_PREFIX = "跨玩家监控";
+
+    private final SkillConfigManager configManager;
 
     public PlayerWatchSkill() {
-        SkillConfigManager cm = SkillConfigManager.getInstance();
-        if (cm != null && cm.getSkillConfig(PACKAGE, SKILL_NAME) == null) {
-            cm.saveDefaultSkillConfig(PACKAGE, SKILL_NAME);
-            cm.loadSingleSkillConfig(PACKAGE, SKILL_NAME);
+        this.configManager = SkillConfigManager.getInstance();
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
     private SkillConfig getConfig() {
-        SkillConfigManager cm = SkillConfigManager.getInstance();
-        return cm != null ? cm.getSkillConfig(PACKAGE, SKILL_NAME) : null;
+        return configManager != null ? configManager.getSkillConfig(this) : null;
     }
 
     @Override
     public String getName() {
-        return "player_watch";
+        return SKILL_NAME;
     }
 
     @Override
@@ -68,7 +67,7 @@ public class PlayerWatchSkill implements Skill {
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
         if (context.getPlayer() == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("仅玩家可用")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
         }
         if (!PluginPermissionEnum.PLAYER_WATCH.hasPermission(context.getPlayer())) {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.PLAYER_WATCH.getNode())));
@@ -88,16 +87,17 @@ public class PlayerWatchSkill implements Skill {
     }
 
     private SkillResult handleSubscribe(SkillContext context, PlayerWatchService service) {
-        Map<String, String> entities = context.getEntities();
-        String target = entities.get("target_player");
-        if (target == null || target.isBlank()) {
+        String target = SkillEntityHelper.getString(context, "target_player");
+        if (target == null) {
             return SkillResult.needInfo(I18nService.tr("要盯哪个玩家？请告诉我玩家名。"));
         }
-        String triggerEvent = entities.get("trigger_event");
-        String note = entities.get("note");
+        String triggerEvent = SkillEntityHelper.getString(context, "trigger_event");
+        String note = SkillEntityHelper.getString(context, "note");
+        PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("订阅请求：玩家={}, 目标={}, 触发事件={}", context.getPlayer().getName(), target, triggerEvent));
         PlayerWatchService.SubscribeResult result = service.subscribe(context.getPlayer().getUniqueId(), context.getPlayer().getName(), target, triggerEvent, note);
 
-        String normalizedTrigger = (triggerEvent == null || triggerEvent.isBlank()) ? "BOTH" : triggerEvent.trim().toUpperCase();
+        PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("订阅完成：玩家={}, 当前订阅数={}", context.getPlayer().getName(), result.count()));
+        String normalizedTrigger = (triggerEvent == null) ? "BOTH" : triggerEvent.trim().toUpperCase();
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("target_player", target.trim());
         data.put("trigger_event", normalizedTrigger);
@@ -106,13 +106,13 @@ public class PlayerWatchSkill implements Skill {
     }
 
     private SkillResult handleUnsubscribe(SkillContext context, PlayerWatchService service) {
-        Map<String, String> entities = context.getEntities();
-        String target = entities.get("target_player");
-        String triggerEvent = entities.get("trigger_event");
-        if ((target == null || target.isBlank()) && (triggerEvent == null || triggerEvent.isBlank())) {
+        String target = SkillEntityHelper.getString(context, "target_player");
+        String triggerEvent = SkillEntityHelper.getString(context, "trigger_event");
+        if (target == null && triggerEvent == null) {
             return SkillResult.needInfo(I18nService.tr("要取消哪个订阅？请告诉我玩家名（或说\"全部取消\"）。"));
         }
         int removed = service.unsubscribe(context.getPlayer().getUniqueId(), target, triggerEvent);
+        PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("取消订阅：玩家={}, 目标={}, 已移除={}", context.getPlayer().getName(), target, removed));
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("target_player", target);
         data.put("removed_count", removed);
@@ -124,6 +124,7 @@ public class PlayerWatchSkill implements Skill {
 
     private SkillResult handleList(SkillContext context, PlayerWatchService service) {
         List<PlayerWatchService.Subscription> subs = service.query(context.getPlayer().getUniqueId());
+        PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("查询订阅：玩家={}, 共 {} 条", context.getPlayer().getName(), subs.size()));
         List<Map<String, Object>> subList = new ArrayList<>();
         for (PlayerWatchService.Subscription s : subs) {
             Map<String, Object> item = new LinkedHashMap<>();
@@ -151,6 +152,7 @@ public class PlayerWatchSkill implements Skill {
 
     private SkillResult handleUnsubscribeAll(SkillContext context, PlayerWatchService service) {
         int removed = service.unsubscribeAll(context.getPlayer().getUniqueId());
+        PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("取消全部订阅：玩家={}, 已移除={}", context.getPlayer().getName(), removed));
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("removed_count", removed);
         if (removed == 0) {

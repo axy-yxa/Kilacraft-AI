@@ -20,29 +20,29 @@ import java.util.concurrent.TimeUnit;
  * 联网搜索技能：从互联网获取实时信息。
  *
  * <p>支持多供应商可插拔：国内（智谱/百度千帆/...）和国际（Tavily/Brave/...），
- * 按 i18n 语言与配置自动选择首个已配置的供应商。通过 {@link DynamicContextProvider}
- * 在 Phase 2 提示词中注入多搜索编排指南，引导 LLM 将复杂问题分解为多个搜索步骤。</p>
+ * 按 i18n 语言与配置自动选择首个已配置的供应商。</p>
  *
  * @author Zm_Mmm
  * @since 2026-07-24
  */
-public class WebSearchSkill implements Skill, DynamicContextProvider {
+public class WebSearchSkill implements Skill {
 
-    private static final String PACKAGE = "websearch";
-    private static final String SKILL_NAME = "WebSearchSkill";
+    private static final String SKILL_NAME = "web_search";
+    private static final String LOG_PREFIX = "网页搜索";
 
     /**
      * 搜索请求超时（秒），skill 自管，框架不施加 execute 超时
      */
     private static final long SEARCH_TIMEOUT_SECONDS = 15;
 
+    private final SkillConfigManager configManager;
     private final List<SearchProvider> providers;
 
     public WebSearchSkill() {
-        SkillConfigManager cm = SkillConfigManager.getInstance();
-        if (cm != null && cm.getSkillConfig(PACKAGE, SKILL_NAME) == null) {
-            cm.saveDefaultSkillConfig(PACKAGE, SKILL_NAME);
-            cm.loadSingleSkillConfig(PACKAGE, SKILL_NAME);
+        this.configManager = SkillConfigManager.getInstance();
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
 
         KilacraftAI plugin = KilacraftAI.getInstance();
@@ -61,13 +61,12 @@ public class WebSearchSkill implements Skill, DynamicContextProvider {
     }
 
     private SkillConfig getConfig() {
-        SkillConfigManager cm = SkillConfigManager.getInstance();
-        return cm != null ? cm.getSkillConfig(PACKAGE, SKILL_NAME) : null;
+        return configManager != null ? configManager.getSkillConfig(this) : null;
     }
 
     @Override
     public String getName() {
-        return "web_search";
+        return SKILL_NAME;
     }
 
     @Override
@@ -79,7 +78,7 @@ public class WebSearchSkill implements Skill, DynamicContextProvider {
     @Override
     public Map<String, String> getActions() {
         SkillConfig config = getConfig();
-        return config != null ? config.getActionDescriptions() : new HashMap<>();
+        return (config != null && config.getActionDescriptions() != null) ? new LinkedHashMap<>(config.getActionDescriptions()) : Collections.emptyMap();
     }
 
     @Override
@@ -100,20 +99,6 @@ public class WebSearchSkill implements Skill, DynamicContextProvider {
     }
 
     @Override
-    public String getDynamicContext(Player player) {
-        return I18nService.tr("""
-                【web_search 多搜索编排指南】
-                当用户问题包含多个独立子问题时，你可以创建多个 web_search 步骤。
-                适合拆分场景：
-                - 用户明确问了多个独立问题（如"A怎么样？B呢？C呢？"）
-                - 需要对比多个事物（如"Java版和Bedrock版有什么区别"）
-                - 搜索范围广需多角度切入
-                拆分原则：每个搜索聚焦单一主题，最多拆成 5 个。
-                注意：多个搜索步骤会按顺序依次执行，请合理控制数量。
-                """);
-    }
-
-    @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
         // 权限校验：player 为 null 视为无权限（正常调用路径必有在线 player）
         Player player = context.getPlayer();
@@ -131,7 +116,7 @@ public class WebSearchSkill implements Skill, DynamicContextProvider {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("Web 搜索配置未初始化")));
         }
 
-        String query = context.getEntity("query");
+        String query = SkillEntityHelper.getString(context, "query");
         if (query == null || query.isBlank()) {
             return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请告诉我你想搜索什么关键词")));
         }
@@ -142,7 +127,7 @@ public class WebSearchSkill implements Skill, DynamicContextProvider {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("联网搜索功能未配置 API Key，请联系服主在 web.yml 中配置搜索供应商的 API Key")));
         }
 
-        String recency = context.getEntity("recency");
+        String recency = SkillEntityHelper.getString(context, "recency");
         int count = resolveCount(context, cm);
 
         // 异步执行搜索，skill 自管超时（框架不施加 execute 超时）
@@ -175,7 +160,7 @@ public class WebSearchSkill implements Skill, DynamicContextProvider {
             if (cause.getMessage() != null && !cause.getMessage().isEmpty()) {
                 return SkillResult.failure(cause.getMessage());
             }
-            PluginLoggerUtil.warn("网页搜索", I18nService.tr("搜索请求异常"), cause);
+            PluginLoggerUtil.warn(LOG_PREFIX, I18nService.tr("搜索请求异常"), cause);
             return SkillResult.failure(I18nService.tr("搜索请求失败"));
         });
     }
@@ -223,17 +208,7 @@ public class WebSearchSkill implements Skill, DynamicContextProvider {
      * 解析结果条数：LLM 可通过 count entity 动态指定，未指定用默认值，两者均不超过硬上限
      */
     private static int resolveCount(SkillContext context, WebConfigManager cm) {
-        String countStr = context.getEntity("count");
-        int count;
-        if (countStr != null && !countStr.isBlank()) {
-            try {
-                count = Integer.parseInt(countStr);
-            } catch (NumberFormatException e) {
-                count = cm.getSearchResultCount();
-            }
-        } else {
-            count = cm.getSearchResultCount();
-        }
+        int count = SkillEntityHelper.getInt(context, "count", cm.getSearchResultCount());
         return Math.max(1, Math.min(count, cm.getSearchMaxResultCount()));
     }
 

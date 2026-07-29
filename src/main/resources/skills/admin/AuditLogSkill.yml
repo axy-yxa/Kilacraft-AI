@@ -1,17 +1,45 @@
-# AuditLogSkill 审计日志查询技能配置
-# 此文件由插件自动生成，可根据需要修改
-#
-# 此描述会发送给LLM，帮助其理解何时调用此技能
-description: '技能执行审计日志查询技能，查看 AI 技能的执行记录，包括谁用了什么技能、参数是什么、是否成功、耗时多久。支持按玩家、技能名、时间范围、成功/失败筛选。仅限管理员使用。'
+# ═══════════════════════════════════════════════════════════
+# 审计日志查询技能（AuditLogSkill）
+# 查看 AI 技能的执行记录（谁用了什么技能、参数、成败、耗时），支持按玩家/技能/时间/成败筛选。
+# 仅限管理员使用，依赖 kca_skill_log 表。
+# ═══════════════════════════════════════════════════════════
 
-# 动作描述（Map 格式，key=动作名称，value=动作描述）
+description: |
+  查询 AI 技能的全服执行记录，包括执行者、技能/动作、参数、成功或失败、执行耗时。
+  当管理员问及「谁用了 AI 技能/执行记录/使用日志」时按条件查询（query_logs），问「技能排行/使用统计/哪个技能用得最多」时按分组统计（skill_stats），问「技能失败/报错/出错了」时仅查失败记录（error_logs）。
+  仅限管理员使用；面向单一玩家查询自身记录的请求不在此技能范围。
+
 action_descriptions:
-  query_logs: '查询技能执行日志。参数：time_range（默认7d）、player_name（玩家名过滤）、skill_name（技能名过滤）、limit（默认20）。返回的 data 中包含 time_range、count、logs（日志列表，含 player_uuid/skill_name/action/success/result_message/execution_ms/source/created_at）字段，可供后续步骤引用。'
-  skill_stats: '查询技能使用统计排行（按技能名+动作分组）。参数：time_range（默认7d）、limit（默认10）。返回的 data 中包含 time_range、total_executions、total_success、total_fail、success_rate、stats（含 skill_name/action/total_count/success_count/fail_count/avg_duration_ms）字段，可供后续步骤引用。'
-  error_logs: '查询失败执行日志（仅 success=false）。参数：time_range（默认7d）、skill_name（技能名过滤）、limit（默认20）。返回的 data 中包含 time_range、count、logs（失败日志列表，结构同 query_logs）字段，可供后续步骤引用。'
+  query_logs: |
+    功能：按条件查询 AI 技能执行日志，返回最近一次匹配的记录列表。
+    参数：
+      - time_range（可选，默认 7d，时间范围）：查询时间窗口，如 1d/3d/7d/30d。
+      - player_name（可选，玩家名）：按执行者过滤，需为在线或历史玩家名。
+      - skill_name（可选，字符串）：按技能名过滤（如 AuditLogSkill）。
+      - limit（可选，默认 20，数值（整数））：返回条数上限。
+    返回 data 字段：time_range、count、logs（数组，每项含 player_uuid/skill_name/action/success/result_message/execution_ms/source/created_at）。
 
-# 额外提示信息
+  skill_stats: |
+    功能：按技能名+动作分组统计执行次数与成功率，返回排行。
+    参数：
+      - time_range（可选，默认 7d，时间范围）：统计时间窗口。
+      - limit（可选，默认 10，数值（整数））：返回分组条数上限。
+    返回 data 字段：time_range、total_executions、total_success、total_fail、success_rate、stats（数组，每项含 skill_name/action/total_count/success_count/fail_count/success_rate/avg_duration_ms）。
+
+  error_logs: |
+    功能：仅查询执行失败（success=false）的日志，用于排查技能报错。
+    参数：
+      - time_range（可选，默认 7d，时间范围）：查询时间窗口。
+      - skill_name（可选，字符串）：按技能名过滤。
+      - limit（可选，默认 20，数值（整数））：返回条数上限。
+    返回 data 字段：time_range、count、logs（数组，结构同 query_logs）。
+
 hints:
-  - '当服主问"谁用了AI技能"、"技能执行记录"、"AI使用日志"等问题时使用 query_logs'
-  - '当服主问"AI技能排行"、"技能使用统计"、"哪个技能用得最多"等问题时使用 skill_stats'
-  - '当服主问"AI技能失败"、"执行失败的日志"、"哪些技能出错了"等问题时使用 error_logs'
+  - |
+    time_range 统一用 1d/3d/7d/30d 这类简写；其它格式会被判为无效时间范围。
+
+  - |
+    player_name 查不到对应玩家时 query_logs 直接返回「未找到玩家」，不会继续按空 UUID 全表扫描——排查「为何没记录」时优先确认玩家名拼写。
+
+  - |
+    排查技能报错的典型链路：先用 error_logs 看哪些技能失败、失败信息（result_message）是什么，再用 skill_stats 看该技能的整体失败率，判断是个别问题还是高频问题。

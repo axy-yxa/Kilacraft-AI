@@ -8,10 +8,7 @@ import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.config.WebConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.ThinkingModelCapable;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.*;
 import okhttp3.*;
 import okio.BufferedSource;
 import org.bukkit.entity.Player;
@@ -42,8 +39,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class WebFetchSkill implements Skill {
 
-    private static final String PACKAGE = "webfetch";
-    private static final String SKILL_NAME = "WebFetchSkill";
+    private static final String SKILL_NAME = "web_fetch";
+    private static final String LOG_PREFIX = "网页抓取";
+
+    private final SkillConfigManager configManager;
 
     /**
      * SSRF 防护 DNS：把内网/回环/链路本地地址拒绝内嵌进 OkHttp 的 DNS 解析环节。
@@ -64,21 +63,20 @@ public class WebFetchSkill implements Skill {
     };
 
     public WebFetchSkill() {
-        SkillConfigManager cm = SkillConfigManager.getInstance();
-        if (cm != null && cm.getSkillConfig(PACKAGE, SKILL_NAME) == null) {
-            cm.saveDefaultSkillConfig(PACKAGE, SKILL_NAME);
-            cm.loadSingleSkillConfig(PACKAGE, SKILL_NAME);
+        this.configManager = SkillConfigManager.getInstance();
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
     private SkillConfig getConfig() {
-        SkillConfigManager cm = SkillConfigManager.getInstance();
-        return cm != null ? cm.getSkillConfig(PACKAGE, SKILL_NAME) : null;
+        return configManager != null ? configManager.getSkillConfig(this) : null;
     }
 
     @Override
     public String getName() {
-        return "web_fetch";
+        return SKILL_NAME;
     }
 
     @Override
@@ -90,7 +88,7 @@ public class WebFetchSkill implements Skill {
     @Override
     public Map<String, String> getActions() {
         SkillConfig config = getConfig();
-        return config != null ? config.getActionDescriptions() : new HashMap<>();
+        return (config != null && config.getActionDescriptions() != null) ? new LinkedHashMap<>(config.getActionDescriptions()) : Collections.emptyMap();
     }
 
     @Override
@@ -128,12 +126,12 @@ public class WebFetchSkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("Web 抓取配置未初始化")));
         }
 
-        String url = context.getEntity("url");
+        String url = SkillEntityHelper.getString(context, "url");
         if (url == null || url.isBlank()) {
             return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请提供你想查看的网页链接")));
         }
 
-        String question = context.getEntity("question");
+        String question = SkillEntityHelper.getString(context, "question");
         if (question == null || question.isBlank()) {
             question = "";
         }
@@ -150,7 +148,7 @@ public class WebFetchSkill implements Skill {
             try {
                 return doFetch(finalUrl, cm, timeout, ssrfEnabled);
             } catch (Exception e) {
-                PluginLoggerUtil.error("网页抓取", I18nService.tr("网页抓取异常: {}", e.getMessage()), e);
+                PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("网页抓取异常: {}", e.getMessage()), e);
                 return new FetchResult(null, I18nService.tr("网页抓取失败: {}", e.getMessage()));
             }
         }, FoliaCompat.getIOPool()).orTimeout(timeout, TimeUnit.SECONDS).thenApply(result -> {
@@ -236,7 +234,7 @@ public class WebFetchSkill implements Skill {
 
                 int maxChars = cm.getFetchMaxTextChars();
                 if (text.length() > maxChars) {
-                    PluginLoggerUtil.info("网页抓取", I18nService.tr("网页内容过大（{} 字符），已截取前 {} 字符", text.length(), maxChars));
+                    PluginLoggerUtil.info(LOG_PREFIX, I18nService.tr("网页内容过大（{} 字符），已截取前 {} 字符", text.length(), maxChars));
                     text = text.substring(0, maxChars);
                 }
 
@@ -261,7 +259,7 @@ public class WebFetchSkill implements Skill {
         try (BufferedSource source = body.source()) {
             byte[] data = source.readByteArray(maxBytes + 1);
             if (data.length > maxBytes) {
-                PluginLoggerUtil.info("网页抓取", I18nService.tr("响应体超过 {} 字节上限，已截断", maxBytes));
+                PluginLoggerUtil.info(LOG_PREFIX, I18nService.tr("响应体超过 {} 字节上限，已截断", maxBytes));
                 data = Arrays.copyOf(data, (int) maxBytes);
             }
             return new String(data, charset);

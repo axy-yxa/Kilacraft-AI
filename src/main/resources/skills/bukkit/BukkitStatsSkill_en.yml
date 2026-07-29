@@ -1,15 +1,28 @@
-# BukkitStatsSkill Configuration (English)
-# Minecraft vanilla statistics query skill: query player cumulative statistics (lifetime records)
-# Used for: querying death count, kill count, walking distance, etc. historical cumulative data
+# English version of BukkitStatsSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Vanilla Statistics Skill (BukkitStatsSkill)
+# Query player Minecraft vanilla cumulative statistics (lifetime records): deaths, kills, distance traveled, blocks mined, etc.
+# Only built-in gameplay stats; for current real-time status (health/hunger/coords/inventory) use the corresponding query skill.
+# ═══════════════════════════════════════════════════════════
 
-# This description is sent to the LLM to help it understand when to use this skill
-description: 'Query player Minecraft vanilla statistics (cumulative/lifetime records). Only supports built-in Minecraft gameplay statistics (e.g. death count, kill count, walking distance, mining count, items crafted, items used, etc.), does NOT support non-game queries (e.g. recipes, nutrition advice). Note: this skill queries lifetime cumulative values, not current real-time status (e.g. health, hunger).'
+description: |
+  Query player Minecraft vanilla cumulative statistics (lifetime records), such as death count, kill count, distance traveled, blocks mined, items crafted/used.
+  Triggers: when players ask "how many times have I died", "how many mobs have I killed total", "how far have I walked", "how many diamond ores have I mined".
+  Reverse boundary: NOT for querying current real-time status (health/hunger/coords/inventory/level — those go to the corresponding query skills), and NOT for guide/recipe/advice questions that are not statistics.
 
 action_descriptions:
-  query_statistic: 'Query the value of a specified statistic. Required parameters: statistic (Minecraft gameplay statistic enum name or game-related description, e.g. DEATHS, death count, MOB_KILLS, kill count, etc. — must be a statistic directly related to Minecraft gameplay). Some statistics require additional parameters: entity_type (e.g. ZOMBIE), material (e.g. DIAMOND_ORE). Returned data contains statistic (string: statistic enum name), value (number: statistic value), statistic_type (string: statistic type) fields, available for subsequent step references.'
+  query_statistic: |
+    Function: Query the lifetime cumulative value of a specified statistic.
+    Parameters:
+      - statistic (required, enum name): Minecraft vanilla statistic enum name or Chinese description, e.g. DEATHS, death count, MOB_KILLS, kill count. Must be a statistic directly related to gameplay.
+      - material (optional, required for some stats, enum name): Required when the statistic is of ITEM/BLOCK type; item or block material enum name, e.g. DIAMOND_SWORD, DIAMOND_ORE.
+      - entity_type (optional, required for some stats, enum name): Required when the statistic is of ENTITY type; entity type enum name, e.g. ZOMBIE.
+    Returns data fields: statistic (string: statistic enum name), value (number: statistic value), statistic_type (string: statistic type UNTYPED/ITEM/BLOCK/ENTITY), material (string: material name for some stats), entity_type (string: entity type name for some stats).
 
 hints:
-  - "**Cumulative stats vs current status**: This skill queries lifetime cumulative values (e.g. total deaths), not suitable for current real-time status (e.g. health/hunger/level)."
-  - "**Parameter types**: Statistics are divided into four types - no parameter (UNTYPED), needs material parameter (ITEM/BLOCK type), needs entity_type parameter (ENTITY type)."
-  - "**Distance and time units**: Movement distance in centimeters (1 block=100CM), time in ticks (20 ticks=1 second)."
-  - "**No guessing enum names**: statistic parameter must be a statistic enum name you are certain exists in Minecraft vanilla. If uncertain whether a statistic exists, return invalid intent instead of guessing. If the user asks advice/guide/recommendation questions, this skill does not apply, return invalid intent."
+  - |
+    The statistic's type decides whether extra params are needed: UNTYPED (e.g. DEATHS, MOB_KILLS, walk distance) needs none; ITEM/BLOCK (e.g. "how many diamond ores mined", "how many diamond swords crafted") requires material; ENTITY (e.g. "how many zombies killed") requires entity_type. Missing material/entity_type returns needInfo prompting to supply it.
+  - |
+    Unit conversion: movement distance is stored in centimeters (1 block=100CM) and time in ticks (20 ticks=1 second); returned results are auto-converted to readable units, no manual conversion needed.
+  - |
+    Never guess enum names: statistic/material/entity_type must be a vanilla enum name you are certain exists; if unsure, return invalid intent rather than guessing. Guide/advice/recommendation questions do not apply to this skill.

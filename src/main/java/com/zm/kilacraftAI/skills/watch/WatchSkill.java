@@ -2,15 +2,13 @@ package com.zm.kilacraftAI.skills.watch;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.watch.WatchService;
 import com.zm.kilacraftAI.skills.framework.*;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -27,25 +25,26 @@ import java.util.concurrent.CompletableFuture;
  */
 public class WatchSkill implements Skill, DynamicContextProvider {
 
-    private static final String PACKAGE = "watch";
-    private static final String SKILL_NAME = "WatchSkill";
+    private static final String SKILL_NAME = "watch";
+    private static final String LOG_PREFIX = "监听";
+
+    private final SkillConfigManager configManager;
 
     public WatchSkill() {
-        SkillConfigManager cm = SkillConfigManager.getInstance();
-        if (cm != null && cm.getSkillConfig(PACKAGE, SKILL_NAME) == null) {
-            cm.saveDefaultSkillConfig(PACKAGE, SKILL_NAME);
-            cm.loadSingleSkillConfig(PACKAGE, SKILL_NAME);
+        this.configManager = SkillConfigManager.getInstance();
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
     private SkillConfig getConfig() {
-        SkillConfigManager cm = SkillConfigManager.getInstance();
-        return cm != null ? cm.getSkillConfig(PACKAGE, SKILL_NAME) : null;
+        return configManager != null ? configManager.getSkillConfig(this) : null;
     }
 
     @Override
     public String getName() {
-        return "watch";
+        return SKILL_NAME;
     }
 
     @Override
@@ -57,13 +56,13 @@ public class WatchSkill implements Skill, DynamicContextProvider {
     @Override
     public Map<String, String> getActions() {
         SkillConfig config = getConfig();
-        return config != null ? config.getActionDescriptions() : new HashMap<>();
+        return (config != null && config.getActionDescriptions() != null) ? new LinkedHashMap<>(config.getActionDescriptions()) : Collections.emptyMap();
     }
 
     @Override
     public List<String> getHints() {
         SkillConfig config = getConfig();
-        return config != null ? config.getHints() : List.of();
+        return (config != null && config.getHints() != null) ? new ArrayList<>(config.getHints()) : Collections.emptyList();
     }
 
     @Override
@@ -124,7 +123,7 @@ public class WatchSkill implements Skill, DynamicContextProvider {
         String action = context.getAction();
         org.bukkit.entity.Player player = context.getPlayer();
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("监听仅玩家可用")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
         }
         if (!PluginPermissionEnum.WATCH.hasPermission(player)) {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.WATCH.getNode())));
@@ -136,8 +135,8 @@ public class WatchSkill implements Skill, DynamicContextProvider {
         return CompletableFuture.completedFuture(switch (action) {
             case "create_watch" -> handleCreateWatch(service, player, context.getEntities());
             case "cancel_watch" -> {
-                String watchId = context.getEntities().get("watch_id");
-                String description = context.getEntities().get("description");
+                String watchId = SkillEntityHelper.getString(context.getEntities(), "watch_id");
+                String description = SkillEntityHelper.getString(context.getEntities(), "description");
                 yield service.cancelWatch(player.getUniqueId(), watchId, description);
             }
             case "list_watches" -> service.listWatches(player.getUniqueId());
@@ -146,13 +145,13 @@ public class WatchSkill implements Skill, DynamicContextProvider {
     }
 
     private SkillResult handleCreateWatch(WatchService service, org.bukkit.entity.Player player, Map<String, String> entities) {
-        String mode = entities.get("mode");
-        if (mode == null || mode.isBlank()) {
-            return SkillResult.failure(I18nService.tr("缺少参数: mode(监听模式: polling 或 event)"));
+        String mode = SkillEntityHelper.getString(entities, "mode");
+        if (mode == null) {
+            return SkillResult.needInfo(I18nService.tr("要创建哪种监听？条件监听用 mode=polling（定时轮询取值比较），事件监听用 mode=event（事件命中即触发）。"));
         }
-        String intent = entities.get("intent");
+        String intent = SkillEntityHelper.getString(entities, "intent");
         boolean singleShot = !"false".equalsIgnoreCase(entities.get("single_shot"));
-        String displayName = entities.get("display_name");
+        String displayName = SkillEntityHelper.getString(entities, "display_name");
 
         if ("polling".equalsIgnoreCase(mode)) {
             return handleCreatePollingWatch(service, player, entities, intent, singleShot, displayName);
@@ -163,9 +162,9 @@ public class WatchSkill implements Skill, DynamicContextProvider {
     }
 
     private SkillResult handleCreatePollingWatch(WatchService service, org.bukkit.entity.Player player, Map<String, String> entities, String intent, boolean singleShot, String displayName) {
-        String source = entities.get("source");
-        if (source == null || source.isBlank()) {
-            return SkillResult.failure(I18nService.tr("缺少参数: source(监听源，格式 skill.action)"));
+        String source = SkillEntityHelper.getString(entities, "source");
+        if (source == null) {
+            return SkillResult.needInfo(I18nService.tr("要监听什么？请指定监听源，格式为 skill.action（如 bukkit_api.get_player_health），可从【可监听列表】中选择。"));
         }
         // 解析 skill.action 格式
         int dotIdx = source.indexOf('.');
@@ -175,17 +174,17 @@ public class WatchSkill implements Skill, DynamicContextProvider {
         String skillName = source.substring(0, dotIdx);
         String actionName = source.substring(dotIdx + 1);
 
-        String resultPath = entities.get("result_path");
-        if (resultPath == null || resultPath.isBlank()) {
-            return SkillResult.failure(I18nService.tr("缺少参数: result_path(返回值字段名)"));
+        String resultPath = SkillEntityHelper.getString(entities, "result_path");
+        if (resultPath == null) {
+            return SkillResult.needInfo(I18nService.tr("要比较 skill 返回值的哪个字段？请指定 result_path（如 health），可从该 action 的返回 data 字段描述中推断。"));
         }
-        String operator = entities.get("operator");
-        if (operator == null || operator.isBlank()) {
-            return SkillResult.failure(I18nService.tr("缺少参数: operator(比较操作符)"));
+        String operator = SkillEntityHelper.getString(entities, "operator");
+        if (operator == null) {
+            return SkillResult.needInfo(I18nService.tr("用什么方式比较？请指定 operator（数值用 greater_than/less_than/equal 等，字符串用 contains/equal 等）。"));
         }
-        String threshold = entities.get("threshold");
-        if (threshold == null || threshold.isBlank()) {
-            return SkillResult.failure(I18nService.tr("缺少参数: threshold(阈值)"));
+        String threshold = SkillEntityHelper.getString(entities, "threshold");
+        if (threshold == null) {
+            return SkillResult.needInfo(I18nService.tr("阈值是多少？请指定 threshold（数值填数字，字符串填匹配值如 OBSIDIAN）。"));
         }
 
         // 收集 skill 执行参数（排除框架保留键）
@@ -205,13 +204,14 @@ public class WatchSkill implements Skill, DynamicContextProvider {
             data.put("display_name", displayName != null ? displayName : (skillName + "." + actionName));
             return SkillResult.success(result.message(), data);
         }
+        PluginLoggerUtil.warn(LOG_PREFIX, I18nService.tr("创建条件监听失败: {}", result.message()));
         return SkillResult.failure(result.message());
     }
 
     private SkillResult handleCreateEventWatch(WatchService service, org.bukkit.entity.Player player, Map<String, String> entities, String intent, boolean singleShot, String displayName) {
-        String eventType = entities.get("event_type");
-        if (eventType == null || eventType.isBlank()) {
-            return SkillResult.failure(I18nService.tr("缺少参数: event_type(事件类型)"));
+        String eventType = SkillEntityHelper.getString(entities, "event_type");
+        if (eventType == null) {
+            return SkillResult.needInfo(I18nService.tr("要监听哪种事件？请指定 event_type（如 furnace_smelt/crop_mature/player_death/block_break），可从【事件监听】列表中选择。"));
         }
 
         // 收集 filter 参数（filter_ 前缀的键）
@@ -230,6 +230,7 @@ public class WatchSkill implements Skill, DynamicContextProvider {
             data.put("display_name", displayName != null ? displayName : eventType);
             return SkillResult.success(result.message(), data);
         }
+        PluginLoggerUtil.warn(LOG_PREFIX, I18nService.tr("创建事件监听失败: {}", result.message()));
         return SkillResult.failure(result.message());
     }
 

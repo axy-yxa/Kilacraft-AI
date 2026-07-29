@@ -1,13 +1,25 @@
-# CommandSkill Configuration (English)
-# Execute server commands as the player, permission boundary equals the player's own permissions
-# Requires command_skill.enabled: true in config.yml to take effect
+# English version of CommandSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Command Execution Skill (CommandSkill)
+# Execute server commands as the player; the permission boundary equals the player's own permissions.
+# Dependency: only takes effect when command_skill.enabled: true in config.yml.
+# ═══════════════════════════════════════════════════════════
 
-description: "Command execution skill: execute server commands as the player to change game state or trigger game actions. Match this skill when the user's request is an [executable action] rather than [information query]. NOT for consultation, suggestion, guide recommendation, or Q&A questions."
+description: |
+  General command-execution skill, the fallback entry for executable actions: when no specialized skill can fulfill the request, it executes any single server command as the player to change game state or trigger a game action, e.g. "set time to day", "give me a diamond sword", "teleport to spawn".
+  Triggers: the user's request is an [executable action] (changes game state or triggers a game action) and no specialized skill covers it.
+  Reverse boundary: NOT for information queries, suggestions, guide recommendations, or Q&A (those go to the corresponding query/search skills); prefer specialized skills and use this one only when they cannot cover the need.
 
 action_descriptions:
-  execute_command: 'Execute a server command as the player. Required parameter: command (the command to execute, without leading /). The command will be executed as the player, subject to server permission system constraints. Match condition: the user intends to perform an action that changes game state, NOT to get information or seek advice.'
+  execute_command: |
+    Function: Execute a server command as the player to change game state or trigger a game action.
+    Parameters:
+      - command (required, command text, without leading /): the full command to execute, e.g. give @s diamond_sword 1.
+    Returns data fields: none.
+    Precondition: the player must have the server permission for the command (AI does not bypass permissions).
 
 hints:
-  - '**Priority**: This skill is a fallback means. If a specialized skill can fulfill the user request, must prioritize using the specialized skill. Only use this skill when specialized skills cannot cover the need.'
-  - "**Security mechanism**: AI executes commands as the player, not bypassing any server permissions. Commands the player doesn't have permission for, AI acting on their behalf will also be rejected by the server."
-  - '**Parameter format**: command parameter fills in the complete command (without leading /), LLM should extract the command and parameters from the user message.'
+  - |
+    Security: AI executes commands as the player and does not bypass any server permissions. Commands the player lacks permission for will be rejected by the server even when AI runs them on their behalf.
+  - |
+    Parameter format: the command parameter takes the full command (without leading /); the LLM should extract the command and arguments from the user message. If the user did not specify the concrete command, return needInfo to prompt them to provide one.

@@ -1,23 +1,62 @@
-# PlayerAnalysisSkill 玩家行为分析技能配置
-# 此文件由插件自动生成，可根据需要修改
-#
-# 此描述会发送给LLM，帮助其理解何时调用此技能
-description: '玩家行为分析技能，提供在线人数趋势、活跃玩家排行、新玩家流入、画像分析覆盖率、社交图谱洞察和指定玩家社交关系查询。支持自定义时间范围和聚合粒度。仅限管理员使用。'
+# ═══════════════════════════════════════════════════════════
+# 玩家行为分析技能（PlayerAnalysisSkill）
+# 在线趋势、活跃排行、新玩家流入、画像覆盖率、社交图谱洞察。需 ADMIN_PLAYER 权限。
+# ═══════════════════════════════════════════════════════════
 
-# 动作描述（Map 格式，key=动作名称，value=动作描述）
+description: |
+  玩家行为分析技能，提供在线人数趋势、活跃玩家排行、新玩家流入、画像分析覆盖率、社交图谱洞察和指定玩家社交关系查询。
+  当管理员问及「在线人数趋势/玩家上线规律」「活跃玩家排行/谁最活跃/在线时长最长」「新玩家/最近来了多少人」「画像覆盖率/AI 分析了多少玩家」「社交情况/孤立玩家/社交网络」「某玩家和谁关系好/查某玩家的朋友列表」时使用。
+  仅限管理员使用；查询的是聚合统计与历史关系数据，不提供单玩家实时位置或单玩家在线状态的查询。
+
 action_descriptions:
-  online_trend: '查询在线人数趋势（LOGIN/LOGOUT 事件按时间桶聚合）。参数：time_range（默认7d）、group_by（hour/day，默认day）。返回的 data 中包含 time_range、group_by、buckets（时间桶列表，含 time_bucket/event_type/count）、total_records 字段，可供后续步骤引用。'
-  top_active: '查询活跃玩家排行（按登录次数/在线时长/最近登录排序）。参数：time_range（默认7d）、order_by（默认login_count）、limit（默认10）。返回的 data 中包含 time_range、order_by、players（含 uuid/name/login_count/total_playtime_hours/last_login）、count 字段，可供后续步骤引用。'
-  new_players: '查询新玩家流入统计（PLAYER_FIRST_JOIN 事件按时间聚合）。参数：time_range（默认7d）、group_by（hour/day，默认day）。返回的 data 中包含 time_range、group_by、total_new_players、buckets 字段，可供后续步骤引用。'
-  profile_coverage: '查询 AI 画像分析覆盖率。参数：time_range（默认7d）。返回的 data 中包含 total_players、analyzed_count、recently_analyzed、coverage_pct、pending_analysis（待分析玩家列表） 字段，可供后续步骤引用。'
-  social_insights: '查询社交图谱洞察（网络密度、孤立玩家检测）。参数：limit（默认10）。返回的 data 中包含 network_stats（含 total_relations/avg_strength/isolated_count）、top_connected、isolated_players 字段，可供后续步骤引用。'
-  player_relations: '查询指定玩家的社交关系详情。参数：player_name（必需，玩家名）、limit（默认20）。返回的 data 中包含 player_name、player_uuid、relation_count、relations（关系详情列表，每条含 target_name/target_uuid/relation_type/strength/interaction_count/last_interaction）字段，可供后续步骤引用。'
+  online_trend: |
+    功能：查询在线人数趋势（LOGIN/LOGOUT 事件按时间桶聚合）。
+    参数：
+      - time_range（可选，默认 7d，时间范围）：查询窗口。
+      - group_by（可选，默认 day，字符串，取值 hour/day）：聚合粒度。
+    返回 data 字段：time_range、group_by、buckets（数组，每项含 time_bucket/event_type/count）、total_records。
 
-# 额外提示信息
+  top_active: |
+    功能：查询活跃玩家排行（按登录次数/在线时长/最近登录排序）。
+    参数：
+      - time_range（可选，默认 7d，时间范围）：查询窗口。
+      - order_by（可选，默认 login_count，字符串，取值 login_count/total_playtime/last_login）：排序字段。
+      - limit（可选，默认 10，数值（整数））：最大返回数量。
+    返回 data 字段：time_range、order_by、players（数组，每项含 uuid/name/login_count/total_playtime_hours/last_login）、count。
+
+  new_players: |
+    功能：查询新玩家流入统计（PLAYER_FIRST_JOIN 事件按时间聚合）。
+    参数：
+      - time_range（可选，默认 7d，时间范围）：查询窗口。
+      - group_by（可选，默认 day，字符串，取值 hour/day）：聚合粒度。
+    返回 data 字段：time_range、group_by、total_new_players、buckets（数组，每项含 time_bucket/event_type/count）。
+
+  profile_coverage: |
+    功能：查询 AI 画像分析覆盖率。
+    参数：
+      - time_range（可选，默认 7d，时间范围）：查询窗口。
+      - limit（可选，默认 20，数值（整数））：待分析玩家列表最大返回数量。
+    返回 data 字段：total_players、analyzed_count、recently_analyzed、coverage_pct、pending_analysis（数组，待分析玩家列表）。
+
+  social_insights: |
+    功能：查询社交图谱全局洞察（网络密度、孤立玩家检测）。
+    参数：
+      - limit（可选，默认 10，数值（整数））：最大返回数量。
+    返回 data 字段：network_stats（含 total_relations/avg_strength/isolated_count）、top_connected（数组）、isolated_players（数组）。
+
+  player_relations: |
+    功能：查询指定玩家的社交关系详情。
+    参数：
+      - player_name（必填，玩家名）：目标玩家名称。
+      - limit（可选，默认 20，数值（整数））：最大返回数量。
+    返回 data 字段：player_name、player_uuid、relation_count、relations（数组，每项含 target_name/target_uuid/relation_type/strength/interaction_count/last_interaction）。
+
 hints:
-  - '当服主问"在线人数趋势"、"玩家上线规律"、"过去一周登录情况"等关于在线趋势的问题时使用 online_trend'
-  - '当服主问"活跃玩家排行"、"谁最活跃"、"在线时长最长的玩家"等问题时使用 top_active'
-  - '当服主问"新玩家"、"最近来了多少人"、"新注册玩家"等问题时使用 new_players'
-  - '当服主问"画像覆盖率"、"AI分析了多少玩家"、"画像质量"等问题时使用 profile_coverage'
-  - '当服主问"社交情况"、"孤立玩家"、"玩家社交网络"等问题时使用 social_insights'
-  - '当服主问"查看某玩家的社交关系"、"Steve和谁关系好"、"查一下Alex的朋友列表"、"某个玩家的社交情况"等查询指定玩家社交关系的问题时使用 player_relations'
+  - |
+    综合评估玩家生态（如「服务器社交氛围怎么样」）：可并行调用 online_trend、new_players、social_insights，系统会基于多维度数据二次综合分析。
+
+  - |
+    先全局后聚焦：先 social_insights 看整体网络（谁活跃、谁是孤岛），再用 player_relations 聚焦某玩家的具体关系——player_relations 需要 player_name，若 social_insights 的 top_connected/isolated_players 已含目标玩家名，可直接从对话历史读取填入单意图，无需再次查询。
+
+  - |
+    排查「画像为什么没生成」：用 profile_coverage 查看 coverage_pct 与 pending_analysis，未覆盖的玩家会列在 pending_analysis 中。

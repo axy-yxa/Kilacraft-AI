@@ -1,19 +1,23 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.service.bukkit.BukkitAPIConfigLoader;
 import com.zm.kilacraftAI.model.bukkit.BukkitAPIMetadata;
+import com.zm.kilacraftAI.service.bukkit.BukkitAPIConfigLoader;
+import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.net.URI;
-import java.nio.file.*;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
@@ -297,9 +301,30 @@ public class SkillConfigManager {
     }
 
     /**
-     * 保存默认技能配置文件 (如果不存在)
+     * 从 Skill 实例派生配置目录名（包名叶子段）。
+     * 与 {@link #resolveConfigName(Skill)} 共同定位资源路径 skills/&lt;package&gt;/&lt;ClassName&gt;.yml。
      */
-    public void saveDefaultSkillConfig(String packageName, String skillName) {
+    private static String resolvePackage(Skill skill) {
+        Package pkg = skill.getClass().getPackage();
+        String full = pkg != null ? pkg.getName() : "";
+        int idx = full.lastIndexOf('.');
+        return idx >= 0 ? full.substring(idx + 1) : full;
+    }
+
+    /**
+     * 从 Skill 实例派生配置文件名（类名，去掉语言后缀前的基名）。
+     */
+    private static String resolveConfigName(Skill skill) {
+        return skill.getClass().getSimpleName();
+    }
+
+    /**
+     * 保存默认技能配置文件（从 JAR 释放到磁盘，如果不存在）。
+     * 资源路径由 Skill 实例的包名叶子段 + 类名派生：skills/&lt;package&gt;/&lt;ClassName&gt;[_lang].yml。
+     */
+    public void saveDefaultSkillConfig(Skill skill) {
+        String packageName = resolvePackage(skill);
+        String skillName = resolveConfigName(skill);
         String lang = plugin.getI18nService().getLanguage();
         String fileName = "zh".equals(lang) ? skillName + ".yml" : skillName + "_" + lang + ".yml";
         String resourcePath = "skills/" + packageName + "/" + fileName;
@@ -307,22 +332,22 @@ public class SkillConfigManager {
     }
 
     /**
-     * 获取指定技能的配置
+     * 获取指定技能的配置（缓存查找，key = package.ClassName）。
      */
-    public SkillConfig getSkillConfig(String packageName, String skillName) {
-        String key = packageName + "." + skillName;
+    public SkillConfig getSkillConfig(Skill skill) {
+        String key = resolvePackage(skill) + "." + resolveConfigName(skill);
         return skillConfigs.get(key);
     }
 
     /**
-     * 动态加载单个技能配置（如果文件存在）
-     * 用于在插件运行时按需加载配置
+     * 动态加载单个技能配置（如果文件存在），加载后存入缓存。
+     * 用于在插件运行时按需加载配置。
      *
-     * @param packageName 包名
-     * @param skillName   技能名
      * @return 加载后的配置，失败返回 null
      */
-    public SkillConfig loadSingleSkillConfig(String packageName, String skillName) {
+    public SkillConfig loadSingleSkillConfig(Skill skill) {
+        String packageName = resolvePackage(skill);
+        String skillName = resolveConfigName(skill);
         String lang = plugin.getI18nService().getLanguage();
         String fileName = "zh".equals(lang) ? skillName + ".yml" : skillName + "_" + lang + ".yml";
         File configFile = new File(skillsFolder, packageName + "/" + fileName);

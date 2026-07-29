@@ -51,7 +51,7 @@ modules:
   "自检": "Doctor"
   "安全拦截": "Security"
   "音效管理": "Sound"
-  "版本": "Version"
+  "音效粒子": "Sound/Particle"
   "版本更新": "Update"
   "语言配置": "Lang Config"
   "意图提示词": "Intent Prompt"
@@ -65,6 +65,8 @@ modules:
   "问候系统": "Greeting"
   "定时任务": "Scheduler"
   "市场事件": "Market Event"
+  "市场查询": "Market Query"
+  "市场操作": "Market Action"
   "枚举注册": "Enum Reg"
   "私聊监听": "Private Chat"
   "传送监听": "TPA Monitor"
@@ -86,6 +88,9 @@ modules:
   "网页抓取": "Web Fetch"
   "对话推荐": "Suggestion"
   "预算熔断": "Budget Circuit"
+  "原版统计": "Vanilla Stats"
+  "监听": "Watch"
+  "CMI集成": "CMI"
 
 # ==================== 消息翻译 ====================
 # Message Translations
@@ -329,6 +334,10 @@ messages:
   "无效的实体类型名: {}": "Invalid entity type name: {}"
   "不支持的统计类型: {}": "Unsupported statistic type: {}"
   "查询统计失败: {}": "Failed to query statistic: {}"
+  "要查询哪项统计？请告诉我统计项的英文名或中文描述（如：DEATHS、死亡次数、MOB_KILLS）。": "Which statistic do you want to query? Tell me the English enum name or a Chinese description (e.g. DEATHS, death count, MOB_KILLS)."
+  "统计项 {} 需要指定物品材质名（如：DIAMOND_SWORD），请告诉我要查询哪种物品。": "Statistic {} needs an item material name (e.g. DIAMOND_SWORD). Tell me which item to query."
+  "统计项 {} 需要指定方块材质名（如：DIAMOND_ORE），请告诉我要查询哪种方块。": "Statistic {} needs a block material name (e.g. DIAMOND_ORE). Tell me which block to query."
+  "统计项 {} 需要指定实体类型名（如：ZOMBIE），请告诉我要查询哪种实体。": "Statistic {} needs an entity type name (e.g. ZOMBIE). Tell me which entity to query."
   "{}: {} 公里": "{}: {} km"
   "{}: {} 米": "{}: {} m"
   "{}: {} 秒": "{}: {} sec"
@@ -337,9 +346,9 @@ messages:
 
   # ==================== BukkitFXSkill ====================
   "执行音效/粒子效果失败": "Failed to execute sound/particle effect"
-  "缺少参数: sound(音效枚举名称)": "Missing parameter: sound (sound enum name)"
+  "要播放什么音效？请告诉我音效名或中文描述（如：村民叫声、升级音）。": "What sound to play? Tell me a sound name or description (e.g. villager sound, level-up)."
   "无效的音效枚举名称: {}": "Invalid sound enum name: {}"
-  "缺少参数: particle(粒子枚举名称)": "Missing parameter: particle (particle enum name)"
+  "要显示什么粒子？请告诉我粒子名或中文描述（如：爱心、烟花）。": "What particle to show? Tell me a particle name or description (e.g. hearts, fireworks)."
   "无效的粒子枚举名称: {}": "Invalid particle enum name: {}"
   "音效播放成功: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})": "Sound played successfully: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})"
   "粒子效果显示成功: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})": "Particle effect displayed successfully: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})"
@@ -452,10 +461,9 @@ messages:
   "玩家存活": "Player is alive"
 
   # ==================== CommandSkill ====================
+  "此功能仅限玩家使用": "This feature is only available to players"
   "玩家 {} 通过 AI 执行命令: /{}": "Player {} executed command via AI: /{}"
-  "未指定命令执行动作": "No command execution action specified"
   "未知动作：{}": "Unknown action: {}"
-  "命令执行失败：{}": "Command execution failed: {}"
   "请提供要执行的命令": "Please provide a command to execute"
   "已执行命令: /{}": "Executed command: /{}"
   "命令执行失败，可能没有权限或命令不存在: /{}": "Command execution failed, possibly no permission or command does not exist: /{}"
@@ -482,6 +490,9 @@ messages:
   "缺少参数: home_name(家名称)": "Missing parameter: home_name (home name)"
   "缺少参数: warp_name(地标名称)": "Missing parameter: warp_name (warp name)"
   "缺少参数: target_player(目标玩家名称)": "Missing parameter: target_player (target player name)"
+  "请告诉我要传送到哪个家（家名称）": "Please tell me which home to teleport to (home name)"
+  "请告诉我要传送到哪个地标（地标名称）": "Please tell me which warp to teleport to (warp name)"
+  "请告诉我要向哪位玩家发送传送请求": "Please tell me which player to send a teleport request to"
   "玩家有 {} 个家:": "Player has {} homes:"
   "服务器有 {} 个公共地标:": "Server has {} public warps:"
   "玩家信息: name={}, display_name={}, playtime={}, afk={}, vanished={}, fly={}, game_mode={}": "Player info: name={}, display_name={}, playtime={}, afk={}, vanished={}, fly={}, game_mode={}"
@@ -492,8 +503,11 @@ messages:
   # ==================== MarketQuerySkill ====================
   "缺少参数: item(物品名称)": "Missing parameter: item (item name)"
   "缺少参数: seller_name(卖家名称)": "Missing parameter: seller_name (seller name)"
+  "请告诉我要搜索什么物品（物品名称）": "Please tell me what item to search for (item name)"
+  "请告诉我要查询什么物品的价格（物品名称）": "Please tell me which item's price to query (item name)"
+  "请告诉我要查询什么物品在售（物品名称）": "Please tell me which item's listings to query (item name)"
+  "请告诉我要查询哪位卖家的在售商品（卖家名称）": "Please tell me which seller's listings to query (seller name)"
   "未找到物品 '{}' 的价格信息": "Price info not found for item '{}'"
-  "不支持的市场查询操作": "Unsupported market query operation"
   "无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装": "Unable to get balance info, please ensure GlobalMarketPlus plugin is properly installed"
   "余额: ${}": "Balance: ${}"
   "{}: 未找到价格": "{}: Price not found"
@@ -525,7 +539,6 @@ messages:
 
   # ==================== MarketActionSkill ====================
   "读取玩家手持物品失败: {}": "Failed to read player's held item: {}"
-  "未知的市场操作: {}": "Unknown market operation: {}"
   "市场操作失败: {}": "Market operation failed: {}"
   "无法识别的物品: {}，请使用标准的物品名称": "Unrecognized item: {}, please use standard item name"
   "市场上没有找到 {} 的商品": "No {} items found on the market"
@@ -539,7 +552,6 @@ messages:
   "数量 {} 超过手中物品数量 {}": "Quantity {} exceeds held item quantity {}"
   "数量格式不正确: {}": "Invalid quantity format: {}"
   "已上架 {} x{}，单价: ${}": "Listed {} x{}, unit price: ${}"
-  "上架失败，可能没有权限、物品在黑名单中或命令不可用": "Listing failed, possibly no permission, item blacklisted, or command unavailable"
   "你手中的 {} x{}，当前市场最低价为 ${}。请告诉我你希望以多少钱的单价上架？": "Your {} x{}, current market lowest price is ${}. Please tell me the unit price you want to list at?"
   "你手中的 {} x{}，市场暂无参考价。请告诉我你希望以多少钱的单价上架？": "Your {} x{}, no market reference price available. Please tell me the unit price you want to list at?"
   "你的邮箱里没有待领取的物品": "You have no items to pick up in your mailbox"
@@ -574,7 +586,6 @@ messages:
   "你想以多少起拍价拍卖 {} x{}？市场参考价: ${}": "What starting bid do you want for auctioning {} x{}? Market reference price: ${}"
   "你想以多少起拍价拍卖 {} x{}？市场暂无参考价": "What starting bid do you want for auctioning {} x{}? No market reference price available"
   "已发起拍卖: {} x{}，起拍价: ${}": "Auction started: {} x{}, starting bid: ${}"
-  "发起拍卖失败，可能没有权限或命令不可用": "Failed to start auction, possibly no permission or command unavailable"
   "批量上架失败，可能没有权限或命令不可用": "Bulk listing failed, possibly no permission or command unavailable"
   "余额不足，当前余额 ${}": "Insufficient balance, current balance ${}"
   "批量收购失败，可能没有权限或命令不可用": "Bulk buy failed, possibly no permission or command unavailable"
@@ -802,15 +813,15 @@ messages:
   "配置文件不存在：{}": "Config file not found: {}"
 
   # ==================== UtilitySkill ====================
-  "未指定工具动作": "No utility action specified"
-  "工具技能仅支持在线玩家": "Utility skill is only available for online players"
-  "未知工具动作: {}": "Unknown utility action: {}"
   "缺少 seconds 参数": "Missing seconds parameter"
   "无效的秒数: {}": "Invalid seconds value: {}"
+  "缺少参数: seconds（等待秒数，{}-{}）": "Missing parameter: seconds (wait duration, {}-{})"
   "延迟等待: {}秒": "Delaying: {} seconds"
   "延迟完成: {}秒": "Delay complete: {} seconds"
   "已等待{}秒": "Waited {} seconds"
   "缺少 message 参数": "Missing message parameter"
+  "缺少参数: message（要通知的内容）": "Missing parameter: message (notification content)"
+  "缺少参数: message（要广播的内容）": "Missing parameter: message (broadcast content)"
   "玩家不在线，无法通知": "Player is offline, cannot notify"
   "主动通知玩家: {}": "Proactively notifying player: {}"
   "通知玩家 {} 失败: {}": "Failed to notify player {}: {}"
@@ -1204,21 +1215,7 @@ messages:
   "问候更新检测失败: {}": "Greeting update check failed: {}"
 
   # ==================== GuardianSkill 玩家可见文案 ====================
-  "守护系统：AI 主动提醒玩家非即时感知的威胁与状态变化。": "Guardian system: AI proactively alerts the player about threats and state changes they cannot perceive in real time."
   "支持开启/关闭/查询。": "Supports on/off/query."
-  "开启守护": "Enable guardian"
-  "关闭守护": "Disable guardian"
-  "查询守护当前状态": "Query guardian status"
-  "玩家说「帮我开守护/盯着我/当保镖」→ enable": "Player says 'watch my back / be my bodyguard' → enable"
-  "玩家说「关掉守护/不用了」→ disable": "Player says 'turn off guardian' → disable"
-  "玩家说「守护开着吗」→ status": "Player says 'is guardian on?' → status"
-  "守护仅玩家可用": "Guardian is player-only"
-  "守护已经开启了。": "Guardian is already on."
-  "守护已开启，我会盯着你看不见的地方。": "Guardian enabled. I'll watch your blind spots."
-  "守护系统已被服主关闭，无法开启。": "Guardian system is globally disabled by the server owner."
-  "守护已关闭，我不会再主动提醒了。": "Guardian disabled. I won't proactively alert anymore."
-  "守护当前已开启。": "Guardian is currently on."
-  "守护当前未开启。": "Guardian is currently off."
   "reload 完成，重建 {} 个在线玩家的守护": "Reload complete, rebuilt {} online players' guardians"
   "IO 池饱和，跳过心跳（玩家 {}）": "IO pool saturated, skipping heartbeat (player {})"
   "monitor 动作执行异常: {}": "Monitor action execution error: {}"
@@ -1233,6 +1230,15 @@ messages:
   "cooldownMillis 不得为负: {}": "cooldownMillis must not be negative: {}"
   "maxRemainingRatio 必须在 [0,1] 区间: {}": "maxRemainingRatio must be in [0,1] range: {}"
   "配置加载完成": "Config loaded"
+  "守护系统未初始化": "Guardian system not initialized"
+  "守护系统已全局禁用，无法开启": "Guardian system is globally disabled, cannot enable"
+  "守护已开启，{} 个 monitor 就绪": "Guardian enabled, {} monitors ready"
+  "守护已关闭": "Guardian disabled"
+  "守护已开启，活跃 monitor：{}": "Guardian enabled, active monitors: {}"
+  "守护未开启": "Guardian not enabled"
+  "守护动作请求：玩家={}, 动作={}": "Guardian action request: player={}, action={}"
+  "守护已开启：玩家={}, monitor={}": "Guardian enabled: player={}, monitor={}"
+  "守护已关闭：玩家={}": "Guardian disabled: player={}"
 
   # ==================== BuiltInMonitors displayName ====================
   "威胁锁定": "Threat Lock-on"
@@ -1281,7 +1287,6 @@ messages:
   "尸壳": "Husk"
 
   # ==================== HistoryUtil ====================
-  "守护": "Guardian"
   "问候": "Greeting"
 
   # ==================== VersionInfoSkill ====================
@@ -1531,6 +1536,7 @@ messages:
   "关系": "Relations"
   "强度": "Strength"
   "缺少参数: player_name": "Missing parameter: player_name"
+  "请告诉我要查询哪位玩家的社交关系": "Please tell me which player's social relations to query"
   "玩家 {} 的社交关系（共 {} 条）": "Player {} social relations ({} total)"
   "该玩家暂无社交关系记录": "This player has no social relation records"
   "互动": "Interactions"
@@ -1751,7 +1757,6 @@ messages:
   "Spark：{}": "Spark: {}"
   "知识库：{} | Embedding：{} | 人格：{}套": "Knowledge: {} | Embedding: {} | Personalities: {}"
   "命令技能：{} | 待确认续体：{} | 玩家隔离：{}": "Command Skill: {} | Pending Resume: {} | Player Isolation: {}"
-  "健康守护：{} | 外部通知：{}（{}渠道）| 推理模型：{} | 登录问候：{}": "Guardian: {} | Notification: {} ({}ch) | Thinking Model: {} | Greeting: {}"
   "对话推荐：{} | 监听系统：{} | Web 搜索：{} | Web 抓取：{}": "Suggestion: {} | Watch: {} | Web Search: {} | Web Fetch: {}"
   "请回复 ok": "Reply with ok"
   "你是健康检查助手，只回复 ok。": "You are a health-check assistant. Reply only with ok."
@@ -1851,6 +1856,11 @@ messages:
   "你的订阅（共 {} 个）：": "Your subscriptions ({} total):"
   "你没有订阅可取消": "You have no subscriptions to cancel"
   "已取消全部 {} 个订阅": "Canceled all {} subscription(s)"
+  "订阅请求：玩家={}, 目标={}, 触发事件={}": "Subscribe request: player={}, target={}, trigger event={}"
+  "订阅完成：玩家={}, 当前订阅数={}": "Subscribe done: player={}, subscription count={}"
+  "取消订阅：玩家={}, 目标={}, 已移除={}": "Unsubscribe: player={}, target={}, removed={}"
+  "查询订阅：玩家={}, 共 {} 条": "List subscriptions: player={}, {} total"
+  "取消全部订阅：玩家={}, 已移除={}": "Unsubscribe all: player={}, removed={}"
 
   # ==================== WatchSkill / 自定义监听 ====================
   "已创建条件监听：{}": "Conditional watch created: {}"
@@ -1865,8 +1875,6 @@ messages:
   "技能 {} 的动作 {} 不支持监听": "Skill {} action {} does not support watching"
   "你没有权限监听技能：{}": "You do not have permission to watch skill: {}"
   "不支持的事件类型：{}": "Unsupported event type: {}"
-  "缺少参数: mode(监听模式: polling 或 event)": "Missing parameter: mode (watch mode: polling or event)"
-  "缺少参数: source(监听源，格式 skill.action)": "Missing parameter: source (watch source in skill.action format)"
   "source 格式错误，应为 skill.action（如 bukkit_api.get_player_health）": "Invalid source format, expected skill.action (e.g. bukkit_api.get_player_health)"
   "缺少参数: result_path(返回值字段名)": "Missing parameter: result_path (return value field name)"
   "缺少参数: operator(比较操作符)": "Missing parameter: operator (comparison operator)"
@@ -1896,6 +1904,14 @@ messages:
   "没有找到匹配「{}」的监听。": "No watch found matching '{}'."
   "要取消哪个监听？可以说「取消盯铁锭的」，或先查询当前监听列表。": "Which watch to cancel? You can say 'cancel the iron watch' or list your watches first."
   "找到多个匹配的监听，请更精确指定：{}": "Found multiple matching watches, please be more specific: {}"
+  "要创建哪种监听？条件监听用 mode=polling（定时轮询取值比较），事件监听用 mode=event（事件命中即触发）。": "Which watch type? Use mode=polling for conditional (periodic value comparison) or mode=event for event-driven (triggers on event match)."
+  "要监听什么？请指定监听源，格式为 skill.action（如 bukkit_api.get_player_health），可从【可监听列表】中选择。": "What do you want to watch? Specify a source in skill.action format (e.g. bukkit_api.get_player_health), chosen from the watchable list."
+  "要比较 skill 返回值的哪个字段？请指定 result_path（如 health），可从该 action 的返回 data 字段描述中推断。": "Which field of the skill return value to compare? Specify result_path (e.g. health), inferred from the action's returned data field description."
+  "用什么方式比较？请指定 operator（数值用 greater_than/less_than/equal 等，字符串用 contains/equal 等）。": "How to compare? Specify the operator (number uses greater_than/less_than/equal etc., string uses contains/equal etc.)."
+  "阈值是多少？请指定 threshold（数值填数字，字符串填匹配值如 OBSIDIAN）。": "What is the threshold? Specify threshold (a number for numeric, a match value like OBSIDIAN for string)."
+  "要监听哪种事件？请指定 event_type（如 furnace_smelt/crop_mature/player_death/block_break），可从【事件监听】列表中选择。": "Which event to watch? Specify event_type (e.g. furnace_smelt/crop_mature/player_death/block_break), chosen from the event watch list."
+  "创建条件监听失败: {}": "Failed to create conditional watch: {}"
+  "创建事件监听失败: {}": "Failed to create event watch: {}"
 
   # ==================== WatchSkill getDynamicContext ====================
   "【可监听列表（创建监听时从此选择）】\n": "[Watchable list (choose from this when creating watches)]\n"
@@ -1936,8 +1952,6 @@ messages:
 
   # ==================== WebConfigManager / WebSearchSkill / WebFetchSkill ====================
   "Web 配置已加载，供应商: {}": "Web config loaded, provider: {}"
-  "网页搜索配置已加载": "Web search config loaded"
-  "网页抓取配置已加载": "Web fetch config loaded"
   "Web 搜索配置已重载": "Web search config reloaded"
   "HTTP 客户端不可用，无法执行搜索": "HTTP client unavailable, cannot perform search"
   "{} 搜索失败，HTTP {}": "{} search failed, HTTP {}"
