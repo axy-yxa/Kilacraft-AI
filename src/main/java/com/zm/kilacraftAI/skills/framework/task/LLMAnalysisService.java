@@ -62,18 +62,10 @@ public class LLMAnalysisService {
 
             // 构建分析提示词：执行结果 + 后缀
             String suffix = configManager.getAgentAnalysisPromptSuffix();
-            String systemPrompt = configManager.getAgentSystemPrompt();
-
-            // 注入当前时间（位于 agent 提示词尾部，保持 agent 提示词为可缓存前缀）
-            systemPrompt = systemPrompt + "\n\n" + I18nService.getCurrentTimeString();
-
-            // 玩家实时元数据（追加在时间之后）：agent 提示词保持为可缓存前缀
+            // 追加运行时上下文（当前时间 + 玩家实时元数据）：agent 提示词保持为可缓存前缀
             Player player = context.getPlayer();
+            String systemPrompt = PlayerMetaCollector.appendRuntimeContext(configManager.getAgentSystemPrompt(), player);
             if (player != null) {
-                String playerMeta = PlayerMetaCollector.collect(player);
-                if (!playerMeta.isEmpty()) {
-                    systemPrompt = systemPrompt + "\n\n" + playerMeta;
-                }
                 var profileManager = plugin.getProfileManager();
                 if (profileManager != null) {
                     systemPrompt = profileManager.injectProfileSummary(systemPrompt, player.getUniqueId());
@@ -87,6 +79,9 @@ public class LLMAnalysisService {
             }
 
             String analysisPrompt = promptBuilder.toString();
+
+            // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
+            //PluginLoggerUtil.warn("LLM分析", "二次分析提示词: system={}, analysis={}", systemPrompt, analysisPrompt);
 
             // 每次都获取最新的实例
             LLMProvider llmProvider = plugin.getLlmManager().getCurrentProvider();

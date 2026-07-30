@@ -381,6 +381,7 @@ public final class WatchService implements Listener {
                     case FAILED -> {
                         int failures = watch.incrementFailures();
                         if (failures >= WatchConstants.MAX_CONSECUTIVE_FAILURES) {
+                            PluginLoggerUtil.warn(LOG_MODULE, I18nService.tr("监听连续失败{}次已自动删除（玩家{}，监听{}）", failures, player.getName(), watch.watchId()));
                             toFailRemove.add(watch);
                         }
                     }
@@ -423,12 +424,19 @@ public final class WatchService implements Listener {
     private EvaluationOutcome evaluatePolling(Watch watch, Player player) {
         try {
             Skill skill = plugin.getSkillManager().getSkill(watch.skillName());
-            if (skill == null) return EvaluationOutcome.FAILED; // skill 被卸载
+            if (skill == null) {
+                // skill 被卸载（reload/插件卸载）
+                PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("监听评估失败：skill 不存在（玩家 {}，监听 {}，skill={}）", player.getName(), watch.watchId(), watch.skillName()));
+                return EvaluationOutcome.FAILED;
+            }
 
             Map<String, String> entities = new LinkedHashMap<>(watch.params());
             // 安全消毒（不可跳过，§6.4）
             Map<String, String> sanitized = SkillSecurityFilter.sanitize(watch.skillName(), watch.actionName(), new SkillContext(player, watch.actionName(), entities));
-            if (sanitized == null) return EvaluationOutcome.FAILED;
+            if (sanitized == null) {
+                PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("监听评估失败：安全消毒拒绝（玩家 {}，监听 {}，{}.{}）", player.getName(), watch.watchId(), watch.skillName(), watch.actionName()));
+                return EvaluationOutcome.FAILED;
+            }
 
             SkillContext ctx = new SkillContext(player, watch.actionName(), sanitized);
             SkillResult result;
@@ -441,10 +449,16 @@ public final class WatchService implements Listener {
                 PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("监听 skill 执行异常: {}", e.getMessage()));
                 return EvaluationOutcome.FAILED;
             }
-            if (result == null || !result.isSuccess()) return EvaluationOutcome.FAILED;
+            if (result == null || !result.isSuccess()) {
+                PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("监听评估失败：skill 返回未成功（玩家 {}，监听 {}，{}.{}）", player.getName(), watch.watchId(), watch.skillName(), watch.actionName()));
+                return EvaluationOutcome.FAILED;
+            }
 
             Map<String, Object> data = result.getDataMap();
-            if (data == null || !data.containsKey(watch.resultPath())) return EvaluationOutcome.FAILED;
+            if (data == null || !data.containsKey(watch.resultPath())) {
+                PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("监听评估失败：结果路径缺失（玩家 {}，监听 {}，路径={}）", player.getName(), watch.watchId(), watch.resultPath()));
+                return EvaluationOutcome.FAILED;
+            }
 
             ProbeValue value = ProbeValue.from(data.get(watch.resultPath()));
             boolean met = ConditionEvaluator.test(value, watch.operator(), watch.threshold());

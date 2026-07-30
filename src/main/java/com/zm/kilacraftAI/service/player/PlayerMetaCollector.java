@@ -32,6 +32,28 @@ public final class PlayerMetaCollector {
     }
 
     /**
+     * 在静态 system prompt 尾部统一追加运行时上下文（当前时间 + 玩家实时元数据），
+     * 供所有面向单一玩家的 LLM 调用入口共用，消除各入口重复拼接。
+     * <p>
+     * 顺序：静态 prompt → 当前时间 → 玩家元数据。动态内容统一置于尾部，
+     * 保持静态前缀（人格 / 角色定义 / 技能列表）的可缓存性。caller 为 null（控制台）
+     * 或无可用元数据时仅追加时间。
+     */
+    public static String appendRuntimeContext(String systemPrompt, Player caller) {
+        if (systemPrompt == null) {
+            systemPrompt = "";
+        }
+        StringBuilder sb = new StringBuilder(systemPrompt).append("\n\n").append(I18nService.getCurrentTimeString());
+        if (caller != null) {
+            String meta = collect(caller);
+            if (!meta.isEmpty()) {
+                sb.append("\n\n").append(meta);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
      * 实时采集玩家结构化元数据，格式化为带标签的文本块。
      */
     public static String collect(Player player) {

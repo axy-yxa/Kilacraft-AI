@@ -1,5 +1,6 @@
 package com.zm.kilacraftAI.service.guardian.monitor;
 
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.guardian.GuardianContext;
 import com.zm.kilacraftAI.service.guardian.action.GuardianLlmAction;
@@ -94,10 +95,12 @@ public final class Monitor {
         }
 
         if (hasFired && now - lastFireMillis < cooldownMillis) {
+            PluginLoggerUtil.debug("守护系统", I18nService.tr("守护 monitor 冷却中跳过（monitor={}）", id));
             return Optional.empty();
         }
         hasFired = true;
         lastFireMillis = now;
+        PluginLoggerUtil.debug("守护系统", I18nService.tr("守护 monitor 触发（玩家 {}，monitor={}）", ctx.player() != null ? ctx.player().getName() : "?", id));
         return Optional.of(enrichTriggerValue(ctx));
     }
 

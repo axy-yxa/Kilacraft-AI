@@ -13,7 +13,7 @@ action_descriptions:
   query_logs: |
     功能：按条件查询 AI 技能执行日志，返回最近一次匹配的记录列表。
     参数：
-      - time_range（可选，默认 7d，时间范围）：查询时间窗口，如 1d/3d/7d/30d。
+      - time_range（可选，默认 7d，时间范围，取值 1d/3d/7d/30d）：查询时间窗口。
       - player_name（可选，玩家名）：按执行者过滤，需为在线或历史玩家名。
       - skill_name（可选，字符串）：按技能名过滤（如 AuditLogSkill）。
       - limit（可选，默认 20，数值（整数））：返回条数上限。
@@ -22,14 +22,14 @@ action_descriptions:
   skill_stats: |
     功能：按技能名+动作分组统计执行次数与成功率，返回排行。
     参数：
-      - time_range（可选，默认 7d，时间范围）：统计时间窗口。
+      - time_range（可选，默认 7d，时间范围，取值 1d/3d/7d/30d）：统计时间窗口。
       - limit（可选，默认 10，数值（整数））：返回分组条数上限。
     返回 data 字段：time_range、total_executions、total_success、total_fail、success_rate、stats（数组，每项含 skill_name/action/total_count/success_count/fail_count/success_rate/avg_duration_ms）。
 
   error_logs: |
     功能：仅查询执行失败（success=false）的日志，用于排查技能报错。
     参数：
-      - time_range（可选，默认 7d，时间范围）：查询时间窗口。
+      - time_range（可选，默认 7d，时间范围，取值 1d/3d/7d/30d）：查询时间窗口。
       - skill_name（可选，字符串）：按技能名过滤。
       - limit（可选，默认 20，数值（整数））：返回条数上限。
     返回 data 字段：time_range、count、logs（数组，结构同 query_logs）。

@@ -13,43 +13,43 @@ action_descriptions:
   online_trend: |
     Function: Query online player count trends (LOGIN/LOGOUT events aggregated by time buckets).
     Parameters:
-      - time_range (optional, default 7d, time range): Query window.
+      - time_range (optional, default 7d, time range, allowed values 1d/3d/7d/30d): Query window.
       - group_by (optional, default day, string, values hour/day): Aggregation granularity.
     Returns data fields: time_range, group_by, buckets (array, each with time_bucket/event_type/count), total_records.
 
   top_active: |
     Function: Query active player rankings (sorted by login count/playtime/recent login).
     Parameters:
-      - time_range (optional, default 7d, time range): Query window.
+      - time_range (optional, default 7d, time range, allowed values 1d/3d/7d/30d): Query window.
       - order_by (optional, default login_count, string, values login_count/total_playtime/last_login): Sort field.
-      - limit (optional, default 10, integer): Maximum return count.
+      - limit (optional, default 10, integer, range 1-100): Maximum return count.
     Returns data fields: time_range, order_by, players (array, each with uuid/name/login_count/total_playtime_hours/last_login), count.
 
   new_players: |
     Function: Query new player inflow statistics (PLAYER_FIRST_JOIN events aggregated by time).
     Parameters:
-      - time_range (optional, default 7d, time range): Query window.
+      - time_range (optional, default 7d, time range, allowed values 1d/3d/7d/30d): Query window.
       - group_by (optional, default day, string, values hour/day): Aggregation granularity.
     Returns data fields: time_range, group_by, total_new_players, buckets (array, each with time_bucket/event_type/count).
 
   profile_coverage: |
     Function: Query AI profile analysis coverage.
     Parameters:
-      - time_range (optional, default 7d, time range): Query window.
-      - limit (optional, default 20, integer): Maximum return count for the list of players pending analysis.
-    Returns data fields: total_players, analyzed_count, recently_analyzed, coverage_pct, pending_analysis (array, players pending analysis).
+      - time_range (optional, default 7d, time range, allowed values 1d/3d/7d/30d): Query window.
+      - limit (optional, default 20, integer, range 1-100): Maximum return count for the list of players pending analysis.
+    Returns data fields: time_range, total_players, analyzed_count, recently_analyzed, coverage_pct, pending_analysis (array, players pending analysis).
 
   social_insights: |
     Function: Query global social graph insights (network density, isolated player detection).
     Parameters:
-      - limit (optional, default 10, integer): Maximum return count.
+      - limit (optional, default 10, integer, range 1-100): Maximum return count.
     Returns data fields: network_stats (with total_relations/avg_strength/isolated_count), top_connected (array), isolated_players (array).
 
   player_relations: |
     Function: Query a specific player's social relations.
     Parameters:
       - player_name (required, player name): Target player name.
-      - limit (optional, default 20, integer): Maximum return count.
+      - limit (optional, default 20, integer, range 1-100): Maximum return count.
     Returns data fields: player_name, player_uuid, relation_count, relations (array, each with target_name/target_uuid/relation_type/strength/interaction_count/last_interaction).
 
 hints:

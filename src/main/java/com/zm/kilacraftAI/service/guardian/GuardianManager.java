@@ -73,7 +73,6 @@ public final class GuardianManager {
         guardians.put(id, guardian);
         enabled.put(id, true);
         engine.registerGuardian(id, guardian);
-        PluginLoggerUtil.info("守护系统", I18nService.tr("玩家 {} 启用守护，{} 个 monitor", player.getName(), monitors.size()));
         // 返回的 id 列表用于命令反馈
         List<String> resultNames = monitors.stream().map(Monitor::id).toList();
         return Optional.of(resultNames);

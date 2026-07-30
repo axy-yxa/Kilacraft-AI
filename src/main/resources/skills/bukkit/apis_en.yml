@@ -190,7 +190,7 @@ player:
   get_player_location:
     id: "get_player_location"
     display_name: "Get Player Location"
-    description: "[Self Query Only] Get the player's coordinates (X, Y, Z) and current world. Where am I, my coordinates, what position. Returned data contains x, y, z, yaw, pitch, world fields for subsequent step references."
+    description: "[Self Query Only] Get the player's coordinates (X, Y, Z) and current world. Where am I, my coordinates, what position. Returned data contains x, y, z, world fields for subsequent step references."
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
     additional_methods:
@@ -416,7 +416,7 @@ player:
   get_player_open_inventory:
     id: "get_player_open_inventory"
     display_name: "Get Currently Open Inventory"
-    description: "Get the type of inventory the player is currently viewing (e.g. chest, furnace, enchanting table, etc.). What menu am I looking at, what interface is open. Returned data contains inventory_type field (inventory type) for subsequent step references."
+    description: "Get the type of inventory the player is currently viewing (e.g. chest, furnace, enchanting table, etc.). What menu am I looking at, what interface is open. Returned data contains raw_result field (raw value of the inventory type enum) for subsequent step references."
     target_type: "Player"
     required_permission: "kilacraft.api.player.inventory"
     method_chain:

@@ -50,7 +50,7 @@ action_descriptions:
     Function: transfer money to another player.
     Parameters:
       - target_player (required, player name): recipient name.
-      - amount (required, decimal): amount — a pure number, OR an arithmetic placeholder based on a prior query result (such as {step_0.balance}/3 meaning one third of the balance — auto-evaluated by the system at execution time).
+      - amount (optional, decimal): amount — a pure number, OR an arithmetic placeholder based on a prior query result (such as {step_0.balance}/3 meaning one third of the balance — auto-evaluated by the system at execution time); returns [NEED_INFO] prompting the player to supply it when missing.
     May return [NEED_INFO] to ask for a missing amount or to confirm a large transfer; the continuation is managed automatically by the framework — just follow the message to guide the player (no need to reconstruct parameters or fill a confirmation flag for confirm/supplement).
     Trigger: user says "send Steve 100", "pay that guy", "transfer money".
 

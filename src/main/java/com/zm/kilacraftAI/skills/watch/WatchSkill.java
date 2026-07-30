@@ -101,7 +101,7 @@ public class WatchSkill implements Skill, DynamicContextProvider {
             }
         }
 
-        // 事件型：列出支持的 12 种事件
+        // 事件型：列出支持的 11 种事件
         sb.append(I18nService.tr("— 事件监听（Bukkit 事件命中即触发）：\n"));
         sb.append(I18nService.tr("  - furnace_smelt: 熔炉烧好（filter: result_type=产物材质）\n"));
         sb.append(I18nService.tr("  - crop_mature: 作物成熟（filter: crop_type=作物类型）\n"));
@@ -150,7 +150,7 @@ public class WatchSkill implements Skill, DynamicContextProvider {
             return SkillResult.needInfo(I18nService.tr("要创建哪种监听？条件监听用 mode=polling（定时轮询取值比较），事件监听用 mode=event（事件命中即触发）。"));
         }
         String intent = SkillEntityHelper.getString(entities, "intent");
-        boolean singleShot = !"false".equalsIgnoreCase(entities.get("single_shot"));
+        boolean singleShot = SkillEntityHelper.getBoolean(entities, "single_shot", true);
         String displayName = SkillEntityHelper.getString(entities, "display_name");
 
         if ("polling".equalsIgnoreCase(mode)) {

@@ -2,9 +2,11 @@ package com.zm.kilacraftAI.service.suggestion;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.MessageUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.common.util.TextWidthUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.SuggestionConfigManager;
+import com.zm.kilacraftAI.i18n.I18nService;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -93,9 +95,13 @@ public class SuggestionDisplayer {
 
         // runTask 是 fire-and-forget 投递，排队期间玩家可能下线；
         // 必须在主线程执行时再次检查 isOnline，避免对离线玩家 sendMessage
+        int count = suggestions.size();
         FoliaCompat.runTask(plugin, () -> {
             if (player.isOnline()) {
                 player.spigot().sendMessage(full);
+                PluginLoggerUtil.debug("对话推荐", I18nService.tr("已向 {} 展示 {} 个推荐", player.getName(), count));
+            } else {
+                PluginLoggerUtil.debug("对话推荐", I18nService.tr("玩家 {} 下线，跳过展示 {} 个推荐", player.getName(), count));
             }
         });
     }

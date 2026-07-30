@@ -13,6 +13,7 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.guardian.EntityNameI18n;
 import com.zm.kilacraftAI.service.guardian.GuardianContext;
+import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
 import com.zm.kilacraftAI.skills.framework.task.LLMBudgetManager;
 import org.bukkit.entity.Player;
 
@@ -65,7 +66,7 @@ public final class GuardianLlmAction {
         if (plugin.getLlmOutputCoordinator() != null) {
             LLMBudgetManager budget = plugin.getLlmOutputCoordinator().getBudgetManager();
             if (!budget.tryAcquire(playerUuid, LLMBudgetManager.Priority.PASSIVE)) {
-                PluginLoggerUtil.debug(LOG_MODULE, "LLM 预算熔断中，跳过守护输出（玩家 {}）", player.getName());
+                PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("LLM 预算熔断中，跳过守护输出（玩家 {}）", player.getName()));
                 return CompletableFuture.completedFuture(false);
             }
         }
@@ -75,8 +76,11 @@ public final class GuardianLlmAction {
             return CompletableFuture.completedFuture(false);
         }
 
-        String systemPrompt = configManager.getGuardianSystemPrompt();
+        String systemPrompt = PlayerMetaCollector.appendRuntimeContext(configManager.getGuardianSystemPrompt(), player);
         String userMessage = buildUserMessage(ctx);
+
+        // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
+        //PluginLoggerUtil.warn(LOG_MODULE, "守护提示词: system={}, user={}", systemPrompt, userMessage);
 
         PlayerResponseHandler handler = new PlayerResponseHandler(plugin, player, OutputScenarioEnum.GUARDIAN, null);
 
@@ -88,7 +92,7 @@ public final class GuardianLlmAction {
 
         return plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, player.getName(), new ArrayDeque<>(), handler, systemPrompt, false, false, false).orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).thenApply(response -> {
             if (response == null || LLMResponseUtil.isErrorResponse(response)) {
-                PluginLoggerUtil.debug(LOG_MODULE, "守护 LLM 输出失败或为空（玩家 {}）", player.getName());
+                PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("守护 LLM 输出失败或为空（玩家 {}）", player.getName()));
                 // 流式 UI 收尾由 handler.handleError 负责，此处不再重复 cancelStream
                 return false;
             }

@@ -55,6 +55,10 @@ public final class GuardianEngine implements ManagedTask {
      * Player → eval 串行锁：同一玩家的所有 monitor eval 串行，保证 eval 与冷却字段不并发改写。
      */
     private final Map<UUID, ReentrantLock> playerEvalLocks = new ConcurrentHashMap<>();
+    /**
+     * 已记录"进入挂机"的玩家集合，用于 AFK 边沿去重日志（进入/退出各记一次，而非每秒心跳刷屏）。
+     */
+    private final Set<UUID> afkLogged = ConcurrentHashMap.newKeySet();
 
     private volatile boolean shutdown = false;
     private volatile GuardianEventListener eventListener;
@@ -164,8 +168,8 @@ public final class GuardianEngine implements ManagedTask {
         if (shutdown || !player.isOnline()) {
             return;
         }
-        if (activityTracker != null && activityTracker.isAfk(player.getUniqueId())) {
-            return; // 挂机：跳过本轮心跳
+        if (isAfkSkipWithEdgeLog(player)) {
+            return;
         }
         List<Monitor> due = duePollingMonitors(guardian, now);
         if (due.isEmpty()) {
@@ -186,6 +190,25 @@ public final class GuardianEngine implements ManagedTask {
             GuardianContext ctx = GuardianContext.of(player, (Double) null);
             evalAsync(m, state, ctx, false);
         }
+    }
+
+    /**
+     * AFK 跳过判定 + 边沿去重日志：玩家挂机时跳过守护，但仅在状态翻转时记日志
+     * （进入挂机记一次、退出挂机记一次），避免每秒心跳刷屏。tickPlayer 与 submitSignal 共用。
+     */
+    private boolean isAfkSkipWithEdgeLog(Player player) {
+        if (activityTracker == null || !activityTracker.isAfk(player.getUniqueId())) {
+            // 非挂机：若此前记录过"进入挂机"，则本次是退出边沿
+            if (afkLogged.remove(player.getUniqueId())) {
+                PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("玩家 {} 退出挂机状态，恢复守护", player.getName()));
+            }
+            return false;
+        }
+        // 挂机：仅首次进入记日志，后续心跳静默跳过
+        if (afkLogged.add(player.getUniqueId())) {
+            PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("玩家 {} 进入挂机状态，暂停守护", player.getName()));
+        }
+        return true;
     }
 
     /**
@@ -222,9 +245,12 @@ public final class GuardianEngine implements ManagedTask {
             java.util.function.Predicate<Event> filter = m.eventFilter();
             try {
                 if (filter != null && !filter.test(event)) {
+                    PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("守护事件被 filter 拒绝（玩家 {}，monitor={}）", player.getName(), m.id()));
                     continue;
                 }
-            } catch (ClassCastException ignored) {
+            } catch (ClassCastException e) {
+                // filter 期望类型与 eventType 不匹配——该 monitor 永远不会触发
+                PluginLoggerUtil.warn(LOG_MODULE, I18nService.tr("守护事件 filter 类型转换异常（玩家 {}，monitor={}）: {}", player.getName(), m.id(), e.getMessage()));
                 continue;
             }
             final GuardianContext ctx = entityType != null ? GuardianContext.of(player, entityType) : GuardianContext.of(player, (Double) null);
@@ -246,7 +272,7 @@ public final class GuardianEngine implements ManagedTask {
         if (player == null || !player.isOnline()) {
             return;
         }
-        if (activityTracker != null && activityTracker.isAfk(player.getUniqueId())) {
+        if (isAfkSkipWithEdgeLog(player)) {
             return; // 挂机：事件型也不告警
         }
         // 事件型带 triggerPredicate（视野外威胁）：锁内快照 + 求值，通过则进 executeAction
@@ -277,7 +303,9 @@ public final class GuardianEngine implements ManagedTask {
                     return;
                 }
                 if (!lock.tryLock()) {
-                    return; // 另一个 eval 正在进行——跳过，下一轮事件/心跳重试
+                    // 事件型带 triggerPredicate 的威胁若遇 eval 锁竞争被跳过，错过即错过（事件无下一轮）
+                    PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("守护 eval 锁竞争跳过（玩家 {}，monitor={}）", ctx.player().getName(), monitor.id()));
+                    return;
                 }
                 GuardianContext actionCtx = null;
                 try {
@@ -289,6 +317,8 @@ public final class GuardianEngine implements ManagedTask {
                         snapshot = playerStateService.snapshot(ctx.player());
                     }
                     if (snapshot == null) {
+                        // 事件型 monitor 命中后快照采集返回 null，威胁被静默吞掉
+                        PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("守护快照为空跳过（玩家 {}，monitor={}）", ctx.player().getName(), monitor.id()));
                         return;
                     }
                     Optional<GuardianContext> result = monitor.eval(snapshot, ctx);
@@ -356,6 +386,8 @@ public final class GuardianEngine implements ManagedTask {
         }
         // 释放 per-player eval 锁，避免长期离线玩家累积
         playerEvalLocks.remove(playerId);
+        // 清理 AFK 边沿去重状态
+        afkLogged.remove(playerId);
     }
 
 }

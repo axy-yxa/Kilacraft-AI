@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.service.suggestion;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.config.SuggestionConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
 import com.zm.kilacraftAI.skills.framework.DynamicContextProvider;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import org.bukkit.entity.Player;
@@ -32,8 +33,11 @@ public class SuggestionPromptBuilder {
     public SuggestionPrompt build(int count, Player player) {
         String skillsSummary = buildSkillsSummary(player);
 
-        String systemPrompt = config.getLocalizedSystemPrompt().replace("{count}", String.valueOf(count));
-        String userPrompt = config.getLocalizedUserPromptTemplate().replace("{count}", String.valueOf(count)).replace("{available_skills}", skillsSummary);
+        // {available_skills} 注入 system prompt（系统能力作为背景知识，而非推荐目标）：
+        // 运行时上下文追加在占位符替换之后，保持可缓存前缀为含技能摘要的稳定结构
+        String systemPrompt = config.getLocalizedSystemPrompt().replace("{count}", String.valueOf(count)).replace("{available_skills}", skillsSummary);
+        systemPrompt = PlayerMetaCollector.appendRuntimeContext(systemPrompt, player);
+        String userPrompt = config.getLocalizedUserPromptTemplate().replace("{count}", String.valueOf(count));
         return new SuggestionPrompt(systemPrompt, userPrompt);
     }
 

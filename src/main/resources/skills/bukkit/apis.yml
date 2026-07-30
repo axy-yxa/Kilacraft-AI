@@ -251,7 +251,7 @@ player:
   get_player_location:
     id: "get_player_location"
     display_name: "获取玩家位置"
-    description: "【仅查询自己】获取玩家在游戏中的坐标位置（X, Y, Z）和所在世界。我在哪、我在哪里、我的坐标、什么位置。返回的 data 中包含 x、y、z、yaw、pitch、world 字段，可供后续步骤引用。"
+    description: "【仅查询自己】获取玩家在游戏中的坐标位置（X, Y, Z）和所在世界。我在哪、我在哪里、我的坐标、什么位置。返回的 data 中包含 x、y、z、world 字段，可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.info"
     additional_methods:
@@ -477,7 +477,7 @@ player:
   get_player_open_inventory:
     id: "get_player_open_inventory"
     display_name: "获取当前打开的界面"
-    description: "获取玩家当前正在查看的界面类型（如箱子、熔炉、附魔台等）。打开了什么界面、正在看什么菜单。返回的 data 中包含 inventory_type 字段（界面类型），可供后续步骤引用。"
+    description: "获取玩家当前正在查看的界面类型（如箱子、熔炉、附魔台等）。打开了什么界面、正在看什么菜单。返回的 data 中包含 raw_result 字段（界面类型枚举的原始值），可供后续步骤引用。"
     target_type: "Player"
     required_permission: "kilacraft.api.player.inventory"
     method_chain:

@@ -14,15 +14,15 @@ action_descriptions:
     参数：
       - plugin（可选，字符串）：按插件名过滤。
       - metric_type（可选，字符串，取值 tps/mspt/cpu）：按指标类型过滤。
-      - time_range（可选，默认 7d，时间范围）：查询时间窗口。
+      - time_range（可选，默认 7d，时间范围，取值 1d/3d/7d/30d）：查询时间窗口。
     返回 data 字段：alert_count、plugins（已安装插件的告警次数映射，不含系统热点）、system（系统热点告警次数映射，如 Minecraft 内核、自身插件，通常无需关注）、daily_distribution（按天分布）、time_range、lowest_tps_detail（含 tps_1m/mspt_p95/cpu_process/alerts/top_hotspots）。
 
   list_reports: |
     功能：列出报告目录中的诊断报告文件。
     参数：
-      - time_range（可选，默认 7d，时间范围）：时间过滤窗口。
+      - time_range（可选，默认 7d，时间范围，取值 1d/3d/7d/30d）：时间过滤窗口。
       - mode（可选，字符串，取值 auto/manual）：按报告类型过滤。
-      - limit（可选，默认 20，数值（整数））：最大返回数量。
+      - limit（可选，默认 20，数值（整数），范围 1-100）：最大返回数量。
     返回 data 字段：time_range、mode、count、reports（数组，每项含 filename/mode/timestamp/size/size_display）。
 
   read_report: |

@@ -26,7 +26,7 @@ action_descriptions:
   list_versions: |
     Function: List recently released versions (version + title + date), used to understand release history.
     Parameters:
-      - limit (optional, default 10, integer): Number of versions to return.
+      - limit (optional, default 10, integer, range 1-30): Number of versions to return.
     Returns data fields: count (number of versions), current_version (currently running version), versions (array, each with tag/name/date/is_current).
 
 hints:

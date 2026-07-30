@@ -56,10 +56,23 @@ public class SuggestionService {
     public void generateAsync(Player player, Deque<ConversationManager.Message> history, String playerName, OutputScenarioEnum scenario, ConversationSourceEnum source) {
 
         // 门控：全局开关、连续对话模式不触发、场景过滤、玩家级 opt-out
-        if (!config.isEnabled()) return;
-        if (source == ConversationSourceEnum.CHAT) return;
-        if (!config.isScenarioEnabled(scenario)) return;
-        if (!plugin.getSuggestionManager().isSuggestionEnabled(player.getUniqueId())) return;
+        // 每个门控加 debug：玩家问"为什么没推荐"时可从日志定位是哪个门控挡的
+        if (!config.isEnabled()) {
+            PluginLoggerUtil.debug("对话推荐", I18nService.tr("推荐跳过：全局开关关闭（玩家 {}）", playerName));
+            return;
+        }
+        if (source == ConversationSourceEnum.CHAT) {
+            PluginLoggerUtil.debug("对话推荐", I18nService.tr("推荐跳过：连续对话模式（玩家 {}）", playerName));
+            return;
+        }
+        if (!config.isScenarioEnabled(scenario)) {
+            PluginLoggerUtil.debug("对话推荐", I18nService.tr("推荐跳过：场景未启用（玩家 {}，场景 {}）", playerName, scenario));
+            return;
+        }
+        if (!plugin.getSuggestionManager().isSuggestionEnabled(player.getUniqueId())) {
+            PluginLoggerUtil.debug("对话推荐", I18nService.tr("推荐跳过：玩家已关闭推荐（玩家 {}）", playerName));
+            return;
+        }
 
         // 预算预检：SUGGESTION 档在熔断窗口内静默跳过
         LLMBudgetManager budget = plugin.getLlmOutputCoordinator() != null ? plugin.getLlmOutputCoordinator().getBudgetManager() : null;
@@ -71,6 +84,9 @@ public class SuggestionService {
         int maxCount = config.getMaxSuggestions();
 
         SuggestionPromptBuilder.SuggestionPrompt prompt = promptBuilder.build(maxCount, player);
+
+        // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
+        //PluginLoggerUtil.warn("对话推荐", "推荐提示词: system={}, user={}", prompt.systemPrompt(), prompt.userPrompt());
 
         // 静默 handler：GenericLLMProvider 在响应完成后会无条件调用 showResponse
         // （不受 isStreamOutputEnabled 守卫）。若用 PlayerResponseHandler，其 showResponse 会

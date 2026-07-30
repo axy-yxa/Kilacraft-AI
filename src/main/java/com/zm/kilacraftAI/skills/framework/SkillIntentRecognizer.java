@@ -321,9 +321,10 @@ public class SkillIntentRecognizer {
      *
      * @param userInput 玩家本轮原始输入
      * @param slot      活跃续体
+     * @param caller    调用者（Player），用于注入运行时上下文，null 表示控制台
      * @return 恢复动作，或 null（无关 / 解析失败）
      */
-    public CompletableFuture<PendingAction> classifyPendingResponse(String userInput, PendingResume slot) {
+    public CompletableFuture<PendingAction> classifyPendingResponse(String userInput, PendingResume slot, Player caller) {
         if (slot == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -338,7 +339,8 @@ public class SkillIntentRecognizer {
             return CompletableFuture.completedFuture(null);
         }
 
-        String systemPrompt = promptConfigManager.buildPendingClassifyPrompt(slot.getSkillName(), slot.getAction(), slot.getMessage());
+        String basePrompt = promptConfigManager.buildPendingClassifyPrompt(slot.getSkillName(), slot.getAction(), slot.getMessage());
+        String systemPrompt = PlayerMetaCollector.appendRuntimeContext(basePrompt, caller);
         AIResponseHandler handler = buildSilentHandler("待确认续体分类");
 
         PluginLoggerUtil.debug("意图识别", "待确认续体分类开始：{}.{}", slot.getSkillName(), slot.getAction());
@@ -469,17 +471,13 @@ public class SkillIntentRecognizer {
     }
 
     /**
-     * 在 system prompt 尾部追加玩家实时元数据块（位置/状态/装备等硬事实），
+     * 在 system prompt 尾部统一追加运行时上下文（当前时间 + 玩家实时元数据），
      * 帮助选 Skill、提参数与消歧义（如"帮我回去"需坐标判断是传送还是步行）。
      * 追加而非前置：意图识别的静态提示词（角色/技能列表/规则，跨所有玩家相同）保持为可缓存前缀。
-     * 控制台（caller=null）或无元数据时原样返回。
+     * 控制台（caller=null）仅追加时间。
      */
     private static String withPlayerMeta(String systemPrompt, Player caller) {
-        if (caller == null) {
-            return systemPrompt;
-        }
-        String meta = PlayerMetaCollector.collect(caller);
-        return meta.isEmpty() ? systemPrompt : systemPrompt + "\n\n" + meta;
+        return PlayerMetaCollector.appendRuntimeContext(systemPrompt, caller);
     }
 
     /**

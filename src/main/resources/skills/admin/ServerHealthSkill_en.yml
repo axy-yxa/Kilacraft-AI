@@ -15,15 +15,15 @@ action_descriptions:
     Parameters:
       - plugin (optional, string): Filter by plugin name.
       - metric_type (optional, string, values tps/mspt/cpu): Filter by metric type.
-      - time_range (optional, default 7d, time range): Query time window.
+      - time_range (optional, default 7d, time range, allowed values 1d/3d/7d/30d): Query time window.
     Returns data fields: alert_count, plugins (installed plugin alert count map, excluding system hotspots), system (system hotspot alert count map, e.g. Minecraft core / self plugin, usually no action needed), daily_distribution (by day), time_range, lowest_tps_detail (with tps_1m/mspt_p95/cpu_process/alerts/top_hotspots).
 
   list_reports: |
     Function: List diagnostic report files in the report directory.
     Parameters:
-      - time_range (optional, default 7d, time range): Time filter window.
+      - time_range (optional, default 7d, time range, allowed values 1d/3d/7d/30d): Time filter window.
       - mode (optional, string, values auto/manual): Filter by report type.
-      - limit (optional, default 20, integer): Maximum return count.
+      - limit (optional, default 20, integer, range 1-100): Maximum return count.
     Returns data fields: time_range, mode, count, reports (array, each with filename/mode/timestamp/size/size_display).
 
   read_report: |

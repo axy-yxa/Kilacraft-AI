@@ -25,7 +25,7 @@ action_descriptions:
   list_versions: |
     功能：列出近期发布的版本列表（版本号 + 标题 + 日期），用于了解发布历史。
     参数：
-      - limit（可选，默认 10，数值（整数））：返回的版本数量。
+      - limit（可选，默认 10，数值（整数），范围 1-30）：返回的版本数量。
     返回 data 字段：count（版本数量）、current_version（当前运行版本）、versions（数组，每项含 tag/name/date/is_current）。
 
 hints:

@@ -186,6 +186,7 @@ public final class PlayerWatchService implements Listener {
                     }
                     Player subscriber = Bukkit.getPlayer(s.subscriberUuid);
                     if (subscriber == null || !subscriber.isOnline()) {
+                        PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("订阅者{}离线，跳过通知", s.subscriberUuid));
                         continue; // 离线不通知（不持久化）
                     }
                     notifySubscriber(subscriber, targetName, occurredEvent, s);

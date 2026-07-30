@@ -138,7 +138,7 @@ public class AIRequestHandler {
             PendingResume slot = PendingResumeManager.getInstance().get(ctx.player().getUniqueId());
             if (slot != null) {
                 PluginLoggerUtil.debug("AI请求", "检测到待确认续体：{}.{}，进入恢复分类", slot.getSkillName(), slot.getAction());
-                intentRecognizer.classifyPendingResponse(message, slot).orTimeout(60, TimeUnit.SECONDS).thenAccept(pa -> {
+                intentRecognizer.classifyPendingResponse(message, slot, ctx.player()).orTimeout(60, TimeUnit.SECONDS).thenAccept(pa -> {
                     if (pa != null) {
                         // 恢复/补值/取消 → 计为一次 skill_execution（仅在此记一次，避免与 runNormalRecognition 双计）
                         MetricsCollector.getInstance().recordRequestType("skill_execution");
@@ -365,14 +365,10 @@ public class AIRequestHandler {
         // RequestContext 仅由玩家流程构建，ctx.player() 非空
         AIResponseHandler handler = new PlayerResponseHandler(plugin, ctx.player(), ctx.scenario(), ctx.sendResponse);
 
-        // 构建系统提示词：人格 → 实时元数据 → 画像摘要
-        // 人格在前保持为可缓存前缀；元数据与画像都是动态内容，追加在尾部
-        String systemPrompt = plugin.getConfigManager().getSystemPrompt();
+        // 构建系统提示词：人格 → 运行时上下文（时间+元数据） → 画像摘要
+        // 人格在前保持为可缓存前缀；时间/元数据/画像都是动态内容，统一追加在尾部
+        String systemPrompt = PlayerMetaCollector.appendRuntimeContext(plugin.getConfigManager().getSystemPrompt(), ctx.player());
         if (ctx.player() != null) {
-            String playerMeta = PlayerMetaCollector.collect(ctx.player());
-            if (!playerMeta.isEmpty()) {
-                systemPrompt = systemPrompt + "\n\n" + playerMeta;
-            }
             var profileManager = plugin.getProfileManager();
             if (profileManager != null) {
                 systemPrompt = profileManager.injectProfileSummary(systemPrompt, ctx.player().getUniqueId());

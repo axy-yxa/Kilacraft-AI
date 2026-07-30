@@ -1,5 +1,7 @@
 package com.zm.kilacraftAI.service.watch;
 
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
@@ -39,6 +41,7 @@ import java.util.Map;
  */
 public final class PlayerWatchListener implements Listener {
 
+    private static final String LOG_MODULE = "自定义监听";
     private final WatchService service;
 
     PlayerWatchListener(WatchService service) {
@@ -161,6 +164,9 @@ public final class PlayerWatchListener implements Listener {
         for (WatchService.Watch watch : watches) {
             if (matchesFilter(watch, filterKey, filterValue)) {
                 service.triggerEvent(watch, eventType, filterValue);
+            } else {
+                // 有订阅者且归属匹配，但 filter 不命中
+                PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("事件监听 filter 不匹配（监听 {}，期望 {}={}，实际={}）", watch.watchId(), filterKey, watch.filterParams() != null ? watch.filterParams().get(filterKey) : "?", filterValue));
             }
         }
     }
