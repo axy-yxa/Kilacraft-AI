@@ -68,9 +68,7 @@ public final class CacheCommand {
     }
 
     public static List<String> buildLines(CacheStatsSnapshot snapshot, int page, LanguageManager lm) {
-        List<TypeSnapshot> types = snapshot.types.stream()
-                .filter(type -> type.requests > 0)
-                .toList();
+        List<TypeSnapshot> types = snapshot.types.stream().filter(type -> type.requests > 0).toList();
         int totalPages = Math.max(1, types.size());
         if (page > totalPages) {
             return List.of(lm.replacePlaceholders(lm.getCommandCachePageOutOfRange(), "total", String.valueOf(totalPages)));
@@ -84,13 +82,13 @@ public final class CacheCommand {
             return lines;
         }
 
-        lines.add(lm.replacePlaceholders(lm.getCommandCacheGlobalLine(), "requests", String.valueOf(snapshot.totalRequests), "consumed", formatNumber(snapshot.totalPromptTokens)));
-        lines.add(lm.replacePlaceholders(lm.getCommandCacheGlobalRateLine(), "hitrate", formatPercent(snapshot.getGlobalHitRate()), "saverate", formatPercent(snapshot.getGlobalSaveRate()), "saved", formatNumber(snapshot.totalHitTokens)));
+        lines.add(lm.replacePlaceholders(lm.getCommandCacheGlobalLine(), "requests", String.valueOf(snapshot.totalRequests), "input", formatNumber(snapshot.totalInputTokens), "output", formatNumber(snapshot.totalOutputTokens), "total", formatNumber(snapshot.totalTokens)));
+        lines.add(lm.replacePlaceholders(lm.getCommandCacheGlobalRateLine(), "hitrate", formatPercent(snapshot.getGlobalHitRate()), "saved", formatNumber(snapshot.totalCacheReadTokens)));
 
         TypeSnapshot type = types.get(page - 1);
         String model = type.modelName != null ? type.modelName : lm.getCommandCacheUnknownModel();
         lines.add(lm.replacePlaceholders(lm.getCommandCacheTypeHeader(), "type", lm.getCommandCacheTypeName(type.type), "model", model));
-        lines.add(lm.replacePlaceholders(lm.getCommandCacheTypeUsageLine(), "requests", String.valueOf(type.requests), "consumed", formatNumber(type.totalPromptTokens)));
+        lines.add(lm.replacePlaceholders(lm.getCommandCacheTypeUsageLine(), "requests", String.valueOf(type.requests), "input", formatNumber(type.inputTokens), "output", formatNumber(type.outputTokens), "total", formatNumber(type.totalTokens)));
         if (type.supported) {
             lines.add(lm.replacePlaceholders(lm.getCommandCacheTypeMetricsLine(), "hitrate", formatPercent(type.getHitRate()), "saved", formatNumber(type.getSavedTokens())));
         } else {

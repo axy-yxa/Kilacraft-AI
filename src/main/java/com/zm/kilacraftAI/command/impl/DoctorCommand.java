@@ -247,7 +247,7 @@ public final class DoctorCommand {
         if (snapshot.totalRequests == 0) {
             return;
         }
-        lines.add(lm.replacePlaceholders(lm.getCommandDoctorCacheSummary(), "requests", String.valueOf(snapshot.totalRequests), "consumed", formatNumber(snapshot.totalPromptTokens), "hitrate", formatPercent(snapshot.getGlobalHitRate()), "saverate", formatPercent(snapshot.getGlobalSaveRate()), "saved", formatNumber(snapshot.totalHitTokens)));
+        lines.add(lm.replacePlaceholders(lm.getCommandDoctorCacheSummary(), "requests", String.valueOf(snapshot.totalRequests), "input", formatNumber(snapshot.totalInputTokens), "output", formatNumber(snapshot.totalOutputTokens), "total", formatNumber(snapshot.totalTokens), "hitrate", formatPercent(snapshot.getGlobalHitRate()), "saved", formatNumber(snapshot.totalCacheReadTokens)));
         for (TypeSnapshot type : snapshot.types) {
             if (type.requests == 0) {
                 continue;
@@ -255,7 +255,7 @@ public final class DoctorCommand {
             String model = type.modelName != null ? type.modelName : lm.getCommandCacheUnknownModel();
             String typeName = lm.getCommandCacheTypeName(type.type);
             String metrics = type.supported ? lm.replacePlaceholders(lm.getCommandDoctorCacheTypeSupported(), "hitrate", formatPercent(type.getHitRate()), "saved", formatNumber(type.getSavedTokens())) : lm.getCommandDoctorCacheTypeUnsupported();
-            lines.add(lm.replacePlaceholders(lm.getCommandDoctorCacheTypeLine(), "type", typeName, "model", model, "requests", String.valueOf(type.requests), "consumed", formatNumber(type.totalPromptTokens), "metrics", metrics));
+            lines.add(lm.replacePlaceholders(lm.getCommandDoctorCacheTypeLine(), "type", typeName, "model", model, "requests", String.valueOf(type.requests), "input", formatNumber(type.inputTokens), "output", formatNumber(type.outputTokens), "total", formatNumber(type.totalTokens), "metrics", metrics));
         }
     }
 
@@ -317,16 +317,16 @@ public final class DoctorCommand {
         if (snapshot.totalRequests == 0) {
             return;
         }
-        PluginLoggerUtil.info("自检", "大模型缓存：请求={} | 输入={} Token | 命中率={} | 节省率={} | 节省={} Token | 支持类型 {}/{}", snapshot.totalRequests, formatNumber(snapshot.totalPromptTokens), formatPercent(snapshot.getGlobalHitRate()), formatPercent(snapshot.getGlobalSaveRate()), formatNumber(snapshot.totalHitTokens), CacheMetricsCollector.getInstance().getSupportedTypeCount(), CacheMetricsCollector.getInstance().getTotalTypeCount());
+        PluginLoggerUtil.info("自检", "大模型缓存：请求={} | 输入={} Token | 缓存读取率={} | 缓存读取={} Token | 支持类型 {}/{}", snapshot.totalRequests, formatNumber(snapshot.totalInputTokens), formatPercent(snapshot.getGlobalHitRate()), formatNumber(snapshot.totalCacheReadTokens), CacheMetricsCollector.getInstance().getSupportedTypeCount(), CacheMetricsCollector.getInstance().getTotalTypeCount());
         for (TypeSnapshot type : snapshot.types) {
             if (type.requests == 0) {
                 continue;
             }
             String model = type.modelName != null ? type.modelName : "?";
             if (type.supported) {
-                PluginLoggerUtil.info("自检", "  {}（{}）：请求={} | 输入={} Token | 命中率={} | 节省={} Token", I18nService.tr(type.displayName), model, type.requests, formatNumber(type.totalPromptTokens), formatPercent(type.getHitRate()), formatNumber(type.getSavedTokens()));
+                PluginLoggerUtil.info("自检", "  {}（{}）：请求={} | 输入={} Token | 缓存读取率={} | 缓存读取={} Token", I18nService.tr(type.displayName), model, type.requests, formatNumber(type.inputTokens), formatPercent(type.getHitRate()), formatNumber(type.getSavedTokens()));
             } else {
-                PluginLoggerUtil.info("自检", "  {}（{}）：请求={} | 输入={} Token | 供应商未报告缓存数据", I18nService.tr(type.displayName), model, type.requests, formatNumber(type.totalPromptTokens));
+                PluginLoggerUtil.info("自检", "  {}（{}）：请求={} | 输入={} Token | 供应商未报告缓存数据", I18nService.tr(type.displayName), model, type.requests, formatNumber(type.inputTokens));
             }
         }
     }

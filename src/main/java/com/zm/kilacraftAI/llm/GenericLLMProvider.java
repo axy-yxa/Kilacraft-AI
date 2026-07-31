@@ -508,8 +508,11 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         if (!enableJsonOutput) {
             requestBody.addProperty("max_tokens", cachedMaxTokens);
         }
-        // 始终使用流式请求
+        // 始终使用流式请求，并请求流结束时返回完整 usage（含缓存 token）
         requestBody.addProperty("stream", true);
+        JsonObject streamOptions = new JsonObject();
+        streamOptions.addProperty("include_usage", true);
+        requestBody.add("stream_options", streamOptions);
 
         // 启用 JSON 输出格式（仅意图识别阶段使用）
         if (enableJsonOutput) {

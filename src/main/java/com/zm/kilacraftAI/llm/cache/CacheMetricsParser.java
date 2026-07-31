@@ -32,41 +32,52 @@ public final class CacheMetricsParser {
             return CacheMetricsResult.unsupported();
         }
 
-        // 优先级 1：DeepSeek 标准格式 — prompt_cache_hit_tokens + prompt_cache_miss_tokens
-        if (hasBoth(usage, "prompt_cache_hit_tokens", "prompt_cache_miss_tokens")) {
-            long hit = usage.get("prompt_cache_hit_tokens").getAsLong();
-            long miss = usage.get("prompt_cache_miss_tokens").getAsLong();
-            return CacheMetricsResult.supported(hit, miss);
-        }
+        long input = nonNegative(readLong(usage, "prompt_tokens", promptTokens));
+        long output = nonNegative(readLong(usage, "completion_tokens", 0));
+        long total = nonNegative(readLong(usage, "total_tokens", input + output));
 
-        // 优先级 2：OpenAI 原生格式 — prompt_tokens_details.cached_tokens
-        if (usage.has("prompt_tokens_details") && !usage.get("prompt_tokens_details").isJsonNull()) {
-            JsonObject details = usage.getAsJsonObject("prompt_tokens_details");
-            if (details.has("cached_tokens") && !details.get("cached_tokens").isJsonNull()) {
-                long cached = details.get("cached_tokens").getAsLong();
-                long miss = Math.max(0, promptTokens - cached);
-                return CacheMetricsResult.supported(cached, miss);
+        try {
+            // DeepSeek：缓存默认开启，usage 直接报告命中 token。
+            if (hasBoth(usage, "prompt_cache_hit_tokens", "prompt_cache_miss_tokens")) {
+                return CacheMetricsResult.supported(input, output, total, readLong(usage, "prompt_cache_hit_tokens", 0));
             }
+
+            // OpenAI Chat Completions：cached_tokens 位于 prompt_tokens_details。
+            if (usage.has("prompt_tokens_details") && usage.get("prompt_tokens_details").isJsonObject()) {
+                JsonObject details = usage.getAsJsonObject("prompt_tokens_details");
+                if (details.has("cached_tokens") && !details.get("cached_tokens").isJsonNull()) {
+                    return CacheMetricsResult.supported(input, output, total, readLong(details, "cached_tokens", 0));
+                }
+            }
+
+            // 兼容 Anthropic 字段：读取量作为 cacheReadTokens。
+            if (usage.has("cache_read_input_tokens") && !usage.get("cache_read_input_tokens").isJsonNull()) {
+                return CacheMetricsResult.supported(input, output, total, readLong(usage, "cache_read_input_tokens", 0));
+            }
+
+            // 仅有 DeepSeek 命中字段时仍可安全推导输入总量。
+            if (usage.has("prompt_cache_hit_tokens") && !usage.get("prompt_cache_hit_tokens").isJsonNull()) {
+                long hit = readLong(usage, "prompt_cache_hit_tokens", 0);
+                long inferredInput = input > 0 ? input : Math.max(promptTokens, hit);
+                return CacheMetricsResult.supported(inferredInput, output, total > 0 ? total : inferredInput + output, hit);
+            }
+        } catch (RuntimeException ignored) {
+            // usage 解析属于旁路统计，畸形供应商字段不能影响已完成的 AI 响应。
         }
 
-        // 优先级 3：Anthropic 兼容格式 — cache_read_input_tokens + cache_creation_input_tokens
-        if (hasBoth(usage, "cache_read_input_tokens", "cache_creation_input_tokens")) {
-            long read = usage.get("cache_read_input_tokens").getAsLong();
-            long creation = usage.get("cache_creation_input_tokens").getAsLong();
-            return CacheMetricsResult.supported(read, creation);
-        }
-
-        // 优先级 4：单字段回退 — 仅 prompt_cache_hit_tokens
-        if (usage.has("prompt_cache_hit_tokens") && !usage.get("prompt_cache_hit_tokens").isJsonNull()) {
-            long hit = usage.get("prompt_cache_hit_tokens").getAsLong();
-            long miss = Math.max(0, promptTokens - hit);
-            return CacheMetricsResult.supported(hit, miss);
-        }
-
-        return CacheMetricsResult.unsupported();
+        return CacheMetricsResult.unreported(input, output, total);
     }
 
     private static boolean hasBoth(JsonObject obj, String key1, String key2) {
         return obj.has(key1) && !obj.get(key1).isJsonNull() && obj.has(key2) && !obj.get(key2).isJsonNull();
+    }
+
+    private static long readLong(JsonObject obj, String key, long fallback) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) return fallback;
+        return obj.get(key).getAsLong();
+    }
+
+    private static long nonNegative(long value) {
+        return Math.max(0, value);
     }
 }

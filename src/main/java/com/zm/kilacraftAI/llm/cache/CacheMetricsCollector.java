@@ -47,12 +47,19 @@ public final class CacheMetricsCollector {
         TypeMetrics tm = metrics.computeIfAbsent(type, k -> new TypeMetrics());
         tm.modelName.compareAndSet(null, modelName);
         tm.requestCount.increment();
-        if (promptTokens > 0) {
-            tm.totalPromptTokens.add(promptTokens);
+
+        long input = result.getInputTokens() > 0 ? result.getInputTokens() : Math.max(0, promptTokens);
+        if (input > 0) {
+            tm.inputTokens.add(input);
+        }
+        if (result.getOutputTokens() > 0) {
+            tm.outputTokens.add(result.getOutputTokens());
+        }
+        if (result.getTotalTokens() > 0) {
+            tm.totalTokens.add(result.getTotalTokens());
         }
         if (result.isSupported()) {
-            tm.cacheHitTokens.add(result.getHitTokens());
-            tm.cacheMissTokens.add(result.getMissTokens());
+            tm.cacheReadTokens.add(result.getCacheReadTokens());
             tm.supported.compareAndSet(false, true);
         }
     }
@@ -64,45 +71,47 @@ public final class CacheMetricsCollector {
     public CacheStatsSnapshot getSnapshot() {
         List<TypeSnapshot> types = new ArrayList<>();
         long totalRequests = 0;
-        long totalPrompt = 0;
-        long totalHit = 0;
-        long totalMiss = 0;
+        long totalInput = 0;
+        long totalOutput = 0;
+        long totalTokens = 0;
+        long totalCacheRead = 0;
 
         for (Map.Entry<CacheCallTypeEnum, TypeMetrics> entry : metrics.entrySet()) {
             CacheCallTypeEnum type = entry.getKey();
             TypeMetrics tm = entry.getValue();
             long requests = tm.requestCount.sum();
-            long prompt = tm.totalPromptTokens.sum();
-            long hit = tm.cacheHitTokens.sum();
-            long miss = tm.cacheMissTokens.sum();
+            long input = tm.inputTokens.sum();
+            long output = tm.outputTokens.sum();
+            long total = tm.totalTokens.sum();
+            long cacheRead = tm.cacheReadTokens.sum();
             boolean supported = tm.supported.get();
             String model = tm.modelName.get();
 
             totalRequests += requests;
-            totalPrompt += prompt;
-            totalHit += hit;
-            totalMiss += miss;
+            totalInput += input;
+            totalOutput += output;
+            totalTokens += total;
+            totalCacheRead += cacheRead;
 
-            types.add(new TypeSnapshot(type, type.getDisplayName(), requests, prompt, hit, miss, supported, model));
+            types.add(new TypeSnapshot(type, type.getDisplayName(), requests, input, output, total, cacheRead, supported, model));
         }
 
         types.sort(Comparator.comparingInt(a -> a.type.ordinal()));
 
-        return new CacheStatsSnapshot(types, totalRequests, totalPrompt, totalHit, totalMiss);
+        return new CacheStatsSnapshot(types, totalRequests, totalInput, totalOutput, totalTokens, totalCacheRead);
     }
 
     /**
      * 全局命中率（0.0 ~ 1.0），无数据时返回 0。
      */
     public double getGlobalHitRate() {
-        long hit = 0;
-        long miss = 0;
+        long input = 0;
+        long cacheRead = 0;
         for (TypeMetrics tm : metrics.values()) {
-            hit += tm.cacheHitTokens.sum();
-            miss += tm.cacheMissTokens.sum();
+            input += tm.inputTokens.sum();
+            cacheRead += tm.cacheReadTokens.sum();
         }
-        long total = hit + miss;
-        return total > 0 ? (double) hit / total : 0.0;
+        return input > 0 ? (double) cacheRead / input : 0.0;
     }
 
     /**
@@ -157,9 +166,10 @@ public final class CacheMetricsCollector {
 
     private static class TypeMetrics {
         final LongAdder requestCount = new LongAdder();
-        final LongAdder totalPromptTokens = new LongAdder();
-        final LongAdder cacheHitTokens = new LongAdder();
-        final LongAdder cacheMissTokens = new LongAdder();
+        final LongAdder inputTokens = new LongAdder();
+        final LongAdder outputTokens = new LongAdder();
+        final LongAdder totalTokens = new LongAdder();
+        final LongAdder cacheReadTokens = new LongAdder();
         final AtomicReference<String> modelName = new AtomicReference<>();
         final AtomicBoolean supported = new AtomicBoolean(false);
     }

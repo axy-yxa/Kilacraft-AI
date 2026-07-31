@@ -4,8 +4,7 @@ import lombok.Getter;
 
 /**
  * 缓存指标解析结果，由 {@link CacheMetricsParser} 产出。
- * <p>
- * 包含是否支持缓存报告、命中/未命中 token 数。
+ * supported 表示供应商是否报告了缓存 token 数据。
  *
  * @author Zm_Mmm
  * @since 2026-07-30
@@ -14,20 +13,28 @@ import lombok.Getter;
 public final class CacheMetricsResult {
 
     private final boolean supported;
-    private final long hitTokens;
-    private final long missTokens;
+    private final long inputTokens;
+    private final long outputTokens;
+    private final long totalTokens;
+    private final long cacheReadTokens;
 
-    CacheMetricsResult(boolean supported, long hitTokens, long missTokens) {
+    CacheMetricsResult(boolean supported, long inputTokens, long outputTokens, long totalTokens, long cacheReadTokens) {
         this.supported = supported;
-        this.hitTokens = hitTokens;
-        this.missTokens = missTokens;
+        this.inputTokens = Math.max(0, inputTokens);
+        this.outputTokens = Math.max(0, outputTokens);
+        this.totalTokens = Math.max(0, totalTokens);
+        this.cacheReadTokens = Math.max(0, cacheReadTokens);
     }
 
-    static CacheMetricsResult supported(long hitTokens, long missTokens) {
-        return new CacheMetricsResult(true, hitTokens, missTokens);
+    static CacheMetricsResult supported(long inputTokens, long outputTokens, long totalTokens, long cacheReadTokens) {
+        return new CacheMetricsResult(true, inputTokens, outputTokens, totalTokens, cacheReadTokens);
+    }
+
+    static CacheMetricsResult unreported(long inputTokens, long outputTokens, long totalTokens) {
+        return new CacheMetricsResult(false, inputTokens, outputTokens, totalTokens, 0);
     }
 
     static CacheMetricsResult unsupported() {
-        return new CacheMetricsResult(false, 0, 0);
+        return unreported(0, 0, 0);
     }
 }

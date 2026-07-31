@@ -3,7 +3,7 @@ package com.zm.kilacraftAI.llm.cache;
 import java.util.List;
 
 /**
- * 缓存命中率统计快照（不可变），由 {@link CacheMetricsCollector} 产出。
+ * 缓存统计快照（不可变），由 {@link CacheMetricsCollector} 产出。
  *
  * @author Zm_Mmm
  * @since 2026-07-30
@@ -11,27 +11,21 @@ import java.util.List;
 public final class CacheStatsSnapshot {
     public final List<TypeSnapshot> types;
     public final long totalRequests;
-    public final long totalPromptTokens;
-    public final long totalHitTokens;
-    public final long totalMissTokens;
+    public final long totalInputTokens;
+    public final long totalOutputTokens;
+    public final long totalTokens;
+    public final long totalCacheReadTokens;
 
-    CacheStatsSnapshot(List<TypeSnapshot> types, long totalRequests, long totalPromptTokens, long totalHitTokens, long totalMissTokens) {
+    CacheStatsSnapshot(List<TypeSnapshot> types, long totalRequests, long totalInputTokens, long totalOutputTokens, long totalTokens, long totalCacheReadTokens) {
         this.types = types;
         this.totalRequests = totalRequests;
-        this.totalPromptTokens = totalPromptTokens;
-        this.totalHitTokens = totalHitTokens;
-        this.totalMissTokens = totalMissTokens;
+        this.totalInputTokens = totalInputTokens;
+        this.totalOutputTokens = totalOutputTokens;
+        this.totalTokens = totalTokens;
+        this.totalCacheReadTokens = totalCacheReadTokens;
     }
 
     public double getGlobalHitRate() {
-        long total = totalHitTokens + totalMissTokens;
-        return total > 0 ? (double) totalHitTokens / total : 0.0;
-    }
-
-    /**
-     * 节省率 = 命中 token / 总 prompt token（比命中率更保守）
-     */
-    public double getGlobalSaveRate() {
-        return totalPromptTokens > 0 ? (double) totalHitTokens / totalPromptTokens : 0.0;
+        return totalInputTokens > 0 ? (double) totalCacheReadTokens / totalInputTokens : 0.0;
     }
 }
