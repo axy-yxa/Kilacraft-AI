@@ -178,6 +178,18 @@ public class LanguageManager {
     @Getter
     private String commandDoctorConsoleHint;
     @Getter
+    private String commandDoctorGroupTitle;
+    @Getter
+    private String commandDoctorCheckLine;
+    @Getter
+    private String commandDoctorCacheSummary;
+    @Getter
+    private String commandDoctorCacheTypeLine;
+    @Getter
+    private String commandDoctorCacheTypeSupported;
+    @Getter
+    private String commandDoctorCacheTypeUnsupported;
+    @Getter
     private String commandDoctorGroupSummary;
     @Getter
     private String commandDoctorGroupAllNormal;
@@ -277,12 +289,6 @@ public class LanguageManager {
     private String commandDoctorCacheUnsupported;
     @Getter
     private String commandDoctorCacheOk;
-    @Getter
-    private String commandDoctorStatusNormal;
-    @Getter
-    private String commandDoctorStatusLow;
-    @Getter
-    private String commandDoctorStatusAbnormal;
     @Getter
     private String commandCacheNoPermission;
     @Getter
@@ -696,6 +702,12 @@ public class LanguageManager {
         this.commandDoctorGroupAi = config.getString("commands.doctor-group-ai", "AI 能力");
         this.commandDoctorGroupObs = config.getString("commands.doctor-group-obs", "可观测与集成");
         this.commandDoctorConsoleHint = config.getString("commands.doctor-console-hint", "§7完整诊断详情已输出到控制台。");
+        this.commandDoctorGroupTitle = config.getString("commands.doctor-group-title", "§e▌{group}");
+        this.commandDoctorCheckLine = config.getString("commands.doctor-check-line", "{icon} §f{name}§7：§f{detail}");
+        this.commandDoctorCacheSummary = config.getString("commands.doctor-cache-summary", "  §8缓存汇总：§7请求 §f{requests} §8· §7输入 §f{consumed} Token §8· §7命中率 §a{hitrate} §8· §7节省率 §a{saverate} §8· §7节省 §f{saved} Token");
+        this.commandDoctorCacheTypeLine = config.getString("commands.doctor-cache-type-line", "  §8{type} §7({model}) §8· 请求 §f{requests} §8· 输入 §f{consumed} Token §8· {metrics}");
+        this.commandDoctorCacheTypeSupported = config.getString("commands.doctor-cache-type-supported", "命中率 §a{hitrate} §8· 节省 §f{saved} Token");
+        this.commandDoctorCacheTypeUnsupported = config.getString("commands.doctor-cache-type-unsupported", "§7供应商未报告缓存数据");
         this.commandDoctorGroupSummary = config.getString("commands.doctor-group-summary", "§e▌§f{group} §8· §a通过 {pass} §8/ §e提醒 {warn} §8/ §c失败 {fail}");
         this.commandDoctorGroupAllNormal = config.getString("commands.doctor-group-all-normal", "  §a✓ §7全部正常");
         this.commandDoctorIssueWarn = config.getString("commands.doctor-issue-warn", "  §e⚠ §f{name}§7：{detail}");
@@ -747,10 +759,7 @@ public class LanguageManager {
         this.commandDoctorCheckCache = config.getString("commands.doctor-check-cache", "大模型缓存");
         this.commandDoctorCacheNoData = config.getString("commands.doctor-cache-no-data", "暂无数据");
         this.commandDoctorCacheUnsupported = config.getString("commands.doctor-cache-unsupported", "当前供应商未报告缓存数据");
-        this.commandDoctorCacheOk = config.getString("commands.doctor-cache-ok", "{hitrate} [{status}] | {requests}次请求 | 支持类型 {supported}/{total}");
-        this.commandDoctorStatusNormal = config.getString("commands.doctor-status-normal", "正常");
-        this.commandDoctorStatusLow = config.getString("commands.doctor-status-low", "偏低");
-        this.commandDoctorStatusAbnormal = config.getString("commands.doctor-status-abnormal", "异常");
+        this.commandDoctorCacheOk = config.getString("commands.doctor-cache-ok", "{hitrate} | {requests}次请求 | 支持类型 {supported}/{total}");
         this.commandAboutNoPermission = config.getString("commands.about-no-permission", "§c你没有权限使用此命令。");
         this.commandAboutTitle = config.getString("commands.about-title", "§6[Kilacraft-AI] §f版本信息");
         this.commandAboutCurrent = config.getString("commands.about-current", "§7当前版本：§fv{ver}");

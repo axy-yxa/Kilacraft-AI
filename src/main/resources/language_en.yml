@@ -216,10 +216,12 @@ commands:
   doctor-group-ai: "AI Capabilities"
   doctor-group-obs: "Observability & Integrations"
   doctor-console-hint: "§7Full diagnostic details have been printed to the console."
-  doctor-group-summary: "§e▌§f{group} §8· §a{pass} pass §8/ §e{warn} warnings §8/ §c{fail} failed"
-  doctor-group-all-normal: "  §a✓ §7All normal"
-  doctor-issue-warn: "  §e⚠ §f{name}§7: {detail}"
-  doctor-issue-fail: "  §c✗ §f{name}§7: {detail}"
+  doctor-group-title: "§e▌{group}"
+  doctor-check-line: "{icon} §f{name}§7: §f{detail}"
+  doctor-cache-summary: "  §8Cache summary: §7Requests §f{requests} §8· §7Input §f{consumed} Tokens §8· §7Hit rate §a{hitrate} §8· §7Save rate §a{saverate} §8· §7Saved §f{saved} Tokens"
+  doctor-cache-type-line: "  §8{type} §7({model}) §8· Requests §f{requests} §8· Input §f{consumed} Tokens §8· {metrics}"
+  doctor-cache-type-supported: "Hit rate §a{hitrate} §8· Saved §f{saved} Tokens"
+  doctor-cache-type-unsupported: "§7Provider did not report cache data"
   # Diagnostic item names
   doctor-check-runtime-env: "Runtime"
   doctor-check-database: "Database"
@@ -277,10 +279,7 @@ commands:
   doctor-search-no-provider: "Enabled, but no search provider configured"
   doctor-cache-no-data: "No data yet"
   doctor-cache-unsupported: "Provider does not report cache data"
-  doctor-cache-ok: "{hitrate} [{status}] | {requests} requests | supported types {supported}/{total}"
-  doctor-status-normal: "Normal"
-  doctor-status-low: "Low"
-  doctor-status-abnormal: "Abnormal"
+  doctor-cache-ok: "{hitrate} | {requests} requests | supported types {supported}/{total}"
 
   # ==================== /kila about Version & update check ====================
   about-no-permission: "§cYou do not have permission to use this command."

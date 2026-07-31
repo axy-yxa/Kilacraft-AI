@@ -13,6 +13,7 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.llm.cache.CacheMetricsCollector;
 import com.zm.kilacraftAI.llm.cache.CacheStatsSnapshot;
+import com.zm.kilacraftAI.llm.cache.TypeSnapshot;
 import com.zm.kilacraftAI.service.health.SparkDataCollector;
 import org.bukkit.command.CommandSender;
 
@@ -74,7 +75,6 @@ public final class DoctorCommand {
         int personaCount = pcm != null ? pcm.getAllPersonalities().size() : 0;
         checks.add(personaCount > 0 ? pass(Group.AI, lm.getCommandDoctorCheckPersona(), lm.replacePlaceholders(lm.getCommandDoctorPersonaLoaded(), "count", String.valueOf(personaCount))) : warn(Group.AI, lm.getCommandDoctorCheckPersona(), lm.getCommandDoctorPersonaNone()));
         checks.add(checkAgent(cm, lm));
-        checks.add(checkCache(lm));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckProfile(), boolLabel(lm, cm != null && cm.isProfileInjectionEnabled())));
         // 守护系统自检：GuardianManager 是否初始化 + 当前在线活跃守护玩家数
         var guardianManager = plugin.getGuardianManager();
@@ -83,6 +83,7 @@ public final class DoctorCommand {
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckCommandSkill(), boolLabel(lm, cm != null && cm.isCommandSkillEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckPendingResume(), boolLabel(lm, cm != null && cm.isPendingResumeEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckIsolation(), boolLabel(lm, cm != null && cm.isSecurityPlayerIsolationEnabled())));
+        checks.add(checkCache(lm));
 
         // ===== 可观测与集成 =====
         // admin.yml 的 health_guardian（服务器健康监控，非守护系统）
@@ -221,27 +222,41 @@ public final class DoctorCommand {
     public static List<String> buildInGameSummary(List<CheckResult> checks, LanguageManager lm) {
         List<String> lines = new ArrayList<>();
         lines.add(lm.getCommandDoctorReportTitle());
-        for (Group group : Group.values()) {
-            List<CheckResult> groupChecks = checks.stream().filter(check -> check.group() == group).toList();
-            long passCount = groupChecks.stream().filter(check -> check.status() == Status.PASS).count();
-            long warnCount = groupChecks.stream().filter(check -> check.status() == Status.WARN).count();
-            long failCount = groupChecks.stream().filter(check -> check.status() == Status.FAIL).count();
-            lines.add(lm.replacePlaceholders(lm.getCommandDoctorGroupSummary(), "group", groupLabel(group, lm), "pass", String.valueOf(passCount), "warn", String.valueOf(warnCount), "fail", String.valueOf(failCount)));
-
-            if (warnCount == 0 && failCount == 0) {
-                lines.add(lm.getCommandDoctorGroupAllNormal());
-                continue;
+        Group current = null;
+        for (CheckResult check : checks) {
+            if (check.group() != current) {
+                current = check.group();
+                lines.add(lm.replacePlaceholders(lm.getCommandDoctorGroupTitle(), "group", groupLabel(current, lm)));
             }
-            for (CheckResult check : groupChecks) {
-                if (check.status() == Status.PASS) {
-                    continue;
-                }
-                String template = check.status() == Status.FAIL ? lm.getCommandDoctorIssueFail() : lm.getCommandDoctorIssueWarn();
-                lines.add(lm.replacePlaceholders(template, "name", check.name(), "detail", check.detail()));
+            String icon = switch (check.status()) {
+                case PASS -> "§a✅";
+                case FAIL -> "§c✗";
+                case WARN -> "§e⚠";
+            };
+            lines.add(lm.replacePlaceholders(lm.getCommandDoctorCheckLine(), "icon", icon, "name", check.name(), "detail", check.detail()));
+            if (check.name().equals(lm.getCommandDoctorCheckCache())) {
+                appendCacheDetails(lines, lm);
             }
         }
         lines.add(lm.getCommandDoctorConsoleHint());
         return lines;
+    }
+
+    private static void appendCacheDetails(List<String> lines, LanguageManager lm) {
+        CacheStatsSnapshot snapshot = CacheMetricsCollector.getInstance().getSnapshot();
+        if (snapshot.totalRequests == 0) {
+            return;
+        }
+        lines.add(lm.replacePlaceholders(lm.getCommandDoctorCacheSummary(), "requests", String.valueOf(snapshot.totalRequests), "consumed", formatNumber(snapshot.totalPromptTokens), "hitrate", formatPercent(snapshot.getGlobalHitRate()), "saverate", formatPercent(snapshot.getGlobalSaveRate()), "saved", formatNumber(snapshot.totalHitTokens)));
+        for (TypeSnapshot type : snapshot.types) {
+            if (type.requests == 0) {
+                continue;
+            }
+            String model = type.modelName != null ? type.modelName : lm.getCommandCacheUnknownModel();
+            String typeName = lm.getCommandCacheTypeName(type.type);
+            String metrics = type.supported ? lm.replacePlaceholders(lm.getCommandDoctorCacheTypeSupported(), "hitrate", formatPercent(type.getHitRate()), "saved", formatNumber(type.getSavedTokens())) : lm.getCommandDoctorCacheTypeUnsupported();
+            lines.add(lm.replacePlaceholders(lm.getCommandDoctorCacheTypeLine(), "type", typeName, "model", model, "requests", String.valueOf(type.requests), "consumed", formatNumber(type.totalPromptTokens), "metrics", metrics));
+        }
     }
 
     private static String groupLabel(Group g, LanguageManager lm) {
@@ -277,7 +292,6 @@ public final class DoctorCommand {
         DatabaseManager db = plugin.getDatabaseManager();
         PluginLoggerUtil.info("自检", "数据库类型：{}", (db != null && db.getConfig() != null) ? db.getConfig().getType() : "?");
         PluginLoggerUtil.info("自检", "Spark：{}", new SparkDataCollector().isSparkAvailable() ? I18nService.tr("可用") : I18nService.tr("不可用"));
-        PluginLoggerUtil.info("自检", "大模型缓存：命中率={} 节省率={} | 请求={} | 输入={} Token | 支持类型 {}/{}", formatPercent(cacheSnapshot.getGlobalHitRate()), formatPercent(cacheSnapshot.getGlobalSaveRate()), cacheSnapshot.totalRequests, cacheSnapshot.totalPromptTokens, cacheCollector.getSupportedTypeCount(), cacheCollector.getTotalTypeCount());
         if (admin != null) {
             PluginLoggerUtil.info("自检", "健康监控：{} | 外部通知：{}（{}渠道）| 推理模型：{} | 登录问候：{}", admin.isGuardianEnabled(), admin.isNotificationEnabled(), admin.getNotificationChannels().size(), admin.isThinkingModelConfigured() ? admin.getThinkingModelConfig().model() : "N/A", cm != null && cm.isGreetingEnabled());
         }
@@ -292,8 +306,29 @@ public final class DoctorCommand {
         for (Group group : Group.values()) {
             PluginLoggerUtil.info("自检", "----- {} -----", I18nService.tr(group.label));
             checks.stream().filter(check -> check.group() == group).forEach(check -> PluginLoggerUtil.info("自检", "[{}] {}：{}", check.status().name(), check.name(), check.detail()));
+            if (group == Group.AI) {
+                dumpConsoleCacheDetails(cacheSnapshot);
+            }
         }
         PluginLoggerUtil.info("自检", "================================================");
+    }
+
+    private static void dumpConsoleCacheDetails(CacheStatsSnapshot snapshot) {
+        if (snapshot.totalRequests == 0) {
+            return;
+        }
+        PluginLoggerUtil.info("自检", "大模型缓存：请求={} | 输入={} Token | 命中率={} | 节省率={} | 节省={} Token | 支持类型 {}/{}", snapshot.totalRequests, formatNumber(snapshot.totalPromptTokens), formatPercent(snapshot.getGlobalHitRate()), formatPercent(snapshot.getGlobalSaveRate()), formatNumber(snapshot.totalHitTokens), CacheMetricsCollector.getInstance().getSupportedTypeCount(), CacheMetricsCollector.getInstance().getTotalTypeCount());
+        for (TypeSnapshot type : snapshot.types) {
+            if (type.requests == 0) {
+                continue;
+            }
+            String model = type.modelName != null ? type.modelName : "?";
+            if (type.supported) {
+                PluginLoggerUtil.info("自检", "  {}（{}）：请求={} | 输入={} Token | 命中率={} | 节省={} Token", I18nService.tr(type.displayName), model, type.requests, formatNumber(type.totalPromptTokens), formatPercent(type.getHitRate()), formatNumber(type.getSavedTokens()));
+            } else {
+                PluginLoggerUtil.info("自检", "  {}（{}）：请求={} | 输入={} Token | 供应商未报告缓存数据", I18nService.tr(type.displayName), model, type.requests, formatNumber(type.totalPromptTokens));
+            }
+        }
     }
 
     private static String getSearchStatus(WebConfigManager webConfigManager) {
@@ -306,6 +341,19 @@ public final class DoctorCommand {
 
     private static String formatPercent(double value) {
         return String.format("%.1f%%", value * 100);
+    }
+
+    private static String formatNumber(long value) {
+        if (value < 1_000) {
+            return String.valueOf(value);
+        }
+        if (value < 1_000_000) {
+            return String.format("%.1fK", value / 1_000.0);
+        }
+        if (value < 1_000_000_000) {
+            return String.format("%.1fM", value / 1_000_000.0);
+        }
+        return String.format("%.1fG", value / 1_000_000_000.0);
     }
 
     private static CheckResult checkCache(LanguageManager lm) {
@@ -323,8 +371,7 @@ public final class DoctorCommand {
             return warn(Group.AI, lm.getCommandDoctorCheckCache(), lm.getCommandDoctorCacheUnsupported());
         }
 
-        String status = hitRate >= 0.50 ? lm.getCommandDoctorStatusNormal() : (hitRate >= 0.30 ? lm.getCommandDoctorStatusLow() : lm.getCommandDoctorStatusAbnormal());
-        return pass(Group.AI, lm.getCommandDoctorCheckCache(), lm.replacePlaceholders(lm.getCommandDoctorCacheOk(), "hitrate", String.format("%.1f%%", hitRate * 100), "status", status, "requests", String.valueOf(totalRequests), "supported", String.valueOf(supportedCount), "total", String.valueOf(totalCount)));
+        return pass(Group.AI, lm.getCommandDoctorCheckCache(), lm.replacePlaceholders(lm.getCommandDoctorCacheOk(), "hitrate", String.format("%.1f%%", hitRate * 100), "requests", String.valueOf(totalRequests), "supported", String.valueOf(supportedCount), "total", String.valueOf(totalCount)));
     }
 
     public static String redactKey(String key) {
