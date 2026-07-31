@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.config;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.llm.LLMCompatibilityResolver;
 import com.zm.kilacraftAI.llm.ThinkingModelCapable;
 import com.zm.kilacraftAI.llm.ThinkingModelConfig;
 import com.zm.kilacraftAI.service.notification.NotificationService;
@@ -158,9 +159,9 @@ public class AdminConfigManager {
         config = YamlConfiguration.loadConfiguration(configFile);
 
         // 加载推理模型配置
-        thinkingApiUrl = config.getString("thinking_model.api_url", "https://api.deepseek.com/v1/chat/completions");
+        thinkingApiUrl = LLMCompatibilityResolver.resolveApiUrl(config.getString("thinking_model.api_url", "https://api.deepseek.com/v1/chat/completions"));
         thinkingApiKey = config.getString("thinking_model.api_key", "");
-        thinkingModel = config.getString("thinking_model.model", "deepseek-reasoner");
+        thinkingModel = LLMCompatibilityResolver.resolveModel(config.getString("thinking_model.model", "deepseek-v4-pro"));
         thinkingMaxTokens = config.getInt("thinking_model.max_tokens", 4096);
         thinkingTimeout = config.getInt("thinking_model.timeout_seconds", 120);
 

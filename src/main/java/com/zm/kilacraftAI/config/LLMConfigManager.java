@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
+import com.zm.kilacraftAI.llm.LLMCompatibilityResolver;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -78,9 +79,9 @@ public class LLMConfigManager {
         FileConfiguration yaml = YamlConfiguration.loadConfiguration(configFile);
 
         // LLM 基础配置
-        this.apiUrl = yaml.getString("llm.api_url", "https://api.deepseek.com/v1/chat/completions");
+        this.apiUrl = LLMCompatibilityResolver.resolveApiUrl(yaml.getString("llm.api_url", "https://api.deepseek.com/v1/chat/completions"));
         this.apiKey = yaml.getString("llm.api_key", "");
-        this.model = yaml.getString("llm.model", "deepseek-chat");
+        this.model = LLMCompatibilityResolver.resolveModel(yaml.getString("llm.model", "deepseek-v4-flash"));
         this.temperature = yaml.getDouble("llm.temperature", 0.7);
         this.maxTokens = yaml.getInt("llm.max_tokens", 600);
         this.systemPrompt = yaml.getString("llm.system_prompt", "");
