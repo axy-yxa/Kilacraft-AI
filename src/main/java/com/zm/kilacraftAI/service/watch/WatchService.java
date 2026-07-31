@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.service.watch;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
@@ -531,7 +532,7 @@ public final class WatchService implements Listener {
             if (coordinator == null) return;
             SkillContext ctx = new SkillContext(player, "notify", Map.of());
             AnalysisSummary summary = new AnalysisSummary().userMessage(userMessage).injectEventTrigger(eventDescription);
-            coordinator.outputAnalysisResult(player, summary, ctx, new ArrayDeque<>(), OutputScenarioEnum.GUARDIAN, false);
+            coordinator.outputAnalysisResult(player, summary, ctx, new ArrayDeque<>(), OutputScenarioEnum.GUARDIAN, false, CacheCallTypeEnum.SECONDARY_ANALYSIS);
         } catch (Exception e) {
             PluginLoggerUtil.warn(LOG_MODULE, I18nService.tr("通知玩家失败: {}", e.getMessage()));
         }

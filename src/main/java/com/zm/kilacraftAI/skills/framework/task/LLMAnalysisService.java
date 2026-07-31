@@ -5,8 +5,10 @@ import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import org.jetbrains.annotations.Nullable;
 import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
@@ -50,7 +52,7 @@ public class LLMAnalysisService {
      * @param handler 自定义响应处理器（由调用方创建）
      * @return 分析后的最终回复
      */
-    public CompletableFuture<SkillResult> analyzeResultWithHandler(AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, AIResponseHandler handler) {
+    public CompletableFuture<SkillResult> analyzeResultWithHandler(AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, AIResponseHandler handler, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
         // responseFuture 提前创建：前置阶段（提示词构建/画像注入/Provider 获取）抛异常时也保证 Future 被 complete，避免调用链挂起
         CompletableFuture<String> responseFuture = new CompletableFuture<>();
         try {
@@ -139,7 +141,7 @@ public class LLMAnalysisService {
             if (!enableKnowledge) {
                 PluginLoggerUtil.debug("LLM分析", I18nService.tr("分析提示词较长（{}字符），跳过知识库检索以减少噪音", analysisPrompt.length()));
             }
-            llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, enableKnowledge, false, false);
+            llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, enableKnowledge, false, false, cacheCallTypeEnum);
         } catch (RuntimeException e) {
             // 前置阶段异常（非 LLM 调用本身）：记完整堆栈 + 通知 handler + 完成 Future，确保调用链不挂起
             PluginLoggerUtil.error("LLM分析", I18nService.tr("二次分析前置阶段异常: {}", e.getMessage()), e);

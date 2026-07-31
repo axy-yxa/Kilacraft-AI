@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.utility;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
@@ -269,7 +270,7 @@ public class UtilitySkill implements Skill {
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
 
-        CompletableFuture<String> llmFuture = llmProvider.processRequestWithCustomSystemPrompt(userPrompt, playerName, emptyHistory, handler, systemPrompt, false, false, false);
+        CompletableFuture<String> llmFuture = llmProvider.processRequestWithCustomSystemPrompt(userPrompt, playerName, emptyHistory, handler, systemPrompt, false, false, false, CacheCallTypeEnum.UTILITY);
 
         return llmFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {
@@ -355,7 +356,7 @@ public class UtilitySkill implements Skill {
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
 
-        llmProvider.processRequestWithCustomSystemPrompt(userPrompt, playerName, emptyHistory, silentHandler, systemPrompt, false, false, false);
+        llmProvider.processRequestWithCustomSystemPrompt(userPrompt, playerName, emptyHistory, silentHandler, systemPrompt, false, false, false, CacheCallTypeEnum.UTILITY);
 
         return responseFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {

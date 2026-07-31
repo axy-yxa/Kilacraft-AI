@@ -46,6 +46,9 @@ help:
 
   tasks: " §b/kila tasks §8- §fView scheduled task status"
 
+  cache: " §b/kila cache §7[page] §8- §fView LLM cache statistics"
+  cache-reset: " §b/kila cache reset §8- §fReset cache statistics"
+
 # ==================== Permission Messages ====================
 permissions:
   reload: "§cYou don't have permission to reload the configuration!"
@@ -93,7 +96,38 @@ commands:
   # Player sends a message in a banned_worlds world — var: {ai_name}=AI name (from config.yml)
   world-banned-hint: "§c{ai_name} is disabled in this world!"
 
-  # ==================== /kila tasks Scheduled task status ====================
+  # ==================== /kila cache LLM cache statistics ====================
+  cache-no-permission: "§cYou don't have permission to view LLM cache statistics."
+  cache-reset-success: "§aLLM cache statistics have been reset."
+  cache-invalid-page: "§cPage must be a positive integer."
+  cache-page-out-of-range: "§cPage out of range. Total pages: {total}."
+  cache-header: "§6[Kilacraft-AI] §fLLM Cache Statistics §7({page}/{total})"
+  cache-global-line: "§6Global §8· §7Requests §f{requests} §8· §7Input §f{consumed} Tokens"
+  cache-global-rate-line: "§7Hit rate §a{hitrate} §8· §7Save rate §a{saverate} §8· §7Saved §f{saved} Tokens"
+  cache-type-header: "§e▌§f{type} §8· §7{model}"
+  cache-type-usage-line: "  §7Calls §f{requests} §8· §7Input §f{consumed} Tokens"
+  cache-type-metrics-line: "  §7Hit rate §a{hitrate} §8· §7Saved §f{saved} Tokens"
+  cache-no-data: "§7No data yet. Requires at least one LLM call to generate statistics."
+  cache-footer-note-1: "§8Scope: since startup; resets after restart."
+  cache-footer-note-2: "§8N/A means the current provider does not report cache data."
+  cache-footer-note-3: "§8Hit rate=hit/(hit+miss); save rate=hit/total input."
+  cache-unsupported: "  §7Cache data: §8not reported by provider"
+  cache-unknown-model: "Unknown model"
+  # Must stay in CacheCallTypeEnum order
+  cache-type-names:
+    - "Intent Recognition - Phase 1"
+    - "Intent Recognition - Phase 2"
+    - "Pending Resume"
+    - "Secondary Analysis"
+    - "Normal Chat"
+    - "Guardian"
+    - "Login Greeting"
+    - "Player Profile"
+    - "Conversation Suggestions"
+    - "Utilities"
+    - "Server Diagnostics"
+
+      # ==================== /kila tasks Scheduled task status ====================
   tasks-no-permission: "§cYou do not have permission to view scheduled task status."
   tasks-not-init: "§cTaskScheduler not initialized."
   # var: {n}=task count
@@ -181,8 +215,12 @@ commands:
   doctor-group-base: "Basics"
   doctor-group-ai: "AI Capabilities"
   doctor-group-obs: "Observability & Integrations"
-  doctor-console-hint: "§7Full config details have been printed to the console."
-  # 17 diagnostic item names
+  doctor-console-hint: "§7Full diagnostic details have been printed to the console."
+  doctor-group-summary: "§e▌§f{group} §8· §a{pass} pass §8/ §e{warn} warnings §8/ §c{fail} failed"
+  doctor-group-all-normal: "  §a✓ §7All normal"
+  doctor-issue-warn: "  §e⚠ §f{name}§7: {detail}"
+  doctor-issue-fail: "  §c✗ §f{name}§7: {detail}"
+  # Diagnostic item names
   doctor-check-runtime-env: "Runtime"
   doctor-check-database: "Database"
   doctor-check-llm: "LLM Connectivity"
@@ -225,14 +263,24 @@ commands:
   # var: {scope}=entry scope (one of the four above)
   doctor-agent-on: "Enabled ({scope})"
   doctor-llm-no-provider: "No LLM provider configured"
+  doctor-llm-latency: "{model} ({latency}ms)"
+  doctor-llm-error-latency: "{error} ({latency}ms)"
+  doctor-guardian-active: "Enabled ({count} online players)"
   # Suggestion / Watch system / Web search & fetch
   doctor-check-suggestion: "Suggestions"
   doctor-check-watch: "Watch System"
   doctor-check-web-search: "Web Search"
   doctor-check-web-fetch: "Web Fetch"
+  doctor-check-cache: "LLM Cache"
   # var: {provider}=configured search provider(s), comma-separated if multiple
   doctor-search-on: "Enabled ({provider})"
   doctor-search-no-provider: "Enabled, but no search provider configured"
+  doctor-cache-no-data: "No data yet"
+  doctor-cache-unsupported: "Provider does not report cache data"
+  doctor-cache-ok: "{hitrate} [{status}] | {requests} requests | supported types {supported}/{total}"
+  doctor-status-normal: "Normal"
+  doctor-status-low: "Low"
+  doctor-status-abnormal: "Abnormal"
 
   # ==================== /kila about Version & update check ====================
   about-no-permission: "§cYou do not have permission to use this command."

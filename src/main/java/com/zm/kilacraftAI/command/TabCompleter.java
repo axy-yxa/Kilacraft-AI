@@ -87,6 +87,9 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
                 completions.add("doctor");
                 completions.add("about");
             }
+            if (PluginPermissionEnum.ADMIN_CACHE.hasPermission(sender)) {
+                completions.add("cache");
+            }
 
             return getCompletions(args[0], completions);
         }
@@ -173,6 +176,14 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             completions.add("30d");
             if (PluginPermissionEnum.USAGE_OTHER.hasPermission(sender)) {
                 for (Player p : Bukkit.getOnlinePlayers()) completions.add(p.getName());
+            }
+            return getCompletions(args[1], completions);
+        }
+
+        if (args.length == 2 && "cache".equals(args[0])) {
+            List<String> completions = new ArrayList<>();
+            if (PluginPermissionEnum.ADMIN_CACHE.hasPermission(sender)) {
+                completions.add("reset");
             }
             return getCompletions(args[1], completions);
         }

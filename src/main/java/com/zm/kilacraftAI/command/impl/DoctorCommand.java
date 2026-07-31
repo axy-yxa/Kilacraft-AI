@@ -11,6 +11,8 @@ import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
+import com.zm.kilacraftAI.llm.cache.CacheMetricsCollector;
+import com.zm.kilacraftAI.llm.cache.CacheStatsSnapshot;
 import com.zm.kilacraftAI.service.health.SparkDataCollector;
 import org.bukkit.command.CommandSender;
 
@@ -20,10 +22,12 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * /kila doctor：配置自检（管理员专用，admin.info）。
- * 17 项诊断分三组：基础（DB/LLM/Spark/环境）、AI 能力（知识库/Embedding/人格/Agent/画像/守护/命令技能/续体/隔离）、
- * 可观测与集成（守护/通知/推理模型/问候）。
- * 游戏内输出分组诊断清单；控制台输出脱敏配置详情（不重复诊断结论，便于反馈）。
+ * /kila doctor：执行配置自检并输出分层诊断报告。
+ * <p>
+ * 游戏内仅保留分组摘要和异常项，控制台输出完整逐项结果与脱敏配置摘要。
+ *
+ * @author Zm_Mmm
+ * @since 2026-07-30
  */
 public final class DoctorCommand {
 
@@ -41,7 +45,7 @@ public final class DoctorCommand {
         FoliaCompat.getIOPool().execute(() -> {
             try {
                 List<CheckResult> checks = runSyncChecks(plugin);
-                dumpConsole(plugin);
+                dumpConsole(plugin, checks);
                 List<String> summary = buildInGameSummary(checks, lm);
                 FoliaCompat.runTask(plugin, () -> summary.forEach(sender::sendMessage));
             } catch (Exception e) {
@@ -70,10 +74,11 @@ public final class DoctorCommand {
         int personaCount = pcm != null ? pcm.getAllPersonalities().size() : 0;
         checks.add(personaCount > 0 ? pass(Group.AI, lm.getCommandDoctorCheckPersona(), lm.replacePlaceholders(lm.getCommandDoctorPersonaLoaded(), "count", String.valueOf(personaCount))) : warn(Group.AI, lm.getCommandDoctorCheckPersona(), lm.getCommandDoctorPersonaNone()));
         checks.add(checkAgent(cm, lm));
+        checks.add(checkCache(lm));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckProfile(), boolLabel(lm, cm != null && cm.isProfileInjectionEnabled())));
         // 守护系统自检：GuardianManager 是否初始化 + 当前在线活跃守护玩家数
         var guardianManager = plugin.getGuardianManager();
-        checks.add(guardianManager != null ? pass(Group.AI, lm.getCommandDoctorCheckGuardianSystem(), lm.getCommandDoctorEnabled() + "（" + guardianManager.activeCount() + " 个在线玩家）") : warn(Group.AI, lm.getCommandDoctorCheckGuardianSystem(), lm.getCommandDoctorDisabled()));
+        checks.add(guardianManager != null ? pass(Group.AI, lm.getCommandDoctorCheckGuardianSystem(), lm.replacePlaceholders(lm.getCommandDoctorGuardianActive(), "count", String.valueOf(guardianManager.activeCount()))) : warn(Group.AI, lm.getCommandDoctorCheckGuardianSystem(), lm.getCommandDoctorDisabled()));
         checks.add(checkWatch(plugin, lm));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckCommandSkill(), boolLabel(lm, cm != null && cm.isCommandSkillEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckPendingResume(), boolLabel(lm, cm != null && cm.isPendingResumeEnabled())));
@@ -197,13 +202,13 @@ public final class DoctorCommand {
         String model = plugin.getConfigManager() != null ? plugin.getConfigManager().getLlmModel() : "?";
         long start = System.currentTimeMillis();
         try {
-            String result = provider.processRequestWithCustomSystemPrompt(I18nService.tr("请回复 ok"), "Doctor", null, silentHandler(), I18nService.tr("你是健康检查助手，只回复 ok。"), false, false, false).join();
+            String result = provider.processRequestWithCustomSystemPrompt(I18nService.tr("请回复 ok"), "Doctor", null, silentHandler(), I18nService.tr("你是健康检查助手，只回复 ok。"), false, false, false, null).join();
             long latency = System.currentTimeMillis() - start;
             if (LLMResponseUtil.isErrorResponse(result)) {
                 String hint = result.startsWith(LLMResponseUtil.ERROR_PREFIX) ? result.substring(LLMResponseUtil.ERROR_PREFIX.length()) : result;
-                return fail(Group.BASE, lm.getCommandDoctorCheckLlm(), hint + "（" + latency + "ms）");
+                return fail(Group.BASE, lm.getCommandDoctorCheckLlm(), lm.replacePlaceholders(lm.getCommandDoctorLlmErrorLatency(), "error", hint, "latency", String.valueOf(latency)));
             }
-            return pass(Group.BASE, lm.getCommandDoctorCheckLlm(), model + "（" + latency + "ms）");
+            return pass(Group.BASE, lm.getCommandDoctorCheckLlm(), lm.replacePlaceholders(lm.getCommandDoctorLlmLatency(), "model", model, "latency", String.valueOf(latency)));
         } catch (Exception e) {
             return fail(Group.BASE, lm.getCommandDoctorCheckLlm(), e.getMessage());
         }
@@ -216,18 +221,24 @@ public final class DoctorCommand {
     public static List<String> buildInGameSummary(List<CheckResult> checks, LanguageManager lm) {
         List<String> lines = new ArrayList<>();
         lines.add(lm.getCommandDoctorReportTitle());
-        Group current = null;
-        for (CheckResult c : checks) {
-            if (c.group() != current) {
-                current = c.group();
-                lines.add("§e▌" + groupLabel(c.group(), lm));
+        for (Group group : Group.values()) {
+            List<CheckResult> groupChecks = checks.stream().filter(check -> check.group() == group).toList();
+            long passCount = groupChecks.stream().filter(check -> check.status() == Status.PASS).count();
+            long warnCount = groupChecks.stream().filter(check -> check.status() == Status.WARN).count();
+            long failCount = groupChecks.stream().filter(check -> check.status() == Status.FAIL).count();
+            lines.add(lm.replacePlaceholders(lm.getCommandDoctorGroupSummary(), "group", groupLabel(group, lm), "pass", String.valueOf(passCount), "warn", String.valueOf(warnCount), "fail", String.valueOf(failCount)));
+
+            if (warnCount == 0 && failCount == 0) {
+                lines.add(lm.getCommandDoctorGroupAllNormal());
+                continue;
             }
-            String icon = switch (c.status()) {
-                case PASS -> "§a✅";
-                case FAIL -> "§c✗";
-                case WARN -> "§e⚠";
-            };
-            lines.add(icon + " §f" + c.name() + "§7：§f" + c.detail());
+            for (CheckResult check : groupChecks) {
+                if (check.status() == Status.PASS) {
+                    continue;
+                }
+                String template = check.status() == Status.FAIL ? lm.getCommandDoctorIssueFail() : lm.getCommandDoctorIssueWarn();
+                lines.add(lm.replacePlaceholders(template, "name", check.name(), "detail", check.detail()));
+            }
         }
         lines.add(lm.getCommandDoctorConsoleHint());
         return lines;
@@ -242,47 +253,78 @@ public final class DoctorCommand {
     }
 
     /**
-     * 控制台输出脱敏配置详情（不重复游戏内诊断结论，便于服主复制反馈）。
+     * 控制台保留完整逐项诊断和脱敏配置摘要，便于服主复制反馈。
      */
-    private static void dumpConsole(KilacraftAI plugin) {
+    private static void dumpConsole(KilacraftAI plugin, List<CheckResult> checks) {
         ConfigManager cm = plugin.getConfigManager();
         AdminConfigManager admin = plugin.getAdminConfigManager();
-        PluginLoggerUtil.info("自检", "========== Kilacraft-AI 配置详情 ==========");
+        CacheMetricsCollector cacheCollector = CacheMetricsCollector.getInstance();
+        CacheStatsSnapshot cacheSnapshot = cacheCollector.getSnapshot();
+
+        PluginLoggerUtil.info("自检", "========== Kilacraft-AI 自检报告 ==========");
         PluginLoggerUtil.info("自检", "版本：{}", plugin.getDescription().getVersion());
         PluginLoggerUtil.info("自检", "环境：{}{}", AdminSkillUtil.getServerPlatform(), FoliaCompat.isFolia() ? " (Folia)" : "");
-        PluginLoggerUtil.info("自检", "----- {}", I18nService.tr(Group.BASE.label));
+        PluginLoggerUtil.info("自检", "----- 配置摘要 -----");
         if (cm != null) {
             PluginLoggerUtil.info("自检", "LLM API：{}", cm.getLlmApiUrl());
             PluginLoggerUtil.info("自检", "LLM 模型：{}", cm.getLlmModel());
             PluginLoggerUtil.info("自检", "LLM Key：{}", redactKey(cm.getLlmApiKey()));
-        }
-        DatabaseManager db = plugin.getDatabaseManager();
-        PluginLoggerUtil.info("自检", "数据库类型：{}", (db != null && db.getConfig() != null) ? db.getConfig().getType() : "?");
-        PluginLoggerUtil.info("自检", "Spark：{}", new SparkDataCollector().isSparkAvailable() ? I18nService.tr("可用") : I18nService.tr("不可用"));
-        PluginLoggerUtil.info("自检", "----- {}", I18nService.tr(Group.AI.label));
-        if (cm != null) {
             var pcm = plugin.getPersonalitiesConfigManager();
             PluginLoggerUtil.info("自检", "知识库：{} | Embedding：{} | 人格：{}套", cm.isKnowledgeEnabled(), cm.isEmbeddingEnabled(), pcm != null ? pcm.getAllPersonalities().size() : 0);
             PluginLoggerUtil.info("自检", "Agent：{} | 画像分析：{} | 守护系统：{}", cm.isAgentEnabled(), cm.isProfileInjectionEnabled(), plugin.getGuardianManager() != null ? plugin.getGuardianManager().activeCount() : "N/A");
             PluginLoggerUtil.info("自检", "命令技能：{} | 待确认续体：{} | 玩家隔离：{}", cm.isCommandSkillEnabled(), cm.isPendingResumeEnabled(), cm.isSecurityPlayerIsolationEnabled());
         }
-        PluginLoggerUtil.info("自检", "----- {}", I18nService.tr(Group.OBS.label));
+        DatabaseManager db = plugin.getDatabaseManager();
+        PluginLoggerUtil.info("自检", "数据库类型：{}", (db != null && db.getConfig() != null) ? db.getConfig().getType() : "?");
+        PluginLoggerUtil.info("自检", "Spark：{}", new SparkDataCollector().isSparkAvailable() ? I18nService.tr("可用") : I18nService.tr("不可用"));
+        PluginLoggerUtil.info("自检", "大模型缓存：命中率={} 节省率={} | 请求={} | 输入={} Token | 支持类型 {}/{}", formatPercent(cacheSnapshot.getGlobalHitRate()), formatPercent(cacheSnapshot.getGlobalSaveRate()), cacheSnapshot.totalRequests, cacheSnapshot.totalPromptTokens, cacheCollector.getSupportedTypeCount(), cacheCollector.getTotalTypeCount());
         if (admin != null) {
             PluginLoggerUtil.info("自检", "健康监控：{} | 外部通知：{}（{}渠道）| 推理模型：{} | 登录问候：{}", admin.isGuardianEnabled(), admin.isNotificationEnabled(), admin.getNotificationChannels().size(), admin.isThinkingModelConfigured() ? admin.getThinkingModelConfig().model() : "N/A", cm != null && cm.isGreetingEnabled());
         }
         WebConfigManager webcm = plugin.getWebConfigManager();
         String suggestionStatus = onOff(plugin.getSuggestionConfigManager() != null && plugin.getSuggestionConfigManager().isEnabled());
         String watchStatus = onOff(plugin.getWatchConfigManager() != null && plugin.getWatchConfigManager().isEnabled());
-        String searchStatus;
-        if (webcm == null || !webcm.isSearchEnabled()) {
-            searchStatus = "off";
-        } else {
-            String providers = collectConfiguredProviders(webcm);
-            searchStatus = providers.isEmpty() ? "on (no provider)" : "on (" + providers + ")";
-        }
+        String searchStatus = getSearchStatus(webcm);
         String fetchStatus = onOff(webcm != null && webcm.isFetchEnabled());
         PluginLoggerUtil.info("自检", "对话推荐：{} | 监听系统：{} | Web 搜索：{} | Web 抓取：{}", suggestionStatus, watchStatus, searchStatus, fetchStatus);
+
+        PluginLoggerUtil.info("自检", "----- 诊断结果 -----");
+        for (Group group : Group.values()) {
+            PluginLoggerUtil.info("自检", "----- {} -----", I18nService.tr(group.label));
+            checks.stream().filter(check -> check.group() == group).forEach(check -> PluginLoggerUtil.info("自检", "[{}] {}：{}", check.status().name(), check.name(), check.detail()));
+        }
         PluginLoggerUtil.info("自检", "================================================");
+    }
+
+    private static String getSearchStatus(WebConfigManager webConfigManager) {
+        if (webConfigManager == null || !webConfigManager.isSearchEnabled()) {
+            return onOff(false);
+        }
+        String providers = collectConfiguredProviders(webConfigManager);
+        return providers.isEmpty() ? I18nService.tr("启用（未配置供应商）") : I18nService.tr("启用（{}）", providers);
+    }
+
+    private static String formatPercent(double value) {
+        return String.format("%.1f%%", value * 100);
+    }
+
+    private static CheckResult checkCache(LanguageManager lm) {
+        CacheMetricsCollector collector = CacheMetricsCollector.getInstance();
+        if (collector.getTotalRequests() == 0) {
+            return warn(Group.AI, lm.getCommandDoctorCheckCache(), lm.getCommandDoctorCacheNoData());
+        }
+
+        double hitRate = collector.getGlobalHitRate();
+        long totalRequests = collector.getTotalRequests();
+        int supportedCount = collector.getSupportedTypeCount();
+        int totalCount = collector.getTotalTypeCount();
+
+        if (!collector.isAnyTypeSupported()) {
+            return warn(Group.AI, lm.getCommandDoctorCheckCache(), lm.getCommandDoctorCacheUnsupported());
+        }
+
+        String status = hitRate >= 0.50 ? lm.getCommandDoctorStatusNormal() : (hitRate >= 0.30 ? lm.getCommandDoctorStatusLow() : lm.getCommandDoctorStatusAbnormal());
+        return pass(Group.AI, lm.getCommandDoctorCheckCache(), lm.replacePlaceholders(lm.getCommandDoctorCacheOk(), "hitrate", String.format("%.1f%%", hitRate * 100), "status", status, "requests", String.valueOf(totalRequests), "supported", String.valueOf(supportedCount), "total", String.valueOf(totalCount)));
     }
 
     public static String redactKey(String key) {

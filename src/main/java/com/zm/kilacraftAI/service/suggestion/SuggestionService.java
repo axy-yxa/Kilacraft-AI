@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.service.suggestion;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.util.LLMResponseUtil;
@@ -133,7 +134,7 @@ public class SuggestionService {
         }
 
         LLMProvider provider = plugin.getLlmManager().getCurrentProvider();
-        provider.processRequestWithCustomSystemPrompt(prompt.userPrompt(), playerName, recentHistory, handler, prompt.systemPrompt(), false, false, false).orTimeout(config.getTimeoutSeconds(), TimeUnit.SECONDS).thenAccept(rawResponse -> {
+        provider.processRequestWithCustomSystemPrompt(prompt.userPrompt(), playerName, recentHistory, handler, prompt.systemPrompt(), false, false, false, CacheCallTypeEnum.SUGGESTION).orTimeout(config.getTimeoutSeconds(), TimeUnit.SECONDS).thenAccept(rawResponse -> {
             if (rawResponse == null || rawResponse.isEmpty()) {
                 PluginLoggerUtil.debug("对话推荐", I18nService.tr("LLM 为 {} 返回了空的推荐话题", playerName));
                 return;
@@ -143,7 +144,6 @@ public class SuggestionService {
                 PluginLoggerUtil.debug("对话推荐", I18nService.tr("LLM 为 {} 返回了空的推荐话题", playerName));
                 return;
             }
-            PluginLoggerUtil.debug("对话推荐", I18nService.tr("为 {} 生成了 {} 个推荐话题", playerName, suggestions.size()));
             displayer.display(player, suggestions);
         }).exceptionally(ex -> {
             PluginLoggerUtil.warn("对话推荐", I18nService.tr("为 {} 生成推荐话题失败: {}", playerName, ex.getMessage()));

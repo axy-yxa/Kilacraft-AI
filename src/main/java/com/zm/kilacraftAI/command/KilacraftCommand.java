@@ -58,6 +58,7 @@ public class KilacraftCommand implements CommandExecutor {
             case "skills" -> SkillsCommand.handle(plugin, sender, args);
             case "run" -> RunCommand.handle(plugin, sender, args);
             case "doctor" -> DoctorCommand.handle(plugin, sender, args);
+            case "cache" -> CacheCommand.handle(plugin, sender, args);
             case "about" -> AboutCommand.handle(plugin, sender, args);
             default -> NormalChatCommand.handle(plugin, sender, args);
         }
@@ -136,6 +137,13 @@ public class KilacraftCommand implements CommandExecutor {
         // 定时任务
         if (PluginPermissionEnum.TASKS.hasPermission(sender)) {
             sender.sendMessage(languageManager.getHelpTasks());
+            sender.sendMessage("");
+        }
+
+        // 大模型缓存统计
+        if (PluginPermissionEnum.ADMIN_CACHE.hasPermission(sender)) {
+            sender.sendMessage(languageManager.getHelpCache());
+            sender.sendMessage(languageManager.getHelpCacheReset());
             sender.sendMessage("");
         }
     }

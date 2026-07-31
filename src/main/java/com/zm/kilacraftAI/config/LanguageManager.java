@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
@@ -63,6 +64,10 @@ public class LanguageManager {
     private String helpAbout;
     @Getter
     private String helpTasks;
+    @Getter
+    private String helpCache;
+    @Getter
+    private String helpCacheReset;
 
     @Getter
     private String commandTasksNoPermission;
@@ -173,6 +178,14 @@ public class LanguageManager {
     @Getter
     private String commandDoctorConsoleHint;
     @Getter
+    private String commandDoctorGroupSummary;
+    @Getter
+    private String commandDoctorGroupAllNormal;
+    @Getter
+    private String commandDoctorIssueWarn;
+    @Getter
+    private String commandDoctorIssueFail;
+    @Getter
     private String commandDoctorCheckRuntimeEnv;
     @Getter
     private String commandDoctorCheckDatabase;
@@ -243,6 +256,12 @@ public class LanguageManager {
     @Getter
     private String commandDoctorLlmNoProvider;
     @Getter
+    private String commandDoctorLlmLatency;
+    @Getter
+    private String commandDoctorLlmErrorLatency;
+    @Getter
+    private String commandDoctorGuardianActive;
+    @Getter
     private String commandDoctorCheckSuggestion;
     @Getter
     private String commandDoctorCheckWatch;
@@ -250,6 +269,54 @@ public class LanguageManager {
     private String commandDoctorCheckWebSearch;
     @Getter
     private String commandDoctorCheckWebFetch;
+    @Getter
+    private String commandDoctorCheckCache;
+    @Getter
+    private String commandDoctorCacheNoData;
+    @Getter
+    private String commandDoctorCacheUnsupported;
+    @Getter
+    private String commandDoctorCacheOk;
+    @Getter
+    private String commandDoctorStatusNormal;
+    @Getter
+    private String commandDoctorStatusLow;
+    @Getter
+    private String commandDoctorStatusAbnormal;
+    @Getter
+    private String commandCacheNoPermission;
+    @Getter
+    private String commandCacheResetSuccess;
+    @Getter
+    private String commandCacheInvalidPage;
+    @Getter
+    private String commandCachePageOutOfRange;
+    @Getter
+    private String commandCacheHeader;
+    @Getter
+    private String commandCacheGlobalLine;
+    @Getter
+    private String commandCacheGlobalRateLine;
+    @Getter
+    private String commandCacheTypeHeader;
+    @Getter
+    private String commandCacheTypeUsageLine;
+    @Getter
+    private String commandCacheTypeMetricsLine;
+    @Getter
+    private String commandCacheNoData;
+    @Getter
+    private String commandCacheFooterNote1;
+    @Getter
+    private String commandCacheFooterNote2;
+    @Getter
+    private String commandCacheFooterNote3;
+    @Getter
+    private String commandCacheUnsupported;
+    @Getter
+    private String commandCacheUnknownModel;
+    @Getter
+    private List<String> commandCacheTypeNames;
     @Getter
     private String commandDoctorSearchOn;
     @Getter
@@ -529,6 +596,8 @@ public class LanguageManager {
         this.helpDoctor = config.getString("help.doctor", " §b/kila doctor §8- §f配置自检");
         this.helpAbout = config.getString("help.about", " §b/kila about §8- §f版本与更新检查");
         this.helpTasks = config.getString("help.tasks", " §b/kila tasks §8- §f查看定时任务状态");
+        this.helpCache = config.getString("help.cache", " §b/kila cache §7[页码] §8- §f查看大模型缓存统计");
+        this.helpCacheReset = config.getString("help.cache-reset", " §b/kila cache reset §8- §f重置缓存统计");
 
         // 权限相关消息
         this.permissionReload = config.getString("permissions.reload", "§c你没有权限重载配置！");
@@ -626,7 +695,11 @@ public class LanguageManager {
         this.commandDoctorGroupBase = config.getString("commands.doctor-group-base", "基础");
         this.commandDoctorGroupAi = config.getString("commands.doctor-group-ai", "AI 能力");
         this.commandDoctorGroupObs = config.getString("commands.doctor-group-obs", "可观测与集成");
-        this.commandDoctorConsoleHint = config.getString("commands.doctor-console-hint", "§7完整配置详情已输出到控制台。");
+        this.commandDoctorConsoleHint = config.getString("commands.doctor-console-hint", "§7完整诊断详情已输出到控制台。");
+        this.commandDoctorGroupSummary = config.getString("commands.doctor-group-summary", "§e▌§f{group} §8· §a通过 {pass} §8/ §e提醒 {warn} §8/ §c失败 {fail}");
+        this.commandDoctorGroupAllNormal = config.getString("commands.doctor-group-all-normal", "  §a✓ §7全部正常");
+        this.commandDoctorIssueWarn = config.getString("commands.doctor-issue-warn", "  §e⚠ §f{name}§7：{detail}");
+        this.commandDoctorIssueFail = config.getString("commands.doctor-issue-fail", "  §c✗ §f{name}§7：{detail}");
         this.commandDoctorCheckRuntimeEnv = config.getString("commands.doctor-check-runtime-env", "运行环境");
         this.commandDoctorCheckDatabase = config.getString("commands.doctor-check-database", "数据库");
         this.commandDoctorCheckLlm = config.getString("commands.doctor-check-llm", "LLM 连通");
@@ -662,12 +735,22 @@ public class LanguageManager {
         this.commandDoctorAgentScopeNone = config.getString("commands.doctor-agent-scope-none", "无入口");
         this.commandDoctorAgentOn = config.getString("commands.doctor-agent-on", "启用（{scope}）");
         this.commandDoctorLlmNoProvider = config.getString("commands.doctor-llm-no-provider", "未配置 LLM 提供商");
+        this.commandDoctorLlmLatency = config.getString("commands.doctor-llm-latency", "{model}（{latency}ms）");
+        this.commandDoctorLlmErrorLatency = config.getString("commands.doctor-llm-error-latency", "{error}（{latency}ms）");
+        this.commandDoctorGuardianActive = config.getString("commands.doctor-guardian-active", "启用（{count} 个在线玩家）");
         this.commandDoctorCheckSuggestion = config.getString("commands.doctor-check-suggestion", "对话推荐");
         this.commandDoctorCheckWatch = config.getString("commands.doctor-check-watch", "监听系统");
         this.commandDoctorCheckWebSearch = config.getString("commands.doctor-check-web-search", "Web 搜索");
         this.commandDoctorCheckWebFetch = config.getString("commands.doctor-check-web-fetch", "Web 抓取");
         this.commandDoctorSearchOn = config.getString("commands.doctor-search-on", "启用（{provider}）");
         this.commandDoctorSearchNoProvider = config.getString("commands.doctor-search-no-provider", "启用，但未配置任何搜索供应商");
+        this.commandDoctorCheckCache = config.getString("commands.doctor-check-cache", "大模型缓存");
+        this.commandDoctorCacheNoData = config.getString("commands.doctor-cache-no-data", "暂无数据");
+        this.commandDoctorCacheUnsupported = config.getString("commands.doctor-cache-unsupported", "当前供应商未报告缓存数据");
+        this.commandDoctorCacheOk = config.getString("commands.doctor-cache-ok", "{hitrate} [{status}] | {requests}次请求 | 支持类型 {supported}/{total}");
+        this.commandDoctorStatusNormal = config.getString("commands.doctor-status-normal", "正常");
+        this.commandDoctorStatusLow = config.getString("commands.doctor-status-low", "偏低");
+        this.commandDoctorStatusAbnormal = config.getString("commands.doctor-status-abnormal", "异常");
         this.commandAboutNoPermission = config.getString("commands.about-no-permission", "§c你没有权限使用此命令。");
         this.commandAboutTitle = config.getString("commands.about-title", "§6[Kilacraft-AI] §f版本信息");
         this.commandAboutCurrent = config.getString("commands.about-current", "§7当前版本：§fv{ver}");
@@ -739,6 +822,25 @@ public class LanguageManager {
         this.pluginCommandPersonalityListHint = config.getString("plugins-command.personality-list-hint", "§b可用的人格列表：");
         this.pluginCommandError = config.getString("plugins-command.error", "§c发生错误：");
 
+        // 大模型缓存命中率统计
+        this.commandCacheNoPermission = config.getString("commands.cache-no-permission", "§c你没有权限查看大模型缓存统计。");
+        this.commandCacheResetSuccess = config.getString("commands.cache-reset-success", "§a大模型缓存统计已重置。");
+        this.commandCacheInvalidPage = config.getString("commands.cache-invalid-page", "§c页码必须是大于 0 的整数。");
+        this.commandCachePageOutOfRange = config.getString("commands.cache-page-out-of-range", "§c页码超出范围，共 {total} 页。");
+        this.commandCacheHeader = config.getString("commands.cache-header", "§6[Kilacraft-AI] §f大模型缓存统计 §7({page}/{total})");
+        this.commandCacheGlobalLine = config.getString("commands.cache-global-line", "§6全局 §8· §7请求 §f{requests} §8· §7输入 §f{consumed} Token");
+        this.commandCacheGlobalRateLine = config.getString("commands.cache-global-rate-line", "§7命中率 §a{hitrate} §8· §7节省率 §a{saverate} §8· §7节省 §f{saved} Token");
+        this.commandCacheTypeHeader = config.getString("commands.cache-type-header", "§e▌§f{type} §8· §7{model}");
+        this.commandCacheTypeUsageLine = config.getString("commands.cache-type-usage-line", "  §7调用 §f{requests} §8· §7输入 §f{consumed} Token");
+        this.commandCacheTypeMetricsLine = config.getString("commands.cache-type-metrics-line", "  §7命中率 §a{hitrate} §8· §7节省 §f{saved} Token");
+        this.commandCacheNoData = config.getString("commands.cache-no-data", "§7暂无数据。至少需要一次大模型调用才会产生统计。");
+        this.commandCacheFooterNote1 = config.getString("commands.cache-footer-note-1", "§8统计范围：本次服务器启动至今，重启后自动清零。");
+        this.commandCacheFooterNote2 = config.getString("commands.cache-footer-note-2", "§8N/A 表示当前大模型供应商未报告缓存数据。");
+        this.commandCacheFooterNote3 = config.getString("commands.cache-footer-note-3", "§8命中率=命中/(命中+未命中)，节省率=命中/总输入。");
+        this.commandCacheUnsupported = config.getString("commands.cache-unsupported", "  §7缓存数据：§8供应商未报告");
+        this.commandCacheUnknownModel = config.getString("commands.cache-unknown-model", "未知模型");
+        this.commandCacheTypeNames = config.getStringList("commands.cache-type-names");
+
         // 日志消息
         this.logConfigReloaded = config.getString("logs.config-reloaded", "配置已由 {sender} 重载");
         this.logKnowledgeReloaded = config.getString("logs.knowledge-reloaded", "知识库已由 {sender} 重载");
@@ -750,6 +852,14 @@ public class LanguageManager {
         this.logPlayerCommandAttempt = config.getString("logs.player-command-attempt", "玩家 {player} 尝试执行控制台专用命令 /kila plugins");
         this.logAiRequestError = config.getString("logs.ai-request-error", "AI 请求发生错误：");
         this.logPluginCommandAiError = config.getString("logs.plugin-command-ai-error", "插件命令 AI 请求发生错误：");
+    }
+
+    public String getCommandCacheTypeName(CacheCallTypeEnum type) {
+        int index = type.ordinal();
+        if (commandCacheTypeNames != null && index < commandCacheTypeNames.size()) {
+            return commandCacheTypeNames.get(index);
+        }
+        return type.getDisplayName();
     }
 
     /**

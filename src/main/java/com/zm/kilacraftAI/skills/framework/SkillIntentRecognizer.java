@@ -5,6 +5,7 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.util.*;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
@@ -196,7 +197,7 @@ public class SkillIntentRecognizer {
         // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
 //        PluginLoggerUtil.warn("意图识别", "Phase 1提示词: {}", phase1SystemPrompt);
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase1SystemPrompt, false, false, true).thenCompose(phase1Response -> {
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase1SystemPrompt, false, false, true, CacheCallTypeEnum.INTENT_PHASE1).thenCompose(phase1Response -> {
             Set<String> selectedSkills = parsePhase1Response(phase1Response);
 
             // 快速路径：无效意图，不调 Phase 2
@@ -214,7 +215,7 @@ public class SkillIntentRecognizer {
             // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
 //            PluginLoggerUtil.warn("意图识别", "Phase 2提示词: {}", phase2SystemPrompt);
 
-            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase2SystemPrompt, true, false, true).thenApply(phase2Response -> {
+            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase2SystemPrompt, true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(phase2Response -> {
                 PluginLoggerUtil.debug("意图识别", "Phase 2 完成");
                 // 解析 LLM 响应
                 return parseIntentFromResponse(phase2Response);
@@ -300,7 +301,7 @@ public class SkillIntentRecognizer {
 
         PluginLoggerUtil.debug("意图识别", "强制技能 Phase 2 开始：{}", forcedSkillName);
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, buildSilentHandler("强制技能识别"), phase2SystemPrompt, true, false, true).thenApply(response -> {
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, buildSilentHandler("强制技能识别"), phase2SystemPrompt, true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(response -> {
             Object parsed = parseIntentFromResponse(response);
             if (parsed instanceof SkillIntent intent && forcedSkillName.equals(intent.getSkillName())) {
                 // 玩家显式指定技能：置信度置 1.0 通过 isValid 校验，绕过 Phase1 不确定性
@@ -345,7 +346,7 @@ public class SkillIntentRecognizer {
 
         PluginLoggerUtil.debug("意图识别", "待确认续体分类开始：{}.{}", slot.getSkillName(), slot.getAction());
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userInput, "IntentRecognizer", null, handler, systemPrompt, false, false, true).thenApply(this::parsePendingAction);
+        return llmProvider.processRequestWithCustomSystemPrompt(userInput, "IntentRecognizer", null, handler, systemPrompt, false, false, true, CacheCallTypeEnum.PENDING_RESUME).thenApply(this::parsePendingAction);
     }
 
     /**

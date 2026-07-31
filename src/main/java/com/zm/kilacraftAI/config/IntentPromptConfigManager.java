@@ -230,9 +230,9 @@ public class IntentPromptConfigManager {
     public String buildPhase1SystemPrompt(String skillsDescription) {
         StringBuilder sb = new StringBuilder();
         sb.append(phase1RoleDefinition).append("\n\n");
+        sb.append(phase1OutputFormat).append("\n\n");
         sb.append(I18nService.tr("【可用技能列表】")).append("\n");
-        sb.append(skillsDescription).append("\n\n");
-        sb.append(phase1OutputFormat).append("\n");
+        sb.append(skillsDescription).append("\n");
         return sb.toString();
     }
 
@@ -251,11 +251,7 @@ public class IntentPromptConfigManager {
         sb.append(I18nService.tr("【角色定义】")).append("\n");
         sb.append(roleDefinition).append("\n\n");
 
-        // 2. 可用技能列表（动态生成）
-        sb.append(I18nService.tr("【可用技能列表】")).append("\n");
-        sb.append(skillsDescription).append("\n\n");
-
-        // 3. 响应格式规范
+        // 2. 响应格式规范
         sb.append(I18nService.tr("【响应格式规范】")).append("\n");
         sb.append(I18nService.tr("支持以下三种 JSON 输出格式，请根据决策规则选择：")).append("\n\n");
 
@@ -306,7 +302,11 @@ public class IntentPromptConfigManager {
 
         // 7. 输出质量要求
         sb.append(I18nService.tr("【输出质量要求】")).append("\n");
-        sb.append(outputQualityRequirements).append("\n");
+        sb.append(outputQualityRequirements).append("\n\n");
+
+        // 8. 可用技能列表（动态，置于末尾以最大化缓存命中率）
+        sb.append(I18nService.tr("【可用技能列表】")).append("\n");
+        sb.append(skillsDescription).append("\n");
 
         return sb.toString();
     }

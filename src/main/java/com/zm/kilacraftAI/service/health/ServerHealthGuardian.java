@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
 import com.zm.kilacraftAI.common.exception.LLMException;
@@ -776,7 +777,7 @@ public class ServerHealthGuardian implements ManagedTask {
             // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
 //            PluginLoggerUtil.warn(LOG_PREFIX, "== AI 诊断提示词 ==\n[SYSTEM]\n{}\n\n[USER]\n{}", systemPrompt, userMessage);
 
-            LLMResponse response = capable.processRequestWithThinkingModel(systemPrompt, userMessage, config, client);
+            LLMResponse response = capable.processRequestWithThinkingModel(systemPrompt, userMessage, config, client, CacheCallTypeEnum.SERVER_DIAGNOSTICS);
 
             // 记录推理过程（如有）
             if (response.hasReasoning()) {

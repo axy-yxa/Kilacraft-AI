@@ -13,6 +13,7 @@ import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.task.LLMBudgetManager;
 import org.bukkit.Bukkit;
@@ -143,7 +144,7 @@ public final class PluginsCommand {
             }
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt, true, true, false).thenAccept(fullResponse -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt, true, true, false, CacheCallTypeEnum.NORMAL_CHAT).thenAccept(fullResponse -> {
             if (LLMResponseUtil.isErrorResponse(fullResponse)) return;
 
             validator.saveToHistory(pluginHistory, message, fullResponse, targetPlayerId, finalPersonality);

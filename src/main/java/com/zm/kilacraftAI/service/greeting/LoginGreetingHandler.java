@@ -1,10 +1,7 @@
 package com.zm.kilacraftAI.service.greeting;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
-import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
-import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
-import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.enums.*;
 import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
@@ -13,6 +10,7 @@ import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.greeting.GreetingContext;
 import com.zm.kilacraftAI.model.greeting.PlayerVanillaStats;
@@ -187,7 +185,7 @@ public class LoginGreetingHandler implements Listener {
             plugin.getResponsePipeline().startStream(player, channel, true);
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, playerName, emptyHistory, handler, systemPrompt, false, false, false).thenAccept(greeting -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, playerName, emptyHistory, handler, systemPrompt, false, false, false, CacheCallTypeEnum.GREETING).thenAccept(greeting -> {
             // 错误响应（§c 开头）已由 handleError 提示玩家，不持久化到 DB、不写入对话历史，避免污染
             if (greeting != null && !LLMResponseUtil.isErrorResponse(greeting) && player.isOnline()) {
                 ConversationPersistenceService persistence = plugin.getPersistenceService();

@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.service.guardian.action;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
@@ -90,7 +91,7 @@ public final class GuardianLlmAction {
             plugin.getResponsePipeline().startStream(player, channel, true);
         }
 
-        return plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, player.getName(), new ArrayDeque<>(), handler, systemPrompt, false, false, false).orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).thenApply(response -> {
+        return plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, player.getName(), new ArrayDeque<>(), handler, systemPrompt, false, false, false, CacheCallTypeEnum.GUARDIAN).orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).thenApply(response -> {
             if (response == null || LLMResponseUtil.isErrorResponse(response)) {
                 PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("守护 LLM 输出失败或为空（玩家 {}）", player.getName()));
                 // 流式 UI 收尾由 handler.handleError 负责，此处不再重复 cancelStream

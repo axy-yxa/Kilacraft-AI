@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
 import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.common.util.LogSnippetUtil;
@@ -310,7 +311,7 @@ public class ProfileAnalysisService {
 
         int timeoutSeconds = databaseManager.getConfig().getProfileAnalysisTimeoutSeconds();
 
-        provider.processRequestWithCustomSystemPrompt(userMessage, playerName, null, silentHandler, getAnalysisSystemPrompt(profile), false, false, true);
+        provider.processRequestWithCustomSystemPrompt(userMessage, playerName, null, silentHandler, getAnalysisSystemPrompt(profile), false, false, true, CacheCallTypeEnum.PROFILE);
 
         return responseFuture.orTimeout(timeoutSeconds, TimeUnit.SECONDS).thenAccept(response -> handleAnalysisResult(playerUuid, profile, response, messageCount, windowStart)).exceptionally(ex -> {
             PluginLoggerUtil.warn("画像分析", I18nService.tr("LLM 分析失败: {} - {}", playerUuid, ex.getMessage()));

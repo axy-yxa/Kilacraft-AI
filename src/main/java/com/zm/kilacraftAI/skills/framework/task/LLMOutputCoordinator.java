@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.framework.task;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
@@ -12,6 +13,7 @@ import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
 import com.zm.kilacraftAI.common.util.MessageUtil;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Deque;
 import java.util.UUID;
@@ -80,7 +82,7 @@ public class LLMOutputCoordinator {
      * @param showPlaceholder 是否显示占位符（主动请求=true，主动通知=false）
      * @return CompletableFuture<SkillResult> 分析结果
      */
-    public CompletableFuture<SkillResult> outputAnalysisResult(Player player, AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, OutputScenarioEnum scenario, boolean showPlaceholder) {
+    public CompletableFuture<SkillResult> outputAnalysisResult(Player player, AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, OutputScenarioEnum scenario, boolean showPlaceholder, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
         if (player == null || !player.isOnline()) {
             // 异步 LLM 链执行期间玩家下线：此 failure 会被调用方 thenAccept 静默丢弃，补一条日志便于排查
             PluginLoggerUtil.warn("LLM输出", "二次分析时玩家已离线，结果未送达：{}", player != null ? player.getName() : "null");
@@ -110,7 +112,7 @@ public class LLMOutputCoordinator {
         AIResponseHandler handler = createStreamHandler(player, scenario);
 
         // 调用 LLM 分析（使用自定义 Handler）
-        return analysisService.analyzeResultWithHandler(summary, context, history, handler);
+        return analysisService.analyzeResultWithHandler(summary, context, history, handler, cacheCallTypeEnum);
     }
 
     /**

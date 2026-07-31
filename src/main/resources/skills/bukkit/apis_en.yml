@@ -81,7 +81,9 @@
 #    - Note: For Collection types (e.g. getOnlinePlayers), auto-injects element count instead of the collection itself
 #    - Customizable: Yes, recommended to use lowercase letters and underscores
 
-skill_description: "Generic Bukkit read-only API query executor. Can query: player status (health, hunger, oxygen, exp, level, gamemode, flying, sneaking, sprinting, on fire, freezing, potion effects), inventory (main/offhand item, backpack, ender chest, armor), spatial awareness (coordinates, block at feet, target block, eye location, velocity, vehicle, compass target), environment (biome, temperature, humidity, weather, time, world seed, world border), server data (online players, version, MOTD, TPS), etc. Commonly used for single-intent queries, multi-step task combinations, and as condition monitoring data source for the player custom watch system (WatchSkill, polling mode). Keywords: where, location, block at feet, holding, health, hunger, what level, ping, weather, what time, block type, biome."
+skill_description: "Query the player's current game state and environment. Supports querying: health and max health, hunger, oxygen, experience and level, game mode, flying/sneaking/sprinting/on-fire/freezing state, potion effects; main hand/offhand item, inventory contents, ender chest, armor; current coordinates and world, block at feet, target block, eye location, velocity, vehicle, compass target; biome, temperature, humidity, weather, time, world seed, world border; online player list, server version, MOTD, TPS.
+Triggers: when the player asks about their own state or surroundings, e.g. 'where am I', 'what block am I standing on', 'what am I holding', 'how much health do I have', 'what time is it', 'how's the weather', 'how many players are online'.
+Reverse boundary: NOT for modifying game state (giving items/teleporting/running commands go to the corresponding skills); NOT for querying lifetime cumulative stats (use BukkitStats skill)."
 
 hints:
   - "These APIs are all read-only data query operations that do not change game state"

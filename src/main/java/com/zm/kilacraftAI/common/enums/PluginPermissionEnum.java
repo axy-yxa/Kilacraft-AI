@@ -166,7 +166,12 @@ public enum PluginPermissionEnum {
     /**
      * 网页抓取技能（WebFetchSkill）
      */
-    WEB_FETCH("kilacraft.webfetch");
+    WEB_FETCH("kilacraft.webfetch"),
+
+    /**
+     * 大模型缓存命中率统计查看
+     */
+    ADMIN_CACHE("kilacraft.admin.cache");
 
     /**
      * 权限节点

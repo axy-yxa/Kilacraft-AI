@@ -111,13 +111,14 @@ suggestion:
       你的任务是预测玩家接下来最可能想问的问题或想做的操作。
 
       【推荐主轴：延续当前话题】
-      推荐的核心是顺着玩家当前正在聊的话题自然延伸。玩家问煮玉米多久，就推荐玉米相关的后续（怎么判断熟了、煮完怎么保存）；玩家问减脂餐，就推荐减脂相关的深入问题。不要脱离对话语境去推荐不相干的内容。
+      推荐的核心是顺着玩家当前正在聊的话题自然延伸，无论是游戏知识、攻略还是生活话题，都顺着当前方向深入。不要脱离对话语境去推荐不相干的内容。
+
+      【操作型推荐必须来自系统能力】
+      如果你要推荐的是让AI执行的操作（查询、设置、监听、购买等），必须确认该操作在下方【系统能力】列表中存在，不存在的操作不要推荐。
+      知识性问题（"怎么做""为什么""是什么"等）不受此约束，可以自由延伸。
 
       【系统能力是背景，不是推荐目标】
-      下方【系统能力】列表仅供你了解服务器能做什么，不是推荐清单。只有当当前话题本身与这些能力相关时（如玩家在聊市场交易→可推荐查余额；玩家在聊背包→可推荐查看背包），才把它们作为话题的自然延伸来推荐。话题与系统能力无关时（知识问答、攻略、生活话题等），就纯粹顺着话题深入，不要硬塞系统能力。
-
-      【系统能力】
-      {available_skills}
+      下方【系统能力】列表仅供你了解服务器能做什么，不是推荐清单。只有当当前话题本身与这些能力相关时，才把它们作为话题的自然延伸来推荐。话题与系统能力无关时（知识问答、攻略、生活话题等），就纯粹顺着话题深入，不要硬塞系统能力。
 
       要求：
       - 最多预测{count}个，宁缺毋滥
@@ -128,6 +129,9 @@ suggestion:
       - 不要推荐与当前话题明显不相干的内容
       - 只返回内容本身，每行一个，不要编号、不要前缀、不要解释
 
+      【系统能力】
+      {available_skills}
+
     user_prompt_template: |
       基于以上对话历史，预测玩家接下来最可能想问的问题或想做的操作（最多{count}个，宁缺毋滥）：
 
@@ -137,13 +141,14 @@ suggestion:
       Your task is to predict what the player would most likely want to ask or do next.
 
       [Recommendation axis: continue the current topic]
-      The core of recommendation is to naturally extend the topic the player is currently discussing. If the player asks how long to boil corn, recommend corn-related follow-ups (how to tell it's done, how to store it); if the player asks about fat-loss meals, recommend deeper questions on fat loss. Do NOT derail the conversation to recommend unrelated content.
+      The core of recommendation is to naturally extend the topic the player is currently discussing — whether it is game knowledge, guides, or everyday topics, always go deeper in the current direction. Do NOT derail the conversation to recommend unrelated content.
+
+      [Operational recommendations must come from system capabilities]
+      If you are recommending something for the AI to execute (query, set, monitor, purchase, etc.), it must exist in the [System capabilities] list below. Do not recommend operations that are not listed.
+      Knowledge questions ("how to", "why", "what is", etc.) are not subject to this constraint and can be freely extended.
 
       [System capabilities are background, not the recommendation target]
-      The [System capabilities] list below only tells you what the server can do — it is NOT a recommendation menu. Only treat them as natural topic extensions when the current topic is actually related to these capabilities (e.g. player discussing market trades → can suggest checking balance; player discussing inventory → can suggest viewing inventory). When the topic has nothing to do with system capabilities (knowledge Q&A, guides, life topics, etc.), just go deeper on the topic itself — do NOT force system capabilities into the recommendation.
-
-      [System capabilities]
-      {available_skills}
+      The [System capabilities] list below only tells you what the server can do — it is NOT a recommendation menu. Only treat them as natural topic extensions when the current topic is actually related to these capabilities. When the topic has nothing to do with system capabilities (knowledge Q&A, guides, life topics, etc.), just go deeper on the topic itself — do NOT force system capabilities into the recommendation.
 
       Requirements:
       - Predict at most {count}, quality over quantity
@@ -153,6 +158,9 @@ suggestion:
       - Don't repeat questions the player has already asked
       - Do not recommend content that is clearly unrelated to the current topic
       - Output only the content, one per line, no numbering, no prefix, no explanation
+
+      [System capabilities]
+      {available_skills}
 
     user_prompt_template_en: |
       Based on the above conversation history, predict what the player would most likely want to ask or do next (at most {count}, quality over quantity):

@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.handler;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
@@ -214,7 +215,7 @@ public class AIRequestHandler {
             PluginLoggerUtil.debug("AI请求", "任务计划执行完成，开始 LLM 二次分析...");
 
             // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
-            plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.TASK_RESULT, false).thenAccept(result -> {
+            plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.TASK_RESULT, false, CacheCallTypeEnum.SECONDARY_ANALYSIS).thenAccept(result -> {
                 // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, result.getMessage(), ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
                 triggerSuggestion(ctx, OutputScenarioEnum.TASK_RESULT);
@@ -340,7 +341,7 @@ public class AIRequestHandler {
      */
     private CompletableFuture<SkillResult> outputSingleSkillResult(SkillResult execResult, SkillContext context, String message, RequestContext ctx) {
         AnalysisSummary summary = new AnalysisSummary().userMessage(message).addResult(execResult.getStatus().name(), execResult.getMessage()).statistics(1, 0, 0, 0);
-        return plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.SKILL_RESULT, false).thenApply(result -> {
+        return plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.SKILL_RESULT, false, CacheCallTypeEnum.SECONDARY_ANALYSIS).thenApply(result -> {
             if (ctx.isBroadcast()) {
                 boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenarioEnum.SKILL_RESULT) == OutputChannelEnum.CHAT);
                 plugin.getResponsePipeline().broadcast(result.getMessage(), isChatChannel ? ctx.player() : null);
@@ -375,7 +376,7 @@ public class AIRequestHandler {
             }
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt, true, true, false).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt, true, true, false, CacheCallTypeEnum.NORMAL_CHAT).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> {
             // 错误响应已由 handleError 提示玩家；跳过避免错误串污染对话历史
             if (LLMResponseUtil.isErrorResponse(fullResponse)) {
                 return;

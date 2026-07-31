@@ -172,6 +172,9 @@ permissions:
   kilacraft.admin.info:
     description: 插件运行信息与配置自检（/kila doctor 自检、/kila about 版本检查）
     default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+  kilacraft.admin.cache:
+    description: 大模型缓存命中率统计查看
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
   kilacraft.admin.*:
     description: 允许使用所有管理员功能（包含以上全部）
     default: op
@@ -180,6 +183,7 @@ permissions:
       kilacraft.admin.player: true
       kilacraft.admin.audit: true
       kilacraft.admin.info: true
+      kilacraft.admin.cache: true
 
   # Web 搜索与抓取技能权限 / Web search & fetch skill permissions
   kilacraft.websearch:

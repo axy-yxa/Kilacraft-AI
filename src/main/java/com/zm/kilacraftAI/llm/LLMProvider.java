@@ -1,7 +1,9 @@
 package com.zm.kilacraftAI.llm;
 
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Deque;
 import java.util.UUID;
@@ -28,9 +30,10 @@ public interface LLMProvider {
      * @param enableKnowledgeRetrieval 是否启用知识检索
      * @param enableDebugLog           是否启用调试日志
      * @param enableJsonOutput         是否启用 JSON 输出
+     * @param cacheCallTypeEnum        调用类型（用于缓存命中率统计，可为 null 表示不统计）
      * @return 完整的 AI 响应
      */
-    CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String customSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog, boolean enableJsonOutput);
+    CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String customSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog, boolean enableJsonOutput, @Nullable CacheCallTypeEnum cacheCallTypeEnum);
 
     /**
      * 刷新配置缓存
