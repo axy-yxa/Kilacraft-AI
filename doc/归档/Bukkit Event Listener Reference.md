@@ -1,7 +1,17 @@
+> ⚠️ **Archived Document (v2.2.0)**
+>
+> The 19 Bukkit Event listeners described here (part of the removed AFK task system) were entirely removed in v2.2.0.
+>
+> Event-listening is now provided by **WatchSkill** (player-custom watches), which supports 11 high-value event types (furnace smelt / crop mature / entity death / spawn / player death / teleport / level change / world change / block break / fishing / chat). See "Built-in Skills and Events Capability List".
+>
+> This document is kept for historical reference only; the body is no longer maintained.
+
+---
+
 # Kilacraft-AI - Bukkit Event Listener Reference
 
 > **Last Updated**: 2026-05-06  
-> **Description**: This document provides detailed information about all implemented Bukkit Event listeners (AFK Task System), including configuration examples and usage scenarios
+> **Description**: This document provides detailed information about all implemented Bukkit Event listeners (AFK Task System), including configuration examples and usage scenarios (**archived; listeners removed**)
 
 ---
 

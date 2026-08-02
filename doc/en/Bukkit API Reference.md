@@ -1,105 +1,105 @@
 # Kilacraft-AI - Bukkit API Reference Manual
 
-> **Last Updated**: 2026-05-06  
+> **Last Updated**: 2026-08-01  
 > **Description**: This document provides detailed explanations, configuration examples, and usage scenarios for all built-in Bukkit APIs
 
 ---
 
 ## 📊 Bukkit API Quick Reference
 
-### 👤 Player APIs (45)
+### 👤 Player-related APIs (44)
 
 | API ID | Display Name | Function | Call Mode | Permission |
 |--------|-------------|----------|-----------|------------|
 | `get_player_hand_item` | Get Player Main Hand Item | Get main hand item info | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_offhand_item` | Get Player Off Hand Item | Get off hand item info | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_armor_contents` | Get Player Armor | Get 4 armor slot items | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_inventory` | Get Player Inventory | Get all inventory items | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_health` | Get Player Health | Get current/max health | method_chain | `kilacraft.api.player.status` |
-| `get_player_hunger` | Get Player Hunger | Get current/max hunger | method_chain | `kilacraft.api.player.status` |
-| `get_player_level` | Get Player Level | Get current level/exp | method_chain | `kilacraft.api.player.status` |
-| `get_player_gamemode` | Get Player Gamemode | Get current gamemode | method_chain | `kilacraft.api.player.status` |
-| `get_player_location` | Get Player Location | Get coordinates/world/direction | method_chain | `kilacraft.api.player.location` |
-| `get_player_velocity` | Get Player Velocity | Get movement speed/direction | method_chain | `kilacraft.api.player.location` |
-| `get_player_fly_status` | Get Player Fly Status | Get fly mode/allow fly/speed | method_chain | `kilacraft.api.player.status` |
-| `get_player_game_time` | Get Player Game Time | Get player-specific game time | method_chain | `kilacraft.api.player.info` |
-| `get_player_statistics` | Get Player Statistics | Get custom statistics | method_chain | `kilacraft.api.player.stats` |
-| `get_player_max_health` | Get Player Max Health | Get maximum health value | method_chain | `kilacraft.api.player.status` |
-| `get_player_absorption` | Get Player Absorption | Get absorption hearts | method_chain | `kilacraft.api.player.status` |
-| `get_player_saturation` | Get Player Saturation | Get saturation value | method_chain | `kilacraft.api.player.status` |
-| `get_player_exhaustion` | Get Player Exhaustion | Get exhaustion value | method_chain | `kilacraft.api.player.status` |
-| `get_player_food_level` | Get Player Food Level | Get food level | method_chain | `kilacraft.api.player.status` |
-| `get_player_total_experience` | Get Player Total Exp | Get total experience | method_chain | `kilacraft.api.player.status` |
-| `get_player_exp` | Get Player Exp Progress | Get exp bar progress | method_chain | `kilacraft.api.player.status` |
-| `get_player_exp_to_level` | Get Exp to Next Level | Get exp needed for next level | method_chain | `kilacraft.api.player.status` |
-| `get_player_display_name` | Get Player Display Name | Get display name | method_chain | `kilacraft.api.player.info` |
-| `get_player_ip` | Get Player IP | Get IP address | method_chain | `kilacraft.api.player.info` |
-| `get_player_port` | Get Player Port | Get port number | method_chain | `kilacraft.api.player.info` |
-| `get_player_address` | Get Player Address | Get full address | method_chain | `kilacraft.api.player.info` |
-| `get_player_unique_id` | Get Player UUID | Get unique identifier | method_chain | `kilacraft.api.player.info` |
-| `get_player_first_played` | Get Player First Join | Get first join time | method_chain | `kilacraft.api.player.info` |
-| `get_player_last_played` | Get Player Last Seen | Get last seen time | method_chain | `kilacraft.api.player.info` |
-| `get_player_is_banned` | Get Player Ban Status | Check if banned | method_chain | `kilacraft.api.player.info` |
-| `get_player_is_op` | Get Player OP Status | Check if OP | method_chain | `kilacraft.api.player.info` |
-| `get_player_is_online` | Get Player Online Status | Check if online | method_chain | `kilacraft.api.player.info` |
-| `get_player_inventory_usage` | Get Inventory Usage | Get occupied slots/total/% | additional_methods | `kilacraft.api.player.inventory` |
-| `get_player_inventory` | Get Inventory Summary | Get inventory items name+amount | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_ender_chest` | Get Ender Chest Summary | Get ender chest items name+amount | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_open_container` | Get Open Container Content | Get current open container items | additional_methods | `kilacraft.api.player.inventory` |
+| `get_player_offhand_item` | Get Player Offhand Item | Get off hand (shield slot) item | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_health` | Get Player Health | Get current/max health | additional_methods | `kilacraft.api.player.status` |
+| `get_player_food` | Get Player Hunger | Get food level and saturation | additional_methods | `kilacraft.api.player.status` |
+| `get_player_oxygen` | Get Player Oxygen | Get underwater breathing time | additional_methods | `kilacraft.api.player.status` |
+| `get_player_location` | Get Player Location | Get coordinates and world | additional_methods | `kilacraft.api.player.info` |
+| `get_player_eye_location` | Get Player Eye Location | Get precise eye coordinates | method_chain | `kilacraft.api.player.info` |
+| `get_player_velocity` | Get Player Velocity | Get movement velocity vector | method_chain | `kilacraft.api.player.info` |
+| `get_player_gamemode` | Get Player Gamemode | Get Survival/Creative/Adventure/Spectator | method_chain | `kilacraft.api.player.info` |
+| `get_player_fly_status` | Get Player Fly Status | Get allow flying/is flying | additional_methods | `kilacraft.api.player.info` |
+| `get_player_fly_speed` | Get Player Fly Speed | Get fly speed setting | method_chain | `kilacraft.api.player.info` |
+| `get_player_walk_speed` | Get Player Walk Speed | Get walk speed setting | method_chain | `kilacraft.api.player.info` |
+| `get_player_exp` | Get Player Experience | Get level and exp progress | additional_methods | `kilacraft.api.player.status` |
+| `get_player_exp_to_level` | Get Exp to Next Level | Get exp needed to level up | method_chain | `kilacraft.api.player.status` |
+| `get_player_main_hand` | Get Player Main Hand Preference | Get left-handed/right-handed setting | method_chain | `kilacraft.api.player.info` |
+| `get_player_ping` | Get Player Ping | Get network latency (ms) | method_chain | `kilacraft.api.player.info` |
+| `get_player_sleep_status` | Get Player Sleep Status | Get whether sleeping and duration | additional_methods | `kilacraft.api.player.status` |
+| `get_player_last_death` | Get Player Last Death Location | Get death location coordinates | method_chain | `kilacraft.api.player.info` |
+| `get_player_attack_cooldown` | Get Player Attack Cooldown | Get attack cooldown progress (0-1) | method_chain | `kilacraft.api.player.status` |
+| `get_player_vehicle` | Get Player Vehicle Status | Get whether in a vehicle | additional_methods | `kilacraft.api.player.info` |
+| `get_player_fire_status` | Get Player Fire Status | Get whether on fire and burn time | additional_methods | `kilacraft.api.player.status` |
+| `get_player_freeze_status` | Get Player Freeze Status | Get whether frozen and freeze level | additional_methods | `kilacraft.api.player.status` |
+| `get_player_pose` | Get Player Pose | Get standing/crouching/swimming, etc. | method_chain | `kilacraft.api.player.info` |
+| `get_player_armor` | Get Player Armor | Get full armor set info | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_potion_effects` | Get Player Potion Effects | Get all active potion effects | method_chain | `kilacraft.api.player.status` |
+| `get_player_target_block` | Get Player Target Block | Get block the crosshair is aiming at | method_chain | `kilacraft.api.player.info` |
+| `get_player_sneak_status` | Get Player Sneak Status | Get whether sneaking (Shift) | method_chain | `kilacraft.api.player.status` |
+| `get_player_sprint_status` | Get Player Sprint Status | Get whether sprinting (double-tap W) | method_chain | `kilacraft.api.player.status` |
+| `get_player_locale` | Get Player Client Language | Get language setting (e.g. zh_CN) | method_chain | `kilacraft.api.player.info` |
+| `get_player_display_name` | Get Player Display Name | Get display name (incl. prefix) | method_chain | `kilacraft.api.player.info` |
+| `get_player_bed_spawn` | Get Player Bed Spawn | Get bed spawn location | method_chain | `kilacraft.api.player.info` |
+| `get_player_total_exp` | Get Player Total Experience | Get accumulated total experience | method_chain | `kilacraft.api.player.status` |
+| `get_player_inventory_usage` | Get Inventory Usage | Get occupied/total slots and % | additional_methods | `kilacraft.api.player.inventory` |
+| `get_player_inventory` | Get Inventory Summary | Get inventory item name+amount list | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_ender_chest` | Get Ender Chest Summary | Get ender chest item name+amount list | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_open_container` | Get Open Container Content | Get current open container item summary | additional_methods | `kilacraft.api.player.inventory` |
 | `get_player_open_inventory` | Get Open Inventory | Get currently viewing container/type | additional_methods | `kilacraft.api.player.info` |
 | `get_player_absorption` | Get Absorption Hearts | Get extra absorption health | method_chain | `kilacraft.api.player.status` |
 | `get_player_arrows_in_body` | Get Arrows in Body | Get embedded arrow count | method_chain | `kilacraft.api.player.status` |
-| `get_player_no_damage_ticks` | Get No Damage Ticks | Get invincibility time after hit | method_chain | `kilacraft.api.player.status` |
+| `get_player_no_damage_ticks` | Get No Damage Ticks | Get invincibility time after hit (tick) | method_chain | `kilacraft.api.player.status` |
 | `get_player_fall_distance` | Get Fall Distance | Get accumulated fall distance | method_chain | `kilacraft.api.player.status` |
 | `get_player_compass_target` | Get Compass Target | Get compass pointing coordinates | additional_methods | `kilacraft.api.player.info` |
 | `get_player_feet_block` | Get Feet Block | Get block standing on | method_chain | `kilacraft.api.player.info` |
 | `get_player_last_damage` | Get Last Damage | Get last damage source/cause/amount | method_chain | `kilacraft.api.player.status` |
 
-### 🌍 World APIs (22)
+### 🌍 World-related APIs (21)
 
 | API ID | Display Name | Function | Call Mode | Permission |
 |--------|-------------|----------|-----------|------------|
 | `get_world_time` | Get World Time | Get game time (HH:MM) | method_chain | `kilacraft.api.world.info` |
-| `get_world_full_time` | Get World Full Time | Get total ticks | method_chain | `kilacraft.api.world.info` |
-| `get_world_day` | Get World Day | Get day count | method_chain | `kilacraft.api.world.info` |
-| `get_world_difficulty` | Get World Difficulty | Get difficulty level | method_chain | `kilacraft.api.world.info` |
-| `get_world_environment` | Get World Environment | Get environment type | method_chain | `kilacraft.api.world.info` |
-| `get_world_weather` | Get World Weather | Get weather status | method_chain | `kilacraft.api.world.info` |
-| `get_world_storm_duration` | Get Storm Duration | Get rain remaining time | method_chain | `kilacraft.api.world.info` |
-| `get_world_thunder_duration` | Get Thunder Duration | Get thunder remaining time | method_chain | `kilacraft.api.world.info` |
-| `get_world_spawn_location` | Get World Spawn | Get spawn point coordinates | method_chain | `kilacraft.api.world.info` |
-| `get_world_max_height` | Get World Max Height | Get maximum height | method_chain | `kilacraft.api.world.info` |
-| `get_world_min_height` | Get World Min Height | Get minimum height | method_chain | `kilacraft.api.world.info` |
-| `get_world_chunk_count` | Get Loaded Chunks | Get loaded chunk count | method_chain | `kilacraft.api.world.info` |
-| `get_world_entity_count` | Get World Entities | Get entity count | method_chain | `kilacraft.api.world.info` |
-| `get_world_living_entity_count` | Get Living Entities | Get living entity count | method_chain | `kilacraft.api.world.info` |
-| `get_world_player_count` | Get World Players | Get player count in world | method_chain | `kilacraft.api.world.info` |
-| `get_world_name` | Get World Name | Get world name | method_chain | `kilacraft.api.world.info` |
-| `get_world_seed` | Get World Seed | Get world seed | method_chain | `kilacraft.api.world.info` |
-| `get_world_is_pvp_allowed` | Get PvP Status | Check if PvP allowed | method_chain | `kilacraft.api.world.info` |
-| `get_world_is_hardcore` | Get Hardcore Status | Check if hardcore mode | method_chain | `kilacraft.api.world.info` |
-| `get_world_is_natural_regeneration` | Get Natural Regen | Check natural regeneration | method_chain | `kilacraft.api.world.info` |
-| `get_world_ultra_warm` | Get Ultra Warm | Check if ultra warm | method_chain | `kilacraft.api.world.info` |
+| `get_weather` | Get Weather | Get clear/rain/thunderstorm | additional_methods | `kilacraft.api.world.info` |
+| `get_world_info` | Get World Basic Info | Get name/environment/difficulty | additional_methods | `kilacraft.api.world.info` |
+| `get_world_seed` | Get World Seed | Get world seed value | method_chain | `kilacraft.api.world.info` |
+| `get_world_spawn` | Get World Spawn | Get world spawn location | method_chain | `kilacraft.api.world.info` |
+| `get_world_height_limit` | Get World Height Limit | Get min/max build height | additional_methods | `kilacraft.api.world.info` |
+| `get_world_spawn_rules` | Get World Spawn Rules | Get whether mobs/animals can spawn | additional_methods | `kilacraft.api.world.info` |
+| `get_world_pvp` | Get World PVP Setting | Get whether PVP is allowed | method_chain | `kilacraft.api.world.info` |
+| `get_world_biome` | Get World Biome | Get biome type (plains/desert, etc.) | method_chain | `kilacraft.api.world.info` |
+| `get_world_temperature` | Get World Temperature | Get temperature (affects snowfall) | method_chain | `kilacraft.api.world.info` |
+| `get_world_humidity` | Get World Humidity | Get humidity (affects rainfall) | method_chain | `kilacraft.api.world.info` |
+| `get_world_player_count` | Get World Player Count | Get player count in world | additional_methods | `kilacraft.api.world.info` |
+| `get_world_living_entities` | Get World Living Entities Count | Get living entity count | additional_methods | `kilacraft.api.world.info` |
+| `get_world_entity_count` | Get World Entity Count | Get total entity count | additional_methods | `kilacraft.api.world.info` |
+| `get_world_sea_level` | Get World Sea Level | Get sea level Y coordinate | method_chain | `kilacraft.api.world.info` |
+| `get_world_clear_weather_duration` | Get Clear Weather Duration | Get remaining clear weather ticks | method_chain | `kilacraft.api.world.info` |
+| `get_world_thunder_duration` | Get Thunder Duration | Get remaining thunder ticks | method_chain | `kilacraft.api.world.info` |
+| `get_world_full_time` | Get World Full Time | Get total running time (unaffected by sleep) | method_chain | `kilacraft.api.world.info` |
+| `get_world_game_time` | Get World Game Time | Get total time since creation | method_chain | `kilacraft.api.world.info` |
+| `get_world_raids` | Get World Raids | Get list of ongoing raids | method_chain | `kilacraft.api.world.info` |
 | `get_world_border` | Get World Border | Get border center/size/damage | method_chain | `kilacraft.api.world.info` |
 
 ### 🖥️ Server APIs (6)
 
 | API ID | Display Name | Function | Call Mode | Permission |
 |--------|-------------|----------|-----------|------------|
-| `get_online_players` | Get Online Players | Get online player count and list | method_chain | `kilacraft.api.server.info` |
-| `get_max_players` | Get Max Players | Get max player limit | method_chain | `kilacraft.api.server.info` |
-| `get_server_version` | Get Server Version | Get server version | method_chain | `kilacraft.api.server.info` |
-| `get_server_motd` | Get Server MOTD | Get server description | method_chain | `kilacraft.api.server.info` |
-| `get_server_worlds` | Get All Worlds | Get all world names | method_chain | `kilacraft.api.server.info` |
-| `get_server_name` | Get Server Name | Get server name | method_chain | `kilacraft.api.server.info` |
+| `get_online_players` | Get Online Player Count | Get online player count and list | method_chain | `kilacraft.api.server.info` |
+| `get_max_players` | Get Max Players | Get server max capacity | method_chain | `kilacraft.api.server.info` |
+| `get_server_version` | Get Server Version | Get Bukkit and MC version | additional_methods | `kilacraft.api.server.info` |
+| `get_server_motd` | Get Server MOTD | Get server intro message | method_chain | `kilacraft.api.server.info` |
+| `get_server_worlds` | Get Server Worlds List | Get all loaded worlds | method_chain | `kilacraft.api.server.info` |
+| `get_server_settings` | Get Server Settings | Get flight/nether/end settings | additional_methods | `kilacraft.api.server.info` |
 
-**Statistics**: Total **58 APIs** (Player 31 + World 21 + Server 6)
+**Statistics**: Total **71 APIs** (Player 44 + World 21 + Server 6)
 
 ---
 
 ## 📖 Overview
 
-Kilacraft-AI includes **58 built-in Bukkit APIs**, allowing AI to access various data from the Minecraft server. These APIs are defined through YAML configuration and can be used without writing code.
+Kilacraft-AI includes **71 built-in Bukkit APIs**, allowing AI to access various data from the Minecraft server. These APIs are defined through YAML configuration and can be used without writing code.
 
 ### Core Features
 

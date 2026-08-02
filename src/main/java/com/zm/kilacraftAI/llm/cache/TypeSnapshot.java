@@ -13,7 +13,6 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class TypeSnapshot {
     public final CacheCallTypeEnum type;
-    public final String displayName;
     public final long requests;
     public final long inputTokens;
     public final long outputTokens;
@@ -23,9 +22,8 @@ public final class TypeSnapshot {
     @Nullable
     public final String modelName;
 
-    TypeSnapshot(CacheCallTypeEnum type, String displayName, long requests, long inputTokens, long outputTokens, long totalTokens, long cacheReadTokens, boolean supported, @Nullable String modelName) {
+    TypeSnapshot(CacheCallTypeEnum type, long requests, long inputTokens, long outputTokens, long totalTokens, long cacheReadTokens, boolean supported, @Nullable String modelName) {
         this.type = type;
-        this.displayName = displayName;
         this.requests = requests;
         this.inputTokens = inputTokens;
         this.outputTokens = outputTokens;
@@ -37,9 +35,5 @@ public final class TypeSnapshot {
 
     public double getHitRate() {
         return inputTokens > 0 ? (double) cacheReadTokens / inputTokens : 0.0;
-    }
-
-    public long getSavedTokens() {
-        return cacheReadTokens;
     }
 }

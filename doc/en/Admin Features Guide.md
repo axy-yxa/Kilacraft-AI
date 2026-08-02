@@ -1,6 +1,6 @@
 # Kilacraft-AI Admin Features Guide
 
-> **Last Updated**: 2026-05-22
+> **Last Updated**: 2026-08-01
 > **Description**: Complete usage guide for Kilacraft-AI's admin features — server health monitoring, player behavior analysis, and audit log querying — including configuration reference and scenario examples
 
 ## Overview
@@ -17,8 +17,8 @@ Kilacraft-AI's admin features provide an intelligent monitoring and analysis sys
 ### System Requirements
 
 - **Recommended Plugin**: Spark (profiling plugin, soft dependency)
-- **Reasoning Model**: A valid API key must be configured in `admin.yml` (without it, health diagnostics are unavailable; other features remain unaffected)
-- **Full Dependencies**: The health monitoring daemon requires **both Spark and a reasoning model API key** to activate. If either is missing, the daemon won't start, but manual profiling commands and historical alert queries remain available (provided Spark is present)
+- **Reasoning Model**: Configured in the `thinking_model` section of `admin.yml` (API URL / key / model). **If not configured, automatically falls back to the base conversation model from `llm.yml`** to generate diagnostic reports (only url/key/model are reused; `max_tokens`/`timeout` still use diagnostic-specific values to prevent truncated reports) — lowering the barrier to entry, so health diagnostics work without a dedicated reasoning model.
+- **Full Dependencies**: The health monitoring daemon requires **both Spark and a reasoning model API key (or the fallback conversation model)** to activate. If either is missing, the daemon won't start, but manual profiling commands and historical alert queries remain available (provided Spark is present)
 - **Server Environment**: Supports Paper/Spigot and other major server cores
 - **Network**: Server must have outbound internet access (for Spark Profiler data upload and reasoning model API calls)
 
@@ -502,3 +502,26 @@ Key log identifiers:
 - `[Notification]`: External notification logs
 
 Log levels: INFO (normal operations), WARN (attention needed), ERROR (action required).
+
+---
+
+## 8. Auxiliary Diagnostic Commands
+
+In addition to the three main admin features, two general-purpose commands are closely relevant to server administration:
+
+### `/kila doctor` — Config Self-Diagnostic
+
+One-click diagnostic of plugin configuration and runtime status. In-game output uses a **collapsible grouped summary** format: each group shows a "X OK, Y Warning, Z Error" header line, with only the error items expanded in detail — dramatically reducing chat spam when everything is healthy. Console output is more detailed (includes sanitized full config, cache hit rates, web search provider status, etc.).
+
+Example check categories: database connectivity, LLM connectivity, Spark availability, various AI capability toggles, **LLM cache hit rate** (≥50% OK, ≥30% low, <30% error), web search provider status, and more. Requires `kilacraft.admin.info` permission (default OP).
+
+> Note: the observable group named `health_guardian` refers to server health monitoring (the feature described in this document), not the Guardian system (AI proactive watch). The two are distinct concepts with distinct naming to avoid confusion.
+
+### `/kila cache` — LLM Cache Hit-Rate Statistics
+
+Real-time view of LLM prompt cache hit rates and savings, helping determine whether LLM call costs are optimized. Displays per-type breakdowns for multiple AI call categories (intent recognition both phases, secondary analysis, normal chat, guardian, greeting, profile, suggestions, tool notifications, server diagnostics, etc.), showing request count, input token consumption, cache hit rate, and token savings for each.
+
+- Auto-detects caching fields from three major providers: DeepSeek (`prompt_cache_hit_tokens`), OpenAI (`cached_tokens`), Anthropic (`cache_read_input_tokens`) — no extra configuration needed.
+- Data accumulates in the current server session's memory only, reset on restart.
+- `/kila cache reset` manually resets statistics.
+- Requires `kilacraft.admin.cache` permission (default OP).

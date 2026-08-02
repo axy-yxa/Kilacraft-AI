@@ -1,7 +1,7 @@
 # Kilacraft-AI - Intent Recognition Prompt Configuration Guide
 
-> **Last Updated**: 2026-06-15  
-> **Corresponding Version**: v2.1.1 (Two-Phase Intent Recognition Architecture)  
+> **Last Updated**: 2026-08-01  
+> **Corresponding Version**: v2.2.0 (Two-Phase Intent Recognition Architecture)  
 > **Description**: This document details the two-phase intent recognition architecture and how to configure intent recognition prompts via `intent_prompts.yml` to guide the LLM in understanding user input and recognizing skill intents.
 
 ---
@@ -34,7 +34,7 @@ User Input
 Single Intent / Multi-Step Task / Invalid Intent
 ```
 
-**Why two phases?** Before the refactor, every recognition stuffed the full details of all skills (including BukkitAPI's 77 action definitions) into the prompt at once. After the refactor, pure small talk only goes through one ultra-lightweight Phase 1, and skill scenarios only carry the full details of matched skills. See [📊 Performance Evaluation](#-performance-evaluation).
+**Why two phases?** Before the refactor, every recognition stuffed the full details of all skills (including BukkitAPI's full action definitions) into the prompt at once. After the refactor, pure small talk only goes through one ultra-lightweight Phase 1, and skill scenarios only carry the full details of matched skills. See [📊 Performance Evaluation](#-performance-evaluation).
 
 ---
 
@@ -47,8 +47,9 @@ plugins/Kilacraft-AI/
 ├── llm.yml                     # LLM API config (model, temperature, API key, etc.)
 ├── config.yml                  # Main config (language settings.language, debug mode, etc.)
 └── skills/                     # Skill descriptions and action definitions
-    ├── afktask/AFKTaskSkill.yml
-    ├── bukkit/apis.yml         # BukkitAPI's 77 action definitions
+    ├── bukkit/apis.yml         # BukkitAPI action definitions (71 total)
+    ├── guardian/GuardianSkill.yml
+    ├── watch/WatchSkill.yml
     └── ...
 ```
 
@@ -85,11 +86,10 @@ Phase 2 is assembled by `IntentPromptConfigManager.buildSystemPrompt()` and cont
 [Decision Rules] when_use_single_intent / when_use_multi_step / when_return_invalid
 [Critical Rules] player_security / placeholder_usage / continuous_conversation / entity_format / multi_step_mandatory
 [Special Scenarios] conflicting_intents / missing_parameters / skill_name_restriction
-[afk_task_rules]                   ← ★ Conditionally injected: only when Phase 1 matches AFKTask
 [Output Quality Requirements] output_quality_requirements
 ```
 
-> **Conditional injection of afk_task_rules**: AFK task rules are long and only needed in AFK scenarios. During Phase 2 assembly, the code checks `selectedSkills.contains("AFKTask")` and only injects `afk_task_rules` when matched, avoiding Token waste in normal scenarios.
+> **afk_task_rules removed (v2.2.0)**: An earlier version had `afk_task_rules` conditionally injected only when Phase 1 matched AFKTask. The AFK task system was removed in v2.2.0 and this section was deleted — the relevant decision capabilities are now handled by Guardian and WatchSkill routing. The current Phase 2 prompt has no conditional injection sections.
 
 > **Skill-level dynamic context injection**: Beyond the yml-section conditional injection above, there is a **skill-level dynamic content entry point**. When assembling each matched skill's info in Phase 2, the code checks `instanceof DynamicContextProvider` — skills implementing this interface may append a runtime-assembled dynamic block (typical case: WatchSkill injects the available probe list, which is defined in Java code and cannot be written into static yml). This is an **internal enhancement interface** (`skills/framework/DynamicContextProvider`), not included in the SPI jar; third parties cannot access it. Built-in skills needing dynamic content simply implement the interface — no change to the `Skill` contract required.
 
@@ -97,7 +97,7 @@ Phase 2 is assembled by `IntentPromptConfigManager.buildSystemPrompt()` and cont
 
 ## 📋 Config Structure Overview
 
-`intent_prompts.yml` has **9 top-level sections** (8 for Phase 2 + 1 dedicated to Phase 1):
+`intent_prompts.yml` has **9 top-level sections** (7 for Phase 2 + 1 dedicated to Phase 1 + 1 for pending resume):
 
 | # | Section | Sub-items | Purpose | Used by |
 |---|---------|-----------|---------|---------|
@@ -105,11 +105,13 @@ Phase 2 is assembled by `IntentPromptConfigManager.buildSystemPrompt()` and cont
 | 2 | `response_format` | `single_intent` / `invalid_intent` / `multi_step_task` | Three JSON response templates | Phase 2 |
 | 3 | `output_format_rules` | — | JSON output requirements + "use multi-step when uncertain" | Phase 2 |
 | 4 | `decision_rules` | `when_use_single_intent` / `when_use_multi_step` / `when_return_invalid` | Single/multi-step/invalid decision rules | Phase 2 |
-| 5 | `critical_rules` | `player_security` / `placeholder_usage` / `continuous_conversation` / `entity_format` / `multi_step_mandatory` | 5 critical constraints (incl. arithmetic placeholder rules) | Phase 2 |
-| 6 | `special_scenarios` | `conflicting_intents` / `missing_parameters` / `skill_name_restriction` | Conflict handling, missing params, skill name restriction | Phase 2 |
+| 5 | `critical_rules` | `player_security` / `placeholder_usage` / `continuous_conversation` (incl. Rule 10 meta-operation relative adjustment) / `entity_format` / `multi_step_mandatory` | 5 critical constraints (incl. arithmetic placeholder rules) | Phase 2 |
+| 6 | `special_scenarios` | `conflicting_intents` / `missing_parameters` (incl. Scenario 7 meta-op missing-param handling) / `skill_name_restriction` | Conflict handling, missing params, skill name restriction | Phase 2 |
 | 7 | `output_quality_requirements` | — | Output quality + confidence calibration + quick decision cheat sheet | Phase 2 |
-| 8 | `afk_task_rules` | — | AFK task decision rules (**conditionally injected**) | Phase 2 (only when AFKTask matched) |
-| 9 | `phase1` | `role_definition` / `output_format` | Phase 1 coarse-selection positioning and output format | Phase 1 |
+| 8 | `phase1` | `role_definition` / `output_format` | Phase 1 coarse-selection positioning and output format | Phase 1 |
+| 9 | `pending_resume` | `classify_prompt` | Pending-resume classification guidance (lightweight classification of confirm/cancel/provide-value) | Resume recovery |
+
+> **v2.2.0 changes**: Removed the old row 8 `afk_task_rules` (conditional injection for AFK tasks, deleted with the system); added `pending_resume.classify_prompt` section; `critical_rules.continuous_conversation` gained "Rule 10: Meta-operation relative adjustment" (handling "make it bigger", "make it longer" etc.); `special_scenarios.missing_parameters` gained "Scenario 7: Meta-operation missing parameter handling".
 
 ---
 
@@ -175,13 +177,18 @@ Five critical constraints, where `multi_step_mandatory` contains the full multi-
 
 Includes reasoning conciseness, dependency validation, `delay_wait`/`notify_player` orchestration rules, **confidence calibration** (single intent must explicitly include `confidence`; < 0.5 is silently demoted), and the "quick decision cheat sheet" at the end.
 
-### 8. `afk_task_rules` (AFK Task Rules, Conditionally Injected)
+### 8. `phase1` (Phase 1 Config)
 
-**Only injected when Phase 1 matches AFKTask.** Complements `skills/afktask/AFKTaskSkill.yml`'s `hints`: `hints` provides parameter-level guidance, this section provides decision-level guidance (Event vs CUSTOM type selection, callback rules, one-task-per-player limit).
+Phase 1 role definition and output format, emphasizing "err on the side of including more" — better to select a few extra skills for Phase 2 refinement than to miss the needed one. See [Phase 1 Prompt Composition](#phase-1-prompt-composition) above.
 
-> Global rule sections (1-7, 9) stay generic and abstract, **never referencing concrete skill or action names**; only this section (`afk_task_rules`) may reference the AFKTask skill's real name, as it is that skill's dedicated contract.
+### 9. `pending_resume.classify_prompt` (Pending Resume Classification, since v2.1.1)
 
-### 9. `phase1` (Phase 1 Config)
+When a Skill returns `needInfo` (missing params / confirmation needed), the framework snapshots the parameters into a per-player resume slot. After the player's next reply, the system uses this prompt for a **lightweight classification** (skipping the full Phase 1/2): determining whether the player is "confirming", "canceling", or "providing a new value".
+
+- Obvious confirm/cancel keywords ("yes/no/confirm/cancel") go through **keyword short-circuit**, avoiding an LLM call.
+- Only ambiguous or value-providing replies go through LLM classification with this prompt's guidance.
+
+> Resume config (toggle/TTL/max rounds) is in `config.yml`'s `pending_resume` section: `enabled` (default true), `ttl_seconds` (default 300), `max_rounds` (default 5). Resume is purely in-memory, per-player single slot; cleared on conclusion/cancel/timeout/logout/unload.
 
 ```yaml
 phase1:
@@ -269,8 +276,10 @@ This section estimates the Token savings of the two-phase architecture vs the pr
 
 ### Data Basis
 
-- Built-in skills total **12** (11 Skill yml + GenericBukkitAPI)
-- BukkitAPI (`apis.yml`) has **77 action definitions**, full size about **38K chars** — the bulk of the full prompt
+> The table above reflects v2.1.x benchmark measurements. Current stats (v2.2.0): **17 built-in skills**, BukkitAPI **71 actions**.
+
+- Built-in skills total **12** (11 Skill yml + GenericBukkitAPI, measured at v2.1.x)
+- BukkitAPI (`apis.yml`) has **77 action definitions** (v2.1.x measurement), full size about **38K chars** — the bulk of the full prompt
 - Phase 1 sends only one line of `name + description` per skill; 12 skills total about **5K chars**
 - Normal skill full-size median taken as **3.1K chars** (ServerHealthSkill)
 
@@ -326,7 +335,7 @@ All prompt sections can be freely modified. **But note**:
 ## 💡 Optimization Strategies
 
 - **Keep rules abstract**: do not hardcode specific skill names in global rule sections, or prompts break when skills are added/removed
-- **Leverage conditional injection**: long rules specific to a skill category (like `afk_task_rules`) should go in a conditionally-injected section, not a global one
+- **Leverage dynamic context**: long, skill-specific content (like WatchSkill's probe list) should be injected via `DynamicContextProvider`, not stacked in global prompt sections
 - **Confidence calibration**: single intent must carry `confidence` ≥ 0.8, otherwise it's silently demoted to normal conversation; when uncertain, just use multi-step
 - **Prefer arithmetic placeholders**: relative-value needs (half, one-third, 10% off) should use arithmetic placeholders rather than letting the LLM fabricate concrete values
 
@@ -389,7 +398,7 @@ A: Two-phase is the core architecture of v2.1.1 and cannot fall back to single-p
 - `llm.yml` — LLM API config (model, temperature, API key, max_tokens)
 - `config.yml` — Main config (language, debug mode)
 - `skills/` — Each skill's description, actions, hints
-- `skills/bukkit/apis.yml` — BukkitAPI's 77 action definitions
+- `skills/bukkit/apis.yml` — BukkitAPI action definitions (71 total)
 - Changelog — Version change records
 
 ---

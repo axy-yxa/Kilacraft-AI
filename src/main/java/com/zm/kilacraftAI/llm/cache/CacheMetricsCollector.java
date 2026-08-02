@@ -93,68 +93,12 @@ public final class CacheMetricsCollector {
             totalTokens += total;
             totalCacheRead += cacheRead;
 
-            types.add(new TypeSnapshot(type, type.getDisplayName(), requests, input, output, total, cacheRead, supported, model));
+            types.add(new TypeSnapshot(type, requests, input, output, total, cacheRead, supported, model));
         }
 
         types.sort(Comparator.comparingInt(a -> a.type.ordinal()));
 
         return new CacheStatsSnapshot(types, totalRequests, totalInput, totalOutput, totalTokens, totalCacheRead);
-    }
-
-    /**
-     * 全局命中率（0.0 ~ 1.0），无数据时返回 0。
-     */
-    public double getGlobalHitRate() {
-        long input = 0;
-        long cacheRead = 0;
-        for (TypeMetrics tm : metrics.values()) {
-            input += tm.inputTokens.sum();
-            cacheRead += tm.cacheReadTokens.sum();
-        }
-        return input > 0 ? (double) cacheRead / input : 0.0;
-    }
-
-    /**
-     * 总请求数。
-     */
-    public long getTotalRequests() {
-        long total = 0;
-        for (TypeMetrics tm : metrics.values()) {
-            total += tm.requestCount.sum();
-        }
-        return total;
-    }
-
-    /**
-     * 是否有任何类型成功解析到缓存数据。
-     */
-    public boolean isAnyTypeSupported() {
-        for (TypeMetrics tm : metrics.values()) {
-            if (tm.supported.get()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 已支持缓存报告的类型数。
-     */
-    public int getSupportedTypeCount() {
-        int count = 0;
-        for (TypeMetrics tm : metrics.values()) {
-            if (tm.supported.get()) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    /**
-     * 总类型数。
-     */
-    public int getTotalTypeCount() {
-        return metrics.size();
     }
 
     /**

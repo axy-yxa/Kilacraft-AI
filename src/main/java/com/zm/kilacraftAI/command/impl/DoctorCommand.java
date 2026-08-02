@@ -11,9 +11,6 @@ import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
-import com.zm.kilacraftAI.llm.cache.CacheMetricsCollector;
-import com.zm.kilacraftAI.llm.cache.CacheStatsSnapshot;
-import com.zm.kilacraftAI.llm.cache.TypeSnapshot;
 import com.zm.kilacraftAI.service.health.SparkDataCollector;
 import org.bukkit.command.CommandSender;
 
@@ -83,7 +80,6 @@ public final class DoctorCommand {
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckCommandSkill(), boolLabel(lm, cm != null && cm.isCommandSkillEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckPendingResume(), boolLabel(lm, cm != null && cm.isPendingResumeEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckIsolation(), boolLabel(lm, cm != null && cm.isSecurityPlayerIsolationEnabled())));
-        checks.add(checkCache(lm));
 
         // ===== 可观测与集成 =====
         // admin.yml 的 health_guardian（服务器健康监控，非守护系统）
@@ -234,29 +230,9 @@ public final class DoctorCommand {
                 case WARN -> "§e⚠";
             };
             lines.add(lm.replacePlaceholders(lm.getCommandDoctorCheckLine(), "icon", icon, "name", check.name(), "detail", check.detail()));
-            if (check.name().equals(lm.getCommandDoctorCheckCache())) {
-                appendCacheDetails(lines, lm);
-            }
         }
         lines.add(lm.getCommandDoctorConsoleHint());
         return lines;
-    }
-
-    private static void appendCacheDetails(List<String> lines, LanguageManager lm) {
-        CacheStatsSnapshot snapshot = CacheMetricsCollector.getInstance().getSnapshot();
-        if (snapshot.totalRequests == 0) {
-            return;
-        }
-        lines.add(lm.replacePlaceholders(lm.getCommandDoctorCacheSummary(), "requests", String.valueOf(snapshot.totalRequests), "input", formatNumber(snapshot.totalInputTokens), "output", formatNumber(snapshot.totalOutputTokens), "total", formatNumber(snapshot.totalTokens), "hitrate", formatPercent(snapshot.getGlobalHitRate()), "saved", formatNumber(snapshot.totalCacheReadTokens)));
-        for (TypeSnapshot type : snapshot.types) {
-            if (type.requests == 0) {
-                continue;
-            }
-            String model = type.modelName != null ? type.modelName : lm.getCommandCacheUnknownModel();
-            String typeName = lm.getCommandCacheTypeName(type.type);
-            String metrics = type.supported ? lm.replacePlaceholders(lm.getCommandDoctorCacheTypeSupported(), "hitrate", formatPercent(type.getHitRate()), "saved", formatNumber(type.getSavedTokens())) : lm.getCommandDoctorCacheTypeUnsupported();
-            lines.add(lm.replacePlaceholders(lm.getCommandDoctorCacheTypeLine(), "type", typeName, "model", model, "requests", String.valueOf(type.requests), "input", formatNumber(type.inputTokens), "output", formatNumber(type.outputTokens), "total", formatNumber(type.totalTokens), "metrics", metrics));
-        }
     }
 
     private static String groupLabel(Group g, LanguageManager lm) {
@@ -273,8 +249,6 @@ public final class DoctorCommand {
     private static void dumpConsole(KilacraftAI plugin, List<CheckResult> checks) {
         ConfigManager cm = plugin.getConfigManager();
         AdminConfigManager admin = plugin.getAdminConfigManager();
-        CacheMetricsCollector cacheCollector = CacheMetricsCollector.getInstance();
-        CacheStatsSnapshot cacheSnapshot = cacheCollector.getSnapshot();
 
         PluginLoggerUtil.info("自检", "========== Kilacraft-AI 自检报告 ==========");
         PluginLoggerUtil.info("自检", "版本：{}", plugin.getDescription().getVersion());
@@ -306,29 +280,8 @@ public final class DoctorCommand {
         for (Group group : Group.values()) {
             PluginLoggerUtil.info("自检", "----- {} -----", I18nService.tr(group.label));
             checks.stream().filter(check -> check.group() == group).forEach(check -> PluginLoggerUtil.info("自检", "[{}] {}：{}", check.status().name(), check.name(), check.detail()));
-            if (group == Group.AI) {
-                dumpConsoleCacheDetails(cacheSnapshot);
-            }
         }
         PluginLoggerUtil.info("自检", "================================================");
-    }
-
-    private static void dumpConsoleCacheDetails(CacheStatsSnapshot snapshot) {
-        if (snapshot.totalRequests == 0) {
-            return;
-        }
-        PluginLoggerUtil.info("自检", "大模型缓存：请求={} | 输入={} Token | 缓存读取率={} | 缓存读取={} Token | 支持类型 {}/{}", snapshot.totalRequests, formatNumber(snapshot.totalInputTokens), formatPercent(snapshot.getGlobalHitRate()), formatNumber(snapshot.totalCacheReadTokens), CacheMetricsCollector.getInstance().getSupportedTypeCount(), CacheMetricsCollector.getInstance().getTotalTypeCount());
-        for (TypeSnapshot type : snapshot.types) {
-            if (type.requests == 0) {
-                continue;
-            }
-            String model = type.modelName != null ? type.modelName : "?";
-            if (type.supported) {
-                PluginLoggerUtil.info("自检", "  {}（{}）：请求={} | 输入={} Token | 缓存读取率={} | 缓存读取={} Token", I18nService.tr(type.displayName), model, type.requests, formatNumber(type.inputTokens), formatPercent(type.getHitRate()), formatNumber(type.getSavedTokens()));
-            } else {
-                PluginLoggerUtil.info("自检", "  {}（{}）：请求={} | 输入={} Token | 供应商未报告缓存数据", I18nService.tr(type.displayName), model, type.requests, formatNumber(type.inputTokens));
-            }
-        }
     }
 
     private static String getSearchStatus(WebConfigManager webConfigManager) {
@@ -337,41 +290,6 @@ public final class DoctorCommand {
         }
         String providers = collectConfiguredProviders(webConfigManager);
         return providers.isEmpty() ? I18nService.tr("启用（未配置供应商）") : I18nService.tr("启用（{}）", providers);
-    }
-
-    private static String formatPercent(double value) {
-        return String.format("%.1f%%", value * 100);
-    }
-
-    private static String formatNumber(long value) {
-        if (value < 1_000) {
-            return String.valueOf(value);
-        }
-        if (value < 1_000_000) {
-            return String.format("%.1fK", value / 1_000.0);
-        }
-        if (value < 1_000_000_000) {
-            return String.format("%.1fM", value / 1_000_000.0);
-        }
-        return String.format("%.1fG", value / 1_000_000_000.0);
-    }
-
-    private static CheckResult checkCache(LanguageManager lm) {
-        CacheMetricsCollector collector = CacheMetricsCollector.getInstance();
-        if (collector.getTotalRequests() == 0) {
-            return warn(Group.AI, lm.getCommandDoctorCheckCache(), lm.getCommandDoctorCacheNoData());
-        }
-
-        double hitRate = collector.getGlobalHitRate();
-        long totalRequests = collector.getTotalRequests();
-        int supportedCount = collector.getSupportedTypeCount();
-        int totalCount = collector.getTotalTypeCount();
-
-        if (!collector.isAnyTypeSupported()) {
-            return warn(Group.AI, lm.getCommandDoctorCheckCache(), lm.getCommandDoctorCacheUnsupported());
-        }
-
-        return pass(Group.AI, lm.getCommandDoctorCheckCache(), lm.replacePlaceholders(lm.getCommandDoctorCacheOk(), "hitrate", String.format("%.1f%%", hitRate * 100), "requests", String.valueOf(totalRequests), "supported", String.valueOf(supportedCount), "total", String.valueOf(totalCount)));
     }
 
     public static String redactKey(String key) {

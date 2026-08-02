@@ -1,7 +1,7 @@
-# Let the AI Execute Custom Commands (commandSkill) — Knowledge Base Writing Example
+# Let the AI Execute Custom Commands (Command Skill) — Knowledge Base Writing Example
 
-> **Last Updated**: 2026-06-25  
-> **Description**: Server owners write their server's custom commands into the knowledge base so the AI can execute them on the player's behalf via the commandSkill. Works with two-phase intent recognition + the corpus-seeding dictionary.
+> **Last Updated**: 2026-08-01  
+> **Description**: Server owners write their server's custom commands into the knowledge base so the AI can execute them on the player's behalf via the command skill (CommandSkill). Works with two-phase intent recognition + the corpus-seeding dictionary.
 
 ---
 
@@ -22,27 +22,28 @@ Phase 1 coarse intent selection (no knowledge-base lookup)
    ↓
 Phase 2 precise intent selection [retrieves the knowledge base] ← hits the "/back return to death point" chunk
    ↓
-LLM decides: skill=commandSkill, action=execute_command, command="back"
+LLM decides: skill=command, action=execute_command, command="back"
    ↓
-commandSkill runs /back as the player
+The command skill (CommandSkill) runs /back as the player
 ```
 
 Three key facts:
 
-1. **The knowledge base is retrieved during Phase 2 intent recognition, not when commandSkill runs.** Its job is to "teach the Phase 2 LLM what your commands are and how to produce the correct `command` parameter."
-2. **commandSkill is a fallback skill:** if a dedicated skill (economy transfer, market query, etc.) can handle the request, that skill wins. Only server-specific custom commands not covered by a dedicated skill rely on commandSkill + the knowledge base.
+1. **The knowledge base is retrieved during Phase 2 intent recognition, not when the command skill runs.** Its job is to "teach the Phase 2 LLM what your commands are and how to produce the correct `command` parameter."
+2. **The command skill is a fallback skill:** if a dedicated skill (economy transfer, market query, etc.) can handle the request, that skill wins. Only server-specific custom commands not covered by a dedicated skill rely on the command skill + the knowledge base.
 3. **The `command` parameter has no leading `/`:** the LLM must fill `back`, not `/back`.
 
 ---
 
-## The commandSkill Contract
+## The Command Skill (CommandSkill) Contract
 
 | Item | Value |
 |---|---|
-| Skill name | commandSkill |
-| Action | execute_command |
+| Skill name | `command` (implementation class `CommandSkill`) |
+| Action | `execute_command` |
 | Parameter | `command`: the full command, **without the leading `/`**, extracted from the player's message |
-| Permission | Runs as the player, bounded by the player's own permissions (if the player lacks a permission, so does the AI) |
+| Permission | `kilacraft.command.execute` (default OP); runs as the player, bounded by the player's own permissions (if the player lacks a permission, so does the AI) |
+| Toggle | Only registered when `command_skill.enabled: true` is set in `config.yml` |
 | Role | Fallback skill (dedicated skills take priority) |
 
 ---
@@ -93,7 +94,7 @@ AI executes: menu
 | The `AI executes: back` line | Teaches the LLM the command value | Explicitly tells the Phase 2 LLM what `command` to fill and that it has **no `/`**, reducing mistakes like `/back` or wrong argument formats |
 | One command per `##` block | Recall completeness | BM25 segments by heading; a search for "go home" returns one complete chunk (command + purpose + phrasings), giving the LLM everything it needs to produce the command |
 | Each segment 20–500 chars | Not dropped / no lost bonus | <20-char chunks are filtered; >500-char chunks get re-split and the second part loses the heading bonus |
-| Only server custom commands — not "pay money / check market" | commandSkill is a fallback | Requests covered by dedicated skills (economy / market) are handled by those skills; writing them here only muddies the match |
+| Only server custom commands — not "pay money / check market" | The command skill is a fallback | Requests covered by dedicated skills (economy / market) are handled by those skills; writing them here only muddies the match |
 
 ---
 
@@ -107,7 +108,7 @@ AI executes: menu
 
 ## Checklist
 
-Go through this when optimizing any commandSkill knowledge file:
+Go through this when optimizing any command-skill knowledge file:
 
 - ☐ One command per `##` heading, the heading contains [player phrasing + command name] (e.g. `Go home / Return (/home)`)?
 - ☐ Command written in `/full` form (triggers corpus seeding + long-word weighting)?

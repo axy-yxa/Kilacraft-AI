@@ -1,7 +1,7 @@
 # Kilacraft-AI - 内置 Skill 与 Event 能力清单
 
-> **最后更新**: 2026-05-06  
-> **说明**: 本文档汇总了 Kilacraft-AI 内置的所有 Skill 动作和支持的 Bukkit Event 监听器，帮助服主和插件开发者快速了解插件的能力边界、集成的第三方插件以及安全风险。
+> **最后更新**: 2026-08-01  
+> **说明**: 本文档汇总了 Kilacraft-AI 内置的所有 Skill 动作和支持的 Bukkit Event 监听器，帮助服主和插件开发者快速了解插件的能力边界、集成的第三方插件以及安全风险。当前内置 **17 个 Skill**。
 
 ---
 
@@ -16,77 +16,113 @@
 
 ## Skill 能力清单
 
-### 1. AFKTaskSkill - 挂机任务系统
+> v2.2.0 移除了挂机任务系统（AFKTaskSkill），其能力由下方 GuardianSkill、WatchSkill、PlayerWatchSkill 三个新 Skill 替代。
 
-**能力类型**: 事件监听 + 延迟回调任务链  
-**依赖插件**: 纯 Bukkit 原生 API  
-**文件位置**: `skills/afktask/AFKTaskSkill.yml`  
-**实现类**: `AFKTaskSkill.java`
+### 1. GuardianSkill - 守护系统开关
+
+**能力类型**: AI 主动看护（opt-in 开关）  
+**依赖插件**: 纯 Bukkit（依赖内置 GuardianManager）  
+**文件位置**: `skills/guardian/GuardianSkill.yml`  
+**实现类**: `GuardianSkill.java`
+
+#### 支持的动作
+
+| 动作 | 说明 | 必需参数 |
+|------|------|----------|
+| `enable` | 开启 AI 守护，返回已加载的 monitor 列表 | 无 |
+| `disable` | 关闭守护，不再主动提醒 | 无 |
+| `status` | 查询守护是否开启及活跃 monitor 列表 | 无 |
+
+#### 核心特性
+
+- ✅ **默认套餐**：开启即加载 3 个内置 monitor（背包快满、装备耐久、背后威胁），硬编码不可配置
+- ✅ **价值轴**：只在玩家"当下没盯着、但事后会在意"的时机发声；HUD 可感知的（饥饿/血量等）不做
+- ✅ **挂机暂停 + 已感知抑制**：挂机 5 分钟自动暂停；打开物品界面时跳过背包/耐久告警
+- ✅ **防刷屏**：每个 monitor 自带冷却，动作失败视为本轮没触发
+- ✅ 仅限玩家使用
+
+---
+
+### 2. WatchSkill - 玩家自定义监听
+
+**能力类型**: 条件监听（轮询）+ 事件监听  
+**依赖插件**: 纯 Bukkit（依赖内置 WatchService）  
+**文件位置**: `skills/watch/WatchSkill.yml`  
+**实现类**: `WatchSkill.java`（实现 `DynamicContextProvider`）
 
 #### 支持的动作
 
 | 动作 | 说明 | 必需参数 | 可选参数 |
 |------|------|----------|----------|
-| `create_task` | 创建新的挂机任务 | `task_type`, `target_player` | `callback` |
-| `cancel_task` | 取消玩家当前的挂机任务 | 无 | 无 |
-| `query_task` | 查询玩家当前的挂机任务状态 | 无 | 无 |
+| `create_watch` | 创建监听（mode=polling/event 二选一） | `mode`, `description` | `single_shot` 等 |
+| `cancel_watch` | 取消监听（watch_id 精确或 description 模糊） | `watch_id` 或 `description` | 无 |
+| `list_watches` | 列出当前玩家所有活跃监听 | 无 | 无 |
 
-#### 支持的 19 种事件监听类型 + CUSTOM
+#### 支持的 11 种事件监听类型
 
-| 任务类型 | 监控目标 | 级别 | 依赖事件 |
-|---------|---------|------|---------|
-| `PLAYER_ONLINE_WATCH` | 玩家上线 | S级 | PlayerJoinEvent |
-| `PLAYER_OFFLINE_WATCH` | 玩家下线 | S级 | PlayerQuitEvent |
-| `PLAYER_DEATH_WATCH` | 玩家死亡 | S级 | PlayerDeathEvent |
-| `PLAYER_TELEPORT_WATCH` | 玩家传送 | S级 | PlayerTeleportEvent |
-| `PLAYER_LEVEL_CHANGE_WATCH` | 玩家等级变化 | S级 | PlayerLevelChangeEvent |
-| `PLAYER_CHANGED_WORLD_WATCH` | 玩家切换世界 | S级 | PlayerChangedWorldEvent |
-| `WEATHER_CHANGE_WATCH` | 天气变化 | S级 | WeatherChangeEvent |
-| `PLAYER_BED_ENTER_WATCH` | 玩家进入床 | A级 | PlayerBedEnterEvent |
-| `PLAYER_BED_LEAVE_WATCH` | 玩家离开床 | A级 | PlayerBedLeaveEvent |
-| `PLAYER_RESPAWN_WATCH` | 玩家重生 | A级 | PlayerRespawnEvent |
-| `PLAYER_ITEM_BREAK_WATCH` | 玩家物品损坏 | A级 | PlayerItemBreakEvent |
-| `PLAYER_FISHING_WATCH` | 玩家钓鱼 | A级 | PlayerFishEvent |
-| `PLAYER_CHAT_WATCH` | 玩家聊天 | A级 | AsyncPlayerChatEvent |
-| `BLOCK_BREAK_WATCH` | 方块破坏 | A级 | BlockBreakEvent |
-| `ENTITY_DEATH_WATCH` | 实体死亡 | A级 | EntityDeathEvent |
-| `ENTITY_SPAWN_WATCH` | 实体生成 | A级 | CreatureSpawnEvent |
-| `ENTITY_EXPLODE_WATCH` | 实体爆炸 | A级 | EntityExplodeEvent |
-| `FURNACE_EXTRACT_WATCH` | 熔炉烧炼完成 | A级 | FurnaceExtractEvent |
-| `CROP_GROWTH_WATCH` | 作物生长 | A级 | BlockGrowEvent |
-| `CUSTOM` | 自定义条件轮询 | A级 | 任意 Skill |
+| 事件类型 | 监控目标 | 可用 filter |
+|---------|---------|------------|
+| `furnace_smelt` | 熔炉烧好 | `result_type`（产物材质） |
+| `crop_mature` | 作物成熟 | `crop_type`（作物类型） |
+| `entity_death` | 实体死亡 | `entity_type`（实体类型） |
+| `entity_spawn` | 实体生成 | `entity_type`（实体类型） |
+| `player_death` | 玩家死亡 | 无 |
+| `player_teleport` | 玩家传送 | `cause`（传送原因） |
+| `player_level_change` | 经验等级变化 | 无 |
+| `player_changed_world` | 切换世界 | 无 |
+| `block_break` | 方块破坏 | `block_type`（方块类型） |
+| `player_fish` | 钓鱼成功 | 无 |
+| `player_chat` | 聊天消息 | `keyword`（关键词） |
 
 #### 核心特性
 
-- ✅ **双模式支持**: 纯通知模式（快速响应）vs 回调模式（多步骤任务链）
-- ✅ **占位符系统**: 事件触发时提供丰富的上下文占位符（`{triggered_player}`, `{from_world}`, `{to_x}`, 等等）
-- ✅ **延迟反馈优化**: 回调执行时注入空对话历史，避免过期上下文噪音
-- ✅ **一人一任务**: 每个玩家同时只能拥有一个挂机任务，自动冲突检测
-- ✅ **资源自动清理**: 任务完成、手动取消、玩家下线时自动清理监听器和任务索引
-
-#### 典型使用场景
-
-```
-玩家: 帮我盯着 Steve 上线，他上线后帮我查询他的位置
-→ AFKTaskSkill (创建 PLAYER_ONLINE_WATCH 任务)
-    → PlayerJoinEvent 触发
-      → 执行回调任务（包含 get_player_location）
-        → LLM 二次分析
-          → 通知玩家位置信息
-```
+- ✅ **两种模式**：条件监听（polling，定时跑某 skill.action 取返回字段比较）+ 事件监听（event，Bukkit 事件命中即触发）
+- ✅ **动态上下文注入**：实现 `DynamicContextProvider`，向 Phase 2 提示词动态注入【条件监听清单】（遍历玩家有权限 skill 中实现 `ProbeSource` 的）+【事件监听清单】
+- ✅ **触发后只通知 AI，不自动回调**（比旧挂机任务更安全）
+- ✅ **上限**：每玩家条件监听 ≤ 3 / 事件监听 ≤ 5 / 全服合计 200
+- ✅ **下线延迟删除窗口**（默认 5 分钟，便于重连恢复）
+- ✅ 全局单例事件监听器 + 反向索引，无人订阅时事件零成本
 
 ---
 
-### 2. GenericBukkitAPI - 通用 Bukkit API 执行器
+### 3. PlayerWatchSkill - 跨玩家上下线订阅
+
+**能力类型**: 玩家社交轻交互（上下线通知订阅）  
+**依赖插件**: 纯 Bukkit（依赖内置 PlayerWatchService）  
+**文件位置**: `skills/playerwatch/PlayerWatchSkill.yml`  
+**实现类**: `PlayerWatchSkill.java`
+
+#### 支持的动作
+
+| 动作 | 说明 | 必需参数 | 可选参数 |
+|------|------|----------|----------|
+| `subscribe` | 订阅某玩家上线/下线通知 | `target_player` | `trigger_event`（JOIN/QUIT/BOTH，默认 BOTH） |
+| `unsubscribe` | 取消对某玩家的订阅 | `target_player` | `trigger_event`（不填则取消全部） |
+| `list` | 列出当前玩家名下所有活跃订阅 | 无 | 无 |
+| `unsubscribe_all` | 取消当前玩家全部订阅 | 无 | 无 |
+
+#### 核心特性
+
+- ✅ **单向订阅**：被订阅方不感知，仅订阅者在线期间有效
+- ✅ **支持多目标**：一次可订阅多个玩家（旧系统只能盯一个）
+- ✅ **防乱序**：下线通知会取消尚未发出的上线通知，避免"下线早于上线"的倒序
+- ✅ **上线通知延迟 2 秒**：等玩家完全进服
+- ✅ **不持久化**：重启不恢复，订阅者下线自动清空；每玩家上限 5 个订阅
+
+---
+
+### 4. GenericBukkitAPI - 通用 Bukkit API 执行器
 
 **能力类型**: 原生 API 数据查询  
 **依赖插件**: 纯 Bukkit 原生 API  
 **文件位置**: `skills/bukkit/apis.yml`  
 **实现类**: `GenericBukkitAPISkill.java`
 
-#### 支持的 API 动作（60+ 个）
+#### 支持的 API 动作（71 个）
 
-**玩家相关**（27 个）
+> 完整 API 清单（含每个 API 的配置、权限、返回字段）见《Bukkit-API 参考手册》。下方按类别列出代表性动作。
+
+**玩家相关**（44 个）
 
 | API 动作 | 说明 | 额外数据字段 |
 |----------|------|--------------|
@@ -98,7 +134,7 @@
 | `get_player_food` | 获取玩家饥饿值 | `food_level`, `saturation` |
 | `get_player_oxygen` | 获取玩家氧气值 | `remaining_air`, `maximum_air` |
 | 位置与移动 | | |
-| `get_player_location` | 获取玩家位置 | `x`, `y`, `z`, `yaw`, `pitch`, `world` |
+| `get_player_location` | 获取玩家位置 | `x`, `y`, `z`, `world` |
 | `get_player_eye_location` | 获取玩家视线位置 | `x`, `y`, `z` |
 | `get_player_velocity` | 获取玩家速度向量 | - |
 | 游戏模式与飞行 | | |
@@ -134,7 +170,7 @@
 | 经验详细 | | |
 | `get_player_total_exp` | 获取玩家总经验值 | `total_exp` |
 
-**世界相关**（20 个）
+**世界相关**（21 个）
 
 | API 动作 | 说明 | 额外数据字段 |
 |----------|------|--------------|
@@ -168,7 +204,7 @@
 | 袭击事件 | | |
 | `get_world_raids` | 获取世界袭击事件 | `raids` |
 
-**服务器相关**（7 个）
+**服务器相关**（6 个）
 
 | API 动作 | 说明 | 额外数据字段 |
 |----------|------|--------------|
@@ -192,7 +228,7 @@
 
 ---
 
-### 3. CMISkill - CMI 插件集成
+### 5. CMISkill - CMI 插件集成
 
 **能力类型**: 传送 + 玩家信息查询  
 **依赖插件**: CMI (v9.8.6.4+)  
@@ -231,7 +267,7 @@
 
 ---
 
-### 4. CommandSkill - 命令执行
+### 6. CommandSkill - 命令执行
 
 **能力类型**: 服务器命令执行（玩家身份）  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -252,7 +288,7 @@
 
 ---
 
-### 5. BukkitFXSkill - 音效与粒子效果
+### 7. BukkitFXSkill - 音效与粒子效果
 
 **能力类型**: 客户端效果播放（仅调用者可见/可听）  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -311,7 +347,7 @@
 
 ---
 
-### 6. BukkitStatsSkill - 原版统计数据查询
+### 8. BukkitStatsSkill - 原版统计数据查询
 
 **能力类型**: 玩家原版累计统计数据查询（生涯记录）  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -395,7 +431,7 @@
 
 ---
 
-### 7. MarketQuerySkill - GlobalMarketPlus 插件集成
+### 9. MarketQuerySkill - GlobalMarketPlus 插件集成
 
 **能力类型**: 市场信息查询  
 **依赖插件**: GlobalMarketPlus (v1.3.8.0+)  
@@ -411,6 +447,7 @@
 | `query_items` | 查询市场上架的商品列表 | 无 | 无 |
 | `query_availability` | 查询指定物品是否在售 | `item` | 无 |
 | `query_my_items` | 查询玩家自己在售的商品 | 无 | 无 |
+| `query_seller_items` | 查询指定卖家的在售商品 | `seller_name` | 无 |
 | `query_mailbox` | 查询玩家邮箱待领取邮件 | 无 | 无 |
 | `query_market_stats` | 查询市场统计信息 | 无 | 无 |
 
@@ -422,7 +459,7 @@
 
 ---
 
-### 8. MarketActionSkill - 全球市场操作技能
+### 10. MarketActionSkill - 全球市场操作技能
 
 **能力类型**: 市场交易操作（写入类）  
 **依赖插件**: GlobalMarketPlus (v1.3.8.0+)  
@@ -452,7 +489,7 @@
 
 ---
 
-### 9. UtilitySkill - 通用工具技能
+### 11. UtilitySkill - 通用工具技能
 
 **能力类型**: 延时等待 + 主动通知 + 全服广播  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -476,6 +513,111 @@
 
 ---
 
+### 12. WebSearchSkill - 联网搜索
+
+**能力类型**: 实时联网信息查询  
+**依赖插件**: 纯 Bukkit（自管 HTTP 调用，需服主在 `web.yml` 配 API Key）  
+**文件位置**: `skills/websearch/WebSearchSkill.yml`  
+**实现类**: `WebSearchSkill.java`
+
+#### 支持的动作
+
+| 动作 | 说明 | 必需参数 | 可选参数 |
+|------|------|----------|----------|
+| `search` | 按关键词联网搜索，返回标题/URL/摘要 | `query` | `count`、`time_range` 等 |
+
+#### 支持的搜索引擎供应商（9 家）
+
+| 类别 | 供应商 | 说明 |
+|------|--------|------|
+| 国内 | `zhipu` | 智谱 AI |
+| 国内 | `baidu_qianfan` | 百度千帆 |
+| 国内 | `volcengine_doubao` | 火山引擎豆包 |
+| 国内 | `qiniu_baidu` | 七牛云百度 |
+| 国内 | `alibaba_iqs` | 阿里云百炼 IQS |
+| 国际 | `tavily` | Tavily |
+| 国际 | `brave` | Brave |
+| 国际 | `exa` | Exa |
+| 国际 | `you_com` | You.com |
+
+#### 核心特性
+
+- ✅ **多供应商可插拔**：`provider: auto` 按服务器语言自动路由（中文走国内、其他走国际），也可手动指定
+- ✅ **时间范围筛选**：今天/最近一周/最近一月
+- ✅ **自动多步搜索**：复杂问题拆成最多 5 个子搜索
+- ✅ 自管 15 秒超时，snippet 按 `max_snippet_chars` 截断
+- ✅ 需 `kilacraft.websearch` 权限，且需服主配置 API Key 才生效
+
+---
+
+### 13. WebFetchSkill - 网页抓取
+
+**能力类型**: 抓取指定网址正文并回答  
+**依赖插件**: 纯 Bukkit（OkHttp + Jsoup 本地实现，零配置无 API Key）  
+**文件位置**: `skills/webfetch/WebFetchSkill.yml`  
+**实现类**: `WebFetchSkill.java`
+
+#### 支持的动作
+
+| 动作 | 说明 | 必需参数 | 可选参数 |
+|------|------|----------|----------|
+| `fetch` | 抓取指定 URL 提取正文 | `url` | `question` 等 |
+
+#### SSRF 安全防护（ssrf_protection: true 时生效）
+
+| 防护点 | 说明 |
+|--------|------|
+| 内网地址拦截 | 默认禁止访问本机/局域网（127.x/10.x/192.168.x/172.16-31.x） |
+| 防 DNS 重绑定 | IP 校验内嵌进 OkHttp DNS 解析，消除"先检查后连接"的 TOCTOU 窗口 |
+| 强制 HTTPS | `http://` 自动升级为 `https://`，协议白名单收紧 |
+| 逐跳重定向复检 | 最多 3 跳，每跳重做协议与 IP 校验 |
+| 响应体字节硬上限 | `readBodyWithLimit` 严格按 `max_body_size_mb`（默认 2MB）限制，防 OOM |
+
+#### 核心特性
+
+- ✅ **零配置纯本地**，无需任何 API Key
+- ✅ 自动移除 script/style/nav 等噪声后取正文，超 `max_text_chars` 截断
+- ✅ 异步抓取（走 IO 线程池），skill 自管超时
+- ✅ 需 `kilacraft.webfetch` 权限（默认所有玩家可用）
+
+---
+
+### 14. VersionInfoSkill - 版本信息查询
+
+**能力类型**: 插件版本与更新信息查询（只读）  
+**依赖插件**: 纯 Bukkit（数据源 Gitee/GitHub Release API，按 i18n 语言选源）  
+**文件位置**: `skills/admin/VersionInfoSkill.yml`  
+**实现类**: `VersionInfoSkill.java`
+
+#### 支持的动作
+
+| 动作 | 说明 | 必需参数 | 可选参数 |
+|------|------|----------|----------|
+| `check_update` | 当前版本自检 + 查最新版（对比 + 下载地址 + 更新日志） | 无 | 无 |
+| `read_changelog` | 读指定版本的完整更新日志 | `version` | 无 |
+| `list_versions` | 列出近期所有版本 | 无 | `limit`（默认 10） |
+
+#### 核心特性
+
+- ✅ 纯只读查询，不负责下载安装（地址在 data 里返回）
+- ✅ 默认动作 `check_update` 一次覆盖三类需求
+- ✅ 查询走异步 IO 池
+- ✅ 需 `kilacraft.admin.info` 权限（默认 OP）
+
+---
+
+### 15-17. 服主管理类 Skill
+
+服主管理类 Skill 共 3 个，详细使用方法见《服主管理功能使用指南》：
+
+| # | Skill | 技能名 | 动作 | 权限 |
+|---|-------|--------|------|------|
+| 15 | ServerHealthSkill | `server_health` | `health_report` / `list_reports` / `read_report` | `kilacraft.admin.health` |
+| 16 | PlayerAnalysisSkill | `player_analysis` | `online_trend` / `top_active` / `new_players` / `profile_coverage` / `social_insights` / `player_relations` | `kilacraft.admin.player` |
+| 17 | AuditLogSkill | `audit_log` | `query_logs` / `skill_stats` / `error_logs` | `kilacraft.admin.audit` |
+
+---
+
 ## 安全拦截器
 
 Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityFilter），在所有 Skill 执行前自动扫描参数中的玩家名，保护玩家数据不被恶意 Skill 访问或篡改。
@@ -491,8 +633,10 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 | Skill/动作 | 白名单类型 | 说明 |
 |-----------|-----------|------|
 | `cmi.send_tp_request` | 动作级 | CMI 传送请求（TPA），允许向其他玩家发送传送请求 |
-| `AFKTask.create_task` | 动作级 | AFK 任务可监听其他玩家事件 |
+| `player_watch.subscribe` | 动作级 | 跨玩家上下线订阅，允许订阅其他玩家的上下线通知 |
 | `command.execute_command` | 动作级 | 命令以玩家身份执行，权限边界 = 玩家自身权限 |
+
+> v2.2.0 移除了 `AFKTask.create_task`（挂机任务系统已删除），新增 `player_watch.subscribe`。白名单 action 仅审计、不替换（替换会破坏跨玩家操作命令）；该拦截器始终运行、不可跳过。
 
 ### 第三方 Skill 防护
 
@@ -501,54 +645,39 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 
 ---
 
-## Bukkit Event 监听器清单
+## Bukkit Event 监听（WatchSkill 事件监听）
 
-### S 级监听器（7 个）
+> v2.2.0 起，事件监听能力由 WatchSkill 提供（替代已移除的挂机任务系统的 19 个监听器）。玩家通过自然语言创建事件监听，WatchSkill 用**全局单例 Listener** 监听以下 11 种高价值 Bukkit 事件，命中 filter 后触发通知。
 
-| 任务类型 | 监听事件 | 监控目标 | 触发时机 |
-|---------|---------|---------|---------|
-| `PLAYER_ONLINE_WATCH` | PlayerJoinEvent | 玩家上线 | 玩家通过身份验证后触发 |
-| `PLAYER_OFFLINE_WATCH` | PlayerQuitEvent | 玩家下线 | 玩家退出服务器时触发 |
-| `PLAYER_DEATH_WATCH` | PlayerDeathEvent | 玩家死亡 | 玩家死亡时触发 |
-| `PLAYER_TELEPORT_WATCH` | PlayerTeleportEvent | 玩家传送 | 玩家传送时触发 |
-| `PLAYER_LEVEL_CHANGE_WATCH` | PlayerLevelChangeEvent | 玩家等级变化 | 玩家升级或降级时触发 |
-| `PLAYER_CHANGED_WORLD_WATCH` | PlayerChangedWorldEvent | 玩家切换世界 | 玩家在不同世界间传送时触发 |
-| `WEATHER_CHANGE_WATCH` | WeatherChangeEvent | 天气变化 | 世界天气变化时触发 |
+### 事件监听类型（11 种）
 
-### A 级监听器（12 个 + CUSTOM）
+| 事件类型 | 监听的 Bukkit 事件 | 触发时机 | 可用 filter |
+|---------|-------------------|---------|------------|
+| `furnace_smelt` | FurnaceExtractEvent | 玩家从熔炉取出烧好的物品 | `result_type`（产物材质） |
+| `crop_mature` | BlockGrowEvent | 作物长到最大成熟度 | `crop_type`（作物类型） |
+| `entity_death` | EntityDeathEvent | 实体死亡 | `entity_type`（实体类型） |
+| `entity_spawn` | CreatureSpawnEvent | 实体生成于玩家附近 | `entity_type`（实体类型） |
+| `player_death` | PlayerDeathEvent | 玩家死亡 | 无 |
+| `player_teleport` | PlayerTeleportEvent | 玩家传送 | `cause`（传送原因） |
+| `player_level_change` | PlayerLevelChangeEvent | 经验等级变化 | 无 |
+| `player_changed_world` | PlayerChangedWorldEvent | 切换世界 | 无 |
+| `block_break` | BlockBreakEvent | 破坏方块 | `block_type`（方块类型） |
+| `player_fish` | PlayerFishEvent | 钓鱼成功（过滤未钓中状态） | 无 |
+| `player_chat` | AsyncPlayerChatEvent | 聊天消息 | `keyword`（关键词包含匹配） |
 
-| 任务类型 | 监听事件 | 监控目标 | 触发时机 |
-|---------|---------|---------|---------|
-| `PLAYER_BED_ENTER_WATCH` | PlayerBedEnterEvent | 玩家进入床 | 玩家进入床开始睡觉时触发 |
-| `PLAYER_BED_LEAVE_WATCH` | PlayerBedLeaveEvent | 玩家离开床 | 玩家起床时触发 |
-| `PLAYER_RESPAWN_WATCH` | PlayerRespawnEvent | 玩家重生 | 玩家重生时触发 |
-| `PLAYER_ITEM_BREAK_WATCH` | PlayerItemBreakEvent | 玩家物品损坏 | 玩家物品损坏时触发 |
-| `PLAYER_FISHING_WATCH` | PlayerFishEvent | 玩家钓鱼 | 玩家钓到鱼时触发 |
-| `PLAYER_CHAT_WATCH` | AsyncPlayerChatEvent | 玩家聊天 | 玩家发送聊天消息时触发 |
-| `BLOCK_BREAK_WATCH` | BlockBreakEvent | 方块破坏 | 玩家破坏方块时触发 |
-| `ENTITY_DEATH_WATCH` | EntityDeathEvent | 实体死亡 | 实体死亡时触发 |
-| `ENTITY_SPAWN_WATCH` | CreatureSpawnEvent | 实体生成 | 实体生成时触发 |
-| `ENTITY_EXPLODE_WATCH` | EntityExplodeEvent | 实体爆炸 | 实体爆炸时触发 |
-| `FURNACE_EXTRACT_WATCH` | FurnaceExtractEvent | 熔炉烧炼 | 玩家从熔炉取出物品时触发 |
-| `CROP_GROWTH_WATCH` | BlockGrowEvent | 作物生长 | 作物生长时触发 |
+### 性能优化机制
 
-### 自定义任务类型（1 个）
+- **全局单例 Listener**：整个服务器只注册一个 `PlayerWatchListener`（非每玩家一实例），避免高频事件（如 BlockGrowEvent）在无人订阅时的事件放大开销
+- **反向索引短路**：`eventType → Set<WatchRef>` 反向索引，无人订阅该事件类型时直接 return（零成本）
+- **事件归属三模式**：玩家自身（O(1)）/ 击杀者归属 / 坐标距离（**基于 watch 创建时快照位置**，非玩家实时位置——消除 Folia 跨区域读 getLocation 的风险）
+- **CAS 防重入**：事件型冷却用 `AtomicLong` CAS（`Watch.casFireTime`），并发事件下仅一个通过
+- **同一玩家的所有条件监听合并为单个定时器**（轮询型）
 
-| 任务类型 | 监控方式 | 监控目标 | 支持条件 |
-|---------|---------|---------|---------|
-| `CUSTOM` | 定时轮询 | 任意 Skill 返回值 | 支持单条件比较（less_than, greater_than, equal 等） |
+### 条件监听（polling，补充说明）
 
-### 特殊占位符
+除事件监听外，WatchSkill 还支持**条件监听**（polling 模式）：定时执行某个内置 skill 的只读 action（实现 `ProbeSource` 接口的），取返回值字段做阈值比较。取值类型（number/boolean/string）运行时自动识别。
 
-| 监听器类型 | 可用占位符 |
-|-------------|------------|
-| PLAYER_ONLINE/OFFLINE/DEATH | `{triggered_player}`, `{creator}` |
-| PLAYER_TELEPORT | `{from_world}`, `{to_world}`, `{from_x}`, `{from_y}`, `{from_z}`, `{to_x}`, `{to_y}`, `{to_z}` |
-| PLAYER_LEVEL_CHANGE | `{old_level}`, `{new_level}`, `{direction}` |
-| PLAYER_CHANGED_WORLD | `{from_world}`, `{to_world}` |
-| WEATHER_CHANGE | `{world_name}`, `{weather_state}`, `{weather_type}` |
-| PLAYER_BED/RESPAWN | `{x}`, `{y}`, `{z}`, `{world}` |
-| PLAYER_ITEM_BREAK | `{item_name}`, `{item_type}` |
+> 详细的监听创建、取消、管理见《服主指南》「玩家自定义监听」节。完整设计约束见《系统架构详解》v2.2.0 子系统架构。
 
 ---
 
@@ -581,8 +710,10 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 
 ✅ **可以**:
 - 查询 Minecraft 原生 API 数据（玩家、世界、服务器状态）
-- 监听 19 种 Bukkit Event 事件（S 级 7 个 + A 级 12 个）+ CUSTOM 条件轮询
-- 创建挂机任务（事件触发后自动执行多步骤回调）
+- AI 主动看护（守护系统：背包快满、装备耐久、背后威胁）
+- 玩家自定义监听（11 种事件 + 条件轮询，WatchSkill）
+- 跨玩家上下线订阅（PlayerWatchSkill）
+- 联网搜索与网页抓取（WebSearch / WebFetch）
 - 执行服务器命令（以玩家身份，受权限约束）
 - 查询第三方插件数据（CMI 传送/信息、GlobalMarketPlus 市场）
 - 多步骤任务链（支持步骤间数据引用和占位符替换）
@@ -596,8 +727,7 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 - 执行需要 OP 权限的命令（除非玩家拥有该权限）
 - 直接操作游戏物理引擎（无法修改方块/实体等）
 - 访问玩家隐私数据（只查询公开的游戏状态）
-- 自动化重复任务（AFKTask 只支持一次性触发，不支持循环/定时任务）
-- 递归嵌套挂机任务（回调中不能再次创建 AFKTask）
+- 在监听触发时自动执行写操作（WatchSkill 触发后只通知 AI，不自动回调——这是有意设计，比旧挂机任务更安全）
 
 ### 数据访问边界
 
@@ -609,7 +739,9 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 | 命令执行 | 写（间接） | 通过 dispatchCommand 执行，受权限约束 |
 | CMI 数据 | 只读 | 查询家、地标、玩家信息，无法直接修改 |
 | 市场数据 | 读写 | 查询价格/商品（只读 MarketQuerySkill）；交易操作（写入 MarketActionSkill，通过命令代执行） |
+| 联网信息 | 只读 | WebSearch 搜索、WebFetch 抓取（受 SSRF 防护约束） |
 
 
-> **API 动作总数**: 60+ 个（GenericBukkitAPI）+ 8 个（CMISkill）+ 2 个（BukkitFXSkill）+ 7 个（MarketQuerySkill）+ 9 个（MarketActionSkill）+ 3 个（UtilitySkill）  
-> **Event 监听器总数**: 19 个（S 级 7 个 + A 级 12 个）+ CUSTOM 条件轮询
+> **内置 Skill 总数**: 17 个  
+> **API 动作总数**: 71 个（GenericBukkitAPI）+ 8 个（CMISkill）+ 2 个（BukkitFXSkill）+ 8 个（MarketQuerySkill，含 query_seller_items）+ 9 个（MarketActionSkill）+ 3 个（UtilitySkill）  
+> **事件监听类型**: 11 种（WatchSkill，全局单例 Listener + 反向索引）

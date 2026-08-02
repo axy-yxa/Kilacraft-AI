@@ -1,6 +1,6 @@
 # Kilacraft-AI - Knowledge Base Enhancement Guide
 
-> **Last Updated**: 2026-06-20  
+> **Last Updated**: 2026-08-01  
 > **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation.
 
 ---
@@ -296,8 +296,6 @@ Strategy 3: Split by fixed size (Fallback)
 - Stop when encountering an **empty line** or **the next heading**
 - Includes the heading + the content immediately following it (content after an empty line is excluded)
 - If a single chunk exceeds `max_size (500 chars)` → automatically falls back to Strategy 2
-
-**⚠️ Crucial implication**: An empty line **ends** the current heading's chunk. Content after an empty line (until the next heading) becomes a separate **headerless** chunk. So **do not put an empty line between a heading and the content you want grouped with it** — put them on consecutive lines, and use `###` sub-headings to split long content.
 
 **Example 1: Standard Command Documentation**
 
@@ -641,8 +639,6 @@ Matching chunk headings:
 - "## Basic Rules" → +15 × keyword weight
 ```
 
----
-
 **Scoring Formula**:
 
 #### Level 1: Whole Keyword-String Match
@@ -670,8 +666,6 @@ Keyword Score = TF × (k1 + 1) / (TF + k1 × lengthNorm)
 - Length = 3: weight 2
 - Length < 3: weight 1
 
-(The BM25 score is then multiplied by `keyword weight × 5`.)
-
 #### Level 3: Position Weighting
 If a keyword appears in a heading (a line starting with `#`):
 ```
@@ -696,8 +690,8 @@ Total Score = 50.0 (whole-string match, if present)
 
 **Example Calculation**:
 
-User question: "claim land method"
-Extracted keywords: ["claim", "land", "method"]
+User question: "claim-land method"
+Extracted keywords: ["claim-land", "method"]
 Document chunk:
 ```
 ## How to Claim Land?
@@ -708,18 +702,16 @@ Document chunk:
 ```
 
 Scoring Process:
-1. Whole-string match: × (does not contain "claim land method")
-2. Keyword "claim" (length=5, weight=3):
-   - TF=2, Score = 2 × 2.5 / (2 + 1.5 × 0.8) = 2.08 × 3 = 6.24
-3. Keyword "land" (length=4, weight=3):
-   - TF=4, Score = 4 × 2.5 / (4 + 1.5 × 0.8) = 1.85 × 3 = 5.55
-4. Keyword "method" (length=6, weight=3):
-   - TF=0, Score = 0
-5. Position Weighting: check "## How to Claim Land?" for keywords
-   - Contains "claim" and "land": +15.0 × 3 + 15.0 × 3 = +90.0
-6. Exact Match: √ (some keyword present in the document)
+1. Whole-string match: × (does not contain the whole question)
+2. Keyword "claim-land" (length=2, weight=1):
+   - TF=3, Score = 3 × 1.5 / (3 + 1.5 × 0.6) = 2.25 × 1 = 2.25
+3. Keyword "method" (length=2, weight=1):
+   - TF=2, Score = 2 × 1.5 / (2 + 1.5 × 0.6) = 1.5 × 1 = 1.5
+4. Position Weighting: check "## How to Claim Land?" for "claim-land" and "method" → only "claim-land"
+   - Extra bonus for the keyword in the heading: +15.0 × 1 = +15.0
+5. Exact Match: √ (some keyword present in the document)
 
-Final Score ≈ 6.24 + 5.55 + 0 + 90.0 + 10.0 = 111.79
+Final Score ≈ 2.25 + 1.5 + 15.0 + 0 = 18.75
 
 ---
 
@@ -750,6 +742,8 @@ Final Score ≈ 6.24 + 5.55 + 0 + 90.0 + 10.0 = 111.79
 plugins/Kilacraft-AI/knowledge.yml
 ```
 
+> Note: All knowledge-base configuration is centralized in the standalone `knowledge.yml` (in early versions it lived in `config.yml`; it has since been migrated). After editing, run `/kila knowledge reload` or `/kila reload` to apply; Embedding-related items require a restart.
+
 ### Related Configuration Items
 
 ```yaml
@@ -759,8 +753,8 @@ knowledge:
 
   segment:
     max_size: 500                  # Maximum characters per chunk
-    min_size: 20                   # Minimum characters per chunk
-    overlap: 30                    # Chunk overlap characters (context retention)
+    min_size: 20                   # Minimum characters per chunk (chunks below this are filtered)
+    overlap: 30                    # Chunk overlap characters (only used by the fallback strategy)
 
   keywords:
     top_k: 10                      # Number of keywords extracted per query
@@ -768,14 +762,33 @@ knowledge:
   bm25:
     k1: 1.5                        # Term frequency saturation parameter (1.2-2.0)
     b: 0.75                        # Document length normalization parameter (0.5-0.8)
+    avg_doc_length: 0              # Average document length (0 = auto-statistic at startup; a positive number uses a fixed value)
+
+  retrieval:
+    noise_floor: 25.0              # Noise floor: chunks below this score are discarded outright (hard threshold)
+    relative_threshold: 0.3        # Relative threshold: chunks below "max score × this ratio" are discarded (soft threshold)
+    rrf_k: 60                      # RRF fusion parameter (only effective when Embedding is enabled)
+
+  embedding:
+    enabled: false                 # Enable Embedding semantic retrieval (requires api_url/api_key/model)
+    api_url: ""                    # Embedding API URL
+    api_key: ""                    # API Key
+    model: ""                      # Model name (different models have incompatible vector dimensions; requires restart on change)
+    dimensions: 1024               # Vector dimensions (must match the chosen model)
+    min_similarity: 0.5            # Minimum cosine similarity threshold (recommended 0.45~0.65)
+    timeout_seconds: 10            # API timeout (seconds)
+    cache_enabled: true            # Vector cache persistence (avoids recomputation on every startup)
 
   custom_dictionary:
-    enabled: true                    # Whether to enable the custom dictionary
-    words:
+    enabled: true                  # Whether to enable the custom dictionary
+    words:                         # Chinese custom words (merged with the built-in vocabulary and corpus-seeded words, deduplicated)
       - "claim"
       - "territory"
       - "redstone"
+    words_en: []                   # English custom words
 ```
+
+**Final filter gate**: `max(noise_floor, max score × relative_threshold)`. This two-stage filter mathematically guarantees that as long as the top-scoring chunk exceeds the noise floor, **at least 1** relevant result is returned — never the "relevant content exists but nothing is returned" case.
 
 ### Configuration Explanation
 
@@ -816,7 +829,7 @@ Controls the number of keywords extracted per query:
 
 ---
 
-#### `bm25.k1` / `b`
+#### `bm25.k1` / `b` / `avg_doc_length`
 
 BM25 algorithm parameters:
 
@@ -824,6 +837,35 @@ BM25 algorithm parameters:
 |-----------|--------|------------------|
 | k1 | Term frequency saturation point (higher values weight frequency more) | 1.2-2.0 |
 | b | Document length normalization (higher values penalize long documents more) | 0.5-0.8 |
+| avg_doc_length | Average document length, used as the denominator in length normalization | 0 (auto-statistic) |
+
+- `avg_doc_length: 0` (default) — auto-statistics the actual average length of all knowledge-base chunks at startup, so BM25 scores long and short documents more fairly.
+- A positive number uses a fixed value (suitable when the knowledge-base content is stable and you don't want it to drift with the corpus).
+
+> **IDF Weight Note**: BM25's IDF (Inverse Document Frequency) uses the `ln(1 + x)` form (the BM25+ variant), not the classic `ln(x)`. The former guarantees IDF is always positive — rare, specialized keywords that appear in only a few documents rank higher, while common words like "player" and "command" that appear everywhere don't dilute the results. The classic `ln(x)` turns negative when a term appears in more than half of all documents, conflicting with the plugin's "keep only chunks with score > 0" filter, so it is not used here.
+
+---
+
+#### `retrieval` - Retrieval Filter Thresholds (refactored in v2.1.2)
+
+The old single hard threshold `min_relevance_score` (default 30) has been replaced by **two-stage filtering**, avoiding the dilemma of "set it high and relevant content gets killed; set it low and noise floods in":
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `noise_floor` | 25.0 | **Noise floor (hard gate)**: chunks with an absolute score below this are discarded outright, no matter how high the top score is |
+| `relative_threshold` | 0.3 | **Relative threshold (soft gate)**: chunks scoring below "current top score × this ratio" are discarded |
+| `rrf_k` | 60 | RRF fusion parameter (only effective when Embedding is enabled; see the Embedding section below) |
+
+**Final gate** = `max(noise_floor, top score × relative_threshold)`.
+
+Tuning directions:
+- **Want more results** (also answer tangentially related questions): lower `noise_floor`, lower `relative_threshold`.
+- **Want stricter behavior** (stay silent rather than mislead when unsure): raise both.
+- Most server owners can **just keep the defaults** — they already filter out the vast majority of noise.
+
+---
+
+#### `custom_dictionary.enabled` / `words`
 
 ---
 
@@ -831,7 +873,7 @@ BM25 algorithm parameters:
 
 Custom dictionary for adding professional terminology and server-specific vocabulary:
 
-```yaml
+```
 custom_dictionary:
   enabled: true
   words:
@@ -845,37 +887,46 @@ custom_dictionary:
 
 ---
 
-#### `embedding` - Embedding Semantic Retrieval (added in v2.0.0)
+#### `embedding` - Embedding Semantic Retrieval (Fused with BM25)
 
-v2.0.0 adds Embedding-API-based semantic retrieval, which uses cosine similarity as an alternative to the BM25 algorithm to more accurately understand the user's query intent.
+> ⚠️ **Important Change (since v2.1.2)**: Enabling Embedding **no longer replaces BM25**. Instead, **BM25 + Embedding run in parallel**, and the results are fused by rank via **RRF (Reciprocal Rank Fusion)**. The older description "configuring Embedding replaces BM25 with semantic retrieval" is deprecated.
 
-**Working Principle**:
+**Why fuse instead of replace**: BM25 excels at exact keyword matching (command names, proper nouns), while Embedding excels at semantic understanding (different phrasings of the same concept). Running both in parallel and fusing them captures the strengths of each — chunks that both paths contribute to rank higher, and chunks that appear in only one path still participate in the ranking.
+
+**Working Principle (fusion mode)**:
 ```
-User query → Embedding API → text vector
-Knowledge chunks → Embedding API → pre-computed vectors (persisted cache)
-Cosine similarity match → return the most similar chunks
+                ┌── BM25 path: keyword matching → BM25 ranking of each chunk
+User query ─────┤
+                └── Embedding path: query vectorization → cosine similarity → semantic ranking of each chunk
+
+RRF fusion: fused score = Σ 1 / (rrf_k + rank)    (each path's rank contributes; rrf_k default 60)
+          → sort by fused score → take Top-K
 ```
 
-**Configuration Example** (knowledge.yml):
+- A larger `rrf_k` makes the head-rank advantage smoother (favors chunks that rank lower but hit on both paths); a smaller value makes the head-rank advantage more pronounced.
+- The Embedding path is only enabled when `embedding.enabled: true` AND valid `api_url`/`api_key`/`model` are configured; otherwise it automatically degrades to pure BM25 (the default path used by the vast majority of server owners).
+
+**Configuration Example** (`knowledge.yml`):
+
 ```yaml
 knowledge:
   embedding:
-    enabled: true                                 # Enable Embedding retrieval (auto-falls back to BM25 if api_url/api_key/model are not configured)
-    # Note: this plugin specifies the provider via api_url; there is no `provider` field
+    enabled: true                                 # Enable Embedding (must also configure api_url/api_key/model, otherwise auto-degrades to pure BM25)
+    # This plugin specifies the provider via api_url; there is no provider field
     api_url: "https://open.bigmodel.cn/api/paas/v4/embeddings"   # Requires restart after change
     api_key: "your-embedding-api-key"             # Requires restart after change
     model: "embedding-3"                          # Requires restart after change (vectors from different models are incompatible)
     dimensions: 1024                              # Vector dimensions (embedding-3: 2048/1024/512/256; bge-large-zh/m3: 1024; text-embedding-3-small: 1536). Requires restart after change.
-    min_similarity: 0.5                           # Minimum similarity threshold (cosine similarity 0~1). Recommended range: 0.45~0.65
+    min_similarity: 0.5                           # Minimum cosine similarity threshold (0~1). Recommended range: 0.45~0.65
     timeout_seconds: 10                           # API timeout (seconds). Requires restart after change.
     cache_enabled: true                           # Vector cache persistence (avoids recomputation on every startup)
 ```
 
-**Relationship with BM25**:
-- When Embedding is enabled, semantic retrieval is used
-- When not configured, it automatically falls back to the original BM25 algorithm
-- Embedding vectors are persisted to a cache to avoid recomputation on every startup
-- Supports an Embedding provider different from the LLM provider (e.g. ZhipuAI, SiliconFlow, OpenAI)
+**Ops Notes**:
+- Vector cache persistence (`cache_enabled: true`): the vectors for knowledge-base chunks are pre-computed and persisted to disk, avoiding re-calling the Embedding API on every startup.
+- Supports an Embedding provider different from the conversational LLM (ZhipuAI, SiliconFlow, OpenAI, etc.), as long as it is compatible with the OpenAI Embeddings interface.
+- The vector dimensions must match the chosen model; changing the dimensions or model requires deleting the old cache and restarting.
+- **Performance optimization**: the norm of each chunk's vector is pre-computed and cached, reducing the cosine-similarity workload by roughly 2/3; concurrent retrieval for multiple players asking questions at once no longer serializes them.
 
 **Applicable Scenarios**:
 - Knowledge content is semantically rich and keyword matching is not accurate enough
@@ -1174,11 +1225,11 @@ This translates the retrieval system's concrete behavior into "what to do when w
 
 ---
 
-## 🎬 Scenario Example: Let the AI Execute Custom Commands (commandSkill)
+## 🎬 Scenario Example: Let the AI Execute Custom Commands (command skill)
 
-When your server has custom commands (provided by Essentials/CMI etc., such as `/back`, `/home`, `/spawn`, `/tpa`, `/menu`) and you want players to trigger them with natural language, write those commands into the knowledge base and use the commandSkill (enable `command_skill.enabled: true` in `config.yml`).
+When your server has custom commands (provided by Essentials/CMI etc., such as `/back`, `/home`, `/spawn`, `/tpa`, `/menu`) and you want players to trigger them with natural language, write those commands into the knowledge base and use the command skill (skill name `command`, class `CommandSkill`) (enable `command_skill.enabled: true` in `config.yml`).
 
-**Flow**: player speaks → Phase 2 intent recognition [retrieves the knowledge base] → hits commandSkill + extracts the `command` parameter → runs as the player. The knowledge base's job is to teach the Phase 2 LLM the commands and produce the correct `command` (no `/`). commandSkill is a **fallback skill** — don't write in requests a dedicated skill (economy/market) already covers.
+**Flow**: player speaks → Phase 2 intent recognition [retrieves the knowledge base] → hits the command skill + extracts the `command` parameter → runs as the player. The knowledge base's job is to teach the Phase 2 LLM the commands and produce the correct `command` (no `/`). The command skill is a **fallback skill** — don't write in requests a dedicated skill (economy/market) already covers.
 
 The full example, design notes, and checklist are in the standalone document **"CommandSkill Knowledge Base Example.md"**. Core writing:
 

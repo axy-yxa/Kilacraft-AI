@@ -1,6 +1,6 @@
 # Kilacraft-AI - Database and Persistence Configuration Guide
 
-> **Last Updated**: 2026-05-11  
+> **Last Updated**: 2026-08-01  
 > **Description**: This document details Kilacraft-AI's database architecture, persistent content, configuration methods, and data management
 
 ---
@@ -33,18 +33,23 @@ Zero-config, works out of the box. Database files are automatically created in `
 Share player data across multiple sub-servers. Edit `plugins/Kilacraft-AI/database.yml`:
 
 ```yaml
-database:
-  type: mysql
+type: MYSQL
+mysql:
   host: localhost
   port: 3306
-  database: kilacraft
+  database: kilacraft_ai
   username: root
   password: your-password
-  table_prefix: "kca_"            # Table name prefix
-  data_retention_days: 30         # Data retention days
+  table_prefix: "kca_"            # Table name prefix (only letters/digits/underscores allowed)
+
+# Data retention days (see "Configuration Reference" below for full description)
+retention:
+  conversation_retention_days: 60
+  event_retention_days: 90
+  skill_log_retention_days: 60
 ```
 
-After configuration, run `/kila reload` for hot-switching. Auto-fallback to old connection pool on failure.
+After configuration, run `/kila reload` for hot-switching. Auto-fallback to old connection pool on failure. Full configuration options under "Configuration Reference" below.
 
 ---
 
@@ -59,7 +64,7 @@ After configuration, run `/kila reload` for hot-switching. Auto-fallback to old 
 | `role` | VARCHAR(16) | Role (user/assistant) |
 | `content` | TEXT | Message content |
 | `personality` | VARCHAR(32) | Personality ID (empty for default AI) |
-| `source` | VARCHAR(16) | Source identifier (chat/command/plugin/greeting/afk_callback) |
+| `source` | VARCHAR(16) | Source identifier (chat/command/plugin/greeting/guardian) |
 | `created_at` | BIGINT | Message creation timestamp (ms) |
 | `server_id` | VARCHAR(64) | Server identifier (for group servers, empty for single server) |
 
@@ -114,7 +119,15 @@ After configuration, run `/kila reload` for hot-switching. Auto-fallback to old 
 | `created_at` | BIGINT | Event timestamp (ms) |
 | `server_id` | VARCHAR(64) | Server identifier (for group servers) |
 
-**Event Types**: `PLAYER_DEATH`, `PLAYER_ADVANCEMENT`, `PLAYER_LEVEL_UP`, `MARKET_ITEM_SOLD`, `MARKET_ITEM_LISTED`, `MARKET_MONEY_RECEIVED`, `PLAYER_LOGIN`, `PLAYER_LOGOUT`, `PLAYER_FIRST_JOIN`, `PLAYER_PVP_KILL`, `PLAYER_PVP_DEATH`, `PLAYER_DEFEAT_BOSS`, `PLAYER_TAME_ANIMAL`, etc.
+**Event Types** (grouped by source):
+
+- **Lifecycle**: `PLAYER_LOGIN`, `PLAYER_LOGOUT`, `PLAYER_FIRST_JOIN`
+- **Market** (collected when GlobalMarketPlus is integrated): `MARKET_ITEM_SOLD`, `MARKET_ITEM_LISTED`, `MARKET_MONEY_RECEIVED`
+- **System/Admin**: `HEALTH_ALERT`, `HEALTH_ALERT_NOTIFIED`, `UPDATE_AVAILABLE`, `UPDATE_NOTIFIED`
+- **Player achievements & behaviors**: `PLAYER_DEATH`, `PLAYER_ADVANCEMENT`, `PLAYER_LEVEL_UP`, `PLAYER_USE_TOTEM`, `PLAYER_DEFEAT_BOSS`, `PLAYER_COMPLETE_RAID`, `PLAYER_PET_DEATH`, `PLAYER_PVP_KILL`, `PLAYER_PVP_DEATH`, `PLAYER_TOOL_BREAK`, `PLAYER_CATCH_TREASURE`, `PLAYER_LIGHTNING_STRIKE`, `PLAYER_CURE_VILLAGER`, `PLAYER_MINE_ANCIENT_DEBRIS`, `PLAYER_TAME_ANIMAL`, `PLAYER_CRAFT_ENCH_GOLDEN_APPLE`, `PLAYER_BUILD_WITHER`
+- **Player custom watch**: `PLAYER_WATCH_TRIGGERED` (written by the watch system when a player's watch condition is met)
+
+> Naming detail: `PLAYER_LEVEL_UP` (with underscore, not `PLAYER_LEVELUP`), `MARKET_ITEM_SOLD` (not `MARKET_SELL`). Also note that `ENTITY_PLAYER_LEVELUP` is a Minecraft sound name, unrelated to this event — do not confuse them.
 
 > **Note**: This table does NOT store a `player_name` column. When a player name is needed (e.g., friend dynamics in AI greetings), it's obtained via LEFT JOIN with `kca_player_profile`. This design prevents data inconsistency from name changes.
 
@@ -258,41 +271,63 @@ conversation:
 profile:
   analysis_interval_days: 1
   min_messages_to_trigger: 10
-  analysis_timeout_seconds: 60
+  analysis_timeout_seconds: 120
 
   # Profile analysis system prompt (supports multiline, /kila reload to apply)
   analysis_system_prompt: |
     你是一个玩家行为分析助手。根据玩家的对话历史，分析该玩家的游戏风格、偏好和行为特征。
-    请输出一个 JSON 对象，包含以下字段（如果没有足够信息则留空字符串）：
+
+    【画像用途】画像会作为长期记忆注入未来的对话，但刷新间隔较长（按天计）。一旦写入易过期的内容，会长期误导后续回复。务必只提炼长期稳定、不会随单次操作而改变的特征。
+
+    请输出一个 JSON 对象，包含以下字段（信息不足则留空字符串）：
     {
-      "playstyle": "玩家的游戏风格描述（如：探索型、建造型、战斗型、社交型等）",
-      "personality": "从对话中观察到的性格特征（如：友好、幽默、直接、内向等）",
-      "preferences": "玩家的偏好（如：喜欢的活动、感兴趣的话题等）",
-      "communication_style": "沟通风格（如：简短直接、详细描述、使用表情符号等）",
-      "notes": "其他值得注意的观察"
+      "playstyle": "长期游戏倾向（如：偏探索、偏建造、偏战斗、偏社交等）",
+      "personality": "观察到的性格特征（如：友好、幽默、直接、内敛等）",
+      "interests": "长期稳定的兴趣领域（如：建筑、经济、自动化、探险等）",
+      "boundaries": "交互禁忌或反感（如：不愿被催促、介意特定称呼等，无则留空）",
+      "communication": "期望的 AI 回复方式（如：简短直接、不用表情、语气克制等）",
+      "spatial": "长期归属地的定性描述（如：在某区域有长期基地），严禁写坐标和数量",
+      "facts": "玩家声明的稳定关系或身份（如：某玩家是好友或对手、自称某身份），严禁写数值",
+      "notes": "其他值得长期注意的观察"
     }
-    注意：
-    1. 只分析对话中明确体现的信息，不要推测
-    2. 每个字段尽量简洁，控制在50字以内
-    3. 如果某个维度信息不足，对应字段填空字符串
-    4. 只输出 JSON，不要包含其他内容
+
+    【数据性质红线 - 最重要】
+    1. 严禁记录任何会随时间或他人行为变化的具体数值快照：余额/金币、库存数量与物品清单、当前坐标、血量/饱食、在线状态、在售商品与价格、附近实体数量等。这类数据随时变化，固化进画像只会留下过期错误答案——即使玩家本人在对话里明确说出具体数字，也不要记录。
+    2. 只记"定性关系与稳定倾向"，不记"瞬时数值"。
+    3. 只分析对话中明确体现的信息，不要推测。
+
+    【输出规范】
+    1. 每个字段用简短的短语或句子，整个 JSON 总字符数控制在 500 以内。
+    2. 如果某个维度信息不足，对应字段填空字符串。
+    3. 只输出 JSON，不要包含其他内容。
   # Profile analysis system prompt in English (effective when language=en)
   analysis_system_prompt_en: |
     You are a player behavior analysis assistant. Analyze the player's game style, preferences, and behavioral traits based on their conversation history.
+
+    [Profile purpose] The profile is injected into future conversations as long-term memory, but refreshes infrequently (on the order of days). Anything volatile that gets written in will mislead subsequent replies for a long time. Extract only traits that are long-term stable and do not change with a single action.
+
     Output a JSON object with the following fields (use empty string if insufficient information):
     {
-      "playstyle": "Player's game style description (e.g., explorer, builder, fighter, socializer)",
-      "personality": "Personality traits observed from conversations (e.g., friendly, humorous, direct, introverted)",
-      "preferences": "Player preferences (e.g., favorite activities, topics of interest)",
-      "communication_style": "Communication style (e.g., brief and direct, detailed, uses emojis)",
-      "notes": "Other notable observations"
+      "playstyle": "Long-term game tendency (e.g., explorer-leaning, builder-leaning, combat-leaning, socializer-leaning)",
+      "personality": "Observed personality traits (e.g., friendly, humorous, direct, reserved)",
+      "interests": "Long-term stable interests (e.g., building, economy, automation, exploration)",
+      "boundaries": "Interaction taboos or dislikes (e.g., dislikes being rushed, sensitive to certain forms of address; leave empty if none)",
+      "communication": "Preferred AI response style (e.g., brief and direct, no emojis, restrained tone)",
+      "spatial": "Qualitative description of long-term turf (e.g., has a long-term base in some region); NEVER write coordinates or counts",
+      "facts": "Stated stable relations or identity (e.g., a player is a friend or rival, self-claimed role); NEVER write numeric values",
+      "notes": "Other observations worth remembering long-term"
     }
-    Notes:
-    1. Only analyze information explicitly shown in conversations, do not speculate
-    2. Keep each field concise, within 50 characters
-    3. If insufficient information for a dimension, use empty string
-    4. Output only JSON, no other content
-  # Incremental analysis system prompt (used when existing profile is present, leave empty for default) Added in v2.0.2
+
+    [Data-nature red lines - most important]
+    1. NEVER record numeric snapshots of anything that changes over time or with others' actions: balance/coins, inventory counts and item lists, current coordinates, health/hunger, online status, shop listings and prices, nearby entity counts, etc.
+    2. Record only "qualitative relations and stable tendencies", not "instantaneous values".
+    3. Analyze only information explicitly shown in conversations; do not speculate.
+
+    [Output rules]
+    1. Use short phrases or sentences for each field; keep total JSON under 500 characters.
+    2. If insufficient information for a dimension, use empty string.
+    3. Output only JSON, no other content.
+  # Incremental analysis system prompt (used when existing profile is present) Added in v2.0.2
   incremental_system_prompt: |
     你是一个玩家行为分析助手。以下是玩家的历史画像数据（JSON）和新的对话记录。
     请对比历史画像和新对话，**保留仍然准确的内容，修正已经变化的内容**，融合输出更新后的完整画像 JSON。
@@ -300,7 +335,7 @@ profile:
 
     【输出要求】
     1. 只输出 JSON，不要包含其他内容
-    2. 字段与历史画像保持一致（playstyle、personality、preferences、communication_style、notes）
+    2. 字段与历史画像保持一致（playstyle、personality、interests、boundaries、communication、spatial、facts、notes）
     3. 如果某个维度信息不足，对应字段填空字符串
   # Incremental analysis system prompt in English (effective when language=en and existing profile is present) Added in v2.0.2
   incremental_system_prompt_en: |
@@ -310,9 +345,11 @@ profile:
 
     Requirements:
     1. Output only JSON, no other content
-    2. Keep the same fields as the existing profile (playstyle, personality, preferences, communication_style, notes)
+    2. Keep the same fields as the existing profile (playstyle, personality, interests, boundaries, communication, spatial, facts, notes)
     3. If insufficient information for a dimension, use empty string
 ```
+
+> **Eight profile dimensions**: the current version uses **8 fields** (compared to the early version's 5: playstyle/personality/preferences/communication_style/notes). The `analysis_system_prompt` and `incremental_system_prompt` field lists **must match** (all 8 dimensions listed). When modifying any profile prompt, check the other one simultaneously to avoid fields being dropped during incremental analysis.
 
 ---
 
@@ -353,7 +390,7 @@ Stop the server, delete the `plugins/Kilacraft-AI/data/` directory, then restart
 Check the connection parameters in `database.yml` and whether the MySQL service is running. On failure, the plugin auto-falls back to the old connection pool without data loss.
 
 **Q: How to configure cleanup intervals?**  
-Modify `cleanup_interval_hours` and `data_retention_days` in `database.yml`, then run `/kila reload`.
+Data retention days are configured in `database.yml` under the `retention` section per table: `conversation_retention_days` (conversations, default 60), `event_retention_days` (events, default 90), `skill_log_retention_days` (skill logs, default 60). Set to `0` for permanent retention. Run `/kila reload` to apply changes. The cleanup task runs on a fixed periodic schedule managed by the unified task scheduler (no separate cleanup interval to configure).
 
 ---
 

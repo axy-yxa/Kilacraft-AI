@@ -93,26 +93,46 @@ public class LanguageManager {
     private String commandTasksNeverRun;
     @Getter
     private String commandTasksTimeAgo;
-    @Getter private String commandGuardianNoPermission;
-    @Getter private String commandGuardianNotInit;
-    @Getter private String commandGuardianDisabledGlobal;
-    @Getter private String commandGuardianAlreadyOn;
-    @Getter private String commandGuardianAlreadyOff;
-    @Getter private String commandGuardianOnSuccess;
-    @Getter private String commandGuardianOff;
-    @Getter private String commandGuardianStatus;
-    @Getter private String commandGuardianStateOn;
-    @Getter private String commandGuardianStateOff;
-    @Getter private String commandGuardianUsage;
-    @Getter private String commandGuardianMonitorLine;
-    @Getter private String commandSuggestionNotInit;
-    @Getter private String commandSuggestionAlreadyOn;
-    @Getter private String commandSuggestionAlreadyOff;
-    @Getter private String commandSuggestionOn;
-    @Getter private String commandSuggestionOff;
-    @Getter private String commandSuggestionStatusOn;
-    @Getter private String commandSuggestionStatusOff;
-    @Getter private String commandSuggestionUsage;
+    @Getter
+    private String commandGuardianNoPermission;
+    @Getter
+    private String commandGuardianNotInit;
+    @Getter
+    private String commandGuardianDisabledGlobal;
+    @Getter
+    private String commandGuardianAlreadyOn;
+    @Getter
+    private String commandGuardianAlreadyOff;
+    @Getter
+    private String commandGuardianOnSuccess;
+    @Getter
+    private String commandGuardianOff;
+    @Getter
+    private String commandGuardianStatus;
+    @Getter
+    private String commandGuardianStateOn;
+    @Getter
+    private String commandGuardianStateOff;
+    @Getter
+    private String commandGuardianUsage;
+    @Getter
+    private String commandGuardianMonitorLine;
+    @Getter
+    private String commandSuggestionNotInit;
+    @Getter
+    private String commandSuggestionAlreadyOn;
+    @Getter
+    private String commandSuggestionAlreadyOff;
+    @Getter
+    private String commandSuggestionOn;
+    @Getter
+    private String commandSuggestionOff;
+    @Getter
+    private String commandSuggestionStatusOn;
+    @Getter
+    private String commandSuggestionStatusOff;
+    @Getter
+    private String commandSuggestionUsage;
     @Getter
     private String commandNotifyNoPermission;
     @Getter
@@ -181,14 +201,6 @@ public class LanguageManager {
     private String commandDoctorGroupTitle;
     @Getter
     private String commandDoctorCheckLine;
-    @Getter
-    private String commandDoctorCacheSummary;
-    @Getter
-    private String commandDoctorCacheTypeLine;
-    @Getter
-    private String commandDoctorCacheTypeSupported;
-    @Getter
-    private String commandDoctorCacheTypeUnsupported;
     @Getter
     private String commandDoctorGroupSummary;
     @Getter
@@ -282,43 +294,17 @@ public class LanguageManager {
     @Getter
     private String commandDoctorCheckWebFetch;
     @Getter
-    private String commandDoctorCheckCache;
-    @Getter
-    private String commandDoctorCacheNoData;
-    @Getter
-    private String commandDoctorCacheUnsupported;
-    @Getter
-    private String commandDoctorCacheOk;
-    @Getter
     private String commandCacheNoPermission;
     @Getter
     private String commandCacheResetSuccess;
     @Getter
-    private String commandCacheInvalidPage;
-    @Getter
-    private String commandCachePageOutOfRange;
-    @Getter
     private String commandCacheHeader;
-    @Getter
-    private String commandCacheGlobalLine;
-    @Getter
-    private String commandCacheGlobalRateLine;
-    @Getter
-    private String commandCacheTypeHeader;
-    @Getter
-    private String commandCacheTypeUsageLine;
-    @Getter
-    private String commandCacheTypeMetricsLine;
     @Getter
     private String commandCacheNoData;
     @Getter
-    private String commandCacheFooterNote1;
+    private String commandCacheFooter;
     @Getter
-    private String commandCacheFooterNote2;
-    @Getter
-    private String commandCacheFooterNote3;
-    @Getter
-    private String commandCacheUnsupported;
+    private String commandCacheAvgHit;
     @Getter
     private String commandCacheUnknownModel;
     @Getter
@@ -704,10 +690,6 @@ public class LanguageManager {
         this.commandDoctorConsoleHint = config.getString("commands.doctor-console-hint", "§7完整诊断详情已输出到控制台。");
         this.commandDoctorGroupTitle = config.getString("commands.doctor-group-title", "§e▌{group}");
         this.commandDoctorCheckLine = config.getString("commands.doctor-check-line", "{icon} §f{name}§7：§f{detail}");
-        this.commandDoctorCacheSummary = config.getString("commands.doctor-cache-summary", "  §8缓存汇总：§7请求 §f{requests} §8· §7输入 §f{input} §8· §7输出 §f{output} §8· §7总计 §f{total} Token §8· §7缓存读取率 §a{hitrate} §8· §7缓存读取 §f{saved} Token");
-        this.commandDoctorCacheTypeLine = config.getString("commands.doctor-cache-type-line", "  §8{type} §7({model}) §8· 请求 §f{requests} §8· 输入 §f{input} §8· 输出 §f{output} §8· 总计 §f{total} Token §8· {metrics}");
-        this.commandDoctorCacheTypeSupported = config.getString("commands.doctor-cache-type-supported", "缓存读取率 §a{hitrate} §8· 缓存读取 §f{saved} Token");
-        this.commandDoctorCacheTypeUnsupported = config.getString("commands.doctor-cache-type-unsupported", "§7供应商未报告缓存数据");
         this.commandDoctorGroupSummary = config.getString("commands.doctor-group-summary", "§e▌§f{group} §8· §a通过 {pass} §8/ §e提醒 {warn} §8/ §c失败 {fail}");
         this.commandDoctorGroupAllNormal = config.getString("commands.doctor-group-all-normal", "  §a✓ §7全部正常");
         this.commandDoctorIssueWarn = config.getString("commands.doctor-issue-warn", "  §e⚠ §f{name}§7：{detail}");
@@ -756,10 +738,6 @@ public class LanguageManager {
         this.commandDoctorCheckWebFetch = config.getString("commands.doctor-check-web-fetch", "Web 抓取");
         this.commandDoctorSearchOn = config.getString("commands.doctor-search-on", "启用（{provider}）");
         this.commandDoctorSearchNoProvider = config.getString("commands.doctor-search-no-provider", "启用，但未配置任何搜索供应商");
-        this.commandDoctorCheckCache = config.getString("commands.doctor-check-cache", "大模型缓存");
-        this.commandDoctorCacheNoData = config.getString("commands.doctor-cache-no-data", "暂无数据");
-        this.commandDoctorCacheUnsupported = config.getString("commands.doctor-cache-unsupported", "当前供应商未报告缓存数据");
-        this.commandDoctorCacheOk = config.getString("commands.doctor-cache-ok", "{hitrate} | {requests}次请求 | 支持类型 {supported}/{total}");
         this.commandAboutNoPermission = config.getString("commands.about-no-permission", "§c你没有权限使用此命令。");
         this.commandAboutTitle = config.getString("commands.about-title", "§6[Kilacraft-AI] §f版本信息");
         this.commandAboutCurrent = config.getString("commands.about-current", "§7当前版本：§fv{ver}");
@@ -834,19 +812,10 @@ public class LanguageManager {
         // 大模型缓存命中率统计
         this.commandCacheNoPermission = config.getString("commands.cache-no-permission", "§c你没有权限查看大模型缓存统计。");
         this.commandCacheResetSuccess = config.getString("commands.cache-reset-success", "§a大模型缓存统计已重置。");
-        this.commandCacheInvalidPage = config.getString("commands.cache-invalid-page", "§c页码必须是大于 0 的整数。");
-        this.commandCachePageOutOfRange = config.getString("commands.cache-page-out-of-range", "§c页码超出范围，共 {total} 页。");
-        this.commandCacheHeader = config.getString("commands.cache-header", "§6[Kilacraft-AI] §f大模型缓存统计 §7({page}/{total})");
-        this.commandCacheGlobalLine = config.getString("commands.cache-global-line", "§6全局 §8· §7请求 §f{requests} §8· §7输入 §f{input} §8· §7输出 §f{output} §8· §7总计 §f{total} Token");
-        this.commandCacheGlobalRateLine = config.getString("commands.cache-global-rate-line", "§7缓存读取率 §a{hitrate} §8· §7缓存读取 §f{saved} Token");
-        this.commandCacheTypeHeader = config.getString("commands.cache-type-header", "§e▌§f{type} §8· §7{model}");
-        this.commandCacheTypeUsageLine = config.getString("commands.cache-type-usage-line", "  §7调用 §f{requests} §8· §7输入 §f{input} §8· §7输出 §f{output} §8· §7总计 §f{total} Token");
-        this.commandCacheTypeMetricsLine = config.getString("commands.cache-type-metrics-line", "  §7缓存读取率 §a{hitrate} §8· §7缓存读取 §f{saved} Token");
+        this.commandCacheHeader = config.getString("commands.cache-header", "§6▌大模型缓存命中率 §7({model})");
         this.commandCacheNoData = config.getString("commands.cache-no-data", "§7暂无数据。至少需要一次大模型调用才会产生统计。");
-        this.commandCacheFooterNote1 = config.getString("commands.cache-footer-note-1", "§8统计范围：本次服务器启动至今，重启后自动清零。");
-        this.commandCacheFooterNote2 = config.getString("commands.cache-footer-note-2", "§8N/A 表示当前大模型供应商未报告缓存数据。");
-        this.commandCacheFooterNote3 = config.getString("commands.cache-footer-note-3", "§8缓存读取率=缓存读取 Token/输入 Token。");
-        this.commandCacheUnsupported = config.getString("commands.cache-unsupported", "  §7缓存数据：§8供应商未报告");
+        this.commandCacheFooter = config.getString("commands.cache-footer", "重启清零 · 控制台查看详情");
+        this.commandCacheAvgHit = config.getString("commands.cache-avg-hit", "平均命中率");
         this.commandCacheUnknownModel = config.getString("commands.cache-unknown-model", "未知模型");
         this.commandCacheTypeNames = config.getStringList("commands.cache-type-names");
 

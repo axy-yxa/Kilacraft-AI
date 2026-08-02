@@ -1,7 +1,20 @@
+> ⚠️ **Archived Document (v2.2.0)**
+>
+> The **AFK Task System described here was entirely removed in v2.2.0** (the `/kila afk` command, `AFKTaskManager`, `kilacraft.afk` permission, `afk_task` config section, and `skills/afktask/` package are all deleted).
+>
+> Its capabilities are replaced by three new systems:
+> - **Guardian System (GuardianSkill)**: a default opt-in package of proactive AI watch (inventory nearly full / low durability / threat behind)
+> - **Player Custom Watch (WatchSkill)**: set condition/event watches via natural language; more capable than the old system
+> - **Cross-Player Online/Offline Subscription (PlayerWatchSkill)**: subscribe to friends' online/offline (replaces the old system's same-named capability, supports multiple targets)
+>
+> This document is kept for historical reference only; the body is no longer maintained. For current event-listening capabilities, see "Built-in Skills and Events Capability List".
+
+---
+
 # Kilacraft-AI - AFK Task System Guide
 
 > **Last Updated**: 2026-05-06  
-> **Description**: This document provides a comprehensive guide to the AFK Task System, including architecture, usage, call chains, and best practices
+> **Description**: This document provides a comprehensive guide to the AFK Task System, including architecture, usage, call chains, and best practices (**archived; system removed**)
 
 ---
 

@@ -1,6 +1,6 @@
 # Kilacraft-AI System Architecture Details
 
-> **Last Updated**: 2026-05-22
+> **Last Updated**: 2026-08-01
 > **Description**: This document provides detailed explanation of Kilacraft-AI's core architecture design, working principles of three interaction modes, call chains, and design philosophy
 
 ---
@@ -84,7 +84,7 @@ User Input: "@ai What am I holding? How much can this sell for?"
   ↓
 【4. Response Layer】AIResponsePipeline ✨ Unified Output Pipeline
   ├─ Select output carrier based on scenario (CHAT/ACTION_BAR/BOSS_BAR/TITLE/SIDEBAR)
-  ├─ Scenario configuration: NORMAL_CHAT / SKILL_RESULT / TASK_RESULT / AFK_CALLBACK / ERROR
+  ├─ Scenario configuration: NORMAL_CHAT / SKILL_RESULT / TASK_RESULT / GUARDIAN / GREETING / ERROR
   ├─ Public broadcast: Unified CHAT carrier + AI prefix
   ├─ Thinking message: Uses dynamically configured thinking_channel
   ├─ Stream output (optional, all scenarios supported):
@@ -344,7 +344,7 @@ PlayerJoinEvent → LoginGreetingHandler
   │     ├── Category 1: Player's own offline events (death/advancement/level-up/market)
   │     ├── Category 2: Friend dynamics during offline (JOIN player_profile for names)
   │     └── Category 3: Summary stats (total playtime/login count/last session highlights)
-  └── Cooldown check (greeting.yml)
+  └── Cooldown check (behavior.yml)
        ↓
   GreetingPromptBuilder → LLM → AIResponsePipeline
 ```
@@ -383,7 +383,7 @@ initializeAdminSystem()
   │   ├── ServerHealthSkill (3 actions: alert_history / list_reports / read_report)
   │   ├── PlayerAnalysisSkill (6 actions: online_trend / top_active / new_players /
   │   │                          profile_coverage / social_insights / player_relations)
-  │   └── AuditLogSkill (3 actions: query_logs / usage_stats / error_logs)
+  │   └── AuditLogSkill (3 actions: query_logs / skill_stats / error_logs)
   │
   └── Guardian Thread Creation (triple gate)
       ├── Gate 1: databaseManager != null
@@ -453,6 +453,131 @@ AdminSkillUtil (static utility class)
 ```
 
 **Design Principle**: All Admin Skill message output must be formatted to ensure AI secondary analysis input readability.
+
+---
+
+## 🆕 v2.2.0 New Subsystem Architecture
+
+v2.2.0 is a major version upgrade, introducing **proactive AI layer + web capabilities + player custom watches + chat suggestions + LLM budget governance**. These subsystems are independent of the player request pipeline (modes 1&2) but share LLM calls and the output pipeline.
+
+### 1. Guardian System (Proactive AI Watch)
+
+The Guardian system is the AI's **proactive layer** — no longer "answers only when asked", but actively speaks up at moments the player isn't watching but will care about later. Entirely independent of the player request pipeline.
+
+```
+GuardianManager (lifecycle + scheduling, opt-in, memory-only, non-persistent)
+  ├── /kila guardian on → enable default package (3 built-in monitors, hardcoded)
+  │     ├── BuiltInMonitors.createDefaultPollingMonitors() → 2 polling monitors
+  │     │     ├── _inventory_near_full (free slots ≤ 6, polls every 600 ticks)
+  │     │     └── _low_durability (equipment durability ≤ 5%, polls every 600 ticks)
+  │     └── BuiltInMonitors.createEventMonitors() → 1 event monitor
+  │           └── _threat_target (listens to EntityTargetEvent, hostile mobs targeting the player)
+  │
+  └── GuardianEngine (event-driven + heartbeat-driven evaluation)
+        ├── Event-type monitor: Bukkit event hits filter → evaluate triggerPredicate (edge-triggered)
+        ├── Polling-type monitor: heartbeat eval driven by cadenceTicks
+        ├── Predicate layer zero-LLM (pure function PlayerState → bool)
+        ├── Hit → GuardianLlmAction (LLM generates natural conversational alert)
+        └── Awareness suppression: skip inventory/durability alerts when any item GUI is open
+```
+
+**Key Design Constraints**:
+- **Value axis**: only speaks at moments the player "isn't watching now, but will care about later". Hunger/health/oxygen/suffocation etc. (HUD-perceivable) are excluded. Creeper fuse (1.5s) and projectile flight (1-2s) are too short for LLM latency.
+- **AFK pause**: `PlayerActivityTracker` detects idle (default 5 min without input); `tickPlayer` + `submitSignal` both skip eval during AFK.
+- **Anti-spam**: each monitor has its own `cooldownMillis`. Action failure (offline/guardian-off/LLM failure) is treated as not-triggered.
+- **Output carrier**: guardian alerts use `ACTION_BAR` by default (avoiding main-chat spam), routed through `LLMOutputCoordinator.outputAnalysisResult(... GUARDIAN ...)`.
+- **No governance layer**: no alert priority/category/silence features. Players who don't want disturbance simply turn guardian off. GuardianSkill has only enable/disable/status actions.
+
+### 2. Player Custom Watch (WatchSkill)
+
+Players set condition/event watches via natural language ("watch iron ingots reach 64", "BOSS spawn alert"). Independent of the Guardian system.
+
+```
+WatchSkill (AI skill, skill_name=watch)
+  ├── create_watch / cancel_watch / list_watches
+  └── WatchService (memory-only, non-persistent)
+        ├── Polling (POLLING): periodically execute a built-in skill's read-only action and compare values
+        │     └── All polling watches for a player merged into a single timer
+        ├── Event (EVENT): PlayerWatchListener (global singleton Listener)
+        │     ├── Listens to 11 high-value Bukkit events
+        │     └── eventType → Set<WatchRef> reverse index (zero-cost when no subscribers)
+        └── Hit → LLMOutputCoordinator.outputAnalysisResult (notify-only, no callback)
+
+  Per-player limits: polling ≤ 3 / event ≤ 5 / global 200
+  Offline grace window (offlineGraceMinutes, default 5 min)
+  Event ownership: self (O(1)) / killer attribution / coordinate distance (snapshot at creation time)
+  Cooldown: AtomicLong CAS (Watch.casFireTime), only one passes under concurrent events
+```
+
+> v2.2.0 removed the old AFK task system. Its capabilities are replaced by Guardian (default package) + WatchSkill (custom watches) + PlayerWatchSkill (cross-player subscriptions).
+
+### 3. Cross-Player Online/Offline Subscription (PlayerWatchSkill)
+
+```
+PlayerWatchSkill (AI skill, skill_name=player_watch)
+  ├── subscribe / unsubscribe / list / unsubscribe_all
+  └── PlayerWatchService (memory subscription + Bukkit Listener)
+        ├── Subscriber offline auto-clears (hardcoded limit of 5/player)
+        ├── Anti-disorder: offline notification cancels pending online notification
+        └── Online notification delayed 2 sec (wait for full join)
+  Notification routed through unified LLMOutputCoordinator.outputAnalysisResult(... GUARDIAN ...)
+```
+
+### 4. Web Search & Fetch (WebSearch / WebFetch)
+
+```
+WebSearchSkill (skill_name=web_search, action=search)
+  ├── web.yml config (provider: auto, routed by server language)
+  ├── 9 providers: 5 domestic + 4 international
+  ├── Time range filtering (today/last week/last month)
+  └── Auto multi-step search (up to 5 sub-searches)
+
+WebFetchSkill (skill_name=web_fetch, action=fetch, zero-config)
+  ├── Fetch page body → AI answers questions about the page
+  └── SSRF protection (when ssrf_protection: true)
+        ├── IP check embedded in DNS resolution (anti-DNS-rebinding)
+        ├── Byte-level hard limit on response body (readBodyWithLimit, default 2MB)
+        └── Forced HTTPS + per-hop redirect re-check (max 3 hops)
+```
+
+### 5. Chat Suggestions
+
+```
+AI reply complete → SuggestionService (command mode only, not continuous chat)
+  ├── Generates 1-5 clickable suggestions based on multi-turn history + available skill summary
+  ├── "Better none than wrong" — won't output if unsure
+  ├── /kila suggestion on|off|status (available to all, opt-out)
+  └── Configured in behavior.yml's suggestion section
+```
+
+### 6. LLM Budget Governance (LLMBudgetManager)
+
+```
+LLMOutputCoordinator contains LLMBudgetManager
+  ├── Tracks hourly call count per player
+  ├── Exceeds threshold (budget_per_player_per_hour, default 200) → 1-hour circuit breaker
+  ├── Binary circuit breaker:
+  │     ├── Player-initiated (chat/skill/task) → never broken, responds normally even over budget
+  │     └── Passive calls (greeting/suggestion/guardian/third-party callbacks) → uniformly rejected during breaker window
+  └── /kila reload refreshes threshold immediately; set to 0 or negative to fully disable
+```
+
+### 7. Skill Registration Overview
+
+Current 17 built-in Skills registered across three entry points:
+
+```
+registerDefaultSkills() (KilacraftAI.java) — 8 unconditional + 6 conditional
+  ├── Unconditional: GenericBukkitAPI / BukkitFX / BukkitStats / Utility
+  │                  ServerHealth / PlayerAnalysis / AuditLog / VersionInfo
+  └── Conditional: Command (config toggle) / MarketQuery+MarketAction (GMP) / CMI / WebSearch / WebFetch
+
+initializeGuardianSystem()    → GuardianSkill
+initializePlayerWatchSystem() → PlayerWatchSkill
+initializeWatchSystem()       → WatchSkill
+```
+
+> Guardian, PlayerWatch, and Watch Skills are registered in their own subsystem initializers, not in `registerDefaultSkills`.
 
 ---
 

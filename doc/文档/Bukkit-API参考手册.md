@@ -1,13 +1,13 @@
 # Kilacraft-AI - Bukkit API 参考手册
 
-> **最后更新**: 2026-05-06  
+> **最后更新**: 2026-08-01  
 > **说明**: 本文档提供所有内置 Bukkit API 的详细说明、配置示例和使用场景
 
 ---
 
 ## 📊 Bukkit API 快速参考表
 
-### 👤 玩家相关 API（45 个）
+### 👤 玩家相关 API（44 个）
 
 | API ID | 显示名称 | 功能 | 调用方式 | 权限 |
 |--------|---------|------|----------|------|
@@ -56,7 +56,7 @@
 | `get_player_feet_block` | 获取脚下方块 | 获取脚下站立的方块信息 | method_chain | `kilacraft.api.player.info` |
 | `get_player_last_damage` | 获取上次受伤原因 | 获取上次受伤来源/原因/伤害量 | method_chain | `kilacraft.api.player.status` |
 
-### 🌍 世界相关 API（22 个）
+### 🌍 世界相关 API（21 个）
 
 | API ID | 显示名称 | 功能 | 调用方式 | 权限 |
 |--------|---------|------|----------|------|
@@ -93,13 +93,13 @@
 | `get_server_worlds` | 获取服务器世界列表 | 获取所有已加载世界 | method_chain | `kilacraft.api.server.info` |
 | `get_server_settings` | 获取服务器设置 | 获取飞行/下界/末地设置 | additional_methods | `kilacraft.api.server.info` |
 
-**统计**：共计 **58 个 API**（玩家 31 + 世界 21 + 服务器 6）
+**统计**：共计 **71 个 API**（玩家 44 + 世界 21 + 服务器 6）
 
 ---
 
 ## 📖 概述
 
-Kilacraft-AI 内置了 **58 个 Bukkit API**，让 AI 能够访问 Minecraft 服务器的各种数据。这些 API 通过 YAML 配置定义，无需编写代码即可使用。
+Kilacraft-AI 内置了 **71 个 Bukkit API**，让 AI 能够访问 Minecraft 服务器的各种数据。这些 API 通过 YAML 配置定义，无需编写代码即可使用。
 
 ### 核心特性
 

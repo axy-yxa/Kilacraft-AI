@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 多大模型供应商缓存字段解析器。
+ * 多种大模型供应商缓存字段解析器。
  * <p>
  * 从 API 响应的 {@code usage} JSON 对象中提取缓存命中数据，
  * 按优先级尝试多种已知格式：DeepSeek → OpenAI 原生 → Anthropic 兼容 → 单字段回退。
