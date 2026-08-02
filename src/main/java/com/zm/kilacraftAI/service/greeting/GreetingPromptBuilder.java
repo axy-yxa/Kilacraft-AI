@@ -124,7 +124,8 @@ public class GreetingPromptBuilder {
             serverInfo = "";
         }
 
-        String prompt = customPrompt.replace("{player}", playerName).replace("{server_info}", serverInfo);
+        // {player} 占位符替换由 Provider 咽喉统一处理，此处仅替换其他业务占位符
+        String prompt = customPrompt.replace("{server_info}", serverInfo);
 
         // 守护推荐（仅未开启时注入）
         String guardianSection = buildGuardianRecommendationSection(context.isGuardianEnabled());
@@ -148,7 +149,8 @@ public class GreetingPromptBuilder {
         String updateReminderSection = buildUpdateReminderSection(context.getUpdateReminders(), playerName);
         String guardianSection = buildGuardianRecommendationSection(context.isGuardianEnabled());
 
-        String prompt = customPrompt.replace("{player}", playerName).replace("{offline_duration}", offlineDuration).replace("{own_events_section}", ownEventsSection).replace("{friend_events_section}", friendEventsSection).replace("{online_friends_section}", onlineFriendsSection).replace("{last_location}", lastLocationSection).replace("{summary_section}", summarySection);
+        // {player} 占位符替换由 Provider 咽喉统一处理，此处仅替换其他业务占位符
+        String prompt = customPrompt.replace("{offline_duration}", offlineDuration).replace("{own_events_section}", ownEventsSection).replace("{friend_events_section}", friendEventsSection).replace("{online_friends_section}", onlineFriendsSection).replace("{last_location}", lastLocationSection).replace("{summary_section}", summarySection);
 
         // 守护推荐段落拼接到末尾（最低优先级，仅未开启时）
         if (guardianSection != null && !guardianSection.isEmpty()) {

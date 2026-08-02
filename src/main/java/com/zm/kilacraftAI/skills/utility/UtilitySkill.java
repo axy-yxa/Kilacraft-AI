@@ -249,14 +249,9 @@ public class UtilitySkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("LLM Provider 未初始化")));
         }
 
-        // 从 behavior.yml 读取提示词
+        // 从 behavior.yml 读取提示词；system 保持纯静态（美化模板），画像由 Provider 注入 user 消息
         String systemPrompt = getNotifySystemPrompt();
 
-        // 画像注入
-        var profileManager = plugin.getProfileManager();
-        if (profileManager != null) {
-            systemPrompt = profileManager.injectProfileSummary(systemPrompt, context.getPlayer().getUniqueId());
-        }
         String userPromptTemplate = getNotifyUserPrompt();
         String userPrompt = userPromptTemplate.replace("{0}", message);
 
@@ -270,7 +265,7 @@ public class UtilitySkill implements Skill {
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
 
-        CompletableFuture<String> llmFuture = llmProvider.processRequestWithCustomSystemPrompt(userPrompt, playerName, emptyHistory, handler, systemPrompt, false, false, false, CacheCallTypeEnum.UTILITY);
+        CompletableFuture<String> llmFuture = llmProvider.processRequestWithCustomSystemPrompt(userPrompt, player, emptyHistory, handler, systemPrompt, false, false, false, CacheCallTypeEnum.UTILITY);
 
         return llmFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {
@@ -306,14 +301,8 @@ public class UtilitySkill implements Skill {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("LLM Provider 未初始化")));
         }
 
-        // 从 behavior.yml 读取提示词
+        // 从 behavior.yml 读取提示词；system 保持纯静态（美化模板），画像由 Provider 注入 user 消息
         String systemPrompt = getBroadcastSystemPrompt();
-
-        // 画像注入
-        var profileManager = plugin.getProfileManager();
-        if (profileManager != null) {
-            systemPrompt = profileManager.injectProfileSummary(systemPrompt, player.getUniqueId());
-        }
 
         String userPromptTemplate = getBroadcastUserPrompt();
         String userPrompt = userPromptTemplate.replace("{0}", message);
@@ -356,7 +345,7 @@ public class UtilitySkill implements Skill {
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
 
-        llmProvider.processRequestWithCustomSystemPrompt(userPrompt, playerName, emptyHistory, silentHandler, systemPrompt, false, false, false, CacheCallTypeEnum.UTILITY);
+        llmProvider.processRequestWithCustomSystemPrompt(userPrompt, player, emptyHistory, silentHandler, systemPrompt, false, false, false, CacheCallTypeEnum.UTILITY);
 
         return responseFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {

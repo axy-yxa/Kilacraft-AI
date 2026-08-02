@@ -13,7 +13,6 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
-import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
 import com.zm.kilacraftAI.skills.framework.resume.PendingAction;
 import com.zm.kilacraftAI.skills.framework.resume.PendingResume;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
@@ -165,13 +164,13 @@ public class SkillIntentRecognizer {
     /**
      * 识别用户意图（两阶段：Phase 1 Skill 分类 → Phase 2 Action 选择 + 参数提取）
      *
-     * @param userInput  用户输入
-     * @param history    对话历史（用于上下文理解，可选）
-     * @param playerName 当前玩家名称（用于提示词注入，可为 null 表示控制台）
-     * @param caller     调用者（Player），用于权限预检过滤 Skill 描述，null 表示控制台
+     * @param userInput 用户输入
+     * @param history   对话历史（用于上下文理解，可选）
+     * @param caller    调用者（Player），用于权限预检过滤 Skill 描述，并经 Provider 注入动态上下文；
+     *                  null 表示控制台（不注入玩家上下文）
      * @return 识别结果（可能是 SkillIntent 或 TaskPlan，异步）
      */
-    public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history, String playerName, Player caller) {
+    public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history, Player caller) {
         if (configManager == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -183,21 +182,22 @@ public class SkillIntentRecognizer {
         }
 
         // 构建用户提示词
-        String userPrompt = buildUserPrompt(userInput, history, playerName);
+        String userPrompt = buildUserPrompt(userInput, history);
 
         // 静默 Handler：意图识别不向玩家输出
         AIResponseHandler handler = buildSilentHandler("意图识别");
 
         // === Phase 1：Skill 分类（关闭知识检索） ===
         String phase1Skills = buildPhase1SkillDescription(caller);
-        String phase1SystemPrompt = withPlayerMeta(promptConfigManager.buildPhase1SystemPrompt(phase1Skills), caller);
+        // system 保持纯静态（角色定义+技能列表末尾）；动态上下文（画像/元数据/时间）由 Provider 注入 user 消息
+        String phase1SystemPrompt = promptConfigManager.buildPhase1SystemPrompt(phase1Skills);
 
         PluginLoggerUtil.debug("意图识别", "Phase 1 Skill 分类开始");
 
         // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
 //        PluginLoggerUtil.warn("意图识别", "Phase 1提示词: {}", phase1SystemPrompt);
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase1SystemPrompt, false, false, true, CacheCallTypeEnum.INTENT_PHASE1).thenCompose(phase1Response -> {
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, handler, phase1SystemPrompt, false, false, true, CacheCallTypeEnum.INTENT_PHASE1).thenCompose(phase1Response -> {
             Set<String> selectedSkills = parsePhase1Response(phase1Response);
 
             // 快速路径：无效意图，不调 Phase 2
@@ -208,14 +208,14 @@ public class SkillIntentRecognizer {
 
             // === Phase 2：Action 选择 + 参数提取（开启知识检索） ===
             String phase2Skills = buildPhase2SkillDescription(caller, selectedSkills);
-            String phase2SystemPrompt = withPlayerMeta(promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills), caller);
+            String phase2SystemPrompt = promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills);
 
             PluginLoggerUtil.debug("意图识别", "Phase 2 开始，选中技能: {}", selectedSkills);
 
             // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
 //            PluginLoggerUtil.warn("意图识别", "Phase 2提示词: {}", phase2SystemPrompt);
 
-            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase2SystemPrompt, true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(phase2Response -> {
+            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, handler, phase2SystemPrompt, true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(phase2Response -> {
                 PluginLoggerUtil.debug("意图识别", "Phase 2 完成");
                 // 解析 LLM 响应
                 return parseIntentFromResponse(phase2Response);
@@ -268,12 +268,11 @@ public class SkillIntentRecognizer {
      * 强制技能，产生的步骤必属该技能，由调用方交 TaskExecutor 执行。
      * userInput       玩家输入（参数提取来源）
      * history         对话历史（可选，用于上下文理解）
-     * playerName      玩家名（提示词注入）
-     * caller          调用者
+     * caller          调用者（玩家名经 Provider 注入）
      * forcedSkillName 强制的技能名
      * 返回 SkillIntent / TaskPlan；技能不存在/无权限/LLM 不可用/解析失败返回 null。
      */
-    public CompletableFuture<Object> recognizeForcedSkill(String userInput, Deque<ConversationManager.Message> history, String playerName, Player caller, String forcedSkillName) {
+    public CompletableFuture<Object> recognizeForcedSkill(String userInput, Deque<ConversationManager.Message> history, Player caller, String forcedSkillName) {
         if (configManager == null || forcedSkillName == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -294,14 +293,14 @@ public class SkillIntentRecognizer {
             return CompletableFuture.completedFuture(null);
         }
 
-        String userPrompt = buildUserPrompt(userInput, history, playerName);
+        String userPrompt = buildUserPrompt(userInput, history);
         Set<String> selected = Set.of(forcedSkillName);
         String phase2Skills = buildPhase2SkillDescription(caller, selected);
-        String phase2SystemPrompt = withPlayerMeta(promptConfigManager.buildSystemPrompt(phase2Skills, selected), caller);
+        String phase2SystemPrompt = promptConfigManager.buildSystemPrompt(phase2Skills, selected);
 
         PluginLoggerUtil.debug("意图识别", "强制技能 Phase 2 开始：{}", forcedSkillName);
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, buildSilentHandler("强制技能识别"), phase2SystemPrompt, true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(response -> {
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, buildSilentHandler("强制技能识别"), phase2SystemPrompt, true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(response -> {
             Object parsed = parseIntentFromResponse(response);
             if (parsed instanceof SkillIntent intent && forcedSkillName.equals(intent.getSkillName())) {
                 // 玩家显式指定技能：置信度置 1.0 通过 isValid 校验，绕过 Phase1 不确定性
@@ -340,13 +339,12 @@ public class SkillIntentRecognizer {
             return CompletableFuture.completedFuture(null);
         }
 
-        String basePrompt = promptConfigManager.buildPendingClassifyPrompt(slot.getSkillName(), slot.getAction(), slot.getMessage());
-        String systemPrompt = PlayerMetaCollector.appendRuntimeContext(basePrompt, caller);
+        String systemPrompt = promptConfigManager.buildPendingClassifyPrompt(slot.getSkillName(), slot.getAction(), slot.getMessage());
         AIResponseHandler handler = buildSilentHandler("待确认续体分类");
 
         PluginLoggerUtil.debug("意图识别", "待确认续体分类开始：{}.{}", slot.getSkillName(), slot.getAction());
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userInput, "IntentRecognizer", null, handler, systemPrompt, false, false, true, CacheCallTypeEnum.PENDING_RESUME).thenApply(this::parsePendingAction);
+        return llmProvider.processRequestWithCustomSystemPrompt(userInput, caller, null, handler, systemPrompt, false, false, true, CacheCallTypeEnum.PENDING_RESUME).thenApply(this::parsePendingAction);
     }
 
     /**
@@ -472,26 +470,13 @@ public class SkillIntentRecognizer {
     }
 
     /**
-     * 在 system prompt 尾部统一追加运行时上下文（当前时间 + 玩家实时元数据），
-     * 帮助选 Skill、提参数与消歧义（如"帮我回去"需坐标判断是传送还是步行）。
-     * 追加而非前置：意图识别的静态提示词（角色/技能列表/规则，跨所有玩家相同）保持为可缓存前缀。
-     * 控制台（caller=null）仅追加时间。
+     * 构建用户提示词。
+     * <p>
+     * 当前玩家名称由 Provider 经动态上下文（【玩家实时状态】含「玩家名称」字段）注入 user 消息，
+     * 此处不再重复，避免双份。仅保留对话历史与当前输入。
      */
-    private static String withPlayerMeta(String systemPrompt, Player caller) {
-        return PlayerMetaCollector.appendRuntimeContext(systemPrompt, caller);
-    }
-
-    /**
-     * 构建用户提示词
-     */
-    private String buildUserPrompt(String userInput, Deque<ConversationManager.Message> history, String playerName) {
+    private String buildUserPrompt(String userInput, Deque<ConversationManager.Message> history) {
         StringBuilder prompt = new StringBuilder();
-
-        // 注入当前玩家上下文（供 LLM 识别"我"、"自己"等指向自身的语义）
-        if (playerName != null && !playerName.isEmpty()) {
-            prompt.append(I18nService.tr("[当前玩家上下文]\n"));
-            prompt.append(I18nService.tr("当前玩家名称：")).append(playerName).append("\n\n");
-        }
 
         // 添加对话历史
         if (history != null && !history.isEmpty()) {

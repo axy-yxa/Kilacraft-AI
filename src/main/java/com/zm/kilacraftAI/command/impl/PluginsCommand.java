@@ -111,7 +111,8 @@ public final class PluginsCommand {
 
         AIResponseHandler handler = new PluginCommandResponseHandler(sender, targetPlayerId, targetPlayerName);
         final String finalPersonality = personality;
-        String personalityPrompt = personalitiesConfig.getPersonalityPrompt(personality).replace("{player}", targetPlayerName);
+        // {player} 占位符替换由 Provider 咽喉统一处理，传含占位符的原始模板
+        String personalityPrompt = personalitiesConfig.getPersonalityPrompt(personality);
 
         PluginLoggerUtil.debug("命令", "插件命令请求 - 人格：{}, 玩家：{}, UUID: {}", personality, targetPlayerName, targetPlayerId);
         PluginLoggerUtil.debug("命令", "人格提示词：{}", personalityPrompt);
@@ -125,15 +126,15 @@ public final class PluginsCommand {
                     }
                 }
                 PluginLoggerUtil.debug("命令", "历史记录数量：{}", pluginHistory.size());
-                processLLM(plugin, lm, validator, message, targetPlayerName, targetPlayerId, pluginHistory, handler, personalityPrompt, finalPersonality, finalCallbackCommand, sender);
+                processLLM(plugin, lm, validator, message, targetPlayerName, targetPlayer, targetPlayerId, pluginHistory, handler, personalityPrompt, finalPersonality, finalCallbackCommand, sender);
             }, ConversationSourceEnum.PLUGIN);
         } else {
             PluginLoggerUtil.debug("命令", "历史记录数量：{}", pluginHistory.size());
-            processLLM(plugin, lm, validator, message, targetPlayerName, targetPlayerId, pluginHistory, handler, personalityPrompt, finalPersonality, finalCallbackCommand, sender);
+            processLLM(plugin, lm, validator, message, targetPlayerName, targetPlayer, targetPlayerId, pluginHistory, handler, personalityPrompt, finalPersonality, finalCallbackCommand, sender);
         }
     }
 
-    private static void processLLM(KilacraftAI plugin, LanguageManager lm, AIRequestValidatorUtil validator, String message, String targetPlayerName, UUID targetPlayerId, Deque<ConversationManager.Message> pluginHistory, AIResponseHandler handler, String personalityPrompt, String finalPersonality, String finalCallbackCommand, CommandSender sender) {
+    private static void processLLM(KilacraftAI plugin, LanguageManager lm, AIRequestValidatorUtil validator, String message, String targetPlayerName, Player targetPlayer, UUID targetPlayerId, Deque<ConversationManager.Message> pluginHistory, AIResponseHandler handler, String personalityPrompt, String finalPersonality, String finalCallbackCommand, CommandSender sender) {
         // 全局预算预检：被动调用在熔断窗口内被拒，回调不执行。
         // 第三方插件代玩家发起的调用，玩家整体调用过多时应降级，避免打爆外部 LLM 配额。
         if (plugin.getLlmOutputCoordinator() != null) {
@@ -144,7 +145,7 @@ public final class PluginsCommand {
             }
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayerName, pluginHistory, handler, personalityPrompt, true, true, false, CacheCallTypeEnum.NORMAL_CHAT).thenAccept(fullResponse -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, targetPlayer, pluginHistory, handler, personalityPrompt, true, true, false, CacheCallTypeEnum.NORMAL_CHAT).thenAccept(fullResponse -> {
             if (LLMResponseUtil.isErrorResponse(fullResponse)) return;
 
             validator.saveToHistory(pluginHistory, message, fullResponse, targetPlayerId, finalPersonality);

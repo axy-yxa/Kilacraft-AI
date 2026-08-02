@@ -311,7 +311,8 @@ public class ProfileAnalysisService {
 
         int timeoutSeconds = databaseManager.getConfig().getProfileAnalysisTimeoutSeconds();
 
-        provider.processRequestWithCustomSystemPrompt(userMessage, playerName, null, silentHandler, getAnalysisSystemPrompt(profile), false, false, true, CacheCallTypeEnum.PROFILE);
+        // player 传 null：画像分析是后台建画像任务，不持有 Player 对象、也不应读取画像（它是建画像而非用画像）
+        provider.processRequestWithCustomSystemPrompt(userMessage, null, null, silentHandler, getAnalysisSystemPrompt(profile), false, false, true, CacheCallTypeEnum.PROFILE);
 
         return responseFuture.orTimeout(timeoutSeconds, TimeUnit.SECONDS).thenAccept(response -> handleAnalysisResult(playerUuid, profile, response, messageCount, windowStart)).exceptionally(ex -> {
             PluginLoggerUtil.warn("画像分析", I18nService.tr("LLM 分析失败: {} - {}", playerUuid, ex.getMessage()));

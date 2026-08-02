@@ -68,7 +68,7 @@ public final class RunCommand {
 
         Deque<ConversationManager.Message> history = plugin.getConversationManager().getOrCreateHistory(player.getUniqueId());
         AIRequestHandler handler = new AIRequestHandler(plugin);
-        recognizer.recognizeForcedSkill(prompt, history, player.getName(), player, skillName).thenAccept(result -> {
+        recognizer.recognizeForcedSkill(prompt, history, player, skillName).thenAccept(result -> {
             if (result == null) {
                 // 意图识别失败（缺参数/无法解析）：降级普通 AI，带上失败上下文让 AI 合理回应
                 // （询问必要参数 / 直接满足需求），而不是死胡同提示"换种说法"

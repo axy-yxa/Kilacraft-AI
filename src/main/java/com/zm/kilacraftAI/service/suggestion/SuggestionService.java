@@ -134,7 +134,7 @@ public class SuggestionService {
         }
 
         LLMProvider provider = plugin.getLlmManager().getCurrentProvider();
-        provider.processRequestWithCustomSystemPrompt(prompt.userPrompt(), playerName, recentHistory, handler, prompt.systemPrompt(), false, false, false, CacheCallTypeEnum.SUGGESTION).orTimeout(config.getTimeoutSeconds(), TimeUnit.SECONDS).thenAccept(rawResponse -> {
+        provider.processRequestWithCustomSystemPrompt(prompt.userPrompt(), player, recentHistory, handler, prompt.systemPrompt(), false, false, false, CacheCallTypeEnum.SUGGESTION).orTimeout(config.getTimeoutSeconds(), TimeUnit.SECONDS).thenAccept(rawResponse -> {
             if (rawResponse == null || rawResponse.isEmpty()) {
                 PluginLoggerUtil.debug("对话推荐", I18nService.tr("LLM 为 {} 返回了空的推荐话题", playerName));
                 return;

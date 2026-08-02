@@ -14,7 +14,6 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
-import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
 import com.zm.kilacraftAI.service.suggestion.SuggestionService;
 import com.zm.kilacraftAI.skills.framework.*;
 import com.zm.kilacraftAI.skills.framework.resume.PendingAction;
@@ -170,7 +169,7 @@ public class AIRequestHandler {
             handleNormalAIRequest(message, ctx, null);
             return;
         }
-        intentRecognizer.recognizeIntent(message, ctx.history(), ctx.name(), ctx.player()).orTimeout(120, TimeUnit.SECONDS).thenAccept(result -> {
+        intentRecognizer.recognizeIntent(message, ctx.history(), ctx.player()).orTimeout(120, TimeUnit.SECONDS).thenAccept(result -> {
             dispatchIntentResult(result, message, ctx);
         }).exceptionally(throwable -> {
             PluginLoggerUtil.warn("AI请求", "意图识别失败: {}", throwable.getMessage());
@@ -366,17 +365,10 @@ public class AIRequestHandler {
         // RequestContext 仅由玩家流程构建，ctx.player() 非空
         AIResponseHandler handler = new PlayerResponseHandler(plugin, ctx.player(), ctx.scenario(), ctx.sendResponse);
 
-        // 构建系统提示词：人格 → 运行时上下文（时间+元数据） → 画像摘要
-        // 人格在前保持为可缓存前缀；时间/元数据/画像都是动态内容，统一追加在尾部
-        String systemPrompt = PlayerMetaCollector.appendRuntimeContext(plugin.getConfigManager().getSystemPrompt(), ctx.player());
-        if (ctx.player() != null) {
-            var profileManager = plugin.getProfileManager();
-            if (profileManager != null) {
-                systemPrompt = profileManager.injectProfileSummary(systemPrompt, ctx.player().getUniqueId());
-            }
-        }
+        // system 保持纯静态（人格 + langDirective）；动态上下文（画像/元数据/时间）由 Provider 统一注入 user 消息
+        String systemPrompt = plugin.getConfigManager().getSystemPrompt();
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt, true, true, false, CacheCallTypeEnum.NORMAL_CHAT).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.player(), ctx.history(), handler, systemPrompt, true, true, false, CacheCallTypeEnum.NORMAL_CHAT).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> {
             // 错误响应已由 handleError 提示玩家；跳过避免错误串污染对话历史
             if (LLMResponseUtil.isErrorResponse(fullResponse)) {
                 return;

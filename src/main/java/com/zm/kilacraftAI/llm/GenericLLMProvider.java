@@ -19,8 +19,11 @@ import com.zm.kilacraftAI.llm.cache.CacheMetricsParser;
 import com.zm.kilacraftAI.llm.cache.CacheMetricsResult;
 import com.zm.kilacraftAI.llm.cache.SSEParseResult;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
+import com.zm.kilacraftAI.service.profile.ProfileManager;
 import okhttp3.*;
 import okhttp3.internal.http2.ConnectionShutdownException;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
@@ -336,18 +339,17 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     }
 
     @Override
-    public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String customSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog, boolean enableJsonOutput, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
+    public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, @Nullable Player player, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String staticSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog, boolean enableJsonOutput, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 // 打印调试日志
                 if (enableDebugLog && cachedDebugMode) {
-                    printDebugLog(playerName, userMessage, history);
+                    printDebugLog(player != null ? player.getName() : "Unknown", userMessage, history);
                 }
 
                 // ========== 知识检索增强 ==========
-                String enhancedUserMessage = userMessage;
-
-                // 检查知识库和知识检索开关
+                // 命中的知识上下文拼到 user 消息、紧贴查询之前；与动态上下文一样置于 user 端（不污染 system 前缀缓存）
+                String knowledgeContext = null;
                 if (enableKnowledgeRetrieval && cachedKnowledgeEnabled) {
                     var knowledgeRetriever = plugin.getKnowledgeRetriever();
 
@@ -360,16 +362,15 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
                         // 如果有相关知识，添加到上下文中
                         if (!relevantKnowledge.isEmpty()) {
-                            String knowledgeContext = knowledgeRetriever.formatAsContext(relevantKnowledge);
-                            enhancedUserMessage = knowledgeContext + "\n" + I18nService.tr("用户问题：") + userMessage;
+                            knowledgeContext = knowledgeRetriever.formatAsContext(relevantKnowledge);
                             PluginLoggerUtil.debug("LLM请求", "已添加 {} 个知识片段到上下文中", relevantKnowledge.size());
                         }
                     }
                 }
                 // ===================================
 
-                // 构建 SSE 流式请求体
-                JsonObject requestBody = buildRequestBody(enhancedUserMessage, history, customSystemPrompt, playerName, enableJsonOutput);
+                // 构建 SSE 流式请求体（system 纯静态、动态上下文+KB+查询统一组装到 user 消息）
+                JsonObject requestBody = buildRequestBody(userMessage, player, history, staticSystemPrompt, knowledgeContext, enableJsonOutput);
 
                 // 构建 HTTP 请求
                 Request request = buildRequest(requestBody);
@@ -406,7 +407,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                                 // 自动降级：重新调用，不启用 JSON 输出。
                                 // enableJsonOutput=false 后不会再进入此分支（天然防递归）。
                                 PluginLoggerUtil.warn("LLM请求", "当前 LLM 不支持 response_format，自动降级为普通模式");
-                                return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false, cacheCallTypeEnum).join();
+                                return processRequestWithCustomSystemPrompt(userMessage, player, history, responseHandler, staticSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false, cacheCallTypeEnum).join();
                             }
                             // 分类化错误：游戏内只显示分类提示（如"模型名有误，请检查 llm.yml"），
                             // 厂商原始错误体进控制台 WARN。与异常分支一致地走 handleError，
@@ -490,16 +491,22 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     }
 
     /**
-     * 构建 SSE 流式请求体
+     * 构建 SSE 流式请求体。
+     * <p>
+     * 缓存命中率优化的核心约束：system 消息（messages[0]）必须保持纯静态——
+     * 仅含调用方传入的静态模板（替换 {player}）+ 静态语言约束。所有动态内容
+     * （玩家画像、实时元数据、当前时间、知识库）统一组装到 user 消息头部，
+     * 避免污染 system 前缀导致服务商前缀缓存失效。
      *
-     * @param enhancedUserMessage 增强后的用户消息（可能包含知识库上下文）
-     * @param history             历史对话记录
-     * @param customSystemPrompt  自定义系统提示词
-     * @param playerName          玩家名称
-     * @param enableJsonOutput    是否启用 JSON 输出格式
+     * @param userMessage        实际用户查询（不含动态上下文）
+     * @param player             触发请求的玩家；非 null 时采集动态上下文拼到 user 头部，并替换 {player}
+     * @param history            历史对话记录，作为 messages[1..N]
+     * @param staticSystemPrompt 纯静态系统提示词（人格/模板，可含 {player} 占位符）
+     * @param knowledgeContext   知识库检索结果（null 表示无知识库内容）
+     * @param enableJsonOutput   是否启用 JSON 输出格式
      * @return 构建好的请求体 JSON
      */
-    private JsonObject buildRequestBody(String enhancedUserMessage, Deque<ConversationManager.Message> history, String customSystemPrompt, String playerName, boolean enableJsonOutput) {
+    private JsonObject buildRequestBody(String userMessage, @Nullable Player player, Deque<ConversationManager.Message> history, String staticSystemPrompt, @Nullable String knowledgeContext, boolean enableJsonOutput) {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("model", cachedModel);
         requestBody.addProperty("temperature", cachedTemperature);
@@ -528,22 +535,20 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
         JsonArray messages = new JsonArray();
 
-        // 使用自定义的系统提示词，替换 {player} 占位符
-        String systemPrompt = customSystemPrompt.replace("{player}", playerName);
-
-        // 语言约束：强制 AI 输出使用服务器配置的语言
-        // 防止第三方 SPI Skill 的多语言数据干扰输出语言
+        // === system 消息：纯静态（人格/模板 + 语言约束），保持为可缓存前缀 ===
+        // {player} 占位符替换统一收到此处；player 为 null 时替换为空串（避免 String.replace 的 NPE）
+        String safeName = player != null ? player.getName() : "";
+        String systemPrompt = staticSystemPrompt.replace("{player}", safeName);
         String langDirective = plugin.getConfigManager().getLanguageDirective();
         if (langDirective != null) {
             systemPrompt += "\n" + langDirective;
         }
-
         JsonObject systemMessage = new JsonObject();
         systemMessage.addProperty("role", MessageRoleEnum.SYSTEM.value());
         systemMessage.addProperty("content", systemPrompt);
         messages.add(systemMessage);
 
-        // 添加历史对话记录
+        // === 历史对话记录：messages[1..N]，保持 OpenAI 多轮对话标准格式 ===
         if (history != null && !history.isEmpty()) {
             for (ConversationManager.Message msg : history) {
                 JsonObject msgObj = new JsonObject();
@@ -553,14 +558,76 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             }
         }
 
-        // 用户消息
+        // === user 消息：动态上下文 + 知识库 + 实际查询 ===
+        // user 整条每请求不同、不参与前缀缓存；内部顺序按模型理解最优（背景→资料→任务）
         JsonObject userMsg = new JsonObject();
         userMsg.addProperty("role", MessageRoleEnum.USER.value());
-        userMsg.addProperty("content", enhancedUserMessage);
+        userMsg.addProperty("content", buildUserContent(userMessage, player, knowledgeContext));
         messages.add(userMsg);
 
         requestBody.add("messages", messages);
         return requestBody;
+    }
+
+    /**
+     * 组装最终 user 消息内容：动态上下文（画像+元数据+时间）+ 知识库 + 实际查询。
+     * <p>
+     * player 为 null（画像分析/健康检查等无玩家上下文场景）时跳过动态上下文采集，
+     * 仅返回知识库（如有）+ 查询。动态上下文各块用既有标签包裹（【玩家画像】/【玩家实时状态】），
+     * 模型可识别为背景信息。
+     *
+     * @param userMessage      实际用户查询
+     * @param player           触发请求的玩家，null 则不采集动态上下文
+     * @param knowledgeContext 知识库检索结果，null 表示无
+     * @return 组装后的 user 消息内容
+     */
+    private String buildUserContent(String userMessage, @Nullable Player player, @Nullable String knowledgeContext) {
+        String dynamicContext = buildDynamicContext(player);
+
+        StringBuilder sb = new StringBuilder();
+        if (!dynamicContext.isEmpty()) {
+            sb.append(dynamicContext).append("\n\n");
+        }
+        if (knowledgeContext != null && !knowledgeContext.isEmpty()) {
+            sb.append(knowledgeContext).append("\n").append(I18nService.tr("用户问题："));
+        }
+        sb.append(userMessage);
+        return sb.toString();
+    }
+
+    /**
+     * 采集动态上下文：玩家画像（受开关控制）+ 实时元数据 + 当前时间。
+     * <p>
+     * 这些内容每请求常变（元数据每请求变、时间每秒变、画像每次分析变），
+     * 故置于 user 端而非 system 端。画像采集受 {@code isProfileInjectionEnabled} 开关统一控制。
+     * player 为 null 时返回空串。
+     */
+    private String buildDynamicContext(@Nullable Player player) {
+        if (player == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+
+        // 画像摘要（每次画像分析才变，相对稳定的背景信息）
+        if (plugin.getConfigManager().isProfileInjectionEnabled()) {
+            ProfileManager profileManager = plugin.getProfileManager();
+            if (profileManager != null) {
+                String profileSummary = profileManager.buildProfileSummary(player.getUniqueId());
+                if (!profileSummary.isEmpty()) {
+                    sb.append(profileSummary).append("\n\n");
+                }
+            }
+        }
+
+        // 玩家实时元数据（每请求常变）
+        String meta = PlayerMetaCollector.collect(player);
+        if (!meta.isEmpty()) {
+            sb.append(meta).append("\n\n");
+        }
+
+        // 当前时间（每秒变）
+        sb.append(I18nService.getCurrentTimeString());
+        return sb.toString();
     }
 
     /**

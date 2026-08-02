@@ -155,13 +155,8 @@ public class LoginGreetingHandler implements Listener {
         // 优先读配置文件，配置文件没有才读硬编码默认值
         String customPrompt = context.isFirstLogin() ? config.getGreetingFirstLoginPrompt() : config.getGreetingReturningPrompt();
 
+        // system 保持纯静态（问候模板，{player} 由 Provider 统一替换）；画像由 Provider 注入 user 消息
         String systemPrompt = promptBuilder.build(context, customPrompt);
-
-        // 画像注入
-        ProfileManager pm = plugin.getProfileManager();
-        if (pm != null) {
-            systemPrompt = pm.injectProfileSummary(systemPrompt, playerUuid);
-        }
 
         PluginLoggerUtil.debug("问候系统", "问候语摘要: {}", systemPrompt);
 
@@ -185,7 +180,7 @@ public class LoginGreetingHandler implements Listener {
             plugin.getResponsePipeline().startStream(player, channel, true);
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, playerName, emptyHistory, handler, systemPrompt, false, false, false, CacheCallTypeEnum.GREETING).thenAccept(greeting -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, player, emptyHistory, handler, systemPrompt, false, false, false, CacheCallTypeEnum.GREETING).thenAccept(greeting -> {
             // 错误响应（§c 开头）已由 handleError 提示玩家，不持久化到 DB、不写入对话历史，避免污染
             if (greeting != null && !LLMResponseUtil.isErrorResponse(greeting) && player.isOnline()) {
                 ConversationPersistenceService persistence = plugin.getPersistenceService();

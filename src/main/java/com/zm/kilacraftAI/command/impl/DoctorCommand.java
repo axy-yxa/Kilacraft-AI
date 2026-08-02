@@ -199,7 +199,8 @@ public final class DoctorCommand {
         String model = plugin.getConfigManager() != null ? plugin.getConfigManager().getLlmModel() : "?";
         long start = System.currentTimeMillis();
         try {
-            String result = provider.processRequestWithCustomSystemPrompt(I18nService.tr("请回复 ok"), "Doctor", null, silentHandler(), I18nService.tr("你是健康检查助手，只回复 ok。"), false, false, false, null).join();
+            // player 传 null：健康检查是连通性诊测，无玩家语义
+            String result = provider.processRequestWithCustomSystemPrompt(I18nService.tr("请回复 ok"), null, null, silentHandler(), I18nService.tr("你是健康检查助手，只回复 ok。"), false, false, false, null).join();
             long latency = System.currentTimeMillis() - start;
             if (LLMResponseUtil.isErrorResponse(result)) {
                 String hint = result.startsWith(LLMResponseUtil.ERROR_PREFIX) ? result.substring(LLMResponseUtil.ERROR_PREFIX.length()) : result;
