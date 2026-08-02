@@ -48,6 +48,7 @@ public final class GuardianLlmAction {
     public CompletableFuture<Boolean> perform(GuardianContext ctx) {
         Player player = ctx.player();
         if (player == null || !player.isOnline()) {
+            PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("守护动作跳过：玩家不在线"));
             return CompletableFuture.completedFuture(false);
         }
 
@@ -56,11 +57,13 @@ public final class GuardianLlmAction {
 
         // 全局开关关闭时不发声——reload 关闭期间在途动作也要抑制
         if (!configManager.isEnabled()) {
+            PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("守护动作跳过：守护全局开关已关闭（玩家 {}）", player.getName()));
             return CompletableFuture.completedFuture(false);
         }
         // disable 下线后 in-flight action 深度防护：玩家刚关守护，仍可能收到延迟告警
         var gm = plugin.getGuardianManager();
         if (gm != null && !gm.isGuardianEnabled(playerUuid)) {
+            PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("守护动作跳过：玩家 {} 的守护已停用", player.getName()));
             return CompletableFuture.completedFuture(false);
         }
 
@@ -74,6 +77,7 @@ public final class GuardianLlmAction {
 
         // shutdown 窗口防护：子系统可能已在 onDisable 早阶段清理
         if (plugin.getLlmManager() == null || plugin.getLlmManager().getCurrentProvider() == null || plugin.getResponsePipeline() == null) {
+            PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("守护动作跳过：LLM 子系统未就绪（玩家 {}）", player.getName()));
             return CompletableFuture.completedFuture(false);
         }
 

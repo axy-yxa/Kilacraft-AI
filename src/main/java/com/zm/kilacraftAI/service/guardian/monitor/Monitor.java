@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.service.guardian.monitor;
 
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.service.guardian.EntityNameI18n;
 import com.zm.kilacraftAI.service.guardian.GuardianContext;
 import com.zm.kilacraftAI.service.guardian.action.GuardianLlmAction;
 import com.zm.kilacraftAI.service.guardian.predicate.PlayerState;
@@ -75,6 +76,7 @@ public final class Monitor {
         Objects.requireNonNull(state, "state");
         Objects.requireNonNull(ctx, "ctx");
         if (paused) {
+            PluginLoggerUtil.debug("守护系统", I18nService.tr("守护评估跳过：monitor={} 已挂起（玩家 {}）", id, playerNameOf(ctx)));
             return Optional.empty();
         }
         long now = ctx.nowMillis();
@@ -90,6 +92,7 @@ public final class Monitor {
             boolean edge = !previousTrigger && current;
             previousTrigger = current;
             if (!edge) {
+                logEvalNotSatisfied(ctx);
                 return Optional.empty();
             }
         }
@@ -100,8 +103,30 @@ public final class Monitor {
         }
         hasFired = true;
         lastFireMillis = now;
-        PluginLoggerUtil.debug("守护系统", I18nService.tr("守护 monitor 触发（玩家 {}，monitor={}）", ctx.player() != null ? ctx.player().getName() : "?", id));
+        PluginLoggerUtil.debug("守护系统", I18nService.tr("守护 monitor 触发（玩家 {}，monitor={}）", playerNameOf(ctx), id));
         return Optional.of(enrichTriggerValue(ctx));
+    }
+
+    /**
+     * 边沿未跃迁（条件未满足）定位日志：数值/实体类型兜底，供排查「为什么不触发」。
+     */
+    private void logEvalNotSatisfied(GuardianContext ctx) {
+        Optional<Double> tv = triggerPredicate.lastValue();
+        if (tv.isPresent()) {
+            PluginLoggerUtil.debug("守护系统", I18nService.tr("守护评估未满足：monitor={}，玩家={}，当前数值={}", id, playerNameOf(ctx), formatValue(tv.get())));
+        } else if (ctx.entityType().isPresent()) {
+            PluginLoggerUtil.debug("守护系统", I18nService.tr("守护评估未满足：monitor={}，玩家={}，实体类型={}", id, playerNameOf(ctx), EntityNameI18n.name(ctx.entityType().get())));
+        } else {
+            PluginLoggerUtil.debug("守护系统", I18nService.tr("守护评估未满足：monitor={}，玩家={}", id, playerNameOf(ctx)));
+        }
+    }
+
+    private static String playerNameOf(GuardianContext ctx) {
+        return ctx.player() != null ? ctx.player().getName() : "?";
+    }
+
+    private static String formatValue(double d) {
+        return (d == Math.floor(d)) ? String.valueOf((long) d) : String.valueOf(d);
     }
 
     /**

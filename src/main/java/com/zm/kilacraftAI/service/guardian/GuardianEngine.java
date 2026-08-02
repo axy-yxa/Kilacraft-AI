@@ -300,6 +300,8 @@ public final class GuardianEngine implements ManagedTask {
                 }
                 ReentrantLock lock = playerEvalLocks.get(ctx.player().getUniqueId());
                 if (lock == null) {
+                    // registerGuardian 保证锁 map 有 entry；缺失即引擎状态不一致
+                    PluginLoggerUtil.debug(LOG_MODULE, I18nService.tr("守护 eval 锁缺失（玩家 {}），引擎状态不一致", ctx.player().getName()));
                     return;
                 }
                 if (!lock.tryLock()) {
