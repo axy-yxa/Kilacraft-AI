@@ -1,25 +1,28 @@
 # English version of CommandSkill.yml — keep action keys in sync with the Chinese version
 # ═══════════════════════════════════════════════════════════
 # Command Execution Skill (CommandSkill)
-# Execute server commands as the player; the permission boundary equals the player's own permissions.
-# Dependency: only takes effect when command_skill.enabled: true in config.yml.
+# Execute server commands as the player; the permission boundary equals the player's own permissions (Bukkit permission system is the final guard).
+# The executable command list is in the commands/ directory command document (preset template released at startup; server owners can add third-party commands).
 # ═══════════════════════════════════════════════════════════
 
 description: |
-  General command-execution skill, the fallback entry for executable actions: when no specialized skill can fulfill the request, it executes any single server command as the player to change game state or trigger a game action, e.g. "set time to day", "give me a diamond sword", "teleport to spawn".
-  Triggers: the user's request is an [executable action] (changes game state or triggers a game action) and no specialized skill covers it.
-  Reverse boundary: NOT for information queries, suggestions, guide recommendations, or Q&A (those go to the corresponding query/search skills); prefer specialized skills and use this one only when they cannot cover the need.
+  Command execution skill: executes server commands as the player to change game state or trigger a game action, e.g. "teleport to spawn", "claim your daily reward", "open the server menu".
+  Triggers: when the user's request is an executable game action (changes game state or triggers a game action) and no other skill matches better. Also use when the player explicitly asks to run a specific command.
+  Key limitation: this skill returns only success or failure after executing a command — not the command's output — so its result cannot be referenced by later steps of a multi-step task. When a request needs a result as a data source for later steps, you MUST use a specialized skill that returns structured data instead of this skill.
+  NOT for: pure data queries (use the bukkit skills), or advice/recommendation Q&A.
 
 action_descriptions:
   execute_command: |
-    Function: Execute a server command as the player to change game state or trigger a game action.
+    Function: Execute one server command as the player.
     Parameters:
-      - command (required, command text, without leading /): the full command to execute, e.g. give @s diamond_sword 1.
+      - command (required, command text, without leading /): the full command to execute, prefer choosing from the [executable command list], e.g. spawn, kit daily.
     Returns data fields: none.
-    Precondition: the player must have the server permission for the command (AI does not bypass permissions).
+    Precondition: the player must have the server permission for the command (AI does not bypass permissions; insufficient permission is rejected by the server); when the command is missing, return needInfo to prompt the player.
 
 hints:
   - |
-    Security: AI executes commands as the player and does not bypass any server permissions. Commands the player lacks permission for will be rejected by the server even when AI runs them on their behalf.
+    **Skill-first rule**: when a request can be fulfilled both by a specialized skill and by a command in the command document, prefer the specialized skill. Specialized skills return structured data (referencable by later steps via {step_x.xxx}), while this skill returns only success/failure. Use this skill only when: ① no specialized skill covers the request; ② a specialized skill exists but this is a single execution with no need to pass results forward.
   - |
-    Parameter format: the command parameter takes the full command (without leading /); the LLM should extract the command and arguments from the user message. If the user did not specify the concrete command, return needInfo to prompt them to provide one.
+    **Result not transferable**: this skill returns only "Command executed: /xxx" or "Command execution failed" — not the command's output (e.g. query results, balance values). Therefore: ① this skill must NOT be used as a prerequisite step of a multi-step task — later steps cannot reference its result via {step_x.xxx}; ② when a query result must be passed to later steps, use a specialized skill that returns structured data (e.g. bukkit API skills); ③ this skill is suitable as the final execution step of a multi-step task.
+  - |
+    **Permission boundary**: commands are executed as the player; insufficient permission is rejected by the server (e.g. a normal player running an admin command). The examples (teleport to spawn / claim reward / open menu) are matching anchors only — the actual executable commands are those visible to the current player in the [executable command list].

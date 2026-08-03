@@ -132,34 +132,6 @@ messages:
   # English prompt text (effective when language=en)
   thinking_message_en: "Thinking..."
 
-# ==================== 命令执行技能配置 / Command Execution Skill Configuration ====================
-# 命令执行技能说明：
-# 1. 开启后 AI 可以代替玩家执行服务器命令（如 /back、/home 等）
-# 2. AI 以玩家身份执行命令，权限边界等于玩家自身的权限
-#    - 玩家没有的命令权限，AI 代执行也会被服务器拒绝
-#    - 所有服务器安全机制（权限检查、冷却、安全区域等）均正常生效
-#    - 不存在越权风险：玩家不能做的事，AI 也做不了
-# 3. 权限要求：玩家必须拥有 kilacraft.command.execute 权限才能使用此功能
-#    - 即使配置开启，没有权限的玩家也无法触发命令执行
-#    - 建议在权限插件中按需分配（如只给 VIP 玩家）
-# 4. 建议服主在开启前确认服务器权限配置符合预期
-# Command execution skill description:
-# 1. When enabled, AI can execute server commands on behalf of the player (e.g., /back, /home)
-# 2. AI executes commands as the player, permission boundary equals the player's own permissions
-#    - Commands the player doesn't have permission for will also be rejected when AI executes them
-#    - All server security mechanisms (permission checks, cooldowns, safe zones, etc.) remain in effect
-#    - No privilege escalation risk: what the player can't do, AI can't do either
-# 3. Permission requirement: player must have kilacraft.command.execute permission to use this feature
-#    - Even if config is enabled, players without permission cannot trigger command execution
-#    - Recommended to assign via permission plugin as needed (e.g., VIP players only)
-# 4. Server owners should verify permission configuration meets expectations before enabling
-command_skill:
-  # 是否启用命令执行技能
-  # 注意：开启配置后，还需要给玩家分配 kilacraft.command.execute 权限
-  # Whether to enable command execution skill
-  # Note: After enabling config, players still need kilacraft.command.execute permission assigned
-  enabled: false
-
 # ==================== 安全配置 / Security Configuration ====================
 # 玩家数据隔离：防止通过AI技能查询/操作其他玩家的敏感数据
 # 安全拦截器会扫描所有Skill参数值，如果匹配到在线玩家名且不是调用者自己，则自动替换为调用者名

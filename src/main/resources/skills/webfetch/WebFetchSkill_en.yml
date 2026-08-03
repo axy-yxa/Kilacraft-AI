@@ -9,7 +9,7 @@
 description: |
   Fetches the content of a "specified web page", extracts the main text, and returns it to the player after AI summarization.
   Triggers: use when the player provides an explicit web URL and wants to know that page's content, e.g. "check this link for me", "what does this page say", "where is the tutorial in this link".
-  Reverse boundary: not for searching the internet by keyword (use the web_search skill for that); not for querying structured data from APIs or endpoints (this skill only parses HTML page body text).
+  Reverse boundary: not for searching the internet by keyword (that belongs to the web search skill category); not for querying structured data from APIs or endpoints (this skill only parses HTML page body text).
 
 action_descriptions:
   fetch: |

@@ -9,7 +9,7 @@
 description: |
   Searches the internet by keyword to retrieve real-time information and presents an AI-generated summary to the player.
   Triggers: use when the user's question requires the latest news, fact-checking, research, or information beyond the AI's knowledge cutoff, e.g. "what's new in 1.21", "today's gold price", "recommend good mods".
-  Reverse boundary: not for querying in-game data or a local knowledge base (those go to the corresponding query skills); not for viewing a specific web link the player already provided (use the web_fetch skill for that).
+  Reverse boundary: not for querying in-game data or a local knowledge base (those go to the corresponding query skills); not for viewing a specific web link the player already provided (that belongs to the web page fetching skill category).
 
 action_descriptions:
   search: |

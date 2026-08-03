@@ -116,7 +116,7 @@ permissions:
   # 命令执行技能权限 / Command execution skill permissions
   kilacraft.command.execute:
     description: 允许 AI 帮助执行服务器命令（以玩家身份执行，受服务器权限约束）
-    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+    default: true              # 所有玩家可用 / available to all players
 
   # Bukkit 音效与粒子效果技能权限 / Bukkit sound effects and particle effects skill permissions
   kilacraft.bukkit_fx:

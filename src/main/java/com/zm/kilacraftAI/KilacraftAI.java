@@ -2,6 +2,7 @@ package com.zm.kilacraftAI;
 
 import com.zm.kilacraftAI.command.KilacraftCommand;
 import com.zm.kilacraftAI.command.TabCompleter;
+import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.*;
@@ -784,6 +785,8 @@ public final class KilacraftAI extends JavaPlugin {
         utilityConfigManager.loadConfig();
 
         // Skills 系统（依赖 skillConfigManager）
+        // 先释放命令文档目录（CommandSkill 构造器解析命令文档，须先于注册）
+        ConfigResourceUtil.saveDefaultResourceDir(this, "commands");
         skillManager = new SkillManager();
         registerDefaultSkills();
 
@@ -837,10 +840,8 @@ public final class KilacraftAI extends JavaPlugin {
         // 注册通用工具技能（始终可用）
         skillManager.registerSkill(new UtilitySkill());
 
-        // 注册命令执行技能（条件注册：需 config.yml 中 command_skill.enabled=true）
-        if (configManager.isCommandSkillEnabled()) {
-            skillManager.registerSkill(new CommandSkill());
-        }
+        // 注册命令执行技能（始终注册，权限 default: true，受各命令自身权限节点约束）
+        skillManager.registerSkill(new CommandSkill());
 
         // 注册全球市场技能（条件注册：仅当 GlobalMarketPlus 插件存在时）
         if (getServer().getPluginManager().getPlugin("GlobalMarketPlus") != null) {
@@ -874,8 +875,7 @@ public final class KilacraftAI extends JavaPlugin {
      * <p>根据当前配置动态注册或注销条件技能，使 reload 命令能够即时生效。</p>
      */
     public void syncConditionalSkills() {
-        // 同步命令执行技能（条件：config.yml command_skill.enabled）
-        syncSkill("command", configManager.isCommandSkillEnabled(), () -> skillManager.registerSkill(new CommandSkill()));
+        // 注意：命令执行技能（CommandSkill）始终注册，无需热重载同步；命令文档内容由 ReloadCommand 级联刷新
 
         // 注意：第三方插件技能（CMI、GlobalMarketPlus）无需热重载同步
         // 插件在运行时不会被动态装卸，注册时已经通过 isAvailable() 检查

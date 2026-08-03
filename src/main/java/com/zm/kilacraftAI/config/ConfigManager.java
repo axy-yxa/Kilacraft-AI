@@ -76,10 +76,6 @@ public class ConfigManager {
     @Getter
     private String language;
 
-    // 命令执行技能配置
-    @Getter
-    private boolean commandSkillEnabled;
-
     // 安全配置
     @Getter
     private boolean securityPlayerIsolationEnabled;
@@ -121,7 +117,9 @@ public class ConfigManager {
         return llmConfigManager.getMaxTokens();
     }
 
-    /** 全局 LLM 预算/熔断阈值（D6/D13），转发 llm.yml。 */
+    /**
+     * 全局 LLM 预算/熔断阈值（D6/D13），转发 llm.yml。
+     */
     public int getLlmBudgetPerHour() {
         return llmConfigManager.getBudgetPerPlayerPerHour();
     }
@@ -303,18 +301,6 @@ public class ConfigManager {
         return greetingConfigManager.isProfileInjectionEnabled();
     }
 
-    public boolean isCommandSkillEnabled() {
-        return commandSkillEnabled;
-    }
-
-    public boolean isPendingResumeEnabled() {
-        return pendingResumeEnabled;
-    }
-
-    public boolean isSecurityPlayerIsolationEnabled() {
-        return securityPlayerIsolationEnabled;
-    }
-
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
         this.llmConfigManager = new LLMConfigManager((KilacraftAI) plugin);
@@ -355,9 +341,6 @@ public class ConfigManager {
         this.aiName = config.getString("messages.ai_name", "Kilacraft-AI");
         this.aiPrefix = config.getString("messages.ai_prefix", "§7[Kilacraft-AI] §f");
         this.thinkingMessage = getLocalizedString(config, "messages.thinking_message", "正在思考中...");
-
-        // 命令执行技能配置
-        this.commandSkillEnabled = config.getBoolean("command_skill.enabled", false);
 
         // 安全配置
         this.securityPlayerIsolationEnabled = config.getBoolean("security.player_isolation.enabled", true);

@@ -44,6 +44,7 @@ modules:
   "安全过滤器": "Security"
   "物品翻译": "Item Trans"
   "命令技能": "Cmd Skill"
+  "命令文档": "Cmd Doc"
   "历史管理": "History"
   "历史": "History"
   "画像": "Profile"
@@ -455,6 +456,7 @@ messages:
   "硬核模式未开启": "Hardcore mode disabled"
   "已启用": "Enabled"
   "未启用": "Disabled"
+  "未注册": "Not registered"
   "自动保存已开启": "Auto-save enabled"
   "自动保存已关闭": "Auto-save disabled"
   "玩家正在骑乘中": "Player is riding"
@@ -475,6 +477,18 @@ messages:
   "命令执行失败，可能没有权限或命令不存在: /{}": "Command execution failed, possibly no permission or command does not exist: /{}"
   "命令执行异常: /{}": "Command execution exception: /{}"
   "命令执行异常: /{} - {}": "Command execution exception: /{} - {}"
+  "请告诉我要执行什么命令，例如「传送到出生点」或「领取每日礼包」": "Please tell me which command to execute, e.g. \"teleport to spawn\" or \"claim your daily reward\""
+  "可执行命令列表：": "Executable command list:"
+  "。示例: {}": ". Example: {}"
+  "command 参数应优先使用上方命令列表中记录的命令。如果用户需求不在列表中，优先告知用户「当前没有找到该命令的使用说明」而非自行编造命令。": "The command parameter should preferably use commands listed above. If the user's need is not in the list, tell the user \"no usage instructions found for this command\" rather than making one up."
+  "当前可执行命令：{} 等 {} 条。": "Currently executable commands: {} and {} more."
+  "command 参数应优先使用上述命令列表中记录的命令。": "The command parameter should preferably use commands listed above."
+  "命令文档已重载": "Command document reloaded"
+
+  # ==================== CommandDocumentParser ====================
+  "读取命令文档失败：{}": "Failed to read command document: {}"
+  "命令文档条目缺少说明，已跳过: {}": "Command document entry missing description, skipped: {}"
+  "命令文档重复命令名，后者覆盖前者: {}": "Duplicate command name in command document, latter overrides former: {}"
 
   # ==================== CMISkill ====================
   "查询失败: {}": "Query failed: {}"

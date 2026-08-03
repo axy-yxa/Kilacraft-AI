@@ -10,7 +10,7 @@
 description: |
   Utility skill providing three core capabilities: delay_wait (timed delay), notify_player (stage notification), and broadcast_message (server-wide broadcast).
   delay_wait is for timing intervals between steps; notify_player summarizes previous step results and proactively notifies the player; broadcast_message is an OP admin-only server-wide broadcast.
-  Triggers: these actions do not correspond to a player's standalone need — they are inserted on demand within multi-step task orchestration, e.g. "wait a few seconds then continue", "give me an update halfway through", "broadcast a message to the whole server".
+  Triggers: these actions do not correspond to a player's standalone need — they are inserted on demand within multi-step task orchestration, e.g. "wait a few seconds then continue", "give me an update halfway through", "(OP) broadcast a message to the whole server".
   Reverse boundary: this skill is not a standalone feature entry point — it only serves task orchestration. A natural "tell me" at the end of a task or a single-intent query is handled by the final AI summary, not by notify_player.
 
 action_descriptions:

@@ -81,6 +81,14 @@ public final class ReloadCommand {
             }
             plugin.syncConditionalSkills();
 
+            // 重载命令文档（CommandSkill 始终注册，通过 SkillManager 拿到实例刷新文档缓存）
+            if (plugin.getSkillManager() != null) {
+                var commandSkill = plugin.getSkillManager().getSkill("command");
+                if (commandSkill instanceof com.zm.kilacraftAI.skills.command.CommandSkill cs) {
+                    cs.reloadCommandDocument();
+                }
+            }
+
             if (plugin.getAdminConfigManager() != null) {
                 plugin.getAdminConfigManager().reload();
                 plugin.syncGuardianState();

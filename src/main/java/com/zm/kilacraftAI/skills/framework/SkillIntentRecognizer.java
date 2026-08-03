@@ -44,7 +44,9 @@ public class SkillIntentRecognizer {
         StringBuilder sb = new StringBuilder();
         int index = 1;
         for (Skill skill : skillManager.getAvailableSkills(caller)) {
-            sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
+            // 实现了 CallerDescriptionProvider 的 Skill 可按调用者权限定制描述（如 CommandSkill 注入命令摘要）
+            String description = skill instanceof CallerDescriptionProvider cdp ? cdp.getCallerDescription(caller) : skill.getDescription();
+            sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(description).append("\n");
         }
         return sb.toString();
     }

@@ -12,6 +12,7 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.health.SparkDataCollector;
+import com.zm.kilacraftAI.skills.framework.SkillManager;
 import org.bukkit.command.CommandSender;
 
 import java.sql.Connection;
@@ -74,7 +75,7 @@ public final class DoctorCommand {
         checks.add(checkAgent(cm, lm));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckProfile(), boolLabel(lm, cm != null && cm.isProfileInjectionEnabled())));
         checks.add(checkWatch(plugin, lm));
-        checks.add(pass(Group.AI, lm.getCommandDoctorCheckCommandSkill(), boolLabel(lm, cm != null && cm.isCommandSkillEnabled())));
+        checks.add(checkCommandSkill(plugin, lm));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckPendingResume(), boolLabel(lm, cm != null && cm.isPendingResumeEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckIsolation(), boolLabel(lm, cm != null && cm.isSecurityPlayerIsolationEnabled())));
 
@@ -136,6 +137,18 @@ public final class DoctorCommand {
             return warn(Group.AI, lm.getCommandDoctorCheckWatch(), lm.getCommandDoctorDisabled());
         }
         return pass(Group.AI, lm.getCommandDoctorCheckWatch(), lm.getCommandDoctorEnabled());
+    }
+
+    /**
+     * 命令技能自检：CommandSkill 始终注册，检查命令文档是否已加载有效条目。
+     * 文档为空（服主删除了全部条目）时 AI 无命令可用，降级为 warn。
+     */
+    private static CheckResult checkCommandSkill(KilacraftAI plugin, LanguageManager lm) {
+        SkillManager sm = plugin.getSkillManager();
+        if (sm == null || sm.getSkill("command") == null) {
+            return warn(Group.AI, lm.getCommandDoctorCheckCommandSkill(), lm.getCommandDoctorDisabled());
+        }
+        return pass(Group.AI, lm.getCommandDoctorCheckCommandSkill(), lm.getCommandDoctorEnabled());
     }
 
     private static CheckResult checkSuggestion(KilacraftAI plugin, LanguageManager lm) {
@@ -259,7 +272,7 @@ public final class DoctorCommand {
             var pcm = plugin.getPersonalitiesConfigManager();
             PluginLoggerUtil.info("自检", "知识库：{} | Embedding：{} | 人格：{}套", cm.isKnowledgeEnabled(), cm.isEmbeddingEnabled(), pcm != null ? pcm.getAllPersonalities().size() : 0);
             PluginLoggerUtil.info("自检", "Agent：{} | 画像分析：{}", cm.isAgentEnabled(), cm.isProfileInjectionEnabled());
-            PluginLoggerUtil.info("自检", "命令技能：{} | 待确认续体：{} | 玩家隔离：{}", cm.isCommandSkillEnabled(), cm.isPendingResumeEnabled(), cm.isSecurityPlayerIsolationEnabled());
+            PluginLoggerUtil.info("自检", "命令技能：{} | 待确认续体：{} | 玩家隔离：{}", plugin.getSkillManager() != null && plugin.getSkillManager().getSkill("command") != null ? "已启用" : "未注册", cm.isPendingResumeEnabled(), cm.isSecurityPlayerIsolationEnabled());
         }
         DatabaseManager db = plugin.getDatabaseManager();
         PluginLoggerUtil.info("自检", "数据库类型：{}", (db != null && db.getConfig() != null) ? db.getConfig().getType() : "?");

@@ -6,25 +6,40 @@ import com.zm.kilacraftAI.common.util.BukkitCommandUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.service.command.CommandDocument;
+import com.zm.kilacraftAI.service.command.CommandDocumentParser;
+import com.zm.kilacraftAI.service.command.CommandEntry;
 import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.entity.Player;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * 命令执行技能
  *
- * <p>以玩家身份执行服务器命令，权限边界等于玩家自身的权限。</p>
- * <p>玩家没有的命令权限，AI 代执行也会被服务器拒绝。</p>
+ * <p>以玩家身份执行服务器命令，权限边界等于玩家自身的权限。玩家没有的命令权限，
+ * AI 代执行也会被服务器拒绝（Bukkit 权限系统是最终守卫）。</p>
+ *
+ * <p>命令文档机制：启动时释放预置命令文档（含插件自身命令），服主可补充第三方命令。
+ * Phase1 经 {@link CallerDescriptionProvider#getCallerDescription(Player)} 注入当前玩家可见命令摘要，
+ * Phase2 经 {@link #getDynamicContext(Player)} 注入完整命令列表——均按玩家权限过滤，无权命令不展示给 AI。</p>
  *
  * @author Zm_Mmm
  * @since 2026-03-27
  */
-public class CommandSkill implements Skill {
+public class CommandSkill implements Skill, DynamicContextProvider, CallerDescriptionProvider {
 
     private static final String SKILL_NAME = "command";
     private static final String LOG_PREFIX = "命令技能";
+
+    /**
+     * 命令文档缓存（volatile 支持热重载）
+     */
+    private volatile CommandDocument commandDocument;
 
     private final SkillConfigManager configManager;
 
@@ -36,6 +51,8 @@ public class CommandSkill implements Skill {
             configManager.saveDefaultSkillConfig(this);
             configManager.loadSingleSkillConfig(this);
         }
+
+        this.commandDocument = CommandDocumentParser.parse(resolveCommandDocPath());
     }
 
     /**
@@ -48,18 +65,42 @@ public class CommandSkill implements Skill {
         return configManager.getSkillConfig(this);
     }
 
-    @Override
-    public String getName() {
-        return SKILL_NAME;
-    }
-
-    @Override
-    public String getDescription() {
+    /**
+     * 获取静态技能描述（yml 配置）
+     */
+    private String getStaticDescription() {
         SkillConfig config = getConfig();
         if (config != null && !config.getDescription().isEmpty()) {
             return config.getDescription();
         }
         return null;
+    }
+
+    @Override
+    public String getDescription() {
+        return getStaticDescription();
+    }
+
+    /**
+     * Phase1 按调用者权限定制描述：静态定位说明 + 当前玩家可见命令摘要。
+     * 玩家无可见命令或文档为空时只返回静态部分。
+     */
+    @Override
+    public String getCallerDescription(Player caller) {
+        String staticDesc = getStaticDescription();
+        String summary = buildPhase1Summary(caller);
+        if (summary == null) {
+            return staticDesc;
+        }
+        if (staticDesc == null) {
+            return summary;
+        }
+        return staticDesc + "\n" + summary;
+    }
+
+    @Override
+    public String getName() {
+        return SKILL_NAME;
     }
 
     @Override
@@ -87,12 +128,6 @@ public class CommandSkill implements Skill {
 
     @Override
     public boolean isAvailable(SkillContext context) {
-        // 全局开关检查
-        KilacraftAI plugin = KilacraftAI.getInstance();
-        if (plugin == null || !plugin.getConfigManager().isCommandSkillEnabled()) {
-            return false;
-        }
-        // 仅在线玩家可用
         return context.getPlayer() != null;
     }
 
@@ -121,7 +156,8 @@ public class CommandSkill implements Skill {
     private CompletableFuture<SkillResult> executeCommand(Player player, SkillContext context) {
         String rawCommand = SkillEntityHelper.getString(context, "command");
         if (rawCommand == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("请提供要执行的命令")));
+            // 缺命令是「用户没说完」而非调用错误，用 needInfo 引导补全（与 yml hints 描述一致）
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请告诉我要执行什么命令，例如「传送到出生点」或「领取每日礼包」")));
         }
 
         // 移除前导 /（用户可能包含也可能不包含）
@@ -145,5 +181,91 @@ public class CommandSkill implements Skill {
             PluginLoggerUtil.warn(LOG_PREFIX, I18nService.tr("命令执行异常: /{} - {}", finalCommand, ex.getMessage()), ex);
             return SkillResult.failure(I18nService.tr("命令执行异常: /{}", finalCommand));
         });
+    }
+
+    /**
+     * Phase2 动态上下文：当前玩家可见命令的完整列表（命令名 + 说明 + 示例）。
+     * 玩家无可见命令或文档为空时返回空字符串（buildPhase2SkillDescription 会跳过空白内容）。
+     */
+    @Override
+    public String getDynamicContext(Player player) {
+        CommandDocument doc = commandDocument;
+        if (doc == null || doc.isEmpty()) {
+            return "";
+        }
+        List<CommandEntry> visible = filterByPermission(doc.entries(), player);
+        if (visible.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(I18nService.tr("可执行命令列表：")).append("\n");
+        for (CommandEntry entry : visible) {
+            sb.append("  ").append(entry.command()).append(" - ").append(entry.description());
+            if (entry.example() != null && !entry.example().isEmpty()) {
+                sb.append(I18nService.tr("。示例: {}", entry.example()));
+            }
+            sb.append("\n");
+        }
+        sb.append(I18nService.tr("command 参数应优先使用上方命令列表中记录的命令。如果用户需求不在列表中，优先告知用户「当前没有找到该命令的使用说明」而非自行编造命令。"));
+        return sb.toString();
+    }
+
+    /**
+     * Phase1 摘要：当前玩家可见命令的命令名 + 首个关键词摘要，逗号分隔。
+     * 玩家无可见命令或文档为空时返回 null（description 不追加动态部分）。
+     */
+    private String buildPhase1Summary(Player caller) {
+        CommandDocument doc = commandDocument;
+        if (doc == null || doc.isEmpty()) {
+            return null;
+        }
+        List<CommandEntry> visible = filterByPermission(doc.entries(), caller);
+        if (visible.isEmpty()) {
+            return null;
+        }
+
+        String summary = visible.stream().map(entry -> entry.command() + "（" + firstKeyword(entry) + "）").collect(Collectors.joining("、"));
+        return I18nService.tr("当前可执行命令：{} 等 {} 条。", summary, visible.size()) + "\n" + I18nService.tr("command 参数应优先使用上述命令列表中记录的命令。");
+    }
+
+    /**
+     * 取条目的首个关键词，无关键词时回退用命令名本身。
+     */
+    private String firstKeyword(CommandEntry entry) {
+        if (entry.keywords() != null && !entry.keywords().isEmpty()) {
+            return entry.keywords().get(0);
+        }
+        return entry.command();
+    }
+
+    /**
+     * 按玩家权限过滤命令条目。player 为 null（控制台）视为拥有所有权限。
+     */
+    private List<CommandEntry> filterByPermission(List<CommandEntry> entries, Player player) {
+        if (player == null) {
+            return entries;
+        }
+        return entries.stream().filter(entry -> entry.permission() == null || player.hasPermission(entry.permission())).toList();
+    }
+
+    /**
+     * 解析命令文档路径：中文读 commands/commands.md，非中文读 commands/&lt;lang&gt;/commands.md。
+     */
+    private static Path resolveCommandDocPath() {
+        Path commandsDir = Paths.get(KilacraftAI.getInstance().getDataFolder().toString(), "commands");
+        String lang = KilacraftAI.getInstance().getI18nService().getLanguage();
+        if ("zh".equals(lang)) {
+            return commandsDir.resolve("commands.md");
+        }
+        return commandsDir.resolve(lang).resolve("commands.md");
+    }
+
+    /**
+     * 热重载命令文档（/kila reload 级联调用）。
+     */
+    public void reloadCommandDocument() {
+        this.commandDocument = CommandDocumentParser.parse(resolveCommandDocPath());
+        PluginLoggerUtil.info(LOG_PREFIX, "命令文档已重载");
     }
 }
