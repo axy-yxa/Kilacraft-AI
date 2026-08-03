@@ -14,6 +14,9 @@ import java.util.UUID;
  * 查询类命令（usage/history/memory）的目标解析：按权限区分自己 / 指定玩家 / 全服。
  * self 路径（无参）需 selfPerm；指定玩家名或 all 需 otherPerm。
  * 在线玩家 UUID 同步可得；离线玩家 UUID 留给调用方在异步块用 resolveOfflineUuid 反查。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class QueryTarget {
 

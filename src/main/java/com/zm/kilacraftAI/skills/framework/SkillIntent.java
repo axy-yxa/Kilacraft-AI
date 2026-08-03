@@ -7,6 +7,9 @@ import java.util.Map;
 
 /**
  * 技能意图 - 由 LLM 识别出的用户意图
+ *
+ * @author Zm_Mmm
+ * @since 2026-03-31
  */
 @Getter
 public class SkillIntent {

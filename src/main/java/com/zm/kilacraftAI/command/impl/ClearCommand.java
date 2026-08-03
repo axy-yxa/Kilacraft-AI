@@ -11,6 +11,9 @@ import java.util.UUID;
 
 /**
  * /kila clear [玩家名]：清除对话历史（clear.self / clear.other 权限）。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class ClearCommand {
 

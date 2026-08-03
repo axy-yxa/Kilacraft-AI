@@ -24,6 +24,9 @@ import java.util.Deque;
  * 流程：技能可用校验 → SkillIntentRecognizer.recognizeForcedSkill 提取动作与参数 →
  * 识别结果交 AIRequestHandler.handleForcedSkillResult，复用正常流程的"执行 + AI 二次总结 / 失败回退"，与聊天触发完全一致。
  * 意图识别失败（缺参数/无法解析）时降级普通 AI（带失败上下文），由 AI 合理回应，避免死胡同。仅限玩家使用。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class RunCommand {
 

@@ -3,9 +3,9 @@ package com.zm.kilacraftAI.service.event;
 import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.model.event.ServerEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,6 +24,9 @@ import java.util.UUID;
  *
  * <p>事件关联说明：市场事件以卖家视角采集（卖家离线时才能看到
  * "你的商品已售出"和"收到钱款"的通知）。</p>
+ *
+ * @author Zm_Mmm
+ * @since 2026-05-27
  */
 public class MarketEventCollector implements Listener {
 

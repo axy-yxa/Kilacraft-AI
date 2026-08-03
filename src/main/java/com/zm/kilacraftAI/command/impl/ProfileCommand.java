@@ -18,6 +18,9 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * /kila profile start|stop|status：手动性能采样（admin.health 权限）。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class ProfileCommand {
 

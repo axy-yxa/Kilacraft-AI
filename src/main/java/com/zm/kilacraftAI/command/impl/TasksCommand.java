@@ -12,6 +12,9 @@ import java.util.List;
 /**
  * /kila tasks：查看定时任务状态（tasks 权限）。
  * 数据来自 {@link TaskScheduler#getTaskStatuses()}，卡片式展示在本命令完成，文案走 language.yml。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class TasksCommand {
 

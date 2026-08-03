@@ -22,6 +22,9 @@ import java.util.UUID;
  *
  * <p>CMI 等插件可能覆盖 /tpa 命令并 cancel 事件，但传送请求实际已发送，
  * 因此 {@code ignoreCancelled = false} 保证事件不被跳过。</p>
+ *
+ * @author Zm_Mmm
+ * @since 2026-05-27
  */
 public class TpaListener implements Listener {
 

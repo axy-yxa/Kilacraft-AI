@@ -20,6 +20,9 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * /kila reload：热重载全部配置（reload 权限）。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class ReloadCommand {
 

@@ -5,6 +5,9 @@ import lombok.Getter;
 
 /**
  * 步骤上下文构建结果
+ *
+ * @author Zm_Mmm
+ * @since 2026-04-02
  */
 @Getter
 public class BuildContextResult {

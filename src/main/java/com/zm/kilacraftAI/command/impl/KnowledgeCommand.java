@@ -17,6 +17,9 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * /kila knowledge reload：知识库管理（knowledge 权限）。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class KnowledgeCommand {
 

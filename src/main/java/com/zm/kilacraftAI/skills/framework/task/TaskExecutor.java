@@ -19,6 +19,9 @@ import java.util.regex.Pattern;
  * 2. 逐步执行：按顺序执行每个步骤
  * 3. 上下文传递：将前置步骤的结果传递给后续步骤
  * 4. 结果汇总：返回 AnalysisSummary，由调用方通过 LLMOutputCoordinator 进行 LLM 二次分析
+ *
+ * @author Zm_Mmm
+ * @since 2026-04-02
  */
 public class TaskExecutor {
 

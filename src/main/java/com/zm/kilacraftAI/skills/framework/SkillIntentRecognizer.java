@@ -25,6 +25,9 @@ import java.util.regex.Pattern;
 
 /**
  * 技能意图识别器 - 使用 LLM 识别用户意图
+ *
+ * @author Zm_Mmm
+ * @since 2026-03-31
  */
 public class SkillIntentRecognizer {
 
@@ -427,7 +430,7 @@ public class SkillIntentRecognizer {
     /**
      * 解析待确认续体分类响应。
      *
-     * <p>包级可见以供单元测试直接覆盖 JSON 解析分支。</p>
+     * <p>包级可见，便于测试直接覆盖 JSON 解析分支。</p>
      *
      * @param response LLM 响应文本
      * @return 恢复动作，或 null（none / 解析失败）

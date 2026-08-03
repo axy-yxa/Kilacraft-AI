@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.command.impl;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.common.util.AIRequestValidatorUtil;
 import com.zm.kilacraftAI.common.util.LLMResponseUtil;
@@ -13,7 +14,6 @@ import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.handler.impl.PluginCommandResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.skills.framework.task.LLMBudgetManager;
 import org.bukkit.Bukkit;
@@ -26,6 +26,9 @@ import java.util.concurrent.*;
 
 /**
  * /kila plugins：第三方插件集成（控制台专用）。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class PluginsCommand {
 

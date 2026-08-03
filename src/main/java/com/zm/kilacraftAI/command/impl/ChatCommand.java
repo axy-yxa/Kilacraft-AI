@@ -12,6 +12,9 @@ import java.util.UUID;
 
 /**
  * /kila chat：进入/退出连续对话模式。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class ChatCommand {
 

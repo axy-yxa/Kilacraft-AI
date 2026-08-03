@@ -22,6 +22,9 @@ import java.util.UUID;
 /**
  * /kila memory [玩家名]：查看玩家画像与运行时统计（双维度，query.self / memory.other）。
  * 数据源 kca_player_profile：展示登录统计、AI 画像分析状态，以及画像八维度详情（解析 extendedData）。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class MemoryCommand {
 

@@ -4,6 +4,9 @@ import lombok.Getter;
 
 /**
  * 邮件信息 - 封装邮件数据
+ *
+ * @author Zm_Mmm
+ * @since 2026-04-02
  */
 @Getter
 public class MailItem {
