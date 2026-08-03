@@ -1,0 +1,93 @@
+# English version of BukkitPlayerStatusSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Player Real-time Status Skill (BukkitPlayerStatusSkill)
+# Query the player's own real-time status: health, hunger, oxygen, XP, sleep, attack cooldown, fire/freeze, potion effects, absorption, arrows, invulnerability frames, fall distance, last damage, sneak/sprint, total XP.
+# Self-only (SkillSecurityFilter blocks cross-player params); for inventory use bukkit_player_inv.
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  Query the player's own real-time status: health, hunger, oxygen, XP level, sleep, attack cooldown, fire/freeze status, potion effects, absorption hearts, arrows in body, invulnerability frames, fall distance, last damage cause, sneak/sprint status, total XP.
+  Triggers: when players ask "how much health do I have left", "am I hungry", "what level am I", "do I have potion effects", "how did I last take damage", "am I sneaking", "am I on fire", etc.
+  Reverse boundary: NOT for inventory (inventory/held/armor — use bukkit_player_inv), NOT for basic info (location/game mode/ping — use bukkit_player_info), NOT for guide/advice questions.
+
+action_descriptions:
+  get_player_health: |
+    Function: Get the player's current health and max health.
+    Parameters: none.
+    Returns data fields: health (current health), max_health (max health).
+  get_player_food: |
+    Function: Get the player's current hunger (food level) and saturation.
+    Parameters: none.
+    Returns data fields: food_level (hunger, 0-20), saturation (saturation).
+  get_player_oxygen: |
+    Function: Get the player's current oxygen (underwater breathing time), in ticks.
+    Parameters: none.
+    Returns data fields: remaining_air (remaining oxygen), maximum_air (max oxygen).
+  get_player_exp: |
+    Function: Get the player's current XP level and progress.
+    Parameters: none.
+    Returns data fields: level (current level), exp_progress (progress within current level, 0-1).
+  get_player_exp_to_level: |
+    Function: Get the XP points needed to go from current progress to the next level.
+    Parameters: none.
+    Returns data fields: exp_to_level (XP needed to level up).
+  get_player_sleep_status: |
+    Function: Get whether the player is sleeping and sleep duration.
+    Parameters: none.
+    Returns data fields: is_sleeping (boolean), sleep_ticks (sleep tick count).
+  get_player_attack_cooldown: |
+    Function: Get the player's current attack cooldown progress (0-1, 1 means ready for full damage).
+    Parameters: none.
+    Returns data fields: attack_cooldown (cooldown progress, 0-1).
+  get_player_fire_status: |
+    Function: Get the player's current fire status and remaining burn time.
+    Parameters: none.
+    Returns data fields: fire_ticks (remaining fire ticks), max_fire_ticks (max burn ticks). When not on fire, fire_ticks<=0.
+  get_player_freeze_status: |
+    Function: Get whether the player is frozen (in powder snow) and freeze level.
+    Parameters: none.
+    Returns data fields: is_frozen (boolean), freeze_ticks (freeze ticks), max_freeze_ticks (max freeze ticks).
+  get_player_potion_effects: |
+    Function: Get all active potion effects on the player (effect name, level, remaining time).
+    Parameters: none.
+    Returns data fields: effects (effect list, each entry has type/amplifier/duration_seconds), effect_count (effect count).
+  get_player_absorption: |
+    Function: Get the player's current absorption health (extra yellow hearts from golden apple/totem).
+    Parameters: none.
+    Returns data fields: absorption (absorption health).
+  get_player_arrows_in_body: |
+    Function: Get the number of arrows stuck in the player's body.
+    Parameters: none.
+    Returns data fields: arrows_in_body (arrow count).
+  get_player_no_damage_ticks: |
+    Function: Get the player's current invulnerability frames (brief immunity after taking damage).
+    Parameters: none.
+    Returns data fields: no_damage_ticks (remaining invuln ticks), max_no_damage_ticks (max invuln ticks).
+  get_player_fall_distance: |
+    Function: Get the player's current fall distance (in blocks).
+    Parameters: none.
+    Returns data fields: fall_distance (fall distance in blocks).
+  get_player_last_damage: |
+    Function: Get the cause and amount of the player's most recent damage. Note: may be empty if never damaged or after server restart.
+    Parameters: none.
+    Returns data fields: damage_cause (damage cause), damage_amount (damage amount); when attacked by an entity also includes damager_type, damager_name.
+  get_player_sneak_status: |
+    Function: Get whether the player is currently sneaking (Shift key).
+    Parameters: none.
+    Returns data fields: sneaking (boolean).
+  get_player_sprint_status: |
+    Function: Get whether the player is currently sprinting (double-tap W).
+    Parameters: none.
+    Returns data fields: sprinting (boolean).
+  get_player_total_exp: |
+    Function: Get the player's cumulative total XP (distinct from current level progress).
+    Parameters: none.
+    Returns data fields: total_exp (total XP).
+
+hints:
+  - |
+    All actions query the player themselves; even if another player's name appears in params, the security filter replaces it with the current player.
+  - |
+    XP distinction: get_player_exp returns current level + progress (e.g. level 30, 50%), get_player_exp_to_level returns points needed to reach next level, get_player_total_exp returns lifetime total XP. Three different semantics — pick by the player's question.
+  - |
+    get_player_last_damage returns the "last damage record", which is cleared on server restart; if the player asks "how did I die" but has never taken damage, it returns an empty result.

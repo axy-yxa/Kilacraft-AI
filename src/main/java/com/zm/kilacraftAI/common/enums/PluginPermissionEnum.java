@@ -99,6 +99,31 @@ public enum PluginPermissionEnum {
     BUKKIT_API("kilacraft.api.*"),
 
     /**
+     * Bukkit API 玩家物品栏查询（BukkitPlayerInventorySkill）
+     */
+    API_PLAYER_INVENTORY("kilacraft.api.player.inventory"),
+
+    /**
+     * Bukkit API 玩家状态查询（BukkitPlayerStatusSkill）
+     */
+    API_PLAYER_STATUS("kilacraft.api.player.status"),
+
+    /**
+     * Bukkit API 玩家基础信息查询（BukkitPlayerInfoSkill）
+     */
+    API_PLAYER_INFO("kilacraft.api.player.info"),
+
+    /**
+     * Bukkit API 世界信息查询（BukkitWorldSkill）
+     */
+    API_WORLD_INFO("kilacraft.api.world.info"),
+
+    /**
+     * Bukkit API 服务器信息查询（BukkitServerSkill）
+     */
+    API_SERVER_INFO("kilacraft.api.server.info"),
+
+    /**
      * 查看定时任务运行状态
      */
     TASKS("kilacraft.tasks"),

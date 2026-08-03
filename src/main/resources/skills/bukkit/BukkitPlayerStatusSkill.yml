@@ -1,0 +1,92 @@
+# ═══════════════════════════════════════════════════════════
+# 玩家实时状态查询技能（BukkitPlayerStatusSkill）
+# 查询玩家自身的实时状态：生命、饥饿、氧气、经验、睡眠、攻击冷却、着火、冰冻、药水、吸收、箭矢、无敌帧、下落、上次受伤、潜行、冲刺、总经验。
+# 仅查询自己（SkillSecurityFilter 会拦截跨玩家参数）；查询物品栏请用 bukkit_player_inv。
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  查询玩家自己的实时状态信息：生命值、饥饿值、氧气、经验等级、睡眠、攻击冷却、着火/冰冻状态、药水效果、吸收之心、身上的箭、无敌帧、下落距离、上次受伤原因、潜行/冲刺状态、总经验。
+  触发场景：玩家问「我还剩多少血」「饿不饿」「几级了」「有没有药水效果」「上次怎么死的」「是不是在潜行」「着火了吗」等实时状态查询时使用。
+  反向边界：不用于查询物品栏（背包/手持/盔甲走 bukkit_player_inv），不用于查询基础信息（位置/游戏模式/Ping 走 bukkit_player_info），也不用于攻略/建议类问题。
+
+action_descriptions:
+  get_player_health: |
+    功能：获取玩家当前生命值和最大生命值。
+    参数：无。
+    返回 data 字段：health（当前生命值）、max_health（最大生命值）。
+  get_player_food: |
+    功能：获取玩家当前饥饿值（饱食度）和饱和度。
+    参数：无。
+    返回 data 字段：food_level（饱食度，0-20）、saturation（饱和度）。
+  get_player_oxygen: |
+    功能：获取玩家当前氧气值（水下呼吸时间），单位 tick。
+    参数：无。
+    返回 data 字段：remaining_air（剩余氧气）、maximum_air（最大氧气）。
+  get_player_exp: |
+    功能：获取玩家当前经验等级和经验进度。
+    参数：无。
+    返回 data 字段：level（当前等级）、exp_progress（当前等级经验进度，0-1 小数）。
+  get_player_exp_to_level: |
+    功能：获取从当前经验进度升到下一级所需的经验值点数。
+    参数：无。
+    返回 data 字段：exp_to_level（升下一级所需经验）。
+  get_player_sleep_status: |
+    功能：获取玩家是否正在睡觉及睡眠时间。
+    参数：无。
+    返回 data 字段：is_sleeping（是否在睡觉，布尔）、sleep_ticks（睡眠 tick 数）。
+  get_player_attack_cooldown: |
+    功能：获取玩家当前攻击冷却进度（0-1，1 表示冷却完成可造成满伤）。
+    参数：无。
+    返回 data 字段：attack_cooldown（冷却进度，0-1）。
+  get_player_fire_status: |
+    功能：获取玩家当前着火状态及剩余燃烧时间。
+    参数：无。
+    返回 data 字段：fire_ticks（着火剩余 tick）、max_fire_ticks（最大燃烧 tick）。未着火时 fire_ticks<=0。
+  get_player_freeze_status: |
+    功能：获取玩家是否被冰冻（细雪中）及冰冻程度。
+    参数：无。
+    返回 data 字段：is_frozen（是否冰冻，布尔）、freeze_ticks（冰冻 tick）、max_freeze_ticks（最大冰冻 tick）。
+  get_player_potion_effects: |
+    功能：获取玩家当前所有活跃药水效果列表（效果名、等级、剩余时间）。
+    参数：无。
+    返回 data 字段：effects（效果列表，每项含 type/amplifier/duration_seconds）、effect_count（效果数量）。
+  get_player_absorption: |
+    功能：获取玩家当前吸收生命值（吃金苹果/图腾获得的额外黄心）。
+    参数：无。
+    返回 data 字段：absorption（吸收血量）。
+  get_player_arrows_in_body: |
+    功能：获取玩家身上插着的箭矢数量。
+    参数：无。
+    返回 data 字段：arrows_in_body（箭矢数量）。
+  get_player_no_damage_ticks: |
+    功能：获取玩家当前无敌帧（受伤后短暂免疫伤害的剩余时间）。
+    参数：无。
+    返回 data 字段：no_damage_ticks（剩余无敌 tick）、max_no_damage_ticks（最大无敌 tick）。
+  get_player_fall_distance: |
+    功能：获取玩家当前的下落距离（格）。
+    参数：无。
+    返回 data 字段：fall_distance（下落格数）。
+  get_player_last_damage: |
+    功能：获取玩家最近一次受伤的原因和伤害值。注意：未受过伤或服务器重启后可能返回空。
+    参数：无。
+    返回 data 字段：damage_cause（伤害原因）、damage_amount（伤害值）；被实体攻击时额外含 damager_type（攻击者类型）、damager_name（攻击者名称）。
+  get_player_sneak_status: |
+    功能：获取玩家当前是否在潜行（Shift 键）。
+    参数：无。
+    返回 data 字段：sneaking（是否潜行，布尔）。
+  get_player_sprint_status: |
+    功能：获取玩家当前是否在冲刺（双击 W）。
+    参数：无。
+    返回 data 字段：sprinting（是否冲刺，布尔）。
+  get_player_total_exp: |
+    功能：获取玩家累积的总经验值（区别于当前等级的经验进度）。
+    参数：无。
+    返回 data 字段：total_exp（总经验值）。
+
+hints:
+  - |
+    所有 action 仅查询玩家自己，参数中即使出现其他玩家名也会被安全拦截器替换为当前玩家。
+  - |
+    经验相关区分：get_player_exp 返回当前等级+进度（如 30 级 50%），get_player_exp_to_level 返回升下一级所需点数，get_player_total_exp 返回生涯累计总经验。三者语义不同，按玩家提问选择。
+  - |
+    get_player_last_damage 返回的是「上次受伤记录」，服务器重启后会清空；如果玩家问「怎么死的」但未受伤过，会返回空结果。

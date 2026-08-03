@@ -4,8 +4,6 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.model.bukkit.BukkitAPIMetadata;
-import com.zm.kilacraftAI.service.bukkit.BukkitAPIConfigLoader;
 import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillConfig;
 import lombok.Getter;
@@ -19,18 +17,14 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 /**
  * 技能配置管理器
  *
- * <p>负责加载和管理所有技能的配置文件</p>
- * <p>支持两种类型的技能配置：</p>
- * <ul>
- *     <li>传统技能配置（如 MarketQuerySkill）- 从 YAML 文件读取完整配置</li>
- *     <li>数据驱动技能（如 GenericBukkitAPI）- 从 apis.yml 读取元数据</li>
- * </ul>
+ * <p>负责加载和管理所有技能的配置文件。所有技能（含 Bukkit 查询类）均走统一的
+ * 标准配置加载路径：从 {@code skills/<package>/<ClassName>.yml} 读取 description /
+ * action_descriptions / hints 三键。</p>
  *
  * @author Zm_Mmm
  * @since 2026-03-30
@@ -41,28 +35,10 @@ public class SkillConfigManager {
     private final File skillsFolder;
 
     /**
-     * 传统技能配置缓存
+     * 技能配置缓存
      * key = packageName.skillName
      */
     private final Map<String, SkillConfig> skillConfigs;
-
-    /**
-     * Bukkit API 元数据列表
-     */
-    @Getter
-    private final Map<String, BukkitAPIMetadata> bukkitApiMap;
-
-    /**
-     * Bukkit API 全局提示信息
-     */
-    @Getter
-    private final List<String> bukkitApiGlobalHints;
-
-    /**
-     * Bukkit API 技能描述
-     */
-    @Getter
-    private String bukkitApiSkillDescription;
 
     @Getter
     private static SkillConfigManager instance;
@@ -71,9 +47,6 @@ public class SkillConfigManager {
         this.plugin = plugin;
         this.skillsFolder = new File(plugin.getDataFolder(), "skills");
         this.skillConfigs = new LinkedHashMap<>();
-        this.bukkitApiMap = new ConcurrentHashMap<>();
-        this.bukkitApiGlobalHints = new ArrayList<>();
-        this.bukkitApiSkillDescription = "";
         instance = this;
     }
 
@@ -86,11 +59,7 @@ public class SkillConfigManager {
             skillsFolder.mkdirs();
         }
 
-        // 加载传统技能配置
         loadTraditionalSkillConfigs();
-
-        // 加载 Bukkit API 元数据
-        loadBukkitAPIs();
 
         PluginLoggerUtil.info("技能配置", "已加载 {} 个技能配置", skillConfigs.size());
     }
@@ -113,9 +82,9 @@ public class SkillConfigManager {
         for (File packageFolder : packageFolders) {
             String packageName = packageFolder.getName();
 
-            // 列出所有 .yml 文件，排除 apis.yml 和其他语言的配置文件
+            // 列出当前语言的 .yml 配置文件
             File[] configFiles = packageFolder.listFiles((dir, name) -> {
-                if (!name.endsWith(".yml") || name.equalsIgnoreCase("apis.yml")) return false;
+                if (!name.endsWith(".yml")) return false;
                 // zh 模式：排除 _en.yml 等带语言后缀的文件
                 // 非 zh 模式：只加载 _{lang}.yml 文件
                 if (isZh) {
@@ -162,16 +131,14 @@ public class SkillConfigManager {
                         try (Stream<Path> files = Files.list(pkgDir)) {
                             files.filter(Files::isRegularFile).filter(p -> p.toString().endsWith(".yml")).forEach(p -> {
                                 String fileName = p.getFileName().toString();
-                                // 跳过 apis.yml（由 loadBukkitAPIs 单独处理）
-                                if (fileName.equalsIgnoreCase("apis.yml")) return;
 
                                 // 判断该文件是否属于当前语言
                                 boolean isForCurrentLang;
                                 if (isZh) {
-                                    // zh 模式：不带语言后缀的文件（如 GenericBukkitAPISkill.yml）
+                                    // zh 模式：不带语言后缀的文件（如 BukkitStatsSkill.yml）
                                     isForCurrentLang = !fileName.matches(".*_[a-z]{2}\\.yml$");
                                 } else {
-                                    // 非 zh 模式：带 _{lang}.yml 后缀的文件（如 GenericBukkitAPISkill_en.yml）
+                                    // 非 zh 模式：带 _{lang}.yml 后缀的文件（如 BukkitStatsSkill_en.yml）
                                     isForCurrentLang = fileName.endsWith("_" + lang + ".yml");
                                 }
 
@@ -187,47 +154,6 @@ public class SkillConfigManager {
             }
         } catch (Exception e) {
             PluginLoggerUtil.warn("技能配置", "扫描 JAR 包技能配置目录失败: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * 加载 Bukkit API 元数据（数据驱动技能）
-     */
-    private void loadBukkitAPIs() {
-        File bukkitFolder = new File(skillsFolder, "bukkit");
-        if (!bukkitFolder.exists()) {
-            bukkitFolder.mkdirs();
-        }
-
-        // 根据当前语言选择 apis.yml 或 apis_en.yml
-        String lang = plugin.getI18nService().getLanguage();
-        String apisResourceName = "zh".equals(lang) ? "apis.yml" : "apis_" + lang + ".yml";
-        ConfigResourceUtil.saveDefaultResourceToDir(plugin, "skills/bukkit/" + apisResourceName, bukkitFolder);
-
-        File apisFile = new File(bukkitFolder, apisResourceName);
-        if (apisFile.exists()) {
-            try {
-                BukkitAPIConfigLoader loader = new BukkitAPIConfigLoader();
-                List<BukkitAPIMetadata> loadedApis = loader.loadFromFile(apisFile);
-
-                // 加载全局 hints
-                List<String> globalHints = loader.loadGlobalHints(apisFile);
-                bukkitApiGlobalHints.clear();
-                bukkitApiGlobalHints.addAll(globalHints);
-
-                // 加载全局技能描述
-                String skillDescription = loader.loadSkillDescription(apisFile);
-                bukkitApiSkillDescription = skillDescription != null ? skillDescription : "";
-
-                // 转为 Map 存储，key 为 API ID
-                for (BukkitAPIMetadata api : loadedApis) {
-                    bukkitApiMap.put(api.getId(), api);
-                }
-
-                PluginLoggerUtil.info("技能配置", "已加载 {} 个 Bukkit API", loadedApis.size());
-            } catch (Exception e) {
-                PluginLoggerUtil.error("技能配置", I18nService.tr("加载 Bukkit API 配置失败：{}", apisFile.getPath()), e);
-            }
         }
     }
 
@@ -374,8 +300,6 @@ public class SkillConfigManager {
      */
     public void reloadAllConfigs() {
         skillConfigs.clear();
-        bukkitApiMap.clear();
-        bukkitApiGlobalHints.clear();
 
         loadAllSkillConfigs();
 

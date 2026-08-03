@@ -1,0 +1,103 @@
+# ═══════════════════════════════════════════════════════════
+# 世界信息查询技能（BukkitWorldSkill）
+# 查询玩家所在世界的信息：时间、天气、世界基本信息、种子、出生点、边界、高度、生成规则、PVP、生物群系、温湿度、实体数量、海平面、天气持续时间、总时间、袭击。
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  查询玩家当前所在世界的信息：游戏时间（几点）、天气（晴/雨/雷暴）、世界名称/类型/难度、种子、出生点、世界边界、高度范围、生物生成规则、PVP 开关、当前位置的生物群系/温度/湿度、当前世界玩家/生物/实体数量、海平面、天气剩余时间、世界总时间/游戏时间、正在进行的袭击。
+  触发场景：玩家问「几点了」「下不下雨」「什么世界」「种子多少」「出生点在哪」「世界边界多大」「能生成怪物吗」「PVP 开了吗」「什么生物群系」「有多少怪」「海平面多高」「世界存在多久了」「有袭击吗」等世界相关查询时使用。
+  反向边界：不用于查询玩家自身信息（位置/血量/背包等走对应玩家查询技能），不用于查询服务器全局信息（在线玩家/版本/MOTD 走 bukkit_server）。
+
+action_descriptions:
+  get_world_time: |
+    功能：获取当前世界的游戏时间（自动格式化为 HH:MM）。
+    参数：无。
+    返回 data 字段：time_ticks（当前世界刻数，0-24000）。
+  get_weather: |
+    功能：获取当前世界的天气（晴天/雨天/雷暴）。
+    参数：无。
+    返回 data 字段：has_storm（是否有风雨，布尔）、is_thundering（是否雷暴，布尔）。
+  get_world_info: |
+    功能：获取当前世界的名称、环境类型（主世界/下界/末地）和难度。
+    参数：无。
+    返回 data 字段：name（世界名）、environment（环境枚举名 NORMAL/NETHER/THE_END/CUSTOM）、difficulty（难度枚举名 PEACEFUL/EASY/NORMAL/HARD）。
+  get_world_seed: |
+    功能：获取当前世界的种子值。
+    参数：无。
+    返回 data 字段：seed（世界种子，长整型）。
+  get_world_spawn: |
+    功能：获取当前世界的出生点位置。
+    参数：无。
+    返回 data 字段：x、y、z、yaw、pitch、world。
+  get_world_border: |
+    功能：获取当前世界边界的大小和中心坐标。
+    参数：无。
+    返回 data 字段：border_size（边界直径，格）、center_x（中心 X）、center_z（中心 Z）。
+  get_world_height_limit: |
+    功能：获取当前世界的最低和最高建筑高度。
+    参数：无。
+    返回 data 字段：min_height（最低 Y）、max_height（最高 Y）。
+  get_world_spawn_rules: |
+    功能：获取当前世界是否允许生成怪物和动物。
+    参数：无。
+    返回 data 字段：allow_monsters（布尔）、allow_animals（布尔）。
+  get_world_pvp: |
+    功能：获取当前世界是否允许 PVP。
+    参数：无。
+    返回 data 字段：pvp（是否允许 PVP，布尔）。
+  get_world_biome: |
+    功能：获取玩家当前位置的生物群系类型（平原、沙漠、森林等）。
+    参数：无（默认查询玩家当前坐标）。
+    返回 data 字段：biome（生物群系枚举名，如 PLAINS/DESERT）。
+  get_world_temperature: |
+    功能：获取玩家当前位置的温度值（影响生物生成、降雪）。
+    参数：无（默认查询玩家当前坐标）。
+    返回 data 字段：temperature（温度，0-1 浮点）。
+  get_world_humidity: |
+    功能：获取玩家当前位置的湿度值（影响降雨概率）。
+    参数：无（默认查询玩家当前坐标）。
+    返回 data 字段：humidity（湿度，0-1 浮点）。
+  get_world_player_count: |
+    功能：获取当前世界中的玩家数量。
+    参数：无。
+    返回 data 字段：player_count（当前世界玩家数）。
+  get_world_living_entities: |
+    功能：获取当前世界中所有存活生物（玩家、怪物、动物等）的数量。
+    参数：无。
+    返回 data 字段：living_entities（生物数量）。
+  get_world_entity_count: |
+    功能：获取当前世界中所有实体（生物、掉落物、矿车、画等）的总数。
+    参数：无。
+    返回 data 字段：entity_count（实体总数）。
+  get_world_sea_level: |
+    功能：获取当前世界的海平面高度（Y 坐标）。
+    参数：无。
+    返回 data 字段：sea_level（海平面 Y）。
+  get_world_clear_weather_duration: |
+    功能：获取当前晴天天气剩余持续时间（tick）。
+    参数：无。
+    返回 data 字段：clear_weather_duration（剩余 tick）。
+  get_world_thunder_duration: |
+    功能：获取当前雷暴天气剩余持续时间（tick）。
+    参数：无。
+    返回 data 字段：thunder_duration（剩余 tick）。
+  get_world_full_time: |
+    功能：获取世界总运行时间（tick，不受睡眠影响，持续累加）。
+    参数：无。
+    返回 data 字段：full_time（总时间 tick）。
+  get_world_game_time: |
+    功能：获取世界自创建以来的总游戏时间（tick，不受 /time set 影响）。
+    参数：无。
+    返回 data 字段：game_time（游戏时间 tick）。
+  get_world_raids: |
+    功能：获取当前世界正在进行的袭击（Raid）数量。
+    参数：无。
+    返回 data 字段：raids（袭击数量）。
+
+hints:
+  - |
+    时间区分：get_world_time 是游戏内时间（0 刻=日出 6:00，会受 /time set 和睡觉影响）；get_world_full_time 是世界持续累加的总时间；get_world_game_time 是自世界创建以来的真实游戏时间（不受 /time set 影响）。三者语义不同。
+  - |
+    实体数量区分：get_world_player_count 只统计玩家；get_world_living_entities 统计所有活物（含玩家、怪物、动物）；get_world_entity_count 统计所有实体（含掉落物、矿车、画等非生物）。注意这些是当前世界的数据，不是全服。
+  - |
+    生物群系/温度/湿度默认查询玩家当前坐标。不同坐标的生物群系可能不同，结果反映玩家脚下位置的环境。

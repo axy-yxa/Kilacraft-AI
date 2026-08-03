@@ -92,6 +92,11 @@ modules:
   "原版统计": "Vanilla Stats"
   "监听": "Watch"
   "CMI集成": "CMI"
+  "Bukkit物品栏查询": "Bukkit Inv"
+  "Bukkit状态查询": "Bukkit Status"
+  "Bukkit信息查询": "Bukkit Info"
+  "Bukkit世界查询": "Bukkit World"
+  "Bukkit服务器查询": "Bukkit Server"
 
 # ==================== 消息翻译 ====================
 # Message Translations
@@ -355,7 +360,7 @@ messages:
   "音效播放成功: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})": "Sound played successfully: sound={}, volume={}, pitch={}, location=({}, {}, {}, {})"
   "粒子效果显示成功: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})": "Particle effect displayed successfully: particle={}, count={}, offset=({}, {}, {}), location=({}, {}, {}, {})"
 
-  # ==================== GenericBukkitAPISkill ====================
+  # ==================== Bukkit 查询技能共享文案（BukkitAPIResultFormatter + 5 子 skill） ====================
   "是": "Yes"
   "否": "No"
   "头盔": "Helmet"
@@ -805,16 +810,6 @@ messages:
   "[FoliaCompat] GlobalRegionScheduler.runDelayed 调用失败": "[FoliaCompat] GlobalRegionScheduler.runDelayed invocation failed"
   "[FoliaCompat] AsyncScheduler.runAtFixedRate 调用失败": "[FoliaCompat] AsyncScheduler.runAtFixedRate invocation failed"
   "[FoliaCompat] EntityScheduler.run 调用失败": "[FoliaCompat] EntityScheduler.run invocation failed"
-
-  # ==================== BukkitAPIExecutor ====================
-  "你没有权限执行此操作：{}": "You do not have permission to execute this action: {}"
-  "无法获取目标对象：{}": "Cannot get target object: {}"
-  "API 必须配置 method_chain 或 additional_methods": "API must configure method_chain or additional_methods"
-  "方法不存在：{} in {}": "Method not found: {} in {}"
-  "方法 {} 需要参数但不支持无参调用，且没有配置默认参数": "Method {} requires parameters but no-arg invocation is not supported, and no default parameters are configured"
-
-  # ==================== BukkitAPIConfigLoader ====================
-  "配置文件不存在：{}": "Config file not found: {}"
 
   # ==================== UtilitySkill ====================
   "缺少 seconds 参数": "Missing seconds parameter"

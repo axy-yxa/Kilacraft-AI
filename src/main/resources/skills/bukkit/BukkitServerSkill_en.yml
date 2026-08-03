@@ -1,0 +1,44 @@
+# English version of BukkitServerSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Server Info Query Skill (BukkitServerSkill)
+# Query server-global info: online players, max players, server version, MOTD, world list, server settings.
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  Query server-global info: current online player list & count, server max player limit, server & Bukkit version, MOTD (server intro), loaded world list, server basic settings (allow flight/nether/end).
+  Triggers: when players ask "who's online", "how many players online", "what's the player cap", "what version is the server", "server MOTD/intro", "what worlds are there", "can the server fly / is there a nether/end" etc.
+  Reverse boundary: NOT for player-specific or world-local info (use bukkit_player_* or bukkit_world), NOT for guide/advice questions.
+
+action_descriptions:
+  get_online_players: |
+    Function: Get the current online player list and count.
+    Parameters: none.
+    Returns data fields: online_count (online count), players (comma-separated string of ALL online player names). The returned display message shows at most 20 player names.
+  get_max_players: |
+    Function: Get the server's max player limit.
+    Parameters: none.
+    Returns data fields: max_players (max player count).
+  get_server_version: |
+    Function: Get the server's Minecraft version and Bukkit version info.
+    Parameters: none.
+    Returns data fields: version (server version), bukkit_version (Bukkit version).
+  get_server_motd: |
+    Function: Get the server's MOTD (message of the day / server intro text, includes formatting codes).
+    Parameters: none.
+    Returns data fields: raw_result (MOTD raw text). Note: only suitable for directly showing players who ask about the server intro; not suitable as a data source for multi-step tasks.
+  get_server_worlds: |
+    Function: Get all loaded worlds on the server.
+    Parameters: none.
+    Returns data fields: world_count (world count). The returned display text includes each world's name and environment type.
+  get_server_settings: |
+    Function: Get the server's basic settings (allow flight, nether, end).
+    Parameters: none.
+    Returns data fields: allow_flight (boolean), allow_nether (boolean), allow_end (boolean).
+
+hints:
+  - |
+    get_online_players returns the server-wide online player list, not the current world. To query current world player count use bukkit_world's get_world_player_count.
+  - |
+    get_server_motd returns text with Minecraft formatting codes (§a/§b etc.), only suitable for directly showing players who ask about the server intro; not suitable for referencing as a data field in multi-step tasks. Use get_online_players etc. for that.
+  - |
+    get_server_worlds returns all loaded worlds server-wide, not the current world. To query current world info use bukkit_world's corresponding actions.

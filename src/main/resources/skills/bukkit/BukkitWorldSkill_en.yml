@@ -1,0 +1,104 @@
+# English version of BukkitWorldSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# World Info Query Skill (BukkitWorldSkill)
+# Query info about the player's current world: time, weather, world info, seed, spawn, border, height, spawn rules, PVP, biome, temp/humidity, entity counts, sea level, weather duration, total time, raids.
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  Query info about the player's current world: game time (what time), weather (clear/rain/thunder), world name/type/difficulty, seed, spawn point, world border, height range, mob spawn rules, PVP toggle, biome/temp/humidity at current location, player/mob/entity counts in current world, sea level, weather remaining time, world total/game time, active raids.
+  Triggers: when players ask "what time is it", "is it raining", "what world is this", "what's the seed", "where's spawn", "how big is the world border", "can monsters spawn", "is PVP on", "what biome am I in", "how many mobs are there", "what's the sea level", "how old is this world", "are there any raids" etc.
+  Reverse boundary: NOT for player-specific info (location/health/inventory — use the player query skills), NOT for server-global info (online players/version/MOTD — use bukkit_server).
+
+action_descriptions:
+  get_world_time: |
+    Function: Get the current world's game time (auto-formatted to HH:MM).
+    Parameters: none.
+    Returns data fields: time_ticks (current world ticks, 0-24000).
+  get_weather: |
+    Function: Get the current world's weather (clear/rain/thunder).
+    Parameters: none.
+    Returns data fields: has_storm (boolean), is_thundering (boolean).
+  get_world_info: |
+    Function: Get the current world's name, environment type (Overworld/Nether/The End) and difficulty.
+    Parameters: none.
+    Returns data fields: name (world name), environment (enum name NORMAL/NETHER/THE_END/CUSTOM), difficulty (enum name PEACEFUL/EASY/NORMAL/HARD).
+  get_world_seed: |
+    Function: Get the current world's seed value.
+    Parameters: none.
+    Returns data fields: seed (world seed, long).
+  get_world_spawn: |
+    Function: Get the current world's spawn point location.
+    Parameters: none.
+    Returns data fields: x, y, z, yaw, pitch, world.
+  get_world_border: |
+    Function: Get the current world border's size and center coordinates.
+    Parameters: none.
+    Returns data fields: border_size (border diameter in blocks), center_x, center_z.
+  get_world_height_limit: |
+    Function: Get the current world's min and max build height.
+    Parameters: none.
+    Returns data fields: min_height (min Y), max_height (max Y).
+  get_world_spawn_rules: |
+    Function: Get whether the current world allows monster and animal spawning.
+    Parameters: none.
+    Returns data fields: allow_monsters (boolean), allow_animals (boolean).
+  get_world_pvp: |
+    Function: Get whether the current world allows PVP.
+    Parameters: none.
+    Returns data fields: pvp (boolean).
+  get_world_biome: |
+    Function: Get the biome type at the player's current location (plains, desert, forest, etc.).
+    Parameters: none (defaults to player's current coords).
+    Returns data fields: biome (biome enum name, e.g. PLAINS/DESERT).
+  get_world_temperature: |
+    Function: Get the temperature value at the player's current location (affects mob spawning, snow).
+    Parameters: none (defaults to player's current coords).
+    Returns data fields: temperature (float 0-1).
+  get_world_humidity: |
+    Function: Get the humidity value at the player's current location (affects rain probability).
+    Parameters: none (defaults to player's current coords).
+    Returns data fields: humidity (float 0-1).
+  get_world_player_count: |
+    Function: Get the number of players in the current world.
+    Parameters: none.
+    Returns data fields: player_count (player count in current world).
+  get_world_living_entities: |
+    Function: Get the number of all living entities (players, monsters, animals) in the current world.
+    Parameters: none.
+    Returns data fields: living_entities (living entity count).
+  get_world_entity_count: |
+    Function: Get the total number of all entities (mobs, drops, minecarts, paintings, etc.) in the current world.
+    Parameters: none.
+    Returns data fields: entity_count (total entity count).
+  get_world_sea_level: |
+    Function: Get the current world's sea level height (Y coordinate).
+    Parameters: none.
+    Returns data fields: sea_level (sea level Y).
+  get_world_clear_weather_duration: |
+    Function: Get the remaining duration of the current clear weather (in ticks).
+    Parameters: none.
+    Returns data fields: clear_weather_duration (remaining ticks).
+  get_world_thunder_duration: |
+    Function: Get the remaining duration of the current thunder weather (in ticks).
+    Parameters: none.
+    Returns data fields: thunder_duration (remaining ticks).
+  get_world_full_time: |
+    Function: Get the world's total running time (ticks, not affected by sleep, keeps accumulating).
+    Parameters: none.
+    Returns data fields: full_time (total time in ticks).
+  get_world_game_time: |
+    Function: Get the world's total game time since creation (ticks, not affected by /time set).
+    Parameters: none.
+    Returns data fields: game_time (game time in ticks).
+  get_world_raids: |
+    Function: Get the number of active raids in the current world.
+    Parameters: none.
+    Returns data fields: raids (raid count).
+
+hints:
+  - |
+    Time distinction: get_world_time is in-game time (0 ticks=sunrise 6:00, affected by /time set and sleeping); get_world_full_time is the world's accumulated total time; get_world_game_time is the real game time since world creation (not affected by /time set). Three different semantics.
+  - |
+    Entity count distinction: get_world_player_count counts only players; get_world_living_entities counts all living things (players, monsters, animals); get_world_entity_count counts all entities (including drops, minecarts, paintings, etc.). Note these are for the current world, not the whole server.
+  - |
+    Biome/temperature/humidity default to the player's current coordinates. Different coordinates may have different biomes; results reflect the environment at the player's feet.

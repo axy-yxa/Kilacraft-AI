@@ -55,8 +55,12 @@ import com.zm.kilacraftAI.skills.admin.PlayerAnalysisSkill;
 import com.zm.kilacraftAI.skills.admin.ServerHealthSkill;
 import com.zm.kilacraftAI.skills.admin.VersionInfoSkill;
 import com.zm.kilacraftAI.skills.bukkit.BukkitFXSkill;
+import com.zm.kilacraftAI.skills.bukkit.BukkitPlayerInfoSkill;
+import com.zm.kilacraftAI.skills.bukkit.BukkitPlayerInventorySkill;
+import com.zm.kilacraftAI.skills.bukkit.BukkitPlayerStatusSkill;
+import com.zm.kilacraftAI.skills.bukkit.BukkitServerSkill;
 import com.zm.kilacraftAI.skills.bukkit.BukkitStatsSkill;
-import com.zm.kilacraftAI.skills.bukkit.GenericBukkitAPISkill;
+import com.zm.kilacraftAI.skills.bukkit.BukkitWorldSkill;
 import com.zm.kilacraftAI.skills.cmi.CMISkill;
 import com.zm.kilacraftAI.skills.command.CommandSkill;
 import com.zm.kilacraftAI.skills.framework.SkillIntentRecognizer;
@@ -843,8 +847,12 @@ public final class KilacraftAI extends JavaPlugin {
      * 注册默认技能
      */
     private void registerDefaultSkills() {
-        // 注册通用 Bukkit API 执行器（数据驱动的原版功能调用)
-        skillManager.registerSkill(new GenericBukkitAPISkill());
+        // 注册 Bukkit API 查询技能（按语义域拆分为 5 个标准 skill）
+        skillManager.registerSkill(new BukkitPlayerInventorySkill());
+        skillManager.registerSkill(new BukkitPlayerStatusSkill());
+        skillManager.registerSkill(new BukkitPlayerInfoSkill());
+        skillManager.registerSkill(new BukkitWorldSkill());
+        skillManager.registerSkill(new BukkitServerSkill());
 
         // 注册音效与粒子效果技能
         skillManager.registerSkill(new BukkitFXSkill());
