@@ -10,6 +10,7 @@ import com.zm.kilacraftAI.db.model.DatabaseConfig;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.i18n.TextProcessorFactory;
 import com.zm.kilacraftAI.service.knowledge.EmbeddingService;
+import com.zm.kilacraftAI.skills.command.CommandSkill;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -84,7 +85,7 @@ public final class ReloadCommand {
             // 重载命令文档（CommandSkill 始终注册，通过 SkillManager 拿到实例刷新文档缓存）
             if (plugin.getSkillManager() != null) {
                 var commandSkill = plugin.getSkillManager().getSkill("command");
-                if (commandSkill instanceof com.zm.kilacraftAI.skills.command.CommandSkill cs) {
+                if (commandSkill instanceof CommandSkill cs) {
                     cs.reloadCommandDocument();
                 }
             }

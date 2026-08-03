@@ -262,6 +262,14 @@ public class CommandSkill implements Skill, DynamicContextProvider, CallerDescri
     }
 
     /**
+     * 命令文档是否包含有效条目（供 DoctorCommand 自检：文档为空时 AI 无命令可用）。
+     */
+    public boolean hasCommandEntries() {
+        CommandDocument doc = commandDocument;
+        return doc != null && !doc.isEmpty();
+    }
+
+    /**
      * 热重载命令文档（/kila reload 级联调用）。
      */
     public void reloadCommandDocument() {

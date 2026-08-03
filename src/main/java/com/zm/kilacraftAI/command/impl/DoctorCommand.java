@@ -12,6 +12,8 @@ import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.health.SparkDataCollector;
+import com.zm.kilacraftAI.skills.command.CommandSkill;
+import com.zm.kilacraftAI.skills.framework.Skill;
 import com.zm.kilacraftAI.skills.framework.SkillManager;
 import org.bukkit.command.CommandSender;
 
@@ -145,7 +147,8 @@ public final class DoctorCommand {
      */
     private static CheckResult checkCommandSkill(KilacraftAI plugin, LanguageManager lm) {
         SkillManager sm = plugin.getSkillManager();
-        if (sm == null || sm.getSkill("command") == null) {
+        Skill skill = sm == null ? null : sm.getSkill("command");
+        if (!(skill instanceof CommandSkill cs) || !cs.hasCommandEntries()) {
             return warn(Group.AI, lm.getCommandDoctorCheckCommandSkill(), lm.getCommandDoctorDisabled());
         }
         return pass(Group.AI, lm.getCommandDoctorCheckCommandSkill(), lm.getCommandDoctorEnabled());
