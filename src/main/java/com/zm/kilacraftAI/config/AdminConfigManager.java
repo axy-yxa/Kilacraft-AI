@@ -87,6 +87,8 @@ public class AdminConfigManager {
     @Getter
     private volatile int msptConsecutiveThreshold;
     @Getter
+    private volatile int cpuConsecutiveThreshold;
+    @Getter
     private volatile Map<String, Double> alertThresholds;
 
     /*
@@ -175,13 +177,15 @@ public class AdminConfigManager {
         maxAutoAnalysisPerWindow = Math.max(1, config.getInt("health_guardian.max_auto_analysis_per_window", 5));
         autoAnalysisWindowMinutes = Math.max(1, config.getInt("health_guardian.auto_analysis_window_minutes", 60));
         msptConsecutiveThreshold = Math.max(1, config.getInt("health_guardian.mspt_consecutive_threshold", 3));
+        cpuConsecutiveThreshold = Math.max(1, config.getInt("health_guardian.cpu_consecutive_threshold", 3));
 
         // 加载告警阈值（先构建完整 Map 再赋值，避免 volatile 半发布）
         Map<String, Double> thresholds = new HashMap<>();
         thresholds.put("tps_threshold", config.getDouble("health_guardian.alerts.tps_threshold", 15.0));
         thresholds.put("mspt_max_threshold", config.getDouble("health_guardian.alerts.mspt_max_threshold", 50.0));
-        thresholds.put("mspt_p95_threshold", config.getDouble("health_guardian.alerts.mspt_p95_threshold", 50.0));
-        thresholds.put("cpu_threshold", config.getDouble("health_guardian.alerts.cpu_threshold", 80.0));
+        thresholds.put("mspt_median_threshold", config.getDouble("health_guardian.alerts.mspt_median_threshold", 60.0));
+        thresholds.put("mspt_p95_threshold", config.getDouble("health_guardian.alerts.mspt_p95_threshold", 100.0));
+        thresholds.put("cpu_threshold", config.getDouble("health_guardian.alerts.cpu_threshold", 90.0));
         this.alertThresholds = Collections.unmodifiableMap(thresholds);
 
         // 加载诊断报告配置

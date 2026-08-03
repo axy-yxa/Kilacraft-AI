@@ -1316,6 +1316,8 @@ messages:
   "实时指标 — TPS: 5s={} 1m={} 5m={} | MSPT(1m): max={} median={} p95={} | MSPT(10s): max={} | CPU: process={}% system={}%": "Live metrics — TPS: 5s={} 1m={} 5m={} | MSPT(1m): max={} median={} p95={} | MSPT(10s): max={} | CPU: process={}% system={}%"
   "MSPT 10s max={}ms 超过阈值，连续确认 {}/{}": "MSPT 10s max={}ms exceeds threshold, consecutive confirmation {}/{}"
   "MSPT 10s max 已恢复正常，连续计数 {} → 0": "MSPT 10s max returned to normal, consecutive count {} → 0"
+  "CPU {}% 超过阈值，连续确认 {}/{}": "CPU {}% exceeds threshold, consecutive confirmation {}/{}"
+  "CPU 已恢复正常，连续计数 {} → 0": "CPU returned to normal, consecutive count {} → 0"
   "AI 诊断未执行：未配置可用的模型": "AI diagnosis skipped: no available model configured"
   "AI 诊断未执行：当前 LLM 提供商不支持推理模型": "AI diagnosis skipped: current LLM provider does not support thinking model"
 

@@ -232,7 +232,7 @@ public class ServerHealthGuardian implements ManagedTask {
         // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
 //        PluginLoggerUtil.debug(LOG_PREFIX, "实时指标 — TPS: 5s={} 1m={} 5m={} | MSPT(1m): max={} median={} p95={} | MSPT(10s): max={} | CPU: process={}% system={}%", snapshot.tps5s(), snapshot.tps1m(), snapshot.tps5m(), String.format("%.1f", snapshot.msptMax()), String.format("%.1f", snapshot.msptMedian()), String.format("%.1f", snapshot.msptP95()), String.format("%.1f", snapshot.mspt10sMax()), String.format("%.1f", snapshot.cpuProcess()), String.format("%.1f", snapshot.cpuSystem()));
 
-        List<String> alerts = sparkCollector.checkThresholds(snapshot, configManager.getAlertThresholds(), configManager.getMsptConsecutiveThreshold());
+        List<String> alerts = sparkCollector.checkThresholds(snapshot, configManager.getAlertThresholds(), configManager.getMsptConsecutiveThreshold(), configManager.getCpuConsecutiveThreshold());
         if (alerts.isEmpty()) {
             return 0; // 正常，无告警
         }
