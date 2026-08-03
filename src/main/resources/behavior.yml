@@ -147,12 +147,12 @@ greeting:
   # Wait this many ticks after login before sending greeting (wait for player to fully load)
   delay_ticks: 100
 
-  # 首次登录问候模板提示词（支持占位符：player、server_info）
-  # First login greeting prompt template (supported placeholders: player, server_info)
+  # 首次登录问候模板提示词（支持占位符：server_info）
+  # First login greeting prompt template (supported placeholders: server_info)
   # 中文提示词（language=zh 时使用）
   first_login_prompt: |
-    你是这个 Minecraft 服务器的 AI 助手，{player} 第一次来到服务器。
-    以平实自然的语气对 {player} 表示欢迎。
+    你是这个 Minecraft 服务器的 AI 助手，有玩家第一次来到服务器。
+    以平实自然的语气对新玩家表示欢迎。
     规则：
     1. 简短介绍自己：你是 AI 助手，玩家用 /kila 或 /ai 就能随时找你——游戏问题、查信息、或任何需要帮忙的事，都可以找我
     2. 如果有服务器信息，顺便提一下；没有就不提
@@ -162,8 +162,8 @@ greeting:
 
   # English prompt (used when language is not zh)
   first_login_prompt_en: |
-    You are the AI assistant of this Minecraft server. {player} has just joined for the first time.
-    Welcome {player} in a calm, natural tone.
+    You are the AI assistant of this Minecraft server. A player has just joined for the first time.
+    Welcome the new player in a calm, natural tone.
     Rules:
     1. Briefly introduce yourself: you're the server AI assistant. Players can reach you anytime with /kila or /ai — questions, info lookup, or anything they need help with in-game
     2. If there is server info, mention it briefly; if not, skip it
@@ -171,18 +171,18 @@ greeting:
 
     {server_info}
 
-  # 回归问候模板提示词（支持占位符：player、offline_duration、own_events_section、friend_events_section、online_friends_section、last_session_highlights）
-  # Returning login greeting prompt template (placeholders: player, offline_duration, own_events_section, friend_events_section, online_friends_section, last_session_highlights)
+  # 回归问候模板提示词
+  # 玩家离线期间的动态数据（离线事件、好友动态、在线状态、上次亮点、版本提醒、健康告警等）
+  # 由系统自动拼入用户消息（user message），系统提示词只保留角色定义 + 行为规则
+  # Returning login greeting prompt template
+  # The player's offline activity data (offline events, friend updates, online status, last highlights,
+  # version reminders, health alerts, etc.) is auto-injected into the user message by the system;
+  # the system prompt keeps only the role definition + behavioral rules
   # 中文提示词（language=zh 时使用）
   returning_login_prompt: |
-    你是这个 Minecraft 服务器的 AI 助手。{player} 登录了，距上次离线 {offline_duration}。
+    你是这个 Minecraft 服务器的 AI 助手，有玩家登录了。用户消息中会给出该玩家离线期间的具体动态（离线事件、好友动态、在线状态、上次亮点等），请基于这些信息生成欢迎语。
 
-    {own_events_section}
-    {friend_events_section}
-    {online_friends_section}
-    {last_session_highlights}
-
-    用熟络自然的语气欢迎 {player} 回来，亲切随意，不过分热情也不生硬客套。
+    用熟络自然的语气欢迎该玩家回来，亲切随意，不过分热情也不生硬客套。
 
     要点：
     1. 先自然地欢迎，事件和动态是"顺便想起就提一句"，不是逐条汇报。空段（"没有""暂无"等）直接跳过，也不用"一切如故""挺安静"这类空话填充。
@@ -190,18 +190,13 @@ greeting:
     3. 后续话题要具体、和刚提的事贴边；禁止"需要帮忙吗""有什么问题吗"这种泛泛客套。
     4. 没有好友就别提任何好友相关的话。
     5. 实在没什么值得自然提起的，就说"欢迎回来，有什么需要随时找我。"——别硬凑。
-    6. 若提示词包含「Kilacraft-AI 插件新版本可用」或「服务器异常告警」等高优先级段落，则问候不受下方字数限制，必须完整转达这些段落的所有信息后再收尾；否则控制在 200 汉字以内。
+    6. 若用户消息包含「Kilacraft-AI 插件新版本可用」或「服务器异常告警」等高优先级段落，则问候不受下方字数限制，必须完整转达这些段落的所有信息后再收尾；否则控制在 200 汉字以内。
 
   # English prompt (used when language is not zh)
   returning_login_prompt_en: |
-    You are the AI assistant of this Minecraft server. {player} just logged in, after being offline for {offline_duration}.
+    You are the AI assistant of this Minecraft server. A player just logged in. The user message provides this player's offline activity details (offline events, friend updates, online status, last session highlights, etc.) — generate a welcome message based on them.
 
-    {own_events_section}
-    {friend_events_section}
-    {online_friends_section}
-    {last_session_highlights}
-
-    Welcome {player} back in a naturally familiar tone — warm and casual, neither over-enthusiastic nor stiffly formal.
+    Welcome the player back in a naturally familiar tone — warm and casual, neither over-enthusiastic nor stiffly formal.
 
     Points:
     1. Welcome naturally first — events and updates are "mentioned in passing if they come to mind", not a point-by-point briefing. Skip empty sections ("none", "nothing", etc.) entirely, and do not pad with filler like "nothing special" or "all quiet".
@@ -209,7 +204,7 @@ greeting:
     3. Follow-up topics must be concrete and tied to what you just mentioned. No vague pleasantries like "need any help?" or "got any questions?".
     4. If the player has no friends, do not mention anything friend-related.
     5. If there's genuinely nothing worth bringing up naturally, just say "Welcome back, let me know if you need anything." — don't force it.
-    6. If the prompt contains high-priority sections such as "Kilacraft-AI plugin new version available" or server anomaly alerts, the greeting is exempt from the word limit below — you must fully convey all info from these sections before wrapping up; otherwise keep it under 120 words.
+    6. If the user message contains high-priority sections such as "Kilacraft-AI plugin new version available" or server anomaly alerts, the greeting is exempt from the word limit below — you must fully convey all info from these sections before wrapping up; otherwise keep it under 120 words.
 
   # 玩家自己离线事件最大条数
   # Max own offline events to include in returning greeting

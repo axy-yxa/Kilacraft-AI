@@ -97,6 +97,7 @@ modules:
   "Bukkit信息查询": "Bukkit Info"
   "Bukkit世界查询": "Bukkit World"
   "Bukkit服务器查询": "Bukkit Server"
+  "问候配置": "Greeting Config"
 
 # ==================== 消息翻译 ====================
 # Message Translations
@@ -878,6 +879,11 @@ messages:
   "生成问候语失败: {}": "Failed to generate greeting: {}"
   "请欢迎新玩家 {}": "Please welcome new player {}"
   "请欢迎 {} 回来": "Please welcome {} back"
+  "距上次离线：{}": "Since last logout: {}"
+
+  # ==================== GreetingConfigManager ====================
+  "first_login_prompt 含已废弃占位符 {}，请迁移到纯静态模板（动态数据已自动注入用户消息）": "first_login_prompt contains deprecated placeholder {}; please migrate to a purely static template (dynamic data is now auto-injected into the user message)"
+  "returning_login_prompt 含已废弃占位符 {}，请迁移到纯静态模板（动态数据已自动注入用户消息）": "returning_login_prompt contains deprecated placeholder {}; please migrate to a purely static template (dynamic data is now auto-injected into the user message)"
 
   # ==================== DatabaseConfigManager ====================
   "数据库配置文件不存在，使用默认 H2 配置": "Database config file not found, using default H2 config"

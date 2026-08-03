@@ -135,8 +135,9 @@ public class LoginGreetingHandler implements Listener {
         // 优先读配置文件，配置文件没有才读硬编码默认值
         String customPrompt = context.isFirstLogin() ? config.getGreetingFirstLoginPrompt() : config.getGreetingReturningPrompt();
 
-        // system 保持纯静态（问候模板，{player} 由 Provider 统一替换）；画像由 Provider 注入 user 消息
-        String systemPrompt = promptBuilder.build(context, customPrompt);
+        // system 保持纯静态（角色定义+行为规则，跨玩家共享前缀缓存）；动态数据 + 玩家身份经 user 消息注入
+        String systemPrompt = promptBuilder.buildStaticSystem(context, customPrompt);
+        String dynamicUserData = promptBuilder.buildDynamicUserData(context);
 
         PluginLoggerUtil.debug("问候系统", "问候语摘要: {}", systemPrompt);
 
@@ -150,7 +151,13 @@ public class LoginGreetingHandler implements Listener {
         }
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
-        String userMessage = context.isFirstLogin() ? I18nService.tr("请欢迎新玩家 {}", playerName) : I18nService.tr("请欢迎 {} 回来", playerName);
+        // user 消息：动态数据块前置（供 LLM 基于离线事件等生成个性化问候），欢迎指令在后
+        StringBuilder userMsgBuilder = new StringBuilder();
+        if (!dynamicUserData.isEmpty()) {
+            userMsgBuilder.append(dynamicUserData).append("\n\n");
+        }
+        userMsgBuilder.append(context.isFirstLogin() ? I18nService.tr("请欢迎新玩家 {}", playerName) : I18nService.tr("请欢迎 {} 回来", playerName));
+        String userMessage = userMsgBuilder.toString();
 
         PlayerResponseHandler handler = new PlayerResponseHandler(KilacraftAI.getInstance(), player, OutputScenarioEnum.GREETING, null);
 

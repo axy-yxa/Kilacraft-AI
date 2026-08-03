@@ -2,6 +2,8 @@ package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.greeting.GreetingPromptBuilder;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -81,6 +83,25 @@ public class GreetingConfigManager {
         this.serverInfo = yaml.getString("greeting.server_info", "");
         this.greetingCooldownMinutes = yaml.getInt("greeting.greeting_cooldown_minutes", 30);
         this.profileInjectionEnabled = yaml.getBoolean("greeting.profile_injection_enabled", true);
+
+        warnDeprecatedPlaceholders(this.firstLoginPrompt, this.returningLoginPrompt);
+    }
+
+    /**
+     * 检测配置模板是否含已废弃的动态占位符并提示迁移。
+     * <p>问候系统提示词静态化后，{@code {player}}、{@code {offline_duration}} 等动态占位符不再在 system 中替换；
+     * 残留它们不会报错，但会作为字面量出现在 system 中，破坏跨玩家前缀缓存命中。检测到时 warn 一次提示迁移。</p>
+     */
+    private void warnDeprecatedPlaceholders(String firstPrompt, String returningPrompt) {
+        String[] deprecated = {"{player}", "{offline_duration}", "{own_events_section}", "{friend_events_section}", "{online_friends_section}", "{last_session_highlights}", "{last_location}", "{summary_section}"};
+        for (String p : deprecated) {
+            if (firstPrompt != null && firstPrompt.contains(p)) {
+                PluginLoggerUtil.warn("问候配置", I18nService.tr("first_login_prompt 含已废弃占位符 {}，请迁移到纯静态模板（动态数据已自动注入用户消息）", p));
+            }
+            if (returningPrompt != null && returningPrompt.contains(p)) {
+                PluginLoggerUtil.warn("问候配置", I18nService.tr("returning_login_prompt 含已废弃占位符 {}，请迁移到纯静态模板（动态数据已自动注入用户消息）", p));
+            }
+        }
     }
 
     /**

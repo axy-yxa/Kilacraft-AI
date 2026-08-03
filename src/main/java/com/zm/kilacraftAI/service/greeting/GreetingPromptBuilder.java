@@ -17,8 +17,15 @@ import java.util.stream.Collectors;
 /**
  * 问候提示词构建器
  *
- * <p>根据 {@link GreetingContext} 构建发送给 LLM 的系统提示词。</p>
- * <p>支持两种场景：首次登录和回归登录，各自有独立的默认提示词模板。</p>
+ * <p>根据 {@link GreetingContext} 构建发送给 LLM 的提示词，严格区分静态与动态两部分以最大化供应商侧缓存命中率：</p>
+ * <ul>
+ *   <li>{@link #buildStaticSystem(GreetingContext, String)} 返回纯静态系统提示词（角色定义 + 行为规则），
+ *       跨玩家、跨请求字节一致，可全量命中前缀缓存。仅支持 {@code {server_info}} 这一个跨玩家一致的占位符。</li>
+ *   <li>{@link #buildDynamicUserData(GreetingContext)} 返回每玩家/每请求变化的动态数据块，
+ *       由调用方拼入 user 消息（画像/元数据/时间也由 Provider 注入 user，互不干扰）。</li>
+ * </ul>
+ * <p>已废弃的占位符（{@code {player}}、{@code {offline_duration}} 等）不再在 system 中替换；
+ * 若配置模板仍含这些占位符，将作为字面量保留在 system 中（不报错，但缓存命中率会下降）。</p>
  *
  * @author Zm_Mmm
  * @since 2026-05-01
@@ -28,8 +35,8 @@ public class GreetingPromptBuilder {
     private static final DateTimeFormatter ALERT_DTF = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
     public static final String DEFAULT_FIRST_LOGIN_PROMPT = """
-            你是这个 Minecraft 服务器的 AI 助手，{player} 第一次来到服务器。
-            以平实自然的语气对 {player} 表示欢迎。
+            你是这个 Minecraft 服务器的 AI 助手，有玩家第一次来到服务器。
+            以平实自然的语气对新玩家表示欢迎。
             规则：
             1. 简短介绍自己：你是 AI 助手，玩家用 /kila 或 /ai 就能随时找你——游戏问题、查信息、或任何需要帮忙的事，都可以找我
             2. 如果有服务器信息，顺便提一下；没有就不提
@@ -38,14 +45,9 @@ public class GreetingPromptBuilder {
             {server_info}""";
 
     public static final String DEFAULT_RETURNING_PROMPT = """
-            你是这个 Minecraft 服务器的 AI 助手。{player} 登录了，距上次离线 {offline_duration}。
+            你是这个 Minecraft 服务器的 AI 助手，有玩家登录了。用户消息中会给出该玩家离线期间的具体动态（离线事件、好友动态、在线状态、上次亮点等），请基于这些信息生成欢迎语。
             
-            {own_events_section}
-            {friend_events_section}
-            {online_friends_section}
-            {last_session_highlights}
-            
-            用熟络自然的语气欢迎 {player} 回来，亲切随意，不过分热情也不生硬客套。
+            用熟络自然的语气欢迎该玩家回来，亲切随意，不过分热情也不生硬客套。
             
             要点：
             1. 先自然地欢迎，事件和动态是"顺便想起就提一句"，不是逐条汇报。空段（"没有""暂无"等）直接跳过，也不用"一切如故""挺安静"这类空话填充。
@@ -53,12 +55,12 @@ public class GreetingPromptBuilder {
             3. 后续话题要具体、和刚提的事贴边；禁止"需要帮忙吗""有什么问题吗"这种泛泛客套。
             4. 没有好友就别提任何好友相关的话。
             5. 实在没什么值得自然提起的，就说"欢迎回来，有什么需要随时找我。"——别硬凑。
-            6. 若提示词包含「Kilacraft-AI 插件新版本可用」或「服务器异常告警」等高优先级段落，则问候不受下方字数限制，必须完整转达这些段落的所有信息后再收尾；否则控制在 200 汉字以内。
+            6. 若用户消息包含「Kilacraft-AI 插件新版本可用」或「服务器异常告警」等高优先级段落，则问候不受下方字数限制，必须完整转达这些段落的所有信息后再收尾；否则控制在 200 汉字以内。
             """;
 
     public static final String DEFAULT_FIRST_LOGIN_PROMPT_EN = """
-            You are the AI assistant of this Minecraft server. {player} has just joined for the first time.
-            Welcome {player} in a calm, natural tone.
+            You are the AI assistant of this Minecraft server. A player has just joined for the first time.
+            Welcome the new player in a calm, natural tone.
             Rules:
             1. Briefly introduce yourself: you're the server AI assistant. Players can reach you anytime with /kila or /ai — questions, info lookup, or anything they need help with in-game
             2. If there is server info, mention it briefly; if not, skip it
@@ -67,14 +69,9 @@ public class GreetingPromptBuilder {
             {server_info}""";
 
     public static final String DEFAULT_RETURNING_PROMPT_EN = """
-            You are the AI assistant of this Minecraft server. {player} just logged in, after being offline for {offline_duration}.
+            You are the AI assistant of this Minecraft server. A player just logged in. The user message provides this player's offline activity details (offline events, friend updates, online status, last session highlights, etc.) — generate a welcome message based on them.
             
-            {own_events_section}
-            {friend_events_section}
-            {online_friends_section}
-            {last_session_highlights}
-            
-            Welcome {player} back in a naturally familiar tone — warm and casual, neither over-enthusiastic nor stiffly formal.
+            Welcome the player back in a naturally familiar tone — warm and casual, neither over-enthusiastic nor stiffly formal.
             
             Points:
             1. Welcome naturally first — events and updates are "mentioned in passing if they come to mind", not a point-by-point briefing. Skip empty sections ("none", "nothing", etc.) entirely, and do not pad with filler like "nothing special" or "all quiet".
@@ -82,7 +79,7 @@ public class GreetingPromptBuilder {
             3. Follow-up topics must be concrete and tied to what you just mentioned. No vague pleasantries like "need any help?" or "got any questions?".
             4. If the player has no friends, do not mention anything friend-related.
             5. If there's genuinely nothing worth bringing up naturally, just say "Welcome back, let me know if you need anything." — don't force it.
-            6. If the prompt contains high-priority sections such as "Kilacraft-AI plugin new version available" or server anomaly alerts, the greeting is exempt from the word limit below — you must fully convey all info from these sections before wrapping up; otherwise keep it under 120 words.
+            6. If the user message contains high-priority sections such as "Kilacraft-AI plugin new version available" or server anomaly alerts, the greeting is exempt from the word limit below — you must fully convey all info from these sections before wrapping up; otherwise keep it under 120 words.
             """;
 
     public static String getDefaultFirstLoginPrompt() {
@@ -94,66 +91,75 @@ public class GreetingPromptBuilder {
     }
 
     /**
-     * 构建问候提示词
+     * 构建纯静态系统提示词（跨玩家共享，最大化前缀缓存命中）。
+     * <p>仅替换 {@code {server_info}}（跨玩家一致的服务器介绍）；其余规则段原样透传。
+     * 已废弃的动态占位符（{@code {player}}/{@code {offline_duration}} 等）若残留在配置模板中，
+     * 将作为字面量保留——不影响功能，但会降低缓存命中率，应在配置迁移时移除。</p>
      *
-     * @param context      问候上下文
+     * @param context      问候上下文（仅取 serverInfo）
      * @param customPrompt 提示词模板（ConfigManager 保证不为空）
-     * @return 完整的系统提示词
+     * @return 纯静态系统提示词
      */
-    public String build(GreetingContext context, String customPrompt) {
-        String playerName = context.getPlayer().getName();
-
-        if (context.isFirstLogin()) {
-            return buildFirstLoginPrompt(context, customPrompt, playerName);
-        } else {
-            return buildReturningPrompt(context, customPrompt, playerName);
-        }
-    }
-
-    /**
-     * 构建首次登录提示词
-     */
-    private String buildFirstLoginPrompt(GreetingContext context, String customPrompt, String playerName) {
+    public String buildStaticSystem(GreetingContext context, String customPrompt) {
         String serverInfo = context.getServerInfo();
         if (serverInfo == null || serverInfo.isBlank()) {
             serverInfo = "";
         }
-
-        // {player} 占位符替换由 Provider 咽喉统一处理，此处仅替换其他业务占位符
-        String prompt = customPrompt.replace("{server_info}", serverInfo);
-        return prompt;
+        return customPrompt.replace("{server_info}", serverInfo);
     }
 
     /**
-     * 构建回归登录提示词
+     * 构建问候动态数据块（每玩家/每请求变化），供调用方拼入 user 消息。
+     * <p>包含：离线时长、离线事件、好友动态、在线好友、上次亮点、健康告警、版本提醒。
+     * 各段为空时返回空串（不注入），段落间以空行分隔。</p>
+     *
+     * @param context 问候上下文
+     * @return 动态数据文本块；无任何动态数据时返回空串
      */
-    private String buildReturningPrompt(GreetingContext context, String customPrompt, String playerName) {
+    public String buildDynamicUserData(GreetingContext context) {
+        String playerName = context.getPlayer().getName();
+
+        // 首次登录无离线动态数据，返回空串（user 消息仅含 Provider 注入的画像/元数据 + 欢迎指令）
+        if (context.isFirstLogin()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+
         String offlineDuration = formatDuration(context.getOfflineDurationMs());
+        sb.append(I18nService.tr("距上次离线：{}", offlineDuration)).append("\n\n");
+
         String ownEventsSection = buildOfflineEventsSection(context.getOfflineEvents(), context.getGlobalEventCount(), playerName);
+        if (!ownEventsSection.isEmpty()) {
+            sb.append(ownEventsSection).append("\n\n");
+        }
+
         String friendEventsSection = buildFriendEventsSection(context.getFriendEvents(), context.getFriendLoginCounts());
+        if (!friendEventsSection.isEmpty()) {
+            sb.append(friendEventsSection).append("\n\n");
+        }
+
         String onlineFriendsSection = buildOnlineFriendsSection(context.getOnlineFriends(), context.getOfflineFriends());
+        if (!onlineFriendsSection.isEmpty()) {
+            sb.append(onlineFriendsSection).append("\n\n");
+        }
+
         String highlightsSection = buildHighlightsSection(context.getHighlights());
-        String healthAlertsSection = buildHealthAlertsSection(context.getHealthAlerts(), playerName);
+        if (!highlightsSection.isEmpty()) {
+            sb.append(highlightsSection).append("\n\n");
+        }
+
         String updateReminderSection = buildUpdateReminderSection(context.getUpdateReminders(), playerName);
-
-        // {player} 占位符由 Provider 替换，此处仅替换其他业务占位符
-        String prompt = customPrompt.replace("{offline_duration}", offlineDuration).replace("{own_events_section}", ownEventsSection).replace("{friend_events_section}", friendEventsSection).replace("{online_friends_section}", onlineFriendsSection).replace("{last_session_highlights}", highlightsSection)
-                // 向后兼容：旧版配置文件可能仍含 {last_location}/{summary_section} 占位符，
-                // 这两段已移除，替换为空串避免字面量残留
-                .replace("{last_location}", "").replace("{summary_section}", "");
-
-        // 段落为空时返回空串，压缩因此产生的连续空行
-        prompt = prompt.replaceAll("\n{3,}", "\n\n");
-
-        // 更新提醒段落前置拼接（优先级次于告警）
-        if (updateReminderSection != null && !updateReminderSection.isEmpty()) {
-            prompt = updateReminderSection + "\n\n" + prompt;
+        if (!updateReminderSection.isEmpty()) {
+            sb.append(updateReminderSection).append("\n\n");
         }
-        // 告警段落插入到系统提示词最前面（最高优先级）
-        if (healthAlertsSection != null && !healthAlertsSection.isEmpty()) {
-            return healthAlertsSection + "\n\n" + prompt + "\n";
+
+        String healthAlertsSection = buildHealthAlertsSection(context.getHealthAlerts(), playerName);
+        if (!healthAlertsSection.isEmpty()) {
+            sb.append(healthAlertsSection).append("\n\n");
         }
-        return prompt;
+
+        return sb.toString().trim();
     }
 
     /**

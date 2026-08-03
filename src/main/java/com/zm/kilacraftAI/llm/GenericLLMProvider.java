@@ -494,9 +494,9 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
      * 构建 SSE 流式请求体。
      *
      * @param userMessage        实际用户查询
-     * @param player             触发请求的玩家；非 null 时采集画像/元数据/时间拼到 user 消息，并替换 {player}
+     * @param player             触发请求的玩家；非 null 时采集画像/元数据/时间拼到 user 消息
      * @param history            历史对话记录，作为 messages[1..N]
-     * @param staticSystemPrompt 系统提示词（可含 {player} 占位符）
+     * @param staticSystemPrompt 系统提示词（必须纯静态，不含任何动态占位符）
      * @param knowledgeContext   知识库检索结果（null 表示无）
      * @param enableJsonOutput   是否启用 JSON 输出格式
      * @return 构建好的请求体 JSON
@@ -530,9 +530,9 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
         JsonArray messages = new JsonArray();
 
-        // system 消息：系统提示词（替换 {player}，player 为 null 时替换为空串防 NPE）+ 语言约束
-        String safeName = player != null ? player.getName() : "";
-        String systemPrompt = staticSystemPrompt.replace("{player}", safeName);
+        // system 消息保持纯静态：玩家身份/实时状态等动态信息由 buildUserContent 注入 user 消息，
+        // 以最大化供应商侧前缀缓存命中率（system 跨玩家、跨请求字节一致）
+        String systemPrompt = staticSystemPrompt;
         String langDirective = plugin.getConfigManager().getLanguageDirective();
         if (langDirective != null) {
             systemPrompt += "\n" + langDirective;
