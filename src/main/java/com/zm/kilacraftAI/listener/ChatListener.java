@@ -165,7 +165,7 @@ public class ChatListener implements Listener {
             plugin.getStreamOutputManager().cancelGeneration(player);
         }
 
-        // 清理 LLM 预算窗口（独立于守护系统，守护禁用时也需清理，避免内存泄漏）
+        // 清理 LLM 预算窗口（内存态，下线即清，避免内存泄漏）
         if (plugin.getLlmOutputCoordinator() != null) {
             plugin.getLlmOutputCoordinator().getBudgetManager().clearPlayer(player.getUniqueId());
         }
@@ -173,11 +173,6 @@ public class ChatListener implements Listener {
         // 清理推荐 opt-out 状态（内存态不持久化，重启自然清空）
         if (plugin.getSuggestionManager() != null) {
             plugin.getSuggestionManager().clearPlayer(player.getUniqueId());
-        }
-
-        // 清理守护系统资源（释放 per-player lock、引擎注册）
-        if (plugin.getGuardianManager() != null) {
-            plugin.getGuardianManager().onPlayerQuit(player.getUniqueId());
         }
 
         // 清理玩家的 Scoreboard / BossBar（防止离线后定时器仍在运行导致内存泄漏）

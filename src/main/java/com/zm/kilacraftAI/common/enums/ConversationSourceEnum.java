@@ -16,7 +16,6 @@ import lombok.Getter;
  *     <li>{@link #COMMAND} — /kila 命令触发</li>
  *     <li>{@link #PLUGIN} — 插件命令 /kila plugins（带人格隔离）</li>
  *     <li>{@link #GREETING} — 登录问候（Phase 4，仅写 DB 不加载到内存）</li>
- *     <li>{@link #GUARDIAN} — 守护系统主动输出（L3 陪聊，交互式，纳入画像分析上下文）</li>
  * </ul>
  *
  * @author Zm_Mmm
@@ -43,12 +42,7 @@ public enum ConversationSourceEnum {
     /**
      * 登录问候（仅写 DB，不加载到内存历史）
      */
-    GREETING("greeting"),
-
-    /**
-     * 守护系统主动输出（写入 DB 且纳入画像分析的上下文）
-     */
-    GUARDIAN("guardian");
+    GREETING("greeting");
 
     /**
      * 字段值

@@ -519,7 +519,7 @@ Example check categories: database connectivity, LLM connectivity, Spark availab
 
 ### `/kila cache` — LLM Cache Hit-Rate Statistics
 
-Real-time view of LLM prompt cache hit rates and savings, helping determine whether LLM call costs are optimized. Displays per-type breakdowns for multiple AI call categories (intent recognition both phases, secondary analysis, normal chat, guardian, greeting, profile, suggestions, tool notifications, server diagnostics, etc.), showing request count, input token consumption, cache hit rate, and token savings for each.
+Real-time view of LLM prompt cache hit rates and savings, helping determine whether LLM call costs are optimized. Displays per-type breakdowns for multiple AI call categories (intent recognition both phases, secondary analysis, normal chat, greeting, profile, suggestions, tool notifications, server diagnostics, etc.), showing request count, input token consumption, cache hit rate, and token savings for each.
 
 - Auto-detects caching fields from three major providers: DeepSeek (`prompt_cache_hit_tokens`), OpenAI (`cached_tokens`), Anthropic (`cache_read_input_tokens`) — no extra configuration needed.
 - Data accumulates in the current server session's memory only, reset on restart.

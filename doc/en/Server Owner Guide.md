@@ -238,34 +238,9 @@ fox_npc_skill:
 
 > Plugin commands are console-only. Each `UUID_personality` combination has independent history.
 
-### Guardian System (Proactive AI Watch)
+### Player Watch (WatchSkill)
 
-AI upgrades from "only answers when asked" to "proactive watching". Once enabled, AI acts like a personal butler, speaking up proactively to remind you at moments you're **not currently focused on — but would care about afterward**.
-
-```
-Player: Turn on guardian
-AI: OK, guardian is on. I'll keep an eye on what you can't see.
-
-[While fighting mobs...]
-⚠️ Your diamond sword durability is almost gone — don't let it break at a critical moment!
-
-[While mining...]
-⚠️ Your inventory is nearly full, 3 slots left — better head back and clean it out.
-
-[Behind you...]
-⚠️ Watch out! A creeper 5 blocks behind you has locked onto you!
-```
-
-**Proactive alerts cover three scenarios players easily overlook:**
-- **Inventory nearly full**: proactively warns when free slots run low
-- **Gear durability critical**: warns when held or worn gear is about to break
-- **Hostile mob locked onto you from behind/side**: alerts when a hostile mob outside your field of view (within 8 blocks) targets you
-
-Alert wording is generated on the fly by AI (not fixed templates), 1-2 natural sentences. It automatically stays silent when you open your inventory/item UI (you're already looking at item states); it auto-pauses after 5 minutes of no input (no wasted resources) and resumes the moment you act.
-
-**Deliberately not done** for scenarios players can perceive themselves: hunger, health, oxygen, fire, negative effects, day/night weather, etc. — things you know by looking at the HUD or your body's reactions, which AI won't repeat. Creeper ignition (1.5s), projectile flight, and other windows shorter than AI response latency are also skipped.
-
-Enable with `/kila guardian on`, or just tell the AI "turn on guardian". `off`/`status` need no permission (so players can turn off their own guardian even if permission was revoked). Requires `kilacraft.guardian` permission (default: all players, opt-in — players must enable it themselves). Configured under the `guardian:` section of `behavior.yml`.
+Set an "auto-watch" in natural language — the AI proactively reminds you when a condition is met or an event occurs. More capable and safer than the old AFK task system:
 
 ### Player Custom Watch (WatchSkill)
 
@@ -294,7 +269,7 @@ Subscribe to a friend's online/offline notifications via natural language — "t
 
 This is positioned as a lightweight social interaction — subscriptions live in memory only and aren't persisted, and are auto-cleared when the subscriber goes offline. Requires `kilacraft.player_watch` permission (default: all players), with a per-player limit of 5 subscriptions.
 
-> The three new systems above (Guardian / Player Watch / Cross-Player Subscription) **replace the old AFK task system**. The old `/kila afk` command, `kilacraft.afk` permission, and `afk_task` config section have been removed. If you previously relied on the old AFK tasks, switch to these three new systems.
+> The two new systems above (Player Watch / Cross-Player Subscription) **replace the old AFK task system**. The old `/kila afk` command, `kilacraft.afk` permission, and `afk_task` config section have been removed. If you previously relied on the old AFK tasks, switch to these two new systems.
 
 ### Server Health Monitoring
 
@@ -369,7 +344,6 @@ AI interacts with the server through Skills, each corresponding to a category of
 | **Vanilla Stats** | 80+ vanilla cumulative stat queries, knowledge base BM25 retrieval, auto unit conversion | None | `kilacraft.bukkit_stats` |
 | **Global Market** | Search/list/collect/buy-order/delist/transfer/auction/bulk-sell/bulk-buy (9 operations) | GlobalMarketPlus | `kilacraft.market.*` |
 | **CMI Integration** | 5 queries (home/warp/player info/online/AFK) + 3 teleports | CMI | `kilacraft.cmi.*` |
-| **Guardian** | Proactive AI watch: inventory near-full, low durability, threat behind (see Advanced Features above) | None | `kilacraft.guardian` |
 | **Player Watch** | Custom condition/event watches, 11 event types (see Advanced Features above) | None | `kilacraft.watch` |
 | **Cross-Player Watch** | Subscribe to friends' online/offline notifications (see Advanced Features above) | None | `kilacraft.player_watch` |
 | **Web Search** | Real-time web search, 9 search engine providers, time-range filtering | None (requires API Key) | `kilacraft.websearch` |
@@ -380,7 +354,7 @@ AI interacts with the server through Skills, each corresponding to a category of
 | **Sound & Particles** | AI-triggered sounds/particles, only caller perceives, YAML-driven config | None | `kilacraft.bukkit_fx` |
 | **Server Admin** | Health monitoring, player analysis, audit logs (see Advanced Features above) | Spark (optional) | `kilacraft.admin.*` |
 
-> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively. New feature permissions (Guardian/Watch/WebSearch etc.) are all available to all players by default, but require opt-in (players must actively enable Guardian) or API Key configuration by the server owner for web search to function.
+> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively. New feature permissions (Watch/WebSearch etc.) are all available to all players by default, but require opt-in (players must actively enable watch) or API Key configuration by the server owner for web search to function.
 
 ***
 
@@ -432,7 +406,6 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 | `/kila reload` | `kilacraft.reload` | Reload config and language files |
 | `/kila knowledge reload` | `kilacraft.knowledge` | Reload knowledge base |
 | `/kila personalities reload` | `kilacraft.personalities` | Reload personality config |
-| `/kila guardian on\|off\|status` | `kilacraft.guardian` (on) / none (off, status) | Enable/disable/check Guardian system (see "Guardian System" above) |
 | `/kila suggestion on\|off\|status` | None (open to all) | Enable/disable/check chat suggestions |
 | `/kila tasks` | `kilacraft.tasks` | View scheduled task status (default OP) |
 | `/kila usage [player\|all] [1d/3d/7d/30d]` | `kilacraft.query.self` / `kilacraft.usage.other` | AI usage stats (see "AI Data Query" section) |
@@ -467,7 +440,6 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 | `kilacraft.utility` | true | Utility tools (delay/notify) |
 | `kilacraft.utility.broadcast` | op | Server-wide broadcast (OP only by default) |
 | `kilacraft.command.execute` | op | Command execution (OP only by default) |
-| `kilacraft.guardian` | true | Guardian system toggle (opt-in, must actively enable) |
 | `kilacraft.watch` | true | Player custom watch |
 | `kilacraft.player_watch` | true | Cross-player watch subscription |
 | `kilacraft.websearch` | true | Web search (requires API Key configured) |
@@ -484,7 +456,7 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 | `kilacraft.admin.cache` | op | View LLM cache hit-rate statistics |
 | `kilacraft.admin.*` | op | All admin features |
 
-> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively; `kilacraft.admin.*` includes all admin permissions (health / player / audit / info / cache). New feature permissions (Guardian/Watch/WebSearch etc.) default to available for all players, but are opt-in — players must actively enable Guardian or the server owner must configure API Keys for web search to take effect.
+> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively; `kilacraft.admin.*` includes all admin permissions (health / player / audit / info / cache). New feature permissions (Watch/WebSearch etc.) default to available for all players, but are opt-in — players must actively enable watch or the server owner must configure API Keys for web search to take effect.
 
 ***
 

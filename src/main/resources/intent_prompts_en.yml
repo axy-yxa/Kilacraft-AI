@@ -118,11 +118,9 @@ critical_rules:
     1. Always interpret the current input in light of conversation history
     2. If the user uses pronouns ("this", "it", "that") or vague instructions ("check again", "what about now"), resolve the referent from history
     3. [Conversation History Source Tags]
-       AI replies in history may carry a source tag, shown as "AI[Guardian]: content" or "AI[Greeting]: content":
-       - [Guardian] = a proactive alert from the Guardian system (not a reply to a player question). Player feedback about it ("shut up", "too noisy", "stop warning me", etc.) should be routed to the Guardian skill's disable action (disabling guardian stops all alerts)
+       AI replies in history may carry a source tag, shown as "AI[Greeting]: content":
        - [Greeting] = login greeting; player responses to it are normal conversation
-       - Un tagged "AI: content" = normal conversation reply
-       When judging the player's intent, check the most recent AI message's source tag first: if it has [Guardian] and the player expresses displeasure or a desire for quiet, prefer selecting the Guardian skill
+       - Untagged "AI: content" = normal conversation reply
     4. If the user says "check again", "same question", repeat the previous turn's intent
     5. [Real-time Data Re-fetch Rule]
        When the user's pronoun or vague instruction refers to data that must be fetched in real time via a skill, you MUST re-execute the fetch action — never reuse the concrete value from last turn's history
@@ -189,9 +187,8 @@ critical_rules:
     - If action B only makes sense after condition A is satisfied, B cannot be a parallel step of the current multi-step task. Classify by the user's actual intent:
       · User wants "wait N seconds then Y" → multi-step with delay_wait (see [Output Quality Requirements] for orchestration rules)
       · User wants "continuously monitor a condition, notify me when met" → use a custom-condition watch skill (select an appropriate probe from that skill's available probe list and fill in the parameters); do NOT add it as a step in a one-shot multi-step task
-      · User wants "watch my back / be my bodyguard" without specifying a condition → use a built-in proactive guard skill
     - Counter-example: user says "watch some target, tell me when the condition is met" → splitting into parallel steps (watch + follow-up) is WRONG, because the follow-up should only trigger after the condition is met
-    - Correct: "wait 5 seconds then check inventory" → delay_wait; "tell me when iron ingots hit 64" → custom-condition watch skill; "enable guardian" → built-in proactive guard skill
+    - Correct: "wait 5 seconds then check inventory" → delay_wait; "tell me when iron ingots hit 64" → custom-condition watch skill
 
     **Step 1: Match skills and actions one by one**
     - For each sub-question, find a semantically matching skill/action in the [Available Skills List]
@@ -297,7 +294,6 @@ phase1:
     - Correct: the user asks a real-life topic outside the game -> no skill description serves such a real-life intent -> no match, return null
     - **"A skill's retrieved data might help answer the question" is NOT the same as "the skill matches the intent". A match exists only when the question itself requires fetching that data**
     - Note: if the previous turn has clear context, interpret intent using history rather than returning null directly
-    - AI replies in conversation history may carry a source tag (e.g. "AI[Guardian]: content" means a proactive Guardian alert). If the player expresses displeasure or a desire for quiet about such messages ("shut up", "too noisy", etc.), include the Guardian skill (the player wants to disable it, which maps to the disable action)
 
     [Skill Name Strict Restriction — highest priority]
     - Absolutely forbidden to fabricate skill names; use only names explicitly listed in the [Available Skills List]

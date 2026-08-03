@@ -9,7 +9,7 @@
 description: |
   Player custom watch system: the player specifies a watch source and trigger condition, the system continuously monitors, and notifies the AI when the condition is met (the AI decides how to respond, with no automatic callback).
   Triggers: when the player raises an ongoing monitoring need, e.g. "watch my health below 10", "tell me when iron ingots reach 64", "remind me when the furnace is done", "notify me when crops mature", "ping me when I die once".
-  Reverse boundary: NOT for AI proactively guarding the caller themselves (unconditional "be my bodyguard / enable guardian" goes to Guardian), and NOT for subscribing to other players' online/offline status (that goes to PlayerWatch).
+  Reverse boundary: NOT for subscribing to other players' online/offline status (that goes to PlayerWatch).
 
 action_descriptions:
   create_watch: |
@@ -45,4 +45,4 @@ hints:
   - |
     When to use event: the watched target is "whether some event occurs", e.g. furnace done, crops mature, block broken, player death, chat containing a word — triggers on event match, no polling. Choose event_type from the injected list; narrow the event scope with filter_ prefixed params (e.g. a specific furnace product via filter_result_type=IRON_INGOT, a specific block break via filter_block_type=DIAMOND_ORE, chat containing a word via filter_keyword=OK).
   - |
-    Boundary routing: subscribing to other players online/offline ("tell me when Steve comes online") uses PlayerWatch; unconditional AI proactive guarding ("enable guardian", "be my bodyguard") uses Guardian.
+    Boundary routing: subscribing to other players online/offline ("tell me when Steve comes online") uses PlayerWatch.

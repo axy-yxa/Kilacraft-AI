@@ -64,7 +64,7 @@ After configuration, run `/kila reload` for hot-switching. Auto-fallback to old 
 | `role` | VARCHAR(16) | Role (user/assistant) |
 | `content` | TEXT | Message content |
 | `personality` | VARCHAR(32) | Personality ID (empty for default AI) |
-| `source` | VARCHAR(16) | Source identifier (chat/command/plugin/greeting/guardian) |
+| `source` | VARCHAR(16) | Source identifier (chat/command/plugin/greeting) |
 | `created_at` | BIGINT | Message creation timestamp (ms) |
 | `server_id` | VARCHAR(64) | Server identifier (for group servers, empty for single server) |
 

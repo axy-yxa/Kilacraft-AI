@@ -84,7 +84,7 @@ User Input: "@ai What am I holding? How much can this sell for?"
   ↓
 【4. Response Layer】AIResponsePipeline ✨ Unified Output Pipeline
   ├─ Select output carrier based on scenario (CHAT/ACTION_BAR/BOSS_BAR/TITLE/SIDEBAR)
-  ├─ Scenario configuration: NORMAL_CHAT / SKILL_RESULT / TASK_RESULT / GUARDIAN / GREETING / ERROR
+  ├─ Scenario configuration: NORMAL_CHAT / SKILL_RESULT / TASK_RESULT / GREETING / ERROR
   ├─ Public broadcast: Unified CHAT carrier + AI prefix
   ├─ Thinking message: Uses dynamically configured thinking_channel
   ├─ Stream output (optional, all scenarios supported):
@@ -460,37 +460,9 @@ AdminSkillUtil (static utility class)
 
 v2.2.0 is a major version upgrade, introducing **proactive AI layer + web capabilities + player custom watches + chat suggestions + LLM budget governance**. These subsystems are independent of the player request pipeline (modes 1&2) but share LLM calls and the output pipeline.
 
-### 1. Guardian System (Proactive AI Watch)
+### 1. Player Custom Watch (WatchSkill)
 
-The Guardian system is the AI's **proactive layer** — no longer "answers only when asked", but actively speaks up at moments the player isn't watching but will care about later. Entirely independent of the player request pipeline.
-
-```
-GuardianManager (lifecycle + scheduling, opt-in, memory-only, non-persistent)
-  ├── /kila guardian on → enable default package (3 built-in monitors, hardcoded)
-  │     ├── BuiltInMonitors.createDefaultPollingMonitors() → 2 polling monitors
-  │     │     ├── _inventory_near_full (free slots ≤ 6, polls every 600 ticks)
-  │     │     └── _low_durability (equipment durability ≤ 5%, polls every 600 ticks)
-  │     └── BuiltInMonitors.createEventMonitors() → 1 event monitor
-  │           └── _threat_target (listens to EntityTargetEvent, hostile mobs targeting the player)
-  │
-  └── GuardianEngine (event-driven + heartbeat-driven evaluation)
-        ├── Event-type monitor: Bukkit event hits filter → evaluate triggerPredicate (edge-triggered)
-        ├── Polling-type monitor: heartbeat eval driven by cadenceTicks
-        ├── Predicate layer zero-LLM (pure function PlayerState → bool)
-        ├── Hit → GuardianLlmAction (LLM generates natural conversational alert)
-        └── Awareness suppression: skip inventory/durability alerts when any item GUI is open
-```
-
-**Key Design Constraints**:
-- **Value axis**: only speaks at moments the player "isn't watching now, but will care about later". Hunger/health/oxygen/suffocation etc. (HUD-perceivable) are excluded. Creeper fuse (1.5s) and projectile flight (1-2s) are too short for LLM latency.
-- **AFK pause**: `PlayerActivityTracker` detects idle (default 5 min without input); `tickPlayer` + `submitSignal` both skip eval during AFK.
-- **Anti-spam**: each monitor has its own `cooldownMillis`. Action failure (offline/guardian-off/LLM failure) is treated as not-triggered.
-- **Output carrier**: guardian alerts use `ACTION_BAR` by default (avoiding main-chat spam), routed through `LLMOutputCoordinator.outputAnalysisResult(... GUARDIAN ...)`.
-- **No governance layer**: no alert priority/category/silence features. Players who don't want disturbance simply turn guardian off. GuardianSkill has only enable/disable/status actions.
-
-### 2. Player Custom Watch (WatchSkill)
-
-Players set condition/event watches via natural language ("watch iron ingots reach 64", "BOSS spawn alert"). Independent of the Guardian system.
+Players set condition/event watches via natural language ("watch iron ingots reach 64", "BOSS spawn alert").
 
 ```
 WatchSkill (AI skill, skill_name=watch)
@@ -509,7 +481,7 @@ WatchSkill (AI skill, skill_name=watch)
   Cooldown: AtomicLong CAS (Watch.casFireTime), only one passes under concurrent events
 ```
 
-> v2.2.0 removed the old AFK task system. Its capabilities are replaced by Guardian (default package) + WatchSkill (custom watches) + PlayerWatchSkill (cross-player subscriptions).
+> v2.2.0 removed the old AFK task system. Its capabilities are replaced by WatchSkill (custom watches) + PlayerWatchSkill (cross-player subscriptions).
 
 ### 3. Cross-Player Online/Offline Subscription (PlayerWatchSkill)
 
@@ -520,7 +492,7 @@ PlayerWatchSkill (AI skill, skill_name=player_watch)
         ├── Subscriber offline auto-clears (hardcoded limit of 5/player)
         ├── Anti-disorder: offline notification cancels pending online notification
         └── Online notification delayed 2 sec (wait for full join)
-  Notification routed through unified LLMOutputCoordinator.outputAnalysisResult(... GUARDIAN ...)
+  Notification routed through unified LLMOutputCoordinator.outputAnalysisResult(... SKILL_RESULT ...) (watch/subscription notifications are the delivery of a player's deferred skill request)
 ```
 
 ### 4. Web Search & Fetch (WebSearch / WebFetch)
@@ -558,7 +530,7 @@ LLMOutputCoordinator contains LLMBudgetManager
   ├── Exceeds threshold (budget_per_player_per_hour, default 200) → 1-hour circuit breaker
   ├── Binary circuit breaker:
   │     ├── Player-initiated (chat/skill/task) → never broken, responds normally even over budget
-  │     └── Passive calls (greeting/suggestion/guardian/third-party callbacks) → uniformly rejected during breaker window
+  │     └── Passive calls (greeting/suggestion/third-party callbacks) → uniformly rejected during breaker window
   └── /kila reload refreshes threshold immediately; set to 0 or negative to fully disable
 ```
 
@@ -572,12 +544,11 @@ registerDefaultSkills() (KilacraftAI.java) — 8 unconditional + 6 conditional
   │                  ServerHealth / PlayerAnalysis / AuditLog / VersionInfo
   └── Conditional: Command (config toggle) / MarketQuery+MarketAction (GMP) / CMI / WebSearch / WebFetch
 
-initializeGuardianSystem()    → GuardianSkill
 initializePlayerWatchSystem() → PlayerWatchSkill
 initializeWatchSystem()       → WatchSkill
 ```
 
-> Guardian, PlayerWatch, and Watch Skills are registered in their own subsystem initializers, not in `registerDefaultSkills`.
+> PlayerWatch and Watch Skills are registered in their own subsystem initializers, not in `registerDefaultSkills`.
 
 ---
 

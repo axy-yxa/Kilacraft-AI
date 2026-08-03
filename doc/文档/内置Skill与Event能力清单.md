@@ -16,34 +16,9 @@
 
 ## Skill 能力清单
 
-> v2.2.0 移除了挂机任务系统（AFKTaskSkill），其能力由下方 GuardianSkill、WatchSkill、PlayerWatchSkill 三个新 Skill 替代。
+> v2.2.0 移除了挂机任务系统（AFKTaskSkill），其能力由下方 WatchSkill、PlayerWatchSkill 两个新 Skill 替代。
 
-### 1. GuardianSkill - 守护系统开关
-
-**能力类型**: AI 主动看护（opt-in 开关）  
-**依赖插件**: 纯 Bukkit（依赖内置 GuardianManager）  
-**文件位置**: `skills/guardian/GuardianSkill.yml`  
-**实现类**: `GuardianSkill.java`
-
-#### 支持的动作
-
-| 动作 | 说明 | 必需参数 |
-|------|------|----------|
-| `enable` | 开启 AI 守护，返回已加载的 monitor 列表 | 无 |
-| `disable` | 关闭守护，不再主动提醒 | 无 |
-| `status` | 查询守护是否开启及活跃 monitor 列表 | 无 |
-
-#### 核心特性
-
-- ✅ **默认套餐**：开启即加载 3 个内置 monitor（背包快满、装备耐久、背后威胁），硬编码不可配置
-- ✅ **价值轴**：只在玩家"当下没盯着、但事后会在意"的时机发声；HUD 可感知的（饥饿/血量等）不做
-- ✅ **挂机暂停 + 已感知抑制**：挂机 5 分钟自动暂停；打开物品界面时跳过背包/耐久告警
-- ✅ **防刷屏**：每个 monitor 自带冷却，动作失败视为本轮没触发
-- ✅ 仅限玩家使用
-
----
-
-### 2. WatchSkill - 玩家自定义监听
+### 1. WatchSkill - 玩家自定义监听
 
 **能力类型**: 条件监听（轮询）+ 事件监听  
 **依赖插件**: 纯 Bukkit（依赖内置 WatchService）  
@@ -85,7 +60,7 @@
 
 ---
 
-### 3. PlayerWatchSkill - 跨玩家上下线订阅
+### 2. PlayerWatchSkill - 跨玩家上下线订阅
 
 **能力类型**: 玩家社交轻交互（上下线通知订阅）  
 **依赖插件**: 纯 Bukkit（依赖内置 PlayerWatchService）  
@@ -111,7 +86,7 @@
 
 ---
 
-### 4. GenericBukkitAPI - 通用 Bukkit API 执行器
+### 3. GenericBukkitAPI - 通用 Bukkit API 执行器
 
 **能力类型**: 原生 API 数据查询  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -228,7 +203,7 @@
 
 ---
 
-### 5. CMISkill - CMI 插件集成
+### 4. CMISkill - CMI 插件集成
 
 **能力类型**: 传送 + 玩家信息查询  
 **依赖插件**: CMI (v9.8.6.4+)  
@@ -267,7 +242,7 @@
 
 ---
 
-### 6. CommandSkill - 命令执行
+### 5. CommandSkill - 命令执行
 
 **能力类型**: 服务器命令执行（玩家身份）  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -288,7 +263,7 @@
 
 ---
 
-### 7. BukkitFXSkill - 音效与粒子效果
+### 6. BukkitFXSkill - 音效与粒子效果
 
 **能力类型**: 客户端效果播放（仅调用者可见/可听）  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -347,7 +322,7 @@
 
 ---
 
-### 8. BukkitStatsSkill - 原版统计数据查询
+### 7. BukkitStatsSkill - 原版统计数据查询
 
 **能力类型**: 玩家原版累计统计数据查询（生涯记录）  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -431,7 +406,7 @@
 
 ---
 
-### 9. MarketQuerySkill - GlobalMarketPlus 插件集成
+### 8. MarketQuerySkill - GlobalMarketPlus 插件集成
 
 **能力类型**: 市场信息查询  
 **依赖插件**: GlobalMarketPlus (v1.3.8.0+)  
@@ -459,7 +434,7 @@
 
 ---
 
-### 10. MarketActionSkill - 全球市场操作技能
+### 9. MarketActionSkill - 全球市场操作技能
 
 **能力类型**: 市场交易操作（写入类）  
 **依赖插件**: GlobalMarketPlus (v1.3.8.0+)  
@@ -489,7 +464,7 @@
 
 ---
 
-### 11. UtilitySkill - 通用工具技能
+### 10. UtilitySkill - 通用工具技能
 
 **能力类型**: 延时等待 + 主动通知 + 全服广播  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -513,7 +488,7 @@
 
 ---
 
-### 12. WebSearchSkill - 联网搜索
+### 11. WebSearchSkill - 联网搜索
 
 **能力类型**: 实时联网信息查询  
 **依赖插件**: 纯 Bukkit（自管 HTTP 调用，需服主在 `web.yml` 配 API Key）  
@@ -550,7 +525,7 @@
 
 ---
 
-### 13. WebFetchSkill - 网页抓取
+### 12. WebFetchSkill - 网页抓取
 
 **能力类型**: 抓取指定网址正文并回答  
 **依赖插件**: 纯 Bukkit（OkHttp + Jsoup 本地实现，零配置无 API Key）  
@@ -582,7 +557,7 @@
 
 ---
 
-### 14. VersionInfoSkill - 版本信息查询
+### 13. VersionInfoSkill - 版本信息查询
 
 **能力类型**: 插件版本与更新信息查询（只读）  
 **依赖插件**: 纯 Bukkit（数据源 Gitee/GitHub Release API，按 i18n 语言选源）  
@@ -606,7 +581,7 @@
 
 ---
 
-### 15-17. 服主管理类 Skill
+### 14-16. 服主管理类 Skill
 
 服主管理类 Skill 共 3 个，详细使用方法见《服主管理功能使用指南》：
 
@@ -710,7 +685,6 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 
 ✅ **可以**:
 - 查询 Minecraft 原生 API 数据（玩家、世界、服务器状态）
-- AI 主动看护（守护系统：背包快满、装备耐久、背后威胁）
 - 玩家自定义监听（11 种事件 + 条件轮询，WatchSkill）
 - 跨玩家上下线订阅（PlayerWatchSkill）
 - 联网搜索与网页抓取（WebSearch / WebFetch）

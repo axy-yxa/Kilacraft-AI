@@ -82,12 +82,12 @@ llm:
 
   # 全局 LLM 调用预算（每小时/玩家）
   # 正常使用绝对达不到此上限；仅在异常工况（刷怪塔信号风暴、闸门 bug、配置错误导致狂调）下触发熔断
-  # 触发后：玩家主动请求仍响应，守护被动输出/问候被降级或丢弃 1 小时
+  # 触发后：玩家主动请求仍响应，被动调用（问候/推荐等）被降级或丢弃 1 小时
   # 设为 0 或负数可完全禁用此治理（不推荐）
   # Global LLM call budget (per hour per player) — anomaly backstop, NOT a tuning knob
   # Normal usage will NEVER reach this limit; only trips on anomalies (mob-farm signal storm, gate bug,
   # misconfiguration causing runaway calls). When tripped: player-active requests still respond,
-  # guardian passive output / greeting are degraded or dropped for 1 hour. Set to 0 or negative to disable.
+  # passive calls (greeting/suggestion etc.) are degraded or dropped for 1 hour. Set to 0 or negative to disable.
   budget_per_player_per_hour: 200
 
 # ==================== Agent 能力配置 / Agent Capability Configuration ====================

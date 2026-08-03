@@ -65,7 +65,7 @@ public class ConversationManager {
         public final String role;
         public final String content;
         /**
-         * 消息来源（chat/command/plugin/greeting/guardian），null 表示旧数据或无需区分。供 HistoryUtil 渲染标签。
+         * 消息来源（chat/command/plugin/greeting），null 表示旧数据或无需区分。供 HistoryUtil 渲染标签。
          */
         public final String source;
 

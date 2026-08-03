@@ -9,7 +9,7 @@
 
 | Document | Description | Audience |
 |----------|-------------|----------|
-| [Server Owner Guide](./Server%20Owner%20Guide) | Installation, core features (incl. web search / web fetch / chat suggestions), advanced features (incl. Guardian / player watch / cross-player watch), commands & permissions, FAQ | Server Administrators |
+| [Server Owner Guide](./Server%20Owner%20Guide) | Installation, core features (incl. web search / web fetch / chat suggestions), advanced features (incl. player watch / cross-player watch), commands & permissions, FAQ | Server Administrators |
 | [Admin Features Guide](./Admin%20Features%20Guide) | Health monitoring, player analysis, audit logs — full configuration & usage, incl. `/kila doctor` and `/kila cache` auxiliary diagnostic commands | Server Administrators |
 | [Changelog](./Changelog) | Version history and change descriptions | Everyone |
 | [Database and Persistence Configuration Guide](./Database%20and%20Persistence%20Configuration%20Guide) | Database architecture, persisted data, configuration reference | Server Administrators |
@@ -42,7 +42,7 @@ The features described below were removed or fully replaced in v2.2.0. These doc
 
 | Document | Reason for Archiving |
 |----------|----------------------|
-| [AFK Task System Guide](../归档/AFK%20Task%20System%20Guide.md) | The AFK task system was removed in v2.2.0; its capabilities are replaced by Guardian / WatchSkill / PlayerWatchSkill |
+| [AFK Task System Guide](../归档/AFK%20Task%20System%20Guide.md) | The AFK task system was removed in v2.2.0; its capabilities are replaced by WatchSkill / PlayerWatchSkill |
 | [Bukkit Event Listener Reference](../归档/Bukkit%20Event%20Listener%20Reference.md) | The old 19 AFK listeners were removed; event-listening is now provided by WatchSkill's 11 event types |
 
 ---

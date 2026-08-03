@@ -49,9 +49,6 @@ permissions:
   kilacraft.tasks:
     description: 允许查看定时任务运行状态
     default: op                # 仅 OP 拥有此权限 / Only OP has this permission
-  kilacraft.guardian:
-    description: 允许启用/停用守护系统（AI 主动陪伴）
-    default: true              # 所有玩家可用 / available to all players
   kilacraft.player_watch:
     description: 允许订阅其他玩家上线/下线通知
     default: true              # 所有玩家可用 / available to all players

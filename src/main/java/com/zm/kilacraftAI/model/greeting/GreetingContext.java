@@ -94,9 +94,4 @@ public class GreetingContext {
      * 离线期间检测到的新版本提醒事件（仅对有 kilacraft.admin.info 权限的管理员填充）
      */
     private final List<ServerEvent> updateReminders;
-
-    /**
-     * 玩家是否已开启守护系统（未开启时问候中注入推荐上下文，由 LLM 自行决定是否提及）
-     */
-    private final boolean guardianEnabled;
 }

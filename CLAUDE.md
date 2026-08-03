@@ -8,7 +8,7 @@
 
 ## 0. 一句话定位
 
-Kilacraft-AI 是一个 **Minecraft LLM Agent 插件**：玩家在游戏内用自然语言对话，插件经两阶段意图识别路由到「技能（Skill）」执行，再用 LLM 做二次总结后输出；另有一套**守护系统（Guardian）**作为 AI 主动层，在玩家非即时感知的时机主动发声。支持知识库 RAG 检索、玩家画像、第三方插件集成，兼容 Spigot/Paper/Folia。
+Kilacraft-AI 是一个 **Minecraft LLM Agent 插件**：玩家在游戏内用自然语言对话，插件经两阶段意图识别路由到「技能（Skill）」执行，再用 LLM 做二次总结后输出；另有两套 AI 主动层——**玩家自定义监听（WatchSkill）**与**跨玩家上下线订阅（PlayerWatch）**，在玩家非即时感知的时机主动发声。支持知识库 RAG 检索、玩家画像、第三方插件集成，兼容 Spigot/Paper/Folia。
 
 - **技术栈**：Java 17 · Maven · Bukkit/Paper/Folia（api-version 1.16）· OkHttp + Gson · HikariCP · H2/MySQL · HanLP（中文分词）· bStats · Lombok
 - **主类**：`com.zm.kilacraftAI.KilacraftAI`（单例，`KilacraftAI.getInstance()`）
@@ -47,9 +47,9 @@ mvn -o clean test
 5. `initializeChatAndCommands()`（:663）：注册 `/kilacraft` + ChatListener + LoginGreetingHandler
 6. MythicMobs 占位符反射注册（:691，需 JDK ≥21）
 7. `initializeSkillsSystem()`（:715）：SkillConfig + IntentPrompt + **SkillManager + registerDefaultSkills**（:759）→ **SkillSecurityFilter**（:728）→ PendingResumeManager → IntentRecognizer → 延迟 20 tick 经 SkillRegistry 发现第三方 SPI 技能
-8. Admin 系统（ServerHealthGuardian 三重依赖：DB + 开关 + 诊断模型；Spark 检测失败 2 分钟重试）→ **`initializeGuardianSystem()`**（守护系统：GuardianConfigManager + GuardianManager + GuardianEngine）→ Metrics → 启动横幅（含异步 UpdateChecker）
+8. Admin 系统（ServerHealthGuardian 三重依赖：DB + 开关 + 诊断模型；Spark 检测失败 2 分钟重试）→ **`initializePlayerWatchSystem()`**（跨玩家上下线订阅：PlayerWatchService + PlayerWatchSkill）→ **`initializeWatchSystem()`**（玩家自定义监听：WatchConfigManager + WatchService 单例 Listener init + WatchSkill，依赖 skillManager 就绪）→ Metrics → 启动横幅（含异步 UpdateChecker）
 
-**`onDisable()`（:1014）顺序敏感**，违反会丢消息或竞态：先 cleanup 各 Manager → **`guardianEngine.shutdown` + `guardianManager.shutdown`（必须在 taskScheduler.shutdownAll 之前，停主动层避免新调度）** → `taskScheduler.shutdownAll()`（必须在 persistence flushAll **之前**）→ persistence.shutdown → profile.flushAll → **`FoliaCompat.shutdownIOPool()`（必须在 database.shutdown **之前**，否则异步写入因连接池关闭失败丢消息）** → database.shutdown → llm.shutdownAll → **`PendingResumeManager.clearAll()`**（高风险待确认操作绝不跨重启复活）。改 onDisable 务必保持这个顺序。
+**`onDisable()`（:1014）顺序敏感**，违反会丢消息或竞态：先 cleanup 各 Manager → `taskScheduler.shutdownAll()`（必须在 persistence flushAll **之前**）→ persistence.shutdown → profile.flushAll → **`FoliaCompat.shutdownIOPool()`（必须在 database.shutdown **之前**，否则异步写入因连接池关闭失败丢消息）** → database.shutdown → llm.shutdownAll → **`PendingResumeManager.clearAll()`**（高风险待确认操作绝不跨重启复活）。改 onDisable 务必保持这个顺序。
 
 **soft-depend 条件加载**（`plugin.yml:18`）：GlobalMarketPlus → 市场技能 + 事件采集；CMI → CMI 技能；MythicMobs → 占位符（JDK21+）；Spark → 健康守护采样；Vault 仅声明、代码内无硬集成。
 
@@ -102,27 +102,26 @@ ChatListener（玩家聊天 / 连续对话模式 / 关键词触发）
 | 包 | 职责 |
 |----|------|
 | `(root)` | `KilacraftAI` 主类（生命周期、单例、技能注册、Spark/Admin 初始化） |
-| `command` / `command/impl` | `/kilacraft` 命令分发（`KilacraftCommand`）+ 各子命令处理器（reload/clear/chat/knowledge/plugins/personalities/guardian/tasks/profile/notify/usage/history/memory/skills/run/doctor/about）+ TabCompleter |
+| `command` / `command/impl` | `/kilacraft` 命令分发（`KilacraftCommand`）+ 各子命令处理器（reload/clear/chat/knowledge/plugins/personalities/tasks/profile/notify/usage/history/memory/skills/run/doctor/about）+ TabCompleter |
 | `common/enums` | 枚举（权限 `PluginPermissionEnum`、输出载体/场景（含 `OutputScenarioEnum.GUARDIAN`）、对话来源（含 `ConversationSourceEnum.GUARDIAN`）、权限（含 `PluginPermissionEnum.GUARDIAN`）等） |
 | `common/util` | 工具类：`PluginLoggerUtil`（自带 i18n）、`LLMResponseUtil`（§c 协议）、`FoliaCompat` 委托等 |
 | `compat/folia` | `FoliaCompat` + `FoliaReflection`：Spigot/Folia 调度抽象、IO 线程池、命令派发 |
 | `compat/{cmi,globalmarketplus,mythicmobs}` | 第三方插件条件集成（市场/CMI/MythicMobs 占位符） |
-| `config` | 各 ConfigManager（config/llm/output/knowledge/personalities/intent_prompts/greeting/admin/database/skill/**guardian**/**watch**），`LanguageManager` |
+| `config` | 各 ConfigManager（config/llm/output/knowledge/personalities/intent_prompts/greeting/admin/database/skill/**watch**），`LanguageManager` |
 | `db` / `db/dao` / `db/model` / `db/service` | 持久化：`DatabaseManager`/`SchemaManager`（迁移）、H2/MySQL Provider、各 DAO、`ConversationPersistenceService`（write-behind） |
 | `handler` / `handler/impl` | `AIRequestHandler`（请求编排）、`AIResponseHandler`/`PlayerResponseHandler` |
 | `i18n` | `I18nService`（zh-key 翻译引擎）、`TextProcessorFactory`/`ChineseTextProcessor`/`EnglishTextProcessor`（关键词提取） |
 | `listener` | 事件监听：`ChatListener`、`PrivateChatListener`、`TpaListener`、`AdminListener` |
 | `llm` | `LLMManager`、`LLMProvider` 接口、`GenericLLMProvider`（SSE 流式、在途取消、思考模式治理） |
 | `metrics` | bStats 统计（`MetricsBootstrap`） |
-| `model/**` | 数据模型：`bukkit`/`event`/`greeting`/`knowledge`/`notification`/`profile`/guardian |
+| `model/**` | 数据模型：`bukkit`/`event`/`greeting`/`knowledge`/`notification`/`profile` |
 | `scheduler` | 定时任务调度（分布式水位锁、社交衰减、对话/事件清理） |
-| `service/guardian(/monitor/action/predicate/primitives)` | **守护系统（AI 主动层，纯内置）**：`GuardianManager`（生命周期/调度）→ `GuardianEngine`（事件驱动评估）→ `Guardian`（单个守护者）→ `Monitor`（状态采集）/ `Predicate`（确定性触发判定）/ `Action`（发声动作）/ `TriggerSource`、`PlayerStateService`。与玩家请求流水线独立。精简后只保留 3 个内置 monitor + 冷却 + AFK 暂停，无自定义 monitor / 画像过滤 / 谓词注册表 |
-| `service/playerwatch` | **跨玩家上下线订阅**：`PlayerWatchService`（内存订阅 + Bukkit Listener）。独立于守护系统（社交订阅 vs 自我守护） |
+| `service/playerwatch` | **跨玩家上下线订阅**：`PlayerWatchService`（内存订阅 + Bukkit Listener）。社交订阅，与玩家请求流水线独立 |
 | `service/watch` | **玩家自定义监听系统（WatchSkill）**：`WatchService`（内存态监听 + 双模式 + 轮询定时器 + 延迟删除 + 事件 Listener 管理）、`WatchMode`（POLLING/EVENT）、`PlayerWatchListener`（每玩家一实例，12 事件）、`WatchEventTypes`/`WatchConstants`、`ProbeValue`/`ConditionEvaluator`（取值+判定）。轮询型执行 skill action，事件型监听 Bukkit 事件 |
 | `service/conversation` | `ConversationManager`（内存历史，上限 100） |
 | `service/{event,greeting,health,knowledge,notification,output,player,profile,translate,update}` | 各业务服务（事件采集、问候、健康监控、RAG、通知、输出管线、玩家实时元数据采集、画像、物品翻译、版本检查） |
 | `skills/framework(/resume,task)` | 技能框架核心：`Skill`/`SkillProvider` SPI、`SkillManager`/`SkillRegistry`、`SkillSecurityFilter`、`SkillIntentRecognizer`、`TaskExecutor`、`LLMAnalysisService`、`PendingResumeManager` |
-| `skills/{admin,guardian,playerwatch,watch,bukkit,cmi,command,globalmarketplus,utility}` | 内置技能实现（`skills/guardian` = 守护系统自然语言入口 `GuardianSkill`；`skills/playerwatch` = 跨玩家订阅入口 `PlayerWatchSkill`；`skills/watch` = 玩家自定义监听入口 `WatchSkill`） |
+| `skills/{admin,playerwatch,watch,bukkit,cmi,command,globalmarketplus,utility}` | 内置技能实现（`skills/playerwatch` = 跨玩家订阅入口 `PlayerWatchSkill`；`skills/watch` = 玩家自定义监听入口 `WatchSkill`） |
 
 ---
 
@@ -198,7 +197,7 @@ ChatListener（玩家聊天 / 连续对话模式 / 关键词触发）
 
 ### 6.3 命令前缀
 
-所有命令示例与文档统一 `/kila`（子命令如 `/kila reload`、`/kila skills`、`/kila guardian` 守护系统管理）；`/kilacraft` `/ai` `/zm` 仅作别名列出（`/ai` 有冲突风险，不作示例）。`/kila plugins` **仅控制台可用**（玩家执行会被拒绝）。守护子命令需 `kilacraft.guardian` 权限。
+所有命令示例与文档统一 `/kila`（子命令如 `/kila reload`、`/kila skills`）；`/kilacraft` `/ai` `/zm` 仅作别名列出（`/ai` 有冲突风险，不作示例）。`/kila plugins` **仅控制台可用**（玩家执行会被拒绝）。
 
 ### 6.4 玩家数据隔离（SkillSecurityFilter）
 
@@ -238,19 +237,8 @@ ChatListener（玩家聊天 / 连续对话模式 / 关键词触发）
 - **§c 错误信号协议**（§2.4）：所有 LLM 错误返回走 `LLMResponseUtil.errorResponse()`。
 - **`language.yml` 的 `commands:` 段 key 必须无前缀嵌套写**（段内 `reload-success:`，读取为 `commands.reload-success`）；带 `commands.` 前缀的扁平 key 在 Bukkit `getString` 下静默失败、服主改了不生效。
 - **H2 TCP Server 默认无认证**：`allow_others=true` 会暴露全部数据，仅可信内网调试用。
-- **守护系统（Guardian）——纯内置 AI 主动看护**：
-  - **常驻内置 monitor 专用框架（勿加回通用 monitor 抽象）**：`Monitor` 是为「常驻、不可取消、无目标达成、无永久死亡」的内置提醒单元量身写的——只有 ACTIVE/PAUSED 两态 + 内部 `cooldownMillis`/`lastFireMillis` 防刷屏。**不要加回** Policy 枚举、MonitorState 状态机、Outcome 多态、TriggerSource/GuardianAction 接口、maxRetries/退避预算/goalPredicate——那些是为已删除的「自定义 monitor」准备的，内置场景不需要。动作失败（玩家离线/守护被关/LLM 失败/预算熔断）一律视为本轮没触发，下轮照常——monitor 永不因失败死亡。
-  - **触发方式内化为字段**：轮询型（`cadenceTicks>0`，引擎心跳按 cadence 驱动 eval）或事件型（`eventType`+`eventFilter` 非空，引擎在事件命中 filter 后即时求值 triggerPredicate）。有 triggerPredicate → 边沿触发（假→真才开火）；无 → 每轮到点即触发。不再用 Policy 枚举区分。
-  - **谓词层零 LLM**：`Predicate` 必须是确定性代码（纯函数判定 PlayerState → bool），**绝不调用 LLM**；LLM 只在 `GuardianLlmAction` 发声阶段出现。只保留 3 个内置谓词原语（`InventoryFreeSlotsPredicate`/`InventoryOpenPredicate`/`ThreatOutOfViewAndNearPredicate`），无注册表、无 LLM 可发现谓词。
-  - **动作统一 LLM 输出**：所有内置 monitor 共用 `GuardianLlmAction`（具体类，不经接口）——LLM 能根据实体类型个性化措辞，比固定模板自然。返回 Boolean（true=已发声，false=本轮跳过）。
-  - **价值轴：只对玩家非即时感知、且窗口宽于 LLM 延迟的内容发声**：守护只在玩家「当下没盯着、但事后会在意」的时机主动发声（视野外威胁锁定、罕见生物生成、背包快满）。已感知抑制：玩家正打开容器时跳过背包快满告警。**玩家挂机时彻底暂停守护**。
-  - **窗口 > LLM 延迟原则（有意裁剪，勿补回）**：苦力怕点燃（1.5s）、投射物飞行（1-2s）等窗口短于延迟的场景**有意不做**；破门有游戏音效即玩家可感知，也不做。内置只保留威胁锁定与稀有生物。
-  - **挂机暂停（AFK pause）**：`PlayerActivityTracker` 判定挂机（默认 5 分钟无操作）。挂机时 `GuardianEngine` 的 `tickPlayer`+`submitSignal` 双入口跳过 eval——pause 而非 disable。
-  - **默认套餐 Java 硬编码**：`/kila guardian on` 启用 3 个 monitor（事件型 2 个 + 轮询型 1 个）由 `BuiltInMonitors` 硬编码，不开放配置。新增 monitor 改 Java 代码发版。
-  - **opt-in 纯内存态、不持久化**：守护开关存 `GuardianManager` 内存 map，与 WatchSkill/PlayerWatch 同模式——重启/重登默认关。**无 `guardian_profile` 表**（已删）；跨服共享 opt-in 语义不成立（生存服开、小游戏服无监听场景）。
-  - **无治理层**：不再有告警优先级、分类、冷却中心、静音/安静点功能。防刷屏完全由每个 monitor 自身的 `cooldownMillis` 承担。玩家不想被骚扰直接关守护。GuardianSkill 只有 enable/disable/status 三个 action。
-- **玩家自定义监听（WatchSkill）独立于守护系统**：玩家指定监听条件（如"盯铁锭到64个""BOSS刷新了提醒我"）由 `WatchSkill` + `WatchService` 实现，不走守护架构。**两类监听来源**（按触发机制分）：**轮询型（POLLING）**——定时执行内置 skill 的只读查询 action 取返回值字段比较（复刻旧挂机任务系统 CUSTOM 类型的成熟执行链路：直接 `skill.execute` 带 5s 超时 + SkillSecurityFilter 消毒，绕过审计表）；**事件型（EVENT）**——`PlayerWatchListener`（每玩家一实例）监听 12 种高价值 Bukkit 事件（熔炉烧好/作物成熟/实体死亡/生成/爆炸/玩家死亡/传送/升级/换世界/方块破坏/钓鱼/聊天），命中 filter 即触发。事件归属三模式：玩家自身（O(1)）、击杀者归属、坐标距离（世界名粗筛+distance）。**触发后只通知 AI，不做回调执行**（复用 `LLMOutputCoordinator.outputAnalysisResult`）。取值类型 number/boolean/string 运行时自动识别（`ProbeValue.from`）。监听**内存态、不持久化**——下线暂停 + 延迟删除窗口。完成写 `server_event`（`PLAYER_WATCH_TRIGGERED`）。**放弃第三方 SPI Skill 自动注入**（风险不可控）——只支持内置 skill 的 `ProbeSource` 标注 action（内部接口不进 SPI）。分类上限：轮询≤3/事件≤5 + 全局 200 + 同玩家轮询合并为单定时器。CAS 防重入 + 连续失败 3 次自动删除。旧系统技术细节已融入：熔炉末次烧炼判定（source.amount<=1）、作物 getNewState()+Ageable maxAge 成熟度判定、EntityExplode entity null 防护、PlayerFish state 过滤、聊天 keyword 包含匹配。
-- **跨玩家监控（PlayerWatch）独立于守护系统**：玩家订阅其他玩家上下线通知由 `PlayerWatchSkill` + `PlayerWatchService` 实现，不走守护架构。订阅**内存态、不持久化**——订阅者下线自动清空（上限 5 个/玩家）。通知走统一 `LLMOutputCoordinator.outputAnalysisResult(... GUARDIAN ...)` 输出载体。
+- **玩家自定义监听（WatchSkill）**：玩家指定监听条件（如"盯铁锭到64个""BOSS刷新了提醒我"）由 `WatchSkill` + `WatchService` 实现。**两类监听来源**（按触发机制分）：**轮询型（POLLING）**——定时执行内置 skill 的只读查询 action 取返回值字段比较（复刻旧挂机任务系统 CUSTOM 类型的成熟执行链路：直接 `skill.execute` 带 5s 超时 + SkillSecurityFilter 消毒，绕过审计表）；**事件型（EVENT）**——`PlayerWatchListener`（每玩家一实例）监听 12 种高价值 Bukkit 事件（熔炉烧好/作物成熟/实体死亡/生成/爆炸/玩家死亡/传送/升级/换世界/方块破坏/钓鱼/聊天），命中 filter 即触发。事件归属三模式：玩家自身（O(1)）、击杀者归属、坐标距离（世界名粗筛+distance）。**触发后只通知 AI，不做回调执行**（复用 `LLMOutputCoordinator.outputAnalysisResult`）。取值类型 number/boolean/string 运行时自动识别（`ProbeValue.from`）。监听**内存态、不持久化**——下线暂停 + 延迟删除窗口。完成写 `server_event`（`PLAYER_WATCH_TRIGGERED`）。**放弃第三方 SPI Skill 自动注入**（风险不可控）——只支持内置 skill 的 `ProbeSource` 标注 action（内部接口不进 SPI）。分类上限：轮询≤3/事件≤5 + 全局 200 + 同玩家轮询合并为单定时器。CAS 防重入 + 连续失败 3 次自动删除。旧系统技术细节已融入：熔炉末次烧炼判定（source.amount<=1）、作物 getNewState()+Ageable maxAge 成熟度判定、EntityExplode entity null 防护、PlayerFish state 过滤、聊天 keyword 包含匹配。
+- **跨玩家监控（PlayerWatch）**：玩家订阅其他玩家上下线通知由 `PlayerWatchSkill` + `PlayerWatchService` 实现。订阅**内存态、不持久化**——订阅者下线自动清空（上限 5 个/玩家）。通知走统一 `LLMOutputCoordinator.outputAnalysisResult(... SKILL_RESULT ...)` 输出载体（监听/订阅通知即玩家延后请求的技能结果交付）。
 - **`SkillResult.data` 不进 LLM，仅用于 step 间传递与 Watch 条件评估**：`SkillResult.success(message, data)` 中 `data` 的消费者仅有两处：(1) `TaskExecutor.resolvePlaceholders()` 做多步任务占位符解析（`{step_1.field}`）；(2) `WatchService` 做轮询型 Watch 的阈值比较。**data 绝不会被拼入 LLM 提示词**。LLM 二次分析经 `AIRequestHandler.outputSingleSkillResult()` → `AnalysisSummary.addResult(status, message)` → `buildPrompt()`，全程只取 `message` 字符串，`AnalysisSummary` 连 `data` 字段都没有。回退普通 AI 同理（`SkillResultFormatter.toLlmText(status, message)`）。因此需要 LLM 解读的内容（搜索结果摘要、网页正文、诊断报告全文等）**必须手动拼进 `message`**。参见 `ServerHealthSkill.executeReadReport()`（行 481-483 注释）、`WebSearchSkill.buildSummary()`、`WebFetchSkill.buildResult()`。
 - **WebFetch SSRF 防护三件套（有意设计，勿回退）**：`WebFetchSkill` 的 SSRF 防护由三个互补机制组成，缺一不可——(1) **IP 检查内嵌 DNS 解析**：`SSRF_GUARD_DNS`（静态 `Dns` 实例）在 OkHttp 取 IP 时同步校验内网/回环/链路本地地址，校验失败的地址以 `UnknownHostException` 抛出。**OkHttp 实际连接的 IP 就是校验通过的 IP**，从根上消除「校验一次、连接另一次」两次独立 DNS 解析之间的 DNS rebinding（TTL=0 攻击者中途切 IP 到内网）TOCTOU 窗口。**禁止改回 `InetAddress.getAllByName` 预检查 + OkHttp 默认 DNS 连接**的写法。(2) **响应体字节级硬限制**：`readBodyWithLimit` 用 Okio `source.readByteArray(maxBytes+1)`，峰值内存严格受 `max_body_size_mb` 限制（默认 2MB）。**禁止改回 `response.body().string()` 全量读取后 `substring` 截断**——后者峰值内存不受控，超大页面可致 OOM（VPS 场景致命）。(3) **强制 HTTPS**：`normalizeScheme` 把 `http://` 升级为 `https://`（SSRF 开启时），`checkScheme` 随之收紧协议白名单为只允许 https，防降级/中间人注入。SSRF 检查（含 DNS）**全部走异步**（`doFetch` 内），不在 `execute()` 同步路径执行——避免阻塞 `SkillManager.executeSkillByIntent` 调用栈（可能在主线程/区域线程）。
 
@@ -260,7 +248,7 @@ ChatListener（玩家聊天 / 连续对话模式 / 关键词触发）
 
 - **双仓库镜像**：GitHub + Gitee 同步发版。**版本检测按 i18n 语言选源**：中文 → Gitee，其他 → GitHub（`UpdateChecker`）。Gitee API 缺字段需做兼容（下载 URL 按 tag 合成、日期回退 `created_at`）。
 - **版本号**：`pom.xml` 的 `<version>` 是唯一真源；`plugin.yml` 用 `${project.version}` 占位符。发版三处对齐：pom 版本 → 更新日志中文（`doc/文档/更新日志.md`）→ 更新日志英文（`doc/en/Changelog.md`），格式与历史版本一致，站在使用者/服主角度精简撰写，勿堆技术细节。
-- **`/kila reload`** 级联所有 ConfigManager（含 `guardian.yml` → `GuardianConfigManager`）；重载前快照 `isChinese`/`isEmbeddingEnabled`，变更则全量重建知识库（分块 + BM25 统计 + Embedding 缓存），并调 `TextProcessorFactory.reset()`、`LLMBudgetManager.refreshBudget()`（重载全局 LLM 预算与熔断阈值）。
+- **`/kila reload`** 级联所有 ConfigManager；重载前快照 `isChinese`/`isEmbeddingEnabled`，变更则全量重建知识库（分块 + BM25 统计 + Embedding 缓存），并调 `TextProcessorFactory.reset()`、`LLMBudgetManager.refreshBudget()`（重载全局 LLM 预算与熔断阈值）。
 
 ---
 

@@ -46,15 +46,6 @@ public final class ReloadCommand {
                 plugin.getLlmOutputCoordinator().refreshBudget();
             }
 
-            // 重载守护系统配置
-            if (plugin.getGuardianConfigManager() != null) {
-                plugin.getGuardianConfigManager().reload();
-                if (plugin.getGuardianManager() != null) {
-                    plugin.getGuardianManager().reloadAll();
-                }
-                PluginLoggerUtil.info("热重载", I18nService.tr("守护配置已重载，在线玩家守护已重建"));
-            }
-
             // 重载自定义监听配置，重建轮询定时器
             if (plugin.getWatchConfigManager() != null) {
                 plugin.getWatchConfigManager().reload();

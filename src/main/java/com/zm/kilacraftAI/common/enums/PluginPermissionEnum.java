@@ -129,11 +129,6 @@ public enum PluginPermissionEnum {
     TASKS("kilacraft.tasks"),
 
     /**
-     * 守护系统（启用/停用守护、查看状态）
-     */
-    GUARDIAN("kilacraft.guardian"),
-
-    /**
      * 跨玩家上下线订阅（PlayerWatchSkill）
      */
     PLAYER_WATCH("kilacraft.player_watch"),

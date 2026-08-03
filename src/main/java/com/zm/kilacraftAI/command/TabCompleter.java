@@ -50,11 +50,6 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
                 completions.add("personalities");
             }
 
-            // guardian 命令（需要权限）
-            if (PluginPermissionEnum.GUARDIAN.hasPermission(sender)) {
-                completions.add("guardian");
-            }
-
             // suggestion 命令（全体可用，玩家级开关）
             completions.add("suggestion");
 
@@ -113,15 +108,6 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
                 completions.add("reload");
             }
 
-            return getCompletions(args[1], completions);
-        }
-
-        if (args.length == 2 && "guardian".equals(args[0])) {
-            // guardian 的子命令
-            List<String> completions = new ArrayList<>();
-            completions.add("on");
-            completions.add("off");
-            completions.add("status");
             return getCompletions(args[1], completions);
         }
 

@@ -1,37 +1,8 @@
 # ==================== AI 行为系统配置 / AI Behavior Systems ====================
-# 守护 / 监听 / 推荐 / 问候 / 工具通知 —— AI 主动与被动行为系统
-# Guardian / Watch / Suggestion / Greeting / Utility —— AI proactive & reactive behavior systems
+# 监听 / 推荐 / 问候 / 工具通知 —— AI 主动与被动行为系统
+# Watch / Suggestion / Greeting / Utility —— AI proactive & reactive behavior systems
 # 独立配置文件，修改后执行 /kila reload 即时生效
 # Standalone config file, run /kila reload to apply changes
-
-# ==================== 守护系统 / Guardian System ====================
-guardian:
-  settings:
-    # 守护系统总开关（全局）。玩家个人开关默认关闭，需 /kila guardian on 开启。
-    # Master switch (global). Per-player switch defaults to off; requires /kila guardian on.
-    enabled: true
-
-    # 心跳间隔（tick）。轮询型 monitor 按各自 cadence 在心跳内被检查。
-    # Heartbeat interval (ticks). Polling monitors are checked within heartbeat per their cadence.
-    heartbeat_interval_ticks: 20
-
-    # 挂机判定阈值（秒）。玩家无操作超过此时长视为 AFK，守护系统暂停。
-    # AFK threshold (seconds). Player inactive beyond this is considered AFK; guardian pauses to save resources.
-    afk_threshold_seconds: 300
-
-  prompts:
-    # 中文提示词（language=zh 时使用）
-    system_prompt: |
-      你是玩家的 Minecraft 游戏守护 AI。你会在玩家非即时感知的场景下主动提醒。
-      请用1-2句简短自然的话提醒玩家，语气亲切、像朋友提醒。不要用固定模板句式，根据情况变化措辞。
-      只输出提醒内容本身，不加前缀标签，不做分析总结，不问玩家要不要帮忙。
-
-    # English prompt (used when language is not zh)
-    system_prompt_en: |
-      You are the player's Minecraft guardian AI. You proactively alert the player about
-      things they cannot perceive in real time. Keep your message to 1-2 short, natural sentences,
-      like a friend giving a heads-up. Do not use template phrasing — vary your wording based on context.
-      Output only the alert content itself: no labels, no analysis, no asking if the player wants help.
 
 # ==================== 玩家自定义监听 / Player Watch (custom) ====================
 watch:
@@ -81,7 +52,6 @@ suggestion:
   # 排除场景：这些场景不生成推荐
   # Scenarios excluded from suggestions
   exclude_scenarios:
-    - GUARDIAN
     - GREETING
     - ERROR
 

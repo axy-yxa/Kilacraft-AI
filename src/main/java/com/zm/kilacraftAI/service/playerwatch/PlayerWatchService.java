@@ -204,7 +204,7 @@ public final class PlayerWatchService implements Listener {
             SkillContext ctx = new SkillContext(subscriber, "notify", java.util.Map.of());
             String eventDesc = I18nService.tr("{} 已{}{}", targetName, "JOIN".equals(occurredEvent) ? I18nService.tr("上线") : I18nService.tr("下线"), (s.note() != null && !s.note.isBlank()) ? I18nService.tr("（备注：{}）", s.note()) : "");
             AnalysisSummary summary = new AnalysisSummary().userMessage(I18nService.tr("你订阅的玩家状态有变化")).injectEventTrigger(eventDesc);
-            plugin.getLlmOutputCoordinator().outputAnalysisResult(subscriber, summary, ctx, new ArrayDeque<>(), OutputScenarioEnum.GUARDIAN, false, CacheCallTypeEnum.SECONDARY_ANALYSIS);
+            plugin.getLlmOutputCoordinator().outputAnalysisResult(subscriber, summary, ctx, new ArrayDeque<>(), OutputScenarioEnum.SKILL_RESULT, false, CacheCallTypeEnum.SECONDARY_ANALYSIS);
         } catch (Exception e) {
             PluginLoggerUtil.warn(LOG_MODULE, I18nService.tr("通知订阅者失败（{} → {}）: {}", subscriber.getName(), targetName, e.getMessage()));
         }

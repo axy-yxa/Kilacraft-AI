@@ -524,7 +524,7 @@ public final class WatchService implements Listener {
     }
 
     /**
-     * 通知 AI（通过 LLMOutputCoordinator 统一输出载体，复用守护系统/PlayerWatch 同路径）。
+     * 通知 AI（经 LLMOutputCoordinator 二次分析输出，技能结果场景——监听命中即玩家延后请求的结果交付）。
      */
     private void notifyAi(Player player, String userMessage, String eventDescription) {
         try {
@@ -532,7 +532,7 @@ public final class WatchService implements Listener {
             if (coordinator == null) return;
             SkillContext ctx = new SkillContext(player, "notify", Map.of());
             AnalysisSummary summary = new AnalysisSummary().userMessage(userMessage).injectEventTrigger(eventDescription);
-            coordinator.outputAnalysisResult(player, summary, ctx, new ArrayDeque<>(), OutputScenarioEnum.GUARDIAN, false, CacheCallTypeEnum.SECONDARY_ANALYSIS);
+            coordinator.outputAnalysisResult(player, summary, ctx, new ArrayDeque<>(), OutputScenarioEnum.SKILL_RESULT, false, CacheCallTypeEnum.SECONDARY_ANALYSIS);
         } catch (Exception e) {
             PluginLoggerUtil.warn(LOG_MODULE, I18nService.tr("通知玩家失败: {}", e.getMessage()));
         }

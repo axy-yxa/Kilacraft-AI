@@ -26,11 +26,6 @@ public enum OutputScenarioEnum {
     TASK_RESULT,
 
     /**
-     * 守护系统主动输出
-     */
-    GUARDIAN,
-
-    /**
      * AI 登录问候
      */
     GREETING,

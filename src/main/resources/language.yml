@@ -5,7 +5,7 @@
 #
 # 说明：此文件仅控制"玩家在游戏中看到的消息"
 # - AI 回复内容（由 LLM 生成）：由 config.yml 的 agent.prompts 控制
-# - 内部错误消息（如守护系统异常）：保持硬编码，不在此配置
+# - 内部错误消息（如健康监控异常）：保持硬编码，不在此配置
 # - 控制台日志：由下方 logs 段控制
 #
 # 修改后使用 /kila reload 热重载即可生效，无需重启服务器
@@ -30,9 +30,6 @@ help:
   # 知识库/人格管理（kilacraft.knowledge / .personalities 权限）
   knowledge: " §b/kila knowledge reload §8- §f重载知识库"
   personalities: " §b/kila personalities reload §8- §f重载人格配置"
-
-  # 守护系统（kilacraft.guardian 权限）
-  guardian: " §b/kila guardian §7<on|off|status> §8- §fAI 主动守护"
 
   # 对话推荐（全体可用）
   suggestion: " §b/kila suggestion §7<on|off|status> §8- §f管理对话推荐"
@@ -156,7 +153,6 @@ commands:
     - "续体分类"
     - "二次分析"
     - "普通对话"
-    - "守护系统"
     - "登录问候"
     - "玩家画像"
     - "对话推荐"
@@ -183,20 +179,6 @@ commands:
   tasks-never-run: "§8未执行"
   # 变量: {n}=时间间隔(如5s/12min)
   tasks-time-ago: "{n}前"
-
-  # ==================== /kila guardian 守护系统 ====================
-  guardian-no-permission: "§c你没有权限使用守护系统。"
-  guardian-not-init: "§c守护系统尚未初始化。"
-  guardian-disabled-global: "§c守护系统已被服主全局关闭。"
-  guardian-already-on: "§7守护系统已开启。"
-  guardian-already-off: "§7守护系统未开启。"
-  guardian-on-success: "§a守护已开启！我会帮你盯着你看不见的地方——比如背后有怪、背包快满等。§7想关掉就说「关守护」。共激活 §e{n} §a个监控。"
-  guardian-off: "§7守护已关闭。"
-  guardian-status: "§6[Kilacraft-AI] §f守护系统 §7| 状态: §e{state} §7| 监控: §e{n}§7个"
-  guardian-state-on: "§a开启"
-  guardian-state-off: "§7关闭"
-  guardian-usage: "§7用法: /kila guardian <§eon§7|§coff§7|§estatus§7>"
-  guardian-monitor-line: "§7  - §e{name}"
 
   # ==================== /kila suggestion 对话推荐开关 ====================
   suggestion-not-init: "§c对话推荐系统未初始化！"
@@ -267,7 +249,6 @@ commands:
   doctor-check-command-skill: "命令技能"
   doctor-check-pending-resume: "待确认续体"
   doctor-check-isolation: "玩家数据隔离"
-  doctor-check-guardian-system: "守护系统"
   doctor-check-health-guardian: "健康监控"
   doctor-check-notify: "外部通知"
   doctor-check-thinking: "推理模型"
@@ -299,7 +280,6 @@ commands:
   doctor-llm-no-provider: "未配置 LLM 提供商"
   doctor-llm-latency: "{model}（{latency}ms）"
   doctor-llm-error-latency: "{error}（{latency}ms）"
-  doctor-guardian-active: "启用（{count} 个在线玩家）"
   # 对话推荐 / 监听系统 / Web 搜索与抓取
   doctor-check-suggestion: "对话推荐"
   doctor-check-watch: "监听系统"

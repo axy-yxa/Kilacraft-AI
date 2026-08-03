@@ -4,6 +4,7 @@ import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
+import com.zm.kilacraftAI.common.util.MessageUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
@@ -11,7 +12,7 @@ import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.common.util.MessageUtil;
+import lombok.Getter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,7 +50,10 @@ public class LLMOutputCoordinator {
     private final OutputConfigManager config;
     private final AIResponsePipeline pipeline;
     private final LLMAnalysisService analysisService;
-    /** 跨入口预算/全局熔断。单例，reload 时更新阈值。 */
+    /**
+     * 跨入口预算/全局熔断
+     */
+    @Getter
     private final LLMBudgetManager budgetManager;
 
     public LLMOutputCoordinator(KilacraftAI plugin) {
@@ -61,12 +65,9 @@ public class LLMOutputCoordinator {
         this.budgetManager = new LLMBudgetManager(budget);
     }
 
-    /** 取预算管理器（守护输出/问候等需要预检的调用方用）。 */
-    public LLMBudgetManager getBudgetManager() {
-        return budgetManager;
-    }
-
-    /** reload 后刷新预算阈值（volatile 快照发布，跨线程立即可见）。 */
+    /**
+     * reload 后刷新预算阈值（volatile 快照发布，跨线程立即可见）。
+     */
     public void refreshBudget() {
         budgetManager.updateBudget(plugin.getConfigManager().getLlmBudgetPerHour());
     }
@@ -77,7 +78,7 @@ public class LLMOutputCoordinator {
      * @param player          目标玩家
      * @param summary         分析摘要（结构化数据，面向 LLM）
      * @param context         执行上下文
-     * @param history         对话历史（守护/监听等主动通知场景传空）
+     * @param history         对话历史（监听等主动通知场景传空）
      * @param scenario        输出场景
      * @param showPlaceholder 是否显示占位符（主动请求=true，主动通知=false）
      * @return CompletableFuture<SkillResult> 分析结果
@@ -113,21 +114,6 @@ public class LLMOutputCoordinator {
 
         // 调用 LLM 分析（使用自定义 Handler）
         return analysisService.analyzeResultWithHandler(summary, context, history, handler, cacheCallTypeEnum);
-    }
-
-    /**
-     * 输出错误消息
-     *
-     * @param player       目标玩家
-     * @param errorMessage 错误消息
-     */
-    public void outputError(Player player, String errorMessage) {
-        if (player == null || !player.isOnline()) {
-            return;
-        }
-
-        // 错误消息通过管线输出（支持配置化载体）
-        pipeline.sendError(player, errorMessage);
     }
 
     /**

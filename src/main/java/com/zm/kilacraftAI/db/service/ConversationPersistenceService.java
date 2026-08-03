@@ -112,7 +112,7 @@ public class ConversationPersistenceService {
      * @param role        角色（"user" / "assistant"）
      * @param content     消息内容
      * @param personality 人格标识（普通AI为空串）
-     * @param source      来源标识（"chat" / "command" / "plugin" / "greeting" / "guardian"）
+     * @param source      来源标识（"chat" / "command" / "plugin" / "greeting"）
      */
     public void submit(UUID playerUuid, String role, String content, String personality, String source) {
         if (playerUuid == null || content == null) return;

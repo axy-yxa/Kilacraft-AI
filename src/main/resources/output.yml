@@ -16,24 +16,21 @@ output:
   # 场景级覆盖配置（可选，留空则使用 default_channel）
   # 场景说明：
   # - normal_chat: 普通 AI 对话（无技能调用）
-  # - skill_result: 单意图技能执行结果（含 LLM 二次分析）
+  # - skill_result: 单意图技能执行结果（含 LLM 二次分析，监听/订阅通知同走此场景）
   # - task_result: 多步骤任务执行结果（含 LLM 二次分析）
-  # - guardian: 守护系统主动提醒（含 LLM 个性化发声）
   # - greeting: AI 登录问候
   # - error: 错误消息
   # Scenario-level override configuration (optional, leave empty to use default_channel)
   # Scenario descriptions:
   # - normal_chat: Normal AI conversation (no skill invocation)
-  # - skill_result: Single-intent skill execution result (with LLM secondary analysis)
+  # - skill_result: Single-intent skill execution result (with LLM secondary analysis; watch/subscription notifications also use this scenario)
   # - task_result: Multi-step task execution result (with LLM secondary analysis)
-  # - guardian: Guardian system proactive alerts (with LLM personalized phrasing)
   # - greeting: AI login greeting
   # - error: Error messages
   scenarios:
     normal_chat: ""
     skill_result: ""
     task_result: ""
-    guardian: "ACTION_BAR"
     greeting: ""
     error: ""
   

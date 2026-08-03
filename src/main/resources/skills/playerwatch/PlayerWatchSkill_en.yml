@@ -8,7 +8,7 @@
 description: |
   Subscribe to another player's join/quit notifications; the AI proactively alerts the subscriber when the watched player's status changes.
   Triggers: when the player wants to be notified about another player's online/offline status, e.g. "tell me when Steve comes online", "alert me when Alex logs in", "watch someone's online status", "cancel my subscription to X", "who am I subscribed to / list my subscriptions", "clear all my subscriptions".
-  Reverse boundary: NOT for continuously monitoring a player's own state (health/items/position — that is WatchSkill), and NOT for AI proactively guarding the caller themselves (that is Guardian).
+  Reverse boundary: NOT for continuously monitoring a player's own state (health/items/position — that is WatchSkill).
 
 action_descriptions:
   subscribe: |

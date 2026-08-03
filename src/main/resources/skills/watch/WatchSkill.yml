@@ -8,7 +8,7 @@
 description: |
   玩家自定义监听系统：玩家指定监听源和触发条件，系统持续检测，满足时通知 AI（由 AI 决定如何回应或执行，不自动回调）。
   触发场景：玩家提出持续监控需求时，如「盯血量低于 10」「铁锭攒够 64 告诉我」「熔炉烧好了提醒我」「作物熟了通知我」「盯死一次就喊我」。
-  反向边界：不用于 AI 主动看护调用者自身（无具体条件的「当我的保镖/帮我开守护」走 Guardian），也不用于订阅其他玩家的上下线（走 PlayerWatch）。
+  反向边界：不用于订阅其他玩家的上下线（走 PlayerWatch）。
 
 action_descriptions:
   create_watch: |
@@ -44,4 +44,4 @@ hints:
   - |
     何时用 event：监听对象是「某事件是否发生」，如熔炉烧好、作物成熟、方块破坏、玩家死亡、聊天含某词——事件命中即触发，无需轮询。event_type 选自注入清单；可用 filter_ 前缀参数收窄事件范围（如盯熔炉烧特定产物用 filter_result_type=IRON_INGOT，盯特定方块破坏用 filter_block_type=DIAMOND_ORE，盯聊天含某词用 filter_keyword=OK）。
   - |
-    边界路由：订阅其他玩家上下线（「盯 Steve 上线」）走 PlayerWatch 技能；不指定条件的 AI 主动看护（「帮我开守护」「当我的保镖」）走 Guardian 技能。
+    边界路由：订阅其他玩家上下线（「盯 Steve 上线」）走 PlayerWatch 技能。

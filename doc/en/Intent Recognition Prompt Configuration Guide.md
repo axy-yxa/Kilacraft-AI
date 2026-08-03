@@ -48,7 +48,6 @@ plugins/Kilacraft-AI/
 ├── config.yml                  # Main config (language settings.language, debug mode, etc.)
 └── skills/                     # Skill descriptions and action definitions
     ├── bukkit/apis.yml         # BukkitAPI action definitions (71 total)
-    ├── guardian/GuardianSkill.yml
     ├── watch/WatchSkill.yml
     └── ...
 ```
@@ -89,7 +88,7 @@ Phase 2 is assembled by `IntentPromptConfigManager.buildSystemPrompt()` and cont
 [Output Quality Requirements] output_quality_requirements
 ```
 
-> **afk_task_rules removed (v2.2.0)**: An earlier version had `afk_task_rules` conditionally injected only when Phase 1 matched AFKTask. The AFK task system was removed in v2.2.0 and this section was deleted — the relevant decision capabilities are now handled by Guardian and WatchSkill routing. The current Phase 2 prompt has no conditional injection sections.
+> **afk_task_rules removed (v2.2.0)**: An earlier version had `afk_task_rules` conditionally injected only when Phase 1 matched AFKTask. The AFK task system was removed in v2.2.0 and this section was deleted — the relevant decision capabilities are now handled by WatchSkill routing. The current Phase 2 prompt has no conditional injection sections.
 
 > **Skill-level dynamic context injection**: Beyond the yml-section conditional injection above, there is a **skill-level dynamic content entry point**. When assembling each matched skill's info in Phase 2, the code checks `instanceof DynamicContextProvider` — skills implementing this interface may append a runtime-assembled dynamic block (typical case: WatchSkill injects the available probe list, which is defined in Java code and cannot be written into static yml). This is an **internal enhancement interface** (`skills/framework/DynamicContextProvider`), not included in the SPI jar; third parties cannot access it. Built-in skills needing dynamic content simply implement the interface — no change to the `Skill` contract required.
 

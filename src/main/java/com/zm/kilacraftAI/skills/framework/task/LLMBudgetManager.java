@@ -11,10 +11,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * LLM 调用预算与全局熔断管理器。
  *
- * <p>统一治理所有 LLM 入口（玩家主动聊天 / 守护被动输出 / 登录问候）的 per-player 调用频率，
+ * <p>统一治理所有 LLM 入口（玩家主动聊天 / 登录问候 / 对话推荐）的 per-player 调用频率，
  * 仅在异常工况（刷怪塔信号风暴、闸门 bug、配置错误导致狂调）下熔断，正常使用永不触发。
- * 不替代 {@code AIRequestValidatorUtil} 的聊天冷却（那是玩家主动入口的防刷屏），
- * 也不替代守护自身的 {@code GuardianCooldownHub}（那是开口频率/反馈调节）。</p>
+ * 不替代 {@code AIRequestValidatorUtil} 的聊天冷却（那是玩家主动入口的防刷屏）。</p>
  *
  * <p>线程模型：所有方法线程安全。计数靠滑动窗口（默认 1 小时），过期时间戳惰性淘汰。
  * 单例，由 {@link LLMOutputCoordinator} 持有。</p>
@@ -39,7 +38,7 @@ public class LLMBudgetManager {
          */
         PLAYER_ACTIVE,
         /**
-         * 被动调用（问候/推荐/守护/第三方插件）——熔断窗口内统一拒绝。
+         * 被动调用（问候/推荐/第三方插件）——熔断窗口内统一拒绝。
          */
         PASSIVE
     }
@@ -68,8 +67,8 @@ public class LLMBudgetManager {
         return switch (scenario) {
             // 玩家主动发起的请求产生的回复——永不熔断
             case NORMAL_CHAT, SKILL_RESULT, TASK_RESULT -> Priority.PLAYER_ACTIVE;
-            // 被动输出（问候/推荐/守护/错误）——熔断时统一拒绝
-            case GREETING, SUGGESTION, GUARDIAN, ERROR -> Priority.PASSIVE;
+            // 被动输出（问候/推荐/错误）——熔断时统一拒绝
+            case GREETING, SUGGESTION, ERROR -> Priority.PASSIVE;
         };
     }
 

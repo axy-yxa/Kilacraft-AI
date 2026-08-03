@@ -39,8 +39,6 @@ public class LanguageManager {
     @Getter
     private String helpPersonalities;
     @Getter
-    private String helpGuardian;
-    @Getter
     private String helpSuggestion;
     @Getter
     private String helpProfile;
@@ -93,30 +91,6 @@ public class LanguageManager {
     private String commandTasksNeverRun;
     @Getter
     private String commandTasksTimeAgo;
-    @Getter
-    private String commandGuardianNoPermission;
-    @Getter
-    private String commandGuardianNotInit;
-    @Getter
-    private String commandGuardianDisabledGlobal;
-    @Getter
-    private String commandGuardianAlreadyOn;
-    @Getter
-    private String commandGuardianAlreadyOff;
-    @Getter
-    private String commandGuardianOnSuccess;
-    @Getter
-    private String commandGuardianOff;
-    @Getter
-    private String commandGuardianStatus;
-    @Getter
-    private String commandGuardianStateOn;
-    @Getter
-    private String commandGuardianStateOff;
-    @Getter
-    private String commandGuardianUsage;
-    @Getter
-    private String commandGuardianMonitorLine;
     @Getter
     private String commandSuggestionNotInit;
     @Getter
@@ -234,8 +208,6 @@ public class LanguageManager {
     @Getter
     private String commandDoctorCheckIsolation;
     @Getter
-    private String commandDoctorCheckGuardianSystem;
-    @Getter
     private String commandDoctorCheckHealthGuardian;
     @Getter
     private String commandDoctorCheckNotify;
@@ -283,8 +255,6 @@ public class LanguageManager {
     private String commandDoctorLlmLatency;
     @Getter
     private String commandDoctorLlmErrorLatency;
-    @Getter
-    private String commandDoctorGuardianActive;
     @Getter
     private String commandDoctorCheckSuggestion;
     @Getter
@@ -575,7 +545,6 @@ public class LanguageManager {
         this.helpClearOther = config.getString("help.clear-other", " §b/kila clear §7<玩家名> §8- §f清除指定玩家的历史");
         this.helpKnowledge = config.getString("help.knowledge", " §b/kila knowledge reload §8- §f重载知识库");
         this.helpPersonalities = config.getString("help.personalities", " §b/kila personalities reload §8- §f重载人格配置");
-        this.helpGuardian = config.getString("help.guardian", " §b/kila guardian §7<on|off|status> §8- §fAI 主动守护");
         this.helpSuggestion = config.getString("help.suggestion", " §b/kila suggestion §7<on|off|status> §8- §f管理对话推荐");
         this.helpProfile = config.getString("help.profile", " §b/kila profile start §7[秒数] §8- §f启动性能采样 (30~120s)");
         this.helpProfileSubcommands = config.getString("help.profile-subcommands", " §b/kila profile stop | status §8- §f中断采样 / 查看状态");
@@ -635,19 +604,6 @@ public class LanguageManager {
         this.commandTasksNeverRun = config.getString("commands.tasks-never-run", "§8未执行");
         this.commandTasksTimeAgo = config.getString("commands.tasks-time-ago", "{n}前");
 
-        // 守护系统文案（玩家可见，走 language.yml）
-        this.commandGuardianNoPermission = config.getString("commands.guardian-no-permission", "§c你没有权限使用守护系统。");
-        this.commandGuardianNotInit = config.getString("commands.guardian-not-init", "§c守护系统尚未初始化。");
-        this.commandGuardianDisabledGlobal = config.getString("commands.guardian-disabled-global", "§c守护系统已被服主全局关闭。");
-        this.commandGuardianAlreadyOn = config.getString("commands.guardian-already-on", "§7守护系统已开启。");
-        this.commandGuardianAlreadyOff = config.getString("commands.guardian-already-off", "§7守护系统未开启。");
-        this.commandGuardianOnSuccess = config.getString("commands.guardian-on-success", "§a守护已开启！我会帮你盯着你看不见的地方——比如背后有怪、背包快满等。§7想关掉就说「关守护」。共激活 §e{n} §a个监控。");
-        this.commandGuardianOff = config.getString("commands.guardian-off", "§7守护已关闭。");
-        this.commandGuardianStatus = config.getString("commands.guardian-status", "§6[Kilacraft-AI] §f守护系统 §7| 状态: §e{state} §7| 监控: §e{n}§7个");
-        this.commandGuardianStateOn = config.getString("commands.guardian-state-on", "§a开启");
-        this.commandGuardianStateOff = config.getString("commands.guardian-state-off", "§7关闭");
-        this.commandGuardianUsage = config.getString("commands.guardian-usage", "§7用法: /kila guardian <§eon§7|§coff§7|§estatus§7>");
-        this.commandGuardianMonitorLine = config.getString("commands.guardian-monitor-line", "§7  - §e{name}");
         this.commandSuggestionNotInit = config.getString("commands.suggestion-not-init", "§c对话推荐系统未初始化！");
         this.commandSuggestionAlreadyOn = config.getString("commands.suggestion-already-on", "§7对话推荐已经是开启状态。");
         this.commandSuggestionAlreadyOff = config.getString("commands.suggestion-already-off", "§7对话推荐已经是关闭状态。");
@@ -706,7 +662,6 @@ public class LanguageManager {
         this.commandDoctorCheckCommandSkill = config.getString("commands.doctor-check-command-skill", "命令技能");
         this.commandDoctorCheckPendingResume = config.getString("commands.doctor-check-pending-resume", "待确认续体");
         this.commandDoctorCheckIsolation = config.getString("commands.doctor-check-isolation", "玩家数据隔离");
-        this.commandDoctorCheckGuardianSystem = config.getString("commands.doctor-check-guardian-system", "守护系统");
         this.commandDoctorCheckHealthGuardian = config.getString("commands.doctor-check-health-guardian", "健康监控");
         this.commandDoctorCheckNotify = config.getString("commands.doctor-check-notify", "外部通知");
         this.commandDoctorCheckThinking = config.getString("commands.doctor-check-thinking", "推理模型");
@@ -731,7 +686,6 @@ public class LanguageManager {
         this.commandDoctorLlmNoProvider = config.getString("commands.doctor-llm-no-provider", "未配置 LLM 提供商");
         this.commandDoctorLlmLatency = config.getString("commands.doctor-llm-latency", "{model}（{latency}ms）");
         this.commandDoctorLlmErrorLatency = config.getString("commands.doctor-llm-error-latency", "{error}（{latency}ms）");
-        this.commandDoctorGuardianActive = config.getString("commands.doctor-guardian-active", "启用（{count} 个在线玩家）");
         this.commandDoctorCheckSuggestion = config.getString("commands.doctor-check-suggestion", "对话推荐");
         this.commandDoctorCheckWatch = config.getString("commands.doctor-check-watch", "监听系统");
         this.commandDoctorCheckWebSearch = config.getString("commands.doctor-check-web-search", "Web 搜索");

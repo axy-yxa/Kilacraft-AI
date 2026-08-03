@@ -16,36 +16,11 @@
 
 ## Skill Capability List
 
-> v2.2.0 removed the AFK task system (AFKTaskSkill). Its capabilities are replaced by the three new Skills below: GuardianSkill, WatchSkill, PlayerWatchSkill.
+> v2.2.0 removed the AFK task system (AFKTaskSkill). Its capabilities are replaced by the two new Skills below: WatchSkill, PlayerWatchSkill.
 
-### 1. GuardianSkill - Guardian System Toggle
+### 1. WatchSkill - Player Custom Watch
 
-**Capability Type**: AI proactive watch (opt-in toggle)  
-**Dependency**: Pure Bukkit (depends on built-in GuardianManager)  
-**File Location**: `skills/guardian/GuardianSkill.yml`  
-**Implementation Class**: `GuardianSkill.java`
-
-#### Supported Actions
-
-| Action | Description | Required Parameters |
-|--------|-------------|---------------------|
-| `enable` | Enable AI guardian, return loaded monitor list | None |
-| `disable` | Disable guardian, stop active alerts | None |
-| `status` | Query guardian status and active monitor list | None |
-
-#### Core Features
-
-- ✅ **Default package**: enabling loads 3 built-in monitors (inventory near-full, low durability, threat behind), hardcoded and non-configurable
-- ✅ **Value axis**: only speaks at moments the player "isn't watching now, but will care about later"; HUD-perceivable things (hunger/health) are excluded
-- ✅ **AFK pause + awareness suppression**: auto-pause after 5 min idle; skip inventory/durability alerts when any item GUI is open
-- ✅ **Anti-spam**: each monitor has its own cooldown; action failure counts as not-triggered
-- ✅ Player-only use
-
----
-
-### 2. WatchSkill - Player Custom Watch
-
-**Capability Type**: Condition watch (polling) + Event watch  
+**Capability Type**: Condition watch (polling) + event watch  
 **Dependency**: Pure Bukkit (depends on built-in WatchService)  
 **File Location**: `skills/watch/WatchSkill.yml`  
 **Implementation Class**: `WatchSkill.java` (implements `DynamicContextProvider`)
@@ -85,7 +60,7 @@
 
 ---
 
-### 3. PlayerWatchSkill - Cross-Player Online/Offline Subscription
+### 2. PlayerWatchSkill - Cross-Player Online/Offline Subscription
 
 **Capability Type**: Player social light interaction (online/offline notification subscription)  
 **Dependency**: Pure Bukkit (depends on built-in PlayerWatchService)  
@@ -111,7 +86,7 @@
 
 ---
 
-### 4. GenericBukkitAPI - Generic Bukkit API Executor
+### 3. GenericBukkitAPI - Generic Bukkit API Executor
 
 **Capability Type**: Native API Data Query
 **Dependency Plugin**: Pure Bukkit Native API
@@ -226,7 +201,7 @@
 
 ---
 
-### 5. CMISkill - CMI Plugin Integration
+### 4. CMISkill - CMI Plugin Integration
 
 **Capability Type**: Teleportation + Player Info Query
 **Dependency Plugin**: CMI (v9.8.6.4+)
@@ -265,7 +240,7 @@ Player: Help me go home
 
 ---
 
-### 6. CommandSkill - Command Execution
+### 5. CommandSkill - Command Execution
 
 **Capability Type**: Server Command Execution (Player Identity)  
 **Dependency Plugin**: Pure Bukkit Native API  
@@ -286,7 +261,7 @@ Player: Help me go home
 
 ---
 
-### 7. BukkitFXSkill - Sound & Particle Effects
+### 6. BukkitFXSkill - Sound & Particle Effects
 
 **Capability Type**: Client-side Effect Playback (Only Caller Visible/Audible)  
 **Dependency Plugin**: Pure Bukkit Native API  
@@ -345,7 +320,7 @@ Player: Show some heart particles
 
 ---
 
-### 8. BukkitStatsSkill - Vanilla Statistics Query
+### 7. BukkitStatsSkill - Vanilla Statistics Query
 
 **Capability Type**: Player Vanilla Cumulative Statistics Query (Career Records)  
 **Dependency Plugin**: Pure Bukkit Native API  
@@ -429,7 +404,7 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 9. MarketQuerySkill - GlobalMarketPlus Plugin Integration
+### 8. MarketQuerySkill - GlobalMarketPlus Plugin Integration
 
 **Capability Type**: Market Information Query
 **Dependency Plugin**: GlobalMarketPlus (v1.3.8.0+)
@@ -457,7 +432,7 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 10. MarketActionSkill - GlobalMarket Write Operations
+### 9. MarketActionSkill - GlobalMarket Write Operations
 
 **Capability Type**: Market Write Operations (Trade Delegation)  
 **Dependency Plugin**: GlobalMarketPlus (v1.3.8.0+)  
@@ -484,7 +459,7 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 11. UtilitySkill - Generic Utility Actions
+### 10. UtilitySkill - Generic Utility Actions
 
 **Capability Type**: Basic Utility Actions (Delay, Notification, Broadcast)  
 **Dependency**: Pure Bukkit Native API  
@@ -507,7 +482,7 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 12. WebSearchSkill - Web Search
+### 11. WebSearchSkill - Web Search
 
 **Capability Type**: Real-time web search  
 **Dependency**: Pure Bukkit (self-managed HTTP calls; requires API Key in `web.yml`)  
@@ -529,7 +504,7 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 13. WebFetchSkill - Web Fetch
+### 12. WebFetchSkill - Web Fetch
 
 **Capability Type**: Fetch URL body and answer questions about it  
 **Dependency**: Pure Bukkit (OkHttp + Jsoup local-only, zero-config, no API Key)  
@@ -558,7 +533,7 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 14. VersionInfoSkill - Version Info Query
+### 13. VersionInfoSkill - Version Info Query
 
 **Capability Type**: Plugin version & update info query (read-only)  
 **Dependency**: Pure Bukkit (data source: Gitee/GitHub Release API, routed by i18n language)  
@@ -581,7 +556,7 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 15-17. Server Admin Skills
+### 14-16. Server Admin Skills
 
 Three server admin Skills; detailed usage in the "Admin Features Guide":
 
@@ -686,7 +661,6 @@ In addition to event watches, WatchSkill supports **polling watches** (`polling`
 ✅ **Can**:
 - Query Minecraft native API data (player, world, server status)
 - Listen to 19 Bukkit Event types (S-level 7 + A-level 12)
-- AI proactive watch (Guardian system: inventory near-full / low durability / threat behind)
 - Player custom watches (11 event types + polling, WatchSkill)
 - Cross-player online/offline subscriptions (PlayerWatchSkill)
 - Web search & fetch (WebSearch / WebFetch)

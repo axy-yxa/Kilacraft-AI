@@ -73,16 +73,13 @@ public final class DoctorCommand {
         checks.add(personaCount > 0 ? pass(Group.AI, lm.getCommandDoctorCheckPersona(), lm.replacePlaceholders(lm.getCommandDoctorPersonaLoaded(), "count", String.valueOf(personaCount))) : warn(Group.AI, lm.getCommandDoctorCheckPersona(), lm.getCommandDoctorPersonaNone()));
         checks.add(checkAgent(cm, lm));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckProfile(), boolLabel(lm, cm != null && cm.isProfileInjectionEnabled())));
-        // 守护系统自检：GuardianManager 是否初始化 + 当前在线活跃守护玩家数
-        var guardianManager = plugin.getGuardianManager();
-        checks.add(guardianManager != null ? pass(Group.AI, lm.getCommandDoctorCheckGuardianSystem(), lm.replacePlaceholders(lm.getCommandDoctorGuardianActive(), "count", String.valueOf(guardianManager.activeCount()))) : warn(Group.AI, lm.getCommandDoctorCheckGuardianSystem(), lm.getCommandDoctorDisabled()));
         checks.add(checkWatch(plugin, lm));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckCommandSkill(), boolLabel(lm, cm != null && cm.isCommandSkillEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckPendingResume(), boolLabel(lm, cm != null && cm.isPendingResumeEnabled())));
         checks.add(pass(Group.AI, lm.getCommandDoctorCheckIsolation(), boolLabel(lm, cm != null && cm.isSecurityPlayerIsolationEnabled())));
 
         // ===== 可观测与集成 =====
-        // admin.yml 的 health_guardian（服务器健康监控，非守护系统）
+        // admin.yml 的 health_guardian（服务器健康监控）
         boolean guardian = admin != null && admin.isGuardianEnabled();
         checks.add(guardian ? pass(Group.OBS, lm.getCommandDoctorCheckHealthGuardian(), lm.getCommandDoctorEnabled()) : warn(Group.OBS, lm.getCommandDoctorCheckHealthGuardian(), lm.getCommandDoctorDisabled()));
         boolean notify = admin != null && admin.isNotificationEnabled();
@@ -261,7 +258,7 @@ public final class DoctorCommand {
             PluginLoggerUtil.info("自检", "LLM Key：{}", redactKey(cm.getLlmApiKey()));
             var pcm = plugin.getPersonalitiesConfigManager();
             PluginLoggerUtil.info("自检", "知识库：{} | Embedding：{} | 人格：{}套", cm.isKnowledgeEnabled(), cm.isEmbeddingEnabled(), pcm != null ? pcm.getAllPersonalities().size() : 0);
-            PluginLoggerUtil.info("自检", "Agent：{} | 画像分析：{} | 守护系统：{}", cm.isAgentEnabled(), cm.isProfileInjectionEnabled(), plugin.getGuardianManager() != null ? plugin.getGuardianManager().activeCount() : "N/A");
+            PluginLoggerUtil.info("自检", "Agent：{} | 画像分析：{}", cm.isAgentEnabled(), cm.isProfileInjectionEnabled());
             PluginLoggerUtil.info("自检", "命令技能：{} | 待确认续体：{} | 玩家隔离：{}", cm.isCommandSkillEnabled(), cm.isPendingResumeEnabled(), cm.isSecurityPlayerIsolationEnabled());
         }
         DatabaseManager db = plugin.getDatabaseManager();

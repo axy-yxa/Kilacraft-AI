@@ -314,7 +314,7 @@ Social relation weights and decay rates are currently controlled internally by c
 
 ### Greeting & Offline Events (behavior.yml)
 
-Greeting configuration is consolidated under the `greeting` section of `behavior.yml` (in early versions it was the standalone `greeting.yml`, now merged into `behavior.yml` alongside guardian/suggestion/watch/utility.prompts):
+Greeting configuration is consolidated under the `greeting` section of `behavior.yml` (in early versions it was the standalone `greeting.yml`, now merged into `behavior.yml` alongside suggestion/watch/utility.prompts):
 
 ```yaml
 greeting:
