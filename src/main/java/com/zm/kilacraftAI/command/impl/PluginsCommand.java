@@ -111,7 +111,7 @@ public final class PluginsCommand {
 
         AIResponseHandler handler = new PluginCommandResponseHandler(sender, targetPlayerId, targetPlayerName);
         final String finalPersonality = personality;
-        // {player} 占位符替换由 Provider 咽喉统一处理，传含占位符的原始模板
+        // {player} 占位符由 Provider 替换，传含占位符的原始模板
         String personalityPrompt = personalitiesConfig.getPersonalityPrompt(personality);
 
         PluginLoggerUtil.debug("命令", "插件命令请求 - 人格：{}, 玩家：{}, UUID: {}", personality, targetPlayerName, targetPlayerId);

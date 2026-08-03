@@ -492,17 +492,12 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
     /**
      * 构建 SSE 流式请求体。
-     * <p>
-     * 缓存命中率优化的核心约束：system 消息（messages[0]）必须保持纯静态——
-     * 仅含调用方传入的静态模板（替换 {player}）+ 静态语言约束。所有动态内容
-     * （玩家画像、实时元数据、当前时间、知识库）统一组装到 user 消息头部，
-     * 避免污染 system 前缀导致服务商前缀缓存失效。
      *
-     * @param userMessage        实际用户查询（不含动态上下文）
-     * @param player             触发请求的玩家；非 null 时采集动态上下文拼到 user 头部，并替换 {player}
+     * @param userMessage        实际用户查询
+     * @param player             触发请求的玩家；非 null 时采集画像/元数据/时间拼到 user 消息，并替换 {player}
      * @param history            历史对话记录，作为 messages[1..N]
-     * @param staticSystemPrompt 纯静态系统提示词（人格/模板，可含 {player} 占位符）
-     * @param knowledgeContext   知识库检索结果（null 表示无知识库内容）
+     * @param staticSystemPrompt 系统提示词（可含 {player} 占位符）
+     * @param knowledgeContext   知识库检索结果（null 表示无）
      * @param enableJsonOutput   是否启用 JSON 输出格式
      * @return 构建好的请求体 JSON
      */
@@ -535,8 +530,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
         JsonArray messages = new JsonArray();
 
-        // === system 消息：纯静态（人格/模板 + 语言约束），保持为可缓存前缀 ===
-        // {player} 占位符替换统一收到此处；player 为 null 时替换为空串（避免 String.replace 的 NPE）
+        // system 消息：系统提示词（替换 {player}，player 为 null 时替换为空串防 NPE）+ 语言约束
         String safeName = player != null ? player.getName() : "";
         String systemPrompt = staticSystemPrompt.replace("{player}", safeName);
         String langDirective = plugin.getConfigManager().getLanguageDirective();
@@ -548,7 +542,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         systemMessage.addProperty("content", systemPrompt);
         messages.add(systemMessage);
 
-        // === 历史对话记录：messages[1..N]，保持 OpenAI 多轮对话标准格式 ===
+        // 历史对话记录：messages[1..N]
         if (history != null && !history.isEmpty()) {
             for (ConversationManager.Message msg : history) {
                 JsonObject msgObj = new JsonObject();
@@ -558,8 +552,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             }
         }
 
-        // === user 消息：动态上下文 + 知识库 + 实际查询 ===
-        // user 整条每请求不同、不参与前缀缓存；内部顺序按模型理解最优（背景→资料→任务）
+        // user 消息：动态上下文（画像/元数据/时间）+ 知识库 + 实际查询
         JsonObject userMsg = new JsonObject();
         userMsg.addProperty("role", MessageRoleEnum.USER.value());
         userMsg.addProperty("content", buildUserContent(userMessage, player, knowledgeContext));
@@ -571,10 +564,6 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
     /**
      * 组装最终 user 消息内容：动态上下文（画像+元数据+时间）+ 知识库 + 实际查询。
-     * <p>
-     * player 为 null（画像分析/健康检查等无玩家上下文场景）时跳过动态上下文采集，
-     * 仅返回知识库（如有）+ 查询。动态上下文各块用既有标签包裹（【玩家画像】/【玩家实时状态】），
-     * 模型可识别为背景信息。
      *
      * @param userMessage      实际用户查询
      * @param player           触发请求的玩家，null 则不采集动态上下文
@@ -596,11 +585,8 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     }
 
     /**
-     * 采集动态上下文：玩家画像（受开关控制）+ 实时元数据 + 当前时间。
-     * <p>
-     * 这些内容每请求常变（元数据每请求变、时间每秒变、画像每次分析变），
-     * 故置于 user 端而非 system 端。画像采集受 {@code isProfileInjectionEnabled} 开关统一控制。
-     * player 为 null 时返回空串。
+     * 采集玩家画像、实时元数据与当前时间，拼接为 user 消息的背景信息块。
+     * <p>画像受 {@code isProfileInjectionEnabled} 开关控制；player 为 null 时返回空串。
      */
     private String buildDynamicContext(@Nullable Player player) {
         if (player == null) {
@@ -608,7 +594,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         }
         StringBuilder sb = new StringBuilder();
 
-        // 画像摘要（每次画像分析才变，相对稳定的背景信息）
+        // 画像摘要
         if (plugin.getConfigManager().isProfileInjectionEnabled()) {
             ProfileManager profileManager = plugin.getProfileManager();
             if (profileManager != null) {
@@ -619,13 +605,13 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             }
         }
 
-        // 玩家实时元数据（每请求常变）
+        // 玩家实时元数据
         String meta = PlayerMetaCollector.collect(player);
         if (!meta.isEmpty()) {
             sb.append(meta).append("\n\n");
         }
 
-        // 当前时间（每秒变）
+        // 当前时间
         sb.append(I18nService.getCurrentTimeString());
         return sb.toString();
     }

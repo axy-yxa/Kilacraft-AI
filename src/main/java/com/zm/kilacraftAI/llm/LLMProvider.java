@@ -23,17 +23,15 @@ public interface LLMProvider {
     /**
      * 处理 AI 请求。
      * <p>
-     * 缓存命中率优化核心约束：system 消息必须保持纯静态（仅 reload 才变），
-     * 由 Provider 咽喉层统一负责把动态内容（玩家画像、实时元数据、当前时间）
-     * 注入到 user 消息头部，避免污染 system 前缀导致服务商前缀缓存失效。
+     * system 消息由 {@code staticSystemPrompt}（可含 {player} 占位符）拼装，保持稳定；
+     * 玩家画像、实时元数据、当前时间等会变的内容由本方法注入到 user 消息。
      *
-     * @param userMessage              实际用户查询（不含动态上下文，由 Provider 在内部组装到 user 消息）
-     * @param player                   触发请求的玩家；非 null 时由 Provider 注入动态上下文（画像+元数据+时间）
-     *                                 到 user 消息头部，并以其名替换 system 中的 {player} 占位符；
-     *                                 null 表示无玩家上下文（画像分析/健康检查等），不注入、不替换
+     * @param userMessage              实际用户查询
+     * @param player                   触发请求的玩家；非 null 时注入画像/元数据/时间到 user 消息，
+     *                                 并以其名替换 system 中的 {player}；null 表示无玩家上下文
      * @param history                  历史对话记录，作为 messages[1..N] 夹在 system 与 user 之间
      * @param responseHandler          响应处理器
-     * @param staticSystemPrompt       纯静态系统提示词（人格/模板，可含 {player} 占位符由 Provider 替换）
+     * @param staticSystemPrompt       系统提示词（人格/模板，可含 {player} 占位符）
      * @param enableKnowledgeRetrieval 是否启用知识检索（命中时拼到 user 消息、紧贴查询之前）
      * @param enableDebugLog           是否启用调试日志
      * @param enableJsonOutput         是否启用 JSON 输出

@@ -6,9 +6,6 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.greeting.FriendStatus;
 import com.zm.kilacraftAI.model.greeting.GreetingContext;
-import com.zm.kilacraftAI.model.greeting.PlayerVanillaStats;
-import com.zm.kilacraftAI.model.greeting.SummaryStats;
-import com.zm.kilacraftAI.model.profile.PlayerProfile;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -46,18 +43,17 @@ public class GreetingPromptBuilder {
             {own_events_section}
             {friend_events_section}
             {online_friends_section}
-            {last_location}
-            {summary_section}
+            {last_session_highlights}
             
-            以平实的语气欢迎 {player} 回来。
+            用熟络自然的语气欢迎 {player} 回来，亲切随意，不过分热情也不生硬客套。
             
-            规则：
-            1. 空内容分类（"没有""暂无"等）完全跳过，不提。不用"一切如故""没什么事""挺安静的"等概括句填充。
-            2. 无好友时禁止提任何与好友在线状态相关的表述。
-            3. 玩家数据仅在满足以下任一硬性条件时，才可用具体数字提及：(a)达到有意义的里程碑，(b)与本次离线事件有直接因果关联。不满足则完全不提任何玩家数据。提到时必须说出具体数字，禁止用"很长""相当多""打了不少""飞了好远"等模糊描述。
-            4. 上次位置仅作背景参考。除非在上次位置发生了离线事件，否则不提及。提及时不报坐标，不说世界名。
-            5. 不以疑问句结尾。
-            6. 控制在200汉字以内。若无可提内容，说"欢迎回来，有什么需要随时找我。"即可。
+            要点：
+            1. 先自然地欢迎，事件和动态是"顺便想起就提一句"，不是逐条汇报。空段（"没有""暂无"等）直接跳过，也不用"一切如故""挺安静"这类空话填充。
+            2. 提到玩家自己之前的事时，别用"上次你……"这种汇报腔，要像随口回忆一样自然地提一句——比如"之前你把末影龙收拾了"。提完别干巴巴停下，顺势接一个和这事相关的具体后续（比如击杀末影龙，可以接"接下来是去末地城还是先把末影箱做了"）。
+            3. 后续话题要具体、和刚提的事贴边；禁止"需要帮忙吗""有什么问题吗"这种泛泛客套。
+            4. 没有好友就别提任何好友相关的话。
+            5. 实在没什么值得自然提起的，就说"欢迎回来，有什么需要随时找我。"——别硬凑。
+            6. 若提示词包含「Kilacraft-AI 插件新版本可用」或「服务器异常告警」等高优先级段落，则问候不受下方字数限制，必须完整转达这些段落的所有信息后再收尾；否则控制在 200 汉字以内。
             """;
 
     public static final String DEFAULT_FIRST_LOGIN_PROMPT_EN = """
@@ -76,18 +72,17 @@ public class GreetingPromptBuilder {
             {own_events_section}
             {friend_events_section}
             {online_friends_section}
-            {last_location}
-            {summary_section}
+            {last_session_highlights}
             
-            Welcome {player} back in a calm, natural tone.
+            Welcome {player} back in a naturally familiar tone — warm and casual, neither over-enthusiastic nor stiffly formal.
             
-            Rules:
-            1. Skip empty categories ("none", "nothing", etc.) entirely. Do not pad with phrases like "nothing special", "all quiet", or "everything's normal".
-            2. If the player has no friends, do not mention anything about friend online status.
-            3. Only mention player stats if they meet one of these HARD criteria: (a) reaches a meaningful milestone, (b) has a direct causal link to an offline event this session. If nothing qualifies, do not mention any stats at all. When mentioning, you MUST state exact numbers — do NOT use vague phrases like "quite a lot", "a long way", or "quite a few".
-            4. Last location is for background context only. Do not mention it unless an offline event occurred there. When mentioned, do not reveal coordinates or world name.
-            5. Do not end with a question.
-            6. Keep it under 120 words. If there is nothing worth mentioning, just say "Welcome back, let me know if you need anything."
+            Points:
+            1. Welcome naturally first — events and updates are "mentioned in passing if they come to mind", not a point-by-point briefing. Skip empty sections ("none", "nothing", etc.) entirely, and do not pad with filler like "nothing special" or "all quiet".
+            2. When mentioning something the player did before, avoid the report-like phrasing "last time you...". Bring it up casually, as if recalling something you both know — e.g. "you took down the Ender Dragon earlier". Don't stop dry after mentioning it; naturally follow up with a concrete next step tied to that event (e.g. after slaying the Ender Dragon, you might add "heading to an End City next, or getting End Chests set up first?").
+            3. Follow-up topics must be concrete and tied to what you just mentioned. No vague pleasantries like "need any help?" or "got any questions?".
+            4. If the player has no friends, do not mention anything friend-related.
+            5. If there's genuinely nothing worth bringing up naturally, just say "Welcome back, let me know if you need anything." — don't force it.
+            6. If the prompt contains high-priority sections such as "Kilacraft-AI plugin new version available" or server anomaly alerts, the greeting is exempt from the word limit below — you must fully convey all info from these sections before wrapping up; otherwise keep it under 120 words.
             """;
 
     public static String getDefaultFirstLoginPrompt() {
@@ -143,14 +138,19 @@ public class GreetingPromptBuilder {
         String ownEventsSection = buildOfflineEventsSection(context.getOfflineEvents(), context.getGlobalEventCount(), playerName);
         String friendEventsSection = buildFriendEventsSection(context.getFriendEvents(), context.getFriendLoginCounts());
         String onlineFriendsSection = buildOnlineFriendsSection(context.getOnlineFriends(), context.getOfflineFriends());
-        String lastLocationSection = buildLastLocationSection(context.getProfile(), playerName);
-        String summarySection = buildSummarySection(context.getSummaryStats(), context.getVanillaStats());
+        String highlightsSection = buildHighlightsSection(context.getHighlights());
         String healthAlertsSection = buildHealthAlertsSection(context.getHealthAlerts(), playerName);
         String updateReminderSection = buildUpdateReminderSection(context.getUpdateReminders(), playerName);
         String guardianSection = buildGuardianRecommendationSection(context.isGuardianEnabled());
 
-        // {player} 占位符替换由 Provider 咽喉统一处理，此处仅替换其他业务占位符
-        String prompt = customPrompt.replace("{offline_duration}", offlineDuration).replace("{own_events_section}", ownEventsSection).replace("{friend_events_section}", friendEventsSection).replace("{online_friends_section}", onlineFriendsSection).replace("{last_location}", lastLocationSection).replace("{summary_section}", summarySection);
+        // {player} 占位符由 Provider 替换，此处仅替换其他业务占位符
+        String prompt = customPrompt.replace("{offline_duration}", offlineDuration).replace("{own_events_section}", ownEventsSection).replace("{friend_events_section}", friendEventsSection).replace("{online_friends_section}", onlineFriendsSection).replace("{last_session_highlights}", highlightsSection)
+                // 向后兼容：旧版配置文件可能仍含 {last_location}/{summary_section} 占位符，
+                // 这两段已移除，替换为空串避免字面量残留
+                .replace("{last_location}", "").replace("{summary_section}", "");
+
+        // 段落为空时返回空串，压缩因此产生的连续空行
+        prompt = prompt.replaceAll("\n{3,}", "\n\n");
 
         // 守护推荐段落拼接到末尾（最低优先级，仅未开启时）
         if (guardianSection != null && !guardianSection.isEmpty()) {
@@ -175,11 +175,11 @@ public class GreetingPromptBuilder {
      */
     public String buildOfflineEventsSection(List<ServerEvent> events, int globalEventCount, String playerName) {
         if (events == null || events.isEmpty()) {
-            StringBuilder emptySb = new StringBuilder(I18nService.tr("【离线期间发生的事】\n没有特别的事情发生。"));
+            // 无离线事件时不注入本段；但全服事件数仍有意义，单独保留
             if (globalEventCount > 0) {
-                emptySb.append("\n").append(I18nService.tr("{}不在的时候，全服共发生了 {} 件事", playerName, globalEventCount));
+                return I18nService.tr("{}不在的时候，全服共发生了 {} 件事", playerName, globalEventCount);
             }
-            return emptySb.toString();
+            return "";
         }
 
         Map<ServerEventTypeEnum, List<ServerEvent>> grouped = events.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
@@ -608,20 +608,6 @@ public class GreetingPromptBuilder {
     }
 
     /**
-     * 构建上次位置文本段落
-     */
-    public String buildLastLocationSection(PlayerProfile profile, String playerName) {
-        if (profile == null) return "";
-
-        String world = profile.getLastWorld();
-        if (world == null || world.isEmpty()) return "";
-
-        String friendlyWorld = formatWorldName(world);
-
-        return I18nService.tr("【上次位置】\n{} 上次在世界 {}，坐标 ({}, {}, {})", playerName, friendlyWorld, (int) profile.getLastX(), (int) profile.getLastY(), (int) profile.getLastZ());
-    }
-
-    /**
      * 世界名友好化
      */
     private String formatWorldName(String world) {
@@ -644,7 +630,8 @@ public class GreetingPromptBuilder {
         boolean hasOffline = offlineFriends != null && !offlineFriends.isEmpty();
 
         if (!hasOnline && !hasOffline) {
-            return I18nService.tr("【好友在线状态】\n暂无好友。");
+            // 无好友时不注入本段
+            return "";
         }
 
         int onlineCount = org.bukkit.Bukkit.getOnlinePlayers().size();
@@ -709,7 +696,8 @@ public class GreetingPromptBuilder {
         boolean hasLogins = friendLoginCounts != null && !friendLoginCounts.isEmpty();
 
         if (!hasEvents && !hasLogins) {
-            return I18nService.tr("【好友动态】\n好友们最近没什么特别的事。");
+            // 无好友动态时不注入本段
+            return "";
         }
 
         StringJoiner joiner = new StringJoiner("\n");
@@ -882,130 +870,18 @@ public class GreetingPromptBuilder {
     }
 
     /**
-     * 构建玩家数据文本段落
+     * 构建上次游玩亮点段落。空列表返回空串（不注入本段）。
      */
-    public String buildSummarySection(SummaryStats stats, PlayerVanillaStats vanillaStats) {
-        StringBuilder sb = new StringBuilder(I18nService.tr("【玩家数据】"));
-
-        if (vanillaStats != null) {
-            // 基础/战斗
-            sb.append("\n").append(I18nService.tr("游戏时长: {} 分钟", vanillaStats.playMinutes()));
-            sb.append("\n").append(I18nService.tr("死亡: {} 次", vanillaStats.deaths()));
-            sb.append("\n").append(I18nService.tr("击杀生物: {} 只", vanillaStats.mobKills()));
-            if (vanillaStats.playerKills() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀玩家: {} 人", vanillaStats.playerKills()));
-            }
-            if (vanillaStats.damageDealt() > 0) {
-                sb.append("\n").append(I18nService.tr("造成伤害: {} 颗心", vanillaStats.damageDealt() / 2));
-            }
-            if (vanillaStats.damageTaken() > 0) {
-                sb.append("\n").append(I18nService.tr("承受伤害: {} 颗心", vanillaStats.damageTaken() / 2));
-            }
-            if (vanillaStats.damageShielded() > 0) {
-                sb.append("\n").append(I18nService.tr("盾牌格挡: {} 颗心", vanillaStats.damageShielded() / 2));
-            }
-            if (vanillaStats.animalsBred() > 0) {
-                sb.append("\n").append(I18nService.tr("繁殖动物: {} 次", vanillaStats.animalsBred()));
-            }
-            if (vanillaStats.jumps() > 0) {
-                sb.append("\n").append(I18nService.tr("跳跃: {} 次", vanillaStats.jumps()));
-            }
-            if (vanillaStats.sleepCount() > 0) {
-                sb.append("\n").append(I18nService.tr("睡觉: {} 次", vanillaStats.sleepCount()));
-            }
-
-            // 稀有BOSS（只在有数据时输出）
-            if (vanillaStats.dragonKills() > 0 || vanillaStats.dragonDeaths() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀末影龙: {} 次，被末影龙击杀: {} 次", vanillaStats.dragonKills(), vanillaStats.dragonDeaths()));
-            }
-            if (vanillaStats.witherKills() > 0 || vanillaStats.witherDeaths() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀凋灵: {} 次，被凋灵击杀: {} 次", vanillaStats.witherKills(), vanillaStats.witherDeaths()));
-            }
-            if (vanillaStats.elderGuardianKills() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀远古守卫者: {} 次", vanillaStats.elderGuardianKills()));
-            }
-            if (vanillaStats.wardenKills() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀监守者: {} 次", vanillaStats.wardenKills()));
-            }
-            if (vanillaStats.ironGolemKills() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀铁傀儡: {} 次", vanillaStats.ironGolemKills()));
-            }
-
-            // 探索/距离（统一输出格数：1格 = 100cm）
-            if (vanillaStats.walkCm() > 0) {
-                sb.append("\n").append(I18nService.tr("行走距离: {} 格", vanillaStats.walkCm() / 100));
-            }
-            if (vanillaStats.sprintCm() > 0) {
-                sb.append("\n").append(I18nService.tr("疾跑距离: {} 格", vanillaStats.sprintCm() / 100));
-            }
-            if (vanillaStats.flyCm() > 0) {
-                sb.append("\n").append(I18nService.tr("飞行距离: {} 格", vanillaStats.flyCm() / 100));
-            }
-            if (vanillaStats.elytraCm() > 0) {
-                sb.append("\n").append(I18nService.tr("鞘翅飞行距离: {} 格", vanillaStats.elytraCm() / 100));
-            }
-            if (vanillaStats.swimCm() > 0) {
-                sb.append("\n").append(I18nService.tr("游泳距离: {} 格", vanillaStats.swimCm() / 100));
-            }
-            if (vanillaStats.boatCm() > 0) {
-                sb.append("\n").append(I18nService.tr("划船距离: {} 格", vanillaStats.boatCm() / 100));
-            }
-            if (vanillaStats.minecartCm() > 0) {
-                sb.append("\n").append(I18nService.tr("矿车行驶距离: {} 格", vanillaStats.minecartCm() / 100));
-            }
-            if (vanillaStats.horseCm() > 0) {
-                sb.append("\n").append(I18nService.tr("骑马距离: {} 格", vanillaStats.horseCm() / 100));
-            }
-            if (vanillaStats.climbCm() > 0) {
-                sb.append("\n").append(I18nService.tr("攀爬距离: {} 格", vanillaStats.climbCm() / 100));
-            }
-            if (vanillaStats.fallCm() > 0) {
-                sb.append("\n").append(I18nService.tr("摔落距离: {} 格", vanillaStats.fallCm() / 100));
-            }
-
-            // 生活/趣味
-            if (vanillaStats.fishCaught() > 0) {
-                sb.append("\n").append(I18nService.tr("钓鱼: {} 次", vanillaStats.fishCaught()));
-            }
-            if (vanillaStats.enchantCount() > 0) {
-                sb.append("\n").append(I18nService.tr("附魔: {} 次", vanillaStats.enchantCount()));
-            }
-            if (vanillaStats.raidTriggered() > 0) {
-                sb.append("\n").append(I18nService.tr("触发袭击: {} 次", vanillaStats.raidTriggered()));
-            }
-            if (vanillaStats.raidWon() > 0) {
-                sb.append("\n").append(I18nService.tr("袭击胜利: {} 次", vanillaStats.raidWon()));
-            }
-            if (vanillaStats.diamondOreMined() > 0) {
-                sb.append("\n").append(I18nService.tr("挖钻石矿: {} 个", vanillaStats.diamondOreMined()));
-            }
+    public String buildHighlightsSection(List<ServerEvent> highlights) {
+        if (highlights == null || highlights.isEmpty()) {
+            return "";
         }
-
-        // 加入天数（来自 profile，Bukkit Stats 无对应项）
-        if (stats != null && stats.daysSinceFirstLogin() > 0) {
-            sb.append("\n").append(I18nService.tr("加入服务器: {} 天前", stats.daysSinceFirstLogin()));
+        Map<ServerEventTypeEnum, List<ServerEvent>> grouped = highlights.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
+        StringJoiner hj = new StringJoiner("，");
+        for (Map.Entry<ServerEventTypeEnum, List<ServerEvent>> entry : grouped.entrySet()) {
+            hj.add(summarizeEvent(I18nService.tr("你"), entry.getKey(), entry.getValue()));
         }
-
-        // 上次游玩时长（原始分钟数，LLM自行换算）
-        if (stats != null && stats.lastSessionDurationMs() > 0) {
-            long lastSessionMin = TimeUnit.MILLISECONDS.toMinutes(stats.lastSessionDurationMs());
-            if (lastSessionMin > 0) {
-                sb.append("\n").append(I18nService.tr("上次游玩时长: {} 分钟", lastSessionMin));
-            }
-        }
-
-        // 上次游玩亮点
-        List<ServerEvent> highlights = stats != null ? stats.lastSessionHighlights() : null;
-        if (highlights != null && !highlights.isEmpty()) {
-            Map<ServerEventTypeEnum, List<ServerEvent>> grouped = highlights.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
-            StringJoiner hj = new StringJoiner("，");
-            for (Map.Entry<ServerEventTypeEnum, List<ServerEvent>> entry : grouped.entrySet()) {
-                hj.add(summarizeEvent(I18nService.tr("你"), entry.getKey(), entry.getValue()));
-            }
-            sb.append("\n").append(I18nService.tr("【上次游玩亮点】\n")).append(hj);
-        }
-
-        return sb.toString();
+        return I18nService.tr("【上次游玩亮点】\n") + hj;
     }
 
     /**

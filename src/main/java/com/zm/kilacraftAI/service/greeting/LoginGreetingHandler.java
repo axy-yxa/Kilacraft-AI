@@ -10,11 +10,8 @@ import com.zm.kilacraftAI.config.OutputConfigManager;
 import com.zm.kilacraftAI.db.service.ConversationPersistenceService;
 import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.greeting.GreetingContext;
-import com.zm.kilacraftAI.model.greeting.PlayerVanillaStats;
-import com.zm.kilacraftAI.model.greeting.SummaryStats;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.event.OfflineEventAggregator;
@@ -25,7 +22,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * AI 登录问候处理器
@@ -86,17 +82,6 @@ public class LoginGreetingHandler implements Listener {
 
         String serverInfo = config.getGreetingServerInfo();
 
-        // 主线程采集 Bukkit 原版统计（getStatistic() 必须在主线程调用）
-        PlayerVanillaStats vanillaStats;
-        try {
-            vanillaStats = PlayerVanillaStats.collect(player);
-        } catch (Exception e) {
-            PluginLoggerUtil.debug("问候系统", "Bukkit Stats 采集失败，降级跳过: {}", e.getMessage());
-            vanillaStats = null;
-        }
-
-        final PlayerVanillaStats finalVanillaStats = vanillaStats;
-
         // 主线程提前缓存权限检查结果
         final boolean isAdminHealth = PluginPermissionEnum.ADMIN_HEALTH.hasPermission(player);
         final boolean isAdminInfo = PluginPermissionEnum.ADMIN_INFO.hasPermission(player);
@@ -115,7 +100,7 @@ public class LoginGreetingHandler implements Listener {
             // loginCount == 1: 首次登录的正常路径（onPlayerJoin 中 updateLogin 后 loginCount = 1）
 
             if (isFirstLogin) {
-                GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(true).offlineDurationMs(0).offlineEvents(Collections.emptyList()).onlineFriends(Collections.emptyList()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).healthAlerts(Collections.emptyList()).updateReminders(Collections.emptyList()).guardianEnabled(guardianEnabled).build();
+                GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(true).offlineDurationMs(0).offlineEvents(Collections.emptyList()).onlineFriends(Collections.emptyList()).serverInfo(serverInfo).healthAlerts(Collections.emptyList()).updateReminders(Collections.emptyList()).guardianEnabled(guardianEnabled).build();
                 generateAndSend(context, playerName, playerUuid);
 
             } else {
@@ -131,12 +116,10 @@ public class LoginGreetingHandler implements Listener {
                 int maxSummaryEvents = config.getGreetingMaxSummaryEvents();
 
                 eventAggregator.loadAllOfflineDataForGreeting(playerUuid, lastLogout, profile.getLastGreetingTime(), maxOwnEvents, maxFriendEvents, maxSummaryEvents, isAdminHealth, isAdminInfo, data -> {
-                    SummaryStats summaryStats = computeSummaryStats(profile, data.highlights(), data.lastSessionDurationMs());
-
                     List<ServerEvent> healthAlerts = isAdminHealth && data.healthAlerts() != null ? data.healthAlerts() : Collections.emptyList();
                     List<ServerEvent> updateReminders = isAdminInfo && data.updateReminders() != null ? data.updateReminders() : Collections.emptyList();
 
-                    GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(false).offlineDurationMs(offlineDuration).offlineEvents(data.ownEvents()).friendEvents(data.friendEvents()).summaryStats(summaryStats).onlineFriends(data.onlineFriends()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).offlineFriends(data.offlineFriends()).globalEventCount(data.globalEventCount()).friendLoginCounts(data.friendLoginCounts()).healthAlerts(healthAlerts).updateReminders(updateReminders).guardianEnabled(guardianEnabled).build();
+                    GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(false).offlineDurationMs(offlineDuration).offlineEvents(data.ownEvents()).friendEvents(data.friendEvents()).highlights(data.highlights()).onlineFriends(data.onlineFriends()).serverInfo(serverInfo).offlineFriends(data.offlineFriends()).globalEventCount(data.globalEventCount()).friendLoginCounts(data.friendLoginCounts()).healthAlerts(healthAlerts).updateReminders(updateReminders).guardianEnabled(guardianEnabled).build();
 
                     generateAndSend(context, playerName, playerUuid);
                 });
@@ -207,19 +190,4 @@ public class LoginGreetingHandler implements Listener {
         }
     }
 
-    /**
-     * 根据玩家画像和上次游玩亮点计算摘要统计数据
-     *
-     * @param profile               玩家画像
-     * @param highlights            上次游玩亮点事件列表
-     * @param lastSessionDurationMs 上次会话时长（ms）
-     * @return 摘要统计数据
-     */
-    private SummaryStats computeSummaryStats(PlayerProfile profile, List<ServerEvent> highlights, long lastSessionDurationMs) {
-        long daysSinceFirstLogin = 0;
-        if (profile.getFirstLogin() > 0) {
-            daysSinceFirstLogin = TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - profile.getFirstLogin());
-        }
-        return new SummaryStats(profile.getTotalPlaytimeMs(), profile.getLoginCount(), daysSinceFirstLogin, highlights != null ? highlights : Collections.emptyList(), lastSessionDurationMs);
-    }
 }

@@ -183,39 +183,6 @@ public class ServerEventDao {
     }
 
     /**
-     * 查询玩家上次会话时长（上次 LOGOUT - 上上次 LOGIN）
-     *
-     * @param conn       数据库连接
-     * @param playerUuid 玩家 UUID
-     * @return 会话时长 ms，0 表示无法计算
-     */
-    public long loadLastSessionDuration(Connection conn, UUID playerUuid) throws SQLException {
-        Long lastLogout = queryLastEventTime(conn, playerUuid, "PLAYER_LOGOUT", 0);
-        if (lastLogout == null || lastLogout <= 0) return 0;
-        Long prevLogin = queryLastEventTime(conn, playerUuid, "PLAYER_LOGIN", lastLogout);
-        if (prevLogin == null || prevLogin <= 0) return 0;
-        long duration = lastLogout - prevLogin;
-        return duration > 0 ? duration : 0;
-    }
-
-    private Long queryLastEventTime(Connection conn, UUID playerUuid, String eventType, long beforeTime) throws SQLException {
-        String sql;
-        if (beforeTime > 0) {
-            sql = "SELECT created_at FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND event_type = ? AND created_at < ? " + "ORDER BY created_at DESC LIMIT 1";
-        } else {
-            sql = "SELECT created_at FROM " + tablePrefix + "server_event " + "WHERE player_uuid = ? AND event_type = ? " + "ORDER BY created_at DESC LIMIT 1";
-        }
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, playerUuid.toString());
-            ps.setString(2, eventType);
-            if (beforeTime > 0) ps.setLong(3, beforeTime);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : null;
-            }
-        }
-    }
-
-    /**
      * 统计指定时间窗口内全服事件数（排除生命周期和市场事件）
      *
      * @param conn       数据库连接
