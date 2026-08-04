@@ -121,24 +121,27 @@ agent:
   # 意图识别时的历史对话上下文数量(轮数)
   # 用于帮助 LLM 理解用户的连续对话意图
   # 例如：用户说"再查一下那个物品"，LLM 需要历史来理解"那个物品"指什么
-  # 建议值：3-5，值越大上下文越丰富，但 token 消耗也越高
-  # 对话推荐系统也复用此值：推荐生成时截断历史到最近 N 轮，让推荐 LLM 看到完整多轮对话脉络
+  # 建议值：5-7，值越大上下文越丰富，但 token 消耗也越高
+  # 对话推荐系统也复用此值：推荐生成时截断历史到最近 N 轮，让推荐 LLM 看到完整多轮对话脉络，
+  # 历史越长越能避免推荐玩家已问过的话题
   # Number of history conversation context rounds for intent recognition
   # Helps LLM understand the user's continuous conversation intent
   # Example: User says "check that item again", LLM needs history to understand what "that item" refers to
-  # Recommended: 3-5, higher values provide richer context but consume more tokens
-  # Also reused by the suggestion system: truncated to the latest N rounds so the suggestion LLM sees the full conversation flow
-  intent_history_count: 5
+  # Recommended: 5-7, higher values provide richer context but consume more tokens
+  # Also reused by the suggestion system: truncated to the latest N rounds so the suggestion LLM sees
+  # the full conversation flow; longer history helps avoid recommending topics the player already asked
+  intent_history_count: 7
   
   # 二次分析时的历史对话上下文数量(轮数)
   # 用于让 LLM 在分析 Skill 执行结果时参考对话上下文
   # 使最终回复更自然、能关联上下文
-  # 建议值：1-2，精简历史即可满足大部分场景
+  # 建议值：2-4。连续多轮执行 skill 时，历史需覆盖玩家之前提到的关键信息（如"把刚才那个坐标再给我"）
   # Number of history conversation context rounds for secondary analysis
   # Allows LLM to reference conversation context when analyzing Skill execution results
   # Makes the final reply more natural and context-aware
-  # Recommended: 1-2, concise history is sufficient for most scenarios
-  analysis_history_count: 2
+  # Recommended: 2-4. For consecutive multi-round skill executions, history should cover key info
+  # the player mentioned earlier (e.g. "give me that coordinate again")
+  analysis_history_count: 3
   
   # LLM 分析执行结果并生成最终回复提示词配置
   # LLM analysis of execution results and final reply prompt configuration

@@ -91,8 +91,8 @@ public class LLMConfigManager {
         this.agentEnabled = yaml.getBoolean("agent.enabled", true);
         this.agentEnableChatListener = yaml.getBoolean("agent.enable_chat_listener", true);
         this.agentEnableCommand = yaml.getBoolean("agent.enable_command", true);
-        this.agentIntentHistoryCount = yaml.getInt("agent.intent_history_count", 5);
-        this.agentAnalysisHistoryCount = yaml.getInt("agent.analysis_history_count", 2);
+        this.agentIntentHistoryCount = yaml.getInt("agent.intent_history_count", 7);
+        this.agentAnalysisHistoryCount = yaml.getInt("agent.analysis_history_count", 3);
         this.agentSystemPrompt = yaml.getString("agent.prompts.system_prompt", "");
         this.agentSystemPromptEn = yaml.getString("agent.prompts.system_prompt_en", "");
         this.agentAnalysisPromptSuffix = yaml.getString("agent.prompts.analysis_prompt_suffix", "");
