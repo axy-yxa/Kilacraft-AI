@@ -1,18 +1,19 @@
 package com.zm.kilacraftAI.skills.framework.task;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
-import org.jetbrains.annotations.Nullable;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -132,7 +133,17 @@ public class LLMAnalysisService {
             if (!enableKnowledge) {
                 PluginLoggerUtil.debug("LLM分析", I18nService.tr("分析提示词较长（{}字符），跳过知识库检索以减少噪音", analysisPrompt.length()));
             }
-            llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, player, history, wrapperHandler, systemPrompt, enableKnowledge, false, false, cacheCallTypeEnum);
+            // 二次分析只需精简历史供上下文关联，截断到配置轮数（避免传完整队列、省 token）。
+            // 浅拷贝快照后再裁剪，避免影响调用方的 history。
+            int analysisMaxMessages = configManager.getAgentAnalysisHistoryCount() * 2;
+            Deque<ConversationManager.Message> recentHistory = new ArrayDeque<>();
+            if (history != null) {
+                recentHistory.addAll(history);
+            }
+            while (recentHistory.size() > analysisMaxMessages) {
+                recentHistory.pollFirst();
+            }
+            llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, player, recentHistory, wrapperHandler, systemPrompt, enableKnowledge, false, false, cacheCallTypeEnum);
         } catch (RuntimeException e) {
             // 前置阶段异常（非 LLM 调用本身）：记完整堆栈 + 通知 handler + 完成 Future，确保调用链不挂起
             PluginLoggerUtil.error("LLM分析", I18nService.tr("二次分析前置阶段异常: {}", e.getMessage()), e);

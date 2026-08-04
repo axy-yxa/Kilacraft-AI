@@ -32,11 +32,9 @@ public class ConfigManager {
 
     private final JavaPlugin plugin;
 
-    @Getter
     private final LLMConfigManager llmConfigManager;
     @Getter
     private final OutputConfigManager outputConfigManager;
-    @Getter
     private final KnowledgeConfigManager knowledgeConfigManager;
     @Getter
     private final GreetingConfigManager greetingConfigManager;
@@ -327,7 +325,7 @@ public class ConfigManager {
         this.cooldownSeconds = config.getInt("settings.cooldown_seconds", 5);
         this.pluginsCooldownSeconds = config.getInt("settings.plugins_cooldown_seconds", 5);
         this.callbackTimeoutSeconds = config.getInt("plugin_command.callback_timeout_seconds", 3);
-        this.maxHistory = config.getInt("settings.max_history", 10);
+        this.maxHistory = Math.max(0, Math.min(100, config.getInt("settings.max_history", 10)));
         this.allowedWorlds = config.getStringList("settings.allowed_worlds");
         if (this.allowedWorlds.isEmpty()) {
             this.allowedWorlds = new ArrayList<>();

@@ -45,6 +45,15 @@ public final class ReloadCommand {
             plugin.getI18nService().reload();
             plugin.getLanguageManager().loadConfig();
 
+            // 刷新 max_history 到 ConversationManager（内存 trim 闸门）与 PersistenceService（DB 加载量）
+            int reloadedMaxHistory = plugin.getConfigManager().getMaxHistory();
+            if (plugin.getConversationManager() != null) {
+                plugin.getConversationManager().setMaxHistoryRounds(reloadedMaxHistory);
+            }
+            if (plugin.getPersistenceService() != null) {
+                plugin.getPersistenceService().refreshMaxHistory(reloadedMaxHistory);
+            }
+
             // 刷新 LLM 预算/熔断阈值（D6/D13），使 llm.yml 改动即时生效
             if (plugin.getLlmOutputCoordinator() != null) {
                 plugin.getLlmOutputCoordinator().refreshBudget();

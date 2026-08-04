@@ -78,15 +78,17 @@ settings:
   # Set to 0 to disable, -1 to share cooldown with normal commands
   plugins_cooldown_seconds: 3
 
-  # 最大历史消息数（用于上下文对话）
-  # 保存最近的 N 轮对话作为上下文
-  # max_history: 0 - 禁用历史记录（不保存）
+  # 最大历史消息数（用于上下文对话，单位：轮，1 轮 = user + assistant 共 2 条消息）
+  # 保存最近的 N 轮对话作为上下文；从数据库重连加载时恢复最近一半（N/2 轮）
+  # 取值范围：0-100（轮）。超出范围会被自动钳制到边界值。
+  # max_history: 0 - 禁用历史记录（不保存、不加载）
   # max_history: 5 - 保存最近 5 轮对话（10 条消息）
   # max_history: 10 - 保存最近 10 轮对话（20 条消息）
   # max_history: 20 - 保存最近 20 轮对话（40 条消息）
-  # Maximum history message count (for contextual conversation)
-  # Saves the latest N rounds of conversation as context
-  # max_history: 0 - Disable history (no saving)
+  # Maximum history message count (for contextual conversation, unit: rounds, 1 round = user + assistant = 2 messages)
+  # Saves the latest N rounds of conversation as context; on reconnect, loads the latest half (N/2 rounds) from DB
+  # Value range: 0-100 (rounds). Out-of-range values will be clamped to the boundary.
+  # max_history: 0 - Disable history (no saving, no loading)
   # max_history: 5 - Save latest 5 rounds (10 messages)
   # max_history: 10 - Save latest 10 rounds (20 messages)
   # max_history: 20 - Save latest 20 rounds (40 messages)

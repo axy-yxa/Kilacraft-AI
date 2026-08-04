@@ -66,7 +66,10 @@ public class ConversationPersistenceService {
     private volatile ConversationDao conversationDao;
     private volatile WatermarkDao watermarkDao;
     private final ConversationManager conversationManager;
-    private final int maxHistory;
+    /**
+     * 最大历史轮数（内存策略，非 DB 配置）。volatile 支持 reload 刷新。
+     */
+    private volatile int maxHistory;
     /**
      * 保留天数（0=永久保留）
      */
@@ -322,7 +325,12 @@ public class ConversationPersistenceService {
      * 从数据库加载历史记录
      */
     private Deque<ConversationManager.Message> loadFromDB(UUID playerUuid, String personality, String sourceFilter) throws SQLException {
-        int limit = maxHistory > 0 ? maxHistory : 20;
+        // max_history=0（禁用历史）时不加载任何旧记录，与 saveToHistory 遇 0 不保存构成完整禁用语义
+        if (maxHistory <= 0) {
+            return new ArrayDeque<>();
+        }
+        // DB 加载量 = maxHistory 条 = maxHistory/2 轮 = 内存容量（maxHistory*2 条）的一半。
+        int limit = maxHistory;
         try (Connection conn = databaseManager.getConnection()) {
             return conversationDao.loadHistory(conn, playerUuid.toString(), personality != null ? personality : "", sourceFilter, limit);
         }
@@ -413,6 +421,15 @@ public class ConversationPersistenceService {
         this.conversationDao = new ConversationDao(prefix);
         this.watermarkDao = new WatermarkDao(prefix);
         PluginLoggerUtil.info("数据库", "对话持久化服务配置已刷新（历史加载: {}, 保留天数: {}, server_id: {}）", loadHistoryEnabled, retentionDays > 0 ? retentionDays : I18nService.tr("永久"), serverId.isEmpty() ? I18nService.tr("未配置") : serverId);
+    }
+
+    /**
+     * 刷新 max_history（内存策略，非 DB 配置）。由 /kila reload 在读取主配置后调用，
+     * 使 {@code settings.max_history} 改动即时影响 DB 历史加载量。
+     * <p>钳制到 0-100，与 {@code ConversationManager.setMaxHistoryRounds} 语义一致。</p>
+     */
+    public void refreshMaxHistory(int maxHistory) {
+        this.maxHistory = Math.max(0, Math.min(100, maxHistory));
     }
 
     /**

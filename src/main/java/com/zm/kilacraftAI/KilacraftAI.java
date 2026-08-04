@@ -317,6 +317,7 @@ public final class KilacraftAI extends JavaPlugin {
         languageManager = new LanguageManager(this);
         personalitiesConfigManager = new PersonalitiesConfigManager(this);
         conversationManager = new ConversationManager();
+        conversationManager.setMaxHistoryRounds(configManager.getMaxHistory());
 
         // 初始化数据库（在所有管理器之后、知识库之前）
         initializeDatabase();
