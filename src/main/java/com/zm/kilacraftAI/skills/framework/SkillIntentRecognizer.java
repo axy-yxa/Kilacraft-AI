@@ -195,14 +195,9 @@ public class SkillIntentRecognizer {
         // === Phase 1：Skill 分类（关闭知识检索） ===
         String phase1Skills = buildPhase1SkillDescription(caller);
         // system 保持纯静态（角色定义+技能列表末尾）；动态上下文（画像/元数据/时间）由 Provider 注入 user 消息
-        String phase1SystemPrompt = promptConfigManager.buildPhase1SystemPrompt(phase1Skills);
-
         PluginLoggerUtil.debug("意图识别", "Phase 1 Skill 分类开始");
 
-        // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
-//        PluginLoggerUtil.warn("意图识别", "Phase 1提示词: {}", phase1SystemPrompt);
-
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, handler, phase1SystemPrompt, false, false, true, CacheCallTypeEnum.INTENT_PHASE1).thenCompose(phase1Response -> {
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, handler, promptConfigManager.buildPhase1SystemPrompt(phase1Skills), false, false, true, CacheCallTypeEnum.INTENT_PHASE1).thenCompose(phase1Response -> {
             Set<String> selectedSkills = parsePhase1Response(phase1Response);
 
             // 快速路径：无效意图，不调 Phase 2
@@ -213,14 +208,10 @@ public class SkillIntentRecognizer {
 
             // === Phase 2：Action 选择 + 参数提取（开启知识检索） ===
             String phase2Skills = buildPhase2SkillDescription(caller, selectedSkills);
-            String phase2SystemPrompt = promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills);
 
             PluginLoggerUtil.debug("意图识别", "Phase 2 开始，选中技能: {}", selectedSkills);
 
-            // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
-//            PluginLoggerUtil.warn("意图识别", "Phase 2提示词: {}", phase2SystemPrompt);
-
-            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, handler, phase2SystemPrompt, true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(phase2Response -> {
+            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, handler, promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills), true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(phase2Response -> {
                 PluginLoggerUtil.debug("意图识别", "Phase 2 完成");
                 // 解析 LLM 响应
                 return parseIntentFromResponse(phase2Response);
@@ -301,11 +292,10 @@ public class SkillIntentRecognizer {
         String userPrompt = buildUserPrompt(userInput, history);
         Set<String> selected = Set.of(forcedSkillName);
         String phase2Skills = buildPhase2SkillDescription(caller, selected);
-        String phase2SystemPrompt = promptConfigManager.buildSystemPrompt(phase2Skills, selected);
 
         PluginLoggerUtil.debug("意图识别", "强制技能 Phase 2 开始：{}", forcedSkillName);
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, buildSilentHandler("强制技能识别"), phase2SystemPrompt, true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(response -> {
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, buildSilentHandler("强制技能识别"), promptConfigManager.buildSystemPrompt(phase2Skills, selected), true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(response -> {
             Object parsed = parseIntentFromResponse(response);
             if (parsed instanceof SkillIntent intent && forcedSkillName.equals(intent.getSkillName())) {
                 // 玩家显式指定技能：置信度置 1.0 通过 isValid 校验，绕过 Phase1 不确定性

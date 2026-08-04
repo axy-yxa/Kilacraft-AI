@@ -74,9 +74,6 @@ public class LLMAnalysisService {
 
             String analysisPrompt = promptBuilder.toString();
 
-            // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
-            //PluginLoggerUtil.warn("LLM分析", "二次分析提示词: system={}, analysis={}", systemPrompt, analysisPrompt);
-
             // 每次都获取最新的实例
             LLMProvider llmProvider = plugin.getLlmManager().getCurrentProvider();
             if (llmProvider == null) {

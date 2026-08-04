@@ -370,7 +370,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 // ===================================
 
                 // 构建 SSE 流式请求体（system 纯静态、动态上下文+KB+查询统一组装到 user 消息）
-                JsonObject requestBody = buildRequestBody(userMessage, player, history, staticSystemPrompt, knowledgeContext, enableJsonOutput);
+                JsonObject requestBody = buildRequestBody(userMessage, player, history, staticSystemPrompt, knowledgeContext, enableJsonOutput, cacheCallTypeEnum);
 
                 // 构建 HTTP 请求
                 Request request = buildRequest(requestBody);
@@ -499,9 +499,10 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
      * @param staticSystemPrompt 系统提示词（必须纯静态，不含任何动态占位符）
      * @param knowledgeContext   知识库检索结果（null 表示无）
      * @param enableJsonOutput   是否启用 JSON 输出格式
+     * @param cacheCallTypeEnum  调用类型（AI 场景标识，用于调试输出区分来源）
      * @return 构建好的请求体 JSON
      */
-    private JsonObject buildRequestBody(String userMessage, @Nullable Player player, Deque<ConversationManager.Message> history, String staticSystemPrompt, @Nullable String knowledgeContext, boolean enableJsonOutput) {
+    private JsonObject buildRequestBody(String userMessage, @Nullable Player player, Deque<ConversationManager.Message> history, String staticSystemPrompt, @Nullable String knowledgeContext, boolean enableJsonOutput, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("model", cachedModel);
         requestBody.addProperty("temperature", cachedTemperature);
@@ -553,12 +554,18 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         }
 
         // user 消息：动态上下文（画像/元数据/时间）+ 知识库 + 实际查询
+        String userContent = buildUserContent(userMessage, player, knowledgeContext);
         JsonObject userMsg = new JsonObject();
         userMsg.addProperty("role", MessageRoleEnum.USER.value());
-        userMsg.addProperty("content", buildUserContent(userMessage, player, knowledgeContext));
+        userMsg.addProperty("content", userContent);
         messages.add(userMsg);
 
         requestBody.add("messages", messages);
+
+        if (cacheCallTypeEnum != null) {
+            // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
+//            PluginLoggerUtil.warn("LLM请求", I18nService.tr("== 提示词调试 [场景: {}] ==\n[SYSTEM]\n{}\n\n[USER]\n{}", cacheCallTypeEnum.getDisplayName(), systemPrompt, userContent));
+        }
         return requestBody;
     }
 

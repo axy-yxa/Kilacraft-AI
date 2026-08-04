@@ -86,9 +86,6 @@ public class SuggestionService {
 
         SuggestionPromptBuilder.SuggestionPrompt prompt = promptBuilder.build(maxCount, player);
 
-        // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
-        //PluginLoggerUtil.warn("对话推荐", "推荐提示词: system={}, user={}", prompt.systemPrompt(), prompt.userPrompt());
-
         // 静默 handler：GenericLLMProvider 在响应完成后会无条件调用 showResponse
         // （不受 isStreamOutputEnabled 守卫）。若用 PlayerResponseHandler，其 showResponse 会
         // 通过 AIResponsePipeline 把推荐原文发到玩家聊天框——泄露。推荐响应只从 future 拿，

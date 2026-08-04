@@ -139,8 +139,6 @@ public class LoginGreetingHandler implements Listener {
         String systemPrompt = promptBuilder.buildStaticSystem(context, customPrompt);
         String dynamicUserData = promptBuilder.buildDynamicUserData(context);
 
-        PluginLoggerUtil.debug("问候系统", "问候语摘要: {}", systemPrompt);
-
         // 全局预算熔断闸门：问候属被动输出，runaway 时降级跳过（问候自身 30min 冷却保证正常极低频）
         if (plugin.getLlmOutputCoordinator() != null) {
             var budget = plugin.getLlmOutputCoordinator().getBudgetManager();
