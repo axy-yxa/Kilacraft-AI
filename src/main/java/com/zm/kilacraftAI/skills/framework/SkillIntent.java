@@ -13,11 +13,37 @@ import java.util.Map;
  */
 @Getter
 public class SkillIntent {
-    private final String skillName;        // 技能名称（由 LLM 识别）
-    private final String action;           // 具体动作（由 LLM 识别）
-    private final Map<String, String> entities;  // 实体参数（由 LLM 提取）
-    private final double confidence;       // 置信度（0.0 - 1.0）
-    private final String rawInput;         // 原始用户输入
+
+    /**
+     * 技能名称（由 LLM 识别）
+     */
+    private final String skillName;
+
+    /**
+     * 具体动作（由 LLM 识别）
+     */
+    private final String action;
+
+    /**
+     * 实体参数（由 LLM 提取）
+     */
+    private final Map<String, String> entities;
+
+    /**
+     * 置信度（0.0 - 1.0）
+     */
+    private final double confidence;
+
+    /**
+     * 双语义字段：
+     * <ul>
+     *   <li>正常意图：原始用户输入（当前无消费方，预留）</li>
+     *   <li>无效意图：失败原因——技能路径失败时以 §c 前缀标记（经 {@code LLMResponseUtil.errorResponse}），
+     *       供 {@code AIRequestHandler.dispatchIntentResult} 用 {@code isErrorResponse} 判定是否注入 [FAILURE]；
+     *       非技能请求无 §c 前缀，静默回退普通对话</li>
+     * </ul>
+     */
+    private final String rawInput;
 
     public SkillIntent(String skillName, String action, Map<String, String> entities, double confidence, String rawInput) {
         this.skillName = skillName;

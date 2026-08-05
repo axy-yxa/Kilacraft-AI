@@ -208,7 +208,7 @@ public class SkillIntentRecognizer {
             // 快速路径：无效意图，不调 Phase 2
             if (selectedSkills.isEmpty()) {
                 PluginLoggerUtil.debug("意图识别", "Phase 1 判定为非技能请求");
-                return CompletableFuture.completedFuture(createInvalidIntent(I18nService.tr("非技能请求")));
+                return CompletableFuture.completedFuture(createInvalidIntent(I18nService.tr("非技能请求"), false));
             }
 
             // === Phase 2：Action 选择 + 参数提取（开启知识检索） ===
@@ -497,15 +497,17 @@ public class SkillIntentRecognizer {
      * 解析 LLM 响应（支持单意图和多步骤任务）
      */
     private Object parseIntentFromResponse(String response) {
-        // Provider 错误响应以 §c 开头，真实原因已由 handleError 的 WARN 覆盖，优雅回退避免误导日志。
+        // Provider 错误响应以 §c 开头，具体原因已由 GenericLLMProvider 的 error 日志（含堆栈）覆盖，
+        // 此处附响应片段便于意图识别层独立定位。
         if (LLMResponseUtil.isErrorResponse(response)) {
-            return createInvalidIntent(I18nService.tr("非技能请求"));
+            PluginLoggerUtil.debug("意图识别", "Phase 2 收到 Provider 错误响应: {}", LogSnippetUtil.truncateForLog(response, 150));
+            return createInvalidIntent(I18nService.tr("模型调用失败"), true);
         }
         try {
             // 提取 JSON 部分
             String jsonStr = extractJson(response);
             if (jsonStr == null) {
-                return createInvalidIntent(I18nService.tr("无法解析响应为 JSON"));
+                return createInvalidIntent(I18nService.tr("无法解析响应为 JSON"), true);
             }
 
             JsonObject json;
@@ -563,10 +565,10 @@ public class SkillIntentRecognizer {
         } catch (JsonSyntaxException | JsonIOException e) {
             // 真实解析失败（自动修复后仍失败）→ 升级 WARN，附原始响应片段方便定位
             PluginLoggerUtil.warn("意图识别", "意图识别 JSON 解析失败：{}。原始响应: {}", e.getMessage(), LogSnippetUtil.truncateForLog(response, 150));
-            return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()));
+            return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()), true);
         } catch (RuntimeException e) {
             PluginLoggerUtil.error("意图识别", "意图识别意外异常", e);
-            return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()));
+            return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()), true);
         }
     }
 
@@ -588,14 +590,15 @@ public class SkillIntentRecognizer {
             skillName = json.get("skill_name").getAsString();
         }
 
-        // 校验技能名称：不合法则直接返回无效意图
+        // 校验技能名称。skill_name 为 null 是无效意图格式
+        // skill_name 非 null 但未注册才是技能路径尝试过但失败，标记 [FAILURE]。
         if (skillName == null) {
             PluginLoggerUtil.debug("意图识别", "Phase 2 未返回 skill_name");
-            return createInvalidIntent(I18nService.tr("技能名称无效"));
+            return createInvalidIntent(I18nService.tr("技能名称无效"), false);
         }
         if (!isValidSkillName(skillName)) {
             PluginLoggerUtil.warn("意图识别", "Phase 2 返回了不存在的技能名称: {}，已拒绝执行", skillName);
-            return createInvalidIntent(I18nService.tr("技能名称无效"));
+            return createInvalidIntent(I18nService.tr("技能名称无效"), true);
         }
 
         String action = null;
@@ -705,11 +708,18 @@ public class SkillIntentRecognizer {
     }
 
     /**
-     * 创建无效的意图
+     * 创建无效的意图。
+     *
+     * @param reason      无效原因（写入 rawInput 字段）
+     * @param skillFailed 是否为「技能路径尝试过但失败」（解析失败/技能名无效等）。
+     *                    true 时 rawInput 以 §c 前缀标记（复用 {@link LLMResponseUtil} 错误信号协议），
+     *                    供下游 {@code dispatchIntentResult} 用 {@code isErrorResponse} 判定是否注入 [FAILURE]；
+     *                    false 表示非技能请求（闲聊/现实话题/Provider 错误），静默回退普通对话。
      */
-    private SkillIntent createInvalidIntent(String reason) {
+    private SkillIntent createInvalidIntent(String reason, boolean skillFailed) {
         PluginLoggerUtil.debug("意图识别", "创建无效意图：{}", reason);
-        return new SkillIntent(null, null, new HashMap<>(), 0.0, reason);
+        String rawInput = skillFailed ? LLMResponseUtil.errorResponse(reason) : reason;
+        return new SkillIntent(null, null, new HashMap<>(), 0.0, rawInput);
     }
 
     /**

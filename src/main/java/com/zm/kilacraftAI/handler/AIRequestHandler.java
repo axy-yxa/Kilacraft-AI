@@ -193,7 +193,15 @@ public class AIRequestHandler {
         } else {
             PluginLoggerUtil.debug("AI请求", "意图识别结束，回退到普通 AI 处理");
             MetricsCollector.getInstance().recordRequestType("normal_chat");
-            handleNormalAIRequest(message, ctx, null);
+            // 技能路径尝试过但失败（技能名无效/解析失败，识别器已用 §c 前缀标记 rawInput）时，
+            // 注入 [FAILURE] 标记，让普通对话 system prompt 的【技能系统回退】规则引导 LLM 如实告知
+            // 而非凭知识编造。非技能请求（闲聊/现实话题/Provider 错误）的 rawInput 无 §c 前缀，裸回退普通对话。
+            if (result instanceof SkillIntent intent && LLMResponseUtil.isErrorResponse(intent.getRawInput())) {
+                String enrichedMessage = message + "\n[系统提示：" + SkillResultFormatter.toLlmText(SkillStatus.FAILURE.name(), I18nService.tr("技能系统未能处理此请求")) + "]";
+                handleNormalAIRequest(enrichedMessage, ctx, message);
+            } else {
+                handleNormalAIRequest(message, ctx, null);
+            }
         }
     }
 
