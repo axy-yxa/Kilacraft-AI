@@ -56,23 +56,13 @@ public class LLMAnalysisService {
         // responseFuture 提前创建：前置阶段（提示词构建/画像注入/Provider 获取）抛异常时也保证 Future 被 complete，避免调用链挂起
         CompletableFuture<String> responseFuture = new CompletableFuture<>();
         try {
-            String promptContent = summary.buildPrompt();
+            String analysisPrompt = summary.buildPrompt();
 
-            PluginLoggerUtil.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n{}", promptContent);
+            PluginLoggerUtil.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n{}", analysisPrompt);
 
-            // 构建分析提示词：执行结果 + 后缀
-            String suffix = configManager.getAgentAnalysisPromptSuffix();
-            // system 保持纯静态（agent 提示词）；动态上下文（画像/元数据/时间）由 Provider 注入 user 消息
+            // system 保持纯静态（agent 提示词含角色定义与回复约束）；动态上下文（画像/元数据/时间）由 Provider 注入 user 消息
             Player player = context.getPlayer();
             String systemPrompt = configManager.getAgentSystemPrompt();
-
-            StringBuilder promptBuilder = new StringBuilder();
-            promptBuilder.append(promptContent);
-            if (suffix != null && !suffix.isEmpty()) {
-                promptBuilder.append(suffix);
-            }
-
-            String analysisPrompt = promptBuilder.toString();
 
             // 每次都获取最新的实例
             LLMProvider llmProvider = plugin.getLlmManager().getCurrentProvider();

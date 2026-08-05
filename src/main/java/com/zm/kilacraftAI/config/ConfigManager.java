@@ -167,10 +167,6 @@ public class ConfigManager {
         return llmConfigManager.getAgentSystemPromptByLanguage(isChinese(), "");
     }
 
-    public String getAgentAnalysisPromptSuffix() {
-        return llmConfigManager.getAgentAnalysisPromptSuffixByLanguage(isChinese(), "");
-    }
-
     public boolean isKnowledgeEnabled() {
         return knowledgeConfigManager.isEnabled();
     }

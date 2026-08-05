@@ -56,10 +56,6 @@ public class LLMConfigManager {
     private volatile String agentSystemPrompt;
     @Getter
     private volatile String agentSystemPromptEn;
-    @Getter
-    private volatile String agentAnalysisPromptSuffix;
-    @Getter
-    private volatile String agentAnalysisPromptSuffixEn;
 
     // 全局预算/熔断（D6/D13）：正常使用绝对达不到，仅防 runaway。≤0 禁用治理。
     @Getter
@@ -95,8 +91,6 @@ public class LLMConfigManager {
         this.agentAnalysisHistoryCount = yaml.getInt("agent.analysis_history_count", 3);
         this.agentSystemPrompt = yaml.getString("agent.prompts.system_prompt", "");
         this.agentSystemPromptEn = yaml.getString("agent.prompts.system_prompt_en", "");
-        this.agentAnalysisPromptSuffix = yaml.getString("agent.prompts.analysis_prompt_suffix", "");
-        this.agentAnalysisPromptSuffixEn = yaml.getString("agent.prompts.analysis_prompt_suffix_en", "");
 
         // 全局预算/熔断（D6/D13）。默认 200：正常使用绝对达不到，仅防 runaway。
         this.budgetPerPlayerPerHour = yaml.getInt("llm.budget_per_player_per_hour", 200);
@@ -135,13 +129,6 @@ public class LLMConfigManager {
      */
     public String getAgentSystemPromptByLanguage(boolean isChinese, String fallbackDefault) {
         return getByLanguage(isChinese, agentSystemPrompt, agentSystemPromptEn, fallbackDefault);
-    }
-
-    /**
-     * 按语言获取 Agent 分析提示词后缀
-     */
-    public String getAgentAnalysisPromptSuffixByLanguage(boolean isChinese, String fallbackDefault) {
-        return getByLanguage(isChinese, agentAnalysisPromptSuffix, agentAnalysisPromptSuffixEn, fallbackDefault);
     }
 
     /**

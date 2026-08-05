@@ -212,16 +212,6 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             return toSearchQuery(contentForExtraction);
         }
 
-        // ========== LLM 总结分析场景 ==========
-        String suffix = plugin.getConfigManager().getAgentAnalysisPromptSuffix();
-        if (suffix != null && !suffix.isEmpty()) {
-            int suffixIndex = userMessage.indexOf(suffix);
-            if (suffixIndex > 0) {
-                contentForExtraction = userMessage.substring(0, suffixIndex);
-            }
-        }
-
-        // 检测统一格式标记（AnalysisSummary 产生的格式，可能被翻译）
         contentForExtraction = extractCleanContent(contentForExtraction);
 
         PluginLoggerUtil.debug("知识库", "提取的内容: {}", contentForExtraction);
