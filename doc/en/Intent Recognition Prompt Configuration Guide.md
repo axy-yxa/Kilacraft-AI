@@ -1,6 +1,6 @@
 # Kilacraft-AI - Intent Recognition Prompt Configuration Guide
 
-> **Last Updated**: 2026-08-01  
+> **Last Updated**: 2026-08-04  
 > **Corresponding Version**: v2.2.0 (Two-Phase Intent Recognition Architecture)  
 > **Description**: This document details the two-phase intent recognition architecture and how to configure intent recognition prompts via `intent_prompts.yml` to guide the LLM in understanding user input and recognizing skill intents.
 
@@ -47,7 +47,7 @@ plugins/Kilacraft-AI/
 ├── llm.yml                     # LLM API config (model, temperature, API key, etc.)
 ├── config.yml                  # Main config (language settings.language, debug mode, etc.)
 └── skills/                     # Skill descriptions and action definitions
-    ├── bukkit/apis.yml         # BukkitAPI action definitions (71 total)
+    ├── bukkit/*.yml            # BukkitAPI action definitions (5 files, 71 total)
     ├── watch/WatchSkill.yml
     └── ...
 ```
@@ -189,14 +189,6 @@ When a Skill returns `needInfo` (missing params / confirmation needed), the fram
 
 > Resume config (toggle/TTL/max rounds) is in `config.yml`'s `pending_resume` section: `enabled` (default true), `ttl_seconds` (default 300), `max_rounds` (default 5). Resume is purely in-memory, per-player single slot; cleared on conclusion/cancel/timeout/logout/unload.
 
-```yaml
-phase1:
-  role_definition: |      # Coarse-selection positioning: favor recall + core matching criteria + strict skill name restriction
-  output_format: |        # {"skill_names": [...]} or null
-```
-
-Phase 1's `role_definition` emphasizes "favor recall over precision" — during coarse selection it's better to include a possibly-relevant skill than to miss one; Phase 2 will refine afterward.
-
 ---
 
 ## 🎯 Core Rules
@@ -275,17 +267,17 @@ This section estimates the Token savings of the two-phase architecture vs the pr
 
 ### Data Basis
 
-> The table above reflects v2.1.x benchmark measurements. Current stats (v2.2.0): **17 built-in skills**, BukkitAPI **71 actions**.
+> The table above reflects v2.1.x benchmark measurements. Current stats (v2.2.0): **20 built-in skills**, BukkitAPI **71 read-only query actions** (split across 5 independent skills).
 
 - Built-in skills total **12** (11 Skill yml + GenericBukkitAPI, measured at v2.1.x)
-- BukkitAPI (`apis.yml`) has **77 action definitions** (v2.1.x measurement), full size about **38K chars** — the bulk of the full prompt
+- BukkitAPI (`skills/bukkit/*.yml`, 5 split files) has **71 read-only query action definitions**, full size is the bulk of the full prompt
 - Phase 1 sends only one line of `name + description` per skill; 12 skills total about **5K chars**
 - Normal skill full-size median taken as **3.1K chars** (ServerHealthSkill)
 
 ### Estimation Limitations
 
 - **Characters ≠ tokens**: actual token counts vary by tokenizer (DeepSeek/GLM, etc.). For precise values, count the actual prompt with the target model's tokenizer and replace the table
-- **Excludes conversation history**: intent recognition also appends history (`intent_history_count`, default 5 rounds), but the history part is identical before and after refactor, so it does not affect savings ratios
+- **Excludes conversation history**: intent recognition also appends history (`intent_history_count`, default 7 rounds), but the history part is identical before and after refactor, so it does not affect savings ratios
 - **Response speed cannot be statically estimated**: two-phase adds one ultra-lightweight Phase 1 call, but each recognition no longer carries the full skill list; net latency depends on model and network and requires real measurement
 
 ### How to Reproduce the Estimation
@@ -293,8 +285,8 @@ This section estimates the Token savings of the two-phase architecture vs the pr
 ```bash
 # Full skill scale (pre-refactor skill list)
 cd plugins/Kilacraft-AI/skills
-grep -vE '^\s*#|^\s*$' bukkit/apis.yml | wc -m          # BukkitAPI 77 actions
-find . -name "*.yml" ! -name "*_en.yml" ! -name "apis.yml" -exec cat {} \; | grep -vE '^\s*#|^\s*$' | wc -m
+grep -h -vE '^\s*#|^\s*$' bukkit/*.yml | wc -m          # BukkitAPI 77 actions (measured at v2.1.x)
+find . -name "*.yml" ! -name "*_en.yml" -path "*/bukkit/*" -prune -o -name "*.yml" -print | xargs grep -hvE '^\s*#|^\s*$' | wc -m
 
 # Prompt rule section scale
 grep -vE '^\s*#|^\s*$' intent_prompts.yml | wc -m
@@ -397,7 +389,7 @@ A: Two-phase is the core architecture of v2.1.1 and cannot fall back to single-p
 - `llm.yml` — LLM API config (model, temperature, API key, max_tokens)
 - `config.yml` — Main config (language, debug mode)
 - `skills/` — Each skill's description, actions, hints
-- `skills/bukkit/apis.yml` — BukkitAPI action definitions (71 total)
+- `skills/bukkit/*.yml` — BukkitAPI action definitions (5 split files, 71 total)
 - Changelog — Version change records
 
 ---

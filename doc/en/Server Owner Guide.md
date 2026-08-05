@@ -350,7 +350,7 @@ AI interacts with the server through Skills, each corresponding to a category of
 | **Web Fetch** | Fetch page body from a given URL, zero-config, built-in SSRF protection | None | `kilacraft.webfetch` |
 | **Version Info** | Query plugin version, changelog, new version detection | None | `kilacraft.admin.info` |
 | **Utility** | Timed delay, proactive notification, server-wide broadcast | None | `kilacraft.utility` |
-| **Command Execution** | Execute commands as player, inherits permission system (disabled by default) | None | `kilacraft.command.execute` |
+| **Command Execution** | Execute commands as player, inherits permission system (default on for all players, controlled by kilacraft.command.execute permission) | None | `kilacraft.command.execute` |
 | **Sound & Particles** | AI-triggered sounds/particles, only caller perceives, YAML-driven config | None | `kilacraft.bukkit_fx` |
 | **Server Admin** | Health monitoring, player analysis, audit logs (see Advanced Features above) | Spark (optional) | `kilacraft.admin.*` |
 
@@ -413,7 +413,7 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 | `/kila memory [player]` | `kilacraft.query.self` / `kilacraft.memory.other` | Player profile & 8 dimensions |
 | `/kila skills [page]` | None | List available skills |
 | `/kila run <skill> <prompt>` | Per-skill | Force-execute a skill, skipping intent recognition (player only) |
-| `/kila doctor` | `kilacraft.admin.info` | Config self-diagnostic (collapsible grouped output) |
+| `/kila doctor` | `kilacraft.admin.info` | Config self-diagnostic (grouped summary output) |
 | `/kila cache [reset]` | `kilacraft.admin.cache` | View/reset LLM cache hit-rate statistics |
 | `/kila about` | `kilacraft.admin.info` | Version & update check |
 | `/kila profile start [seconds]` | `kilacraft.admin.health` | Start manual profiling |
@@ -439,7 +439,7 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 | `kilacraft.bukkit_stats` | true | Vanilla stats queries |
 | `kilacraft.utility` | true | Utility tools (delay/notify) |
 | `kilacraft.utility.broadcast` | op | Server-wide broadcast (OP only by default) |
-| `kilacraft.command.execute` | op | Command execution (OP only by default) |
+| `kilacraft.command.execute` | true | Command execution (default on for all players) |
 | `kilacraft.watch` | true | Player custom watch |
 | `kilacraft.player_watch` | true | Cross-player watch subscription |
 | `kilacraft.websearch` | true | Web search (requires API Key configured) |

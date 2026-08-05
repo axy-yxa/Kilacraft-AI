@@ -305,6 +305,8 @@ public enum SkillStatus {
 }
 ```
 
+> 另有 `SKIPPED` 状态，仅供框架内部使用（多步骤依赖未满足 / 参数解析失败），第三方 Skill 不得产生。
+
 ---
 
 ## 6. 结果状态标记与归一化
@@ -472,6 +474,8 @@ private CompletableFuture<SkillResult> queryPrice(SkillContext context) {
 
 描述里写明：`"返回数据包含 item_name、price 字段"`。
 
+**重要：`data` 不会进入 LLM 提示词**。`data` 仅供多步骤占位符解析与监听阈值比较；需要 LLM 阅读的内容（如搜索摘要、网页正文、诊断报告）必须拼进 `message`。
+
 ### 8.3 占位符格式
 
 ```
@@ -517,6 +521,8 @@ Skill 名称全局唯一，与内置 Skill 重名时第三方会被跳过（内�
 // 差
 "查询信息"   // 太模糊
 ```
+
+> **description / getHints() 内容必须纯静态**：禁止使用 `{player}`、`{time}`、坐标等动态占位符（这些占位符在 system 提示词中不会被替换，且会破坏 LLM 供应商的前缀缓存）。动态信息由框架统一注入 user 消息。
 
 ### 9.3 Action 设计
 
@@ -919,6 +925,8 @@ A: 关键是 description / action 描述清楚说明返回的 data 字段，LLM 
 | `SUCCESS` | `[SUCCESS]` | 成功 |
 | `FAILURE` | `[FAILURE]` | 硬失败 |
 | `NEED_INFO` | `[NEED_INFO]` | 需补充/确认 |
+
+> 另有 `SKIPPED` 状态，仅供框架内部使用（多步骤依赖未满足 / 参数解析失败），第三方 Skill 不得产生。
 
 ---
 

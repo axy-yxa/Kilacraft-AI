@@ -306,6 +306,8 @@ public enum SkillStatus {
 }
 ```
 
+> There is also a `SKIPPED` status, used internally by the framework only (multi-step dependency unmet / param-parse failure); third-party Skills must not produce it.
+
 ---
 
 ## 6. Result Status Markers & Normalization
@@ -475,6 +477,8 @@ private CompletableFuture<SkillResult> queryPrice(SkillContext context) {
 
 Document: `"Returned data contains item_name and price fields."`
 
+**Important: `data` is never sent to the LLM prompt.** `data` is only used for multi-step placeholder resolution and watch threshold comparison; content the LLM must read (search summaries, fetched page text, diagnostics) must be put into `message`.
+
 ### 8.3 Placeholder Format
 
 ```
@@ -520,6 +524,8 @@ Skill names are globally unique; a third-party Skill whose name collides with a 
 // Bad
 "Query info"   // too vague
 ```
+
+> **`description` / `getHints()` content must be purely static** — no `{player}`, `{time}`, coordinates, or other dynamic placeholders (these placeholders are never replaced in the system prompt and would break LLM provider prefix caching). Dynamic information is injected into the user message uniformly by the framework.
 
 ### 9.3 Action Design
 
@@ -921,6 +927,8 @@ A: Document the returned data fields clearly in the description / action descrip
 | `SUCCESS` | `[SUCCESS]` | success |
 | `FAILURE` | `[FAILURE]` | hard failure |
 | `NEED_INFO` | `[NEED_INFO]` | needs info / confirmation |
+
+> There is also a `SKIPPED` status, used internally by the framework only (multi-step dependency unmet / param-parse failure); third-party Skills must not produce it.
 
 ---
 

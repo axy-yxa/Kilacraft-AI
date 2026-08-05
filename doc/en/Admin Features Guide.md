@@ -1,6 +1,6 @@
 # Kilacraft-AI Admin Features Guide
 
-> **Last Updated**: 2026-08-01
+> **Last Updated**: 2026-08-04
 > **Description**: Complete usage guide for Kilacraft-AI's admin features — server health monitoring, player behavior analysis, and audit log querying — including configuration reference and scenario examples
 
 ## Overview
@@ -520,15 +520,15 @@ In addition to the three main admin features, two general-purpose commands are c
 
 ### `/kila doctor` — Config Self-Diagnostic
 
-One-click diagnostic of plugin configuration and runtime status. In-game output uses a **collapsible grouped summary** format: each group shows a "X OK, Y Warning, Z Error" header line, with only the error items expanded in detail — dramatically reducing chat spam when everything is healthy. Console output is more detailed (includes sanitized full config, cache hit rates, web search provider status, etc.).
+One-click diagnostic of plugin configuration and runtime status. The in-game output uses a **grouped summary** format: each group shows a `▌{group}` title line, and every check item occupies one line (✅/⚠/✗ icon + name + brief status); normal items are also listed, not folded. The console output is more detailed (includes desensitized full config, web search provider status, etc.).
 
-Example check categories: database connectivity, LLM connectivity, Spark availability, various AI capability toggles, **LLM cache hit rate** (≥50% OK, ≥30% low, <30% error), web search provider status, and more. Requires `kilacraft.admin.info` permission (default OP).
+Example check categories: database connectivity, LLM connectivity, Spark availability, various AI capability toggles, web search provider status, and more. Requires `kilacraft.admin.info` permission (default OP).
 
 > Note: the observable group named `health_guardian` refers to server health monitoring (the feature described in this document), not the Guardian system (AI proactive watch). The two are distinct concepts with distinct naming to avoid confusion.
 
 ### `/kila cache` — LLM Cache Hit-Rate Statistics
 
-Real-time view of LLM prompt cache hit rates and savings, helping determine whether LLM call costs are optimized. Displays per-type breakdowns for multiple AI call categories (intent recognition both phases, secondary analysis, normal chat, greeting, profile, suggestions, tool notifications, server diagnostics, etc.), showing request count, input token consumption, cache hit rate, and token savings for each.
+Real-time view of LLM prompt cache hit rates and savings, helping determine whether LLM call costs are optimized. Displays per-type breakdowns for multiple AI call categories (intent recognition both phases, pending-resume classification, secondary analysis, normal chat, greeting, profile, suggestions, tool notifications, server diagnostics, etc.), showing request count, input token consumption, cache hit rate, and token savings for each.
 
 - Auto-detects caching fields from three major providers: DeepSeek (`prompt_cache_hit_tokens`), OpenAI (`cached_tokens`), Anthropic (`cache_read_input_tokens`) — no extra configuration needed.
 - Data accumulates in the current server session's memory only, reset on restart.

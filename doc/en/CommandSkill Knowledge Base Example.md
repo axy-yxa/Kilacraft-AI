@@ -1,15 +1,15 @@
-# Let the AI Execute Custom Commands (Command Skill) — Knowledge Base Writing Example
+# Let the AI Execute Custom Commands (Command Skill) — Command Document Writing Example
 
-> **Last Updated**: 2026-08-01  
-> **Description**: Server owners write their server's custom commands into the knowledge base so the AI can execute them on the player's behalf via the command skill (CommandSkill). Works with two-phase intent recognition + the corpus-seeding dictionary.
+> **Last Updated**: 2026-08-04  
+> **Description**: Server owners register their server's commands in `commands/commands.md` so the AI can execute them on the player's behalf via the command skill (CommandSkill). This mechanism is independent of the knowledge base (`knowledge/` directory).
 
 ---
 
 ## When to Use This
 
-Your server runs **custom-command plugins** (Essentials, CMI, HuskTowns, MyHome, etc.) providing commands like `/back`, `/home`, `/spawn`, `/tpa`, `/menu`. You want players to trigger them with natural language ("take me home", "teleport me to Steve") — just write those commands into the knowledge base.
+Your server runs **custom-command plugins** (Essentials, CMI, HuskTowns, MyHome, etc.) providing commands like `/back`, `/home`, `/spawn`, `/tpa`, `/menu`. You want players to trigger them with natural language ("take me home", "teleport me to Steve") — just register those commands in `commands/commands.md`.
 
-Prerequisite: enable `command_skill.enabled: true` in `config.yml`.
+> ⚠️ **Important change**: Early versions wrote commands into the knowledge base (`knowledge/` directory) and retrieved them via BM25. That mechanism is deprecated. Commands now go through a **standalone command document** (`commands/commands.md`), are **not retrieved via the knowledge base**, and no longer "seed" the HanLP dictionary. The command skill is always registered — there is no toggle in `config.yml`.
 
 ---
 
@@ -18,20 +18,19 @@ Prerequisite: enable `command_skill.enabled: true` in `config.yml`.
 ```
 Player speaks ("I died, take me back to grab my stuff")
    ↓
-Phase 1 coarse intent selection (no knowledge-base lookup)
+CommandSkill, as a DynamicContextProvider, filters the visible commands by the player's
+   permissions and injects them into the Phase 1 prompt as an "AI-executable commands" summary
    ↓
-Phase 2 precise intent selection [retrieves the knowledge base] ← hits the "/back return to death point" chunk
+The LLM sees entries like "back: return to death point" and decides skill=command, command="back"
    ↓
-LLM decides: skill=command, action=execute_command, command="back"
-   ↓
-The command skill (CommandSkill) runs /back as the player
+CommandSkill runs /back as the player (bounded by the player's own permissions)
 ```
 
 Three key facts:
 
-1. **The knowledge base is retrieved during Phase 2 intent recognition, not when the command skill runs.** Its job is to "teach the Phase 2 LLM what your commands are and how to produce the correct `command` parameter."
-2. **The command skill is a fallback skill:** if a dedicated skill (economy transfer, market query, etc.) can handle the request, that skill wins. Only server-specific custom commands not covered by a dedicated skill rely on the command skill + the knowledge base.
-3. **The `command` parameter has no leading `/`:** the LLM must fill `back`, not `/back`.
+1. **The command document is independent of the knowledge base**: command entries are parsed from `commands/commands.md` and do NOT go through the knowledge base's segmentation/retrieval/scoring pipeline, nor do they participate in corpus seeding (the HanLP dictionary only scans `knowledge/`, not `commands/`).
+2. **The command skill is a fallback skill:** if a dedicated skill (economy transfer, market query, etc.) can handle the request, that skill wins. Only server-specific custom commands not covered by a dedicated skill rely on the command skill + the command document.
+3. **The `command` parameter has no leading `/`:** the LLM must fill `back`, not `/back`. The `example:` field guides it to the correct value.
 
 ---
 
@@ -39,47 +38,104 @@ Three key facts:
 
 | Item | Value |
 |---|---|
-| Skill name | `command` (implementation class `CommandSkill`) |
-| Action | `execute_command` |
+| Skill name | `command` (implementation class `CommandSkill`, also implements `DynamicContextProvider` and `CallerDescriptionProvider`) |
+| Action | Runs a command as the player |
 | Parameter | `command`: the full command, **without the leading `/`**, extracted from the player's message |
 | Permission | `kilacraft.command.execute` (default OP); runs as the player, bounded by the player's own permissions (if the player lacks a permission, so does the AI) |
-| Toggle | Only registered when `command_skill.enabled: true` is set in `config.yml` |
+| Command source | `commands/commands.md` (Chinese/default), `commands/<lang>/commands.md` (matched by client language, e.g. `commands/en/commands.md`) |
+| Toggle | **No toggle needed** — the command skill is always registered (the old `command_skill.enabled` config key has been removed) |
 | Role | Fallback skill (dedicated skills take priority) |
 
 ---
 
-## Full Example (copy to `knowledge/custom_commands.md`, replace with your real commands)
+## Command Document Format
+
+File location (under the plugin data folder):
+
+```
+plugins/Kilacraft-AI/
+├── commands/
+│   ├── commands.md          # Default/Chinese command document
+│   └── en/
+│       └── commands.md      # Command document used by English clients
+└── knowledge/               # Knowledge base (unrelated to this mechanism)
+```
+
+> On first startup the plugin auto-generates `commands/commands.md` with Kilacraft-AI's own built-in commands already filled in, plus format notes and commented examples. Just append your server's commands at the end of the file.
+
+Each command is declared with a `##` heading (**no leading `/`**), followed by four fields:
+
+```
+## command_name
+description: What the command does
+example: Full invocation (with arguments)
+permission: Server permission node required to run this command
+keywords: Words players might use to express this intent (optional, comma-separated)
+```
+
+**Field meanings**:
+
+| Field | Required | Purpose |
+|---|---|---|
+| `description:` | Yes | One sentence on what the command does; injected into the prompt so the LLM can judge whether it matches the player's intent |
+| `example:` | Yes | Full invocation (with arguments); guides the LLM to fill the correct `command` value (**no `/`**) |
+| `permission:` | Yes | Server permission node. CommandSkill **filters by the player's permissions in real time**: commands the player lacks permission for are NOT injected into that player's prompt (the AI neither sees nor attempts to execute them) |
+| `keywords:` | No | Words players might use to express this intent, comma-separated. Supplements synonyms / colloquial phrasings to improve recognition accuracy |
+
+> The command name may also carry argument placeholders, e.g. `## kila clear <player>`, `## home [home_name]`, to describe parameterized commands.
+
+---
+
+## Full Example (edit `commands/commands.md` directly, append at the end)
+
+Below shows how to append third-party plugin commands after the built-in ones. The first part is the plugin's own `kila` series (built-in, **no need to write by hand** — shown here only as a format reference); the second part is the third-party commands (Essentials, etc.) you should add.
 
 ````markdown
-# Server Custom Commands
+# AI Executable Commands Document
+#
+# This file is auto-generated by Kilacraft-AI with built-in plugin commands.
+# Add commands from other plugins and custom commands below.
+# Run /kila reload after editing to apply changes.
+#
+# This file is independent from the knowledge base (knowledge/ directory),
+# used only for AI command execution skill intent recognition.
 
-When a player asks for something in natural language, the AI can execute the commands below on their behalf. Commands run as the player, so anything the player can't do, neither can the AI.
+# ...(built-in kila clear / kila usage / kila reload etc. omitted here)...
 
-## Return to death point / go back to where you were (/back)
-`/back` takes you back to your last position — usually where you died and dropped items, or where you were before a teleport. 30-second cooldown; cannot be used in combat.
-Q: I died, how do I go back for my stuff / can I get my dropped items back / take me back to where I was / how long is back cooldown
-AI executes: back
+# ============ Add your commands below ============
 
-## Go to your home (/home)
-`/home` teleports you to your set home. If you have multiple homes, append the home name, e.g. `/home main-base` to go to the home named "main-base".
-Q: go home / take me to my base / send me back to my hut / go to my home called main-base
-AI executes: home (or `home main-base` when a name is given)
+## home
+description: Teleport to your set home
+example: home [home_name]
+permission: essentials.home
+keywords: go home, back to base, my hut, take me to my home
 
-## Teleport to another player (/tpa)
-`/tpa <player>` sends a teleport request to that player; you only go after they accept — you cannot force it. For example `/tpa Steve` requests a teleport to Steve.
-Q: teleport to Steve / I want to find my friend / take me to Alex / teleport me to Tom
-AI executes: tpa <player> (e.g. `tpa Steve`)
+## tpa
+description: Request a teleport to a player (you only go after they accept)
+example: tpa player_name
+permission: essentials.tpa
+keywords: teleport, find player, go to a friend, take me to someone
 
-## Return to spawn / main city (/spawn)
-`/spawn` teleports you to the server's main spawn point; no arguments needed.
-Q: go to spawn / take me to the spawn point / how do I get back to the city / teleport to town
-AI executes: spawn
+## back
+description: Return to your last position (usually where you died and dropped items)
+example: back
+permission: essentials.back
+keywords: death point, recover items, take me back to where I was
 
-## Open the server menu (/menu)
-`/menu` opens the main menu, which contains the shop, teleport, quests, kits, and all other features.
-Q: open the menu / where is the shop / I want to buy something / how do I claim my kit / where are the quests
-AI executes: menu
+## spawn
+description: Teleport to the server's main spawn point
+example: spawn
+permission: essentials.spawn
+keywords: go to spawn, spawn point, back to town, teleport to city
+
+## menu
+description: Open the main menu (shop, teleport, quests, kits, etc.)
+example: menu
+permission: essentials.menu
+keywords: open menu, where is the shop, claim kit, where are the quests
 ````
+
+> English clients read `commands/en/commands.md`; the format is identical, only the field names change to `description:` / `example:` / `permission:` / `keywords:` (see the English template generated by the plugin).
 
 ---
 
@@ -87,42 +143,52 @@ AI executes: menu
 
 | Choice | Which link it serves | Why |
 |---|---|---|
-| Always write the command in full as `/back` (in both heading and body) | Corpus seeding + keyword weighting | `/back` triggers **corpus seeding** (`back` auto-enters the HanLP dictionary, so it isn't split when a player types `/back` directly); it's also a ≥4-char long word, so BM25 weights it ×3 |
-| Headings stack Chinese synonyms (go home / return / death point / spawn) | **The main driver of Chinese recall** | A player saying "go home" in Chinese matches the heading "go home" → heading-term bonus `+15×term weight`. Corpus seeding can't help here; recall depends on this |
-| **No blank line** between heading and body | Keeps the heading block intact | A blank line splits the heading block; the body becomes an untitled orphan chunk, losing the heading bonus (and may be dropped if <20 chars) |
-| Each `Q:` lists 2–4 ways players might phrase it | Keyword-coverage padding | Adds words players use but your body doesn't ("my stuff", "town"); short phrasings may even match the whole keyword string for +50 |
-| The `AI executes: back` line | Teaches the LLM the command value | Explicitly tells the Phase 2 LLM what `command` to fill and that it has **no `/`**, reducing mistakes like `/back` or wrong argument formats |
-| One command per `##` block | Recall completeness | BM25 segments by heading; a search for "go home" returns one complete chunk (command + purpose + phrasings), giving the LLM everything it needs to produce the command |
-| Each segment 20–500 chars | Not dropped / no lost bonus | <20-char chunks are filtered; >500-char chunks get re-split and the second part loses the heading bonus |
+| Command name as the `##` heading, **no `/`** | Parsing + prompt injection | The parser splits command entries by `##`; the heading is the command name itself, so the LLM directly sees the fillable `command` value |
+| `example:` gives the full invocation (with arguments) | Teaches the LLM the command value | Explicitly tells the LLM what to fill and that it has **no `/`**; parameterized commands (e.g. `tpa player_name`) rely on the example to show the argument format, reducing mistakes |
+| `permission:` filled with the accurate server permission node | **Dynamic per-player filtering** | CommandSkill implements `DynamicContextProvider` and filters each entry against the player's current permissions: if the player lacks `essentials.home`, `home` is never injected for them — the AI neither sees nor attempts it (no unauthorized commands get executed) |
+| `keywords:` stacks Chinese/colloquial synonyms | Improves recognition accuracy | When a player says "go home / back to spawn" in their language, these words help the LLM match the right command entry |
+| `description:` clarifies the command's boundaries and limits | Reduces LLM misuse | One sentence stating "what it can do / when it can't" (e.g. "you only go after they accept") prevents the AI from forcing a command in an unfit scenario |
 | Only server custom commands — not "pay money / check market" | The command skill is a fallback | Requests covered by dedicated skills (economy / market) are handled by those skills; writing them here only muddies the match |
+| One command per `##` block | Recall completeness | Each command is injected as an independent entry, giving the LLM everything it needs to produce the command (description + example + keywords) |
 
 ---
 
 ## Two Important Reminders
 
-1. **Chinese recall is the bigger lever:** the corpus-seeding dictionary only helps when a player's input contains an English command word (`/back`, `ender-dragon`); most players say it in Chinese ("go home / back to spawn"), which relies on **Chinese-synonym coverage in the headings and body**. The more synonyms you stack, the more stable the recall — this is where to spend your effort.
+1. **The command document does NOT enter the HanLP dictionary**: corpus seeding (auto-populating the dictionary) only scans the `knowledge/` directory, **not `commands/`**. So whether you write `/back` in full in the command document has no effect on tokenization. Command recognition relies on the structured fields above + the prompt — NOT on keyword tokenization recall. This differs from the old mechanism.
 
-2. **Always give an example for parameterized commands:** for things like `/home main-base` or `/tpa Steve`, just writing "teleport to a player" lets the LLM fill it wrong; a concrete example (`AI executes: tpa Steve`) makes the LLM follow the argument format.
+2. **Always give an example for parameterized commands:** for things like `home main-base` or `tpa Steve`, just writing "teleport to a player" lets the LLM fill it wrong; a concrete example (`example: tpa player_name`) makes the LLM follow the argument format.
+
+---
+
+## Ops
+
+| Action | Command | Purpose |
+|---|---|---|
+| Reload the command document | `/kila reload` | Run after editing `commands/commands.md` to apply immediately (no server restart needed) |
+| Command document health check | `/kila doctor` | The self-check inspects the command skill's entries (`hasCommandEntries`); if the document is empty or malformed it will warn |
+
+> Edits to the command document are **hot-reloadable**: run `/kila reload` after editing, no restart required. Language versions (Chinese/English) are selected by client language at file-read time, with no extra configuration.
 
 ---
 
 ## Checklist
 
-Go through this when optimizing any command-skill knowledge file:
+Go through this when optimizing any command document:
 
-- ☐ One command per `##` heading, the heading contains [player phrasing + command name] (e.g. `Go home / Return (/home)`)?
-- ☐ Command written in `/full` form (triggers corpus seeding + long-word weighting)?
-- ☐ No blank line between heading and body?
-- ☐ Each segment 20–500 chars?
-- ☐ Each command has a `Q:` listing several ways players might ask?
-- ☐ Each command has an `AI executes: xxx` stating the command value (no `/`)?
-- ☐ Parameterized commands give a concrete example?
+- ☐ One command per `##` heading, and the heading has **no leading `/`**?
+- ☐ Each command has the three required fields `description:` / `example:` / `permission:`?
+- ☐ `permission:` is the **accurate server permission node** (e.g. `essentials.home`)?
+- ☐ `example:` gives the full invocation and has **no `/`** (e.g. `home [home_name]`, not `/home`)?
+- ☐ Parameterized commands provide a concrete argument placeholder in `example:` (e.g. `tpa player_name`)?
+- ☐ `keywords:` lists several colloquial / native-language phrasings players might use?
 - ☐ Nothing that a dedicated skill already covers (economy / market)?
-- ☐ UTF-8 encoded, `.md` extension, in the `knowledge/` directory?
+- ☐ The file is at `commands/commands.md` (English: `commands/en/commands.md`), UTF-8 encoded?
+- ☐ After editing you ran `/kila reload`, and `/kila doctor` passed the self-check?
 
 ---
 
 ## Related Documentation
 
-- [Knowledge Base Guide](./Knowledge%20Base%20Guide.md) - retrieval mechanism, segmentation strategy, scoring algorithm
-- [Knowledge Base File Template](./Knowledge%20Base%20File%20Template.md) - general knowledge-base template and the 7 rules
+- [Knowledge Base Guide](./Knowledge%20Base%20Guide.md) - knowledge-base retrieval mechanism, segmentation strategy, scoring algorithm (the command document does NOT use this)
+- [Knowledge Base File Template](./Knowledge%20Base%20File%20Template.md) - general knowledge-base template and rules

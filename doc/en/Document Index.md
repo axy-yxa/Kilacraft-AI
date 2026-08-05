@@ -1,6 +1,6 @@
 # Kilacraft-AI Document Index
 
-> **Last Updated**: 2026-08-01  
+> **Last Updated**: 2026-08-04
 > **Description**: Quick index of all Kilacraft-AI documentation to help you find what you need
 
 ---
@@ -26,7 +26,7 @@
 
 | Document | Description | Audience |
 |----------|-------------|----------|
-| [Built-in Skills and Events Capability List](./Built-in%20Skills%20and%20Events%20Capability%20List) | All 17 built-in Skills and WatchSkill's 11 event-listening types | Server Owners, Developers |
+| [Built-in Skills and Events Capability List](./Built-in%20Skills%20and%20Events%20Capability%20List) | All 20 built-in Skills and WatchSkill's 11 event-listening types | Server Owners, Developers |
 | [Bukkit API Reference](./Bukkit%20API%20Reference) | 71 read-only APIs — configuration examples, permission management | Server Owners, Developers |
 | [Personality System Guide](./Personality%20System%20Guide) | Multi-personality management, prompt writing, style configuration | Server Owners, Advanced Users |
 | [Knowledge Base Guide](./Knowledge%20Base%20Guide) | RAG principles, document writing standards, retrieval optimization (incl. BM25+Embedding fusion) | Server Owners, Content Creators |

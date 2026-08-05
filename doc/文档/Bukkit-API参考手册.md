@@ -1,6 +1,6 @@
 # Kilacraft-AI - Bukkit API 参考手册
 
-> **最后更新**: 2026-08-01  
+> **最后更新**: 2026-08-04  
 > **说明**: 本文档提供所有内置 Bukkit API 的详细说明、配置示例和使用场景
 
 ---
@@ -43,11 +43,11 @@
 | `get_player_display_name` | 获取玩家显示名称 | 获取显示名称（含前缀） | method_chain | `kilacraft.api.player.info` |
 | `get_player_bed_spawn` | 获取玩家床重生点 | 获取床重生点位置 | method_chain | `kilacraft.api.player.info` |
 | `get_player_total_exp` | 获取玩家总经验值 | 获取累积总经验 | method_chain | `kilacraft.api.player.status` |
-| `get_player_inventory_usage` | 获取背包使用率 | 获取占用格数/总格数/百分比 | additional_methods | `kilacraft.api.player.inventory` |
+| `get_player_inventory_usage` | 获取背包使用率 | 获取已占用格数/空格数 | additional_methods | `kilacraft.api.player.inventory` |
 | `get_player_inventory` | 获取背包物品摘要 | 获取背包内物品名称+数量列表 | method_chain | `kilacraft.api.player.inventory` |
 | `get_player_ender_chest` | 获取末影箱摘要 | 获取末影箱物品名称+数量列表 | method_chain | `kilacraft.api.player.inventory` |
 | `get_player_open_container` | 获取打开的容器内容 | 获取当前打开的容器物品摘要 | additional_methods | `kilacraft.api.player.inventory` |
-| `get_player_open_inventory` | 获取当前打开的界面 | 获取正在查看的容器/类型 | additional_methods | `kilacraft.api.player.info` |
+| `get_player_open_inventory` | 获取当前打开的界面 | 获取正在查看的容器/类型 | additional_methods | `kilacraft.api.player.inventory` |
 | `get_player_absorption` | 获取玩家吸收之心 | 获取额外吸收生命值 | method_chain | `kilacraft.api.player.status` |
 | `get_player_arrows_in_body` | 获取玩家身上箭数 | 获取嵌入身体的箭数量 | method_chain | `kilacraft.api.player.status` |
 | `get_player_no_damage_ticks` | 获取玩家无敌帧 | 获取受伤后无敌时间（tick） | method_chain | `kilacraft.api.player.status` |
@@ -99,118 +99,71 @@
 
 ## 📖 概述
 
-Kilacraft-AI 内置了 **71 个 Bukkit API**，让 AI 能够访问 Minecraft 服务器的各种数据。这些 API 通过 YAML 配置定义，无需编写代码即可使用。
+Kilacraft-AI 内置了 **71 个只读 Bukkit API**，让 AI 能够访问 Minecraft 服务器的各种数据。这些 API 由 5 个独立的配置驱动 Skill 提供，均继承自 `AbstractBukkitQuerySkill`。
 
 ### 核心特性
 
-- ✅ **数据驱动配置**：在 `apis.yml` 中定义 API，支持热重载
-- ✅ **权限控制**：每个 API 可设置独立的访问权限
-- ✅ **双模式执行**：支持 method_chain（链式调用）和 additional_methods（并行调用）
-- ✅ **智能格式化**：自动处理复杂类型（Location、ItemStack、GameMode、ItemStack[]、Set<PotionEffect> 等）
+- ✅ **标准配置驱动**：5 个独立技能（`BukkitPlayerInfo`/`BukkitPlayerStatus`/`BukkitPlayerInventory`/`BukkitWorld`/`BukkitServer`）各自通过 `description`+`action_descriptions`+`hints` 定义，与项目其他内置 Skill 完全一致
+- ✅ **按技能控制权限**：每个技能一个权限节点，覆盖该技能下的全部 API（详见「权限管理」）
+- ✅ **智能格式化**：由各技能的 Java 类（`AbstractBukkitQuerySkill` 及子类）自动处理复杂类型（Location、ItemStack、GameMode、ItemStack[]、Set<PotionEffect> 等）
 - ✅ **错误隔离**：API 执行失败不影响其他功能
 
 ### 配置文件位置
 
+5 个拆分后的技能配置文件，均位于 `skills/bukkit/` 目录下：
+
 ```
-plugins/Kilacraft-AI/skills/bukkit/apis.yml
+plugins/Kilacraft-AI/skills/bukkit/BukkitPlayerInfoSkill.yml
+plugins/Kilacraft-AI/skills/bukkit/BukkitPlayerStatusSkill.yml
+plugins/Kilacraft-AI/skills/bukkit/BukkitPlayerInventorySkill.yml
+plugins/Kilacraft-AI/skills/bukkit/BukkitWorldSkill.yml
+plugins/Kilacraft-AI/skills/bukkit/BukkitServerSkill.yml
 ```
+
+> 注：旧的单一 `apis.yml` / `apis_en.yml` 已在 commit b64cb0e 中移除，不再使用。
 
 ---
 
-## 🔧 API 配置结构
+## 🔧 技能配置结构
 
-### 基本结构
+> 自 commit b64cb0e 起，原先基于单一 `apis.yml` + `method_chain`/`additional_methods`/`result_template` 的数据驱动模型已被移除。5 个拆分技能现在采用与项目其他内置 Skill 完全一致的标准配置结构。
 
-```yaml
-player:  # 分类（player/world/server/paper_player/paper_world/paper_server）
-  api_id:  # API 唯一标识符
-    id: "api_id"  # API ID（与键名一致）
-    display_name: "API 显示名称"
-    description: "API 功能描述，会发送给 LLM"
-    usage_scenarios:  # 使用场景示例（可选）
-      - "当用户询问'我手上拿的是什么'"
-      - "看看我的物品"
-    target_type: "Player"  # 目标类型：Player/World/Server
-    required_permission: "kilacraft.api.player.inventory"  # 所需权限（可选）
-    
-    # 以下两个配置二选一：
-    
-    # 模式 1：method_chain（链式调用，返回复杂对象）
-    method_chain:
-      - "getInventory"
-      - "getItemInMainHand"
-    
-    # 模式 2：additional_methods（并行调用多个方法）
-    additional_methods:
-      health: "getHealth"
-      max_health: "getMaxHealth"
-    result_template: "生命值：{health}/{max_health}"  # 结果模板（仅用于 additional_methods）
-```
+### 标准技能配置 Schema
 
-### 重要规则
-
-#### 1. method_chain vs additional_methods
-
-| 特性 | method_chain | additional_methods |
-|------|--------------|-------------------|
-| **用途** | 链式调用（接力），返回复杂对象 | 并行调用多个独立方法，获取简单值 |
-| **返回值** | ItemStack, Location, GameMode 等 | Map<String, Object> |
-| **格式化** | 代码特殊处理（formatItemStack 等） | 使用 result_template 模板替换 |
-| **典型应用** | 获取物品、位置、游戏模式 | 获取生命值、坐标、经验值等 |
-
-**示例对比**：
+每个 `Bukkit*Skill.yml` 文件遵循统一的 Skill 配置 schema，核心字段为 `description` + `action_descriptions`（文本块）+ `hints`：
 
 ```yaml
-# ✅ method_chain：获取主手物品（返回 ItemStack）
-get_player_hand_item:
-  target_type: "Player"
-  method_chain:
-    - "getInventory"
-    - "getItemInMainHand"
-  # 不需要 result_template，由代码自动格式化 ItemStack
+# BukkitPlayerInventorySkill.yml（节选示例）
+skill_id: "bukkit_player_inventory"
+display_name: "Bukkit 玩家物品栏查询"
+description: |
+  查询玩家物品栏相关信息：主手/副手物品、背包与末影箱摘要、
+  背包占用、盔甲装备、当前打开的容器/界面类型等。
+permission: "kilacraft.api.player.inventory"
 
-# ✅ additional_methods：获取生命值（返回多个数值）
-get_player_health:
-  target_type: "Player"
-  additional_methods:
-    health: "getHealth"
-    max_health: "getMaxHealth"
-  result_template: "生命值：{health}/{max_health}"
+action_descriptions: |
+  get_player_hand_item — 获取玩家主手物品（类型/数量/附魔/耐久）
+  get_player_offhand_item — 获取玩家副手物品（盾牌槽）
+  get_player_armor — 获取全套盔甲（头盔/胸甲/护腿/靴子，含名称/类型/数量/附魔/耐久）
+  get_player_inventory_usage — 获取背包已占用格数/空格数
+  get_player_inventory — 获取背包内物品名称+数量列表
+  ...
+
+hints: |
+  - 物品栏查询为只读操作，安全可异步。
+  - 盔甲/背包/容器等需要主线程的方法已由技能内部调度处理。
 ```
 
-#### 2. additional_methods 支持简单链式调用
+### 关键变化
 
-在 `additional_methods` 中，方法名可以使用点号实现两层链式调用：
+| 旧模型（已移除） | 新模型（当前） |
+|------------------|----------------|
+| 单一 `apis.yml`，71 条 API 条目 | 5 个独立 `Bukkit*Skill.yml` 技能文件 |
+| 每条 API 的 `method_chain` / `additional_methods` / `result_template` | 调用与格式化逻辑下沉到 Java 类（`AbstractBukkitQuerySkill` + 子类） |
+| 每条 API 一个 `required_permission` 节点 | 每个技能一个权限节点，覆盖该技能全部 API |
+| `description` 作为单条 API 说明 | `action_descriptions` 文本块集中描述本技能所有 action |
 
-```yaml
-get_player_location:
-  target_type: "Player"
-  additional_methods:
-    x: "getLocation.getX"        # player.getLocation().getX()
-    y: "getLocation.getY"        # player.getLocation().getY()
-    z: "getLocation.getZ"        # player.getLocation().getZ()
-    world: "getLocation.getWorld.getName"  # player.getLocation().getWorld().getName()
-  result_template: "位置：X={x}, Y={y}, Z={z}, 世界={world}"
-```
-
-**限制**：
-- ✅ 最多支持 2 层链式（如 `"a.b"`）
-- ❌ 不支持 3 层+ 链式（如 `"a.b.c"`）
-- ❌ 不支持带参数的方法
-
-#### 3. result_template 占位符规则
-
-`result_template` 中的占位符 `{key}` 必须与 `additional_methods` 的 key 完全一致：
-
-```yaml
-# ✅ 正确
-additional_methods:
-  health: "getHealth"
-result_template: "生命值：{health}"
-
-# ❌ 错误：大小写不一致
-result_template: "生命值：{Health}"
-```
+> **注意**：action ID、返回字段（如 `helmet_name`、`item_count`、`raw_result` 等）以及输出格式均完整保留自原 `apis.yml`，仅是组织方式从「单文件每 API 一段配置」改为「每技能一段 yml + Java 实现」。本节下方各 API 的「返回字段」「多步骤数据传递」说明仍然有效。
 
 ---
 
@@ -742,7 +695,7 @@ get_player_pose:
 get_player_armor:
   id: "get_player_armor"
   display_name: "获取玩家盔甲装备"
-  description: "获取玩家当前穿戴的全套盔甲（头盔、胸甲、护腿、靴子）。返回的 data 中包含 helmet、chestplate、leggings、boots 字段，可供后续步骤引用。"
+  description: "获取玩家当前穿戴的全套盔甲（头盔、胸甲、护腿、靴子）。返回的 data 中按槽位展开为系列字段：helmet_name/helmet_type/helmet_amount/helmet_enchantments/helmet_max_durability/helmet_remaining_durability（以及 chestplate_*/leggings_*/boots_* 同结构），可供后续步骤引用。"
   usage_scenarios:
     - "我穿了什么装备"
     - "看看我的盔甲"
@@ -765,7 +718,7 @@ AI: 你的盔甲装备：
 ```
 
 **多步骤数据传递**：
-返回的 data 中包含 `helmet`、`chestplate`、`leggings`、`boots` 字段，后续步骤可通过 `{step_xxx.helmet}` 等引用。
+返回的 data 中每个槽位展开为一组字段：`<slot>_name`、`<slot>_type`、`<slot>_amount`，若有附魔/耐久则额外包含 `<slot>_enchantments`、`<slot>_max_durability`、`<slot>_remaining_durability`。其中 `<slot>` ∈ `helmet`/`chestplate`/`leggings`/`boots`。后续步骤可通过 `{step_xxx.helmet_name}`、`{step_xxx.boots_remaining_durability}` 等引用。空槽位对应的字段不会被写入。
 
 ---
 
@@ -1658,26 +1611,19 @@ get_server_settings:
 
 ## 🎯 高级用法
 
-### 自定义 API
+### 关于「自定义只读查询 API」
 
-你可以添加自己的 Bukkit API 调用。例如，添加一个获取玩家击杀数的 API：
+> ⚠️ 重要变更：旧的单一 `apis.yml` 允许用户通过 `method_chain`/`additional_methods` 自行添加查询 API；该模型已被移除。
 
-```yaml
-player:
-  get_player_kills:
-    id: "get_player_kills"
-    display_name: "获取玩家击杀数"
-    description: "查询玩家的总击杀数"
-    usage_scenarios:
-      - "我杀了多少人"
-      - "我的击杀数"
-    target_type: "Player"
-    required_permission: "kilacraft.api.player.stats"
-    method_chain:
-      - "getStatistic"  # 注意：此方法需要参数，当前版本暂不支持
-```
+自 commit b64cb0e 拆分为 5 个标准配置驱动技能后，**这 71 个只读查询 API 不再通过用户配置扩展**。原因：
 
-**注意**：当前版本只支持无参数方法调用，带参数的方法（如 `getStatistic(Statistic.PLAYER_KILLS)`）暂时无法使用。
+- 查询逻辑（方法调用、参数处理、结果格式化）已下沉到各技能的 Java 类（`AbstractBukkitQuerySkill` + 子类），不再读取用户编写的 `method_chain` 配置；
+- 添加新的查询 API 现在需要修改对应的 Java 技能类 + 更新该技能 yml 的 `action_descriptions`，属于代码层面的开发工作，不再是无代码配置。
+
+如果你希望覆盖更多查询场景，推荐做法：
+
+1. **扩展知识库**：在 `knowledge/` 目录下补充文档，让 AI 利用现有的 71 个 API + 知识库回答更广泛的问题；
+2. **开发自定义 Skill**：参照《Skill SPI 接入文档》开发独立的 Skill（完全脱离 bukkit 只读查询技能体系），实现任意自定义逻辑。
 
 ---
 
@@ -1706,19 +1652,22 @@ AI 可以自动组合多个 API 调用来回答复杂问题：
 
 ### 权限节点
 
-所有 Bukkit API 都有独立的权限节点，格式为：`kilacraft.api.<category>.<type>`
+权限按**技能（skill）**粒度授予，**一个权限节点覆盖该技能下的全部 API**（不再是每条 API 一个节点）。共 5 个节点，与 5 个拆分技能一一对应：
 
-**分类**：
-- `player.info` - 玩家基本信息（位置、游戏模式、延迟等）
-- `player.status` - 玩家状态信息（生命值、饥饿值、经验等）
-- `player.inventory` - 玩家物品栏信息
-- `world.info` - 世界信息
-- `server.info` - 服务器信息
+| 权限节点 | 所属技能 | 覆盖的 API 范围 |
+|----------|----------|-----------------|
+| `kilacraft.api.player.info` | `bukkit_player_info` | 玩家基本信息：位置、视线、速度、游戏模式、飞行、主手偏好、延迟、上次死亡、载具、姿势、瞄准方块、客户端语言、显示名、床重生点、指南针目标、脚下方块等 |
+| `kilacraft.api.player.status` | `bukkit_player_status` | 玩家状态：生命值、饥饿值、氧气、经验/等级、睡眠、攻击冷却、着火、冰冻、药水效果、潜行、冲刺、吸收之心、身上箭、无敌帧、下落距离、上次受伤等 |
+| `kilacraft.api.player.inventory` | `bukkit_player_inventory` | 玩家物品栏：主/副手物品、背包摘要、末影箱摘要、背包占用、盔甲、打开的容器、打开的界面类型 |
+| `kilacraft.api.world.info` | `bukkit_world` | 世界信息：时间、天气、种子、出生点、高度限制、生成规则、PVP、生物群系、温度、湿度、海平面、实体数量、袭击、边界等 |
+| `kilacraft.api.server.info` | `bukkit_server` | 服务器信息：在线玩家、最大玩家数、版本、MOTD、世界列表、服务器设置 |
+
+> ⚠️ 注意：不再存在 `kilacraft.api.player.health`、`kilacraft.api.player.stats` 等节点。生命值/饥饿值等状态类 API 统一归入 `kilacraft.api.player.status`。
 
 **通配符权限**：
 ```yaml
 kilacraft.api.*              # 所有 API 权限
-kilacraft.api.player.*       # 所有玩家相关 API
+kilacraft.api.player.*       # 所有玩家相关 API（info + status + inventory）
 kilacraft.api.world.*        # 所有世界相关 API
 kilacraft.api.server.*       # 所有服务器相关 API
 ```
@@ -1728,8 +1677,8 @@ kilacraft.api.server.*       # 所有服务器相关 API
 使用 LuckPerms 插件授予权限：
 
 ```bash
-# 授予单个 API 权限
-/lp user <player> permission set kilacraft.api.player.health true
+# 授予某个技能的权限（例如玩家状态技能，覆盖生命值/饥饿值等全部状态 API）
+/lp user <player> permission set kilacraft.api.player.status true
 
 # 授予所有玩家相关 API 权限
 /lp user <player> permission set kilacraft.api.player.* true
@@ -1751,11 +1700,11 @@ kilacraft.api.server.*       # 所有服务器相关 API
 
 ### 2. 权限检查
 
-每个 API 都有独立的权限检查，确保只有授权玩家才能访问敏感信息。
+权限按技能粒度检查：执行某条 API 前会先复查该 API 所属技能的权限节点，确保只有授权玩家才能访问敏感信息。
 
-### 3. 反射缓存
+### 3. 直接调用
 
-BukkitAPIExecutor 使用反射调用方法，JVM 会自动优化频繁调用的方法。
+各技能的 Java 类（`AbstractBukkitQuerySkill` + 子类）直接调用 Bukkit API，不再经过旧的反射执行器（`BukkitAPIExecutor` 已随 `apis.yml` 一并移除），调用路径更短、更易被 JVM 内联优化。
 
 ---
 
@@ -1768,12 +1717,12 @@ BukkitAPIExecutor 使用反射调用方法，JVM 会自动优化频繁调用的�
 **原因**：
 - 玩家离线
 - 世界不存在
-- 方法调用失败
+- 目标对象不存在（如未打开容器时查询 `get_player_open_container`）
 
 **解决**：
-- 检查 API 配置中的 `target_type` 是否正确
-- 确认 `method_chain` 或 `additional_methods` 中的方法名存在
+- 确认查询的目标玩家在线、世界已加载
 - 查看控制台是否有错误日志
+- 若仍异常，可能是对应技能 Java 类的内部调度失败，请提交问题反馈
 
 ---
 
@@ -1781,11 +1730,12 @@ BukkitAPIExecutor 使用反射调用方法，JVM 会自动优化频繁调用的�
 
 **问题**：玩家收到"你没有权限执行此操作"的错误提示
 
-**原因**：玩家没有对应的权限节点
+**原因**：玩家没有对应技能的权限节点（权限按技能粒度授予）
 
 **解决**：
 ```bash
-/lp user <player> permission set kilacraft.api.player.health true
+# 例如玩家查询生命值/饥饿值等状态类 API，需要 player.status 技能权限
+/lp user <player> permission set kilacraft.api.player.status true
 ```
 
 ---
@@ -1795,25 +1745,17 @@ BukkitAPIExecutor 使用反射调用方法，JVM 会自动优化频繁调用的�
 **问题**：AI 无法识别某个 API
 
 **原因**：
-- `apis.yml` 文件格式错误
+- 对应的 `Bukkit*Skill.yml` 技能配置文件格式错误或缺失（`BukkitPlayerInfoSkill.yml` / `BukkitPlayerStatusSkill.yml` / `BukkitPlayerInventorySkill.yml` / `BukkitWorldSkill.yml` / `BukkitServerSkill.yml`）
+- 技能未正确加载
 - 未重新加载配置
 
 **解决**：
-1. 检查 YAML 格式是否正确
-2. 执行 `/kila reload` 重新加载配置
-3. 查看控制台是否有错误日志
+1. 检查对应技能的 `Bukkit*.yml` 文件 YAML 格式是否正确
+2. 确认 5 个技能文件均存在于 `skills/bukkit/` 目录下
+3. 执行 `/kila reload` 重新加载配置
+4. 查看控制台是否有错误日志
 
----
-
-### method_chain 和 additional_methods 同时配置
-
-**问题**：API 执行失败，提示"API 必须配置 method_chain 或 additional_methods"
-
-**原因**：两个配置只能选其一，不能同时使用
-
-**解决**：
-- 如果需要返回复杂对象（ItemStack、Location 等）→ 使用 `method_chain`
-- 如果需要返回多个简单值 → 使用 `additional_methods` + `result_template`
+> 注：旧的 `apis.yml` 已被移除，不再被读取，请勿再创建或编辑该文件。
 
 ---
 

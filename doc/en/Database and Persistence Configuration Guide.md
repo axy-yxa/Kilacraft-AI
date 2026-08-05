@@ -1,6 +1,6 @@
 # Kilacraft-AI - Database and Persistence Configuration Guide
 
-> **Last Updated**: 2026-08-01  
+> **Last Updated**: 2026-08-04  
 > **Description**: This document details Kilacraft-AI's database architecture, persistent content, configuration methods, and data management
 
 ---
@@ -101,6 +101,8 @@ After configuration, run `/kila reload` for hot-switching. Auto-fallback to old 
 - Spatial Memory (spatial): Mentioned locations, base positions
 - Known Facts (facts): Explicitly stated facts by the player
 - Special Observations (notes): Freeform personalized observations by LLM
+
+> The profile summary is appended into the **user message** (not the system prompt) via `GenericLLMProvider.buildDynamicContext()` → `buildUserContent()`; the system prompt stays purely static to maximize context cache hit rate.
 
 **Analysis Trigger Conditions** (triple gate, all three must be met):
 1. Time since last analysis ≥ configurable interval
@@ -348,6 +350,13 @@ profile:
     2. Keep the same fields as the existing profile (playstyle, personality, interests, boundaries, communication, spatial, facts, notes)
     3. If insufficient information for a dimension, use empty string
 ```
+
+### Conversation History Loading Strategy: settings.max_history
+
+**settings.max_history** (configured in config.yml, NOT database.yml):
+Value range 0-100 (rounds), automatically clamped to the boundary when out of range.
+- 0: Fully disables history (no save, no load)
+- N: Memory retains the most recent N rounds (= 2N messages), DB history load amount = N entries
 
 > **Eight profile dimensions**: the current version uses **8 fields** (compared to the early version's 5: playstyle/personality/preferences/communication_style/notes). The `analysis_system_prompt` and `incremental_system_prompt` field lists **must match** (all 8 dimensions listed). When modifying any profile prompt, check the other one simultaneously to avoid fields being dropped during incremental analysis.
 

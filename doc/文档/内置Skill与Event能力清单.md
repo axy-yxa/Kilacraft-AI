@@ -1,7 +1,7 @@
 # Kilacraft-AI - 内置 Skill 与 Event 能力清单
 
-> **最后更新**: 2026-08-01  
-> **说明**: 本文档汇总了 Kilacraft-AI 内置的所有 Skill 动作和支持的 Bukkit Event 监听器，帮助服主和插件开发者快速了解插件的能力边界、集成的第三方插件以及安全风险。当前内置 **17 个 Skill**。
+> **最后更新**: 2026-08-04
+> **说明**: 本文档汇总了 Kilacraft-AI 内置的所有 Skill 动作和支持的 Bukkit Event 监听器，帮助服主和插件开发者快速了解插件的能力边界、集成的第三方插件以及安全风险。当前内置 **20 个 Skill**。
 
 ---
 
@@ -86,124 +86,94 @@
 
 ---
 
-### 3. GenericBukkitAPI - 通用 Bukkit API 执行器
+### 3-7. Bukkit 查询技能（5 个）
 
-**能力类型**: 原生 API 数据查询  
+> v2.2.0 重构：原单个 `GenericBukkitAPISkill`（数据驱动的 `apis.yml`）按职责拆分为 5 个独立的标准配置驱动技能，共 71 个只读查询动作（动作 ID、返回字段、输出格式完全保持不变）。每个技能的提示词新增反向边界与消歧义提示，AI 路由查询更精准。旧 `skills/bukkit/apis.yml` / `apis_en.yml` 已移除。
+
+**能力类型**: 原生 API 数据查询（只读）  
 **依赖插件**: 纯 Bukkit 原生 API  
-**文件位置**: `skills/bukkit/apis.yml`  
-**实现类**: `GenericBukkitAPISkill.java`
+**文件位置**: `skills/bukkit/Bukkit*.yml`  
+**实现类**: 均继承 `AbstractBukkitQuerySkill.java`（统一格式化、Folia 数据提取、字段名三处同步）
 
-#### 支持的 API 动作（71 个）
+#### 5 个拆分技能与权限
 
-> 完整 API 清单（含每个 API 的配置、权限、返回字段）见《Bukkit-API 参考手册》。下方按类别列出代表性动作。
+| # | Skill 名 | 技能类 | 职责 | API 数 | 权限节点（default: true） |
+|---|---------|--------|------|--------|--------------------------|
+| 3 | `bukkit_player_info` | `BukkitPlayerInfoSkill` | 玩家基础信息（位置/游戏模式/经验/客户端/重生点等） | 18 | `kilacraft.api.player.info` |
+| 4 | `bukkit_player_status` | `BukkitPlayerStatusSkill` | 玩家实时状态（生命/饥饿/氧气/着火/冰冻/姿势等） | 18 | `kilacraft.api.player.status` |
+| 5 | `bukkit_player_inventory` | `BukkitPlayerInventorySkill` | 玩家物品栏（主副手/装备/打开的容器/占用情况） | 8 | `kilacraft.api.player.inventory` |
+| 6 | `bukkit_world` | `BukkitWorldSkill` | 世界信息（时间/天气/生物群系/实体统计/袭击等） | 21 | `kilacraft.api.world.info` |
+| 7 | `bukkit_server` | `BukkitServerSkill` | 服务器信息（在线/版本/MOTD/世界列表/设置） | 6 | `kilacraft.api.server.info` |
 
-**玩家相关**（44 个）
+#### 支持的 API 动作（共 71 个，按技能分类）
 
-| API 动作 | 说明 | 额外数据字段 |
+> 完整 API 清单（含每个 API 的配置、权限、返回字段）见《Bukkit-API 参考手册》。下方按技能分类列出代表性动作。
+
+**bukkit_player_info（玩家基础信息，18 个）** — 位置与移动、游戏模式与飞行、经验与等级、客户端信息、重生点等
+
+| API 动作（节选） | 说明 | 额外数据字段 |
 |----------|------|--------------|
-| 物品栏 | | |
-| `get_player_hand_item` | 获取玩家主手物品 | `item_name`, `item_amount` |
-| `get_player_offhand_item` | 获取玩家副手物品 | `item_name`, `item_amount` |
-| 生命与状态 | | |
+| `get_player_location` | 获取玩家脚部位置 | `x`, `y`, `z`, `world` |
+| `get_player_eye_location` | 获取玩家眼部位置 | `x`, `y`, `z` |
+| `get_player_velocity` | 获取玩家速度向量 | - |
+| `get_player_gamemode` | 获取玩家游戏模式 | - |
+| `get_player_exp` | 获取玩家经验值 | `level`, `exp_progress` |
+| `get_player_locale` | 获取玩家客户端语言 | - |
+| `get_player_bed_spawn` | 获取玩家床重生点 | `x`, `y`, `z`, `world` |
+| `get_player_total_exp` | 获取玩家总经验值 | `total_exp` |
+
+**bukkit_player_status（玩家实时状态，18 个）** — 生命与状态、其他状态、装备与效果、动作状态
+
+| API 动作（节选） | 说明 | 额外数据字段 |
+|----------|------|--------------|
 | `get_player_health` | 获取玩家生命值 | `health`, `max_health` |
 | `get_player_food` | 获取玩家饥饿值 | `food_level`, `saturation` |
 | `get_player_oxygen` | 获取玩家氧气值 | `remaining_air`, `maximum_air` |
-| 位置与移动 | | |
-| `get_player_location` | 获取玩家位置 | `x`, `y`, `z`, `world` |
-| `get_player_eye_location` | 获取玩家视线位置 | `x`, `y`, `z` |
-| `get_player_velocity` | 获取玩家速度向量 | - |
-| 游戏模式与飞行 | | |
-| `get_player_gamemode` | 获取玩家游戏模式 | - |
-| `get_player_fly_status` | 获取玩家飞行状态 | `allow_flight`, `is_flying` |
-| `get_player_fly_speed` | 获取玩家飞行速度 | - |
-| `get_player_walk_speed` | 获取玩家行走速度 | - |
-| 经验与等级 | | |
-| `get_player_exp` | 获取玩家经验值 | `level`, `exp_progress` |
-| `get_player_exp_to_level` | 获取升到下一级所需经验 | - |
-| 其他状态 | | |
-| `get_player_main_hand` | 获取玩家主手偏好 | - |
-| `get_player_ping` | 获取玩家网络延迟 | - |
-| `get_player_sleep_status` | 获取玩家睡眠状态 | `is_sleeping`, `sleep_ticks` |
-| `get_player_last_death` | 获取玩家上次死亡位置 | - |
-| `get_player_attack_cooldown` | 获取玩家攻击冷却 | - |
-| `get_player_vehicle` | 获取玩家骑乘状态 | `in_vehicle` |
-| `get_player_fire_status` | 获取玩家着火状态 | `fire_ticks`, `max_fire_ticks` |
-| `get_player_freeze_status` | 获取玩家冰冻状态 | `is_frozen`, `freeze_ticks`, `max_freeze_ticks` |
-| `get_player_pose` | 获取玩家姿势 | - |
-| 装备与效果 | | |
-| `get_player_armor` | 获取玩家盔甲装备 | `helmet`, `chestplate`, `leggings`, `boots` |
+| `get_player_armor` | 获取玩家全套盔甲 | `helmet_name`/`helmet_type`/`helmet_amount`... `boots_remaining_durability`（每件含名称/类型/数量/附魔/耐久） |
 | `get_player_potion_effects` | 获取玩家药水效果 | `effects` |
 | `get_player_target_block` | 获取玩家瞄准方块 | `block_type`, `x`, `y`, `z` |
-| 动作状态 | | |
 | `get_player_sneak_status` | 获取玩家潜行状态 | - |
-| `get_player_sprint_status` | 获取玩家冲刺状态 | - |
-| 客户端信息 | | |
-| `get_player_locale` | 获取玩家客户端语言 | - |
-| `get_player_display_name` | 获取玩家显示名称 | - |
-| 重生点 | | |
-| `get_player_bed_spawn` | 获取玩家床重生点 | `x`, `y`, `z`, `world` |
-| 经验详细 | | |
-| `get_player_total_exp` | 获取玩家总经验值 | `total_exp` |
 
-**世界相关**（21 个）
+**bukkit_player_inventory（玩家物品栏，8 个）** — 三层库存设计
 
-| API 动作 | 说明 | 额外数据字段 |
+| API 动作（节选） | 说明 | 额外数据字段 |
 |----------|------|--------------|
-| 时间与天气 | | |
+| `get_player_hand_item` | 获取玩家主手物品 | `item_name`, `item_amount` |
+| `get_player_offhand_item` | 获取玩家副手物品 | `item_name`, `item_amount` |
+| `get_player_open_inventory` | 获取玩家当前打开的容器内容 | `raw_result` |
+| `get_player_inventory_usage` | 获取物品栏占用情况 | `item_count`（已占用格数）, `empty_slots`（空格数） |
+
+**bukkit_world（世界信息，21 个）** — 时间与天气、世界信息、生物群系与环境、实体统计、袭击事件
+
+| API 动作（节选） | 说明 | 额外数据字段 |
+|----------|------|--------------|
 | `get_world_time` | 获取世界时间 | `time_ticks` |
 | `get_weather` | 获取天气状况 | `weather_desc` |
-| 世界信息 | | |
-| `get_world_info` | 获取世界基本信息 | `name`, `environment`, `difficulty` |
-| `get_world_seed` | 获取世界种子 | - |
-| `get_world_spawn` | 获取世界出生点 | - |
-| `get_world_height_limit` | 获取世界高度限制 | `min_height`, `max_height` |
-| 生物生成规则 | | |
-| `get_world_spawn_rules` | 获取世界生物生成规则 | `allow_monsters`, `allow_animals` |
-| `get_world_pvp` | 获取世界 PVP 设置 | - |
-| 生物群系与环境 | | |
 | `get_world_biome` | 获取世界生物群系 | `biome` |
-| `get_world_temperature` | 获取世界温度 | `temperature` |
-| `get_world_humidity` | 获取世界湿度 | `humidity` |
-| 实体统计 | | |
-| `get_world_player_count` | 获取世界玩家数量 | `player_count` |
-| `get_world_living_entities` | 获取世界生物数量 | `living_entities` |
-| `get_world_entity_count` | 获取世界实体总数 | `entity_count` |
-| 世界属性 | | |
-| `get_world_sea_level` | 获取世界海平面高度 | - |
-| 天气持续时间 | | |
-| `get_world_clear_weather_duration` | 获取晴天剩余时间 | - |
-| `get_world_thunder_duration` | 获取雷暴剩余时间 | - |
-| 世界时间详细 | | |
-| `get_world_full_time` | 获取世界总时间 | `full_time` |
-| `get_world_game_time` | 获取世界游戏时间 | `game_time` |
-| 袭击事件 | | |
 | `get_world_raids` | 获取世界袭击事件 | `raids` |
+| `get_world_temperature` | 获取世界温度 | `temperature` |
 
-**服务器相关**（6 个）
+**bukkit_server（服务器信息，6 个）**
 
 | API 动作 | 说明 | 额外数据字段 |
 |----------|------|--------------|
-| 玩家信息 | | |
 | `get_online_players` | 获取在线玩家数量和列表 | - |
 | `get_max_players` | 获取最大玩家数 | - |
-| 版本信息 | | |
 | `get_server_version` | 获取服务器版本 | `version`, `bukkit_version` |
 | `get_server_motd` | 获取服务器 MOTD | - |
-| 世界列表 | | |
 | `get_server_worlds` | 获取服务器世界列表 | - |
-| 服务器设置 | | |
 | `get_server_settings` | 获取服务器设置 | `allow_flight`, `allow_nether`, `allow_end` |
 
 #### 核心特性
 
 - ✅ **只读操作**: 所有 API 都是数据查询，不会改变游戏状态
-- ✅ **链式调用支持**: 支持最多 2 层链式调用（如 `getLocation.getX`）
-- ✅ **并行调用**: `additional_methods` 支持同时获取多个独立属性
-- ✅ **结果模板化**: `result_template` 支持占位符替换
+- ✅ **标准配置驱动**: 每个技能的提示词（能力摘要 + 触发场景 + 反向边界）由 `description` + `action_descriptions` + `hints` 三段配置定义，与项目其他内置 Skill 一致
+- ✅ **消歧义提示**: 每个技能提示词新增反向边界（如"位置"=脚部坐标 vs "眼部位置"=眼睛坐标），AI 路由查询更精准
+- ✅ **统一字段命名**: 返回字段名在「yml 描述 / Java 格式化 / TaskExecutor 占位符解析」三处保持同步（改字段名须三处同改）
 
 ---
 
-### 4. CMISkill - CMI 插件集成
+### 8. CMISkill - CMI 插件集成
 
 **能力类型**: 传送 + 玩家信息查询  
 **依赖插件**: CMI (v9.8.6.4+)  
@@ -216,7 +186,7 @@
 |------|------|----------|----------|
 | `query_homes` | 查询玩家自己的家列表 | 无 | 无 |
 | `query_warps` | 查询服务器公共地标列表 | 无 | 无 |
-| `query_player_info` | 查询指定玩家的 CMI 增强信息 | 无 | `target_player` |
+| `query_player_info` | 查询当前玩家自己的 CMI 增强信息（游戏时长/AFK/隐身/飞行/模式） | 无 | 无 |
 | `query_kits` | 查询服务器可用套装列表 | 无 | 无 |
 | `query_online_players` | 查询在线玩家列表（增强版） | 无 | 无 |
 | `teleport_home` | 传送到玩家自己的家 | `home_name` | 无 |
@@ -242,7 +212,7 @@
 
 ---
 
-### 5. CommandSkill - 命令执行
+### 9. CommandSkill - 命令执行
 
 **能力类型**: 服务器命令执行（玩家身份）  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -257,13 +227,15 @@
 
 #### 核心特性
 
-- ✅ **权限边界**: AI 以玩家身份执行命令，受服务器权限系统约束
+- ✅ **始终注册**（v2.2.0 起移除 `command_skill.enabled` 配置开关），由 `kilacraft.command.execute` 权限节点统一控制（默认所有玩家可用）
+- ✅ **命令知识库**：依据 `commands/commands.md` 文档识别命令意图，服主可按模板追加第三方插件命令
+- ✅ **权限边界**: AI 以玩家身份执行命令，受服务器权限系统约束；AI 看到的命令列表会按当前玩家实际权限动态过滤
 - ✅ **兜底机制**: 当专用 Skill 无法覆盖用户需求时，可尝试执行命令
 - ✅ **安全机制**: 不绕过任何服务器安全机制（权限、冷却、安全区域）
 
 ---
 
-### 6. BukkitFXSkill - 音效与粒子效果
+### 10. BukkitFXSkill - 音效与粒子效果
 
 **能力类型**: 客户端效果播放（仅调用者可见/可听）  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -322,7 +294,7 @@
 
 ---
 
-### 7. BukkitStatsSkill - 原版统计数据查询
+### 11. BukkitStatsSkill - 原版统计数据查询
 
 **能力类型**: 玩家原版累计统计数据查询（生涯记录）  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -406,7 +378,7 @@
 
 ---
 
-### 8. MarketQuerySkill - GlobalMarketPlus 插件集成
+### 12. MarketQuerySkill - GlobalMarketPlus 插件集成
 
 **能力类型**: 市场信息查询  
 **依赖插件**: GlobalMarketPlus (v1.3.8.0+)  
@@ -434,7 +406,7 @@
 
 ---
 
-### 9. MarketActionSkill - 全球市场操作技能
+### 13. MarketActionSkill - 全球市场操作技能
 
 **能力类型**: 市场交易操作（写入类）  
 **依赖插件**: GlobalMarketPlus (v1.3.8.0+)  
@@ -443,17 +415,17 @@
 
 #### 支持的动作
 
-| 动作 | 说明 | 必需参数 |
-|------|------|----------|
-| `search_item` | 搜索商品并打开购买 GUI | `item` |
-| `sell_item` | 将手中物品上架 | `item`, `price` |
-| `pickup_mail` | 一键领取所有或指定邮件 | 无 |
-| `buy_item` | 以指定单价发起收购订单 | `item`, `price`, `amount` |
-| `cancel_listing` | 展示在售列表，选择后下架 | 无 |
-| `transfer_money` | 向其他玩家转账 | `target_player`, `amount` |
-| `auction_item` | 将手中物品发起拍卖 | `item` |
-| `sell_inventory` | 批量出售背包内所有同类物品 | `item`, `price` |
-| `buy_inventory` | 批量收购 | `item`, `price`, `amount` |
+| 动作 | 说明 | 必需参数 | 可选参数 |
+|------|------|----------|----------|
+| `search_item` | 搜索商品并打开购买 GUI | `item` | 无 |
+| `sell_item` | 将主手物品上架（须主手有物品） | 无 | `price`（缺失返回参考价 + [NEED_INFO]）、`quantity` |
+| `pickup_mail` | 领取邮箱物品 | 无 | `target`（默认 all，可指定邮件 UID） |
+| `buy_item` | 以指定单价发起收购订单（须主手有物品） | 无 | `price`、`quantity` |
+| `cancel_listing` | 展示在售列表，选择后下架 | 无 | `uid`（未指定则返回在售列表供选择） |
+| `transfer_money` | 向其他玩家转账 | `target_player` | `amount`（缺失返回 [NEED_INFO]，支持 `{step_0.balance}/3` 算术占位符） |
+| `auction_item` | 将主手物品发起拍卖（须主手有物品） | 无 | `price`、`quantity` |
+| `sell_inventory` | 批量出售背包同类物品（打开 GUI） | `price` | 无 |
+| `buy_inventory` | 批量收购物品（打开 GUI） | `price` | 无 |
 
 #### 核心特性
 
@@ -464,7 +436,7 @@
 
 ---
 
-### 10. UtilitySkill - 通用工具技能
+### 14. UtilitySkill - 通用工具技能
 
 **能力类型**: 延时等待 + 主动通知 + 全服广播  
 **依赖插件**: 纯 Bukkit 原生 API  
@@ -488,7 +460,7 @@
 
 ---
 
-### 11. WebSearchSkill - 联网搜索
+### 15. WebSearchSkill - 联网搜索
 
 **能力类型**: 实时联网信息查询  
 **依赖插件**: 纯 Bukkit（自管 HTTP 调用，需服主在 `web.yml` 配 API Key）  
@@ -499,7 +471,7 @@
 
 | 动作 | 说明 | 必需参数 | 可选参数 |
 |------|------|----------|----------|
-| `search` | 按关键词联网搜索，返回标题/URL/摘要 | `query` | `count`、`time_range` 等 |
+| `search` | 按关键词联网搜索，返回标题/URL/摘要 | `query` | `count`、`recency` 等 |
 
 #### 支持的搜索引擎供应商（9 家）
 
@@ -518,14 +490,14 @@
 #### 核心特性
 
 - ✅ **多供应商可插拔**：`provider: auto` 按服务器语言自动路由（中文走国内、其他走国际），也可手动指定
-- ✅ **时间范围筛选**：今天/最近一周/最近一月
+- ✅ **时间范围筛选**：`recency` 取值 day/week/month/year
 - ✅ **自动多步搜索**：复杂问题拆成最多 5 个子搜索
 - ✅ 自管 15 秒超时，snippet 按 `max_snippet_chars` 截断
 - ✅ 需 `kilacraft.websearch` 权限，且需服主配置 API Key 才生效
 
 ---
 
-### 12. WebFetchSkill - 网页抓取
+### 16. WebFetchSkill - 网页抓取
 
 **能力类型**: 抓取指定网址正文并回答  
 **依赖插件**: 纯 Bukkit（OkHttp + Jsoup 本地实现，零配置无 API Key）  
@@ -557,7 +529,7 @@
 
 ---
 
-### 13. VersionInfoSkill - 版本信息查询
+### 17. VersionInfoSkill - 版本信息查询
 
 **能力类型**: 插件版本与更新信息查询（只读）  
 **依赖插件**: 纯 Bukkit（数据源 Gitee/GitHub Release API，按 i18n 语言选源）  
@@ -581,15 +553,15 @@
 
 ---
 
-### 14-16. 服主管理类 Skill
+### 18-20. 服主管理类 Skill
 
 服主管理类 Skill 共 3 个，详细使用方法见《服主管理功能使用指南》：
 
 | # | Skill | 技能名 | 动作 | 权限 |
 |---|-------|--------|------|------|
-| 15 | ServerHealthSkill | `server_health` | `health_report` / `list_reports` / `read_report` | `kilacraft.admin.health` |
-| 16 | PlayerAnalysisSkill | `player_analysis` | `online_trend` / `top_active` / `new_players` / `profile_coverage` / `social_insights` / `player_relations` | `kilacraft.admin.player` |
-| 17 | AuditLogSkill | `audit_log` | `query_logs` / `skill_stats` / `error_logs` | `kilacraft.admin.audit` |
+| 18 | ServerHealthSkill | `server_health` | `health_report` / `list_reports` / `read_report` | `kilacraft.admin.health` |
+| 19 | PlayerAnalysisSkill | `player_analysis` | `online_trend` / `top_active` / `new_players` / `profile_coverage` / `social_insights` / `player_relations` | `kilacraft.admin.player` |
+| 20 | AuditLogSkill | `audit_log` | `query_logs` / `skill_stats` / `error_logs` | `kilacraft.admin.audit` |
 
 ---
 
@@ -716,6 +688,6 @@ Kilacraft-AI v1.4.5 引入了**非合作式安全过滤机制**（SkillSecurityF
 | 联网信息 | 只读 | WebSearch 搜索、WebFetch 抓取（受 SSRF 防护约束） |
 
 
-> **内置 Skill 总数**: 17 个  
-> **API 动作总数**: 71 个（GenericBukkitAPI）+ 8 个（CMISkill）+ 2 个（BukkitFXSkill）+ 8 个（MarketQuerySkill，含 query_seller_items）+ 9 个（MarketActionSkill）+ 3 个（UtilitySkill）  
+> **内置 Skill 总数**: 20 个
+> **API 动作总数**: 71 个只读查询（5 个 Bukkit 查询技能合计）+ 8 个（CMISkill）+ 2 个（BukkitFXSkill）+ 8 个（MarketQuerySkill，含 query_seller_items）+ 9 个（MarketActionSkill）+ 3 个（UtilitySkill）等
 > **事件监听类型**: 11 种（WatchSkill，全局单例 Listener + 反向索引）

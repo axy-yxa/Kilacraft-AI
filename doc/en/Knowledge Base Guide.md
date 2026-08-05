@@ -1,6 +1,6 @@
 # Kilacraft-AI - Knowledge Base Enhancement Guide
 
-> **Last Updated**: 2026-08-01  
+> **Last Updated**: 2026-08-04  
 > **Description**: This document details how to use RAG (Retrieval Augmented Generation) technology to enable AI to provide accurate answers based on your server documentation.
 
 ---
@@ -574,26 +574,26 @@ Teleport to the server's spawn area, all players can use this.
 
 When a user asks a question, the system scores all chunks:
 
-#### Level 1: Whole Keyword-String Match (+50 bonus)
+#### Level 1: Full Question Match (+50 bonus)
 
-The system first **tokenizes the user's question, removes stop words, extracts keywords, and joins them with spaces into a "keyword string"** (e.g. "how to claim land" → `claim land`; "I want to build a farm" → `build farm`), then compares it against each chunk. If a chunk **contains this keyword string**, it gets a +50 bonus:
+The system takes the player's **raw question** directly (only lowercased — no tokenization, no stop-word removal, no keyword extraction) and compares it against each chunk. If a chunk's content **contains the entire raw question**, it gets a +50 bonus:
 
 ```
-User question: "How do I claim land?"  →  system extracts keyword string: "claim land"
+User question: "claim land"  →  lowercased: "claim land"
 
-Matching chunk (contains "claim land"):
+Matching chunk (content contains the whole "claim land"):
 """
 ## How to Claim Land?
 
 You can use the /claim command to define your territory...
 """
-
-Score: +50
 ```
 
-**Note**: This +50 is a substring match against the **keyword string**, NOT against the user's raw question (with "?", "how", etc.). Therefore:
-- **Short / single-keyword questions** (e.g. "claim land") match easily, and the +50 bonus is significant.
-- **Long questions** (where the keyword string becomes `kw1 kw2 kw3` with spaces) almost never appear verbatim in natural text, so the +50 usually does NOT trigger — here Level 2/3 per-keyword matching carries the weight.
+Score: +50
+
+**Note**: This +50 is a substring match against the **entire raw question**, NOT a per-keyword match after tokenization. Therefore:
+- **Short / single-keyword questions** (e.g. a player simply saying "claim land") match easily, and the +50 bonus is significant.
+- **Long questions** (full sentences with "?", "how", etc., like "How do I claim land?") almost never appear verbatim in any knowledge chunk's content, so the +50 usually does NOT trigger — here Level 2/3 per-keyword matching carries the weight.
 - So "writing the core concept words into the document" is more reliable than "copying the player's exact sentence" (see the heading bonus and keyword scoring below).
 
 ---
@@ -641,8 +641,8 @@ Matching chunk headings:
 
 **Scoring Formula**:
 
-#### Level 1: Whole Keyword-String Match
-- If chunk content contains the whole keyword string: +50.0
+#### Level 1: Full Question Match
+- If chunk content contains the complete user question: +50.0
 
 #### Level 2: BM25 Keyword Scoring
 ```
@@ -680,7 +680,7 @@ Total Score += 10.0
 
 #### Final Score
 ```
-Total Score = 50.0 (whole-string match, if present)
+Total Score = 50.0 (full question match, if present)
     + Sum of all keywords' BM25 scores
     + Sum of all heading-weighted BM25 scores
     + 10.0 (exact match bonus, if present)
@@ -702,7 +702,7 @@ Document chunk:
 ```
 
 Scoring Process:
-1. Whole-string match: × (does not contain the whole question)
+1. Full question match: × (does not contain the whole question)
 2. Keyword "claim-land" (length=2, weight=1):
    - TF=3, Score = 3 × 1.5 / (3 + 1.5 × 0.6) = 2.25 × 1 = 2.25
 3. Keyword "method" (length=2, weight=1):
@@ -1207,19 +1207,19 @@ This translates the retrieval system's concrete behavior into "what to do when w
 
 | Rank | Writing Rule | Underlying System Behavior | Code Location |
 |---|---|---|---|
-| 1 | Use `##` / `###` headings to split concepts, and **put core words + synonyms in headings** | Splits by Markdown headings; keywords in headings get extra weighting `+15 × keyword weight`, stackable across keywords | `splitByMarkdownHeaders`, `calculateRelevance:301-310` |
-| 2 | **Do NOT leave an empty line between a heading and its content** | An empty line cuts off the heading chunk, orphaning the following content into a headerless chunk (loses heading bonus, and may be dropped if < 20 chars) | `splitByMarkdownHeaders:394-417` |
-| 3 | Also put core words in the body; write command/proper names in **full** | BM25 term-frequency score (× keyword weight × 5) + exact-hit `+10`; longer keywords weigh more (≥4 → ×3, =3 → ×2) | `calculateRelevance:298,313-316`, `BM25Scorer:74-82` |
+| 1 | Use `##` / `###` headings to split concepts, and **put core words + synonyms in headings** | Splits by Markdown headings; keywords in headings get extra weighting `+15 × keyword weight`, stackable across keywords | `splitByMarkdownHeaders`, `calculateRelevance` |
+| 2 | **Do NOT leave an empty line between a heading and its content** | An empty line cuts off the heading chunk, orphaning the following content into a headerless chunk (loses heading bonus, and may be dropped if < 20 chars) | `splitByMarkdownHeaders` |
+| 3 | Also put core words in the body; write command/proper names in **full** | BM25 term-frequency score (× keyword weight × 5) + exact-hit `+10`; longer keywords weigh more (≥4 → ×3, =3 → ×2) | `calculateRelevance`, `BM25Scorer` |
 | 4 | Write out synonyms/aliases for the same concept | A different phrasing by the player can still hit (the query is tokenized before matching) | `Chinese/EnglishTextProcessor.toSearchQuery` |
-| 5 | Keep each heading section under **500 chars**; split with `###` if longer | Sections exceeding `max_size` are secondarily split, and sub-chunks lose the heading | `splitIntoChunks:341-347` |
-| 6 | Each chunk must be **≥ 20 chars** | Chunks below `min_size` are dropped | `splitByParagraphs:464` (`min_size:20`) |
+| 5 | Keep each heading section under **500 chars**; split with `###` if longer | Sections exceeding `max_size` are secondarily split, and sub-chunks lose the heading | `splitIntoChunks` |
+| 6 | Each chunk must be **≥ 20 chars** | Chunks below `min_size` are dropped | `splitByParagraphs` (`min_size:20`) |
 | 7 | Use lists or tables for commands/prices/steps, **right under the heading, with no empty lines between items** | List items with no empty lines stay in one heading chunk and are recalled together; empty lines cut them apart | `splitByMarkdownHeaders` (empty line = cut boundary) |
-| 8 | Add 2~3 likely player phrasings (`Q:`) per rule | Adds keyword coverage; for short questions the keyword string may match as a whole for `+50` | `calculateRelevance:293-295` |
+| 8 | Add 2~3 likely player phrasings (`Q:`) per rule | Adds keyword coverage; for short questions the raw question may match as a whole for `+50` | `calculateRelevance` |
 | 9 | Write each rule only once; do not repeat | Duplicates are recalled as two chunks, taking up `max_relevant_chunks` slots and possibly contradicting | `max_relevant_chunks` limit |
 
 > **The two paths to better recall**:
 > - ① **Writing optimization** (the table above) — where the value of a paid maintenance service lies;
-> - ② **Retrieval-engine tuning** (see `wiki/待实施/知识库检索引擎增强设计文档.md`: BM25+Embedding RRF fusion, optional rerank, soft thresholds).
+> - ② **Retrieval-engine tuning** (see `wiki/已实施/知识库检索引擎增强设计文档.md`: BM25+Embedding RRF fusion, optional rerank, soft thresholds).
 >
 > Important: engine tuning **does not change the segmentation/parsing logic** (the three segmentation strategies, `min_size`/`max_size`, and heading weighting all stay the same), so **the writing rules in this table apply both before and after engine upgrades** — the file template needs no changes due to an engine upgrade.
 

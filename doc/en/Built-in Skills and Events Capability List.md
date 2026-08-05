@@ -1,7 +1,7 @@
 # Kilacraft-AI - Built-in Skills and Events Capability List
 
-> **Last Updated**: 2026-08-01  
-> **Description**: This document summarizes all built-in Skills of Kilacraft-AI, helping server administrators and plugin developers quickly understand the plugin's capabilities, integrated third-party plugins, and security risks. Currently **17 built-in Skills**.
+> **Last Updated**: 2026-08-04
+> **Description**: This document summarizes all built-in Skills of Kilacraft-AI, helping server administrators and plugin developers quickly understand the plugin's capabilities, integrated third-party plugins, and security risks. Currently **20 built-in Skills**.
 
 ---
 
@@ -86,122 +86,94 @@
 
 ---
 
-### 3. GenericBukkitAPI - Generic Bukkit API Executor
+### 3-7. Bukkit Query Skills (5)
 
-**Capability Type**: Native API Data Query
+> v2.2.0 refactor: The old single `GenericBukkitAPISkill` (data-driven `apis.yml`) was split by responsibility into 5 independent standard config-driven skills, totaling 71 read-only query actions (action IDs, return fields, and output format are all preserved unchanged). Each skill's prompt now includes reverse-boundary and disambiguation hints for more precise AI routing. The old `skills/bukkit/apis.yml` / `apis_en.yml` have been removed.
+
+**Capability Type**: Native API Data Query (read-only)
 **Dependency Plugin**: Pure Bukkit Native API
-**File Location**: `skills/bukkit/apis.yml`
-**Implementation Class**: `GenericBukkitAPISkill.java`
+**File Location**: `skills/bukkit/Bukkit*.yml`
+**Implementation Class**: all extend `AbstractBukkitQuerySkill.java` (unified formatting, Folia data extraction, three-way field-name sync)
 
-#### Supported API Actions (71 total — 44 player + 21 world + 6 server)
+#### 5 Split Skills and Permissions
 
-**Player Related** (27)
+| # | Skill Name | Skill Class | Responsibility | API Count | Permission Node (default: true) |
+|---|-----------|-------------|----------------|-----------|---------------------------------|
+| 3 | `bukkit_player_info` | `BukkitPlayerInfoSkill` | Player base info (location/gamemode/XP/client/respawn, etc.) | 18 | `kilacraft.api.player.info` |
+| 4 | `bukkit_player_status` | `BukkitPlayerStatusSkill` | Player live status (HP/hunger/oxygen/fire/freeze/pose, etc.) | 18 | `kilacraft.api.player.status` |
+| 5 | `bukkit_player_inventory` | `BukkitPlayerInventorySkill` | Player inventory (main/off hand/armor/open container/usage) | 8 | `kilacraft.api.player.inventory` |
+| 6 | `bukkit_world` | `BukkitWorldSkill` | World info (time/weather/biome/entity stats/raids, etc.) | 21 | `kilacraft.api.world.info` |
+| 7 | `bukkit_server` | `BukkitServerSkill` | Server info (online/version/MOTD/world list/settings) | 6 | `kilacraft.api.server.info` |
 
-| API Action | Description | Additional Data Fields |
+#### Supported API Actions (71 total, grouped by skill)
+
+> For the full API list (with each API's config, permission, and return fields), see the Bukkit API Reference. Below are representative actions grouped by skill.
+
+**bukkit_player_info (Player base info, 18)** — location & movement, gamemode & flight, XP & level, client info, respawn
+
+| API Action (selected) | Description | Additional Data Fields |
 |-----------|-------------|-----------------------|
-| Inventory | | |
-| `get_player_hand_item` | Get player main hand item | `item_name`, `item_amount` |
-| `get_player_offhand_item` | Get player off hand item | `item_name`, `item_amount` |
-| Health & Status | | |
+| `get_player_location` | Get player foot location | `x`, `y`, `z`, `world` |
+| `get_player_eye_location` | Get player eye location | `x`, `y`, `z` |
+| `get_player_velocity` | Get player velocity vector | - |
+| `get_player_gamemode` | Get player game mode | - |
+| `get_player_exp` | Get player experience | `level`, `exp_progress` |
+| `get_player_locale` | Get player client language | - |
+| `get_player_bed_spawn` | Get player bed spawn point | `x`, `y`, `z`, `world` |
+| `get_player_total_exp` | Get player total experience | `total_exp` |
+
+**bukkit_player_status (Player live status, 18)** — health & status, other status, equipment & effects, action status
+
+| API Action (selected) | Description | Additional Data Fields |
+|-----------|-------------|-----------------------|
 | `get_player_health` | Get player health | `health`, `max_health` |
 | `get_player_food` | Get player hunger | `food_level`, `saturation` |
 | `get_player_oxygen` | Get player oxygen | `remaining_air`, `maximum_air` |
-| Location & Movement | | |
-| `get_player_location` | Get player location | `x`, `y`, `z`, `world` |
-| `get_player_eye_location` | Get player eye location | `x`, `y`, `z` |
-| `get_player_velocity` | Get player velocity vector | - |
-| Game Mode & Flight | | |
-| `get_player_gamemode` | Get player game mode | - |
-| `get_player_fly_status` | Get player flight status | `allow_flight`, `is_flying` |
-| `get_player_fly_speed` | Get player flight speed | - |
-| `get_player_walk_speed` | Get player walking speed | - |
-| Experience & Level | | |
-| `get_player_exp` | Get player experience | `level`, `exp_progress` |
-| `get_player_exp_to_level` | Get exp required for next level | - |
-| Other Status | | |
-| `get_player_main_hand` | Get player main hand preference | - |
-| `get_player_ping` | Get player network latency | - |
-| `get_player_sleep_status` | Get player sleep status | `is_sleeping`, `sleep_ticks` |
-| `get_player_last_death` | Get player last death location | - |
-| `get_player_attack_cooldown` | Get player attack cooldown | - |
-| `get_player_vehicle` | Get player ride status | `in_vehicle` |
-| `get_player_fire_status` | Get player on fire status | `fire_ticks`, `max_fire_ticks` |
-| `get_player_freeze_status` | Get player freeze status | `is_frozen`, `freeze_ticks`, `max_freeze_ticks` |
-| `get_player_pose` | Get player pose | - |
-| Equipment & Effects | | |
-| `get_player_armor` | Get player armor equipment | `helmet`, `chestplate`, `leggings`, `boots` |
+| `get_player_armor` | Get player full armor | `helmet_name`/`helmet_type`/`helmet_amount`... `boots_remaining_durability` (each piece: name/type/count/enchants/durability) |
 | `get_player_potion_effects` | Get player potion effects | `effects` |
 | `get_player_target_block` | Get player target block | `block_type`, `x`, `y`, `z` |
-| Action Status | | |
 | `get_player_sneak_status` | Get player sneak status | - |
-| `get_player_sprint_status` | Get player sprint status | - |
-| Client Info | | |
-| `get_player_locale` | Get player client language | - |
-| `get_player_display_name` | Get player display name | - |
-| Respawn Point | | |
-| `get_player_bed_spawn` | Get player bed spawn point | `x`, `y`, `z`, `world` |
-| Experience Details | | |
-| `get_player_total_exp` | Get player total experience | `total_exp` |
 
-**World Related** (20)
+**bukkit_player_inventory (Player inventory, 8)** — three-tier inventory design
 
-| API Action | Description | Additional Data Fields |
+| API Action (selected) | Description | Additional Data Fields |
 |-----------|-------------|-----------------------|
-| Time & Weather | | |
+| `get_player_hand_item` | Get player main hand item | `item_name`, `item_amount` |
+| `get_player_offhand_item` | Get player off hand item | `item_name`, `item_amount` |
+| `get_player_open_inventory` | Get player currently open container contents | `raw_result` |
+| `get_player_inventory_usage` | Get inventory usage | `item_count` (occupied slots), `empty_slots` |
+
+**bukkit_world (World info, 21)** — time & weather, world info, biome & environment, entity stats, raid events
+
+| API Action (selected) | Description | Additional Data Fields |
+|-----------|-------------|-----------------------|
 | `get_world_time` | Get world time | `time_ticks` |
 | `get_weather` | Get weather condition | `weather_desc` |
-| World Info | | |
-| `get_world_info` | Get world basic information | `name`, `environment`, `difficulty` |
-| `get_world_seed` | Get world seed | - |
-| `get_world_spawn` | Get world spawn point | - |
-| `get_world_height_limit` | Get world height limit | `min_height`, `max_height` |
-| Mob Spawn Rules | | |
-| `get_world_spawn_rules` | Get world mob spawn rules | `allow_monsters`, `allow_animals` |
-| `get_world_pvp` | Get world PVP setting | - |
-| Biome & Environment | | |
 | `get_world_biome` | Get world biome | `biome` |
-| `get_world_temperature` | Get world temperature | `temperature` |
-| `get_world_humidity` | Get world humidity | `humidity` |
-| Entity Statistics | | |
-| `get_world_player_count` | Get world player count | `player_count` |
-| `get_world_living_entities` | Get world living entities count | `living_entities` |
-| `get_world_entity_count` | Get world total entity count | `entity_count` |
-| World Attributes | | |
-| `get_world_sea_level` | Get world sea level | - |
-| Weather Duration | | |
-| `get_world_clear_weather_duration` | Get clear weather remaining time | - |
-| `get_world_thunder_duration` | Get thunder remaining time | - |
-| Time Details | | |
-| `get_world_full_time` | Get world total time | `full_time` |
-| `get_world_game_time` | Get world game time | `game_time` |
-| Raid Events | | |
 | `get_world_raids` | Get world raid events | `raids` |
+| `get_world_temperature` | Get world temperature | `temperature` |
 
-**Server Related** (7)
+**bukkit_server (Server info, 6)**
 
 | API Action | Description | Additional Data Fields |
 |-----------|-------------|-----------------------|
-| Player Info | | |
 | `get_online_players` | Get online player count and list | - |
 | `get_max_players` | Get max player count | - |
-| Version Info | | |
 | `get_server_version` | Get server version | `version`, `bukkit_version` |
 | `get_server_motd` | Get server MOTD | - |
-| World List | | |
 | `get_server_worlds` | Get server world list | - |
-| Server Settings | | |
 | `get_server_settings` | Get server settings | `allow_flight`, `allow_nether`, `allow_end` |
 
 #### Core Features
 
 - ✅ **Read-Only Operations**: All APIs are data queries, no game state changes
-- ✅ **Chain Call Support**: Supports up to 2-layer chain calls (e.g., `getLocation.getX`)
-- ✅ **Parallel Calls**: `additional_methods` supports getting multiple independent attributes simultaneously
-- ✅ **Result Templating**: `result_template` supports placeholder replacement
+- ✅ **Standard config-driven**: Each skill's prompt (capability summary + trigger scenarios + reverse boundaries) is defined by `description` + `action_descriptions` + `hints`, consistent with other built-in Skills
+- ✅ **Disambiguation hints**: each skill prompt includes reverse boundaries (e.g., "location" = foot coords vs "eye location" = eye coords), for more precise AI routing
+- ✅ **Unified field naming**: returned field names stay in sync across "yml description / Java formatting / TaskExecutor placeholder resolution" (renaming a field requires updating all three places)
 
 ---
 
-### 4. CMISkill - CMI Plugin Integration
+### 8. CMISkill - CMI Plugin Integration
 
 **Capability Type**: Teleportation + Player Info Query
 **Dependency Plugin**: CMI (v9.8.6.4+)
@@ -214,7 +186,7 @@
 |--------|-------------|---------------------|---------------------|
 | `query_homes` | Query player's own home list | None | None |
 | `query_warps` | Query server public warp list | None | None |
-| `query_player_info` | Query specified player's CMI enhanced info | None | `target_player` |
+| `query_player_info` | Query current player's own CMI enhanced info (playtime/AFK/vanish/fly/mode) | None | None |
 | `query_kits` | Query server available kit list | None | None |
 | `query_online_players` | Query online player list (enhanced) | None | None |
 | `teleport_home` | Teleport to player's own home | `home_name` | None |
@@ -240,11 +212,11 @@ Player: Help me go home
 
 ---
 
-### 5. CommandSkill - Command Execution
+### 9. CommandSkill - Command Execution
 
-**Capability Type**: Server Command Execution (Player Identity)  
-**Dependency Plugin**: Pure Bukkit Native API  
-**File Location**: `skills/command/CommandSkill.yml`  
+**Capability Type**: Server Command Execution (Player Identity)
+**Dependency Plugin**: Pure Bukkit Native API
+**File Location**: `skills/command/CommandSkill.yml`
 **Implementation Class**: `CommandSkill.java`
 
 #### Supported Actions
@@ -255,13 +227,15 @@ Player: Help me go home
 
 #### Core Features
 
-- ✅ **Permission Boundary**: AI executes commands as player, constrained by server permission system
+- ✅ **Always registered** (v2.2.0 removed the `command_skill.enabled` config switch), controlled solely by the `kilacraft.command.execute` permission node (default: all players)
+- ✅ **Command knowledge base**: identifies command intent based on the `commands/commands.md` doc; server owners can append third-party plugin commands via the template
+- ✅ **Permission Boundary**: AI executes commands as player, constrained by server permission system; the command list the AI sees is dynamically filtered by the current player's actual permissions
 - ✅ **Fallback Mechanism**: When dedicated Skills cannot cover user needs, try executing commands
 - ✅ **Security Mechanism**: Does not bypass any server security mechanisms (permissions, cooldowns, safe areas)
 
 ---
 
-### 6. BukkitFXSkill - Sound & Particle Effects
+### 10. BukkitFXSkill - Sound & Particle Effects
 
 **Capability Type**: Client-side Effect Playback (Only Caller Visible/Audible)  
 **Dependency Plugin**: Pure Bukkit Native API  
@@ -320,7 +294,7 @@ Player: Show some heart particles
 
 ---
 
-### 7. BukkitStatsSkill - Vanilla Statistics Query
+### 11. BukkitStatsSkill - Vanilla Statistics Query
 
 **Capability Type**: Player Vanilla Cumulative Statistics Query (Career Records)  
 **Dependency Plugin**: Pure Bukkit Native API  
@@ -404,7 +378,7 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 8. MarketQuerySkill - GlobalMarketPlus Plugin Integration
+### 12. MarketQuerySkill - GlobalMarketPlus Plugin Integration
 
 **Capability Type**: Market Information Query
 **Dependency Plugin**: GlobalMarketPlus (v1.3.8.0+)
@@ -432,34 +406,36 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 9. MarketActionSkill - GlobalMarket Write Operations
+### 13. MarketActionSkill - GlobalMarket Write Operations
 
-**Capability Type**: Market Write Operations (Trade Delegation)  
-**Dependency Plugin**: GlobalMarketPlus (v1.3.8.0+)  
-**File Location**: `skills/globalmarketplus/MarketActionSkill.yml`  
+**Capability Type**: Market Write Operations (Trade Delegation)
+**Dependency Plugin**: GlobalMarketPlus (v1.3.8.0+)
+**File Location**: `skills/globalmarketplus/MarketActionSkill.yml`
 **Implementation Class**: `MarketActionSkill.java`
 
-#### Supported Actions (9)
+#### Supported Actions
 
-| Action | Description | Confirmation |
-|--------|-------------|-------------|
-| `search_item` | Search market for items | None |
-| `list_item` | List item on market | Confirm price & quantity |
-| `claim_all` | Claim all mailbox items | Confirm mailbox content |
-| `create_buy_order` | Create buy order | Confirm item & price |
-| `delist_item` | Delist market item | None |
-| `transfer_balance` | Transfer balance to player | Double confirm recipient & amount |
-| `create_auction` | Create auction listing | Confirm item & starting price |
-| `batch_sell` | Batch sell all items | Confirm total items |
-| `batch_buy` | Batch buy items | Confirm purchase list |
+| Action | Description | Required | Optional |
+|--------|-------------|----------|----------|
+| `search_item` | Search items and open buy GUI | `item` | None |
+| `sell_item` | List the main-hand item (must have item in main hand) | None | `price` (missing → returns ref price + [NEED_INFO]), `quantity` |
+| `pickup_mail` | Claim mailbox items | None | `target` (default all; may specify mail UID) |
+| `buy_item` | Create a buy order (must have item in main hand) | None | `price`, `quantity` |
+| `cancel_listing` | Show listings, then delist | None | `uid` (omitting returns the listings to pick from) |
+| `transfer_money` | Transfer money to another player | `target_player` | `amount` (missing → [NEED_INFO]; supports arithmetic placeholder like `{step_0.balance}/3`) |
+| `auction_item` | Auction the main-hand item (must have item in main hand) | None | `price`, `quantity` |
+| `sell_inventory` | Batch sell same-type inventory items (opens GUI) | `price` | None |
+| `buy_inventory` | Batch buy items (opens GUI) | `price` | None |
 
 #### Core Features
-- ✅ All write operations executed via Bukkit command delegation, atomicity guaranteed by GMP
-- ✅ Requires GlobalMarketPlus independent permission nodes
+- ✅ **Only auto-registered when GlobalMarketPlus is present**
+- ✅ All write operations executed via Bukkit command delegation, atomicity guaranteed by GMP internally
+- ✅ **Guided price confirmation**: when listing, AI guides the player to confirm the price
+- ✅ **Large-transfer double confirmation**: prevents mistakes
 
 ---
 
-### 10. UtilitySkill - Generic Utility Actions
+### 14. UtilitySkill - Generic Utility Actions
 
 **Capability Type**: Basic Utility Actions (Delay, Notification, Broadcast)  
 **Dependency**: Pure Bukkit Native API  
@@ -482,7 +458,7 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 11. WebSearchSkill - Web Search
+### 15. WebSearchSkill - Web Search
 
 **Capability Type**: Real-time web search  
 **Dependency**: Pure Bukkit (self-managed HTTP calls; requires API Key in `web.yml`)  
@@ -493,18 +469,18 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 | Action | Description | Required Parameters | Optional Parameters |
 |--------|-------------|---------------------|---------------------|
-| `search` | Search with keywords, returns title/URL/snippet | `query` | `count`, `time_range`, etc. |
+| `search` | Search with keywords, returns title/URL/snippet | `query` | `count`, `recency`, etc. |
 
 #### Core Features
 
 - ✅ **9 search engine providers**: 5 domestic (Zhipu/Baidu Qianfan/Volcengine Doubao/Qiniu Baidu/Alibaba IQS) + 4 international (Tavily/Brave/Exa/You.com); `provider: auto` routes by server language
-- ✅ **Time range filtering**: today / last week / last month
+- ✅ **Time range filtering**: `recency` accepts day/week/month/year
 - ✅ **Auto multi-step search**: complex queries split into up to 5 sub-searches
 - ✅ Requires `kilacraft.websearch` permission + API Key configured by server owner
 
 ---
 
-### 12. WebFetchSkill - Web Fetch
+### 16. WebFetchSkill - Web Fetch
 
 **Capability Type**: Fetch URL body and answer questions about it  
 **Dependency**: Pure Bukkit (OkHttp + Jsoup local-only, zero-config, no API Key)  
@@ -533,7 +509,7 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 13. VersionInfoSkill - Version Info Query
+### 17. VersionInfoSkill - Version Info Query
 
 **Capability Type**: Plugin version & update info query (read-only)  
 **Dependency**: Pure Bukkit (data source: Gitee/GitHub Release API, routed by i18n language)  
@@ -556,15 +532,15 @@ Player: Watch my elytra flight distance, celebrate with fireworks when it exceed
 
 ---
 
-### 14-16. Server Admin Skills
+### 18-20. Server Admin Skills
 
 Three server admin Skills; detailed usage in the "Admin Features Guide":
 
 | # | Skill | Skill Name | Actions | Permission |
 |---|-------|-----------|---------|------------|
-| 15 | ServerHealthSkill | `server_health` | `health_report` / `list_reports` / `read_report` | `kilacraft.admin.health` |
-| 16 | PlayerAnalysisSkill | `player_analysis` | `online_trend` / `top_active` / `new_players` / `profile_coverage` / `social_insights` / `player_relations` | `kilacraft.admin.player` |
-| 17 | AuditLogSkill | `audit_log` | `query_logs` / `skill_stats` / `error_logs` | `kilacraft.admin.audit` |
+| 18 | ServerHealthSkill | `server_health` | `health_report` / `list_reports` / `read_report` | `kilacraft.admin.health` |
+| 19 | PlayerAnalysisSkill | `player_analysis` | `online_trend` / `top_active` / `new_players` / `profile_coverage` / `social_insights` / `player_relations` | `kilacraft.admin.player` |
+| 20 | AuditLogSkill | `audit_log` | `query_logs` / `skill_stats` / `error_logs` | `kilacraft.admin.audit` |
 
 ---
 
@@ -660,7 +636,6 @@ In addition to event watches, WatchSkill supports **polling watches** (`polling`
 
 ✅ **Can**:
 - Query Minecraft native API data (player, world, server status)
-- Listen to 19 Bukkit Event types (S-level 7 + A-level 12)
 - Player custom watches (11 event types + polling, WatchSkill)
 - Cross-player online/offline subscriptions (PlayerWatchSkill)
 - Web search & fetch (WebSearch / WebFetch)
@@ -692,8 +667,8 @@ In addition to event watches, WatchSkill supports **polling watches** (`polling`
 
 ---
 
-> **Last Updated**: 2026-08-01  
-> **Plugin Version**: 2.2.0+  
-> **Total Built-in Skills**: 17  
-> **Total API Actions**: 71 (GenericBukkitAPI) + 8 (CMISkill) + 2 (BukkitFXSkill) + 8 (MarketQuerySkill, incl. `query_seller_items`) + 9 (MarketActionSkill) + 3 (UtilitySkill)  
+> **Last Updated**: 2026-08-04
+> **Plugin Version**: 2.2.0+
+> **Total Built-in Skills**: 20
+> **Total API Actions**: 71 read-only queries (5 Bukkit query skills combined) + 8 (CMISkill) + 2 (BukkitFXSkill) + 8 (MarketQuerySkill, incl. `query_seller_items`) + 9 (MarketActionSkill) + 3 (UtilitySkill), etc.
 > **Event Watch Types**: 11 (WatchSkill, global singleton Listener + reverse index)

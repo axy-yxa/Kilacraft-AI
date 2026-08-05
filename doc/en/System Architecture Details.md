@@ -1,6 +1,6 @@
 # Kilacraft-AI System Architecture Details
 
-> **Last Updated**: 2026-08-01
+> **Last Updated**: 2026-08-04
 > **Description**: This document provides detailed explanation of Kilacraft-AI's core architecture design, working principles of three interaction modes, call chains, and design philosophy
 
 ---
@@ -146,8 +146,8 @@ Console: "/kila plugins default Hello UUID callback_cmd"
   └─ Create PluginCommandResponseHandler
   ↓
 【2. Personality Configuration】
-  ├─ Load personality prompt from personalities.yml
-  ├─ Replace {player} placeholder
+  ├─ Load personality prompt from personalities.yml (system message stays purely static)
+  │   dynamic info like player identity is injected into the user message by buildUserContent
   └─ Build complete system prompt
   ↓
 【3. Knowledge Base Retrieval】
@@ -291,7 +291,7 @@ OfflineEventAggregator (compresses offline events)
   ↓
 ProfileAnalyzer → PlayerProfileDAO → DB
   ↓
-AI Context Injection: "This player likes building, often trades..."
+AI Context Injection: "This player likes building, often trades..." → injected into the user message (system prompt stays purely static to maximize prefix cache hit rate)
 ```
 
 ### 3. Social Relationship Graph
@@ -536,13 +536,16 @@ LLMOutputCoordinator contains LLMBudgetManager
 
 ### 7. Skill Registration Overview
 
-Current 17 built-in Skills registered across three entry points:
+Current 20 built-in Skills registered across three entry points:
 
 ```
-registerDefaultSkills() (KilacraftAI.java) — 8 unconditional + 6 conditional
-  ├── Unconditional: GenericBukkitAPI / BukkitFX / BukkitStats / Utility
-  │                  ServerHealth / PlayerAnalysis / AuditLog / VersionInfo
-  └── Conditional: Command (config toggle) / MarketQuery+MarketAction (GMP) / CMI / WebSearch / WebFetch
+registerDefaultSkills() (KilacraftAI.java) — 13 unconditional + 5 conditional
+  ├── Unconditional: BukkitPlayerInfo / BukkitPlayerStatus / BukkitPlayerInventory /
+  │                   BukkitWorld / BukkitServer (5 Bukkit query skills, split from the former GenericBukkitAPI) /
+  │                   BukkitFX / BukkitStats / Utility / Command (always registered, no config switch) /
+  │                   ServerHealth / PlayerAnalysis / AuditLog / VersionInfo
+  └── Conditional: MarketQuery+MarketAction (GMP plugin present) / CMI (CMI plugin present) /
+                   WebSearch (web.yml search.enabled) / WebFetch (web.yml fetch.enabled) / PlayerWatch + Watch
 
 initializePlayerWatchSystem() → PlayerWatchSkill
 initializeWatchSystem()       → WatchSkill

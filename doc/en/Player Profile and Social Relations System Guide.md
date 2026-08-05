@@ -1,6 +1,6 @@
 # Kilacraft-AI - Player Profile and Social Relations System Guide
 
-> **Last Updated**: 2026-08-01  
+> **Last Updated**: 2026-08-04  
 > **Description**: This document details the Player Profile System, Social Relationship Graph, and Server Event Collection System introduced in Kilacraft-AI v2.0.0
 
 ---
@@ -15,7 +15,7 @@ v2.0.0 introduces three data-driven subsystems that let AI remember each player'
 
 ### Core Design
 
-Player profiles are AI's "long-term memory" of players. The system automatically triggers LLM analysis on player login/logout, generates a structured eight-dimension profile, and dynamically injects profile summaries into system prompts during subsequent conversations, making AI's service more personalized.
+Player profiles are AI's “long-term memory” of players. The system ATTEMPTS to trigger LLM analysis on login and as conversation accumulates (gated by the three gates; skipped if conditions aren't met), generates a structured eight-dimension profile, and dynamically injects profile summaries into the **user message** (system prompt stays purely static to maximize context cache hit rate) during subsequent conversations, making AI's service more personalized.
 
 ### Profile Dimensions (8 Dimensions)
 
@@ -26,7 +26,7 @@ Player profiles are AI's "long-term memory" of players. The system automatically
 | Interests | interests | Liked areas and activities | Economy & trading / Redstone / Building |
 | Boundaries | boundaries | Disliked content or behaviors | Don't use my name / Don't rush me |
 | Communication | communication | Preferred AI response style | Brief and direct / No emojis |
-| Spatial Memory | spatial | Mentioned locations, base positions | Main base at desert (1200,64,-800) |
+| Spatial Memory | spatial | Mentioned locations, base positions | Main base deep in the desert |
 | Known Facts | facts | Explicitly stated facts by the player | Steve is a friend / Home near desert temple |
 | Special Observations | notes | LLM freeform observations | "This player has recently shown strong interest in enchanting" |
 
@@ -52,7 +52,7 @@ Player Login → Load memory cache → Check if analysis needed (triple gate)
                               Async write to DB (player_profile)
                               Async write snapshot (profile_snapshot) Added in v2.0.2
                                          ↓
-                              Profile summary injected into system prompt on next conversation
+                              Profile summary injected into user message (system prompt stays purely static to maximize context cache hit rate) on next conversation
 ```
 
 **Added in v2.0.2 — Incremental Analysis Mechanism**:
@@ -82,9 +82,9 @@ Profile knowledge is cumulative and never lost. A player who built for six month
 
 To prevent unnecessary LLM overhead, profile analysis requires **all three conditions simultaneously**:
 
-1. **Time Interval**: Time since last analysis ≥ configured interval (e.g., 30 minutes)
-2. **Message Count**: Player's cumulative message increase ≥ threshold (e.g., 20 messages)
-3. **Sliding Window**: Sufficient new content within the recent window (e.g., last 100 messages)
+1. **Time Interval**: Time since last analysis ≥ `analysis_interval_days` days (default 1 day)
+2. **Message Count**: Active player messages (chat/command) since last analysis ≥ `min_messages_to_trigger` (default 10)
+3. **Message Window**: Loads **all** new messages since the last analysis timestamp (no upper limit); there is no fixed-count sliding window
 
 ### Version Stamp Anti-Race-Condition
 
@@ -267,7 +267,7 @@ Event count and types are configurable via the `greeting` section of `behavior.y
                   ↓
 ┌─────────────────────────────────────────────┐
 │       LLM Profile Analysis + AI Context      │
-│  Profile summary → system prompt injection   │
+│  Profile summary → user message injection     │
 │  Social relations → greeting injection       │
 │  Offline events → return greeting injection  │
 └─────────────────────────────────────────────┘

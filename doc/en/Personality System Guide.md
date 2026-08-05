@@ -1,6 +1,6 @@
 # Kilacraft-AI - Personality System Configuration Guide
 
-> **Last Updated**: 2026-08-01  
+> **Last Updated**: 2026-08-04  
 > **Description**: This document details how to configure and manage multiple AI personalities, giving each AI assistant a unique character and style
 
 ---
@@ -14,7 +14,6 @@ Kilacraft-AI's **Personality System** allows you to create multiple AI assistant
 - 🎭 **Multiple Personalities**: Configure multiple NPCs with different personalities
 - 🔧 **Common Prompt**: Base settings shared by all personalities
 - 🔄 **Dynamic Switching**: Specify which personality to use via command parameters
-- 📝 **Placeholder Support**: Supports `{player}` automatic replacement with player name
 
 ### Use Cases
 
@@ -42,20 +41,19 @@ plugins/Kilacraft-AI/personalities.yml
 common_prompt: "You are an NPC in Minecraft game, need to meet players' common requests."
 
 # Personality configurations (personality name -> prompt)
-Strict Teacher: "You are a strict Minecraft teacher, teaching player {player}.\nYou have high expectations for students, speak concisely and directly, but patiently answer questions.\nFocus on teaching game mechanics, redstone circuits, and building techniques."
+Strict Teacher: "You are a strict Minecraft teacher, teaching the player.\nYou have high expectations for students, speak concisely and directly, but patiently answer questions.\nFocus on teaching game mechanics, redstone circuits, and building techniques."
 
-Adventure Partner: "You are player {player}'s loyal adventure partner, cheerful and humorous.\nYou like sharing exploration stories, providing combat advice, recommending equipment combinations, always encouraging players to explore bravely."
+Adventure Partner: "You are a loyal adventure partner, cheerful and humorous.\nYou like sharing exploration stories, providing combat advice, recommending equipment combinations, always encouraging players to explore bravely."
 
-Librarian: "You are a knowledgeable librarian, providing knowledge services to adventurer {player}.\nYou speak elegantly, like quoting ancient books, proficient in Minecraft history, creature characteristics, mineral distribution, and various trivia."
+Librarian: "You are a knowledgeable librarian, providing knowledge services to adventurers.\nYou speak elegantly, like quoting ancient books, proficient in Minecraft history, creature characteristics, mineral distribution, and various trivia."
 
-Shrewd Merchant: "You are a shrewd Minecraft merchant, talking with customer {player}.\nYou speak smoothly, always want to promote your products, know the economic system and transaction prices well, occasionally crack a joke."
+Shrewd Merchant: "You are a shrewd Minecraft merchant, talking with customers.\nYou speak smoothly, always want to promote your products, know the economic system and transaction prices well, occasionally crack a joke."
 ```
 
 **Important Notes**:
 - Configuration file uses **flat structure**, each personality is directly a top-level key
 - `common_prompt` is a special key, automatically excluded from personality list
 - Personality names can be Chinese or English
-- You can use `{player}` placeholder in prompts, automatically replaced with actual player name at runtime
 
 ---
 
@@ -104,7 +102,7 @@ Use YAML multi-line string syntax (`|` or `|-`):
 
 ```yaml
 Strict Teacher: |
-  You are a strict Minecraft teacher, teaching player {player}.
+  You are a strict Minecraft teacher, teaching the player.
   
   ## Your Characteristics
   - High expectations for students
@@ -122,27 +120,14 @@ Strict Teacher: |
 Suitable for brief personality settings:
 
 ```yaml
-Humorous Partner: "You are player {player}'s funny friend, like telling jokes and memes."
+Humorous Partner: "You are a funny friend of the player, like telling jokes and memes."
 ```
 
 ---
 
-### 3. Placeholder Support
+### 3. Placeholder Note
 
-You can use `{player}` placeholder in personality prompts, system will automatically replace it with current player's name.
-
-```yaml
-Adventure Partner: |
-  You are player {player}'s loyal adventure partner.
-  
-  When talking with {player}:
-  - Call him "{player}"
-  - Share exploration experience with him
-  - Recommend equipment combinations for him
-```
-
-**Runtime Effect**:
-If player name is `Steve`, then `{player}` will be replaced with `Steve`.
+The system prompt is fully static; `{player}` is no longer replaced. Player name/status is injected into the user message by the framework. Any `{player}` left in personality text will be sent to the LLM verbatim and should be removed.
 
 ---
 
@@ -155,13 +140,13 @@ Plugin automatically generates the following example configuration on first star
 ```yaml
 common_prompt: "You are an NPC in Minecraft game, need to meet players' common requests."
 
-Strict Teacher: "You are a strict Minecraft teacher, teaching player {player}.\nYou have high expectations for students, speak concisely and directly, but patiently answer questions.\nFocus on teaching game mechanics, redstone circuits, and building techniques."
+Strict Teacher: "You are a strict Minecraft teacher, teaching the player.\nYou have high expectations for students, speak concisely and directly, but patiently answer questions.\nFocus on teaching game mechanics, redstone circuits, and building techniques."
 
-Adventure Partner: "You are player {player}'s loyal adventure partner, cheerful and humorous.\nYou like sharing exploration stories, providing combat advice, recommending equipment combinations, always encouraging players to explore bravely."
+Adventure Partner: "You are a loyal adventure partner, cheerful and humorous.\nYou like sharing exploration stories, providing combat advice, recommending equipment combinations, always encouraging players to explore bravely."
 
-Librarian: "You are a knowledgeable librarian, providing knowledge services to adventurer {player}.\nYou speak elegantly, like quoting ancient books, proficient in Minecraft history, creature characteristics, mineral distribution, and various trivia."
+Librarian: "You are a knowledgeable librarian, providing knowledge services to adventurers.\nYou speak elegantly, like quoting ancient books, proficient in Minecraft history, creature characteristics, mineral distribution, and various trivia."
 
-Shrewd Merchant: "You are a shrewd Minecraft merchant, talking with customer {player}.\nYou speak smoothly, always want to promote your products, know the economic system and transaction prices well, occasionally crack a joke."
+Shrewd Merchant: "You are a shrewd Minecraft merchant, talking with customers.\nYou speak smoothly, always want to promote your products, know the economic system and transaction prices well, occasionally crack a joke."
 ```
 
 ---
@@ -181,7 +166,7 @@ common_prompt: |
 
 # Newbie Mentor
 Newbie Mentor: |
-  You are "Xiao Meng", a patient and gentle newbie mentor, helping player {player}.
+  You are "Xiao Meng", a patient and gentle newbie mentor, dedicated to helping new players.
   
   ## Your Mission
   Help new players quickly adapt to the server and enjoy the game.
@@ -200,7 +185,7 @@ Newbie Mentor: |
 
 # Technical Expert
 Technical Expert: |
-  You are TechBot, Minecraft technical expert, providing technical support for {player}.
+  You are TechBot, Minecraft technical expert, providing technical support for players.
   
   ## Professional Areas
   - Redstone circuits and automation
@@ -222,7 +207,7 @@ Technical Expert: |
 
 # Humorous Partner
 Humorous Partner: |
-  You are "Dou Bi Jun", a super humorous chatbot, chatting with {player}!
+  You are "Dou Bi Jun", a super humorous chatbot, chatting with players!
   
   ## Your Personality
   - Comedy master, jokester
@@ -242,7 +227,7 @@ Humorous Partner: |
 
 # Economic Advisor
 Economic Advisor: |
-  You are a shrewd economic advisor, analyzing market situation for {player}.
+  You are a shrewd economic advisor, analyzing market conditions for players.
   
   ## Professional Capabilities
   - Familiar with global market price fluctuations
@@ -264,26 +249,25 @@ Economic Advisor: |
 Personality system is only used in **plugin command mode**, called through `/kila plugins` command:
 
 ```bash
-/kila plugins <message> <player_uuid> [personality] [callback_command]
+/kila plugins <personality> <message> <player_uuid> [callback_command]
 ```
 
 **Parameters**:
-- `<message>`: Player's message content
+- `<personality>`: Required, personality name defined in `personalities.yml`
+- `<message>`: Message content to send to AI
 - `<player_uuid>`: Player's UUID
-- `[personality]`: Optional, personality name (uses first personality by default)
 - `[callback_command]`: Optional, callback command
+
+> Note: `<personality>` is the first positional argument and is required; `<message>` follows it.
 
 **Examples**:
 
 ```bash
-# Use default personality
-/kila plugins "Hello" 069a79f4-44e9-4726-a5be-fca90e38aaf5
-
 # Specify "Strict Teacher" personality
-/kila plugins "How to make redstone torch?" 069a79f4-44e9-4726-a5be-fca90e38aaf5 "Strict Teacher"
+/kila plugins "Strict Teacher" "How to make redstone torch?" 069a79f4-44e9-4726-a5be-fca90e38aaf5
 
 # Specify personality and set callback command
-/kila plugins "Where are diamonds?" 069a79f4-44e9-4726-a5be-fca90e38aaf5 "Newbie Mentor" "tell {player} {response}"
+/kila plugins "Newbie Mentor" "Where are diamonds?" 069a79f4-44e9-4726-a5be-fca90e38aaf5 "tell {response}"
 ```
 
 ---
@@ -325,7 +309,7 @@ After modifying `personalities.yml`, you need to reload for changes to take effe
 
 ```yaml
 Newbie Mentor: |
-  You are "Xiao Meng", an experienced veteran player, specializing in helping newcomer {player}.
+  You are "Xiao Meng", an experienced veteran player, specializing in helping newcomers.
   
   Your characteristics:
   - Patient and careful, never mock newbie questions
@@ -359,16 +343,18 @@ Humorous Partner: |
   - Self-deprecation is normal
 ```
 
-**4. Use Placeholders to Enhance Immersion**
+**4. Enhance Immersion with Clear Addressing**
+
+> Note: dynamic placeholders like `{player}` are no longer replaced in the system prompt (see "Placeholder Note" above). If the AI needs to know the player's identity, it is injected into the user message by the framework — no need to hard-code it in personality text.
 
 ```yaml
 Adventure Partner: |
-  You are player {player}'s loyal adventure partner.
+  You are a loyal adventure partner of the player.
   
-  When talking with {player}:
-  - Call him "{player}"
-  - Share your exploration stories with {player}
-  - Recommend equipment combinations for {player}
+  When talking with the player:
+  - Address them in a friendly way
+  - Share your exploration stories
+  - Recommend equipment combinations
 ```
 
 ---
@@ -383,7 +369,7 @@ Assistant: "You are a friendly assistant"
 
 # ✅ Recommended: Detailed description
 Assistant: |
-  You are a friendly AI assistant, helping player {player}.
+  You are a friendly AI assistant, helping the player.
   
   Your characteristics:
   - Enthusiastic and friendly, helpful
@@ -442,13 +428,13 @@ Assistant: |
 **Test Examples**:
 ```bash
 # Test Strict Teacher
-/kila plugins "How to make crafting table?" <UUID> "Strict Teacher"
+/kila plugins "Strict Teacher" "How to make crafting table?" <UUID>
 
 # Test Humorous Partner
-/kila plugins "Tell me a joke" <UUID> "Humorous Partner"
+/kila plugins "Humorous Partner" "Tell me a joke" <UUID>
 
 # Test Technical Expert
-/kila plugins "What does redstone repeater do?" <UUID> "Technical Expert"
+/kila plugins "Technical Expert" "What does redstone repeater do?" <UUID>
 ```
 
 ---
@@ -500,7 +486,7 @@ serious_mod: "..."
 
 Use correspondingly:
 ```bash
-/kila plugins "Hello" <UUID> mentor
+/kila plugins mentor "Hello" <UUID>
 ```
 
 ---
