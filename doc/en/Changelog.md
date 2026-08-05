@@ -1,6 +1,6 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-08-04  
+> **Last Updated**: 2026-08-05  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
 
 ---
@@ -58,6 +58,7 @@
 - **`/kila doctor` self-check enhanced**: in-game output now uses grouped fold-down summaries (each group shows "X pass, Y warn, Z fail" header, only failing items expanded), dramatically reducing chat spam when healthy; console output now includes web-search provider status and other detailed metrics; a new command-document health check is added (warns if the command knowledge base has no valid entries); the observability group includes a `health_guardian` (server health monitor) check
 - **`/kila reload` enhanced**: now reloads watch/web/suggestion/greeting/utility-notification/command-document configs; budget threshold refreshes immediately
 - **Documentation archiving**: the AFK task system's user guide and detailed documentation have been archived to `doc/归档/` following the system's removal; updated the intent recognition prompt configuration guide
+- **Knowledge base supports subdirectory organization**: the `knowledge/` directory now freely supports organizing documents in subfolders (e.g. `knowledge/tutorials/redstone.md`, `knowledge/advanced/mob-farm.md`) — the plugin recursively scans and loads them all. Previously Chinese server owners had to place files in the `knowledge/` root and English owners in `knowledge/en/`, and switching language would lose access to existing files; now unified into a single `knowledge/` directory — put whatever language, whatever subfolder you like, and switching languages no longer drops the knowledge base
 
 ### 🐛 Bug Fixes
 
