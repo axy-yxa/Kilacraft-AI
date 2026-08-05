@@ -705,6 +705,7 @@ messages:
   "用户": "User"
   "助手": "Assistant"
   "[问候]": "[Greeting]"
+  "【当前时间】": "[Current Time]"
 
   # ==================== IntentPromptConfigManager ====================
   "【角色定义】": "[Role Definition]"

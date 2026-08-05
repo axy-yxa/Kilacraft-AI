@@ -609,7 +609,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         }
 
         // 当前时间
-        sb.append(I18nService.getCurrentTimeString());
+        sb.append(I18nService.tr("【当前时间】")).append(I18nService.getCurrentTimeString());
         return sb.toString();
     }
 

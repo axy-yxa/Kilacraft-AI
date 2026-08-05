@@ -327,11 +327,12 @@ public final class I18nService {
     }
 
     /**
-     * 获取当前时间字符串，按语言本地化。
+     * 获取当前时间字符串，按语言本地化（不含前缀标签）。
      * <p>用于注入 LLM 提示词，帮助 LLM 感知实时时间以进行精确搜索和上下文判断。
      * 精确到分钟——省略秒数提升提示词缓存的分钟级命中率。</p>
+     * <p>返回纯时间值，标签（如「【当前时间】」）由调用方自行追加，避免文案耦合。</p>
      *
-     * @return 如 "当前时间：2026年7月24日 20:53 CST" / "Current time: 2026-07-24 20:53 CST"
+     * @return 如 "2026年7月24日 20:53 CST" / "2026-07-24 20:53 CST"
      */
     public static String getCurrentTimeString() {
         I18nService i18n = getInstance();
@@ -343,6 +344,6 @@ public final class I18nService {
         } else {
             fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ENGLISH);
         }
-        return (i18n != null && i18n.isChinese() ? "当前时间：" : "Current time: ") + now.format(fmt) + " " + zone.getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+        return now.format(fmt) + " " + zone.getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
     }
 }
