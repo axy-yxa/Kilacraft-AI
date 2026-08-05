@@ -130,7 +130,7 @@ public class LLMAnalysisService {
             while (recentHistory.size() > analysisMaxMessages) {
                 recentHistory.pollFirst();
             }
-            llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, player, recentHistory, wrapperHandler, systemPrompt, enableKnowledge, false, false, cacheCallTypeEnum);
+            llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, player, recentHistory, wrapperHandler, systemPrompt, enableKnowledge, true, false, cacheCallTypeEnum);
         } catch (RuntimeException e) {
             // 前置阶段异常（非 LLM 调用本身）：记完整堆栈 + 通知 handler + 完成 Future，确保调用链不挂起
             PluginLoggerUtil.error("LLM分析", I18nService.tr("二次分析前置阶段异常: {}", e.getMessage()), e);

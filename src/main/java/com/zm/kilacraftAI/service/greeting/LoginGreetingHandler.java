@@ -165,18 +165,15 @@ public class LoginGreetingHandler implements Listener {
             plugin.getResponsePipeline().startStream(player, channel, true);
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, player, emptyHistory, handler, systemPrompt, false, false, false, CacheCallTypeEnum.GREETING).thenAccept(greeting -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, player, emptyHistory, handler, systemPrompt, false, true, false, CacheCallTypeEnum.GREETING).thenAccept(greeting -> {
             // 错误响应（§c 开头）已由 handleError 提示玩家，不持久化到 DB、不写入对话历史，避免污染
             if (greeting != null && !LLMResponseUtil.isErrorResponse(greeting) && player.isOnline()) {
+                // 问候仅写 DB（source=greeting，DB 加载历史时不回读），不注入内存对话历史：
+                // 问候是孤立 assistant（无配对 user），写入会破坏历史成对结构、并在裁剪时拆散成对消息。
                 ConversationPersistenceService persistence = plugin.getPersistenceService();
                 if (persistence != null) {
                     persistence.submit(playerUuid, "assistant", greeting, "", ConversationSourceEnum.GREETING.getValue());
                 }
-
-                // 写入内存对话历史，使玩家能对问候内容进行追问
-                Deque<ConversationManager.Message> history = plugin.getConversationManager().getOrCreateHistory(playerUuid);
-                history.add(new ConversationManager.Message("assistant", greeting, ConversationSourceEnum.GREETING.getValue()));
-
                 updateGreetingTime(playerUuid);
             }
         }).exceptionally(throwable -> {

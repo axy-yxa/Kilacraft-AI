@@ -64,19 +64,10 @@ public class ConversationManager {
     public static class Message {
         public final String role;
         public final String content;
-        /**
-         * 消息来源（chat/command/plugin/greeting），null 表示旧数据或无需区分。供 HistoryUtil 渲染标签。
-         */
-        public final String source;
 
         public Message(String role, String content) {
-            this(role, content, null);
-        }
-
-        public Message(String role, String content, String source) {
             this.role = role;
             this.content = content;
-            this.source = source;
         }
 
     }

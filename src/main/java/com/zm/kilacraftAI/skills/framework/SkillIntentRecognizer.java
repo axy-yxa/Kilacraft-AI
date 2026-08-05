@@ -6,7 +6,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
-import com.zm.kilacraftAI.common.util.*;
+import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
+import com.zm.kilacraftAI.common.util.LogSnippetUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
@@ -186,8 +189,10 @@ public class SkillIntentRecognizer {
             return CompletableFuture.completedFuture(null);
         }
 
-        // 构建用户提示词
-        String userPrompt = buildUserPrompt(userInput, history);
+        // 构建用户提示词（对话历史走 messages 数组，不拼进文本）
+        String userPrompt = buildUserPrompt(userInput);
+        // 历史快照（截断到配置轮数），作为 messages 数组注入 Phase1/Phase2
+        Deque<ConversationManager.Message> recentHistory = snapshotRecentHistory(history);
 
         // 静默 Handler：意图识别不向玩家输出
         AIResponseHandler handler = buildSilentHandler("意图识别");
@@ -197,7 +202,7 @@ public class SkillIntentRecognizer {
         // system 保持纯静态（角色定义+技能列表末尾）；动态上下文（画像/元数据/时间）由 Provider 注入 user 消息
         PluginLoggerUtil.debug("意图识别", "Phase 1 Skill 分类开始");
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, handler, promptConfigManager.buildPhase1SystemPrompt(phase1Skills), false, false, true, CacheCallTypeEnum.INTENT_PHASE1).thenCompose(phase1Response -> {
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, recentHistory, handler, promptConfigManager.buildPhase1SystemPrompt(phase1Skills), false, true, true, CacheCallTypeEnum.INTENT_PHASE1).thenCompose(phase1Response -> {
             Set<String> selectedSkills = parsePhase1Response(phase1Response);
 
             // 快速路径：无效意图，不调 Phase 2
@@ -211,7 +216,7 @@ public class SkillIntentRecognizer {
 
             PluginLoggerUtil.debug("意图识别", "Phase 2 开始，选中技能: {}", selectedSkills);
 
-            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, handler, promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills), true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(phase2Response -> {
+            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, recentHistory, handler, promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills), true, true, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(phase2Response -> {
                 PluginLoggerUtil.debug("意图识别", "Phase 2 完成");
                 // 解析 LLM 响应
                 return parseIntentFromResponse(phase2Response);
@@ -289,13 +294,14 @@ public class SkillIntentRecognizer {
             return CompletableFuture.completedFuture(null);
         }
 
-        String userPrompt = buildUserPrompt(userInput, history);
+        String userPrompt = buildUserPrompt(userInput);
+        Deque<ConversationManager.Message> recentHistory = snapshotRecentHistory(history);
         Set<String> selected = Set.of(forcedSkillName);
         String phase2Skills = buildPhase2SkillDescription(caller, selected);
 
         PluginLoggerUtil.debug("意图识别", "强制技能 Phase 2 开始：{}", forcedSkillName);
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, null, buildSilentHandler("强制技能识别"), promptConfigManager.buildSystemPrompt(phase2Skills, selected), true, false, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(response -> {
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, recentHistory, buildSilentHandler("强制技能识别"), promptConfigManager.buildSystemPrompt(phase2Skills, selected), true, true, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(response -> {
             Object parsed = parseIntentFromResponse(response);
             if (parsed instanceof SkillIntent intent && forcedSkillName.equals(intent.getSkillName())) {
                 // 玩家显式指定技能：置信度置 1.0 通过 isValid 校验，绕过 Phase1 不确定性
@@ -339,7 +345,7 @@ public class SkillIntentRecognizer {
 
         PluginLoggerUtil.debug("意图识别", "待确认续体分类开始：{}.{}", slot.getSkillName(), slot.getAction());
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userInput, caller, null, handler, systemPrompt, false, false, true, CacheCallTypeEnum.PENDING_RESUME).thenApply(this::parsePendingAction);
+        return llmProvider.processRequestWithCustomSystemPrompt(userInput, caller, null, handler, systemPrompt, false, true, true, CacheCallTypeEnum.PENDING_RESUME).thenApply(this::parsePendingAction);
     }
 
     /**
@@ -465,26 +471,26 @@ public class SkillIntentRecognizer {
     }
 
     /**
-     * 构建用户提示词。
-     * <p>
-     * 当前玩家名称由 Provider 经动态上下文（【玩家实时状态】含「玩家名称」字段）注入 user 消息，
-     * 此处不再重复，避免双份。仅保留对话历史与当前输入。
+     * 构建用户提示词（当前输入 + 指令）。
      */
-    private String buildUserPrompt(String userInput, Deque<ConversationManager.Message> history) {
-        StringBuilder prompt = new StringBuilder();
+    private String buildUserPrompt(String userInput) {
+        return I18nService.tr("[当前输入]\n") + I18nService.tr("用户说：") + userInput + "\n\n" + I18nService.tr("请根据系统提示词中的规则分析用户意图，输出对应的 JSON 识别结果。");
+    }
 
-        // 添加对话历史
-        if (history != null && !history.isEmpty()) {
-            prompt.append(HistoryUtil.buildHistoryDisplay(history, configManager, configManager.getAgentIntentHistoryCount()));
+    /**
+     * 浅拷贝 history 快照并按意图识别配置轮数裁剪，供 Provider 作为 messages 数组注入。
+     * <p>Message 字段不可变，浅拷贝即深拷贝语义；裁剪不影响调用方的原始队列。</p>
+     */
+    private Deque<ConversationManager.Message> snapshotRecentHistory(Deque<ConversationManager.Message> history) {
+        if (history == null || history.isEmpty()) {
+            return new ArrayDeque<>();
         }
-
-        // 添加当前输入
-        prompt.append(I18nService.tr("[当前输入]\n"));
-        prompt.append(I18nService.tr("用户说：")).append(userInput).append("\n\n");
-
-        // 添加指令
-        prompt.append(I18nService.tr("请根据系统提示词中的规则分析用户意图，输出对应的 JSON 识别结果。"));
-        return prompt.toString();
+        int maxMessages = configManager.getAgentIntentHistoryCount() * 2;
+        Deque<ConversationManager.Message> recent = new ArrayDeque<>(history);
+        while (recent.size() > maxMessages) {
+            recent.pollFirst();
+        }
+        return recent;
     }
 
     /**

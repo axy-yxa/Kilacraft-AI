@@ -299,25 +299,20 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     }
 
     /**
-     * 打印调试日志（优化：减少字符串拼接）
+     * 打印 debug 模式下的请求详情
      */
-    private void printDebugLog(String playerName, String userMessage, Deque<ConversationManager.Message> history) {
-        PluginLoggerUtil.debug("LLM请求", "========== API 请求开始 ==========");
+    private void printDebugLog(String playerName, String userMessage, Deque<ConversationManager.Message> history, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
+        String scenario = cacheCallTypeEnum != null ? cacheCallTypeEnum.getDisplayName() : I18nService.tr("未分类");
+        PluginLoggerUtil.debug("LLM请求", "========== API 请求开始 [场景: {}] ==========", scenario);
         PluginLoggerUtil.debug("LLM请求", "玩家：{}", playerName);
         PluginLoggerUtil.debug("LLM请求", "当前消息：{}", userMessage);
-        PluginLoggerUtil.debug("LLM请求", "模型：{}", cachedModel);
-        PluginLoggerUtil.debug("LLM请求", "URL: {}", cachedApiUrl);
-        PluginLoggerUtil.debug("LLM请求", "温度：{}", cachedTemperature);
-        PluginLoggerUtil.debug("LLM请求", "最大 Token:{}", cachedMaxTokens);
 
-        // 打印历史记录信息
         if (history != null && !history.isEmpty()) {
             PluginLoggerUtil.debug("LLM请求", "历史对话数量：{} 条", history.size());
             int index = 0;
             for (ConversationManager.Message msg : history) {
                 index++;
                 String content = msg.getContent();
-                // AI 回答的历史记录只打印前若干个字符，避免日志过长
                 if (MessageRoleEnum.ASSISTANT.value().equals(msg.getRole()) && content.length() > LOG_TRUNCATE_LENGTH) {
                     content = content.substring(0, LOG_TRUNCATE_LENGTH) + I18nService.tr("... (共{} 字符)", msg.getContent().length());
                 }
@@ -334,7 +329,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             try {
                 // 打印调试日志
                 if (enableDebugLog && cachedDebugMode) {
-                    printDebugLog(player != null ? player.getName() : "Unknown", userMessage, history);
+                    printDebugLog(player != null ? player.getName() : "Unknown", userMessage, history, cacheCallTypeEnum);
                 }
 
                 // ========== 知识检索增强 ==========
@@ -441,7 +436,8 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 return errorMsg;
             } finally {
                 if (enableDebugLog && cachedDebugMode) {
-                    PluginLoggerUtil.debug("LLM请求", "========== API 请求结束 ==========");
+                    String scenario = cacheCallTypeEnum != null ? cacheCallTypeEnum.getDisplayName() : I18nService.tr("未分类");
+                    PluginLoggerUtil.debug("LLM请求", "========== API 请求结束 [场景: {}] ==========", scenario);
                 }
             }
         }, FoliaCompat.getIOPool());

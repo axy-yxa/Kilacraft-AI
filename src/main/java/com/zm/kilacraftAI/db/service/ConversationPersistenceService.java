@@ -257,10 +257,9 @@ public class ConversationPersistenceService {
             return;
         }
 
-        // 检查内存是否已有（去重保护）
-        // 注意：仅包含 assistant 消息的历史（如登录问候）不视为有效历史，仍需从 DB 加载
+        // 检查内存是否已有（去重保护）：内存历史非空即视为有效（均为成对的 user/assistant），直接复用
         Deque<ConversationManager.Message> existing = getExistingHistory(playerUuid, personality);
-        if (existing != null && !existing.isEmpty() && existing.stream().anyMatch(m -> !"assistant".equals(m.getRole()))) {
+        if (existing != null && !existing.isEmpty()) {
             callback.accept(existing);
             return;
         }
@@ -287,26 +286,20 @@ public class ConversationPersistenceService {
     }
 
     /**
-     * 将 DB 加载的历史合并到内存历史中
+     * 将 DB 加载的历史填充进内存队列。
      *
-     * <p>DB 历史在前（时间升序），内存中可能存在的 assistant-only 消息（如登录问候）保留在末尾。
-     * 当 loadHistoryIfNeeded 判定 assistant-only 的内存历史为“空”并从 DB 加载后，
-     * 调用此方法完成合并。</p>
+     * <p>仅在 {@link #loadHistoryIfNeeded} 判定内存历史为空、并从 DB 加载成功后调用。
+     * 此时 playerHistory 必然为空（非空已在上游短路），故直接 clear + addAll 等价于填充。</p>
      *
      * @param loadedHistory 从 DB 加载的历史（可能为空）
-     * @param playerHistory 内存中的历史队列（可能包含问候消息）
+     * @param playerHistory 内存中的历史队列（调用时为空）
      */
     public static void mergeLoadedHistory(Deque<ConversationManager.Message> loadedHistory, Deque<ConversationManager.Message> playerHistory) {
-        // 自引用保护：如果 loadedHistory 就是 playerHistory 本身（内存历史已有效时会出现），无需合并
         if (loadedHistory == null || loadedHistory.isEmpty() || playerHistory == null || loadedHistory == playerHistory) {
             return;
         }
-        ConversationManager.Message last = playerHistory.peekLast();
         playerHistory.clear();
         playerHistory.addAll(loadedHistory);
-        if (last != null) {
-            playerHistory.addLast(last);
-        }
     }
 
     /**

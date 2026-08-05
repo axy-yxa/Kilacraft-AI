@@ -265,7 +265,7 @@ public class UtilitySkill implements Skill {
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
 
-        CompletableFuture<String> llmFuture = llmProvider.processRequestWithCustomSystemPrompt(userPrompt, player, emptyHistory, handler, systemPrompt, false, false, false, CacheCallTypeEnum.UTILITY);
+        CompletableFuture<String> llmFuture = llmProvider.processRequestWithCustomSystemPrompt(userPrompt, player, emptyHistory, handler, systemPrompt, false, true, false, CacheCallTypeEnum.UTILITY);
 
         return llmFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {
@@ -345,7 +345,7 @@ public class UtilitySkill implements Skill {
 
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
 
-        llmProvider.processRequestWithCustomSystemPrompt(userPrompt, player, emptyHistory, silentHandler, systemPrompt, false, false, false, CacheCallTypeEnum.UTILITY);
+        llmProvider.processRequestWithCustomSystemPrompt(userPrompt, player, emptyHistory, silentHandler, systemPrompt, false, true, false, CacheCallTypeEnum.UTILITY);
 
         return responseFuture.orTimeout(LLM_TIMEOUT_SECONDS, TimeUnit.SECONDS).handle((response, ex) -> {
             if (ex != null) {

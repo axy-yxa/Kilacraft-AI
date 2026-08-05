@@ -669,9 +669,6 @@ messages:
   "提取的内容: {}": "Extracted content: {}"
   "玩家：{}": "Player: {}"
   "当前消息：{}": "Current message: {}"
-  "模型：{}": "Model: {}"
-  "温度：{}": "Temperature: {}"
-  "最大 Token:{}": "Max Token:{}"
   "历史对话数量：{} 条": "History conversation count: {} messages"
   "历史 [{}] ({}): {}": "History [{}] ({}): {}"
   "已添加 {} 个知识片段到上下文中": "Added {} knowledge segments to context"
@@ -679,8 +676,9 @@ messages:
   "JSON 解析失败：{}": "JSON parse failed: {}"
   "错误详情：{}": "Error details: {}"
   "历史对话：无": "History: none"
-  "========== API 请求开始 ==========": "========== API Request Start =========="
-  "========== API 请求结束 ==========": "========== API Request End =========="
+  "========== API 请求开始 [场景: {}] ==========": "========== API Request Start [Scenario: {}] =========="
+  "========== API 请求结束 [场景: {}] ==========": "========== API Request End [Scenario: {}] =========="
+  "未分类": "Uncategorized"
   "{} 收到AI回复 [{}]：{}": "{} received AI reply [{}]: {}"
   "连接被对端关闭": "Connection closed by peer"
   "用户问题：": "User question: "
@@ -704,7 +702,6 @@ messages:
   "[对话历史]\n": "[Conversation History]\n"
   "用户": "User"
   "助手": "Assistant"
-  "[问候]": "[Greeting]"
   "【当前时间】": "[Current Time]"
 
   # ==================== IntentPromptConfigManager ====================
@@ -1223,9 +1220,6 @@ messages:
   "蠹虫": "Silverfish"
   "溺尸": "Drowned"
   "尸壳": "Husk"
-
-  # ==================== HistoryUtil ====================
-  "问候": "Greeting"
 
   # ==================== VersionInfoSkill ====================
   "版本检测器未初始化": "Version checker not initialized"
