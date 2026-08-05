@@ -250,15 +250,14 @@ public class CommandSkill implements Skill, DynamicContextProvider, CallerDescri
     }
 
     /**
-     * 解析命令文档路径：中文读 commands/commands.md，非中文读 commands/&lt;lang&gt;/commands.md。
+     * 解析命令文档路径：按当前语言选择平铺文件（中文 commands.md，其他语言 commands_语言代码.md）。
+     * 不做语言回退——文件不存在时 parser 返回空文档，与其他 i18n 配置一致。
      */
     private static Path resolveCommandDocPath() {
         Path commandsDir = Paths.get(KilacraftAI.getInstance().getDataFolder().toString(), "commands");
         String lang = KilacraftAI.getInstance().getI18nService().getLanguage();
-        if ("zh".equals(lang)) {
-            return commandsDir.resolve("commands.md");
-        }
-        return commandsDir.resolve(lang).resolve("commands.md");
+        String fileName = "zh".equals(lang) ? "commands.md" : "commands_" + lang + ".md";
+        return commandsDir.resolve(fileName);
     }
 
     /**

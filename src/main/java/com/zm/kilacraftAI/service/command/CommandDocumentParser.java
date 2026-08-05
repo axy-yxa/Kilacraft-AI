@@ -11,7 +11,7 @@ import java.util.*;
 /**
  * 命令文档解析器
  *
- * <p>解析 {@code commands/commands.md}（或 {@code commands/<lang>/commands.md}），
+ * <p>解析命令文档（{@code commands/commands.md} 中文默认 / {@code commands/commands_en.md} 英文），
  * 提取结构化命令条目。格式：{@code ## 命令名} 标题 + 紧跟的字段行
  * （说明/description、示例/example、权限/permission、关键词/keywords，字段名别名大小写不敏感）。</p>
  *

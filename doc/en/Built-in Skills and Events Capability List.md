@@ -228,7 +228,7 @@ Player: Help me go home
 #### Core Features
 
 - ✅ **Always registered** (v2.2.0 removed the `command_skill.enabled` config switch), controlled solely by the `kilacraft.command.execute` permission node (default: all players)
-- ✅ **Command knowledge base**: identifies command intent based on the `commands/commands.md` doc; server owners can append third-party plugin commands via the template
+- ✅ **Command knowledge base**: identifies command intent based on the `commands/commands.md` doc (English: `commands/commands_en.md`); server owners can append third-party plugin commands via the template
 - ✅ **Permission Boundary**: AI executes commands as player, constrained by server permission system; the command list the AI sees is dynamically filtered by the current player's actual permissions
 - ✅ **Fallback Mechanism**: When dedicated Skills cannot cover user needs, try executing commands
 - ✅ **Security Mechanism**: Does not bypass any server security mechanisms (permissions, cooldowns, safe areas)

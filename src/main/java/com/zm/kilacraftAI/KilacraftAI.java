@@ -786,8 +786,10 @@ public final class KilacraftAI extends JavaPlugin {
         utilityConfigManager.loadConfig();
 
         // Skills 系统（依赖 skillConfigManager）
-        // 先释放命令文档目录（CommandSkill 构造器解析命令文档，须先于注册）
-        ConfigResourceUtil.saveDefaultResourceDir(this, "commands");
+        // 先释放当前语言的命令文档（CommandSkill 构造器解析命令文档，须先于注册）
+        String cmdLang = i18nService.getLanguage();
+        String cmdDocFile = "zh".equals(cmdLang) ? "commands/commands.md" : "commands/commands_" + cmdLang + ".md";
+        ConfigResourceUtil.saveDefaultResource(this, cmdDocFile);
         skillManager = new SkillManager();
         registerDefaultSkills();
 

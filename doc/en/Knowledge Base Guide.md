@@ -247,6 +247,8 @@ knowledge/
 └── events.md             # Event information
 ```
 
+> Subdirectories are also supported — the plugin recursively scans all `.md` / `.txt` files under `knowledge/` (at any depth). For example, `knowledge/tutorials/redstone.md` and `knowledge/advanced/mob-farm.md` will both be loaded.
+
 **Advantages**:
 - Easy to maintain and update
 - High retrieval precision
