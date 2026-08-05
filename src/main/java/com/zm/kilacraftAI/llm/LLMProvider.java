@@ -23,15 +23,15 @@ public interface LLMProvider {
     /**
      * 处理 AI 请求。
      * <p>
-     * system 消息由 {@code staticSystemPrompt}（可含 {player} 占位符）拼装，保持稳定；
-     * 玩家画像、实时元数据、当前时间等会变的内容由本方法注入到 user 消息。
+     * system 消息由 {@code staticSystemPrompt} 原样透传，必须纯静态（不得含 {player} 等每玩家/每请求
+     * 变化的占位符），以最大化供应商侧前缀缓存命中率；玩家画像、实时元数据、当前时间等会变的内容
+     * 由本方法注入到 user 消息。
      *
      * @param userMessage              实际用户查询
-     * @param player                   触发请求的玩家；非 null 时注入画像/元数据/时间到 user 消息，
-     *                                 并以其名替换 system 中的 {player}；null 表示无玩家上下文
+     * @param player                   触发请求的玩家；非 null 时注入画像/元数据/时间到 user 消息；null 表示无玩家上下文
      * @param history                  历史对话记录，作为 messages[1..N] 夹在 system 与 user 之间
      * @param responseHandler          响应处理器
-     * @param staticSystemPrompt       系统提示词（人格/模板，可含 {player} 占位符）
+     * @param staticSystemPrompt       系统提示词（人格/模板，必须纯静态，不替换任何占位符）
      * @param enableKnowledgeRetrieval 是否启用知识检索（命中时拼到 user 消息、紧贴查询之前）
      * @param enableDebugLog           是否启用调试日志
      * @param enableJsonOutput         是否启用 JSON 输出

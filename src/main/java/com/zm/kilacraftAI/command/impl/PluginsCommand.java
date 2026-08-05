@@ -114,7 +114,8 @@ public final class PluginsCommand {
 
         AIResponseHandler handler = new PluginCommandResponseHandler(sender, targetPlayerId, targetPlayerName);
         final String finalPersonality = personality;
-        // {player} 占位符由 Provider 替换，传含占位符的原始模板
+        // 人格提示词作为 system 消息使用，必须纯静态（不得含 {player} 等动态占位符）；
+        // 玩家身份由 Provider 经动态上下文（【玩家实时状态】含玩家名称）注入 user 消息
         String personalityPrompt = personalitiesConfig.getPersonalityPrompt(personality);
 
         PluginLoggerUtil.debug("命令", "插件命令请求 - 人格：{}, 玩家：{}, UUID: {}", personality, targetPlayerName, targetPlayerId);
