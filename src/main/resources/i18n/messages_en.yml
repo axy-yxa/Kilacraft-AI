@@ -704,6 +704,7 @@ messages:
   "[对话历史]\n": "[Conversation History]\n"
   "用户": "User"
   "助手": "Assistant"
+  "[问候]": "[Greeting]"
 
   # ==================== IntentPromptConfigManager ====================
   "【角色定义】": "[Role Definition]"

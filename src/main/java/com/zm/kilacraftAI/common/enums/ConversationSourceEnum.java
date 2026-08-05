@@ -15,7 +15,7 @@ import lombok.Getter;
  *     <li>{@link #CHAT} — 连续对话模式 / 关键词触发</li>
  *     <li>{@link #COMMAND} — /kila 命令触发</li>
  *     <li>{@link #PLUGIN} — 插件命令 /kila plugins（带人格隔离）</li>
- *     <li>{@link #GREETING} — 登录问候（Phase 4，仅写 DB 不加载到内存）</li>
+ *     <li>{@link #GREETING} — 登录问候（写入 DB 与内存历史；DB 加载时不回读，仅在当前会话内存中由 HistoryUtil 渲染来源标签）</li>
  * </ul>
  *
  * @author Zm_Mmm
@@ -40,7 +40,7 @@ public enum ConversationSourceEnum {
     PLUGIN("plugin"),
 
     /**
-     * 登录问候（仅写 DB，不加载到内存历史）
+     * 登录问候（写入 DB 与内存历史；DB 加载时不回读，仅当前会话内存有效）
      */
     GREETING("greeting");
 
