@@ -117,8 +117,8 @@ public final class CacheCommand {
         List<String> typeRates = new ArrayList<>();
         List<String> typeHitInputs = new ArrayList<>();
         List<Boolean> typeSupported = new ArrayList<>();
-        List<Long> typeReqs = new ArrayList<>();
-        int maxNameW = 0, maxRateW = 0, maxLeftW = 0, maxRightW = 0;
+        List<String> typeReqStrs = new ArrayList<>();
+        int maxNameW = 0, maxRateW = 0, maxLeftW = 0, maxRightW = 0, maxReqW = 0;
         List<String> leftParts = new ArrayList<>();
         List<String> rightParts = new ArrayList<>();
 
@@ -130,7 +130,9 @@ public final class CacheCommand {
             if (nw > maxNameW) maxNameW = nw;
 
             typeSupported.add(type.supported);
-            typeReqs.add(type.requests);
+            String reqStr = String.valueOf(type.requests);
+            typeReqStrs.add(reqStr);
+            if (reqStr.length() > maxReqW) maxReqW = reqStr.length();
             if (type.supported) {
                 String r = pct(type.getHitRate());
                 typeRates.add(r);
@@ -172,11 +174,12 @@ public final class CacheCommand {
         for (int i = 0; i < typeNames.size(); i++) {
             String name = padConsoleCjk(typeNames.get(i), maxNameW);
             String rate = padAscii(typeRates.get(i), maxRateW);
+            String req = padAscii(typeReqStrs.get(i), maxReqW);
             String line;
             if (typeSupported.get(i)) {
-                line = name + "  命中率 " + rate + "  请求 " + typeReqs.get(i) + " 次" + "  命中/输入 " + typeHitInputs.get(i);
+                line = name + "  命中率 " + rate + "  请求 " + req + " 次" + "  命中/输入 " + typeHitInputs.get(i);
             } else {
-                line = name + "  未报告缓存  请求 " + typeReqs.get(i) + " 次  输入 " + typeHitInputs.get(i);
+                line = name + "  未报告缓存  请求 " + req + " 次  输入 " + typeHitInputs.get(i);
             }
             maxW = Math.max(maxW, consoleWidth(line));
         }
@@ -197,10 +200,11 @@ public final class CacheCommand {
         for (int i = 0; i < typeNames.size(); i++) {
             String name = padConsoleCjk(typeNames.get(i), maxNameW);
             String rate = padAscii(typeRates.get(i), maxRateW);
+            String req = padAscii(typeReqStrs.get(i), maxReqW);
             if (typeSupported.get(i)) {
-                PluginLoggerUtil.info("大模型缓存", "  {}  命中率 {}  请求 {} 次  命中/输入 {}/{}", name, rate, typeReqs.get(i), leftParts.get(i), rightParts.get(i));
+                PluginLoggerUtil.info("大模型缓存", "  {}  命中率 {}  请求 {} 次  命中/输入 {}/{}", name, rate, req, leftParts.get(i), rightParts.get(i));
             } else {
-                PluginLoggerUtil.info("大模型缓存", "  {}  未报告缓存  请求 {} 次  输入 {}", name, typeReqs.get(i), typeHitInputs.get(i));
+                PluginLoggerUtil.info("大模型缓存", "  {}  未报告缓存  请求 {} 次  输入 {}", name, req, typeHitInputs.get(i));
             }
         }
         PluginLoggerUtil.info("大模型缓存", repeat('-', maxW));
