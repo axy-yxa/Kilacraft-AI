@@ -1670,6 +1670,7 @@ messages:
   "待确认续体分类错误: {}": "Pending resume classification error: {}"
   "待确认续体分类解析失败：{}": "Pending resume classification parse failed: {}"
   "【系统：当前有一笔待处理的操作】": "[System: Pending operation in progress]"
+  "玩家本轮回复：": "Player's reply this turn:"
   "已取消该操作。": "Operation cancelled."
   "该操作正在处理或已失效，请重新描述你的需求。": "This operation is being processed or no longer valid. Please restate your request."
   "该操作已过期或不存在，请重新描述你的需求。": "This operation has expired or does not exist. Please restate your request."
