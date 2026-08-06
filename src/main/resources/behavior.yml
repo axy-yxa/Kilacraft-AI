@@ -105,7 +105,7 @@ suggestion:
       - 没有值得推荐的内容时，返回空即可
       - 每个问题或操作请求必须简短（不超过20字）、自然、像玩家会说的话
       - 不要推荐与当前话题明显不相干的内容
-      - 只返回内容本身，每行一个，不要编号、不要前缀、不要解释
+      - 每行只写内容本身，不要加任何编号、序号、符号前缀（✗「1. xxx」/「① xxx」/「- xxx」；✓「xxx」）
 
       【系统能力】
       {available_skills}
@@ -143,7 +143,7 @@ suggestion:
       - If nothing is worth recommending, return nothing
       - Each question or action must be short (max 12 words), natural, like something a player would say
       - Do not recommend content that is clearly unrelated to the current topic
-      - Output only the content, one per line, no numbering, no prefix, no explanation
+      - Output only the content itself per line, no numbering, no list markers, no symbols (✗ "1. xxx" / "- xxx"; ✓ "xxx")
 
       [System capabilities]
       {available_skills}

@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -155,11 +156,26 @@ public class SuggestionService {
         if (LLMResponseUtil.isErrorResponse(raw)) {
             return Collections.emptyList();
         }
-        List<String> candidates = Arrays.stream(raw.split("\n")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+        List<String> candidates = Arrays.stream(raw.split("\n")).map(String::trim).filter(s -> !s.isEmpty()).map(SuggestionService::stripListPrefix).filter(s -> !s.isEmpty()).toList();
         // AI 原始输出全量（保持 LLM 产出的价值顺序），与展示日志对照可看出截断与遗漏
         if (!candidates.isEmpty()) {
             PluginLoggerUtil.debug("对话推荐", I18nService.tr("AI 原始推荐（玩家 {}，价值从高到低，共 {} 条）：{}", playerName, candidates.size(), String.join(" | ", candidates)));
         }
         return candidates.stream().limit(maxCount).collect(Collectors.toList());
+    }
+
+    /**
+     * 去除推荐项开头的列表前缀（编号、序号、项目符号）。
+     */
+    private static final Pattern LIST_PREFIX = Pattern.compile("^(?:(?:[（(\\[]\\d+[)）\\]]|\\d+[)）、,.](?!\\d)|[\\u2460-\\u2473]|[一二三五六七八九十]+、)\\s*|[\\-\\*•·◦▪●○■□]\\s+)+");
+
+    static String stripListPrefix(String s) {
+        String prev;
+        String cur = s;
+        do {
+            prev = cur;
+            cur = LIST_PREFIX.matcher(prev).replaceFirst("");
+        } while (!cur.equals(prev));
+        return cur;
     }
 }
