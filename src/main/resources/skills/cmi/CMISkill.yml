@@ -24,7 +24,7 @@ action_descriptions:
   query_player_info: |
     功能：查询当前玩家自己的 CMI 增强信息（游戏时长、AFK 状态、隐身状态、飞行状态、游戏模式等）。
     参数：无。
-    返回 data 字段：name、display_name、playtime_formatted、afk（布尔）、vanished（布尔）、fly（布尔）、game_mode。
+    返回 data 字段：name、display_name、playtime_ms（数值（整数），单位毫秒）、playtime_formatted、afk（布尔）、vanished（布尔）、fly（布尔）、game_mode。
 
   query_kits: |
     功能：查询服务器可用的套装列表。

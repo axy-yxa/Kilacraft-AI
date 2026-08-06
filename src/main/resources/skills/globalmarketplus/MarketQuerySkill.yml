@@ -2,7 +2,7 @@
 # 全球市场查询技能（MarketQuerySkill）
 # 对接 GlobalMarketPlus 插件的只读查询：余额/价格/商品列表/在售情况/个人商品/卖家商品/邮箱/市场统计。
 # 依赖：第三方插件 GlobalMarketPlus（isAvailable 运行时闸门）。
-# 权限：kilacraft.market_query 为基础权限。
+# 权限：kilacraft.market.query 为基础权限。
 # ═══════════════════════════════════════════════════════════
 
 description: |

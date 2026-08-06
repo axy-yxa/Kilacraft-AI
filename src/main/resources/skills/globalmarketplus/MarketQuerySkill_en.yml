@@ -3,7 +3,7 @@
 # Global Market Query Skill (MarketQuerySkill)
 # Integrates read-only queries of the GlobalMarketPlus plugin: balance/price/item-list/availability/own-items/seller-items/mailbox/market-stats.
 # Dependency: third-party plugin GlobalMarketPlus (isAvailable runtime gate).
-# Permission: kilacraft.market_query as the base permission.
+# Permission: kilacraft.market.query as the base permission.
 # ═══════════════════════════════════════════════════════════
 
 description: |

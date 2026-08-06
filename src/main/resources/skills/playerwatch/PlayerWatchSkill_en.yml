@@ -15,15 +15,15 @@ action_descriptions:
     Function: Subscribe to a player's join/quit notifications.
     Parameters:
       - target_player (required, player name): the player name to watch.
-      - trigger_event (optional, default BOTH, string): the triggering event — JOIN=only online, QUIT=only offline, BOTH=both.
+      - trigger_event (optional, default BOTH, string, allowed values JOIN/QUIT/BOTH): the triggering event — JOIN=only online, QUIT=only offline, BOTH=both.
       - note (optional, string): a note shown alongside the notification.
     Returns data fields: target_player, trigger_event, subscription_count.
   unsubscribe: |
     Function: Cancel subscriptions to a player.
     Parameters:
-      - target_player (required, player name): the player to stop watching.
-      - trigger_event (optional, string): cancel only this event type; omit to cancel all of that player's subscriptions.
-    Prerequisite: to clear everything use unsubscribe_all.
+      - target_player (optional, player name): the player to stop watching; when omitted, cancels all subscriptions matching the given trigger_event.
+      - trigger_event (optional, string, allowed values JOIN/QUIT/BOTH): cancel only this event type; omit to cancel all of that player's subscriptions.
+    Prerequisite: at least one of target_player or trigger_event must be given; to clear everything use unsubscribe_all.
     Returns data fields: target_player, removed_count.
   list: |
     Function: Query all active subscriptions for the current player.

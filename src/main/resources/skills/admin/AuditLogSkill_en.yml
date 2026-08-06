@@ -16,23 +16,23 @@ action_descriptions:
     Parameters:
       - time_range (optional, default 7d, time range, allowed values 1d/3d/7d/30d): Query window.
       - player_name (optional, player name): Filter by executor; must be an online or historical player name.
-      - skill_name (optional, string): Filter by skill name (e.g. AuditLogSkill).
-      - limit (optional, default 20, integer): Maximum number of records to return.
+      - skill_name (optional, string): Filter by skill registered name (e.g. audit_log, market_query, cmi — snake_case names, not Java class names).
+      - limit (optional, default 20, integer, range 1-100): Maximum number of records to return.
     Returns data fields: time_range, count, logs (array; each item has player_uuid/skill_name/action/success/result_message/execution_ms/source/created_at).
 
   skill_stats: |
     Function: Group execution counts and success rates by skill name + action, returning a ranking.
     Parameters:
       - time_range (optional, default 7d, time range, allowed values 1d/3d/7d/30d): Statistics window.
-      - limit (optional, default 10, integer): Maximum number of groups to return.
+      - limit (optional, default 10, integer, range 1-100): Maximum number of groups to return.
     Returns data fields: time_range, total_executions, total_success, total_fail, success_rate, stats (array; each item has skill_name/action/total_count/success_count/fail_count/success_rate/avg_duration_ms).
 
   error_logs: |
     Function: Query only failed executions (success=false) for troubleshooting skill errors.
     Parameters:
       - time_range (optional, default 7d, time range, allowed values 1d/3d/7d/30d): Query window.
-      - skill_name (optional, string): Filter by skill name.
-      - limit (optional, default 20, integer): Maximum number of records to return.
+      - skill_name (optional, string): Filter by skill registered name (same as query_logs).
+      - limit (optional, default 20, integer, range 1-100): Maximum number of records to return.
     Returns data fields: time_range, count, logs (array; same structure as query_logs).
 
 hints:
