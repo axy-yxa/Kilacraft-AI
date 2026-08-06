@@ -481,7 +481,7 @@ public final class WatchService implements Listener {
     void triggerPolling(Player player, Watch watch) {
         if (shutdown) return;
         PluginLoggerUtil.info(LOG_MODULE, I18nService.tr("条件监听触发: {}（玩家 {}）", watch.displayName(), player.getName()));
-        notifyAi(player, I18nService.tr("你盯的{}条件满足了", watch.displayName()), I18nService.tr("你盯的{}条件满足了", watch.displayName()));
+        notifyAi(player, I18nService.tr("你盯的{}条件满足了", watch.displayName()), buildEventDesc(I18nService.tr("你盯的{}条件满足了", watch.displayName()), watch.intent()));
         saveEvent(player, watch, I18nService.tr("监听 {} 条件满足", watch.displayName()));
     }
 
@@ -506,7 +506,7 @@ public final class WatchService implements Listener {
         PluginLoggerUtil.info(LOG_MODULE, I18nService.tr("事件监听触发: {}（玩家 {}）", watch.displayName(), player.getName()));
 
         String eventDesc = WatchEventTypes.describeEvent(eventType, filterValue);
-        notifyAi(player, I18nService.tr("你盯的事件{}发生了", watch.displayName()), eventDesc);
+        notifyAi(player, I18nService.tr("你盯的事件{}发生了", watch.displayName()), buildEventDesc(eventDesc, watch.intent()));
         saveEvent(player, watch, eventDesc);
 
         // single_shot 事件型 watch 触发后删除（同步移除索引）
@@ -521,6 +521,14 @@ public final class WatchService implements Listener {
                 cleanupIfEmpty(ownerId);
             }
         }
+    }
+
+    /**
+     * 组装事件描述：基础描述 + 非空时追加监听创建时填写的 intent（后续意图）。
+     * 与 PlayerWatchService.notifySubscriber 拼 note 的写法对齐——让二次分析 LLM 能看到玩家在创建监听时表达的后续意图。
+     */
+    private static String buildEventDesc(String baseDesc, String intent) {
+        return (intent != null && !intent.isBlank()) ? baseDesc + I18nService.tr("（备注：{}）", intent) : baseDesc;
     }
 
     /**

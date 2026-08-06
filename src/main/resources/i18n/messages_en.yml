@@ -1806,6 +1806,8 @@ messages:
   "取消订阅：玩家={}, 目标={}, 已移除={}": "Unsubscribe: player={}, target={}, removed={}"
   "查询订阅：玩家={}, 共 {} 条": "List subscriptions: player={}, {} total"
   "取消全部订阅：玩家={}, 已移除={}": "Unsubscribe all: player={}, removed={}"
+  " [在线]": " [Online]"
+  " [离线]": " [Offline]"
 
   # ==================== WatchSkill / 自定义监听 ====================
   "已创建条件监听：{}": "Conditional watch created: {}"
