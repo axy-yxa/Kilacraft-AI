@@ -73,21 +73,16 @@ public class AIRequestHandler {
         // 使用统一的响应管线
         AIResponsePipeline pipeline = plugin.getResponsePipeline();
 
-        Consumer<String> sendResponse;
-        if (publicReply) {
-            // 公屏模式：先发送给触发者（使用场景配置），再广播给所有人
-            sendResponse = response -> {
-                // 1. 发送给触发者（使用 NORMAL_CHAT 场景配置，如 ACTION_BAR/SIDEBAR/CHAT）
+        // 触发者输出统一经此回调：流式开启时走 completeStream 终结状态机，否则走 send。
+        // 公屏广播不内嵌于此——由 handleNormalAIRequest/handleTaskPlan/outputSingleSkillResult
+        // 在 LLM 完成后按 ctx.isBroadcast() 显式补，保证触发者的流式状态机被正确终结。
+        Consumer<String> sendResponse = response -> {
+            if (plugin.getConfigManager().getOutputConfigManager().isStreamEnabled()) {
+                pipeline.completeStream(player, response, OutputScenarioEnum.NORMAL_CHAT);
+            } else {
                 pipeline.send(player, response, OutputScenarioEnum.NORMAL_CHAT);
-                // 2. 公屏广播（强制 CHAT）
-                // 如果NORMAL_CHAT的载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
-                boolean isChatChannel = (pipeline.getChannelForScenario(OutputScenarioEnum.NORMAL_CHAT) == OutputChannelEnum.CHAT);
-                pipeline.broadcast(response, isChatChannel ? player : null);
-            };
-        } else {
-            // 私信模式：只发给触发者
-            sendResponse = response -> pipeline.send(player, response, OutputScenarioEnum.NORMAL_CHAT);
-        }
+            }
+        };
         Consumer<String> sendError = error -> {
             // 错误回调统一取消流式占位符（非流式时 cancelStream 是 no-op），避免卡在"正在思考中"
             pipeline.cancelStream(player);
@@ -383,6 +378,12 @@ public class AIRequestHandler {
             }
             validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
             triggerSuggestion(ctx, OutputScenarioEnum.NORMAL_CHAT);
+            // 公屏广播（与 handleTaskPlan / outputSingleSkillResult 对称）：
+            // 触发者的流式状态机已由 sendResponse 回调终结，此处仅给其他玩家补 CHAT 广播
+            if (ctx.isBroadcast()) {
+                boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenarioEnum.NORMAL_CHAT) == OutputChannelEnum.CHAT);
+                plugin.getResponsePipeline().broadcast(fullResponse, isChatChannel ? ctx.player() : null);
+            }
         }).exceptionally(throwable -> {
             PluginLoggerUtil.warn("AI请求", "LLM 请求失败: {}", throwable.getMessage());
             ctx.sendError.accept(I18nService.tr("LLM 请求失败: {}", formatAsyncError(throwable)));
