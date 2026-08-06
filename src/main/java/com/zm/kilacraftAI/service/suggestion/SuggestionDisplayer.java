@@ -31,13 +31,21 @@ import java.util.List;
 public class SuggestionDisplayer {
 
     /**
-     * 聊天框单行保守宽度预算（约对应默认 310px 聊天框下 50 个标准 ASCII 字符）。
+     * 聊天框单行像素宽度预算（默认 GUI 下约 320px）。
      */
-    private static final int LINE_BUDGET = 50;
+    private static final int LINE_BUDGET_PX = 320;
     /**
      * 单条推荐文本上限（字符数），超长截断避免推荐溢出聊天框。
      */
     private static final int MAX_ITEM_CHARS = 50;
+    /**
+     * Minecraft 默认字体下单个 ASCII 字符的平均像素宽度（含间距）。
+     */
+    private static final int ASCII_PX = 6;
+    /**
+     * Minecraft 默认字体下单个全角字符（CJK）的近似像素宽度。
+     */
+    private static final int FULLWIDTH_PX = 9;
 
     private final KilacraftAI plugin;
     private final SuggestionConfigManager config;
@@ -45,6 +53,19 @@ public class SuggestionDisplayer {
     public SuggestionDisplayer(KilacraftAI plugin, SuggestionConfigManager config) {
         this.plugin = plugin;
         this.config = config;
+    }
+
+    /**
+     * 计算字符串在 Minecraft 默认字体下的近似像素宽度。
+     */
+    private static int pixelWidth(String s) {
+        int width = 0;
+        for (int i = 0; i < s.length(); ) {
+            int cp = s.codePointAt(i);
+            width += TextWidthUtil.isFullWidth(cp) ? FULLWIDTH_PX : ASCII_PX;
+            i += Character.charCount(cp);
+        }
+        return width;
     }
 
     public void display(Player player, List<String> suggestions) {
@@ -57,10 +78,10 @@ public class SuggestionDisplayer {
         String hint = config.getDisplayClickHint();
 
         String prefix = MessageUtil.getAIPrefix();
-        int titleWidth = TextWidthUtil.displayWidth(TextWidthUtil.stripColors(prefix + title));
-        int lineRemaining = LINE_BUDGET - titleWidth;
+        int titleWidth = pixelWidth(TextWidthUtil.stripColors(prefix + title));
+        int lineRemaining = LINE_BUDGET_PX - titleWidth;
         // 分隔符显示宽度（去色后测量）
-        int sepWidth = TextWidthUtil.displayWidth(TextWidthUtil.stripColors(separator));
+        int sepWidth = pixelWidth(TextWidthUtil.stripColors(separator));
 
         TextComponent full = new TextComponent(prefix + title);
         boolean firstOnLine = true;
@@ -69,13 +90,13 @@ public class SuggestionDisplayer {
             String question = truncate(suggestion);
             String plainLabel = "[" + question + "]";
             String label = "§b" + plainLabel;
-            int itemWidth = TextWidthUtil.displayWidth(plainLabel);
+            int itemWidth = pixelWidth(plainLabel);
 
             // 当前行剩余空间不足时换行
             int needWidth = firstOnLine ? itemWidth : sepWidth + itemWidth;
             if (lineRemaining < needWidth) {
                 full.addExtra(new TextComponent("\n"));
-                lineRemaining = LINE_BUDGET;
+                lineRemaining = LINE_BUDGET_PX;
                 firstOnLine = true;
                 needWidth = itemWidth;
             }
