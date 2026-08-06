@@ -7,6 +7,7 @@ import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.playerwatch.PlayerWatchService;
 import com.zm.kilacraftAI.skills.framework.*;
+import org.bukkit.Bukkit;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -130,6 +131,9 @@ public class PlayerWatchSkill implements Skill {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("target_player", s.targetName());
             item.put("trigger_event", s.triggerEvent());
+            // 实时查询目标当前在线状态——订阅存在不等于目标在线，避免二次分析 LLM 误读为已上线
+            boolean online = Bukkit.getPlayerExact(s.targetName()) != null;
+            item.put("online", online);
             item.put("note", s.note());
             item.put("created_at", s.createdAt());
             subList.add(item);
@@ -142,7 +146,8 @@ public class PlayerWatchSkill implements Skill {
         }
         StringBuilder msg = new StringBuilder(I18nService.tr("你的订阅（共 {} 个）：", subs.size()));
         for (PlayerWatchService.Subscription s : subs) {
-            msg.append("\n").append(s.targetName()).append(" [").append(s.triggerEvent()).append("]");
+            boolean online = Bukkit.getPlayerExact(s.targetName()) != null;
+            msg.append("\n").append(s.targetName()).append(" [").append(s.triggerEvent()).append("]").append(online ? I18nService.tr(" [在线]") : I18nService.tr(" [离线]"));
             if (s.note() != null && !s.note().isBlank()) {
                 msg.append(" - ").append(s.note());
             }

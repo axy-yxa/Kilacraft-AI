@@ -27,7 +27,7 @@ action_descriptions:
   list: |
     功能：查询当前玩家名下所有活跃订阅。
     参数：无。
-    返回 data 字段：subscriptions（数组，每项含 target_player/trigger_event/note/created_at）、total。
+    返回 data 字段：subscriptions（数组，每项含 target_player/trigger_event/online/note/created_at）、total。
   unsubscribe_all: |
     功能：取消当前玩家的所有订阅。
     参数：无。

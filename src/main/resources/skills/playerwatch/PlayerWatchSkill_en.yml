@@ -28,7 +28,7 @@ action_descriptions:
   list: |
     Function: Query all active subscriptions for the current player.
     Parameters: none.
-    Returns data fields: subscriptions (array; each item has target_player/trigger_event/note/created_at), total.
+    Returns data fields: subscriptions (array; each item has target_player/trigger_event/online/note/created_at), total.
   unsubscribe_all: |
     Function: Cancel all subscriptions for the current player.
     Parameters: none.
