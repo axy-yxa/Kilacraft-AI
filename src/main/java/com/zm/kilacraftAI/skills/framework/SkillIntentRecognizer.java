@@ -340,12 +340,15 @@ public class SkillIntentRecognizer {
             return CompletableFuture.completedFuture(null);
         }
 
-        String systemPrompt = promptConfigManager.buildPendingClassifyPrompt(slot.getSkillName(), slot.getAction(), slot.getMessage());
+        // system 保持纯静态（分类契约）；每请求变化的待处理操作描述拼入 user 消息，作为玩家本轮回复的前置上下文
+        String systemPrompt = promptConfigManager.getPendingClassifyPrompt();
+        String pendingOpContext = promptConfigManager.buildPendingOpContext(slot.getSkillName(), slot.getAction(), slot.getMessage());
+        String userContent = pendingOpContext + "\n" + I18nService.tr("玩家本轮回复：") + userInput;
         AIResponseHandler handler = buildSilentHandler("待确认续体分类");
 
         PluginLoggerUtil.debug("意图识别", "待确认续体分类开始：{}.{}", slot.getSkillName(), slot.getAction());
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userInput, caller, null, handler, systemPrompt, false, true, true, CacheCallTypeEnum.PENDING_RESUME).thenApply(this::parsePendingAction);
+        return llmProvider.processRequestWithCustomSystemPrompt(userContent, caller, null, handler, systemPrompt, false, true, true, CacheCallTypeEnum.PENDING_RESUME).thenApply(this::parsePendingAction);
     }
 
     /**

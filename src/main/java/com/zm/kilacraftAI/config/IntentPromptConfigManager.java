@@ -323,13 +323,18 @@ public class IntentPromptConfigManager {
             """;
 
     /**
-     * 构建待确认续体分类的系统提示词：待处理操作描述 + 分类契约。
+     * 待确认续体分类的系统提示词（纯静态契约，不含任何每请求变化内容）。
+     * <p>每请求变化的待处理操作描述由 {@link #buildPendingOpContext} 单独构建，由调用方拼入 user 消息；
+     * system 保持纯静态以符合供应商侧前缀缓存核心约束。</p>
      */
-    public String buildPendingClassifyPrompt(String skillName, String action, String message) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(I18nService.tr("【系统：当前有一笔待处理的操作】")).append("\n");
-        sb.append(skillName).append(".").append(action).append(": ").append(message != null ? message : "").append("\n\n");
-        sb.append(pendingClassifyPrompt != null && !pendingClassifyPrompt.isEmpty() ? pendingClassifyPrompt : DEFAULT_PENDING_CLASSIFY_PROMPT);
-        return sb.toString();
+    public String getPendingClassifyPrompt() {
+        return pendingClassifyPrompt != null && !pendingClassifyPrompt.isEmpty() ? pendingClassifyPrompt : DEFAULT_PENDING_CLASSIFY_PROMPT;
+    }
+
+    /**
+     * 构建待处理操作描述块（每请求变化的 skillName/action/message），供调用方拼入 user 消息。
+     */
+    public String buildPendingOpContext(String skillName, String action, String message) {
+        return I18nService.tr("【系统：当前有一笔待处理的操作】") + "\n" + skillName + "." + action + ": " + (message != null ? message : "") + "\n";
     }
 }
