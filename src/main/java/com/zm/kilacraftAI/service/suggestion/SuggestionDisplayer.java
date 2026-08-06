@@ -95,13 +95,11 @@ public class SuggestionDisplayer {
 
         // runTask 是 fire-and-forget 投递，排队期间玩家可能下线；
         // 必须在主线程执行时再次检查 isOnline，避免对离线玩家 sendMessage
-        int count = suggestions.size();
         FoliaCompat.runTask(plugin, () -> {
             if (player.isOnline()) {
                 player.spigot().sendMessage(full);
-                PluginLoggerUtil.debug("对话推荐", I18nService.tr("已向 {} 展示 {} 个推荐", player.getName(), count));
             } else {
-                PluginLoggerUtil.debug("对话推荐", I18nService.tr("玩家 {} 下线，跳过展示 {} 个推荐", player.getName(), count));
+                PluginLoggerUtil.debug("对话推荐", I18nService.tr("玩家 {} 下线，跳过展示 {} 个推荐", player.getName(), suggestions.size()));
             }
         });
     }

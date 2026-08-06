@@ -1946,7 +1946,9 @@ messages:
   # ==================== SuggestionService 对话推荐 ====================
   "LLM 预算熔断中，跳过推荐（玩家 {}）": "LLM budget tripped, skipping suggestions (player {})"
   "LLM 调用错误: {}": "LLM call error: {}"
+  "AI 原始推荐（玩家 {}，价值从高到低，共 {} 条）：{}": "AI raw suggestions for {} (high to low value, {} total): {}"
   "LLM 为 {} 返回了空的推荐话题": "LLM returned empty suggestions for {}"
+  "展示给 {} 的前 {} 条推荐：{}": "{}'s top {} suggestions: {}"
   "为 {} 生成了 {} 个推荐话题": "Generated {} suggestions for {}"
   "为 {} 生成推荐话题失败: {}": "Suggestion generation failed for {}: {}"
   "对话推荐仅玩家可用。": "Conversation suggestions are only available to players."
@@ -1957,5 +1959,4 @@ messages:
   "推荐跳过：连续对话模式（玩家 {}）": "Suggestion skipped: continuous chat mode (player {})"
   "推荐跳过：场景未启用（玩家 {}，场景 {}）": "Suggestion skipped: scenario not enabled (player {}, scenario {})"
   "推荐跳过：玩家已关闭推荐（玩家 {}）": "Suggestion skipped: player opted out (player {})"
-  "已向 {} 展示 {} 个推荐": "Displayed {} suggestions to {}"
   "玩家 {} 下线，跳过展示 {} 个推荐": "Player {} went offline, skipped displaying {} suggestions"

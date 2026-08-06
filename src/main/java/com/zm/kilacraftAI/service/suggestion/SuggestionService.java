@@ -84,7 +84,7 @@ public class SuggestionService {
 
         int maxCount = config.getMaxSuggestions();
 
-        SuggestionPromptBuilder.SuggestionPrompt prompt = promptBuilder.build(maxCount, player);
+        SuggestionPromptBuilder.SuggestionPrompt prompt = promptBuilder.build(player);
 
         // 静默 handler：GenericLLMProvider 在响应完成后会无条件调用 showResponse
         // （不受 isStreamOutputEnabled 守卫）。若用 PlayerResponseHandler，其 showResponse 会
@@ -136,11 +136,13 @@ public class SuggestionService {
                 PluginLoggerUtil.debug("对话推荐", I18nService.tr("LLM 为 {} 返回了空的推荐话题", playerName));
                 return;
             }
-            List<String> suggestions = parseSuggestions(rawResponse, maxCount);
+            List<String> suggestions = parseSuggestions(rawResponse, maxCount, playerName);
             if (suggestions.isEmpty()) {
                 PluginLoggerUtil.debug("对话推荐", I18nService.tr("LLM 为 {} 返回了空的推荐话题", playerName));
                 return;
             }
+
+            PluginLoggerUtil.debug("对话推荐", I18nService.tr("展示给 {} 的前 {} 条推荐：{}", playerName, suggestions.size(), String.join(" | ", suggestions)));
             displayer.display(player, suggestions);
         }).exceptionally(ex -> {
             PluginLoggerUtil.warn("对话推荐", I18nService.tr("为 {} 生成推荐话题失败: {}", playerName, ex.getMessage()));
@@ -148,11 +150,16 @@ public class SuggestionService {
         });
     }
 
-    private List<String> parseSuggestions(String raw, int maxCount) {
+    private List<String> parseSuggestions(String raw, int maxCount, String playerName) {
         // LLM 错误响应以 §c 开头（错误信号协议），不当推荐
         if (LLMResponseUtil.isErrorResponse(raw)) {
             return Collections.emptyList();
         }
-        return Arrays.stream(raw.split("\n")).map(String::trim).filter(s -> !s.isEmpty()).limit(maxCount).collect(Collectors.toList());
+        List<String> candidates = Arrays.stream(raw.split("\n")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+        // AI 原始输出全量（保持 LLM 产出的价值顺序），与展示日志对照可看出截断与遗漏
+        if (!candidates.isEmpty()) {
+            PluginLoggerUtil.debug("对话推荐", I18nService.tr("AI 原始推荐（玩家 {}，价值从高到低，共 {} 条）：{}", playerName, candidates.size(), String.join(" | ", candidates)));
+        }
+        return candidates.stream().limit(maxCount).collect(Collectors.toList());
     }
 }

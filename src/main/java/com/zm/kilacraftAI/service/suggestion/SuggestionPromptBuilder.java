@@ -27,13 +27,13 @@ public class SuggestionPromptBuilder {
         this.config = config;
     }
 
-    public SuggestionPrompt build(int count, Player player) {
+    public SuggestionPrompt build(Player player) {
         String skillsSummary = buildSkillsSummary(player);
 
-        // {available_skills} 注入 system prompt（系统能力作为背景知识，而非推荐目标）。
-        // system 保持纯静态（推荐模板+技能摘要）；动态上下文（画像/元数据/时间）由 Provider 注入 user 消息
-        String systemPrompt = config.getLocalizedSystemPrompt().replace("{count}", String.valueOf(count)).replace("{available_skills}", skillsSummary);
-        String userPrompt = config.getLocalizedUserPromptTemplate().replace("{count}", String.valueOf(count));
+        // {count} = max_suggestions × 2：产出上限跟随配置且为展示量的 2 倍，排序截断才有缓冲；
+        // 配置值是全局的（跨玩家字节一致），不影响 system 前缀缓存
+        String systemPrompt = config.getLocalizedSystemPrompt().replace("{available_skills}", skillsSummary).replace("{count}", String.valueOf(config.getMaxSuggestions() * 2));
+        String userPrompt = config.getLocalizedUserPromptTemplate();
         return new SuggestionPrompt(systemPrompt, userPrompt);
     }
 
