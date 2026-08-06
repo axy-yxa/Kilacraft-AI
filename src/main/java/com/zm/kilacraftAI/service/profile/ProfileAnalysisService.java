@@ -233,11 +233,11 @@ public class ProfileAnalysisService {
             int minMessages = databaseManager.getConfig().getProfileMinMessagesToTrigger();
 
             try (Connection conn = databaseManager.getConnection()) {
-                // 门控2：新消息数不足（只数玩家主动发起的 chat/command）
+                // 门控2：玩家主动发言数不足（只数 role='user' 的 chat/command，不计 AI 回复）
                 int newMessageCount = conversationDao.countMessagesSince(conn, playerUuid.toString(), TRIGGER_SOURCE_FILTER, lastAnalyzed);
 
                 if (newMessageCount < minMessages) {
-                    PluginLoggerUtil.debug("画像分析", I18nService.tr("玩家 {} 新消息数 {} < 最低阈值 {}，跳过分析", playerUuid, newMessageCount, minMessages));
+                    PluginLoggerUtil.debug("画像分析", I18nService.tr("玩家 {} 发言数 {} < 最低阈值 {}，跳过分析", playerUuid, newMessageCount, minMessages));
                     return null;
                 }
 

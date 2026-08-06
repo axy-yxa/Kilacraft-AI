@@ -99,8 +99,20 @@ public class ConversationDao {
         }
     }
 
+    /**
+     * 统计玩家自指定时间以来的主动发言数（仅 role='user'）。
+     *
+     * <p>用于画像分析触发门控：只数玩家自己发的消息，不计 AI 回复（role='assistant'），
+     * 避免阈值被 AI 回复灌水、使触发频率失真。</p>
+     *
+     * @param conn          数据库连接
+     * @param playerUuid    玩家 UUID
+     * @param sourceFilter  来源过滤（如 'chat','command'）
+     * @param afterTimestamp 起始时间戳（ms，不含）
+     * @return 玩家主动发言条数
+     */
     public int countMessagesSince(Connection conn, String playerUuid, String sourceFilter, long afterTimestamp) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM " + tablePrefix + "conversation " + "WHERE player_uuid = ? AND source IN (" + sourceFilter + ") AND created_at > ?";
+        String sql = "SELECT COUNT(*) FROM " + tablePrefix + "conversation " + "WHERE player_uuid = ? AND source IN (" + sourceFilter + ") AND role = 'user' AND created_at > ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, playerUuid);
             ps.setLong(2, afterTimestamp);

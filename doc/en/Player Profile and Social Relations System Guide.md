@@ -83,7 +83,7 @@ Profile knowledge is cumulative and never lost. A player who built for six month
 To prevent unnecessary LLM overhead, profile analysis requires **all three conditions simultaneously**:
 
 1. **Time Interval**: Time since last analysis ≥ `analysis_interval_days` days (default 1 day)
-2. **Message Count**: Active player messages (chat/command) since last analysis ≥ `min_messages_to_trigger` (default 10)
+2. **Message Count**: Player-initiated messages (chat/command, counting only the player's own messages, excluding AI replies) since last analysis ≥ `min_messages_to_trigger` (default 20)
 3. **Message Window**: Loads **all** new messages since the last analysis timestamp (no upper limit); there is no fixed-count sliding window
 
 ### Version Stamp Anti-Race-Condition
@@ -284,7 +284,7 @@ All profile analysis settings are centralized in `database.yml`'s `profile` sect
 ```yaml
 profile:
   analysis_interval_days: 1          # Minimum days between analyses
-  min_messages_to_trigger: 10        # Minimum new messages to trigger analysis
+  min_messages_to_trigger: 20        # Minimum player-initiated messages (excl. AI replies) to trigger analysis
   analysis_timeout_seconds: 120      # LLM analysis timeout (seconds)
 
   # First-time analysis prompt (used when no existing profile)

@@ -990,7 +990,7 @@ messages:
 
   # ==================== ProfileAnalysisService ====================
   "玩家画像分析异常: {} - {}": "Player profile analysis error: {} - {}"
-  "玩家 {} 新消息数 {} < 最低阈值 {}，跳过分析": "Player {} new messages {} < min threshold {}, skipping analysis"
+  "玩家 {} 发言数 {} < 最低阈值 {}，跳过分析": "Player {} message count {} < min threshold {}, skipping analysis"
   "加载对话历史失败: {} - {}": "Failed to load conversation history: {} - {}"
   "LLM Provider 未初始化，跳过分析": "LLM Provider not initialized, skipping analysis"
   "LLM 分析失败: {} - {}": "LLM analysis failed: {} - {}"

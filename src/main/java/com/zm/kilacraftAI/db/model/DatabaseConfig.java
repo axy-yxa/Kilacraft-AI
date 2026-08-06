@@ -131,15 +131,15 @@ public class DatabaseConfig {
     @Builder.Default
     private final int profileAnalysisIntervalDays = 1;
     /**
-     * 触发分析所需最少消息数
+     * 触发分析所需最少玩家主动发言数（仅计 role='user'，不含 AI 回复）
      */
     @Builder.Default
-    private final int profileMinMessagesToTrigger = 10;
+    private final int profileMinMessagesToTrigger = 20;
     /**
      * LLM 分析超时时间（秒）
      */
     @Builder.Default
-    private final int profileAnalysisTimeoutSeconds = 60;
+    private final int profileAnalysisTimeoutSeconds = 120;
 
     /**
      * 画像分析系统提示词（中文，留空使用默认）

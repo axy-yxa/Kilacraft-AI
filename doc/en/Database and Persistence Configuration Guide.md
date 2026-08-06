@@ -272,7 +272,7 @@ conversation:
 # Player profile analysis configuration
 profile:
   analysis_interval_days: 1
-  min_messages_to_trigger: 10
+  min_messages_to_trigger: 20
   analysis_timeout_seconds: 120
 
   # Profile analysis system prompt (supports multiline, /kila reload to apply)
