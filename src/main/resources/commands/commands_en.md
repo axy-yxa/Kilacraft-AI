@@ -54,6 +54,11 @@ example: kila memory
 permission: kilacraft.query.self
 keywords: my profile, AI memory, what do you know about me
 
+## kila suggestion
+description: Toggle your conversation suggestions (on / off / status) — available to all players
+example: kila suggestion <on|off|status>
+keywords: conversation suggestions, recommended questions, enable suggestions, disable suggestions
+
 ## kila tasks
 description: View scheduled task status (admin permission required)
 example: kila tasks

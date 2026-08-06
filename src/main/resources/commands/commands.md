@@ -52,6 +52,11 @@
 权限: kilacraft.query.self
 关键词: 我的画像, AI记忆, 你记住我什么了, 了解我
 
+## kila suggestion
+说明: 管理自己的对话推荐开关（on 开启 / off 关闭 / status 查看状态，全体可用）
+示例: kila suggestion <on|off|status>
+关键词: 对话推荐, 推荐问题, 开启推荐, 关闭推荐, 想问的问题
+
 ## kila tasks
 说明: 查看定时任务运行状态（需要管理员权限）
 示例: kila tasks
