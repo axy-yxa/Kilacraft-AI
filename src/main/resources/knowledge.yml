@@ -80,13 +80,13 @@ knowledge:
     # Noise floor: chunks scoring below this value are dropped as irrelevant (default 25)
     # Lower to 10~15 for more lenient results; raise for stricter filtering
     noise_floor: 25.0
-    # 相对阈值：相对本次最高得分再设一道比例门槛（默认 0.3）
-    # 想更宽松（弱相关问题也尽量返回）可调到 0.1~0.2；想更严格可调到 0.5
+    # 相对阈值：相对本次最高得分再设一道比例门槛（默认 0.2）
+    # 想更宽松可调到 0.1；想更严格可调到 0.5
     # 注意：调高本值 = floor 抬高 = 保留更少 = 更严格，方向与"宽松"相反
-    # Relative threshold: a second ratio gate relative to the top score of this query (default 0.3)
-    # Lower to 0.1~0.2 for more lenient results; raise to 0.5 for stricter filtering
+    # Relative threshold: a second ratio gate relative to the top score of this query (default 0.2)
+    # Lower to 0.1 for more lenient results; raise to 0.5 for stricter filtering
     # Note: a higher value raises the floor and keeps fewer chunks (stricter), the opposite of "lenient"
-    relative_threshold: 0.3
+    relative_threshold: 0.2
     # RRF 融合常数（仅启用 Embedding 语义检索时生效，普通 BM25 模式忽略此项）
     # RRF fusion constant (only effective when Embedding semantic retrieval is enabled; ignored in plain BM25 mode)
     rrf_k: 60

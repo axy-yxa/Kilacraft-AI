@@ -208,6 +208,7 @@ messages:
   "Embedding 语义检索已启用": "Embedding semantic retrieval enabled"
   "关闭 Embedding HTTP 客户端异常: {}": "Error closing Embedding HTTP client: {}"
   "获取问题 Embedding 失败，降级到 BM25": "Failed to get question embedding, falling back to BM25"
+  "Embedding 无 ≥min_similarity 片段，退回 BM25 + 噪声地板": "No chunks above min_similarity, falling back to BM25 with noise floor"
   "Embedding 不可用，降级到 BM25": "Embedding unavailable, falling back to BM25"
   "Embedding 已关闭，降级到 BM25 检索": "Embedding disabled, falling back to BM25 retrieval"
 

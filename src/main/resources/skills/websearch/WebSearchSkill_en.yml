@@ -7,9 +7,10 @@
 # ═══════════════════════════════════════════════════════════
 
 description: |
-  Searches the internet by keyword to retrieve real-time information and presents an AI-generated summary to the player.
-  Triggers: use when the user's question requires the latest news, fact-checking, research, or information beyond the AI's knowledge cutoff, e.g. "what's new in 1.21", "today's gold price", "recommend good mods".
-  Reverse boundary: not for querying in-game data or a local knowledge base (those go to the corresponding query skills); not for viewing a specific web link the player already provided (that belongs to the web page fetching skill category).
+  Retrieves real-time information from the internet (news, references, tutorials, external data) and presents an AI-generated summary to the player.
+  Triggers: use ONLY when the need clearly points to external internet information — latest news, fact-checking, tutorials/guides, external data, e.g. "what's new in 1.21", "today's gold price", "recommend good mods", "search for a redstone elevator tutorial"; or when the player explicitly says "search the web / look it up online".
+  Priority (fallback query): this skill is the LAST resort — when the [Available Skills List] contains an in-game data query skill for the requested data (market prices, item prices, player status, world info, stats, etc.), use that skill from the list first; use this skill ONLY when the list has NO matching in-game query skill, or the need clearly points to external internet information. In the server context, "search for item XX / check the price of XX" is handled by the in-game query skill when one exists in the list.
+  Reverse boundary: not for querying in-game data or a local knowledge base (when a corresponding skill exists); not for viewing a specific web link the player already provided (that belongs to the web page fetching skill category).
 
 action_descriptions:
   search: |

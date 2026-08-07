@@ -768,7 +768,7 @@ knowledge:
 
   retrieval:
     noise_floor: 25.0              # Noise floor: chunks below this score are discarded outright (hard threshold)
-    relative_threshold: 0.3        # Relative threshold: chunks below "max score × this ratio" are discarded (soft threshold)
+    relative_threshold: 0.2        # Relative threshold: chunks below "max score × this ratio" are discarded (soft threshold)
     rrf_k: 60                      # RRF fusion parameter (only effective when Embedding is enabled)
 
   embedding:
@@ -855,7 +855,7 @@ The old single hard threshold `min_relevance_score` (default 30) has been replac
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
 | `noise_floor` | 25.0 | **Noise floor (hard gate)**: chunks with an absolute score below this are discarded outright, no matter how high the top score is |
-| `relative_threshold` | 0.3 | **Relative threshold (soft gate)**: chunks scoring below "current top score × this ratio" are discarded |
+| `relative_threshold` | 0.2 | **Relative threshold (soft gate)**: chunks scoring below "current top score × this ratio" are discarded (tuned from 0.3 in v2.2.0 for better recall of tangentially related questions) |
 | `rrf_k` | 60 | RRF fusion parameter (only effective when Embedding is enabled; see the Embedding section below) |
 
 **Final gate** = `max(noise_floor, top score × relative_threshold)`.
@@ -863,7 +863,9 @@ The old single hard threshold `min_relevance_score` (default 30) has been replac
 Tuning directions:
 - **Want more results** (also answer tangentially related questions): lower `noise_floor`, lower `relative_threshold`.
 - **Want stricter behavior** (stay silent rather than mislead when unsure): raise both.
-- Most server owners can **just keep the defaults** — they already filter out the vast majority of noise.
+- Most server owners can **just keep the defaults** — `relative_threshold` was tuned from 0.3 to 0.2 in v2.2.0 (better recall, empty-recall behavior unchanged).
+
+**Behavior when no content matches (v2.2.0)**: when the knowledge base truly has no relevant content (or the server has no knowledge files at all), retrieval returns empty and nothing is injected — the AI answers normally and **never mentions the knowledge base**, exactly as if none were configured. When a daily question accidentally retrieves irrelevant chunks, the AI simply ignores them and answers normally, **never fabricating specifics (times, numbers, drops, etc.) from weakly related chunks**. If Embedding is enabled and no chunk passes `min_similarity`, the system automatically falls back to keyword retrieval with the noise floor — weak chunks are not surfaced either.
 
 ---
 

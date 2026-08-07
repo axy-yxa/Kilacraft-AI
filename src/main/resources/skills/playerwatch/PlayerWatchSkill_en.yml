@@ -16,7 +16,7 @@ action_descriptions:
     Parameters:
       - target_player (required, player name): the player name to watch.
       - trigger_event (optional, default BOTH, string, allowed values JOIN/QUIT/BOTH): the triggering event — JOIN=only online, QUIT=only offline, BOTH=both.
-      - note (optional, string): a note shown alongside the notification.
+      - note (optional, string): a note shown alongside the notification. When the player expressed a follow-up action intent after the event fires (e.g. "teleport me home after he joins"), you MUST write that intent into this parameter — the system will surface it along with the notification when the event fires, and the player initiates the follow-up action manually after the reminder.
     Returns data fields: target_player, trigger_event, subscription_count.
   unsubscribe: |
     Function: Cancel subscriptions to a player.

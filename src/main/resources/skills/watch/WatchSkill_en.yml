@@ -22,7 +22,7 @@ action_descriptions:
       - threshold (required for polling, string): threshold value. number for numeric, match value for string (e.g. OBSIDIAN).
       - event_type (required for event, string): event type, chosen from the [event watch] list injected by getDynamicContext (e.g. furnace_smelt/player_death/block_break).
       - filter_ prefixed params (optional, string): event filters, e.g. filter_result_type=IRON_INGOT.
-      - intent (optional, string): context for the AI when triggered.
+      - intent (optional, string): context for the AI when triggered. When the player expressed a follow-up action intent after the trigger (e.g. "melt the iron into blocks once it reaches 64"), you MUST write that intent into this parameter — the system will surface it along with the notification when triggered, and the player initiates the follow-up action manually after the reminder.
       - single_shot (optional, default true, boolean): one-time watch.
       - display_name (optional, string): human-readable watch name.
     Constraint: source/event_type must be chosen from the injected [conditional watch]/[event watch] lists; never fabricate a skill.action or event type outside those lists. If the target the player wants to monitor is not in the lists (e.g. external data requiring network access, such as gold prices), do NOT create a watch — return an invalid intent (skill_name: null) so the normal AI conversation can tell the player this cannot be monitored.

@@ -1,6 +1,6 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-08-06  
+> **Last Updated**: 2026-08-07  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
 
 ---
@@ -35,6 +35,8 @@
 
 ### 🔧 Improvements
 
+- **Knowledge base organization & reliability (key highlight)**: ① the `knowledge/` directory supports arbitrary subfolder organization — mixed Chinese/English files, nothing lost when switching languages; ② the AI no longer "stitches together" answers from irrelevant chunks — when there is no relevant content it answers normally and never fabricates details (no more invented "server restarts at 4 AM"), and servers without knowledge files are completely unaffected; ③ paraphrased or tangentially related questions are more likely to be matched
+
 - **Intent-recognition failure anti-hallucination (highlight of this release)**: when the skill path is attempted but fails (invalid skill name, JSON parse failure, model-call error, etc.), the system now injects a `[FAILURE]` marker when falling back to normal conversation, guiding the AI to honestly say "the skill system could not handle this request" instead of fabricating a plausible-sounding reply from its own knowledge. Pure chit-chat, real-world topics, and other inherently non-skill requests are unaffected and silently fall back to normal conversation
 
 - **system prompts made fully static (highlight of this release)**: the system prompt for **all** LLM calls (normal chat, greeting, secondary analysis, etc.) no longer contains any per-player placeholder (including `{player}`); it is now a byte-identical static text shared across all players, with player names, profile, offline events, time and other dynamic data **all moved into the user message**. Providers match prefix cache "from byte 0 onward as a continuous same-prefix"; the `{player}` that used to sit in system broke the prefix right there — staticizing it noticeably raises cache hit rate in multi-player scenarios. A leftover `{player}` in an old config is no longer replaced (stays as a literal, only lowering hit rate, not breaking functionality); if greeting config still has deprecated placeholders, a warning is logged on startup prompting migration
@@ -52,8 +54,6 @@
 - **Automatic LLM model-name and URL compatibility**: auto-maps legacy DeepSeek model names (`deepseek-chat`→`deepseek-v4-flash`, etc., **in-memory only — config file never touched**), so old configs keep working after upgrade; also auto-completes incomplete API URLs (e.g. entering `/v1` auto-appends `/chat/completions`). Zero-config, transparent to non-DeepSeek setups
 
 - **Conversation history management hardened**: three improvements to `settings.max_history` in `config.yml` — ① values clamped to 0-100 (prevents an accidentally huge value from OOM); ② in-memory capacity now tracks the config (previously hardcoded 100); ③ `max_history: 0` fully disables history (no save, no load, reconnect loads nothing). `/kila reload` takes effect immediately
-
-- **Knowledge base supports subdirectory organization**: the `knowledge/` directory now freely supports organizing documents in subfolders; the plugin recursively scans and loads them all. Previously Chinese owners had to use the `knowledge/` root and English owners `knowledge/en/`, and switching language would lose access; now unified into a single `knowledge/` directory — any language, any subfolder, and switching languages no longer drops the knowledge base
 
 - **`/kila doctor` self-check enhanced**: in-game output now uses grouped fold-down summaries (each group shows "X pass, Y warn, Z fail", only failures expanded), dramatically reducing chat spam when healthy; console adds web-search provider status and other metrics; new command-document health check and `health_guardian` check added
 

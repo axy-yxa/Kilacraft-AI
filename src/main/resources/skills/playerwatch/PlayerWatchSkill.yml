@@ -15,7 +15,7 @@ action_descriptions:
     参数：
       - target_player（必填，玩家名）：被订阅玩家名。
       - trigger_event（可选，默认 BOTH，字符串，取值 JOIN/QUIT/BOTH）：触发事件，JOIN=仅上线、QUIT=仅下线、BOTH=两者。
-      - note（可选，字符串）：订阅备注，会随通知一同显示。
+      - note（可选，字符串）：订阅备注，会随通知一同显示。当玩家表达了事件触发后的后续动作意图（如"上线后传送回家"）时，必须把该意图写入此参数——系统会在事件触发时随通知展示，由玩家收到提醒后手动发起
     返回 data 字段：target_player、trigger_event、subscription_count。
   unsubscribe: |
     功能：取消对指定玩家的订阅。

@@ -71,6 +71,7 @@ llm:
     【玩家数据安全限制】你无法获取其他玩家的任何实时游戏数据。当玩家询问其他玩家的相关数据时，必须如实说明你无法查询，禁止编造看似合理的猜测性答案。
     【技能系统回退】技能系统统一用 [SUCCESS]/[FAILURE]/[NEED_INFO]/[SKIPPED] 标记执行结果。当用户消息中附带这些标记时：[FAILURE] 表示失败、[NEED_INFO] 表示需要玩家补全信息或二次确认、[SKIPPED] 表示该步骤被跳过。直接根据标记与内容用自然语言向玩家解释或转述（如遇 [NEED_INFO] 则把待确认/待补充的信息转达给玩家），不得提及'系统提示'或内部机制，也不得向玩家暴露这些标记本身。
     【货币单位】本服经济系统的货币符号为 $（如 $100.00）。绝对不要使用'绿宝石'、'emerald'或其他 Minecraft 物品名称指代货币，所有金额都是 $ 货币单位。
+    【知识库使用】系统可能提供知识库检索片段供参考。片段仅供辅助理解——若与玩家问题无关可直接忽略，正常回答即可。严禁基于无关片段推测或编造具体细节（时间、数值、掉落物、坐标等）。
   # 英文版系统提示词（language=en 时生效）
   # English system prompt (effective when language=en)
   system_prompt_en: |
@@ -79,6 +80,7 @@ llm:
     [PLAYER DATA SECURITY] You cannot access any real-time game data of other players. When the player asks about another player's such data, you must truthfully state you cannot query it. Fabricating plausible-sounding guesses is forbidden.
     [SKILL SYSTEM FALLBACK] The skill system uniformly tags results with [SUCCESS]/[FAILURE]/[NEED_INFO]/[SKIPPED]. When the user message contains these markers: [FAILURE]=failed, [NEED_INFO]=needs the player to supply info or confirm, [SKIPPED]=step skipped. Explain or relay the content to the player naturally in your own words (for [NEED_INFO], convey what needs confirming/supplementing). Never mention 'system prompt' or internal mechanisms, and never expose these markers to the player.
     [CURRENCY UNIT] This server's economy uses $ as the currency symbol (e.g. $100.00). NEVER use 'emerald' or any other Minecraft item name to refer to currency. All prices and amounts are in $ currency.
+    [KNOWLEDGE BASE USAGE] The system may provide knowledge-base retrieval chunks for reference. Chunks are auxiliary only — if irrelevant to the player's question, ignore them and answer normally. NEVER speculate or fabricate specific details (times, numbers, drops, coordinates, etc.) based on irrelevant chunks.
 
   # 全局 LLM 调用预算（每小时/玩家）
   # 正常使用绝对达不到此上限；仅在异常工况（刷怪塔信号风暴、闸门 bug、配置错误导致狂调）下触发熔断
@@ -168,6 +170,7 @@ agent:
       6. **操作与查询区分：如果执行结果只包含查询数据（如坐标、状态），不得声称执行了动作（如传送、给予、生成）。查询到坐标不等于传送到了该位置，查询到物品不等于给予了物品**
       7. 不要使用任何固定标题或模板（禁止"分析与建议"、"简要分析"、"当前市场情况"、"后续操作建议"等标题）
       8. 输出不超过400个汉字
+      9. **【通知中的备注与意图】当通知类消息中包含「（备注：…）」或「（意图：…）」时，其中记录的是玩家此前的后续动作意向：把该意向转达给玩家，若该动作尚未执行，主动询问玩家是否现在执行；不得声称该意向已经执行
 
       【关于部分失败的处理】
       - 如果执行结果中包含 [FAILURE] 标记，表示该步骤执行失败
@@ -196,6 +199,7 @@ agent:
       6. **Query vs Action distinction: if execution results only contain query data (e.g. coordinates, status), you must NOT claim an action was performed (e.g. teleportation, giving items, spawning). Retrieving coordinates does NOT mean teleporting to that location. Retrieving item info does NOT mean giving that item**
       7. Do not use any fixed titles or templates (no "Analysis & Suggestions", "Brief Analysis", "Current Market Status", "Next Steps", etc.)
       8. Output no more than 150 words
+      9. **[Note & Intent in Notifications] When a notification message contains "（备注：…）" or "（意图：…）", it records a follow-up action the player wanted earlier: relay that intent to the player; if the action has not been executed yet, proactively ask whether they want it done now. Never claim the intent has already been executed**
 
       [Handling Partial Failures]
       - If execution results contain [FAILURE] markers, it means that step failed

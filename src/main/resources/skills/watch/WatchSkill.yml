@@ -21,7 +21,7 @@ action_descriptions:
       - threshold（polling 模式必填，字符串）：阈值。number 填数值，string 填匹配值（如 OBSIDIAN）。
       - event_type（event 模式必填，字符串）：事件类型，从 getDynamicContext 注入的【事件监听】清单中选择（如 furnace_smelt/player_death/block_break）。
       - filter_ 前缀参数（可选，字符串）：事件 filter，如 filter_result_type=IRON_INGOT。
-      - intent（可选，字符串）：触发后想让 AI 知道的上下文。
+      - intent（可选，字符串）：触发后想让 AI 知道的上下文。当玩家表达了触发后的后续动作意图（如"到了就把铁锭熔炼成铁块"）时，必须把该意图写入此参数——系统会在触发时随通知展示，由玩家收到提醒后手动发起
       - single_shot（可选，默认 true，布尔）：是否一次性监听。
       - display_name（可选，字符串）：监听的人类可读名称。
     约束：source/event_type 只能从注入的【条件监听】/【事件监听】清单中选择，严禁编造清单外的 skill.action 或事件类型。玩家要求监听的目标不在清单中（例如金价等需联网获取的外部数据）时，不要创建监听——返回无效意图（skill_name 为 null），由普通 AI 对话向玩家说明该内容无法监听。
