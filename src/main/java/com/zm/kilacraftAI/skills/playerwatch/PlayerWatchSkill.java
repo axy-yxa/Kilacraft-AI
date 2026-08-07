@@ -95,7 +95,7 @@ public class PlayerWatchSkill implements Skill {
         String triggerEvent = SkillEntityHelper.getString(context, "trigger_event");
         String note = SkillEntityHelper.getString(context, "note");
         PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("订阅请求：玩家={}, 目标={}, 触发事件={}", context.getPlayer().getName(), target, triggerEvent));
-        PlayerWatchService.SubscribeResult result = service.subscribe(context.getPlayer().getUniqueId(), context.getPlayer().getName(), target, triggerEvent, note);
+        PlayerWatchService.SubscribeResult result = service.subscribe(context.getPlayer().getUniqueId(), target, triggerEvent, note);
 
         PluginLoggerUtil.debug(LOG_PREFIX, I18nService.tr("订阅完成：玩家={}, 当前订阅数={}", context.getPlayer().getName(), result.count()));
         String normalizedTrigger = (triggerEvent == null) ? "BOTH" : triggerEvent.trim().toUpperCase();

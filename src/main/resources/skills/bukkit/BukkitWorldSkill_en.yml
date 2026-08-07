@@ -48,15 +48,15 @@ action_descriptions:
     Returns data fields: pvp (boolean).
   get_world_biome: |
     Function: Get the biome type at the player's current location (plains, desert, forest, etc.).
-    Parameters: none (defaults to player's current coords).
+    Parameters: none (fixed at the player's feet; other coordinates cannot be specified).
     Returns data fields: biome (biome enum name, e.g. PLAINS/DESERT).
   get_world_temperature: |
     Function: Get the temperature value at the player's current location (affects mob spawning, snow).
-    Parameters: none (defaults to player's current coords).
+    Parameters: none (fixed at the player's feet; other coordinates cannot be specified).
     Returns data fields: temperature (float 0-1).
   get_world_humidity: |
     Function: Get the humidity value at the player's current location (affects rain probability).
-    Parameters: none (defaults to player's current coords).
+    Parameters: none (fixed at the player's feet; other coordinates cannot be specified).
     Returns data fields: humidity (float 0-1).
   get_world_player_count: |
     Function: Get the number of players in the current world.

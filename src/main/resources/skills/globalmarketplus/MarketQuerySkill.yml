@@ -37,19 +37,19 @@ action_descriptions:
 
   query_my_items: |
     功能：查询玩家自己在售的商品。
-    返回 data 字段：my_items（数组，每项含 item_name、english_name、amount、price、seller_name）、count（数值（整数）：商品数量）。
+    返回 data 字段：my_items（数组，每项含 item_name、amount、price、seller_name）、count（数值（整数）：商品数量）。
     触发场景：用户问"我在卖什么"、"我的商品"、"我上架了什么"。
 
   query_seller_items: |
     功能：查询指定卖家在售的商品。
     参数：
       - seller_name（必填，玩家名）：卖家玩家名称。
-    返回 data 字段：seller_items（数组，每项含 item_name、english_name、amount、price、seller_name）、count（数值（整数）：商品数量）。
+    返回 data 字段：seller_items（数组，每项含 item_name、amount、price、seller_name）、count（数值（整数）：商品数量）。
     触发场景：用户问"xxx 在卖什么"、"xxx 的商店"、"xxx 卖什么呢"。
 
   query_mailbox: |
     功能：查询玩家邮箱待领取邮件。
-    返回 data 字段：mails（数组，每项含 item_name、english_name、amount、sender_name）、count（数值（整数）：邮件数量）。
+    返回 data 字段：mails（数组，每项含 item_name、amount、sender_name）、count（数值（整数）：邮件数量）。
     触发场景：用户问"我有邮件吗"、"邮箱里有什么"、"查邮箱"。
 
   query_market_stats: |

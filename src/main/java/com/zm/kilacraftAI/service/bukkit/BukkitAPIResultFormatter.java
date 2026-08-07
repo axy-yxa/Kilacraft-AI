@@ -2,9 +2,9 @@ package com.zm.kilacraftAI.service.bukkit;
 
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
-import org.bukkit.Material;
 import org.bukkit.Difficulty;
 import org.bukkit.GameMode;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
@@ -22,12 +22,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.util.Vector;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Bukkit API 查询结果的共享格式化与字段提取工具
@@ -114,38 +109,6 @@ public final class BukkitAPIResultFormatter {
         } else {
             return I18nService.tr("天气：雨天");
         }
-    }
-
-    /**
-     * 格式化经验值结果（把 exp_progress 小数转为百分比）
-     */
-    public static String formatExpResult(Map<?, ?> resultMap) {
-        Object levelObj = resultMap.get("level");
-        Object expObj = resultMap.get("exp_progress");
-
-        int level = levelObj instanceof Number ? ((Number) levelObj).intValue() : 0;
-        float expProgress = expObj instanceof Number ? ((Number) expObj).floatValue() : 0f;
-
-        int percentage = Math.round(expProgress * 100);
-        return I18nService.tr("等级：{}，经验进度：{}%", level, percentage);
-    }
-
-    /**
-     * 格式化着火状态结果（fire_ticks>0 时换算为剩余秒数）
-     */
-    public static String formatFireResult(Map<?, ?> resultMap) {
-        Object fireTicksObj = resultMap.get("fire_ticks");
-        Object maxFireTicksObj = resultMap.get("max_fire_ticks");
-
-        int fireTicks = fireTicksObj instanceof Number ? ((Number) fireTicksObj).intValue() : 0;
-        int maxFireTicks = maxFireTicksObj instanceof Number ? ((Number) maxFireTicksObj).intValue() : 200;
-
-        if (fireTicks <= 0) {
-            return I18nService.tr("着火状态：未着火");
-        }
-
-        double seconds = fireTicks / 20.0;
-        return I18nService.tr("着火状态：正在燃烧！剩余 {} 秒 ({}{} tick)", String.format("%.1f", seconds), fireTicks, "/" + maxFireTicks);
     }
 
     /**
@@ -261,8 +224,9 @@ public final class BukkitAPIResultFormatter {
     public static String formatSingleItemStack(String label, ItemStack item) {
         StringBuilder sb = new StringBuilder();
         sb.append(label).append(I18nService.tr("："));
-        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
-            sb.append(item.getItemMeta().getDisplayName());
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null && meta.hasDisplayName()) {
+            sb.append(meta.getDisplayName());
         } else {
             String chineseName = ItemTranslator.getInstance().translateToChinese(item.getType().name());
             sb.append(chineseName);
@@ -275,10 +239,10 @@ public final class BukkitAPIResultFormatter {
             int remaining = max - item.getDurability();
             sb.append(I18nService.tr(" [耐久:{}/{}]", remaining, max));
         }
-        if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
+        if (meta != null && meta.hasEnchants()) {
             sb.append(I18nService.tr(" [附魔:"));
             boolean first = true;
-            for (Map.Entry<Enchantment, Integer> entry : item.getItemMeta().getEnchants().entrySet()) {
+            for (Map.Entry<Enchantment, Integer> entry : meta.getEnchants().entrySet()) {
                 if (!first) sb.append("; ");
                 sb.append(entry.getKey().getKey().getKey().toUpperCase()).append(" ").append(toRoman(entry.getValue()));
                 first = false;
@@ -455,8 +419,9 @@ public final class BukkitAPIResultFormatter {
             if (item != null && item.getType() != Material.AIR) {
                 if (hasArmor) sb.append("; ");
                 sb.append(slotNames[i]).append(I18nService.tr("："));
-                if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
-                    sb.append(item.getItemMeta().getDisplayName());
+                ItemMeta meta = item.getItemMeta();
+                if (meta != null && meta.hasDisplayName()) {
+                    sb.append(meta.getDisplayName());
                 } else {
                     String chineseName = ItemTranslator.getInstance().translateToChinese(item.getType().name());
                     sb.append(chineseName);
@@ -469,10 +434,10 @@ public final class BukkitAPIResultFormatter {
                     int remaining = max - item.getDurability();
                     sb.append(I18nService.tr(" [耐久:{}/{}]", remaining, max));
                 }
-                if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
+                if (meta != null && meta.hasEnchants()) {
                     sb.append(I18nService.tr(" [附魔:"));
                     boolean first = true;
-                    for (Map.Entry<Enchantment, Integer> entry : item.getItemMeta().getEnchants().entrySet()) {
+                    for (Map.Entry<Enchantment, Integer> entry : meta.getEnchants().entrySet()) {
                         if (!first) sb.append("; ");
                         sb.append(entry.getKey().getKey().getKey().toUpperCase()).append(" ").append(toRoman(entry.getValue()));
                         first = false;
@@ -507,13 +472,17 @@ public final class BukkitAPIResultFormatter {
 
         for (int i = 0; i < slotKeys.length; i++) {
             String prefix = slotKeys[i];
-            String nameKey = prefix + "_name";
-            if (armorMap.containsKey(nameKey)) {
+            String typeKey = prefix + "_type";
+            // 槽位是否有装备以 *_type 为准（*_name 仅在有自定义名时存在）
+            if (armorMap.containsKey(typeKey)) {
                 if (hasArmor) sb.append("; ");
                 sb.append(slotNames[i]).append(I18nService.tr("："));
 
+                // *_name 仅有自定义名时存在；无则按 *_type 翻译展示
+                String nameKey = prefix + "_name";
                 Object nameObj = armorMap.get(nameKey);
-                sb.append(nameObj != null ? nameObj.toString() : I18nService.tr("未知"));
+                String display = nameObj != null ? nameObj.toString() : ItemTranslator.getInstance().translateToChinese(armorMap.get(typeKey).toString());
+                sb.append(display);
 
                 String remainingKey = prefix + "_remaining_durability";
                 String maxKey = prefix + "_max_durability";
@@ -654,10 +623,18 @@ public final class BukkitAPIResultFormatter {
         sb.append(I18nService.tr("上次受伤：")).append(causeDisplay).append(I18nService.tr("（{} 伤害）", String.format("%.1f", damageEvent.getDamage())));
         if (damageEvent instanceof EntityDamageByEntityEvent byEntityEvent) {
             Entity damager = byEntityEvent.getDamager();
-            if (damager != null) {
-                String name = damager instanceof Player p ? p.getName() : (damager instanceof LivingEntity m ? (m.getName() != null ? m.getName() : m.getType().name()) : damager.getType().name());
-                sb.append(I18nService.tr("，攻击者：")).append(name);
+            String name;
+            if (damager instanceof Player p) {
+                name = p.getName();
+            } else {
+                if (damager instanceof LivingEntity m) {
+                    m.getName();
+                    name = m.getName();
+                } else {
+                    name = (damager.getType().name());
+                }
             }
+            sb.append(I18nService.tr("，攻击者：")).append(name);
         }
         return sb.toString();
     }
@@ -788,9 +765,10 @@ public final class BukkitAPIResultFormatter {
                     }
                     sb.append(label).append(I18nService.tr("物品（已用 {}/{} 格）：\n", total, contents.length));
                 }
+                ItemMeta meta = item.getItemMeta();
                 String itemName;
-                if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
-                    itemName = item.getItemMeta().getDisplayName();
+                if (meta != null && meta.hasDisplayName()) {
+                    itemName = meta.getDisplayName();
                 } else {
                     itemName = ItemTranslator.getInstance().translateToChinese(item.getType().name());
                 }
@@ -843,7 +821,7 @@ public final class BukkitAPIResultFormatter {
     /**
      * 格式化背包/末影箱 Map（Folia 路径，从 {@code extractThreadSafeData} 返回的 Map 读取）
      *
-     * @param label 文案前缀（「背包」/「末影箱」/「容器」/「{容器类型}」）
+     * @param label     文案前缀（「背包」/「末影箱」/「容器」/「{容器类型}」）
      * @param usageOnly true=仅显示格数（inventory_usage），false=显示物品列表
      */
     public static String formatInventoryFromMap(String label, boolean usageOnly, Map<?, ?> invMap) {
@@ -869,7 +847,8 @@ public final class BukkitAPIResultFormatter {
         for (Object obj : itemsList) {
             if (obj instanceof Map<?, ?> itemData) {
                 int slot = itemData.containsKey("slot") ? ((Number) itemData.get("slot")).intValue() : -1;
-                String itemName = itemData.get("item_name") != null ? itemData.get("item_name").toString() : (itemData.get("item_type") != null ? itemData.get("item_type").toString() : I18nService.tr("未知"));
+                // item_name 仅有自定义名时存在；无则按 item_type 翻译展示
+                String itemName = itemData.get("item_name") != null ? itemData.get("item_name").toString() : (itemData.get("item_type") != null ? ItemTranslator.getInstance().translateToChinese(itemData.get("item_type").toString()) : I18nService.tr("未知"));
                 int amount = itemData.containsKey("item_amount") ? ((Number) itemData.get("item_amount")).intValue() : 1;
                 sb.append("  [").append(slot).append("] ").append(itemName);
                 if (amount > 1) {
@@ -892,24 +871,6 @@ public final class BukkitAPIResultFormatter {
 
         int raidCount = raids.size();
         return I18nService.tr("当前正在进行 {} 个袭击", raidCount);
-    }
-
-    /**
-     * 格式化时长（用于挂机时间）
-     */
-    public static String formatDuration(Duration duration) {
-        long seconds = duration.getSeconds();
-        if (seconds < 60) {
-            return I18nService.tr("挂机时间：{} 秒", seconds);
-        } else if (seconds < 3600) {
-            long minutes = seconds / 60;
-            long remainingSeconds = seconds % 60;
-            return I18nService.tr("挂机时间：{} 分 {} 秒", minutes, remainingSeconds);
-        } else {
-            long hours = seconds / 3600;
-            long minutes = (seconds % 3600) / 60;
-            return I18nService.tr("挂机时间：{} 小时 {} 分", hours, minutes);
-        }
     }
 
     /**
@@ -973,17 +934,13 @@ public final class BukkitAPIResultFormatter {
         dataMap.put("item_type", itemStack.getType().name());
         dataMap.put("item_amount", itemStack.getAmount());
 
-        String itemName;
-        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-            itemName = itemStack.getItemMeta().getDisplayName();
-        } else {
-            itemName = ItemTranslator.getInstance().translateToChinese(itemStack.getType().name());
+        // item_name 仅存自定义名；无自定义名时不写入，由 message 层按 item_type 翻译展示
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null && meta.hasDisplayName()) {
+            dataMap.put("item_name", meta.getDisplayName());
         }
-        dataMap.put("item_name", itemName);
 
-        if (itemStack.hasItemMeta()) {
-            ItemMeta meta = itemStack.getItemMeta();
-
+        if (meta != null) {
             if (meta.hasEnchants()) {
                 Map<String, Integer> enchantments = new HashMap<>();
                 meta.getEnchants().forEach((ench, level) -> enchantments.put(ench.getName(), level));
@@ -1026,18 +983,16 @@ public final class BukkitAPIResultFormatter {
     public static void putItemStackFieldsFolia(ItemStack itemStack, Map<String, Object> dataMap) {
         putItemStackFields(itemStack, dataMap);
 
-        if (itemStack.hasItemMeta()) {
-            ItemMeta meta = itemStack.getItemMeta();
-            if (meta.hasAttributeModifiers()) {
-                Map<String, Object> attributes = new HashMap<>();
-                meta.getAttributeModifiers().entries().forEach(entry -> {
-                    org.bukkit.attribute.Attribute attr = entry.getKey();
-                    org.bukkit.attribute.AttributeModifier modifier = entry.getValue();
-                    attributes.put(attr.name(), modifier.getAmount());
-                });
-                if (!attributes.isEmpty()) {
-                    dataMap.put("attributes", attributes);
-                }
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta != null && meta.hasAttributeModifiers()) {
+            Map<String, Object> attributes = new HashMap<>();
+            meta.getAttributeModifiers().entries().forEach(entry -> {
+                org.bukkit.attribute.Attribute attr = entry.getKey();
+                org.bukkit.attribute.AttributeModifier modifier = entry.getValue();
+                attributes.put(attr.name(), modifier.getAmount());
+            });
+            if (!attributes.isEmpty()) {
+                dataMap.put("attributes", attributes);
             }
         }
     }
@@ -1101,13 +1056,11 @@ public final class BukkitAPIResultFormatter {
                 Map<String, Object> itemData = new HashMap<>();
                 itemData.put("slot", i);
                 itemData.put("item_type", item.getType().name());
-                String itemName;
-                if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
-                    itemName = item.getItemMeta().getDisplayName();
-                } else {
-                    itemName = ItemTranslator.getInstance().translateToChinese(item.getType().name());
+                // item_name 仅存自定义名；无自定义名时由 message 层按 item_type 翻译
+                ItemMeta meta = item.getItemMeta();
+                if (meta != null && meta.hasDisplayName()) {
+                    itemData.put("item_name", meta.getDisplayName());
                 }
-                itemData.put("item_name", itemName);
                 itemData.put("item_amount", item.getAmount());
                 itemsList.add(itemData);
             }
@@ -1126,13 +1079,16 @@ public final class BukkitAPIResultFormatter {
         for (int i = 0; i < armorContents.length; i++) {
             ItemStack item = armorContents[i];
             if (item != null && item.getType() != Material.AIR) {
-                String itemName = (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) ? item.getItemMeta().getDisplayName() : item.getType().name();
-                dataMap.put(slotNames[i] + "_name", itemName);
+                // *_name 仅存自定义名；无自定义名时由 message 层按 *_type 翻译
+                ItemMeta meta = item.getItemMeta();
+                if (meta != null && meta.hasDisplayName()) {
+                    dataMap.put(slotNames[i] + "_name", meta.getDisplayName());
+                }
                 dataMap.put(slotNames[i] + "_type", item.getType().name());
                 dataMap.put(slotNames[i] + "_amount", item.getAmount());
-                if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
+                if (meta != null && meta.hasEnchants()) {
                     Map<String, Integer> enchants = new HashMap<>();
-                    item.getItemMeta().getEnchants().forEach((ench, level) -> enchants.put(ench.getKey().getKey().toUpperCase(), level));
+                    meta.getEnchants().forEach((ench, level) -> enchants.put(ench.getKey().getKey().toUpperCase(), level));
                     dataMap.put(slotNames[i] + "_enchantments", enchants);
                 }
                 if (item.getType().getMaxDurability() > 0) {
@@ -1156,14 +1112,14 @@ public final class BukkitAPIResultFormatter {
                 String prefix = slotNames[i];
                 dataMap.put(prefix + "_type", item.getType().name());
                 dataMap.put(prefix + "_amount", item.getAmount());
-                if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
-                    dataMap.put(prefix + "_name", item.getItemMeta().getDisplayName());
-                } else {
-                    dataMap.put(prefix + "_name", ItemTranslator.getInstance().translateToChinese(item.getType().name()));
+                // *_name 仅存自定义名；无自定义名时由 message 层按 *_type 翻译
+                ItemMeta meta = item.getItemMeta();
+                if (meta != null && meta.hasDisplayName()) {
+                    dataMap.put(prefix + "_name", meta.getDisplayName());
                 }
-                if (item.hasItemMeta() && item.getItemMeta().hasEnchants()) {
+                if (meta != null && meta.hasEnchants()) {
                     Map<String, Integer> enchants = new HashMap<>();
-                    item.getItemMeta().getEnchants().forEach((ench, level) -> enchants.put(ench.getKey().getKey().toUpperCase(), level));
+                    meta.getEnchants().forEach((ench, level) -> enchants.put(ench.getKey().getKey().toUpperCase(), level));
                     dataMap.put(prefix + "_enchantments", enchants);
                 }
                 if (item.getType().getMaxDurability() > 0) {
@@ -1198,28 +1154,31 @@ public final class BukkitAPIResultFormatter {
     }
 
     /**
-     * 提取上次受伤事件字段到 dataMap（Spigot 路径，damage_cause 存本地化文案）
+     * 提取上次受伤事件字段到 dataMap（Spigot 路径）。
      *
-     * <p>字段：damage_cause/damage_amount[+damager_type/damager_name]</p>
+     * <p>字段与 {@link #putDamageFieldsFolia} 完全一致：damage_cause(枚举 name)/damage_amount/final_damage
+     * [+damager_type/damager_name]。data 统一存结构化枚举名，message 由调用方经 formatDamageCause 转文案。</p>
      */
     public static void putDamageFields(EntityDamageEvent damageEvent, Map<String, Object> dataMap) {
-        dataMap.put("damage_cause", formatDamageCause(damageEvent.getCause()));
+        dataMap.put("damage_cause", damageEvent.getCause().name());
         dataMap.put("damage_amount", damageEvent.getDamage());
+        dataMap.put("final_damage", damageEvent.getFinalDamage());
         if (damageEvent instanceof EntityDamageByEntityEvent byEntityEvent) {
             Entity damager = byEntityEvent.getDamager();
             dataMap.put("damager_type", damager.getType().name());
             if (damager instanceof Player attacker) {
                 dataMap.put("damager_name", attacker.getName());
             } else if (damager instanceof LivingEntity livingMob) {
+                livingMob.getName();
                 dataMap.put("damager_name", livingMob.getName());
             }
         }
     }
 
     /**
-     * 提取上次受伤事件字段到 dataMap（Folia 路径，damage_cause 存枚举 name()，额外含 final_damage）
+     * 提取上次受伤事件字段到 dataMap（Folia 路径，区域线程安全提取）。
      *
-     * <p>字段：damage_cause(name)/damage_amount/final_damage[+damager_type/damager_name]</p>
+     * <p>字段与 {@link #putDamageFields} 完全一致，两端 data 结构对齐。</p>
      */
     public static void putDamageFieldsFolia(EntityDamageEvent damageEvent, Map<String, Object> dataMap) {
         dataMap.put("damage_cause", damageEvent.getCause().name());
@@ -1227,13 +1186,12 @@ public final class BukkitAPIResultFormatter {
         dataMap.put("final_damage", damageEvent.getFinalDamage());
         if (damageEvent instanceof EntityDamageByEntityEvent byEntityEvent) {
             Entity damager = byEntityEvent.getDamager();
-            if (damager != null) {
-                dataMap.put("damager_type", damager.getType().name());
-                if (damager instanceof Player attacker) {
-                    dataMap.put("damager_name", attacker.getName());
-                } else if (damager instanceof LivingEntity livingMob) {
-                    dataMap.put("damager_name", livingMob.getName() != null ? livingMob.getName() : livingMob.getType().name());
-                }
+            dataMap.put("damager_type", damager.getType().name());
+            if (damager instanceof Player attacker) {
+                dataMap.put("damager_name", attacker.getName());
+            } else if (damager instanceof LivingEntity livingMob) {
+                livingMob.getName();
+                dataMap.put("damager_name", livingMob.getName());
             }
         }
     }

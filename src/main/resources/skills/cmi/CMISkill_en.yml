@@ -25,7 +25,7 @@ action_descriptions:
   query_player_info: |
     Function: query the current player's own CMI enhanced info (playtime, AFK status, vanish status, flying status, game mode, etc.).
     Parameters: none.
-    Returned data fields: name, display_name, playtime_ms (integer, milliseconds), playtime_formatted, afk (boolean), vanished (boolean), fly (boolean), game_mode.
+    Returned data fields: name, display_name, playtime_ms (integer, milliseconds), afk (boolean), vanished (boolean), fly (boolean), game_mode.
 
   query_kits: |
     Function: query the server available kit list.

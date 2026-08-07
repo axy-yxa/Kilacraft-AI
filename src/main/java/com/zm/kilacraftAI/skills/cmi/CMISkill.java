@@ -6,6 +6,7 @@ import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.cmi.CMIAPI;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.service.bukkit.BukkitAPIResultFormatter;
 import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -228,7 +229,11 @@ public class CMISkill implements Skill, ProbeSource {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("CMI 插件未安装或不可用")));
         }
 
-        String message = I18nService.tr("玩家信息: name={}, display_name={}, playtime={}, afk={}, vanished={}, fly={}, game_mode={}", info.get("name"), info.get("display_name"), info.get("playtime_formatted"), info.get("afk"), info.get("vanished"), info.get("fly"), info.get("game_mode"));
+        // message 用语义化文案（playtime 格式化、game_mode 翻译），data（info）保持结构化
+        long playtimeMs = ((Number) info.get("playtime_ms")).longValue();
+        String playtimeText = I18nService.tr("{}小时{}分钟", playtimeMs / 3600000, (playtimeMs % 3600000) / 60000);
+        String gameModeText = BukkitAPIResultFormatter.formatGameMode(player.getGameMode());
+        String message = I18nService.tr("玩家信息: name={}, display_name={}, playtime={}, afk={}, vanished={}, fly={}, game_mode={}", info.get("name"), info.get("display_name"), playtimeText, info.get("afk"), info.get("vanished"), info.get("fly"), gameModeText);
 
         return CompletableFuture.completedFuture(SkillResult.success(message, info));
     }
@@ -276,12 +281,22 @@ public class CMISkill implements Skill, ProbeSource {
         }
 
         List<Map<String, Object>> players = CMIAPI.getOnlinePlayersInfo();
+        // 非 OP 查询者不返回隐身玩家（保护隐身），OP 可见全部（含隐身标记）
+        boolean viewerIsOp = player.isOp();
+
+        List<Map<String, Object>> visible = new ArrayList<>();
+        for (Map<String, Object> pInfo : players) {
+            if (!viewerIsOp && Boolean.TRUE.equals(pInfo.get("vanished"))) {
+                continue;
+            }
+            visible.add(pInfo);
+        }
 
         StringBuilder sb = new StringBuilder();
-        sb.append(I18nService.tr("在线玩家 ({}):", players.size()));
+        sb.append(I18nService.tr("在线玩家 ({}):", visible.size()));
 
         List<Map<String, Object>> playersData = new ArrayList<>();
-        for (Map<String, Object> pInfo : players) {
+        for (Map<String, Object> pInfo : visible) {
             String name = String.valueOf(pInfo.get("name"));
             boolean afk = Boolean.TRUE.equals(pInfo.get("afk"));
             boolean vanished = Boolean.TRUE.equals(pInfo.get("vanished"));
@@ -299,7 +314,7 @@ public class CMISkill implements Skill, ProbeSource {
 
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("players", playersData);
-        dataMap.put("count", players.size());
+        dataMap.put("count", visible.size());
 
         return CompletableFuture.completedFuture(SkillResult.success(sb.toString(), dataMap));
     }

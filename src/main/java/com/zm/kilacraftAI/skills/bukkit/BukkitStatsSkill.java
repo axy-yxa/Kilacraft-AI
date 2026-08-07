@@ -167,6 +167,9 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
             String formattedResult;
             String materialName = null;
             String entityTypeName = null;
+            // 解析后的规范枚举对象，供 data 存 name()（data 结构化、message 语义化的分工）
+            Material material = null;
+            EntityType entityType = null;
 
             switch (statistic.getType()) {
                 case UNTYPED -> {
@@ -178,7 +181,7 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
                     if (materialName == null) {
                         return SkillResult.needInfo(I18nService.tr("统计项 {} 需要指定物品材质名（如：DIAMOND_SWORD），请告诉我要查询哪种物品。", statisticName));
                     }
-                    Material material = parseMaterial(materialName);
+                    material = parseMaterial(materialName);
                     if (material == null || !material.isItem()) {
                         return SkillResult.failure(I18nService.tr("无效的物品材质名: {}", materialName));
                     }
@@ -190,7 +193,7 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
                     if (materialName == null) {
                         return SkillResult.needInfo(I18nService.tr("统计项 {} 需要指定方块材质名（如：DIAMOND_ORE），请告诉我要查询哪种方块。", statisticName));
                     }
-                    Material material = parseMaterial(materialName);
+                    material = parseMaterial(materialName);
                     if (material == null || !material.isBlock()) {
                         return SkillResult.failure(I18nService.tr("无效的方块材质名: {}", materialName));
                     }
@@ -202,7 +205,7 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
                     if (entityTypeName == null) {
                         return SkillResult.needInfo(I18nService.tr("统计项 {} 需要指定实体类型名（如：ZOMBIE），请告诉我要查询哪种实体。", statisticName));
                     }
-                    EntityType entityType = parseEntityType(entityTypeName);
+                    entityType = parseEntityType(entityTypeName);
                     if (entityType == null) {
                         return SkillResult.failure(I18nService.tr("无效的实体类型名: {}", entityTypeName));
                     }
@@ -214,15 +217,15 @@ public class BukkitStatsSkill implements Skill, ProbeSource {
                 }
             }
 
-            // 构建 dataMap 供多步骤任务引用
+            // data 存规范枚举名（多步引用稳定），message 由 formatResult 转中文展示
             Map<String, Object> dataMap = new HashMap<>();
-            dataMap.put("statistic", statisticName);
+            dataMap.put("statistic", statistic.name());
             dataMap.put("value", value);
             dataMap.put("statistic_type", statistic.getType().name());
-            if (statistic.getType() == Statistic.Type.ITEM || statistic.getType() == Statistic.Type.BLOCK) {
-                dataMap.put("material", materialName);
-            } else if (statistic.getType() == Statistic.Type.ENTITY) {
-                dataMap.put("entity_type", entityTypeName);
+            if (material != null) {
+                dataMap.put("material", material.name());
+            } else if (entityType != null) {
+                dataMap.put("entity_type", entityType.name());
             }
 
             return SkillResult.success(formattedResult, dataMap);

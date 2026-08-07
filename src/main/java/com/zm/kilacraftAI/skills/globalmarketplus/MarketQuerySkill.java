@@ -213,7 +213,7 @@ public class MarketQuerySkill implements Skill, ProbeSource {
             // 使用 API 获取所有匹配的商品信息
             List<MarketItem> matchingItems = GlobalMarketPlusAPI.getMatchingItems(englishItemName);
 
-            // 如果找不到，尝试用中文名再查一次（兼容情况）
+            // 英文翻译查不到时用原始输入再查一次（兼容翻译不匹配或原文即中文的情况）
             if (matchingItems.isEmpty()) {
                 matchingItems = GlobalMarketPlusAPI.getMatchingItems(itemNameOnly);
             }
@@ -314,7 +314,7 @@ public class MarketQuerySkill implements Skill, ProbeSource {
                 String singleItem = parts[0].trim();
                 int colonIdx = singleItem.lastIndexOf(':');
                 String itemNameOnly = colonIdx > 0 ? singleItem.substring(0, colonIdx).trim() : singleItem;
-                dataMap.put("item_name", translator.translateToChinese(itemNameOnly));
+                dataMap.put("item_name", translator.translateToEnglish(itemNameOnly));
                 dataMap.put("price", totalPrice);
             }
         }
@@ -500,8 +500,7 @@ public class MarketQuerySkill implements Skill, ProbeSource {
             sb.append(String.format("[%d] %s x %d - $%.2f\n", i + 1, displayName, item.getAmount(), item.getPrice()));
 
             Map<String, Object> itemData = new LinkedHashMap<>();
-            itemData.put("item_name", displayName);
-            itemData.put("english_name", item.getItemName());
+            itemData.put("item_name", item.getItemName());
             itemData.put("amount", item.getAmount());
             itemData.put("price", item.getPrice());
             itemData.put("seller_name", item.getSellerName());
@@ -548,8 +547,7 @@ public class MarketQuerySkill implements Skill, ProbeSource {
             sb.append(String.format("[%d] %s x %d - $%.2f\n", i + 1, displayName, item.getAmount(), item.getPrice()));
 
             Map<String, Object> itemData = new LinkedHashMap<>();
-            itemData.put("item_name", displayName);
-            itemData.put("english_name", item.getItemName());
+            itemData.put("item_name", item.getItemName());
             itemData.put("amount", item.getAmount());
             itemData.put("price", item.getPrice());
             itemData.put("seller_name", item.getSellerName());
@@ -596,8 +594,7 @@ public class MarketQuerySkill implements Skill, ProbeSource {
             sb.append(String.format("[%d] %s x %d ", i + 1, displayName, mail.getAmount())).append(I18nService.tr("来自: {}", mail.getSenderName() != null ? mail.getSenderName() : I18nService.tr("系统"))).append("\n");
 
             Map<String, Object> mailData = new LinkedHashMap<>();
-            mailData.put("item_name", displayName);
-            mailData.put("english_name", mail.getItemName());
+            mailData.put("item_name", mail.getItemName());
             mailData.put("amount", mail.getAmount());
             mailData.put("sender_name", mail.getSenderName() != null ? mail.getSenderName() : I18nService.tr("系统"));
             mailsData.add(mailData);

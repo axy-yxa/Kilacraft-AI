@@ -17,12 +17,12 @@ action_descriptions:
       - statistic (required, enum name): Minecraft vanilla statistic enum name or Chinese description, e.g. DEATHS, death count, MOB_KILLS, kill count. Must be a statistic directly related to gameplay.
       - material (optional, required for some stats, enum name): Required when the statistic is of ITEM/BLOCK type; item or block material enum name, e.g. DIAMOND_SWORD, DIAMOND_ORE.
       - entity_type (optional, required for some stats, enum name): Required when the statistic is of ENTITY type; entity type enum name, e.g. ZOMBIE.
-    Returns data fields: statistic (string: statistic enum name), value (number: statistic value), statistic_type (string: statistic type UNTYPED/ITEM/BLOCK/ENTITY), material (string: material name for some stats), entity_type (string: entity type name for some stats).
+    Returns data fields: statistic (string: canonical enum name, e.g. DEATHS), value (integer: raw statistic value; distance stats in centimeters, time stats in ticks — the display message is auto-converted to readable units), statistic_type (string: allowed values UNTYPED/ITEM/BLOCK/ENTITY), material (string: material enum name for some stats), entity_type (string: entity type enum name for some stats).
 
 hints:
   - |
     The statistic's type decides whether extra params are needed: UNTYPED (e.g. DEATHS, MOB_KILLS, walk distance) needs none; ITEM/BLOCK (e.g. "how many diamond ores mined", "how many diamond swords crafted") requires material; ENTITY (e.g. "how many zombies killed") requires entity_type. Missing material/entity_type returns needInfo prompting to supply it.
   - |
-    Unit conversion: movement distance is stored in centimeters (1 block=100CM) and time in ticks (20 ticks=1 second); returned results are auto-converted to readable units, no manual conversion needed.
+    Unit conversion: the data value field is a raw integer (distance stats in centimeters, 1 block=100CM; time stats in ticks, 20 ticks=1 second); the player-facing message is auto-converted to readable units. When referencing value in a multi-step task calculation, convert according to the raw unit.
   - |
     Never guess enum names: statistic/material/entity_type must be a vanilla enum name you are certain exists; if unsure, return invalid intent rather than guessing. Guide/advice/recommendation questions do not apply to this skill.

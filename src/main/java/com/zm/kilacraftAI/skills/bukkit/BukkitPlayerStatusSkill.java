@@ -137,7 +137,7 @@ public class BukkitPlayerStatusSkill extends AbstractBukkitQuerySkill {
         dataMap.put("api_id", "get_player_exp");
         dataMap.put("exp_progress", expProgress);
         dataMap.put("level", level);
-        // 原 formatExpResult：把 exp_progress 转百分比
+        // exp_progress 小数转百分比
         int percentage = Math.round(expProgress * 100);
         String message = I18nService.tr("等级：{}，经验进度：{}%", level, percentage);
         return SkillResult.success(message, dataMap);
@@ -197,7 +197,7 @@ public class BukkitPlayerStatusSkill extends AbstractBukkitQuerySkill {
         dataMap.put("api_id", "get_player_fire_status");
         dataMap.put("fire_ticks", fireTicks);
         dataMap.put("max_fire_ticks", maxFireTicks);
-        // 原 formatFireResult：fire_ticks<=0 → 未着火；否则换算秒
+        // fire_ticks<=0 → 未着火；否则换算秒
         String message;
         if (fireTicks <= 0) {
             message = I18nService.tr("着火状态：未着火");

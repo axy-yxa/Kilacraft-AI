@@ -16,12 +16,12 @@ action_descriptions:
       - statistic（必填，枚举名）：Minecraft 原版统计项的枚举名或中文描述，如 DEATHS、死亡次数、MOB_KILLS、击杀数。必须是与游戏玩法直接相关的统计项。
       - material（可选，部分统计项必填，枚举名）：当统计项为 ITEM/BLOCK 类型时必填，物品或方块材质枚举名，如 DIAMOND_SWORD、DIAMOND_ORE。
       - entity_type（可选，部分统计项必填，枚举名）：当统计项为 ENTITY 类型时必填，实体类型枚举名，如 ZOMBIE。
-    返回 data 字段：statistic（字符串：统计项枚举名）、value（数值：统计值）、statistic_type（字符串：统计类型 UNTYPED/ITEM/BLOCK/ENTITY）、material（字符串：部分统计项附带材质名）、entity_type（字符串：部分统计项附带实体类型名）。
+    返回 data 字段：statistic（字符串：规范枚举名，如 DEATHS）、value（数值（整数）：原始统计值，距离类单位为厘米、时长类单位为 tick，展示文本已换算为可读单位）、statistic_type（字符串：取值 UNTYPED/ITEM/BLOCK/ENTITY）、material（字符串：部分统计项附带材质枚举名）、entity_type（字符串：部分统计项附带实体类型枚举名）。
 
 hints:
   - |
     statistic 的类型决定是否需要额外参数：UNTYPED（如 DEATHS、MOB_KILLS、行走距离）无需额外参数；ITEM/BLOCK（如「挖了多少钻石矿」「合成钻石剑多少把」）必须带 material；ENTITY（如「杀了多少僵尸」）必须带 entity_type。缺材料/实体类型时会返回 needInfo 提示补充。
   - |
-    单位换算：移动距离原值为厘米（1 格=100CM），时长原值为 tick（20 tick=1 秒），返回结果已自动换算为可读单位，无需再算。
+    单位换算：data 的 value 字段是原始整数（距离类单位厘米，1 格=100CM；时长类单位 tick，20 tick=1 秒）；展示给玩家的消息文本已自动换算为可读单位。若需在多步骤任务中引用 value 做计算，注意按原始单位换算。
   - |
     严禁猜测枚举名：statistic/material/entity_type 必须是确信存在于 Minecraft 原版的枚举名；不确定时返回无效意图，不要猜测。攻略/建议/推荐类问题不适用本技能。

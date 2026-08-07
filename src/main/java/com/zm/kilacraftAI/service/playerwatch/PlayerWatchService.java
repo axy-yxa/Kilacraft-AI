@@ -67,7 +67,7 @@ public final class PlayerWatchService implements Listener {
      *
      * @return 结果消息模板（含占位符 {} {}，依次为 target、trigger）与订阅总数
      */
-    public SubscribeResult subscribe(UUID subscriber, String subscriberName, String targetName, String triggerEvent, String note) {
+    public SubscribeResult subscribe(UUID subscriber, String targetName, String triggerEvent, String note) {
         String normalizedTarget = targetName.trim();
         String normalizedTrigger = normalizeTrigger(triggerEvent);
         List<Subscription> list = subscriptions.computeIfAbsent(subscriber, k -> Collections.synchronizedList(new ArrayList<>()));
@@ -77,14 +77,14 @@ public final class PlayerWatchService implements Listener {
             for (int i = 0; i < list.size(); i++) {
                 Subscription s = list.get(i);
                 if (s.targetName().equalsIgnoreCase(normalizedTarget) && s.triggerEvent().equals(normalizedTrigger)) {
-                    list.set(i, new Subscription(subscriber, subscriberName, normalizedTarget, normalizedTrigger, note, System.currentTimeMillis()));
+                    list.set(i, new Subscription(subscriber, normalizedTarget, normalizedTrigger, note, System.currentTimeMillis()));
                     return new SubscribeResult(I18nService.tr("已更新对 {} 的 {} 订阅", normalizedTarget, triggerDescription(normalizedTrigger)), list.size());
                 }
             }
             if (list.size() >= MAX_SUBSCRIPTIONS_PER_PLAYER) {
                 return new SubscribeResult(I18nService.tr("订阅数已达上限（{} 个），请先取消一些", list.size()), list.size());
             }
-            list.add(new Subscription(subscriber, subscriberName, normalizedTarget, normalizedTrigger, note, System.currentTimeMillis()));
+            list.add(new Subscription(subscriber, normalizedTarget, normalizedTrigger, note, System.currentTimeMillis()));
         }
 
         String message = I18nService.tr("已订阅 {} 的 {} 通知", normalizedTarget, triggerDescription(normalizedTrigger));
@@ -246,8 +246,8 @@ public final class PlayerWatchService implements Listener {
     /**
      * 单条订阅记录。triggerEvent 取值：JOIN / QUIT / BOTH。
      */
-    public record Subscription(UUID subscriberUuid, String subscriberName, String targetName, String triggerEvent,
-                               String note, long createdAt) {
+    public record Subscription(UUID subscriberUuid, String targetName, String triggerEvent, String note,
+                               long createdAt) {
     }
 
     /**

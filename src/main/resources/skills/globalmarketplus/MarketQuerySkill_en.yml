@@ -38,19 +38,19 @@ action_descriptions:
 
   query_my_items: |
     Function: query the player's own listed items.
-    Returned data fields: my_items (array, each item has item_name, english_name, amount, price, seller_name), count (integer: item count).
+    Returned data fields: my_items (array, each item has item_name, amount, price, seller_name), count (integer: item count).
     Trigger: user asks "what am I selling", "my items", "what did I list".
 
   query_seller_items: |
     Function: query items listed by a specific seller.
     Parameters:
       - seller_name (required, player name): seller player name.
-    Returned data fields: seller_items (array, each item has item_name, english_name, amount, price, seller_name), count (integer: item count).
+    Returned data fields: seller_items (array, each item has item_name, amount, price, seller_name), count (integer: item count).
     Trigger: user asks "what is xxx selling", "xxx's shop", "what does xxx sell".
 
   query_mailbox: |
     Function: query the player's mailbox pending mail.
-    Returned data fields: mails (array, each mail has item_name, english_name, amount, sender_name), count (integer: mail count).
+    Returned data fields: mails (array, each mail has item_name, amount, sender_name), count (integer: mail count).
     Trigger: user asks "do I have mail", "what's in my mailbox", "check mailbox".
 
   query_market_stats: |
