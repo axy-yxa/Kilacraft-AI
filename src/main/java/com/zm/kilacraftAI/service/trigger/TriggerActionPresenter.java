@@ -88,7 +88,7 @@ public class TriggerActionPresenter {
             if (action == null) {
                 return;
             }
-            displayer.display(player, List.of(action), I18nService.tr("可执行操作"), I18nService.tr("点击执行"), "§7 | ");
+            displayer.display(player, List.of(action), "§7" + I18nService.tr("可执行操作") + "：", I18nService.tr("点击执行"), "§7 | ");
         }).exceptionally(throwable -> {
             PluginLoggerUtil.debug(LOG_MODULE, "触发指令构造失败（玩家 {}）: {}", player.getName(), throwable.getMessage());
             return null;
