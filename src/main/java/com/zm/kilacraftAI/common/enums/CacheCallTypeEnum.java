@@ -70,7 +70,12 @@ public enum CacheCallTypeEnum {
      * 服务器性能诊断，推理模型（thinking-model 路径）。system 纯静态（诊断模板），
      * 各项实时性能指标在 user 端
      */
-    SERVER_DIAGNOSTICS("服务器诊断");
+    SERVER_DIAGNOSTICS("服务器诊断"),
+
+    /**
+     * 触发指令构造 — 把玩家后续动作意图（note/intent）转换为可执行动作请求（传 null 统计类型，不参与统计）
+     */
+    TRIGGER_ACTION("触发指令");
 
     private final String displayName;
 

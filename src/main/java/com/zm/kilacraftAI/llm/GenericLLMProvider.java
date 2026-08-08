@@ -227,67 +227,48 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     }
 
     /**
-     * 从统一格式的摘要中提取干净的内容用于关键词提取
+     * 从统一格式的摘要中提取玩家原始输入用于关键词提取。
      *
-     * <p>保留用户输入 + 执行结果的实际数据，去除结构化标记和颜色代码</p>
+     * <p>知识库检索查询词只应来自玩家原始输入——[识别说明]（意图识别 reasoning 注入）、
+     * [执行结果]（技能执行产物，message 形态不可控且含坐标/数量等动态数据）均为噪音：
+     * 玩家原始意图已覆盖检索意图（核心概念都在输入里），执行结果增量对静态知识库检索
+     * 无增益，且执行结果每次不同会污染检索词稳定性。</p>
      *
      * @param content 截取后的业务内容
-     * @return 干净的文本内容
+     * @return 玩家原始输入文本（无标记注入时原样返回）
      */
     private String extractCleanContent(String content) {
-        // 检测统一格式标记（可能被翻译，同时尝试中英文版本）
-        String resultsMarker = I18nService.tr("[执行结果]");
-        if (!content.contains(resultsMarker)) {
-            resultsMarker = "[执行结果]"; // 回退中文原始
-        }
-        if (!content.contains(resultsMarker)) {
-            return content;
-        }
-
-        // 提取 [用户输入] 部分的内容
-        StringBuilder cleanContent = new StringBuilder();
+        // 二次分析/摘要格式：[用户输入] 段即玩家原始输入，提取到下一个标记为止
+        // （[识别说明]/[任务目标]/[执行结果]/[统计]，findNextMarker 已包含全部标记）
         String userInputMarker = I18nService.tr("[用户输入]");
         int userInputStart = content.indexOf(userInputMarker);
         if (userInputStart < 0) {
-            userInputStart = content.indexOf("[用户输入]"); // 回退
+            userInputStart = content.indexOf("[用户输入]"); // 回退中文原始
         }
         if (userInputStart >= 0) {
             int textStart = userInputStart + userInputMarker.length();
             int textEnd = findNextMarker(content, textStart);
-            String userInput = content.substring(textStart, textEnd).trim();
-            if (!userInput.isEmpty()) {
-                cleanContent.append(userInput).append(" ");
-            }
+            return content.substring(textStart, textEnd).trim();
         }
 
-        // 提取 [执行结果] 部分的实际数据（去除结构标记和颜色代码）
-        int resultsStart = content.indexOf(resultsMarker);
-        if (resultsStart >= 0) {
-            int textStart = resultsStart + resultsMarker.length();
-            String statsMarker = I18nService.tr("[统计]");
-            int textEnd = content.indexOf(statsMarker);
-            if (textEnd < 0) textEnd = content.indexOf("[统计]");
-            if (textEnd < 0) textEnd = content.length();
-
-            String resultsSection = content.substring(textStart, textEnd);
-            // 去除 step_id、状态标签、颜色代码、行首标记
-            String cleaned = resultsSection.replaceAll("-\\s*step_\\w+:\\s*", "").replaceAll("-\\s*(?=\\[)", "").replaceAll("\\[(SUCCESS|FAILURE|SKIPPED|UNKNOWN)]\\s*", "").replaceAll("§[0-9a-fk-orA-FK-OR]", "").replaceAll("^[\\s\\-]+", "").replaceAll("\\n\\s*-\\s*", " ").trim();
-            // 去除坐标/数值型数据（如 x: -11.00, y: 97.00），这些对知识库检索无语义价值
-            cleaned = cleaned.replaceAll("\\b(x|y|z|pitch|yaw):\\s*-?\\d+(\\.\\d+)?\\b", "").trim();
-            if (!cleaned.isEmpty()) {
-                cleanContent.append(cleaned);
+        // 普通 AI 注入路径（无 [用户输入] 标记）：玩家消息后的 [识别说明]/[系统提示： 注入为噪音，截断
+        int noiseIndex = content.length();
+        for (String marker : new String[]{I18nService.tr("[识别说明]"), "[识别说明]", "[系统提示："}) {
+            int idx = content.indexOf(marker);
+            if (idx >= 0 && idx < noiseIndex) {
+                noiseIndex = idx;
             }
         }
-
-        return cleanContent.toString().trim();
+        return content.substring(0, noiseIndex).trim();
     }
 
     /**
      * 查找下一个格式标记的位置
      */
     private int findNextMarker(String content, int fromIndex) {
-        // 同时查找翻译后和中文原始的标记
-        String[] markers = {I18nService.tr("[任务目标]"), I18nService.tr("[执行结果]"), I18nService.tr("[统计]"), "[任务目标]", "[执行结果]", "[统计]"};
+        // 同时查找翻译后和中文原始的标记；[识别说明] 必须包含——它是 [用户输入] 之后注入的
+        // 意图识别 reasoning，若不作为边界会被并入"用户输入"段污染知识库检索词
+        String[] markers = {I18nService.tr("[识别说明]"), I18nService.tr("[任务目标]"), I18nService.tr("[执行结果]"), I18nService.tr("[统计]"), "[识别说明]", "[任务目标]", "[执行结果]", "[统计]"};
         int nearest = content.length();
         for (String marker : markers) {
             int idx = content.indexOf(marker, fromIndex);
@@ -327,9 +308,10 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, @Nullable Player player, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String staticSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog, boolean enableJsonOutput, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                // 打印调试日志
+                // 调试日志（player 为 null 时取 handler 玩家名，如触发指令构造等无玩家上下文调用）
                 if (enableDebugLog && cachedDebugMode) {
-                    printDebugLog(player != null ? player.getName() : "Unknown", userMessage, history, cacheCallTypeEnum);
+                    String logName = player != null ? player.getName() : (responseHandler != null && responseHandler.getPlayerName() != null ? responseHandler.getPlayerName() : "Unknown");
+                    printDebugLog(logName, userMessage, history, cacheCallTypeEnum);
                 }
 
                 // ========== 知识检索增强 ==========

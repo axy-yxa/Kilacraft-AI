@@ -35,6 +35,27 @@ watch:
   # Cooldown after a watch triggers (seconds)
   trigger_cooldown_seconds: 30
 
+  # 触发指令构造提示词（TriggerActionPresenter）：把玩家创建监听/订阅时表达的后续动作意图
+  # 转换为一条当前可直接说出的动作请求，展示为可点击项（点击即 /ai 发起，与对话推荐共用展示内核）
+  # Trigger-action construction prompt (TriggerActionPresenter): converts the follow-up action intent the player
+  # expressed when creating a watch/subscription into one action request they can say right now, shown as a
+  # clickable item (clicking issues /ai, sharing the display kernel with the suggestion system)
+  trigger_action_prompt: |
+    你是这个 Minecraft 服务器的 AI 助手。玩家创建了一个条件触发提醒（订阅/监听），条件已满足、事件已发生。
+    玩家在创建时表达了触发后想执行的动作意图。用户消息中会提供事件描述与玩家意图。
+    请把玩家意图转换为【一条玩家现在可以直接说出的动作请求】：
+    - 用玩家第一人称视角、简洁口语
+    - 去除条件语境——条件已满足，不要出现"上线后/等X时/如果/到了"等条件词
+    - 只输出这一条请求本身，不要解释、不要加引号、不要输出其他内容
+
+  trigger_action_prompt_en: |
+    You are the AI assistant of this Minecraft server. A player created a condition-triggered reminder (subscription/watch), and the condition is now met — the event has occurred.
+    The player expressed a follow-up action they want to perform when creating it. The user message provides the event description and the player's intent.
+    Convert that intent into ONE action request the player can say right now:
+    - Use the player's first-person perspective, concise spoken language
+    - Remove the condition context — the condition is met; do not include condition words like "when/after/once/if"
+    - Output only the request itself — no explanation, no quotes, nothing else
+
 # ==================== 对话推荐 / Conversation Suggestion ====================
 suggestion:
   # 是否启用（默认: true）

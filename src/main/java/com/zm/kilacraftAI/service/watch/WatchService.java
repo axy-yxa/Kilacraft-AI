@@ -481,7 +481,7 @@ public final class WatchService implements Listener {
     void triggerPolling(Player player, Watch watch) {
         if (shutdown) return;
         PluginLoggerUtil.info(LOG_MODULE, I18nService.tr("条件监听触发: {}（玩家 {}）", watch.displayName(), player.getName()));
-        notifyAi(player, I18nService.tr("你盯的{}条件满足了", watch.displayName()), buildEventDesc(I18nService.tr("你盯的{}条件满足了", watch.displayName()), watch.intent()));
+        notifyAi(player, I18nService.tr("你盯的{}条件满足了", watch.displayName()), buildEventDesc(I18nService.tr("你盯的{}条件满足了", watch.displayName()), watch.intent()), watch.intent());
         saveEvent(player, watch, I18nService.tr("监听 {} 条件满足", watch.displayName()));
     }
 
@@ -506,7 +506,7 @@ public final class WatchService implements Listener {
         PluginLoggerUtil.info(LOG_MODULE, I18nService.tr("事件监听触发: {}（玩家 {}）", watch.displayName(), player.getName()));
 
         String eventDesc = WatchEventTypes.describeEvent(eventType, filterValue);
-        notifyAi(player, I18nService.tr("你盯的事件{}发生了", watch.displayName()), buildEventDesc(eventDesc, watch.intent()));
+        notifyAi(player, I18nService.tr("你盯的事件{}发生了", watch.displayName()), buildEventDesc(eventDesc, watch.intent()), watch.intent());
         saveEvent(player, watch, eventDesc);
 
         // single_shot 事件型 watch 触发后删除（同步移除索引）
@@ -532,15 +532,22 @@ public final class WatchService implements Listener {
     }
 
     /**
-     * 通知 AI（经 LLMOutputCoordinator 二次分析输出，技能结果场景——监听命中即玩家延后请求的结果交付）。
+     * 通知 AI（监听命中即玩家延后请求的结果交付）。
+     * 通知完成后把监听 intent（后续动作意图）展示为可执行操作点击项。
+     *
+     * @param intentText 玩家后续动作意图（watch.intent()），为空不展示
      */
-    private void notifyAi(Player player, String userMessage, String eventDescription) {
+    private void notifyAi(Player player, String userMessage, String eventDescription, String intentText) {
         try {
             LLMOutputCoordinator coordinator = plugin.getLlmOutputCoordinator();
             if (coordinator == null) return;
             SkillContext ctx = new SkillContext(player, "notify", Map.of());
             AnalysisSummary summary = new AnalysisSummary().userMessage(userMessage).injectEventTrigger(eventDescription);
-            coordinator.outputAnalysisResult(player, summary, ctx, new ArrayDeque<>(), OutputScenarioEnum.SKILL_RESULT, false, CacheCallTypeEnum.SECONDARY_ANALYSIS);
+            coordinator.outputAnalysisResult(player, summary, ctx, new ArrayDeque<>(), OutputScenarioEnum.SKILL_RESULT, false, CacheCallTypeEnum.SECONDARY_ANALYSIS).thenAccept(result -> {
+                if (player.isOnline() && plugin.getTriggerActionPresenter() != null) {
+                    plugin.getTriggerActionPresenter().present(player, userMessage, intentText);
+                }
+            });
         } catch (Exception e) {
             PluginLoggerUtil.warn(LOG_MODULE, I18nService.tr("通知玩家失败: {}", e.getMessage()));
         }
@@ -567,7 +574,7 @@ public final class WatchService implements Listener {
      * 连续失败超限时通知玩家。
      */
     private void notifyWatchFailure(Player player, Watch watch) {
-        notifyAi(player, I18nService.tr("监听可能配置有误"), I18nService.tr("监听{}连续{}次评估失败，已自动取消", watch.displayName(), WatchConstants.MAX_CONSECUTIVE_FAILURES));
+        notifyAi(player, I18nService.tr("监听可能配置有误"), I18nService.tr("监听{}连续{}次评估失败，已自动取消", watch.displayName(), WatchConstants.MAX_CONSECUTIVE_FAILURES), null);
     }
 
     /**

@@ -5,7 +5,6 @@ import com.zm.kilacraftAI.common.util.MessageUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.common.util.TextWidthUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.config.SuggestionConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -48,11 +47,9 @@ public class SuggestionDisplayer {
     private static final int FULLWIDTH_PX = 9;
 
     private final KilacraftAI plugin;
-    private final SuggestionConfigManager config;
 
-    public SuggestionDisplayer(KilacraftAI plugin, SuggestionConfigManager config) {
+    public SuggestionDisplayer(KilacraftAI plugin) {
         this.plugin = plugin;
-        this.config = config;
     }
 
     /**
@@ -68,14 +65,19 @@ public class SuggestionDisplayer {
         return width;
     }
 
-    public void display(Player player, List<String> suggestions) {
-        if (suggestions == null || suggestions.isEmpty()) {
+    /**
+     * 通用展示：标题/点击提示/分隔符参数化，供推荐系统与触发通知（可执行操作）等调用者复用。
+     *
+     * @param player    目标玩家
+     * @param items     可点击项文本列表（点击后执行 /ai + 文本）
+     * @param title     展示标题
+     * @param hint      悬停提示（点击行为说明）
+     * @param separator 项间分隔符
+     */
+    public void display(Player player, List<String> items, String title, String hint, String separator) {
+        if (items == null || items.isEmpty()) {
             return;
         }
-
-        String title = config.getDisplayTitle();
-        String separator = config.getDisplaySeparator();
-        String hint = config.getDisplayClickHint();
 
         String prefix = MessageUtil.getAIPrefix();
         int titleWidth = pixelWidth(TextWidthUtil.stripColors(prefix + title));
@@ -86,8 +88,8 @@ public class SuggestionDisplayer {
         TextComponent full = new TextComponent(prefix + title);
         boolean firstOnLine = true;
 
-        for (String suggestion : suggestions) {
-            String question = truncate(suggestion);
+        for (String item : items) {
+            String question = truncate(item);
             String plainLabel = "[" + question + "]";
             String label = "§b" + plainLabel;
             int itemWidth = pixelWidth(plainLabel);
@@ -120,7 +122,7 @@ public class SuggestionDisplayer {
             if (player.isOnline()) {
                 player.spigot().sendMessage(full);
             } else {
-                PluginLoggerUtil.debug("对话推荐", I18nService.tr("玩家 {} 下线，跳过展示 {} 个推荐", player.getName(), suggestions.size()));
+                PluginLoggerUtil.debug("对话推荐", I18nService.tr("玩家 {} 下线，跳过展示 {} 个推荐", player.getName(), items.size()));
             }
         });
     }

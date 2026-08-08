@@ -42,9 +42,11 @@ import com.zm.kilacraftAI.service.profile.ProfileAnalysisService;
 import com.zm.kilacraftAI.service.profile.ProfileEventCollector;
 import com.zm.kilacraftAI.service.profile.ProfileManager;
 import com.zm.kilacraftAI.service.profile.SocialRelationExtractor;
+import com.zm.kilacraftAI.service.suggestion.SuggestionDisplayer;
 import com.zm.kilacraftAI.service.suggestion.SuggestionManager;
 import com.zm.kilacraftAI.service.suggestion.SuggestionService;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
+import com.zm.kilacraftAI.service.trigger.TriggerActionPresenter;
 import com.zm.kilacraftAI.service.update.UpdateChecker;
 import com.zm.kilacraftAI.service.watch.WatchService;
 import com.zm.kilacraftAI.skills.admin.AuditLogSkill;
@@ -224,6 +226,12 @@ public final class KilacraftAI extends JavaPlugin {
     private WatchService watchService;
     @Getter
     private WatchConfigManager watchConfigManager;
+
+    /**
+     * 触发指令展示器（监听/订阅触发后把后续意图转换为可执行操作点击项）
+     */
+    @Getter
+    private TriggerActionPresenter triggerActionPresenter;
 
     /**
      * 对话推荐系统配置管理器（behavior.yml suggestion 段）
@@ -974,6 +982,7 @@ public final class KilacraftAI extends JavaPlugin {
         try {
             this.watchConfigManager = new WatchConfigManager(this);
             this.watchConfigManager.loadConfig();
+            this.triggerActionPresenter = new TriggerActionPresenter(this, new SuggestionDisplayer(this));
             if (!watchConfigManager.isEnabled()) {
                 return;
             }

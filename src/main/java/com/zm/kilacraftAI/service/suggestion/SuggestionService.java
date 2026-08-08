@@ -6,6 +6,7 @@ import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
 import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.common.util.SilentCallHandlerFactory;
 import com.zm.kilacraftAI.config.SuggestionConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
@@ -43,7 +44,7 @@ public class SuggestionService {
         this.plugin = plugin;
         this.config = plugin.getSuggestionConfigManager();
         this.promptBuilder = new SuggestionPromptBuilder(plugin, config);
-        this.displayer = new SuggestionDisplayer(plugin, config);
+        this.displayer = new SuggestionDisplayer(plugin);
     }
 
     /**
@@ -87,41 +88,8 @@ public class SuggestionService {
 
         SuggestionPromptBuilder.SuggestionPrompt prompt = promptBuilder.build(player);
 
-        // 静默 handler：GenericLLMProvider 在响应完成后会无条件调用 showResponse
-        // （不受 isStreamOutputEnabled 守卫）。若用 PlayerResponseHandler，其 showResponse 会
-        // 通过 AIResponsePipeline 把推荐原文发到玩家聊天框——泄露。推荐响应只从 future 拿，
-        // showResponse 必须 no-op。getPlayerId 返回真实 UUID 使本次调用注册到 inFlightCalls，
-        // 玩家下线时可被 cancelInFlight 取消。
-        AIResponseHandler handler = new AIResponseHandler() {
-            @Override
-            public UUID getPlayerId() {
-                return player.getUniqueId();
-            }
-
-            @Override
-            public String getPlayerName() {
-                return playerName;
-            }
-
-            @Override
-            public void showResponse(String response) {
-                // no-op：响应从 future 拿
-            }
-
-            @Override
-            public void showStreamChunk(String chunk, String currentMessage) {
-            }
-
-            @Override
-            public void handleError(String errorMessage) {
-                PluginLoggerUtil.debug("对话推荐", I18nService.tr("LLM 调用错误: {}", errorMessage));
-            }
-
-            @Override
-            public boolean isStreamOutputEnabled() {
-                return false;
-            }
-        };
+        // 静默 handler（通用工厂）：响应只从 future 拿，不向玩家输出（见 SilentCallHandlerFactory）
+        AIResponseHandler handler = SilentCallHandlerFactory.silent(player.getUniqueId(), playerName, "对话推荐");
 
         // 截断 history 到最近 N 轮（复用 intent_history_count，与主对话意图识别同源）。
         // 浅拷贝快照（Message 字段不可变，浅拷贝=深拷贝语义）后再裁剪，避免影响调用方的 history。
@@ -144,7 +112,7 @@ public class SuggestionService {
             }
 
             PluginLoggerUtil.debug("对话推荐", I18nService.tr("展示给 {} 的前 {} 条推荐：{}", playerName, suggestions.size(), String.join(" | ", suggestions)));
-            displayer.display(player, suggestions);
+            displayer.display(player, suggestions, config.getDisplayTitle(), config.getDisplayClickHint(), config.getDisplaySeparator());
         }).exceptionally(ex -> {
             PluginLoggerUtil.warn("对话推荐", I18nService.tr("为 {} 生成推荐话题失败: {}", playerName, ex.getMessage()));
             return null;
