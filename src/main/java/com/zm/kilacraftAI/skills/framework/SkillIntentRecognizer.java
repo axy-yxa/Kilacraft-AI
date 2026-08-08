@@ -174,8 +174,8 @@ public class SkillIntentRecognizer {
      *
      * @param userInput 用户输入
      * @param history   对话历史（用于上下文理解，可选）
-     * @param caller    调用者（Player），用于权限预检过滤 Skill 描述，并经 Provider 注入动态上下文；
-     *                  null 表示控制台（不注入玩家上下文）
+     * @param caller    调用者（Player），用于权限预检过滤 Skill 描述；
+     *                  null 表示控制台。意图识别不注入玩家画像/实时状态（见 GenericLLMProvider.buildDynamicContext）
      * @return 识别结果（可能是 SkillIntent 或 TaskPlan，异步）
      */
     public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history, Player caller) {
@@ -199,7 +199,7 @@ public class SkillIntentRecognizer {
 
         // === Phase 1：Skill 分类（关闭知识检索） ===
         String phase1Skills = buildPhase1SkillDescription(caller);
-        // system 保持纯静态（角色定义+技能列表末尾）；动态上下文（画像/元数据/时间）由 Provider 注入 user 消息
+        // system 保持纯静态（角色定义+技能列表末尾）；意图识别不注入画像/实时状态（buildDynamicContext 按场景短路）
         PluginLoggerUtil.debug("意图识别", "Phase 1 Skill 分类开始");
 
         return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, recentHistory, handler, promptConfigManager.buildPhase1SystemPrompt(phase1Skills), false, true, true, CacheCallTypeEnum.INTENT_PHASE1).thenCompose(phase1Response -> {

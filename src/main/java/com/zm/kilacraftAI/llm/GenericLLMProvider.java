@@ -540,7 +540,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         }
 
         // user 消息：动态上下文（画像/元数据/时间，player 为 null 时为空）+ 知识库 + 实际查询
-        String userContent = assembleUserContent(userMessage, knowledgeContext, buildDynamicContext(player));
+        String userContent = assembleUserContent(userMessage, knowledgeContext, buildDynamicContext(player, cacheCallTypeEnum));
         JsonObject userMsg = new JsonObject();
         userMsg.addProperty("role", MessageRoleEnum.USER.value());
         userMsg.addProperty("content", userContent);
@@ -578,9 +578,14 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     /**
      * 采集玩家画像、实时元数据与当前时间，拼接为 user 消息的背景信息块。
      * <p>画像受 {@code isProfileInjectionEnabled} 开关控制；player 为 null 时返回空串。
+     * 意图识别三入口（Phase 1 / Phase 2 / 续体分类）**不注入**动态上下文：识别输入只含
+     * 当前话语+对话历史+技能描述，画像/实时状态/时间会诱导模型做倾向性选择且状态值在识别期到执行期之间可能已过期
      */
-    private String buildDynamicContext(@Nullable Player player) {
+    private String buildDynamicContext(@Nullable Player player, @Nullable CacheCallTypeEnum callType) {
         if (player == null) {
+            return "";
+        }
+        if (callType == CacheCallTypeEnum.INTENT_PHASE1 || callType == CacheCallTypeEnum.INTENT_PHASE2 || callType == CacheCallTypeEnum.PENDING_RESUME) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
