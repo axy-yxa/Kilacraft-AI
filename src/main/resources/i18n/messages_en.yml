@@ -739,6 +739,7 @@ messages:
   "可用动作：": "Available actions:"
   "提示：": "Hints:"
   "[用户输入]": "[User Input]"
+  "[识别说明]": "[Recognition Notes]"
   "[执行结果]": "[Execution Results]"
   "[统计]": "[Statistics]"
   "[任务目标]": "[Task Goal]"

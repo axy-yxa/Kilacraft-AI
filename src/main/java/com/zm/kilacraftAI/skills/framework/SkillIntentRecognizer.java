@@ -554,7 +554,7 @@ public class SkillIntentRecognizer {
                                     }
                                 }
                             }
-                            return new SkillIntent(skillName, action, entities, 0.95, "");
+                            return new SkillIntent(skillName, action, entities, 0.95, "", readReasoning(json));
                         }
                     } catch (Exception ignored) {
                         // 降级失败，继续走正常TaskPlan解析
@@ -625,7 +625,18 @@ public class SkillIntentRecognizer {
                 }
             }
         }
-        return new SkillIntent(skillName, action, entities, confidence, "");
+        return new SkillIntent(skillName, action, entities, confidence, "", readReasoning(json));
+    }
+
+    /**
+     * 读取 LLM reasoning 字段（识别理由原文）。reasoning 可能说明任务部分因无对应能力而未达成，
+     * 由 {@code AnalysisSummary} 注入二次分析提示词，供二次分析如实转达能力缺口。
+     */
+    private String readReasoning(JsonObject json) {
+        if (json.has("reasoning") && !json.get("reasoning").isJsonNull()) {
+            return json.get("reasoning").getAsString();
+        }
+        return null;
     }
 
     /**
@@ -634,7 +645,7 @@ public class SkillIntentRecognizer {
     private TaskPlan parseTaskPlanFromResponse(JsonObject json) {
         try {
             String goal = json.get("goal").getAsString();
-            TaskPlan plan = new TaskPlan(goal);
+            TaskPlan plan = new TaskPlan(goal, readReasoning(json));
 
             // 解析步骤列表
             if (json.has("steps") && json.get("steps").isJsonArray()) {

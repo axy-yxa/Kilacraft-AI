@@ -308,7 +308,7 @@ public class AIRequestHandler {
         plugin.getSkillManager().executeSkillByIntent(intent, context).thenCompose(execResult -> {
             if (execResult.isSuccess()) {
                 PluginLoggerUtil.debug("技能执行", "技能执行成功");
-                return outputSingleSkillResult(execResult, context, message, ctx);
+                return outputSingleSkillResult(execResult, context, message, ctx, intent.getReasoning());
             }
             return CompletableFuture.completedFuture(execResult);
         }).thenAccept(finalResult -> {
@@ -340,9 +340,11 @@ public class AIRequestHandler {
     /**
      * 输出单技能执行结果（成功路径：构建摘要 → LLM 二次分析输出 → 公屏广播）。
      * 供 {@link #executeAndReport} 的单意图与恢复路径复用。
+     *
+     * @param reasoning 意图识别理由原文（可说明能力缺口，无则 null）
      */
-    private CompletableFuture<SkillResult> outputSingleSkillResult(SkillResult execResult, SkillContext context, String message, RequestContext ctx) {
-        AnalysisSummary summary = new AnalysisSummary().userMessage(message).addResult(execResult.getStatus().name(), execResult.getMessage()).statistics(1, 0, 0, 0);
+    private CompletableFuture<SkillResult> outputSingleSkillResult(SkillResult execResult, SkillContext context, String message, RequestContext ctx, String reasoning) {
+        AnalysisSummary summary = new AnalysisSummary().userMessage(message).reasoning(reasoning).addResult(execResult.getStatus().name(), execResult.getMessage()).statistics(1, 0, 0, 0);
         return plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.SKILL_RESULT, false, CacheCallTypeEnum.SECONDARY_ANALYSIS).thenApply(result -> {
             if (ctx.isBroadcast()) {
                 boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenarioEnum.SKILL_RESULT) == OutputChannelEnum.CHAT);

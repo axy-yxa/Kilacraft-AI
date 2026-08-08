@@ -35,6 +35,8 @@
 
 ### 🔧 Improvements
 
+- **AI truthfully reports its capability limits (highlight of this release)**: when a player requests an operation beyond the AI's capabilities (e.g. teleporting to arbitrary coordinates, which is unsupported), the AI now truthfully states that the operation cannot be completed, while still delivering what it can do (e.g. looking up and reporting the location coordinates) — no more false successes like replying "teleported" when it only fetched the coordinates. No configuration required; takes effect automatically
+
 - **Knowledge base organization & reliability (key highlight)**: ① the `knowledge/` directory supports arbitrary subfolder organization — mixed Chinese/English files, nothing lost when switching languages; ② the AI no longer "stitches together" answers from irrelevant chunks — when there is no relevant content it answers normally and never fabricates details (no more invented "server restarts at 4 AM"), and servers without knowledge files are completely unaffected; ③ paraphrased or tangentially related questions are more likely to be matched
 
 - **Intent-recognition failure anti-hallucination (highlight of this release)**: when the skill path is attempted but fails (invalid skill name, JSON parse failure, model-call error, etc.), the system now injects a `[FAILURE]` marker when falling back to normal conversation, guiding the AI to honestly say "the skill system could not handle this request" instead of fabricating a plausible-sounding reply from its own knowledge. Pure chit-chat, real-world topics, and other inherently non-skill requests are unaffected and silently fall back to normal conversation

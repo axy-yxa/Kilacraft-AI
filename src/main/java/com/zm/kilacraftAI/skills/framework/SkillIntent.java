@@ -45,12 +45,23 @@ public class SkillIntent {
      */
     private final String rawInput;
 
+    /**
+     * 识别理由（LLM reasoning 字段原文）。明确说明任务某部分因系统无对应能力而未达成时，
+     * 经 {@code AnalysisSummary} 注入二次分析提示词，供二次分析如实转达未执行的部分。
+     */
+    private final String reasoning;
+
     public SkillIntent(String skillName, String action, Map<String, String> entities, double confidence, String rawInput) {
+        this(skillName, action, entities, confidence, rawInput, null);
+    }
+
+    public SkillIntent(String skillName, String action, Map<String, String> entities, double confidence, String rawInput, String reasoning) {
         this.skillName = skillName;
         this.action = action;
         this.entities = entities != null ? entities : new HashMap<>();
         this.confidence = Math.max(0.0, Math.min(1.0, confidence));
         this.rawInput = rawInput;
+        this.reasoning = reasoning;
     }
 
     /**

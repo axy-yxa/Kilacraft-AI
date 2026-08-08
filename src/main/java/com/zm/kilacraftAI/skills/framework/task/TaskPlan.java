@@ -9,35 +9,6 @@ import java.util.Map;
 
 /**
  * 任务计划 - LLM 将复杂任务分解为有序的步骤
- * <p>
- * 使用示例（玩家输入："帮我看看我的余额是多少，够不够去市场买两个钻石"）：
- * LLM 返回的 JSON：
- * {
- * "goal": "检查余额是否足够购买 2 个钻石",
- * "steps": [
- * {
- * "id": "step_1",
- * "skill_name": "MarketQuerySkill",
- * "action": "query_balance",
- * "entities": {},
- * "depends_on": []
- * },
- * {
- * "id": "step_2",
- * "skill_name": "MarketQuerySkill",
- * "action": "query_price",
- * "entities": {"amount": "2", "item": "钻石"},
- * "depends_on": []
- * },
- * {
- * "id": "step_3",
- * "skill_name": "MarketQuerySkill",
- * "action": "analyze_affordability",
- * "entities": {},
- * "depends_on": ["step_1", "step_2"]
- * }
- * ]
- * }
  *
  * @author Zm_Mmm
  * @since 2026-04-02
@@ -60,8 +31,19 @@ public class TaskPlan {
      */
     private final Map<String, Object> context;
 
+    /**
+     * 识别理由（LLM reasoning 字段原文）。明确说明任务某部分因系统无对应能力而未达成时，
+     * 经 {@code AnalysisSummary} 注入二次分析提示词，供二次分析如实转达未执行的部分。
+     */
+    private final String reasoning;
+
     public TaskPlan(String goal) {
+        this(goal, null);
+    }
+
+    public TaskPlan(String goal, String reasoning) {
         this.goal = goal;
+        this.reasoning = reasoning;
         this.steps = new ArrayList<>();
         this.context = new HashMap<>();
     }

@@ -323,7 +323,7 @@ public class TaskExecutor {
         PluginLoggerUtil.debug("任务执行", "所有步骤执行完成，开始汇总结果...");
 
         // 构建统一的分析摘要
-        AnalysisSummary summary = new AnalysisSummary().userMessage(userMessage).taskGoal(plan.getGoal());
+        AnalysisSummary summary = new AnalysisSummary().userMessage(userMessage).taskGoal(plan.getGoal()).reasoning(plan.getReasoning());
 
         for (Map.Entry<String, Object> entry : plan.getContext().entrySet()) {
             String stepId = entry.getKey();

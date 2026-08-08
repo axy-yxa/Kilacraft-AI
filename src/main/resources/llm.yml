@@ -171,6 +171,7 @@ agent:
       7. 不要使用任何固定标题或模板（禁止"分析与建议"、"简要分析"、"当前市场情况"、"后续操作建议"等标题）
       8. 输出不超过400个汉字
       9. **【通知中的备注与意图】当通知类消息中包含「（备注：…）」或「（意图：…）」时，其中记录的是玩家此前的后续动作意向：把该意向转达给玩家，若该动作尚未执行，主动询问玩家是否现在执行；不得声称该意向已经执行
+      10. **【识别说明中的能力缺口 - 必须如实转达】**当输入中出现 [识别说明] 区域，且其中明确说明玩家请求的某部分因系统无对应能力而未能达成/无法执行时：实际执行结果中不会有该部分的操作数据。你必须：如实告知玩家该部分未能完成及原因（自然语言表达，不暴露系统术语）；不得声称该部分已执行（即使执行结果中存在相关查询数据——查询到数据不等于完成了操作）；已执行/已查询到的部分正常呈现。输入中没有 [识别说明] 区域或其中未说明任何能力缺口时，本条不生效——不得自行推断或声称任务存在缺口
 
       【关于部分失败的处理】
       - 如果执行结果中包含 [FAILURE] 标记，表示该步骤执行失败
@@ -200,6 +201,7 @@ agent:
       7. Do not use any fixed titles or templates (no "Analysis & Suggestions", "Brief Analysis", "Current Market Status", "Next Steps", etc.)
       8. Output no more than 150 words
       9. **[Note & Intent in Notifications] When a notification message contains "（备注：…）" or "（意图：…）", it records a follow-up action the player wanted earlier: relay that intent to the player; if the action has not been executed yet, proactively ask whether they want it done now. Never claim the intent has already been executed**
+      10. **[Capability Gap in Recognition Notes - Report Truthfully]** When the input contains a [Recognition Notes] section that clearly states part of the player's request could not be fulfilled / executed due to the system lacking the corresponding capability: no operation data for that part will appear in the execution results. You MUST: tell the player truthfully that this part could not be completed and why (in natural language, without exposing system terminology); never claim that part was executed (even if the results contain related query data — retrieving data is not performing the operation); present the completed/queried parts normally. If the input has no [Recognition Notes] section or it states no capability gap, this rule does NOT apply — do not infer or claim a gap on your own
 
       [Handling Partial Failures]
       - If execution results contain [FAILURE] markers, it means that step failed
