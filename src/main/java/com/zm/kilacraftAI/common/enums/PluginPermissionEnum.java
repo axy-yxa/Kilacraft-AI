@@ -56,12 +56,12 @@ public enum PluginPermissionEnum {
     /**
      * Bukkit 音效与粒子效果（播放音效/显示粒子）
      */
-    BUKKIT_FX("kilacraft.bukkit_fx"),
+    BUKKIT_FX("kilacraft.sound_fx"),
 
     /**
      * Bukkit 原版统计数据查询（生涯累计统计）
      */
-    BUKKIT_STATS("kilacraft.bukkit_stats"),
+    BUKKIT_STATS("kilacraft.player_stats"),
 
     /**
      * 通用工具技能 - 延迟等待（所有玩家可用）

@@ -99,17 +99,17 @@
 
 | # | Skill 名 | 技能类 | 职责 | API 数 | 权限节点（default: true） |
 |---|---------|--------|------|--------|--------------------------|
-| 3 | `bukkit_player_info` | `BukkitPlayerInfoSkill` | 玩家基础信息（位置/游戏模式/经验/客户端/重生点等） | 18 | `kilacraft.api.player.info` |
-| 4 | `bukkit_player_status` | `BukkitPlayerStatusSkill` | 玩家实时状态（生命/饥饿/氧气/着火/冰冻/姿势等） | 18 | `kilacraft.api.player.status` |
-| 5 | `bukkit_player_inventory` | `BukkitPlayerInventorySkill` | 玩家物品栏（主副手/装备/打开的容器/占用情况） | 8 | `kilacraft.api.player.inventory` |
-| 6 | `bukkit_world` | `BukkitWorldSkill` | 世界信息（时间/天气/生物群系/实体统计/袭击等） | 21 | `kilacraft.api.world.info` |
-| 7 | `bukkit_server` | `BukkitServerSkill` | 服务器信息（在线/版本/MOTD/世界列表/设置） | 6 | `kilacraft.api.server.info` |
+| 3 | `player_info` | `BukkitPlayerInfoSkill` | 玩家基础信息（位置/游戏模式/经验/客户端/重生点等） | 18 | `kilacraft.api.player.info` |
+| 4 | `player_status` | `BukkitPlayerStatusSkill` | 玩家实时状态（生命/饥饿/氧气/着火/冰冻/姿势等） | 18 | `kilacraft.api.player.status` |
+| 5 | `player_inventoryentory` | `BukkitPlayerInventorySkill` | 玩家物品栏（主副手/装备/打开的容器/占用情况） | 8 | `kilacraft.api.player.inventory` |
+| 6 | `world_info` | `BukkitWorldSkill` | 世界信息（时间/天气/生物群系/实体统计/袭击等） | 21 | `kilacraft.api.world.info` |
+| 7 | `server_info` | `BukkitServerSkill` | 服务器信息（在线/版本/MOTD/世界列表/设置） | 6 | `kilacraft.api.server.info` |
 
 #### 支持的 API 动作（共 71 个，按技能分类）
 
 > 完整 API 清单（含每个 API 的配置、权限、返回字段）见《Bukkit-API 参考手册》。下方按技能分类列出代表性动作。
 
-**bukkit_player_info（玩家基础信息，18 个）** — 位置与移动、游戏模式与飞行、经验与等级、客户端信息、重生点等
+**player_info（玩家基础信息，18 个）** — 位置与移动、游戏模式与飞行、经验与等级、客户端信息、重生点等
 
 | API 动作（节选） | 说明 | 额外数据字段 |
 |----------|------|--------------|
@@ -122,7 +122,7 @@
 | `get_player_bed_spawn` | 获取玩家床重生点 | `x`, `y`, `z`, `world` |
 | `get_player_total_exp` | 获取玩家总经验值 | `total_exp` |
 
-**bukkit_player_status（玩家实时状态，18 个）** — 生命与状态、其他状态、装备与效果、动作状态
+**player_status（玩家实时状态，18 个）** — 生命与状态、其他状态、装备与效果、动作状态
 
 | API 动作（节选） | 说明 | 额外数据字段 |
 |----------|------|--------------|
@@ -134,7 +134,7 @@
 | `get_player_target_block` | 获取玩家瞄准方块 | `block_type`, `x`, `y`, `z` |
 | `get_player_sneak_status` | 获取玩家潜行状态 | - |
 
-**bukkit_player_inventory（玩家物品栏，8 个）** — 三层库存设计
+**player_inventoryentory（玩家物品栏，8 个）** — 三层库存设计
 
 | API 动作（节选） | 说明 | 额外数据字段 |
 |----------|------|--------------|
@@ -143,7 +143,7 @@
 | `get_player_open_inventory` | 获取玩家当前打开的容器内容 | `raw_result` |
 | `get_player_inventory_usage` | 获取物品栏占用情况 | `item_count`（已占用格数）, `empty_slots`（空格数） |
 
-**bukkit_world（世界信息，21 个）** — 时间与天气、世界信息、生物群系与环境、实体统计、袭击事件
+**world_info（世界信息，21 个）** — 时间与天气、世界信息、生物群系与环境、实体统计、袭击事件
 
 | API 动作（节选） | 说明 | 额外数据字段 |
 |----------|------|--------------|
@@ -153,7 +153,7 @@
 | `get_world_raids` | 获取世界袭击事件 | `raids` |
 | `get_world_temperature` | 获取世界温度 | `temperature` |
 
-**bukkit_server（服务器信息，6 个）**
+**server_info（服务器信息，6 个）**
 
 | API 动作 | 说明 | 额外数据字段 |
 |----------|------|--------------|

@@ -25,6 +25,8 @@ role_definition: |
   3. Never force a match: a skill/action's description text must directly serve the user's intent; "the retrieved data might help answer" does not constitute a match
   Violating any one causes task failure or silent fallback to normal conversation.
 
+  [Question-asking detection — equally inviolable] Questions starting with "how do I / how to / what's the way to X" ask about HOW to do something — the core intent is getting method instructions, not requesting execution of that operation. Even when the operation content matches a skill, you must NOT execute: return an invalid intent (skill_name=null) and let the normal AI explain how to do it with knowledge or natural language. **Exception**: if the question asks for general knowledge/tutorials/guides/real-life information (not the method of an in-game skill operation), and the available skill list contains a "fetch external info from the internet" skill, the player's core request IS to retrieve that external information — MATCH that retrieval skill and return normally (that is exactly the action the player wants), never return invalid. Only block "how-to-do-an-in-game-operation" questions, never "fetch-external-knowledge" questions
+
 # ============================================
 # Part 2: Response Format Spec
 # ============================================
@@ -79,6 +81,11 @@ decision_rules:
     - Later steps may reference earlier steps' return data via {step_X.field.path} placeholders
 
   when_return_invalid: |
+    [Prerequisite — check BEFORE returning invalid]
+    Before considering an invalid intent, confirm: does the user's intent match some skill/action, but a required parameter is missing?
+    - Yes -> this is NOT an invalid intent. You MUST use multi-step (query-then-act) to fetch the missing parameter. Only "no skill/action matches at all" is an invalid intent
+    - Matched a skill but cannot execute directly due to a missing parameter -> NEVER return invalid; return a multi-step task (dependency-chain) instead
+
     Return an invalid intent when:
     - The user is merely chatting or greeting (e.g., "hi", "thanks")
     - The user's question is a real-life topic outside the game (unrelated to any in-game data or operation) whose core semantics cannot be directly covered by any skill/action's description text
@@ -258,6 +265,7 @@ special_scenarios:
     1. **Absolutely forbidden to fabricate skill names**: use only skill names explicitly listed in the [Available Skills List]. Never guess a plausible-looking name from functionality; never substitute a functionally-similar-but-mismatched skill
     2. **Never use skill_name: null in steps**: every step must have a valid skill name. If a sub-question has no corresponding skill, see the degradation strategy in [Multi-step Task Planning]
     3. **LLM responsibility boundary**: your job is recognize intent -> match existing skills. NOT to create new skills, guess names, or assume features exist. If the user's need exceeds the current skill scope, do not force a match
+    4. **Copy skill names character-for-character from the [Available Skills List] (including underscores)**: any spelling deviation — an extra letter, a missing letter, or wrong letter order — counts as fabricating a skill name and Phase 2 cannot match it, failing the step. Copy names verbatim from the list instead of rewriting them from memory
 
 # ============================================
 # Part 6: Output Quality Requirements
@@ -271,13 +279,16 @@ output_quality_requirements: |
   6. **Delay wait**: when the user's request includes a temporal interval like "wait N seconds then...", "after a while...", insert utility.delay_wait (parameter seconds=N) in the step chain. delay_wait must immediately precede its following action — its depends_on should be the previous execution action, and the following action's depends_on should be the delay_wait. Correct: [action A] -> notify_player(depends A) -> delay_wait(depends notify) -> [action B](depends delay). **Wrong**: [action A] -> delay_wait(depends A) -> notify_player(depends delay) <- wrong! delay_wait blocks notify_player, making the user wait N seconds before seeing the result
   7. **Intermediate notification**: utility.notify_player can insert AI output between execution steps, pattern: [action A] -> notify_player -> [action B]. notify_player must immediately follow the execution step it depends on (not blocked by delay_wait). It must NEVER be the last step in the chain (after the task completes the system auto-outputs an AI summary)
   8. **Confidence calibration**: single intent **must explicitly include the confidence field** (omission is treated as 0.0 -> silent fallback to normal conversation). confidence only takes effect on the single-intent path (the system silently demotes single intents with confidence < 0.5). Return single intent only when you are highly confident about both the skill/action match and the required parameters, and give confidence >= 0.8; whenever there is any uncertainty about parameters or matching, use multi-step (multi-step ignores confidence) — do not force a low-confidence single intent
+  9. **reasoning-vs-output consistency self-check (critical error guard)**: if your reasoning says "should use multi-step", "needs to query first", "split into multiple steps", or "missing parameter requires querying", then the output JSON **must** be multi-step format (with a steps array) — **NEVER** invalid (skill_name=null) or a single intent with missing parameters. Your reasoning describes the correct approach; the output must execute that approach — "reasoning correctly but outputting invalid/null" is a critical error that must be caught
 
   **[Quick Decision Cheat-sheet]**
   Skill list is pre-filtered -> trust the list, but do not force-match unrelated skills
   Single intent    <- 1 action + parameters complete (user-provided) + no prior query needed
   Multi-step (dependency-chain) <- missing parameter must be queried -> query-then-act
   Multi-step (independent-query) <- multiple independent queries / comprehensive evaluation
-  Invalid intent  <- chitchat / real-life topic / no matching skill
+  Invalid intent  <- ONLY: chitchat / real-life topic / genuinely no skill matches at all
+  **(Critical boundary) Matched a skill but missing a required parameter != invalid intent -> MUST use multi-step (dependency-chain) query-then-act; NEVER return invalid**
+  **(Critical boundary) Question-asking != executing: asking "how do I do an operation" -> return invalid (the normal AI explains how), NEVER execute; but asking for external knowledge/tutorials/guides/real-life info -> match the information-retrieval skill and return normally**
   When unsure -> always multi-step (multi-step is not confidence-gated and can auto-degrade; single intent silently falls back or fails at runtime)
   Watch/subscribe requests ("watch X / monitor X / after X...") -> orchestrate ONLY the subscription-creation step (LAST step); the follow-up action must NEVER be added to the task — write it into the note/intent (remark/context) parameter
 
@@ -291,13 +302,14 @@ phase1:
 
     You are a skill classifier. Based on the user's input, determine which skill categories are needed to complete the task.
     Return only a list of skill names; you do not need to pick specific actions or extract parameters.
-    If the user's request is chitchat, greeting, a real-life topic, or no skill can cover the intent, return null.
+    If the user's request is chitchat or greeting, or no skill can cover the intent, return null.
+    For real-life topics or external-knowledge requests (asking about real-world info/tutorials/guides/recipes/tips outside the game): if the [Available Skills List] contains a "fetch external info from the internet" skill, you MUST match that skill — that is exactly the action the player wants (have the AI search the web); only return null when the list has no such skill.
 
     [Core Matching Standard]
     - **Judge matching strictly based on each skill's description text in the [Available Skills List]** — no associative reasoning from your own external knowledge
     - A skill's description must directly and explicitly serve the intent of the user's question; "retrieved data might help answer" is NOT a match reason. If no skill's description directly serves the user's intent, you must return null
     - Correct: user asks "what am I holding" -> a skill description includes "get player held item", directly serving the intent -> match
-    - Correct: the user asks a real-life topic outside the game -> no skill description serves such a real-life intent -> no match, return null
+    - Correct: the user asks a real-life topic outside the game -> if the list contains an "external-info-retrieval" skill and the intent is acquiring external knowledge, match that skill; otherwise no skill description serves such a real-life intent -> no match, return null
     - **"A skill's retrieved data might help answer the question" is NOT the same as "the skill matches the intent". A match exists only when the question itself requires fetching that data**
     - Note: if the previous turn has clear context, interpret intent using history rather than returning null directly
 
@@ -314,6 +326,8 @@ phase1:
     A user's request may implicitly require multiple skills working together. You must recognize such combined intents:
     - When a parameter in the user's request is a ratio/percentage/relative value (e.g., "half", "all", "one third", "50%", "the rest") based on some real-time data, this implies needing BOTH an execution skill AND the query skill that can obtain that real-time data — include both
     - When the request involves a cross-category operation chain (e.g., "look up X then do Y with the result"), include both the data-fetch skill and the execution skill
+    - **Implicit data dependency of execution actions**: when an execution action lacks runtime data that must be provided by some query skill, include that query skill even if the player did not explicitly ask for a query — the execution action cannot run without the data
+    - **Break umbrella-word requests into all dimensions**: when the player asks for comprehensive info with umbrella wording, check each dimension that has a corresponding skill and include each — do not settle for the single most similar skill
     - Decision principle: do not only look at the operation the user literally mentioned — also consider whether completing that operation depends on data provided by another skill. If yes, include that skill as well
     - This concretely applies the coarse-selection principle — the cost of including an extra relevant skill is far lower than missing one. Phase 2 can only build correct multi-step tasks when it receives the full set of needed skills
 

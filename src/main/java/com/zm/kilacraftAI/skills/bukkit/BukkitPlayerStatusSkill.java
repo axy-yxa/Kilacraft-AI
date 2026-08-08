@@ -24,7 +24,7 @@ import java.util.Set;
  */
 public class BukkitPlayerStatusSkill extends AbstractBukkitQuerySkill {
 
-    private static final String SKILL_NAME = "bukkit_player_status";
+    private static final String SKILL_NAME = "player_status";
     private static final String LOG_PREFIX = "Bukkit状态查询";
 
     private static final Set<String> PROBEABLE_ACTIONS = Set.of(

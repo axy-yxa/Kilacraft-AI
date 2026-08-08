@@ -99,17 +99,17 @@
 
 | # | Skill Name | Skill Class | Responsibility | API Count | Permission Node (default: true) |
 |---|-----------|-------------|----------------|-----------|---------------------------------|
-| 3 | `bukkit_player_info` | `BukkitPlayerInfoSkill` | Player base info (location/gamemode/XP/client/respawn, etc.) | 18 | `kilacraft.api.player.info` |
-| 4 | `bukkit_player_status` | `BukkitPlayerStatusSkill` | Player live status (HP/hunger/oxygen/fire/freeze/pose, etc.) | 18 | `kilacraft.api.player.status` |
-| 5 | `bukkit_player_inventory` | `BukkitPlayerInventorySkill` | Player inventory (main/off hand/armor/open container/usage) | 8 | `kilacraft.api.player.inventory` |
-| 6 | `bukkit_world` | `BukkitWorldSkill` | World info (time/weather/biome/entity stats/raids, etc.) | 21 | `kilacraft.api.world.info` |
-| 7 | `bukkit_server` | `BukkitServerSkill` | Server info (online/version/MOTD/world list/settings) | 6 | `kilacraft.api.server.info` |
+| 3 | `player_info` | `BukkitPlayerInfoSkill` | Player base info (location/gamemode/XP/client/respawn, etc.) | 18 | `kilacraft.api.player.info` |
+| 4 | `player_status` | `BukkitPlayerStatusSkill` | Player live status (HP/hunger/oxygen/fire/freeze/pose, etc.) | 18 | `kilacraft.api.player.status` |
+| 5 | `player_inventoryentory` | `BukkitPlayerInventorySkill` | Player inventory (main/off hand/armor/open container/usage) | 8 | `kilacraft.api.player.inventory` |
+| 6 | `world_info` | `BukkitWorldSkill` | World info (time/weather/biome/entity stats/raids, etc.) | 21 | `kilacraft.api.world.info` |
+| 7 | `server_info` | `BukkitServerSkill` | Server info (online/version/MOTD/world list/settings) | 6 | `kilacraft.api.server.info` |
 
 #### Supported API Actions (71 total, grouped by skill)
 
 > For the full API list (with each API's config, permission, and return fields), see the Bukkit API Reference. Below are representative actions grouped by skill.
 
-**bukkit_player_info (Player base info, 18)** — location & movement, gamemode & flight, XP & level, client info, respawn
+**player_info (Player base info, 18)** — location & movement, gamemode & flight, XP & level, client info, respawn
 
 | API Action (selected) | Description | Additional Data Fields |
 |-----------|-------------|-----------------------|
@@ -122,7 +122,7 @@
 | `get_player_bed_spawn` | Get player bed spawn point | `x`, `y`, `z`, `world` |
 | `get_player_total_exp` | Get player total experience | `total_exp` |
 
-**bukkit_player_status (Player live status, 18)** — health & status, other status, equipment & effects, action status
+**player_status (Player live status, 18)** — health & status, other status, equipment & effects, action status
 
 | API Action (selected) | Description | Additional Data Fields |
 |-----------|-------------|-----------------------|
@@ -134,7 +134,7 @@
 | `get_player_target_block` | Get player target block | `block_type`, `x`, `y`, `z` |
 | `get_player_sneak_status` | Get player sneak status | - |
 
-**bukkit_player_inventory (Player inventory, 8)** — three-tier inventory design
+**player_inventoryentory (Player inventory, 8)** — three-tier inventory design
 
 | API Action (selected) | Description | Additional Data Fields |
 |-----------|-------------|-----------------------|
@@ -143,7 +143,7 @@
 | `get_player_open_inventory` | Get player currently open container contents | `raw_result` |
 | `get_player_inventory_usage` | Get inventory usage | `item_count` (occupied slots), `empty_slots` |
 
-**bukkit_world (World info, 21)** — time & weather, world info, biome & environment, entity stats, raid events
+**world_info (World info, 21)** — time & weather, world info, biome & environment, entity stats, raid events
 
 | API Action (selected) | Description | Additional Data Fields |
 |-----------|-------------|-----------------------|
@@ -153,7 +153,7 @@
 | `get_world_raids` | Get world raid events | `raids` |
 | `get_world_temperature` | Get world temperature | `temperature` |
 
-**bukkit_server (Server info, 6)**
+**server_info (Server info, 6)**
 
 | API Action | Description | Additional Data Fields |
 |-----------|-------------|-----------------------|

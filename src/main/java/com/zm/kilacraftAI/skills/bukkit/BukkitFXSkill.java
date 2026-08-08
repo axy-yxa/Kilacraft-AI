@@ -27,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class BukkitFXSkill implements Skill {
 
-    private static final String SKILL_NAME = "bukkit_fx";
+    private static final String SKILL_NAME = "sound_fx";
     private static final String LOG_PREFIX = "音效粒子";
     private static final String ACTION_PLAY_SOUND = "play_sound";
     private static final String ACTION_SPAWN_PARTICLE = "spawn_particle";

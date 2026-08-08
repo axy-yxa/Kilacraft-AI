@@ -41,13 +41,13 @@ action_descriptions:
     Function: teleport to the player's own home.
     Parameters:
       - home_name (required, string): home name.
-    Precondition: must first call query_homes to get the home list, selecting the home_name field from returned data.homes as the parameter; if the player has only 1 home, auto-select; if multiple, list for the player to choose.
+    Precondition: when the player has not specified a home name, you MUST construct a multi-step task at the intent-recognition stage (step_0: query_homes to fetch the home list -> step_1: teleport_home, with home_name using the {step_0.homes[0].home_name} placeholder to reference the query result). home_name is always required — never leave it empty or set it to null.
 
   teleport_to_warp: |
     Function: teleport to a public warp.
     Parameters:
       - warp_name (required, string): warp name.
-    Precondition: must first call query_warps to get the warp list, selecting the warp_name field from returned data.warps as the parameter.
+    Precondition: when the player has not specified a warp name, you MUST construct a multi-step task at the intent-recognition stage (step_0: query_warps to fetch the warp list -> step_1: teleport_to_warp, with warp_name using the {step_0.warps[0].warp_name} placeholder to reference the query result).
 
   send_tp_request: |
     Function: send a teleport request (TPA) to a target player; requires the other party's acceptance to teleport.

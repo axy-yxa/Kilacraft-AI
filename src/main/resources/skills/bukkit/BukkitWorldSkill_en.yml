@@ -7,7 +7,7 @@
 description: |
   Query info about the player's current world: game time (what time), weather (clear/rain/thunder), world name/type/difficulty, seed, spawn point, world border, height range, mob spawn rules, PVP toggle, biome/temp/humidity at current location, player/mob/entity counts in current world, sea level, weather remaining time, world total/game time, active raids.
   Triggers: when players ask "what time is it", "is it raining", "what world is this", "what's the seed", "where's spawn", "how big is the world border", "can monsters spawn", "is PVP on", "what biome am I in", "how many mobs are there", "what's the sea level", "how old is this world", "are there any raids" etc.
-  Reverse boundary: NOT for player-specific info (location/health/inventory — use the player query skills), NOT for server-global info (online players/version/MOTD — use bukkit_server).
+  Reverse boundary: NOT for player-specific info (location/health/inventory — use the player query skills), NOT for server-global info (online players/version/MOTD — use server_info).
 
 action_descriptions:
   get_world_time: |

@@ -2,13 +2,13 @@
 # ═══════════════════════════════════════════════════════════
 # Player Basic Info Skill (BukkitPlayerInfoSkill)
 # Query the player's own basic info: location, eye location, velocity, game mode, flight, main-hand preference, ping, vehicle, target/feet block, compass/death/bed location, pose, locale, display name.
-# Self-only (SkillSecurityFilter blocks cross-player params); for real-time status (health/hunger) use bukkit_player_status.
+# Self-only (SkillSecurityFilter blocks cross-player params); for real-time status (health/hunger) use player_status.
 # ═══════════════════════════════════════════════════════════
 
 description: |
   Query the player's own basic info: current coordinates, eye location, movement velocity, game mode, flight status & speed, walk speed, main-hand preference (left/right-handed), network ping, vehicle status, target block, feet block, compass target, last death location, current pose, client locale, display name, bed spawn location.
   Triggers: when players ask "where am I", "what are my coords", "what game mode am I in", "what's my ping", "what block am I looking at", "what am I standing on", "where does my compass point", "where did I last die", "where is my bed spawn" etc.
-  Reverse boundary: NOT for real-time status (health/hunger/XP — use bukkit_player_status), NOT for inventory (use bukkit_player_inv), NOT for guide/advice questions.
+  Reverse boundary: NOT for real-time status (health/hunger/XP — use player_status), NOT for inventory (use player_inventory), NOT for guide/advice questions.
 
 action_descriptions:
   get_player_location: |

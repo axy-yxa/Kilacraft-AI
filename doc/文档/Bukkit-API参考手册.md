@@ -134,7 +134,7 @@ plugins/Kilacraft-AI/skills/bukkit/BukkitServerSkill.yml
 
 ```yaml
 # BukkitPlayerInventorySkill.yml（节选示例）
-skill_id: "bukkit_player_inventory"
+skill_id: "player_inventoryentory"
 display_name: "Bukkit 玩家物品栏查询"
 description: |
   查询玩家物品栏相关信息：主手/副手物品、背包与末影箱摘要、
@@ -1656,11 +1656,11 @@ AI 可以自动组合多个 API 调用来回答复杂问题：
 
 | 权限节点 | 所属技能 | 覆盖的 API 范围 |
 |----------|----------|-----------------|
-| `kilacraft.api.player.info` | `bukkit_player_info` | 玩家基本信息：位置、视线、速度、游戏模式、飞行、主手偏好、延迟、上次死亡、载具、姿势、瞄准方块、客户端语言、显示名、床重生点、指南针目标、脚下方块等 |
-| `kilacraft.api.player.status` | `bukkit_player_status` | 玩家状态：生命值、饥饿值、氧气、经验/等级、睡眠、攻击冷却、着火、冰冻、药水效果、潜行、冲刺、吸收之心、身上箭、无敌帧、下落距离、上次受伤等 |
-| `kilacraft.api.player.inventory` | `bukkit_player_inventory` | 玩家物品栏：主/副手物品、背包摘要、末影箱摘要、背包占用、盔甲、打开的容器、打开的界面类型 |
-| `kilacraft.api.world.info` | `bukkit_world` | 世界信息：时间、天气、种子、出生点、高度限制、生成规则、PVP、生物群系、温度、湿度、海平面、实体数量、袭击、边界等 |
-| `kilacraft.api.server.info` | `bukkit_server` | 服务器信息：在线玩家、最大玩家数、版本、MOTD、世界列表、服务器设置 |
+| `kilacraft.api.player.info` | `player_info` | 玩家基本信息：位置、视线、速度、游戏模式、飞行、主手偏好、延迟、上次死亡、载具、姿势、瞄准方块、客户端语言、显示名、床重生点、指南针目标、脚下方块等 |
+| `kilacraft.api.player.status` | `player_status` | 玩家状态：生命值、饥饿值、氧气、经验/等级、睡眠、攻击冷却、着火、冰冻、药水效果、潜行、冲刺、吸收之心、身上箭、无敌帧、下落距离、上次受伤等 |
+| `kilacraft.api.player.inventory` | `player_inventoryentory` | 玩家物品栏：主/副手物品、背包摘要、末影箱摘要、背包占用、盔甲、打开的容器、打开的界面类型 |
+| `kilacraft.api.world.info` | `world_info` | 世界信息：时间、天气、种子、出生点、高度限制、生成规则、PVP、生物群系、温度、湿度、海平面、实体数量、袭击、边界等 |
+| `kilacraft.api.server.info` | `server_info` | 服务器信息：在线玩家、最大玩家数、版本、MOTD、世界列表、服务器设置 |
 
 > ⚠️ 注意：不再存在 `kilacraft.api.player.health`、`kilacraft.api.player.stats` 等节点。生命值/饥饿值等状态类 API 统一归入 `kilacraft.api.player.status`。
 

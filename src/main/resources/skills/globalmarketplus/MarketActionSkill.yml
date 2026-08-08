@@ -87,7 +87,7 @@ hints:
   - |
     下架流程：cancel_listing 如果返回 [NEED_INFO]，里面包含在售商品列表和编号，用户回复编号后再次调用 cancel_listing 并传入 uid 参数（可以是编号如 "1" 或直接传 UID 数字）。
   - |
-    多步骤辅助：如果用户问"我手上的东西能卖多少钱"，建议先调用 bukkit_api.get_player_hand_item 获取物品名，再调用 market_query.query_price 查询价格，最后告知用户可以调用 sell_item 上架。
+    多步骤辅助：如果用户问"我手上的东西能卖多少钱"，建议先调用 player_inventory.get_player_hand_item 获取物品名，再调用 market_query.query_price 查询价格，最后告知用户可以调用 sell_item 上架。
   - |
     转账流程：(1) 模糊金额（"全部"、"一半"、"三分之一"等）必须用多步骤任务：step_0 调用 market_query.query_balance 查询余额，step_1 调用 market_action.transfer_money。amount 用算术占位符表达比例（{step_0.balance} 表示全部、{step_0.balance}/2 一半、{step_0.balance}/3 三分之一），系统求值后 transfer_money 会返回 [NEED_INFO] 显示具体金额供用户确认（钱转走前必显式确认）。仅当比例无法用单次二元运算（+ - * /）表达时，才先告知用户余额并询问具体数额。(1.5) 若 market_query 不在【可用技能列表】中（无法查余额），严禁使用 {step_} 占位符——改用单步 transfer_money 且 amount 留空，系统会返回 [NEED_INFO] 询问玩家具体金额。(2) 严禁从历史对话提取旧的 amount 值猜测当前余额，余额是实时变化的，必须现场查询。(3) 用户确认或补值时框架会自动用已快照的参数恢复执行，你无需重建参数或填写 confirmed。
   - |

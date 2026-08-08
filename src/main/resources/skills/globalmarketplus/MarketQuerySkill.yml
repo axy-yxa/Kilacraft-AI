@@ -63,7 +63,7 @@ hints:
   - |
     关键要求：用户提到具体物品名时必须提取到 entities.item 字段，不能为空。查询是否在售用 query_availability 而非 query_price。
   - |
-    多步骤任务：如果用户问"我手上的东西多少钱"，需要先调用 bukkit_api.get_player_hand_item 获取物品名，再调用 query_price 查询价格。
+    多步骤任务：如果用户问"我手上的东西多少钱"，需要先调用 player_inventory.get_player_hand_item 获取物品名，再调用 query_price 查询价格。
   - |
     余额实时查询（强制）：任何时候涉及到余额（包括"我能买什么"、"我够不够钱"、"我还有多少钱"等），都必须通过 query_balance 实时查询，严禁从历史对话中读取旧余额进行推算。余额在买卖、上下架、转账后都会变化，历史数据已经失效。如果用户的问题需要结合余额和商品信息，必须用多步骤任务：step_0 查询余额，step_1 查询商品。占位符用法：用 {step_0.balance} 引用余额。
   - |

@@ -27,7 +27,7 @@ import java.util.Set;
  */
 public class BukkitPlayerInventorySkill extends AbstractBukkitQuerySkill {
 
-    private static final String SKILL_NAME = "bukkit_player_inv";
+    private static final String SKILL_NAME = "player_inventory";
     private static final String LOG_PREFIX = "Bukkit物品栏查询";
 
     private static final String ACTION_HAND_ITEM = "get_player_hand_item";

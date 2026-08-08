@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class BukkitStatsSkill implements Skill, ProbeSource {
 
-    private static final String SKILL_NAME = "bukkit_stats";
+    private static final String SKILL_NAME = "player_stats";
     private static final String LOG_PREFIX = "原版统计";
 
     private static final String ACTION_QUERY_STATISTIC = "query_statistic";

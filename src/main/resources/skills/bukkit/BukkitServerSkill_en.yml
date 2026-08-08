@@ -7,7 +7,7 @@
 description: |
   Query server-global info: current online player list & count, server max player limit, server & Bukkit version, MOTD (server intro), loaded world list, server basic settings (allow flight/nether/end).
   Triggers: when players ask "who's online", "how many players online", "what's the player cap", "what version is the server", "server MOTD/intro", "what worlds are there", "can the server fly / is there a nether/end" etc.
-  Reverse boundary: NOT for player-specific or world-local info (use bukkit_player_* or bukkit_world), NOT for guide/advice questions.
+  Reverse boundary: NOT for player-specific or world-local info (use player_* or world_info), NOT for guide/advice questions.
 
 action_descriptions:
   get_online_players: |
@@ -37,8 +37,8 @@ action_descriptions:
 
 hints:
   - |
-    get_online_players returns the server-wide online player list, not the current world. To query current world player count use bukkit_world's get_world_player_count.
+    get_online_players returns the server-wide online player list, not the current world. To query current world player count use world_info's get_world_player_count.
   - |
     get_server_motd returns text with Minecraft formatting codes (§a/§b etc.), only suitable for directly showing players who ask about the server intro; not suitable for referencing as a data field in multi-step tasks. Use get_online_players etc. for that.
   - |
-    get_server_worlds returns all loaded worlds server-wide, not the current world. To query current world info use bukkit_world's corresponding actions.
+    get_server_worlds returns all loaded worlds server-wide, not the current world. To query current world info use world_info's corresponding actions.

@@ -73,6 +73,8 @@
 
 - **Profile-analysis trigger threshold tuning**: `min_messages_to_trigger` default 10→20, reducing unnecessary LLM analyses triggered by low-quality message spam; `analysis_timeout_seconds` code default aligned with the config at 120 seconds
 
+- **Two existing skills renamed**: the sound/particle skill (formerly `bukkit_fx`) and the vanilla statistics skill (formerly `bukkit_stats`) were renamed to `sound_fx`/`player_stats` — shorter, clearer identifiers that improve AI accuracy when recognizing skill names (long mixed-language identifiers were a hotbed of AI spelling errors). The corresponding permission nodes followed the rename (`kilacraft.sound_fx`/`kilacraft.player_stats`, default-available to everyone, usually no action needed)
+
 ### 🐛 Bug Fixes
 
 - **Security hardening (WebFetch SSRF protection)**: three layers of protection so server owners can enable it with confidence: ① **internal-address blocking**: access to the server's own/LAN addresses (`127.x`/`10.x`/`192.168.x`/`172.16-31.x`) forbidden by default; ② **DNS rebinding protection**: IP validation welded into the DNS resolution step, guaranteeing "the IP that's checked is the IP that's connected", eliminating the check-then-connect window; ③ **forced HTTPS + per-hop re-check**: when protection is on, `http://` is upgraded to `https://`, redirects handled hop-by-hop (max 3) with protocol and IP re-validated each hop. Response bodies read with a hard byte cap (prevents oversized pages from OOM); upstream errors redacted (raw errors go to logs only)
@@ -83,6 +85,8 @@
 - **Fixed bStats skill registry hijacking by renamed forks**: when multiple servers reported the same skill name, a renamed unofficial fork reporting first would override the official skill's identity; now the official source always wins, unofficial entries only contribute to the server count
 - **Fixed a regression that broke the secondary-analysis history-count config**: `agent.analysis_history_count` in `llm.yml` was accidentally broken by a previous version — the secondary-analysis call passed the full history queue, bypassing the configured round limit; it now truncates to the configured rounds again, avoiding token waste
 - **Fixed profile-analysis trigger count including AI replies**: the trigger gate `countMessagesSince` previously filtered only by `source` without distinguishing roles, so one player message + one AI reply (2 records) counted as 2, making the threshold effectively "turns × 2" and inflated; now corrected to count only `role='user'` player messages, matching the "player-initiated messages" semantics
+- **Fixed how-to questions being mistaken for execution requests**: when a player asks "how do I do X", the AI previously might treat it as an execution request and actually perform the action; asking-vs-executing is now strictly distinguished — a question only gets an explanation, while an explicit execution intent triggers the action
+- **Fixed missing-parameter operations answering incorrectly**: when an operation lacks required information (e.g. an unspecified teleport target), the AI previously might answer irrelevantly or refuse outright; it now automatically queries for the missing information first, then executes — multi-step operations chain automatically
 
 ### ⚠️ Compatibility
 

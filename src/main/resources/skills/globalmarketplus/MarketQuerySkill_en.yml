@@ -64,7 +64,7 @@ hints:
   - |
     Key requirement: when the user mentions a specific item name, it must be extracted to the entities.item field and cannot be empty. Use query_availability to check if an item is for sale, not query_price.
   - |
-    Multi-step tasks: if the user asks "how much is the item in my hand", first call bukkit_api.get_player_hand_item to get the item name, then call query_price to check the price.
+    Multi-step tasks: if the user asks "how much is the item in my hand", first call player_inventory.get_player_hand_item to get the item name, then call query_price to check the price.
   - |
     Balance real-time query (mandatory): any time balance is involved (including "what can I afford", "do I have enough money", "how much money do I have left"), you MUST query via query_balance in real-time. It is strictly forbidden to read old balances from conversation history for inference. Balance changes after buying, selling, listing, delisting, and transfers — historical data is stale. If the user's question requires combining balance and item info, use a multi-step task: step_0 query_balance, step_1 query items. Placeholder usage: reference the balance with {step_0.balance}.
   - |

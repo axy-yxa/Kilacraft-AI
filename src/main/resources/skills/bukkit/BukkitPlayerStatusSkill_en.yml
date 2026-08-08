@@ -2,13 +2,13 @@
 # ═══════════════════════════════════════════════════════════
 # Player Real-time Status Skill (BukkitPlayerStatusSkill)
 # Query the player's own real-time status: health, hunger, oxygen, XP, sleep, attack cooldown, fire/freeze, potion effects, absorption, arrows, invulnerability frames, fall distance, last damage, sneak/sprint, total XP.
-# Self-only (SkillSecurityFilter blocks cross-player params); for inventory use bukkit_player_inv.
+# Self-only (SkillSecurityFilter blocks cross-player params); for inventory use player_inventory.
 # ═══════════════════════════════════════════════════════════
 
 description: |
   Query the player's own real-time status: health, hunger, oxygen, XP level, sleep, attack cooldown, fire/freeze status, potion effects, absorption hearts, arrows in body, invulnerability frames, fall distance, last damage cause, sneak/sprint status, total XP.
   Triggers: when players ask "how much health do I have left", "am I hungry", "what level am I", "do I have potion effects", "how did I last take damage", "am I sneaking", "am I on fire", etc.
-  Reverse boundary: NOT for inventory (inventory/held/armor — use bukkit_player_inv), NOT for basic info (location/game mode/ping — use bukkit_player_info), NOT for guide/advice questions.
+  Reverse boundary: NOT for inventory (inventory/held/armor — use player_inventory), NOT for basic info (location/game mode/ping — use player_info), NOT for guide/advice questions.
 
 action_descriptions:
   get_player_health: |

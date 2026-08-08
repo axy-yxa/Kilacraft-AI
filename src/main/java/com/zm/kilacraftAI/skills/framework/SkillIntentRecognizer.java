@@ -476,7 +476,7 @@ public class SkillIntentRecognizer {
     /**
      * 构建用户提示词（当前输入 + 指令）。
      */
-    private String buildUserPrompt(String userInput) {
+    public static String buildUserPrompt(String userInput) {
         return I18nService.tr("[当前输入]\n") + I18nService.tr("用户说：") + userInput + "\n\n" + I18nService.tr("请根据系统提示词中的规则分析用户意图，输出对应的 JSON 识别结果。");
     }
 

@@ -2,13 +2,13 @@
 # ═══════════════════════════════════════════════════════════
 # Player Inventory & Gear Query Skill (BukkitPlayerInventorySkill)
 # Query the player's own inventory, held items, armor, ender chest, and currently open container contents.
-# Self-only (SkillSecurityFilter blocks cross-player params); for real-time status (health/hunger) use bukkit_player_status.
+# Self-only (SkillSecurityFilter blocks cross-player params); for real-time status (health/hunger) use player_status.
 # ═══════════════════════════════════════════════════════════
 
 description: |
   Query the player's own inventory and gear: main/off-hand item details, inventory slot usage, inventory/ender chest item summaries, equipped armor, currently open UI and container contents.
   Triggers: when players ask "what am I holding", "what's in my inventory", "is my inventory full", "are there diamonds in my ender chest", "what armor am I wearing", "what's in the chest I opened", etc.
-  Reverse boundary: NOT for real-time status (health/hunger/coords/XP — use bukkit_player_status), NOT for basic info (location/game mode — use bukkit_player_info), NOT for market/trade operations.
+  Reverse boundary: NOT for real-time status (health/hunger/coords/XP — use player_status), NOT for basic info (location/game mode — use player_info), NOT for market/trade operations.
 
 action_descriptions:
   get_player_hand_item: |

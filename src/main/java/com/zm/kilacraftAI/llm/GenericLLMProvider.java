@@ -517,7 +517,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
         JsonArray messages = new JsonArray();
 
-        // system 消息保持纯静态：玩家身份/实时状态等动态信息由 buildUserContent 注入 user 消息，
+        // system 消息保持纯静态：玩家身份/实时状态等动态信息由 assembleUserContent 注入 user 消息，
         // 以最大化供应商侧前缀缓存命中率（system 跨玩家、跨请求字节一致）
         String systemPrompt = staticSystemPrompt;
         String langDirective = plugin.getConfigManager().getLanguageDirective();
@@ -539,8 +539,8 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             }
         }
 
-        // user 消息：动态上下文（画像/元数据/时间）+ 知识库 + 实际查询
-        String userContent = buildUserContent(userMessage, player, knowledgeContext);
+        // user 消息：动态上下文（画像/元数据/时间，player 为 null 时为空）+ 知识库 + 实际查询
+        String userContent = assembleUserContent(userMessage, knowledgeContext, buildDynamicContext(player));
         JsonObject userMsg = new JsonObject();
         userMsg.addProperty("role", MessageRoleEnum.USER.value());
         userMsg.addProperty("content", userContent);
@@ -559,15 +559,13 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
      * 组装最终 user 消息内容：动态上下文（画像+元数据+时间）+ 知识库 + 实际查询。
      *
      * @param userMessage      实际用户查询
-     * @param player           触发请求的玩家，null 则不采集动态上下文
-     * @param knowledgeContext 知识库检索结果，null 表示无
+     * @param knowledgeContext 知识库检索结果，null 或空表示无
+     * @param dynamicContext   动态上下文块（画像+元数据+时间），null 或空表示无
      * @return 组装后的 user 消息内容
      */
-    private String buildUserContent(String userMessage, @Nullable Player player, @Nullable String knowledgeContext) {
-        String dynamicContext = buildDynamicContext(player);
-
+    public static String assembleUserContent(String userMessage, @Nullable String knowledgeContext, @Nullable String dynamicContext) {
         StringBuilder sb = new StringBuilder();
-        if (!dynamicContext.isEmpty()) {
+        if (dynamicContext != null && !dynamicContext.isEmpty()) {
             sb.append(dynamicContext).append("\n\n");
         }
         if (knowledgeContext != null && !knowledgeContext.isEmpty()) {

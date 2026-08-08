@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  */
 public class BukkitServerSkill extends AbstractBukkitQuerySkill {
 
-    private static final String SKILL_NAME = "bukkit_server";
+    private static final String SKILL_NAME = "server_info";
     private static final String LOG_PREFIX = "Bukkit服务器查询";
 
     /**

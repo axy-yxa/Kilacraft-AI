@@ -15,7 +15,7 @@ action_descriptions:
     功能：创建监听。
     参数：
       - mode（必填，枚举名）：监听模式，polling=条件监听/event=事件监听。
-      - source（polling 模式必填，字符串）：监听源，格式 skill.action，从 getDynamicContext 注入的【条件监听】清单中选择（如 bukkit_player_status.get_player_health）。
+      - source（polling 模式必填，字符串）：监听源，格式 skill.action，从 getDynamicContext 注入的【条件监听】清单中选择（如 player_status.get_player_health）。
       - result_path（polling 模式必填，字符串）：从 skill 返回值中提取的字段名（如 health），可从该 action 的返回 data 字段描述推断。
       - operator（polling 模式必填，字符串）：比较操作符。number 用 greater_than_or_equal/greater_than/less_than_or_equal/less_than/equal/not_equal；string 用 equal/not_equal/contains。
       - threshold（polling 模式必填，字符串）：阈值。number 填数值，string 填匹配值（如 OBSIDIAN）。

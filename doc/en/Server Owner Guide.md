@@ -341,7 +341,7 @@ AI interacts with the server through Skills, each corresponding to a category of
 | Category | Capabilities | Dependency | Permission Node |
 | :---: | :--- | :---: | :---: |
 | **Bukkit API** | 71 built-in read-only interfaces: player inventory/status/info, world info, server info, environment awareness | None | `kilacraft.api.*` |
-| **Vanilla Stats** | 80+ vanilla cumulative stat queries, knowledge base BM25 retrieval, auto unit conversion | None | `kilacraft.bukkit_stats` |
+| **Vanilla Stats** | 80+ vanilla cumulative stat queries, knowledge base BM25 retrieval, auto unit conversion | None | `kilacraft.player_stats` |
 | **Global Market** | Search/list/collect/buy-order/delist/transfer/auction/bulk-sell/bulk-buy (9 operations) | GlobalMarketPlus | `kilacraft.market.*` |
 | **CMI Integration** | 5 queries (home/warp/player info/online/AFK) + 3 teleports | CMI | `kilacraft.cmi.*` |
 | **Player Watch** | Custom condition/event watches, 11 event types (see Advanced Features above) | None | `kilacraft.watch` |
@@ -351,7 +351,7 @@ AI interacts with the server through Skills, each corresponding to a category of
 | **Version Info** | Query plugin version, changelog, new version detection | None | `kilacraft.admin.info` |
 | **Utility** | Timed delay, proactive notification, server-wide broadcast | None | `kilacraft.utility` |
 | **Command Execution** | Execute commands as player, inherits permission system (default on for all players, controlled by kilacraft.command.execute permission) | None | `kilacraft.command.execute` |
-| **Sound & Particles** | AI-triggered sounds/particles, only caller perceives, YAML-driven config | None | `kilacraft.bukkit_fx` |
+| **Sound & Particles** | AI-triggered sounds/particles, only caller perceives, YAML-driven config | None | `kilacraft.sound_fx` |
 | **Server Admin** | Health monitoring, player analysis, audit logs (see Advanced Features above) | Spark (optional) | `kilacraft.admin.*` |
 
 > Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively. New feature permissions (Watch/WebSearch etc.) are all available to all players by default, but require opt-in (players must actively enable watch) or API Key configuration by the server owner for web search to function.
@@ -435,8 +435,8 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 | `kilacraft.api.server.info` | true | Query server info |
 | `kilacraft.cmi.query` | true | CMI info queries |
 | `kilacraft.cmi.teleport` | true | CMI teleportation |
-| `kilacraft.bukkit_fx` | true | Sound & particle effects |
-| `kilacraft.bukkit_stats` | true | Vanilla stats queries |
+| `kilacraft.sound_fx` | true | Sound & particle effects |
+| `kilacraft.player_stats` | true | Vanilla stats queries |
 | `kilacraft.utility` | true | Utility tools (delay/notify) |
 | `kilacraft.utility.broadcast` | op | Server-wide broadcast (OP only by default) |
 | `kilacraft.command.execute` | true | Command execution (default on for all players) |

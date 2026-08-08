@@ -134,7 +134,7 @@ Each `Bukkit*Skill.yml` file follows the unified skill config schema, with core 
 
 ```yaml
 # BukkitPlayerInventorySkill.yml (excerpt)
-skill_id: "bukkit_player_inventory"
+skill_id: "player_inventoryentory"
 display_name: "Bukkit Player Inventory Query"
 description: |
   Query player inventory-related info: main/off-hand items, inventory and ender chest
@@ -1656,11 +1656,11 @@ Permissions are granted at the **skill** granularity — **a single permission n
 
 | Permission Node | Skill | API Coverage |
 |-----------------|-------|--------------|
-| `kilacraft.api.player.info` | `bukkit_player_info` | Player basic info: location, eye location, velocity, gamemode, flight, main-hand preference, ping, last death, vehicle, pose, target block, client language, display name, bed spawn, compass target, feet block, etc. |
-| `kilacraft.api.player.status` | `bukkit_player_status` | Player status: health, hunger, oxygen, exp/level, sleep, attack cooldown, fire, freeze, potion effects, sneak, sprint, absorption, arrows in body, no-damage ticks, fall distance, last damage, etc. |
-| `kilacraft.api.player.inventory` | `bukkit_player_inventory` | Player inventory: main/off-hand items, inventory summary, ender chest summary, inventory usage, armor, open container, open inventory type |
-| `kilacraft.api.world.info` | `bukkit_world` | World info: time, weather, seed, spawn, height limit, spawn rules, PVP, biome, temperature, humidity, sea level, entity counts, raids, border, etc. |
-| `kilacraft.api.server.info` | `bukkit_server` | Server info: online players, max players, version, MOTD, world list, server settings |
+| `kilacraft.api.player.info` | `player_info` | Player basic info: location, eye location, velocity, gamemode, flight, main-hand preference, ping, last death, vehicle, pose, target block, client language, display name, bed spawn, compass target, feet block, etc. |
+| `kilacraft.api.player.status` | `player_status` | Player status: health, hunger, oxygen, exp/level, sleep, attack cooldown, fire, freeze, potion effects, sneak, sprint, absorption, arrows in body, no-damage ticks, fall distance, last damage, etc. |
+| `kilacraft.api.player.inventory` | `player_inventoryentory` | Player inventory: main/off-hand items, inventory summary, ender chest summary, inventory usage, armor, open container, open inventory type |
+| `kilacraft.api.world.info` | `world_info` | World info: time, weather, seed, spawn, height limit, spawn rules, PVP, biome, temperature, humidity, sea level, entity counts, raids, border, etc. |
+| `kilacraft.api.server.info` | `server_info` | Server info: online players, max players, version, MOTD, world list, server settings |
 
 > ⚠️ Note: Nodes like `kilacraft.api.player.health` or `kilacraft.api.player.stats` no longer exist. Health/hunger and other status APIs are all covered by `kilacraft.api.player.status`.
 

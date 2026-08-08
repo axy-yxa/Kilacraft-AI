@@ -16,7 +16,7 @@ action_descriptions:
     Function: Create a watch.
     Parameters:
       - mode (required, enum name): watch mode, polling=conditional/event=event-driven.
-      - source (required for polling, string): watch source in skill.action format, chosen from the [conditional watch] list injected by getDynamicContext (e.g. bukkit_player_status.get_player_health).
+      - source (required for polling, string): watch source in skill.action format, chosen from the [conditional watch] list injected by getDynamicContext (e.g. player_status.get_player_health).
       - result_path (required for polling, string): field name to extract from the skill return value (e.g. health); infer it from that action's returned data field description.
       - operator (required for polling, string): comparison operator. number uses greater_than_or_equal/greater_than/less_than_or_equal/less_than/equal/not_equal; string uses equal/not_equal/contains.
       - threshold (required for polling, string): threshold value. number for numeric, match value for string (e.g. OBSIDIAN).

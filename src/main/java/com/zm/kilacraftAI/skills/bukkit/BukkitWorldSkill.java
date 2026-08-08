@@ -30,7 +30,7 @@ import java.util.Set;
  */
 public class BukkitWorldSkill extends AbstractBukkitQuerySkill {
 
-    private static final String SKILL_NAME = "bukkit_world";
+    private static final String SKILL_NAME = "world_info";
     private static final String LOG_PREFIX = "Bukkit世界查询";
 
     private static final Set<String> PROBEABLE_ACTIONS = Set.of(

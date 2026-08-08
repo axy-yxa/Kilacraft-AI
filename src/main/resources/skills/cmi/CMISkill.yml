@@ -40,13 +40,13 @@ action_descriptions:
     功能：传送到玩家自己的家。
     参数：
       - home_name（必填，字符串）：家的名称。
-    前置条件：必须先调用 query_homes 获取家列表，从返回的 data.homes 中选择 home_name 字段作为参数；玩家只有 1 个家则自动选择，多个则列出供玩家选择。
+    前置条件：当玩家未指定家名时，必须在意图识别阶段构建多步骤任务（step_0: query_homes 获取家列表 → step_1: teleport_home，home_name 用 {step_0.homes[0].home_name} 占位符引用查询结果）。home_name 始终必填，绝不留空或设为 null。
 
   teleport_to_warp: |
     功能：传送到公共地标。
     参数：
       - warp_name（必填，字符串）：地标名称。
-    前置条件：必须先调用 query_warps 获取地标列表，从返回的 data.warps 中选择 warp_name 字段作为参数。
+    前置条件：当玩家未指定地标名时，必须在意图识别阶段构建多步骤任务（step_0: query_warps 获取地标列表 → step_1: teleport_to_warp，warp_name 用 {step_0.warps[0].warp_name} 占位符引用查询结果）。
 
   send_tp_request: |
     功能：向目标玩家发送传送请求（TPA），需对方同意才会传送。

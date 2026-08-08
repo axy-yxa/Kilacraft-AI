@@ -7,10 +7,10 @@
 # ═══════════════════════════════════════════════════════════
 
 description: |
-  Retrieves real-time information from the internet (news, references, tutorials, external data) and presents an AI-generated summary to the player.
-  Triggers: use ONLY when the need clearly points to external internet information — latest news, fact-checking, tutorials/guides, external data, e.g. "what's new in 1.21", "today's gold price", "recommend good mods", "search for a redstone elevator tutorial"; or when the player explicitly says "search the web / look it up online".
-  Priority (fallback query): this skill is the LAST resort — when the [Available Skills List] contains an in-game data query skill for the requested data (market prices, item prices, player status, world info, stats, etc.), use that skill from the list first; use this skill ONLY when the list has NO matching in-game query skill, or the need clearly points to external internet information. In the server context, "search for item XX / check the price of XX" is handled by the in-game query skill when one exists in the list.
-  Reverse boundary: not for querying in-game data or a local knowledge base (when a corresponding skill exists); not for viewing a specific web link the player already provided (that belongs to the web page fetching skill category).
+  Retrieves real-time/latest information from the internet (news, real-time data, external references) and presents an AI-generated summary to the player.
+  Triggers: used to complement the accuracy of your own knowledge — when the information the player needs may not be in your knowledge or may be outdated: ① the player explicitly asks to go online ("search the web / look it up online") — HIGHEST priority: when the player explicitly requests a search, execute it even for static knowledge; ② latest news/version updates (beyond training-data cutoff); ③ real-time data (today's gold price/exchange rate/weather/sports scores); ④ fact-checking (need to verify the actual situation).
+  Non-use scenarios: in-game static knowledge (crafting recipes, enchanting mechanics, mob behaviors — MC internal knowledge) is answered directly from your own knowledge, no web search needed — UNLESS the player explicitly asks to go online; in-game data queries (market prices, item prices, player status, world info, stats, etc.) prefer the corresponding skill when one exists in the list.
+  Reverse boundary: not for querying in-game data or a local knowledge base (when a corresponding skill exists); not for viewing a specific web link the player already provided (that belongs to the web page fetching skill category); not for static guides/tutorials your own knowledge can answer accurately (when the player has not explicitly asked to go online).
 
 action_descriptions:
   search: |

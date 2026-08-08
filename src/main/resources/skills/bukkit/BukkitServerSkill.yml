@@ -6,7 +6,7 @@
 description: |
   查询服务器全局信息：当前在线玩家列表与人数、服务器最大玩家数上限、服务器与 Bukkit 版本、MOTD（服务器介绍）、已加载的世界列表、服务器基本设置（是否允许飞行/下界/末地）。
   触发场景：玩家问「谁在线」「在线多少人」「最多能进多少人」「服务器什么版本」「服务器介绍/MOTD」「有哪些世界」「服务器能不能飞/有没有下界末地」等服务器全局查询时使用。
-  反向边界：不用于查询玩家自身或世界局部信息（走 bukkit_player_* 或 bukkit_world），不用于攻略/建议类问题。
+  反向边界：不用于查询玩家自身或世界局部信息（走 player_* 或 world_info），不用于攻略/建议类问题。
 
 action_descriptions:
   get_online_players: |
@@ -36,8 +36,8 @@ action_descriptions:
 
 hints:
   - |
-    get_online_players 返回的是全服在线玩家列表，不是当前世界。查询当前世界玩家数用 bukkit_world 的 get_world_player_count。
+    get_online_players 返回的是全服在线玩家列表，不是当前世界。查询当前世界玩家数用 world_info 的 get_world_player_count。
   - |
     get_server_motd 返回的文本含 Minecraft 格式化代码（§a/§b 等），仅适合直接展示给询问服务器介绍的玩家，不适合在多步骤任务中作为数据字段引用。需要引用请用 get_online_players 等。
   - |
-    get_server_worlds 返回的是全服所有已加载世界，不是当前世界。查询当前世界信息用 bukkit_world 的对应 action。
+    get_server_worlds 返回的是全服所有已加载世界，不是当前世界。查询当前世界信息用 world_info 的对应 action。

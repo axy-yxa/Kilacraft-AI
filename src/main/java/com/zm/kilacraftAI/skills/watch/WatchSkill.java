@@ -164,12 +164,12 @@ public class WatchSkill implements Skill, DynamicContextProvider {
     private SkillResult handleCreatePollingWatch(WatchService service, org.bukkit.entity.Player player, Map<String, String> entities, String intent, boolean singleShot, String displayName) {
         String source = SkillEntityHelper.getString(entities, "source");
         if (source == null) {
-            return SkillResult.needInfo(I18nService.tr("要监听什么？请指定监听源，格式为 skill.action（如 bukkit_api.get_player_health），可从【可监听列表】中选择。"));
+            return SkillResult.needInfo(I18nService.tr("要监听什么？请指定监听源，格式为 skill.action（如 player_status.get_player_health），可从【可监听列表】中选择。"));
         }
         // 解析 skill.action 格式
         int dotIdx = source.indexOf('.');
         if (dotIdx <= 0 || dotIdx >= source.length() - 1) {
-            return SkillResult.failure(I18nService.tr("source 格式错误，应为 skill.action（如 bukkit_api.get_player_health）"));
+            return SkillResult.failure(I18nService.tr("source 格式错误，应为 skill.action（如 player_status.get_player_health）"));
         }
         String skillName = source.substring(0, dotIdx);
         String actionName = source.substring(dotIdx + 1);
