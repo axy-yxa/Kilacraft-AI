@@ -19,6 +19,7 @@ import java.sql.SQLException;
  * <p>清理频率：每 6 小时（432000 ticks）执行一次，启动后延迟 2 分钟（2400 ticks）首次执行。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class DataCleanupService {
 

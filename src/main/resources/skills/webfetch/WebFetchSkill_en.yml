@@ -1,0 +1,25 @@
+# English version of WebFetchSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Web Fetch (WebFetchSkill)
+# Fetch the content of a specified URL, extract the main text, and hand it to the LLM to summarize.
+# Zero-config — a pure local OkHttp+Jsoup implementation, no API Key needed; built-in SSRF protection (forces HTTPS + rejects private-IP targets).
+# Permission: WEB_FETCH (depends on fetch.enabled being on in web.yml).
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  Fetches the content of a "specified web page", extracts the main text, and returns it to the player after AI summarization.
+  Triggers: use when the player provides an explicit web URL and wants to know that page's content, e.g. "check this link for me", "what does this page say", "where is the tutorial in this link".
+  Reverse boundary: not for searching the internet by keyword (that belongs to the web search skill category); not for querying structured data from APIs or endpoints (this skill only parses HTML page body text).
+
+action_descriptions:
+  fetch: |
+    Function: Fetch the content of the specified URL, strip noise such as scripts and navigation, and extract the main text.
+    Parameters:
+      - url (required, string): the page address; must be a full link starting with http:// or https://.
+      - question (optional, default empty, string): the player's specific question about the page; when provided it is included in the message so the LLM can summarize accordingly.
+    Returns data fields: url (page address), title (page title), content (extracted body text), question (the player's question, if provided).
+    Precondition: url must be a complete address starting with http:// or https://; relative paths or bare domains cannot be fetched.
+
+hints:
+  - |
+    When the player adds a specific question (e.g. "where is the tutorial on this page"), put it in the question parameter so the summary is focused; omit it when no question is given, letting the AI produce a general summary.

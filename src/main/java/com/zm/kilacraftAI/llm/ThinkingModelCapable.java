@@ -1,7 +1,9 @@
 package com.zm.kilacraftAI.llm;
 
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.exception.LLMException;
 import okhttp3.OkHttpClient;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 推理/思考模型能力接口
@@ -30,12 +32,13 @@ public interface ThinkingModelCapable {
      *
      * <p>专用于服务器诊断等场景。自动适配 DeepSeek-R1 / OpenAI o1-o3-o4 等不同厂商的请求格式。</p>
      *
-     * @param systemPrompt 系统提示词
-     * @param userMessage  用户消息
-     * @param config       推理模型配置（API 地址、密钥、模型名等）
-     * @param client       推理模型专用 HTTP 客户端
+     * @param systemPrompt      系统提示词
+     * @param userMessage       用户消息
+     * @param config            推理模型配置（API 地址、密钥、模型名等）
+     * @param client            推理模型专用 HTTP 客户端
+     * @param cacheCallTypeEnum 调用类型（用于缓存命中率统计，可为 null 表示不统计）
      * @return LLM 响应（含推理过程和用量）
      * @throws LLMException 请求或解析失败时抛出
      */
-    LLMResponse processRequestWithThinkingModel(String systemPrompt, String userMessage, ThinkingModelConfig config, OkHttpClient client) throws LLMException;
+    LLMResponse processRequestWithThinkingModel(String systemPrompt, String userMessage, ThinkingModelConfig config, OkHttpClient client, @Nullable CacheCallTypeEnum cacheCallTypeEnum) throws LLMException;
 }

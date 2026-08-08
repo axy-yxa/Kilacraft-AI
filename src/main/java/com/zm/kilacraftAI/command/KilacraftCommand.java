@@ -47,7 +47,7 @@ public class KilacraftCommand implements CommandExecutor {
             case "knowledge" -> KnowledgeCommand.handle(plugin, sender, args);
             case "plugins" -> PluginsCommand.handle(plugin, sender, args);
             case "personalities" -> PersonalitiesCommand.handle(plugin, sender, args);
-            case "afk" -> AfkCommand.handle(plugin, sender, args);
+            case "suggestion" -> SuggestionCommand.handle(plugin, sender, args);
             case "tasks" -> TasksCommand.handle(plugin, sender, args);
             case "profile" -> ProfileCommand.handle(plugin, sender, args);
             case "notify" -> NotifyCommand.handle(plugin, sender, args);
@@ -57,6 +57,7 @@ public class KilacraftCommand implements CommandExecutor {
             case "skills" -> SkillsCommand.handle(plugin, sender, args);
             case "run" -> RunCommand.handle(plugin, sender, args);
             case "doctor" -> DoctorCommand.handle(plugin, sender, args);
+            case "cache" -> CacheCommand.handle(plugin, sender, args);
             case "about" -> AboutCommand.handle(plugin, sender, args);
             default -> NormalChatCommand.handle(plugin, sender, args);
         }
@@ -96,12 +97,6 @@ public class KilacraftCommand implements CommandExecutor {
         if (PluginPermissionEnum.KNOWLEDGE.hasPermission(sender) || PluginPermissionEnum.PERSONALITIES.hasPermission(sender))
             sender.sendMessage("");
 
-        // 挂机任务
-        if (PluginPermissionEnum.AFK.hasPermission(sender)) {
-            sender.sendMessage(languageManager.getHelpAfk());
-            sender.sendMessage("");
-        }
-
         // 性能采样 + 通知
         if (PluginPermissionEnum.ADMIN_HEALTH.hasPermission(sender)) {
             sender.sendMessage(languageManager.getHelpProfile());
@@ -121,6 +116,8 @@ public class KilacraftCommand implements CommandExecutor {
         // 技能命令
         sender.sendMessage(languageManager.getHelpSkills());
         sender.sendMessage(languageManager.getHelpRun());
+        // 对话推荐（全体可用）
+        sender.sendMessage(languageManager.getHelpSuggestion());
         sender.sendMessage("");
 
         // 管理员信息
@@ -133,6 +130,13 @@ public class KilacraftCommand implements CommandExecutor {
         // 定时任务
         if (PluginPermissionEnum.TASKS.hasPermission(sender)) {
             sender.sendMessage(languageManager.getHelpTasks());
+            sender.sendMessage("");
+        }
+
+        // 大模型缓存统计
+        if (PluginPermissionEnum.ADMIN_CACHE.hasPermission(sender)) {
+            sender.sendMessage(languageManager.getHelpCache());
+            sender.sendMessage(languageManager.getHelpCacheReset());
             sender.sendMessage("");
         }
     }

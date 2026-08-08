@@ -19,6 +19,9 @@ import java.util.UUID;
  * AI 回答占位符
  * 用法：<caster.ai.answer{type=人偶类型}>
  * 支持动态占位符：<caster.ai.answer{type=<skill.puppet>}>
+ *
+ * @author Zm_Mmm
+ * @since 2026-03-27
  */
 @MythicPlaceholder(placeholder = "ai.answer", usedPlaceholderArguments = -1)
 public class AIAnswerPlaceholder extends EntityScopedPlaceholder<String> implements StringPlaceholder {

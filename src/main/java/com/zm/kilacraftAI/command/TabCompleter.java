@@ -50,10 +50,8 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
                 completions.add("personalities");
             }
 
-            // afk 命令（需要权限）
-            if (PluginPermissionEnum.AFK.hasPermission(sender)) {
-                completions.add("afk");
-            }
+            // suggestion 命令（全体可用，玩家级开关）
+            completions.add("suggestion");
 
             // tasks 命令（需要权限）
             if (PluginPermissionEnum.TASKS.hasPermission(sender)) {
@@ -84,6 +82,9 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
                 completions.add("doctor");
                 completions.add("about");
             }
+            if (PluginPermissionEnum.ADMIN_CACHE.hasPermission(sender)) {
+                completions.add("cache");
+            }
 
             return getCompletions(args[0], completions);
         }
@@ -110,15 +111,12 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             return getCompletions(args[1], completions);
         }
 
-        if (args.length == 2 && "afk".equals(args[0])) {
-            // afk 的子命令
+        if (args.length == 2 && "suggestion".equals(args[0])) {
+            // suggestion 的子命令
             List<String> completions = new ArrayList<>();
-
-            if (PluginPermissionEnum.AFK.hasPermission(sender)) {
-                completions.add("query");
-                completions.add("cancel");
-            }
-
+            completions.add("on");
+            completions.add("off");
+            completions.add("status");
             return getCompletions(args[1], completions);
         }
 
@@ -164,6 +162,14 @@ public class TabCompleter implements org.bukkit.command.TabCompleter {
             completions.add("30d");
             if (PluginPermissionEnum.USAGE_OTHER.hasPermission(sender)) {
                 for (Player p : Bukkit.getOnlinePlayers()) completions.add(p.getName());
+            }
+            return getCompletions(args[1], completions);
+        }
+
+        if (args.length == 2 && "cache".equals(args[0])) {
+            List<String> completions = new ArrayList<>();
+            if (PluginPermissionEnum.ADMIN_CACHE.hasPermission(sender)) {
+                completions.add("reset");
             }
             return getCompletions(args[1], completions);
         }

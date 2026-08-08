@@ -1,17 +1,19 @@
 package com.zm.kilacraftAI.skills.framework.task;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
-import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
 import com.zm.kilacraftAI.skills.framework.SkillContext;
 import com.zm.kilacraftAI.skills.framework.SkillResult;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -30,8 +32,7 @@ public class LLMAnalysisService {
     private final ConfigManager configManager;
 
     /**
-     * 知识库检索禁用阈值：当分析提示词超过此长度时，说明技能执行结果已包含完整信息（如诊断报告全文），
-     * 知识库检索的边际价值极低且增加噪音，应禁用。
+     * 经验阈值：分析提示词较长时（通常意味着技能结果已含较完整文本），跳过知识库检索以减少噪音与延迟。
      */
     private static final int KNOWLEDGE_DISABLE_THRESHOLD = 2000;
 
@@ -51,40 +52,17 @@ public class LLMAnalysisService {
      * @param handler 自定义响应处理器（由调用方创建）
      * @return 分析后的最终回复
      */
-    public CompletableFuture<SkillResult> analyzeResultWithHandler(AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, AIResponseHandler handler) {
+    public CompletableFuture<SkillResult> analyzeResultWithHandler(AnalysisSummary summary, SkillContext context, Deque<ConversationManager.Message> history, AIResponseHandler handler, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
         // responseFuture 提前创建：前置阶段（提示词构建/画像注入/Provider 获取）抛异常时也保证 Future 被 complete，避免调用链挂起
         CompletableFuture<String> responseFuture = new CompletableFuture<>();
         try {
-            String promptContent = summary.buildPrompt();
+            String analysisPrompt = summary.buildPrompt();
 
-            PluginLoggerUtil.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n{}", promptContent);
+            PluginLoggerUtil.debug("LLM分析", "LLM 二次分析 - 结果摘要:\n{}", analysisPrompt);
 
-            String playerName = context.getPlayer() != null ? context.getPlayer().getName() : "Console";
-
-            // 构建分析提示词：执行结果 + 后缀
-            String suffix = configManager.getAgentAnalysisPromptSuffix();
-            String systemPrompt = configManager.getAgentSystemPrompt();
-
-            // 玩家实时元数据（追加在 agent 提示词尾部，画像之前）：agent 提示词保持为可缓存前缀
+            // system 保持纯静态（agent 提示词含角色定义与回复约束）；动态上下文（画像/元数据/时间）由 Provider 注入 user 消息
             Player player = context.getPlayer();
-            if (player != null) {
-                String playerMeta = PlayerMetaCollector.collect(player);
-                if (!playerMeta.isEmpty()) {
-                    systemPrompt = systemPrompt + "\n\n" + playerMeta;
-                }
-                var profileManager = plugin.getProfileManager();
-                if (profileManager != null) {
-                    systemPrompt = profileManager.injectProfileSummary(systemPrompt, player.getUniqueId());
-                }
-            }
-
-            StringBuilder promptBuilder = new StringBuilder();
-            promptBuilder.append(promptContent);
-            if (suffix != null && !suffix.isEmpty()) {
-                promptBuilder.append(suffix);
-            }
-
-            String analysisPrompt = promptBuilder.toString();
+            String systemPrompt = configManager.getAgentSystemPrompt();
 
             // 每次都获取最新的实例
             LLMProvider llmProvider = plugin.getLlmManager().getCurrentProvider();
@@ -142,7 +120,17 @@ public class LLMAnalysisService {
             if (!enableKnowledge) {
                 PluginLoggerUtil.debug("LLM分析", I18nService.tr("分析提示词较长（{}字符），跳过知识库检索以减少噪音", analysisPrompt.length()));
             }
-            llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, playerName, history, wrapperHandler, systemPrompt, enableKnowledge, false, false);
+            // 二次分析只需精简历史供上下文关联，截断到配置轮数（避免传完整队列、省 token）。
+            // 浅拷贝快照后再裁剪，避免影响调用方的 history。
+            int analysisMaxMessages = configManager.getAgentAnalysisHistoryCount() * 2;
+            Deque<ConversationManager.Message> recentHistory = new ArrayDeque<>();
+            if (history != null) {
+                recentHistory.addAll(history);
+            }
+            while (recentHistory.size() > analysisMaxMessages) {
+                recentHistory.pollFirst();
+            }
+            llmProvider.processRequestWithCustomSystemPrompt(analysisPrompt, player, recentHistory, wrapperHandler, systemPrompt, enableKnowledge, true, false, cacheCallTypeEnum);
         } catch (RuntimeException e) {
             // 前置阶段异常（非 LLM 调用本身）：记完整堆栈 + 通知 handler + 完成 Future，确保调用链不挂起
             PluginLoggerUtil.error("LLM分析", I18nService.tr("二次分析前置阶段异常: {}", e.getMessage()), e);

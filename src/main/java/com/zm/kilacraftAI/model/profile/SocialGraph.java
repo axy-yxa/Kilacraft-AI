@@ -19,6 +19,7 @@ import java.util.UUID;
  * <p>管理玩家之间的社交关系（交互计数、关系强度衰减）。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class SocialGraph {
 

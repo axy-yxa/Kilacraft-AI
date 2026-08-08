@@ -13,6 +13,7 @@ import java.util.List;
  * <p>提供 {@code kca_skill_log} 表的写入和查询操作。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class SkillLogDao {
 

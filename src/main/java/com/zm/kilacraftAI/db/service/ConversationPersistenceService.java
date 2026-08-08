@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
  * </ul>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class ConversationPersistenceService {
 
@@ -65,7 +66,10 @@ public class ConversationPersistenceService {
     private volatile ConversationDao conversationDao;
     private volatile WatermarkDao watermarkDao;
     private final ConversationManager conversationManager;
-    private final int maxHistory;
+    /**
+     * 最大历史轮数（内存策略，非 DB 配置）。volatile 支持 reload 刷新。
+     */
+    private volatile int maxHistory;
     /**
      * 保留天数（0=永久保留）
      */
@@ -111,7 +115,7 @@ public class ConversationPersistenceService {
      * @param role        角色（"user" / "assistant"）
      * @param content     消息内容
      * @param personality 人格标识（普通AI为空串）
-     * @param source      来源标识（"chat" / "command" / "plugin" / "greeting" / "afk_callback"）
+     * @param source      来源标识（"chat" / "command" / "plugin" / "greeting"）
      */
     public void submit(UUID playerUuid, String role, String content, String personality, String source) {
         if (playerUuid == null || content == null) return;
@@ -230,7 +234,7 @@ public class ConversationPersistenceService {
         try (Connection conn = databaseManager.getConnection()) {
             conversationDao.batchInsert(conn, rows, serverId);
         } catch (SQLException e) {
-            throw new RuntimeException("写入对话记录失败", e);
+            throw new RuntimeException(I18nService.tr("写入对话记录失败"), e);
         }
     }
 
@@ -253,10 +257,9 @@ public class ConversationPersistenceService {
             return;
         }
 
-        // 检查内存是否已有（去重保护）
-        // 注意：仅包含 assistant 消息的历史（如登录问候）不视为有效历史，仍需从 DB 加载
+        // 检查内存是否已有（去重保护）：内存历史非空即视为有效（均为成对的 user/assistant），直接复用
         Deque<ConversationManager.Message> existing = getExistingHistory(playerUuid, personality);
-        if (existing != null && !existing.isEmpty() && existing.stream().anyMatch(m -> !"assistant".equals(m.getRole()))) {
+        if (existing != null && !existing.isEmpty()) {
             callback.accept(existing);
             return;
         }
@@ -283,26 +286,20 @@ public class ConversationPersistenceService {
     }
 
     /**
-     * 将 DB 加载的历史合并到内存历史中
+     * 将 DB 加载的历史填充进内存队列。
      *
-     * <p>DB 历史在前（时间升序），内存中可能存在的 assistant-only 消息（如登录问候）保留在末尾。
-     * 当 loadHistoryIfNeeded 判定 assistant-only 的内存历史为“空”并从 DB 加载后，
-     * 调用此方法完成合并。</p>
+     * <p>仅在 {@link #loadHistoryIfNeeded} 判定内存历史为空、并从 DB 加载成功后调用。
+     * 此时 playerHistory 必然为空（非空已在上游短路），故直接 clear + addAll 等价于填充。</p>
      *
      * @param loadedHistory 从 DB 加载的历史（可能为空）
-     * @param playerHistory 内存中的历史队列（可能包含问候消息）
+     * @param playerHistory 内存中的历史队列（调用时为空）
      */
     public static void mergeLoadedHistory(Deque<ConversationManager.Message> loadedHistory, Deque<ConversationManager.Message> playerHistory) {
-        // 自引用保护：如果 loadedHistory 就是 playerHistory 本身（内存历史已有效时会出现），无需合并
         if (loadedHistory == null || loadedHistory.isEmpty() || playerHistory == null || loadedHistory == playerHistory) {
             return;
         }
-        ConversationManager.Message last = playerHistory.peekLast();
         playerHistory.clear();
         playerHistory.addAll(loadedHistory);
-        if (last != null) {
-            playerHistory.addLast(last);
-        }
     }
 
     /**
@@ -321,7 +318,12 @@ public class ConversationPersistenceService {
      * 从数据库加载历史记录
      */
     private Deque<ConversationManager.Message> loadFromDB(UUID playerUuid, String personality, String sourceFilter) throws SQLException {
-        int limit = maxHistory > 0 ? maxHistory : 20;
+        // max_history=0（禁用历史）时不加载任何旧记录，与 saveToHistory 遇 0 不保存构成完整禁用语义
+        if (maxHistory <= 0) {
+            return new ArrayDeque<>();
+        }
+        // DB 加载量 = maxHistory 条 = maxHistory/2 轮 = 内存容量（maxHistory*2 条）的一半。
+        int limit = maxHistory;
         try (Connection conn = databaseManager.getConnection()) {
             return conversationDao.loadHistory(conn, playerUuid.toString(), personality != null ? personality : "", sourceFilter, limit);
         }
@@ -412,6 +414,15 @@ public class ConversationPersistenceService {
         this.conversationDao = new ConversationDao(prefix);
         this.watermarkDao = new WatermarkDao(prefix);
         PluginLoggerUtil.info("数据库", "对话持久化服务配置已刷新（历史加载: {}, 保留天数: {}, server_id: {}）", loadHistoryEnabled, retentionDays > 0 ? retentionDays : I18nService.tr("永久"), serverId.isEmpty() ? I18nService.tr("未配置") : serverId);
+    }
+
+    /**
+     * 刷新 max_history（内存策略，非 DB 配置）。由 /kila reload 在读取主配置后调用，
+     * 使 {@code settings.max_history} 改动即时影响 DB 历史加载量。
+     * <p>钳制到 0-100，与 {@code ConversationManager.setMaxHistoryRounds} 语义一致。</p>
+     */
+    public void refreshMaxHistory(int maxHistory) {
+        this.maxHistory = Math.max(0, Math.min(100, maxHistory));
     }
 
     /**

@@ -1,16 +1,13 @@
 package com.zm.kilacraftAI.skills.bukkit;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
-import com.zm.kilacraftAI.service.knowledge.InternalEnumRegistry;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.SkillConfigManager;
+import com.zm.kilacraftAI.i18n.I18nService;
+import com.zm.kilacraftAI.service.knowledge.InternalEnumRegistry;
+import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -30,6 +27,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public class BukkitFXSkill implements Skill {
 
+    private static final String SKILL_NAME = "sound_fx";
+    private static final String LOG_PREFIX = "音效粒子";
     private static final String ACTION_PLAY_SOUND = "play_sound";
     private static final String ACTION_SPAWN_PARTICLE = "spawn_particle";
 
@@ -39,9 +38,9 @@ public class BukkitFXSkill implements Skill {
         this.configManager = SkillConfigManager.getInstance();
 
         // 如果配置不存在，保存默认配置并动态加载
-        if (configManager != null && configManager.getSkillConfig("bukkit", "BukkitFXSkill") == null) {
-            configManager.saveDefaultSkillConfig("bukkit", "BukkitFXSkill");
-            configManager.loadSingleSkillConfig("bukkit", "BukkitFXSkill");
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
@@ -49,15 +48,12 @@ public class BukkitFXSkill implements Skill {
      * 获取当前最新的技能配置（支持热重载）
      */
     private SkillConfig getConfig() {
-        if (configManager == null) {
-            return null;
-        }
-        return configManager.getSkillConfig("bukkit", "BukkitFXSkill");
+        return configManager != null ? configManager.getSkillConfig(this) : null;
     }
 
     @Override
     public String getName() {
-        return "bukkit_fx";
+        return SKILL_NAME;
     }
 
     @Override
@@ -98,7 +94,7 @@ public class BukkitFXSkill implements Skill {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("无法获取玩家对象")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
         }
 
         // 权限检查
@@ -125,7 +121,7 @@ public class BukkitFXSkill implements Skill {
                 return future;
             }
         } catch (Exception e) {
-            PluginLoggerUtil.error("BukkitFX", "执行音效/粒子效果失败", e);
+            PluginLoggerUtil.error(LOG_PREFIX, "执行音效/粒子效果失败", e);
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("执行失败: {}", e.getMessage())));
         }
     }
@@ -145,9 +141,9 @@ public class BukkitFXSkill implements Skill {
      * 播放音效
      */
     private SkillResult playSound(Player player, Map<String, String> entities) {
-        String soundName = entities.get("sound");
-        if (soundName == null || soundName.isEmpty()) {
-            return SkillResult.failure(I18nService.tr("缺少参数: sound(音效枚举名称)"));
+        String soundName = SkillEntityHelper.getString(entities, "sound");
+        if (soundName == null) {
+            return SkillResult.needInfo(I18nService.tr("要播放什么音效？请告诉我音效名或中文描述（如：村民叫声、升级音）。"));
         }
 
         // 解析音效：精确匹配 → 内置注册表模糊匹配
@@ -156,8 +152,8 @@ public class BukkitFXSkill implements Skill {
             return SkillResult.failure(I18nService.tr("无效的音效枚举名称: {}", soundName));
         }
 
-        float volume = parseFloat(entities.get("volume"), 1.0f);
-        float pitch = parseFloat(entities.get("pitch"), 1.0f);
+        float volume = (float) SkillEntityHelper.getDouble(entities, "volume", 1.0);
+        float pitch = (float) SkillEntityHelper.getDouble(entities, "pitch", 1.0);
 
         volume = Math.max(0.0f, Math.min(1.0f, volume));
         pitch = Math.max(0.5f, Math.min(2.0f, pitch));
@@ -198,9 +194,9 @@ public class BukkitFXSkill implements Skill {
      * 显示粒子效果
      */
     private SkillResult spawnParticle(Player player, Map<String, String> entities) {
-        String particleName = entities.get("particle");
-        if (particleName == null || particleName.isEmpty()) {
-            return SkillResult.failure(I18nService.tr("缺少参数: particle(粒子枚举名称)"));
+        String particleName = SkillEntityHelper.getString(entities, "particle");
+        if (particleName == null) {
+            return SkillResult.needInfo(I18nService.tr("要显示什么粒子？请告诉我粒子名或中文描述（如：爱心、烟花）。"));
         }
 
         // 解析粒子：精确匹配 → 内置注册表模糊匹配
@@ -209,12 +205,10 @@ public class BukkitFXSkill implements Skill {
             return SkillResult.failure(I18nService.tr("无效的粒子枚举名称: {}", particleName));
         }
 
-        int count = parseInt(entities.get("count"), 10);
-        double offsetX = parseFloat(entities.get("offset_x"), 0.5f);
-        double offsetY = parseFloat(entities.get("offset_y"), 0.5f);
-        double offsetZ = parseFloat(entities.get("offset_z"), 0.5f);
-
-        count = Math.max(1, Math.min(100, count));
+        int count = SkillEntityHelper.getIntClamped(entities, "count", 10, 1, 100);
+        double offsetX = SkillEntityHelper.getDouble(entities, "offset_x", 0.5);
+        double offsetY = SkillEntityHelper.getDouble(entities, "offset_y", 0.5);
+        double offsetZ = SkillEntityHelper.getDouble(entities, "offset_z", 0.5);
 
         Location location = player.getLocation();
         player.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ);
@@ -244,33 +238,5 @@ public class BukkitFXSkill implements Skill {
         }
 
         return null;
-    }
-
-    /**
-     * 安全解析Float(带默认值)
-     */
-    private float parseFloat(String value, float defaultValue) {
-        if (value == null || value.isEmpty()) {
-            return defaultValue;
-        }
-        try {
-            return Float.parseFloat(value);
-        } catch (NumberFormatException e) {
-            return defaultValue;
-        }
-    }
-
-    /**
-     * 安全解析Integer(带默认值)
-     */
-    private int parseInt(String value, int defaultValue) {
-        if (value == null || value.isEmpty()) {
-            return defaultValue;
-        }
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            return defaultValue;
-        }
     }
 }

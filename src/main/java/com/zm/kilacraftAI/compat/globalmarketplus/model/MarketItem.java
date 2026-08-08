@@ -4,6 +4,9 @@ import lombok.Getter;
 
 /**
  * 商品信息 - 封装单个商品的完整数据
+ *
+ * @author Zm_Mmm
+ * @since 2026-04-02
  */
 @Getter
 public class MarketItem {

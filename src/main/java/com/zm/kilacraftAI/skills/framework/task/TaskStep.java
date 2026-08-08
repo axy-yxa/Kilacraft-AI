@@ -9,6 +9,9 @@ import java.util.Map;
 
 /**
  * 任务步骤 - 多步骤任务中的单个步骤
+ *
+ * @author Zm_Mmm
+ * @since 2026-04-02
  */
 @Getter
 public class TaskStep {
@@ -38,8 +41,7 @@ public class TaskStep {
      */
     private final List<String> dependsOn;
 
-    public TaskStep(String id, String skillName, String action,
-                    Map<String, String> entities, List<String> dependsOn) {
+    public TaskStep(String id, String skillName, String action, Map<String, String> entities, List<String> dependsOn) {
         this.id = id;
         this.skillName = skillName;
         this.action = action;

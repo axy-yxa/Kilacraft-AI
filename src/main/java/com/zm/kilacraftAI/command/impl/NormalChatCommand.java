@@ -17,6 +17,9 @@ import java.util.UUID;
 
 /**
  * /kila <消息>：AI 对话入口（无子命令时的默认行为）。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class NormalChatCommand {
 

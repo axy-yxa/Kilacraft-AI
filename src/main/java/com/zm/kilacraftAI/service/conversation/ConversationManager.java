@@ -5,7 +5,10 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.entity.Player;
 
-import java.util.*;
+import java.util.Deque;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -70,10 +73,23 @@ public class ConversationManager {
     }
 
     /**
-     * 每个玩家历史记录的最大条数
-     * <p>超出时从头部移除最旧记录，防止长期运行导致 OOM。</p>
+     * 每个玩家历史记录的最大轮数（由配置 max_history 注入，支持热重载）。
      */
-    private static final int MAX_HISTORY_SIZE = 100;
+    private volatile int maxHistoryRounds = 10;
+
+    /**
+     * 注入 max_history 配置值（轮），钳制到 0-100。
+     */
+    public void setMaxHistoryRounds(int rounds) {
+        this.maxHistoryRounds = Math.max(0, Math.min(100, rounds));
+    }
+
+    /**
+     * 读取当前 maxHistoryRounds。
+     */
+    int getMaxHistoryRoundsForTest() {
+        return maxHistoryRounds;
+    }
 
     /**
      * 设置玩家的连续对话模式状态
@@ -159,11 +175,12 @@ public class ConversationManager {
     }
 
     /**
-     * 截断历史记录到最大容量（从头部移除最旧记录）
+     * 截断历史记录到最大容量（从头部移除最旧记录）。
+     * <p>容量 = {@code maxHistoryRounds * 2} 条（配置以轮为单位，1 轮 = user + assistant 2 条）。</p>
      */
     private void trimHistory(Deque<Message> deque) {
-        if (deque.size() <= MAX_HISTORY_SIZE) return;
-        while (deque.size() > MAX_HISTORY_SIZE) {
+        int maxSize = maxHistoryRounds * 2;
+        while (deque.size() > maxSize) {
             deque.pollFirst();
         }
     }

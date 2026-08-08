@@ -174,11 +174,17 @@ public class KnowledgeRetriever {
         if (embedAvail) {
             PluginLoggerUtil.debug("知识库", "使用 BM25 + Embedding 融合检索");
             List<KnowledgeChunk> embedList = scoreAllByEmbedding(question, allKnowledge);
-            if (embedList != null) {
+            if (embedList != null && !embedList.isEmpty()) {
                 ranked = fuseByRRF(bm25.chunks(), embedList, rrfK);
-                noiseFloorForFilter = 0.0;   // RRF 得分恒 > 0，纯靠相对阈值
-            } else {
+                // RRF 得分恒 > 0，纯靠相对阈值
+                noiseFloorForFilter = 0.0;
+            } else if (embedList == null) {
                 // 查询向量获取失败 → 退化为纯 BM25
+                ranked = bm25.chunks();
+                noiseFloorForFilter = noiseFloor;
+            } else {
+                // 退回词法路 + 噪声地板（与未启用 Embedding 行为一致）
+                PluginLoggerUtil.debug("知识库", "Embedding 无 ≥min_similarity 片段，退回 BM25 + 噪声地板");
                 ranked = bm25.chunks();
                 noiseFloorForFilter = noiseFloor;
             }

@@ -1,14 +1,33 @@
-# BukkitFXSkill Configuration (English)
-# Sound & particle effects skill: play sounds or display particle effects (only heard/seen by the caller)
-# Used for: task completion celebration, warning alerts, atmosphere creation
+# English version of BukkitFXSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Sound & particle effects skill (BukkitFXSkill)
+# Play Minecraft sound effects or display particle effects at the caller's own location (only heard/seen by the caller).
+# Used for task completion celebration, warning alerts, atmosphere creation, etc.
+# ═══════════════════════════════════════════════════════════
 
-# This description is sent to the LLM to help it understand when to use this skill
-description: 'Play sound effects or display particle effects (only you hear/see). Supports exact enum names and fuzzy Chinese description matching. Used for task completion celebration, warning alerts, atmosphere creation, etc.'
+description: |
+  Play Minecraft sound effects or display particle effects at the caller's own location (only you hear/see them), for purely cosmetic scenarios such as task completion celebration, warning alerts, and atmosphere creation.
+  Triggers: when the player wants to give themselves some feedback effect, e.g. "play a level-up sound", "spawn some heart particles to celebrate", "play a warning sound".
+  Reverse boundary: NOT for any gameplay mechanic (healing/teleport/giving items go to the corresponding skills), and NOT for querying statistics or real-time status.
 
 action_descriptions:
-  play_sound: 'Play a Minecraft sound effect (only you hear). Required parameters: sound (sound enum name or description, e.g. villager sound, level-up), volume (0.0-1.0, default 1.0), pitch (0.5-2.0, default 1.0).'
-  spawn_particle: 'Display particle effects (only you see). Required parameters: particle (particle enum name or description, e.g. hearts, fireworks), count (1-100, default 10), offset_x/y/z (0.0-2.0, default 0.5).'
+  play_sound: |
+    Function: Play a Minecraft sound effect at the player's own location (only you hear).
+    Parameters:
+      - sound (required, enum name): sound enum name (e.g. ENTITY_VILLAGER_YES) or description (e.g. villager sound, level-up); the system auto-matches the closest enum value.
+      - volume (optional, default 1.0, decimal number): volume; valid range 0.0-1.0, clamped automatically when out of range.
+      - pitch (optional, default 1.0, decimal number): pitch; valid range 0.5-2.0, clamped automatically when out of range.
+    Returns data fields: none (only message echoes the sound, volume, pitch and play location).
+  spawn_particle: |
+    Function: Display particle effects at the player's own location (only you see).
+    Parameters:
+      - particle (required, enum name): particle enum name or description (e.g. hearts, fireworks); the system auto-matches the closest enum value.
+      - count (optional, default 10, integer): particle count; valid range 1-100, clamped automatically when out of range.
+      - offset_x (optional, default 0.5, decimal number): X-axis spread.
+      - offset_y (optional, default 0.5, decimal number): Y-axis spread.
+      - offset_z (optional, default 0.5, decimal number): Z-axis spread.
+    Returns data fields: none (only message echoes the particle, count, spread and play location).
 
 hints:
-  - "**Enum parameters**: sound and particle parameters support exact enum names (e.g. ENTITY_VILLAGER_YES) or descriptive text, the system will auto-match the closest enum value."
-  - "**Parameter ranges**: Volume 0.0-1.0, pitch 0.5-2.0, particle count 1-100, spread range 0.0-2.0."
+  - |
+    Both actions are "self cosmetic" effects — they only affect the caller, do not affect other players, and produce no gameplay effect (no health/item/position changes). Do not use this skill when the intent is to affect others or the whole server.

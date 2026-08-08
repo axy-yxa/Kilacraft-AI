@@ -1,0 +1,40 @@
+# ═══════════════════════════════════════════════════════════
+# 跨玩家上下线订阅技能（PlayerWatchSkill）
+# 玩家订阅其他玩家的上线/下线通知，被订阅者状态变化时 AI 主动提醒订阅者。
+# 订阅仅在订阅者在线期间有效，下线后自动清除（不持久化、重启不恢复）。
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  订阅其他玩家的上线/下线通知，被订阅玩家状态变化时 AI 主动提醒订阅者。
+  触发场景：玩家想被通知某个其他玩家的上下线时，如「盯 Steve 上线」「Alex 上线告诉我」「监视某玩家的上下线」「取消对 X 的订阅」「我订阅了谁/列出我的订阅」「清空全部订阅」。
+  反向边界：不用于监控玩家自身的持续状态（血量/物品/位置等，那属于玩家自定义监听类技能）。
+
+action_descriptions:
+  subscribe: |
+    功能：订阅指定玩家的上线/下线通知。
+    参数：
+      - target_player（必填，玩家名）：被订阅玩家名。
+      - trigger_event（可选，默认 BOTH，字符串，取值 JOIN/QUIT/BOTH）：触发事件，JOIN=仅上线、QUIT=仅下线、BOTH=两者。
+      - note（可选，字符串）：订阅备注，会随通知一同显示。当玩家表达了事件触发后的后续动作意图（如"上线后传送回家"）时，必须把该意图写入此参数——系统会在事件触发时随通知展示，由玩家收到提醒后手动发起
+    返回 data 字段：target_player、trigger_event、subscription_count。
+  unsubscribe: |
+    功能：取消对指定玩家的订阅。
+    参数：
+      - target_player（可选，玩家名）：被取消订阅的玩家名；省略时按 trigger_event 取消所有匹配事件类型的订阅。
+      - trigger_event（可选，字符串，取值 JOIN/QUIT/BOTH）：仅取消该事件类型；不填则取消该玩家的全部订阅。
+    前置条件：target_player 与 trigger_event 至少给一个；要清空全部订阅请用 unsubscribe_all。
+    返回 data 字段：target_player、removed_count。
+  list: |
+    功能：查询当前玩家名下所有活跃订阅。
+    参数：无。
+    返回 data 字段：subscriptions（数组，每项含 target_player/trigger_event/online/note/created_at）、total。
+  unsubscribe_all: |
+    功能：取消当前玩家的所有订阅。
+    参数：无。
+    返回 data 字段：removed_count。
+
+hints:
+  - |
+    这是一个「社交通知」能力：单向订阅关系，被订阅方不感知、可随时单方取消。订阅者下线后所有订阅自动失效，不会跨会话残留、不随重启恢复。
+  - |
+    trigger_event 只接受 JOIN/QUIT/BOTH 三个值（大小写不敏感），省略时默认 BOTH；unsubscribe 不填 trigger_event 表示取消该玩家的全部事件类型订阅。

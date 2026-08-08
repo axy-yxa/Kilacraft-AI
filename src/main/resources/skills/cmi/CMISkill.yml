@@ -1,23 +1,66 @@
-# CMISkill 技能配置
-# 此文件由插件自动生成，可根据需要修改
+# ═══════════════════════════════════════════════════════════
+# CMI 插件集成技能（CMISkill）
+# 对接 CMI 插件的只读查询与传送操作：家/地标/玩家信息/套装/在线玩家查询，以及传送到家/地标/发送 TPA。
+# 依赖：第三方插件 CMI（isAvailable 运行时闸门）。
+# 权限：kilacraft.cmi.query 为基础查询权限（Skill 级闸门）；传送类操作另需 kilacraft.cmi.teleport（动作级闸门）。
+# ═══════════════════════════════════════════════════════════
 
-# 此描述会发送给LLM，帮助其理解何时调用此技能
-description: "查询CMI插件信息和执行传送操作。包括查询玩家的家列表、公共地标列表、玩家增强信息（游戏时长、AFK状态、隐身状态）、可用套装列表、在线玩家状态（含AFK/隐身），以及传送到家、传送到地标、发送传送请求。当用户询问家的信息、地标列表、某个玩家在线多久了、是否AFK、是否隐身、有什么套装可用、谁在线、传送到家、去地标、传送到某玩家时使用此技能。"
+description: |
+  CMI 插件集成技能（依赖第三方 CMI 插件）。查询：自己的家列表（query_homes）、公共地标列表（query_warps）、自身 CMI 增强信息含 AFK/隐身/飞行状态（query_player_info）、可用套装列表（query_kits）、在线玩家含 AFK/隐身标记（query_online_players）；传送：回自己的家（teleport_home）、去公共地标（teleport_to_warp）、向目标玩家发起 TPA 传送请求（send_tp_request）。
+  触发场景：用户说"我有哪些家"、"家列表"、"地标/warp"、"我在线多久了"、"我是否 AFK/隐身"、"有什么套装/kit"、"谁在线"、"回家"、"去 spawn"、"tpa 到 Steve"。
+  反向边界：仅覆盖以上查询与传送。CMI 的其他功能（传送点设置、家管理、权限等）不在此技能范围；"把家删了""设置 spawn"等管理类操作本技能不支持。
 
-# 动作描述（Map 格式，key=动作名称，value=动作描述）
-# 每个动作的描述会发送给LLM，帮助其选择正确的action并提取参数
 action_descriptions:
-  query_homes: "【仅查询自己】查询玩家自己的家列表，返回每个家的名称和坐标。返回的 data 中包含 homes 字段（家数组，每个家包含 home_name、world、x、y、z 字段）和 count 字段（家数量），可供后续步骤引用。当用户问'我的家'、'我有哪些家'、'家列表'时使用"
-  query_warps: "查询服务器公共地标列表，返回每个地标的名称和坐标。返回的 data 中包含 warps 字段（地标数组，每个地标包含 warp_name、world、x、y、z 字段）和 count 字段（地标数量），可供后续步骤引用。当用户问'地标'、'warp列表'、'有哪些地标可以传送'时使用"
-  query_player_info: "【仅查询自己】查询玩家自己的CMI增强信息（游戏时长、AFK状态、隐身状态、飞行状态、游戏模式等）。返回的 data 中包含 name、display_name、playtime_formatted、afk（布尔）、vanished（布尔）、fly（布尔）、game_mode 字段，可供后续步骤引用。当用户问'我在线多久了'、'我是否AFK'、'我是否隐身'时使用"
-  query_kits: "查询服务器可用的套装列表。返回的 data 中包含 kits 字段（套装名称列表）和 count 字段（套装数量），可供后续步骤引用。当用户问'有什么套装'、'礼包列表'、'kit列表'时使用"
-  query_online_players: "查询在线玩家列表（CMI增强版，包含AFK状态和隐身状态标记）。返回的 data 中包含 players 字段（玩家列表，每个玩家包含 name、afk、vanished 字段）和 count 字段（玩家数量），可供后续步骤引用。当用户问'谁在线'、'在线玩家'、'哪些人在线且不是AFK'时使用"
-  teleport_home: "传送到玩家自己的家。需要参数：home_name（家的名称）。**前置条件**：必须先调用 query_homes 获取家列表，从返回的 data.homes 中选择 home_name 字段作为参数。**重要**：如果用户未指定家名（如'回家'、'传送到家'），必须识别为多步骤任务（先query_homes再teleport_home），绝不能作为单意图调用。如果用户只有1个家则自动选择；如果有多个家则列出供用户选择。需要 kilacraft.cmi.teleport 权限"
-  teleport_to_warp: "传送到公共地标。需要参数：warp_name（地标名称）。**前置条件**：必须先调用 query_warps 获取地标列表，从返回的 data.warps 中选择 warp_name 字段作为参数。**重要**：如果用户未指定地标名（如'去地标'、'随便传个地标'），必须识别为多步骤任务（先query_warps再teleport_to_warp），绝不能作为单意图调用。需要 kilacraft.cmi.teleport 权限"
-  send_tp_request: "发送传送请求给目标玩家（TPA），需要对方同意才会传送。需要参数：target_player（目标玩家名称）。需要 kilacraft.cmi.teleport 权限"
+  query_homes: |
+    功能：查询玩家自己的家列表，返回每个家的名称与坐标。
+    参数：无。
+    返回 data 字段：homes（数组，每项含 home_name/world/x/y/z）、count（数值（整数）：家数量）。
 
-# 额外提示信息（用于指导 LLM 正确使用技能）
+  query_warps: |
+    功能：查询服务器公共地标列表，返回每个地标的名称与坐标。
+    参数：无。
+    返回 data 字段：warps（数组，每项含 warp_name/world/x/y/z）、count（数值（整数）：地标数量）。
+
+  query_player_info: |
+    功能：查询当前玩家自己的 CMI 增强信息（游戏时长、AFK 状态、隐身状态、飞行状态、游戏模式等）。
+    参数：无。
+    返回 data 字段：name、display_name、playtime_ms（数值（整数），单位毫秒）、afk（布尔）、vanished（布尔）、fly（布尔）、game_mode。
+
+  query_kits: |
+    功能：查询服务器可用的套装列表。
+    参数：无。
+    返回 data 字段：kits（数组，每项为套装名称字符串）、count（数值（整数）：套装数量）。
+
+  query_online_players: |
+    功能：查询在线玩家列表（CMI 增强版，含 AFK 状态与隐身状态标记）。
+    参数：无。
+    返回 data 字段：players（数组，每项含 name/afk/vanished）、count（数值（整数）：玩家数量）。
+
+  teleport_home: |
+    功能：传送到玩家自己的家。
+    参数：
+      - home_name（必填，字符串）：家的名称。
+    前置条件：当玩家未指定家名时，必须在意图识别阶段构建多步骤任务（step_0: query_homes 获取家列表 → step_1: teleport_home，home_name 用 {step_0.homes[0].home_name} 占位符引用查询结果）。home_name 始终必填，绝不留空或设为 null。
+
+  teleport_to_warp: |
+    功能：传送到公共地标。
+    参数：
+      - warp_name（必填，字符串）：地标名称。
+    前置条件：当玩家未指定地标名时，必须在意图识别阶段构建多步骤任务（step_0: query_warps 获取地标列表 → step_1: teleport_to_warp，warp_name 用 {step_0.warps[0].warp_name} 占位符引用查询结果）。
+
+  send_tp_request: |
+    功能：向目标玩家发送传送请求（TPA），需对方同意才会传送。
+    参数：
+      - target_player（必填，玩家名）：目标玩家名称。
+
 hints:
-  - "**target_player 通用规则（极其重要）**：AFKTask 的 target_player 参数可以是任意玩家名称（不限于玩家自己）。如果用户说\"帮我盯着我自己\"、\"帮我盯着我\"等监控自己的需求，应主动识别为监控自己场景，在 entities 中填入当前玩家的名称作为 target_player 值。如果用户说\"帮我盯着xxx\"（xxx 为其他玩家名），应提取目标玩家名称并填入。如果用户未明确指定目标玩家但上下文中提到了某个玩家名称，应优先使用上下文中的玩家名"
-  - "**前置查询约束与占位符格式（极其重要）**：teleport_home 必须先调用 query_homes，teleport_to_warp 必须先调用 query_warps。不要凭空编造家名或地标名。**占位符格式说明**：query_homes 返回 homes 数组，query_warps 返回 warps 数组。在多步骤任务中引用查询结果时，必须使用数组索引占位符，如 {step_X.homes[0].home_name} 取第一个家的名称，{step_X.warps[0].warp_name} 取第一个地标名称。不存在 {step_X.home_name} 或 {step_X.warp_name} 这种直接字段，写成那样会解析失败。**用户明确指定名称时**：当用户明确指定了具体名称（如\"回名叫base的家\"、\"去皮肤站地标\"），应在单意图调用中直接将名称字符串填入 entities（如 home_name=base），无需占位符或前置查询。当用户未指定名称时（如\"回家\"、\"去地标\"、\"随便传个\"），应输出多步骤TaskPlan（先query再teleport），使用数组索引占位符引用查询结果。"
-  - "**多步骤任务强制规则**：teleport_home 和 teleport_to_warp 的 home_name/warp_name 参数不能为空或null。当用户未指定具体名称时（如'回家'、'去地标'、'随便传一个'），必须输出多步骤TaskPlan（先query再teleport），禁止输出单意图。只有用户明确指定了名称（如'回名叫base的家'、'去皮肤站地标'）时才能作为单意图直接调用。查询需 kilacraft.cmi.query 权限，传送需 kilacraft.cmi.teleport 权限"
+  - |
+    前置查询约束：teleport_home 必须先调用 query_homes，teleport_to_warp 必须先调用 query_warps。不要凭空编造家名或地标名。
+  - |
+    占位符格式说明：query_homes 返回 homes 数组，query_warps 返回 warps 数组。在多步骤任务中引用查询结果时，必须使用数组索引占位符，如 {step_X.homes[0].home_name} 取第一个家的名称，{step_X.warps[0].warp_name} 取第一个地标名称。不存在 {step_X.home_name} 或 {step_X.warp_name} 这种直接字段，写成那样会解析失败。
+  - |
+    用户明确指定名称时：当用户明确指定了具体名称（如"回名叫 base 的家"、"去皮肤站地标"），应在单意图调用中直接将名称字符串填入 entities（如 home_name=base），无需占位符或前置查询。
+  - |
+    多步骤任务强制规则：teleport_home 和 teleport_to_warp 的 home_name/warp_name 参数不能为空或 null。当用户未指定具体名称时（如"回家"、"去地标"、"随便传一个"），必须输出多步骤 TaskPlan（先 query 再 teleport），禁止输出单意图。只有用户明确指定了名称（如"回名叫 base 的家"、"去皮肤站地标"）时才能作为单意图直接调用。
+  - |
+    传送结果由 CMI 处理：teleport_home、teleport_to_warp、send_tp_request 通过 CMI 命令执行，受 CMI 自身的权限、冷却与安全检查保护，技能仅发起请求，不保证传送必然成功。

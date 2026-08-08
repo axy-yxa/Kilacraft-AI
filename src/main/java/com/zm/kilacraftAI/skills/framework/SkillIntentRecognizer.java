@@ -5,14 +5,17 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.common.util.*;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
+import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
+import com.zm.kilacraftAI.common.util.LogSnippetUtil;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.IntentPromptConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
-import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
 import com.zm.kilacraftAI.skills.framework.resume.PendingAction;
 import com.zm.kilacraftAI.skills.framework.resume.PendingResume;
 import com.zm.kilacraftAI.skills.framework.task.TaskPlan;
@@ -25,6 +28,9 @@ import java.util.regex.Pattern;
 
 /**
  * 技能意图识别器 - 使用 LLM 识别用户意图
+ *
+ * @author Zm_Mmm
+ * @since 2026-03-31
  */
 public class SkillIntentRecognizer {
 
@@ -44,7 +50,9 @@ public class SkillIntentRecognizer {
         StringBuilder sb = new StringBuilder();
         int index = 1;
         for (Skill skill : skillManager.getAvailableSkills(caller)) {
-            sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(skill.getDescription()).append("\n");
+            // 实现了 CallerDescriptionProvider 的 Skill 可按调用者权限定制描述（如 CommandSkill 注入命令摘要）
+            String description = skill instanceof CallerDescriptionProvider cdp ? cdp.getCallerDescription(caller) : skill.getDescription();
+            sb.append(index++).append(". ").append(skill.getName()).append(" - ").append(description).append("\n");
         }
         return sb.toString();
     }
@@ -78,20 +86,16 @@ public class SkillIntentRecognizer {
                     sb.append("    - ").append(hint).append("\n");
                 }
             }
+
+            if (skill instanceof DynamicContextProvider dcp) {
+                String dynCtx = dcp.getDynamicContext(caller);
+                if (dynCtx != null && !dynCtx.isBlank()) {
+                    sb.append(dynCtx).append("\n");
+                }
+            }
         }
 
         return sb.toString();
-    }
-
-    /**
-     * 获取所有可用 Skill 的名称集合（经过权限预检过滤）
-     */
-    private Set<String> getAllSkillNames(Player caller) {
-        Set<String> names = new HashSet<>();
-        for (Skill skill : skillManager.getAvailableSkills(caller)) {
-            names.add(skill.getName());
-        }
-        return names;
     }
 
     /**
@@ -168,13 +172,13 @@ public class SkillIntentRecognizer {
     /**
      * 识别用户意图（两阶段：Phase 1 Skill 分类 → Phase 2 Action 选择 + 参数提取）
      *
-     * @param userInput  用户输入
-     * @param history    对话历史（用于上下文理解，可选）
-     * @param playerName 当前玩家名称（用于提示词注入，可为 null 表示控制台）
-     * @param caller     调用者（Player），用于权限预检过滤 Skill 描述，null 表示控制台
+     * @param userInput 用户输入
+     * @param history   对话历史（用于上下文理解，可选）
+     * @param caller    调用者（Player），用于权限预检过滤 Skill 描述；
+     *                  null 表示控制台。意图识别不注入玩家画像/实时状态（见 GenericLLMProvider.buildDynamicContext）
      * @return 识别结果（可能是 SkillIntent 或 TaskPlan，异步）
      */
-    public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history, String playerName, Player caller) {
+    public CompletableFuture<Object> recognizeIntent(String userInput, Deque<ConversationManager.Message> history, Player caller) {
         if (configManager == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -185,45 +189,34 @@ public class SkillIntentRecognizer {
             return CompletableFuture.completedFuture(null);
         }
 
-        // 构建用户提示词
-        String userPrompt = buildUserPrompt(userInput, history, playerName);
+        // 构建用户提示词（对话历史走 messages 数组，不拼进文本）
+        String userPrompt = buildUserPrompt(userInput);
+        // 历史快照（截断到配置轮数），作为 messages 数组注入 Phase1/Phase2
+        Deque<ConversationManager.Message> recentHistory = snapshotRecentHistory(history);
 
         // 静默 Handler：意图识别不向玩家输出
         AIResponseHandler handler = buildSilentHandler("意图识别");
 
         // === Phase 1：Skill 分类（关闭知识检索） ===
         String phase1Skills = buildPhase1SkillDescription(caller);
-        String phase1SystemPrompt = withPlayerMeta(promptConfigManager.buildPhase1SystemPrompt(phase1Skills), caller);
-
+        // system 保持纯静态（角色定义+技能列表末尾）；意图识别不注入画像/实时状态（buildDynamicContext 按场景短路）
         PluginLoggerUtil.debug("意图识别", "Phase 1 Skill 分类开始");
 
-        // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
-//        PluginLoggerUtil.warn("意图识别", "Phase 1提示词: {}", phase1SystemPrompt);
-
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase1SystemPrompt, false, false, true).thenCompose(phase1Response -> {
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, recentHistory, handler, promptConfigManager.buildPhase1SystemPrompt(phase1Skills), false, true, true, CacheCallTypeEnum.INTENT_PHASE1).thenCompose(phase1Response -> {
             Set<String> selectedSkills = parsePhase1Response(phase1Response);
 
             // 快速路径：无效意图，不调 Phase 2
             if (selectedSkills.isEmpty()) {
                 PluginLoggerUtil.debug("意图识别", "Phase 1 判定为非技能请求");
-                return CompletableFuture.completedFuture(createInvalidIntent(I18nService.tr("非技能请求")));
+                return CompletableFuture.completedFuture(createInvalidIntent(I18nService.tr("非技能请求"), false));
             }
 
             // === Phase 2：Action 选择 + 参数提取（开启知识检索） ===
-            // AFK 挂机任务特殊处理：callback 的 condition_plan 和 callback_steps 可以引用任意 Skill（包括 SPI 注册的），
-            // 但 Phase 1 可能漏选这些 Skill。因此当 AFKTask 被选中时，Phase 2 必须拿到全量 Skill 的完整信息，
-            // 确保 LLM 能为 condition_plan 和 callback_steps 选择正确的技能和 API。
-            boolean hasAfkTask = selectedSkills.contains("AFKTask");
-            Set<String> phase2SkillFilter = hasAfkTask ? getAllSkillNames(caller) : selectedSkills;
-            String phase2Skills = buildPhase2SkillDescription(caller, phase2SkillFilter);
-            String phase2SystemPrompt = withPlayerMeta(promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills), caller);
+            String phase2Skills = buildPhase2SkillDescription(caller, selectedSkills);
 
             PluginLoggerUtil.debug("意图识别", "Phase 2 开始，选中技能: {}", selectedSkills);
 
-            // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
-//            PluginLoggerUtil.warn("意图识别", "Phase 2提示词: {}", phase2SystemPrompt);
-
-            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, handler, phase2SystemPrompt, true, false, true).thenApply(phase2Response -> {
+            return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, recentHistory, handler, promptConfigManager.buildSystemPrompt(phase2Skills, selectedSkills), true, true, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(phase2Response -> {
                 PluginLoggerUtil.debug("意图识别", "Phase 2 完成");
                 // 解析 LLM 响应
                 return parseIntentFromResponse(phase2Response);
@@ -276,12 +269,11 @@ public class SkillIntentRecognizer {
      * 强制技能，产生的步骤必属该技能，由调用方交 TaskExecutor 执行。
      * userInput       玩家输入（参数提取来源）
      * history         对话历史（可选，用于上下文理解）
-     * playerName      玩家名（提示词注入）
-     * caller          调用者
+     * caller          调用者（玩家名经 Provider 注入）
      * forcedSkillName 强制的技能名
      * 返回 SkillIntent / TaskPlan；技能不存在/无权限/LLM 不可用/解析失败返回 null。
      */
-    public CompletableFuture<Object> recognizeForcedSkill(String userInput, Deque<ConversationManager.Message> history, String playerName, Player caller, String forcedSkillName) {
+    public CompletableFuture<Object> recognizeForcedSkill(String userInput, Deque<ConversationManager.Message> history, Player caller, String forcedSkillName) {
         if (configManager == null || forcedSkillName == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -302,14 +294,14 @@ public class SkillIntentRecognizer {
             return CompletableFuture.completedFuture(null);
         }
 
-        String userPrompt = buildUserPrompt(userInput, history, playerName);
+        String userPrompt = buildUserPrompt(userInput);
+        Deque<ConversationManager.Message> recentHistory = snapshotRecentHistory(history);
         Set<String> selected = Set.of(forcedSkillName);
         String phase2Skills = buildPhase2SkillDescription(caller, selected);
-        String phase2SystemPrompt = withPlayerMeta(promptConfigManager.buildSystemPrompt(phase2Skills, selected), caller);
 
         PluginLoggerUtil.debug("意图识别", "强制技能 Phase 2 开始：{}", forcedSkillName);
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, "IntentRecognizer", null, buildSilentHandler("强制技能识别"), phase2SystemPrompt, true, false, true).thenApply(response -> {
+        return llmProvider.processRequestWithCustomSystemPrompt(userPrompt, caller, recentHistory, buildSilentHandler("强制技能识别"), promptConfigManager.buildSystemPrompt(phase2Skills, selected), true, true, true, CacheCallTypeEnum.INTENT_PHASE2).thenApply(response -> {
             Object parsed = parseIntentFromResponse(response);
             if (parsed instanceof SkillIntent intent && forcedSkillName.equals(intent.getSkillName())) {
                 // 玩家显式指定技能：置信度置 1.0 通过 isValid 校验，绕过 Phase1 不确定性
@@ -330,14 +322,15 @@ public class SkillIntentRecognizer {
      *
      * @param userInput 玩家本轮原始输入
      * @param slot      活跃续体
+     * @param caller    调用者（Player），用于注入运行时上下文，null 表示控制台
      * @return 恢复动作，或 null（无关 / 解析失败）
      */
-    public CompletableFuture<PendingAction> classifyPendingResponse(String userInput, PendingResume slot) {
+    public CompletableFuture<PendingAction> classifyPendingResponse(String userInput, PendingResume slot, Player caller) {
         if (slot == null) {
             return CompletableFuture.completedFuture(null);
         }
         // 关键词短路：明显的确认/取消词直接分类，免 LLM 调用
-        PendingAction keywordMatch = classifyByKeyword(userInput, configManager == null || "zh".equals(configManager.getLanguage()));
+        PendingAction keywordMatch = classifyByKeyword(userInput, I18nService.isZh());
         if (keywordMatch != null) {
             PluginLoggerUtil.debug("意图识别", "待确认续体关键词短路：{} → {}", userInput, keywordMatch.getType());
             return CompletableFuture.completedFuture(keywordMatch);
@@ -347,12 +340,15 @@ public class SkillIntentRecognizer {
             return CompletableFuture.completedFuture(null);
         }
 
-        String systemPrompt = promptConfigManager.buildPendingClassifyPrompt(slot.getSkillName(), slot.getAction(), slot.getMessage());
+        // system 保持纯静态（分类契约）；每请求变化的待处理操作描述拼入 user 消息，作为玩家本轮回复的前置上下文
+        String systemPrompt = promptConfigManager.getPendingClassifyPrompt();
+        String pendingOpContext = promptConfigManager.buildPendingOpContext(slot.getSkillName(), slot.getAction(), slot.getMessage());
+        String userContent = pendingOpContext + "\n" + I18nService.tr("玩家本轮回复：") + userInput;
         AIResponseHandler handler = buildSilentHandler("待确认续体分类");
 
         PluginLoggerUtil.debug("意图识别", "待确认续体分类开始：{}.{}", slot.getSkillName(), slot.getAction());
 
-        return llmProvider.processRequestWithCustomSystemPrompt(userInput, "IntentRecognizer", null, handler, systemPrompt, false, false, true).thenApply(this::parsePendingAction);
+        return llmProvider.processRequestWithCustomSystemPrompt(userContent, caller, null, handler, systemPrompt, false, true, true, CacheCallTypeEnum.PENDING_RESUME).thenApply(this::parsePendingAction);
     }
 
     /**
@@ -433,7 +429,7 @@ public class SkillIntentRecognizer {
     /**
      * 解析待确认续体分类响应。
      *
-     * <p>包级可见以供单元测试直接覆盖 JSON 解析分支。</p>
+     * <p>包级可见，便于测试直接覆盖 JSON 解析分支。</p>
      *
      * @param response LLM 响应文本
      * @return 恢复动作，或 null（none / 解析失败）
@@ -478,58 +474,43 @@ public class SkillIntentRecognizer {
     }
 
     /**
-     * 在 system prompt 尾部追加玩家实时元数据块（位置/状态/装备等硬事实），
-     * 帮助选 Skill、提参数与消歧义（如"帮我回去"需坐标判断是传送还是步行）。
-     * 追加而非前置：意图识别的静态提示词（角色/技能列表/规则，跨所有玩家相同）保持为可缓存前缀。
-     * 控制台（caller=null）或无元数据时原样返回。
+     * 构建用户提示词（当前输入 + 指令）。
      */
-    private static String withPlayerMeta(String systemPrompt, Player caller) {
-        if (caller == null) {
-            return systemPrompt;
-        }
-        String meta = PlayerMetaCollector.collect(caller);
-        return meta.isEmpty() ? systemPrompt : systemPrompt + "\n\n" + meta;
+    public static String buildUserPrompt(String userInput) {
+        return I18nService.tr("[当前输入]\n") + I18nService.tr("用户说：") + userInput + "\n\n" + I18nService.tr("请根据系统提示词中的规则分析用户意图，输出对应的 JSON 识别结果。");
     }
 
     /**
-     * 构建用户提示词
+     * 浅拷贝 history 快照并按意图识别配置轮数裁剪，供 Provider 作为 messages 数组注入。
+     * <p>Message 字段不可变，浅拷贝即深拷贝语义；裁剪不影响调用方的原始队列。</p>
      */
-    private String buildUserPrompt(String userInput, Deque<ConversationManager.Message> history, String playerName) {
-        StringBuilder prompt = new StringBuilder();
-
-        // 注入当前玩家上下文（供 LLM 识别"我"、"自己"等指向自身的语义）
-        if (playerName != null && !playerName.isEmpty()) {
-            prompt.append(I18nService.tr("[当前玩家上下文]\n"));
-            prompt.append(I18nService.tr("当前玩家名称：")).append(playerName).append("\n\n");
+    private Deque<ConversationManager.Message> snapshotRecentHistory(Deque<ConversationManager.Message> history) {
+        if (history == null || history.isEmpty()) {
+            return new ArrayDeque<>();
         }
-
-        // 添加对话历史
-        if (history != null && !history.isEmpty()) {
-            prompt.append(HistoryUtil.buildHistoryDisplay(history, configManager, configManager.getAgentIntentHistoryCount()));
+        int maxMessages = configManager.getAgentIntentHistoryCount() * 2;
+        Deque<ConversationManager.Message> recent = new ArrayDeque<>(history);
+        while (recent.size() > maxMessages) {
+            recent.pollFirst();
         }
-
-        // 添加当前输入
-        prompt.append(I18nService.tr("[当前输入]\n"));
-        prompt.append(I18nService.tr("用户说：")).append(userInput).append("\n\n");
-
-        // 添加指令
-        prompt.append(I18nService.tr("请根据系统提示词中的规则分析用户意图，输出对应的 JSON 识别结果。"));
-        return prompt.toString();
+        return recent;
     }
 
     /**
      * 解析 LLM 响应（支持单意图和多步骤任务）
      */
     private Object parseIntentFromResponse(String response) {
-        // Provider 错误响应以 §c 开头，真实原因已由 handleError 的 WARN 覆盖，优雅回退避免误导日志。
+        // Provider 错误响应以 §c 开头，具体原因已由 GenericLLMProvider 的 error 日志（含堆栈）覆盖，
+        // 此处附响应片段便于意图识别层独立定位。
         if (LLMResponseUtil.isErrorResponse(response)) {
-            return createInvalidIntent(I18nService.tr("非技能请求"));
+            PluginLoggerUtil.debug("意图识别", "Phase 2 收到 Provider 错误响应: {}", LogSnippetUtil.truncateForLog(response, 150));
+            return createInvalidIntent(I18nService.tr("模型调用失败"), true);
         }
         try {
             // 提取 JSON 部分
             String jsonStr = extractJson(response);
             if (jsonStr == null) {
-                return createInvalidIntent(I18nService.tr("无法解析响应为 JSON"));
+                return createInvalidIntent(I18nService.tr("无法解析响应为 JSON"), true);
             }
 
             JsonObject json;
@@ -573,7 +554,7 @@ public class SkillIntentRecognizer {
                                     }
                                 }
                             }
-                            return new SkillIntent(skillName, action, entities, 0.95, "");
+                            return new SkillIntent(skillName, action, entities, 0.95, "", readReasoning(json));
                         }
                     } catch (Exception ignored) {
                         // 降级失败，继续走正常TaskPlan解析
@@ -587,10 +568,10 @@ public class SkillIntentRecognizer {
         } catch (JsonSyntaxException | JsonIOException e) {
             // 真实解析失败（自动修复后仍失败）→ 升级 WARN，附原始响应片段方便定位
             PluginLoggerUtil.warn("意图识别", "意图识别 JSON 解析失败：{}。原始响应: {}", e.getMessage(), LogSnippetUtil.truncateForLog(response, 150));
-            return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()));
+            return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()), true);
         } catch (RuntimeException e) {
             PluginLoggerUtil.error("意图识别", "意图识别意外异常", e);
-            return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()));
+            return createInvalidIntent(I18nService.tr("解析失败：{}", e.getMessage()), true);
         }
     }
 
@@ -612,14 +593,16 @@ public class SkillIntentRecognizer {
             skillName = json.get("skill_name").getAsString();
         }
 
-        // 校验技能名称：不合法则直接返回无效意图
+        // 校验技能名称。skill_name 为 null 是无效意图格式
+        // skill_name 非 null 但未注册才是技能路径尝试过但失败，标记 [FAILURE]。
         if (skillName == null) {
             PluginLoggerUtil.debug("意图识别", "Phase 2 未返回 skill_name");
-            return createInvalidIntent(I18nService.tr("技能名称无效"));
+            // 无效意图也携带 reasoning：无技能覆盖类 invalid 由下游注入普通 AI 的 [识别说明]，避免幻觉声称执行
+            return createInvalidIntent(I18nService.tr("技能名称无效"), false, readReasoning(json));
         }
         if (!isValidSkillName(skillName)) {
             PluginLoggerUtil.warn("意图识别", "Phase 2 返回了不存在的技能名称: {}，已拒绝执行", skillName);
-            return createInvalidIntent(I18nService.tr("技能名称无效"));
+            return createInvalidIntent(I18nService.tr("技能名称无效"), true);
         }
 
         String action = null;
@@ -643,7 +626,18 @@ public class SkillIntentRecognizer {
                 }
             }
         }
-        return new SkillIntent(skillName, action, entities, confidence, "");
+        return new SkillIntent(skillName, action, entities, confidence, "", readReasoning(json));
+    }
+
+    /**
+     * 读取 LLM reasoning 字段（识别理由原文）。reasoning 可能说明任务部分因无对应能力而未达成，
+     * 由 {@code AnalysisSummary} 注入二次分析提示词，供二次分析如实转达能力缺口。
+     */
+    private String readReasoning(JsonObject json) {
+        if (json.has("reasoning") && !json.get("reasoning").isJsonNull()) {
+            return json.get("reasoning").getAsString();
+        }
+        return null;
     }
 
     /**
@@ -652,7 +646,7 @@ public class SkillIntentRecognizer {
     private TaskPlan parseTaskPlanFromResponse(JsonObject json) {
         try {
             String goal = json.get("goal").getAsString();
-            TaskPlan plan = new TaskPlan(goal);
+            TaskPlan plan = new TaskPlan(goal, readReasoning(json));
 
             // 解析步骤列表
             if (json.has("steps") && json.get("steps").isJsonArray()) {
@@ -729,11 +723,24 @@ public class SkillIntentRecognizer {
     }
 
     /**
-     * 创建无效的意图
+     * 创建无效的意图。
+     *
+     * @param reason      无效原因（写入 rawInput 字段）
+     * @param skillFailed 是否为「技能路径尝试过但失败」（解析失败/技能名无效等）。
+     *                    true 时 rawInput 以 §c 前缀标记（复用 {@link LLMResponseUtil} 错误信号协议），
+     *                    供下游 {@code dispatchIntentResult} 用 {@code isErrorResponse} 判定是否注入 [FAILURE]；
+     *                    false 表示非技能请求（闲聊/现实话题/Provider 错误），静默回退普通对话。
+     * @param reasoning  LLM reasoning 原文（可为 null）。非空时由下游注入普通 AI 的 [识别说明] 区域，
+     *                    让普通 AI 知晓意图识别判定与原因（如"无技能覆盖"），避免在确认语境下幻觉声称已执行。
      */
-    private SkillIntent createInvalidIntent(String reason) {
+    private SkillIntent createInvalidIntent(String reason, boolean skillFailed, String reasoning) {
         PluginLoggerUtil.debug("意图识别", "创建无效意图：{}", reason);
-        return new SkillIntent(null, null, new HashMap<>(), 0.0, reason);
+        String rawInput = skillFailed ? LLMResponseUtil.errorResponse(reason) : reason;
+        return new SkillIntent(null, null, new HashMap<>(), 0.0, rawInput, reasoning);
+    }
+
+    private SkillIntent createInvalidIntent(String reason, boolean skillFailed) {
+        return createInvalidIntent(reason, skillFailed, null);
     }
 
     /**

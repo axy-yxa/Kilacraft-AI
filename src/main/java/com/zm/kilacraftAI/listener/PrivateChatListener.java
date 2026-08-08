@@ -19,6 +19,9 @@ import java.util.UUID;
  *
  * <p>监听私聊命令，直接增强社交关系强度。
  * 不写入 kca_server_event 表，避免数据膨胀。</p>
+ *
+ * @author Zm_Mmm
+ * @since 2026-05-27
  */
 public class PrivateChatListener implements Listener {
 

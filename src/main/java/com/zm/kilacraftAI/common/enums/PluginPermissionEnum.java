@@ -39,11 +39,6 @@ public enum PluginPermissionEnum {
     PERSONALITIES("kilacraft.personalities"),
 
     /**
-     * 查询和取消挂机任务
-     */
-    AFK("kilacraft.afk"),
-
-    /**
      * AI 命令执行（以玩家身份执行服务器命令）
      */
     COMMAND_EXECUTE("kilacraft.command.execute"),
@@ -61,12 +56,12 @@ public enum PluginPermissionEnum {
     /**
      * Bukkit 音效与粒子效果（播放音效/显示粒子）
      */
-    BUKKIT_FX("kilacraft.bukkit_fx"),
+    BUKKIT_FX("kilacraft.sound_fx"),
 
     /**
      * Bukkit 原版统计数据查询（生涯累计统计）
      */
-    BUKKIT_STATS("kilacraft.bukkit_stats"),
+    BUKKIT_STATS("kilacraft.player_stats"),
 
     /**
      * 通用工具技能 - 延迟等待（所有玩家可用）
@@ -104,14 +99,44 @@ public enum PluginPermissionEnum {
     BUKKIT_API("kilacraft.api.*"),
 
     /**
-     * 挂机任务技能
+     * Bukkit API 玩家物品栏查询（BukkitPlayerInventorySkill）
      */
-    AFK_TASK("kilacraft.afk"),
+    API_PLAYER_INVENTORY("kilacraft.api.player.inventory"),
+
+    /**
+     * Bukkit API 玩家状态查询（BukkitPlayerStatusSkill）
+     */
+    API_PLAYER_STATUS("kilacraft.api.player.status"),
+
+    /**
+     * Bukkit API 玩家基础信息查询（BukkitPlayerInfoSkill）
+     */
+    API_PLAYER_INFO("kilacraft.api.player.info"),
+
+    /**
+     * Bukkit API 世界信息查询（BukkitWorldSkill）
+     */
+    API_WORLD_INFO("kilacraft.api.world.info"),
+
+    /**
+     * Bukkit API 服务器信息查询（BukkitServerSkill）
+     */
+    API_SERVER_INFO("kilacraft.api.server.info"),
 
     /**
      * 查看定时任务运行状态
      */
     TASKS("kilacraft.tasks"),
+
+    /**
+     * 跨玩家上下线订阅（PlayerWatchSkill）
+     */
+    PLAYER_WATCH("kilacraft.player_watch"),
+
+    /**
+     * 玩家自定义监听（WatchSkill）
+     */
+    WATCH("kilacraft.watch"),
 
     /**
      * 服务器健康管理（手动采样命令 + 告警/报告通知接收 + 历史告警查询 + 外部通知渠道测试）
@@ -151,7 +176,22 @@ public enum PluginPermissionEnum {
     /**
      * 插件运行信息与配置自检（doctor 自检 + about 版本检查），与性能健康 admin.health 区分
      */
-    ADMIN_INFO("kilacraft.admin.info");
+    ADMIN_INFO("kilacraft.admin.info"),
+
+    /**
+     * 联网搜索技能（WebSearchSkill）
+     */
+    WEB_SEARCH("kilacraft.websearch"),
+
+    /**
+     * 网页抓取技能（WebFetchSkill）
+     */
+    WEB_FETCH("kilacraft.webfetch"),
+
+    /**
+     * 大模型缓存命中率统计查看
+     */
+    ADMIN_CACHE("kilacraft.admin.cache");
 
     /**
      * 权限节点

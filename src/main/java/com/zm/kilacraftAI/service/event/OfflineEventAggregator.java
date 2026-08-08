@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.service.event;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.ServerEventTypeEnum;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.db.DatabaseManager;
@@ -24,8 +25,14 @@ import java.util.function.Consumer;
  * 离线事件聚合器
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class OfflineEventAggregator {
+
+    /**
+     * 问候「上次游玩亮点」保留的事件类型：玩家会主动想被提及的高光时刻。
+     */
+    private static final Set<ServerEventTypeEnum> HIGHLIGHT_EVENT_TYPES = Set.of(ServerEventTypeEnum.PLAYER_DEFEAT_BOSS, ServerEventTypeEnum.PLAYER_ADVANCEMENT, ServerEventTypeEnum.PLAYER_COMPLETE_RAID, ServerEventTypeEnum.PLAYER_TAME_ANIMAL, ServerEventTypeEnum.PLAYER_MINE_ANCIENT_DEBRIS, ServerEventTypeEnum.PLAYER_CRAFT_ENCH_GOLDEN_APPLE, ServerEventTypeEnum.PLAYER_BUILD_WITHER, ServerEventTypeEnum.PLAYER_CATCH_TREASURE, ServerEventTypeEnum.PLAYER_CURE_VILLAGER);
 
     /**
      * 好友推荐的最低关系强度阈值
@@ -94,11 +101,8 @@ public class OfflineEventAggregator {
                 }
                 List<ServerEvent> friendEvents = friendUuids.isEmpty() ? Collections.emptyList() : serverEventDao.loadEventsForPlayers(conn, friendUuids, afterTime, maxFriendEvents);
 
-                // 上次游玩亮点
-                List<ServerEvent> highlights = serverEventDao.loadEventsBetween(conn, playerUuid, lastGreetingTime, afterTime, maxSummaryEvents);
-
-                // 上次会话时长
-                long lastSessionDurationMs = serverEventDao.loadLastSessionDuration(conn, playerUuid);
+                // 上次游玩亮点：仅保留 HIGHLIGHT_EVENT_TYPES 中的事件类型
+                List<ServerEvent> highlights = serverEventDao.loadEventsBetween(conn, playerUuid, lastGreetingTime, afterTime, maxSummaryEvents).stream().filter(e -> HIGHLIGHT_EVENT_TYPES.contains(e.getEventType())).toList();
 
                 // 离线期间全服热度
                 int globalEventCount = serverEventDao.countGlobalEventsBetween(conn, afterTime, System.currentTimeMillis());
@@ -136,7 +140,7 @@ public class OfflineEventAggregator {
                     updateReminders = Collections.emptyList();
                 }
 
-                callback.accept(new GreetingOfflineData(ownEvents, friendEvents, highlights, onlineFriends, offlineFriends, lastSessionDurationMs, globalEventCount, friendLoginCounts, healthAlerts, updateReminders));
+                callback.accept(new GreetingOfflineData(ownEvents, friendEvents, highlights, onlineFriends, offlineFriends, globalEventCount, friendLoginCounts, healthAlerts, updateReminders));
             } catch (SQLException e) {
                 PluginLoggerUtil.warn("数据库", "离线数据聚合失败: {}", e.getMessage());
                 callback.accept(GreetingOfflineData.empty());
@@ -209,11 +213,11 @@ public class OfflineEventAggregator {
      */
     public record GreetingOfflineData(List<ServerEvent> ownEvents, List<ServerEvent> friendEvents,
                                       List<ServerEvent> highlights, List<FriendStatus> onlineFriends,
-                                      List<FriendStatus> offlineFriends, long lastSessionDurationMs,
-                                      int globalEventCount, Map<String, Integer> friendLoginCounts,
-                                      List<ServerEvent> healthAlerts, List<ServerEvent> updateReminders) {
+                                      List<FriendStatus> offlineFriends, int globalEventCount,
+                                      Map<String, Integer> friendLoginCounts, List<ServerEvent> healthAlerts,
+                                      List<ServerEvent> updateReminders) {
         public static GreetingOfflineData empty() {
-            return new GreetingOfflineData(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, 0, Collections.emptyMap(), Collections.emptyList(), Collections.emptyList());
+            return new GreetingOfflineData(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), 0, Collections.emptyMap(), Collections.emptyList(), Collections.emptyList());
         }
     }
 }

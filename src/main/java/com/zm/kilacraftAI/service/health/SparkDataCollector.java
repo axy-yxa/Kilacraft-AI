@@ -38,6 +38,14 @@ public class SparkDataCollector {
     private int mspt10sConsecutiveCount = 0;
 
     /**
+     * CPU process 连续确认状态
+     *
+     * <p>与 mspt10sConsecutiveCount 对称：记录连续超过阈值的轮询次数，
+     * 达到配置值（默认 3 次）时正式触发告警。恢复正常即清零。</p>
+     */
+    private int cpuConsecutiveCount = 0;
+
+    /**
      * 检查 Spark 是否可用
      *
      * @return true 表示 Spark 已安装且 API 可用
@@ -75,7 +83,7 @@ public class SparkDataCollector {
             // MSPT → GenericStatistic<DoubleAverageInfo, MillisPerTick>
             // 双窗口采集：10s 窗口高灵敏度（捕捉突发尖峰），1m 窗口平滑趋势
             double msptMax = -1, msptMedian = -1, msptP95 = -1;
-            double mspt10sMax = -1;
+            double mspt10sMax = -1, mspt10sMedian = -1;
             try {
                 GenericStatistic<DoubleAverageInfo, StatisticWindow.MillisPerTick> msptStat = spark.mspt();
                 if (msptStat != null) {
@@ -88,6 +96,7 @@ public class SparkDataCollector {
                     DoubleAverageInfo info10s = msptStat.poll(StatisticWindow.MillisPerTick.SECONDS_10);
                     if (info10s != null) {
                         mspt10sMax = info10s.max();
+                        mspt10sMedian = info10s.median();
                     }
                 }
             } catch (Exception e) {
@@ -108,7 +117,7 @@ public class SparkDataCollector {
             // GC
             Map<String, GcInfo> gcInfo = collectGcInfo(spark);
 
-            return new HealthSnapshot(tps5s, tps1m, tps5m, msptMax, msptMedian, msptP95, mspt10sMax, cpuProcess != null ? cpuProcess : -1, cpuSystem != null ? cpuSystem : -1, gcInfo);
+            return new HealthSnapshot(tps5s, tps1m, tps5m, msptMax, msptMedian, msptP95, mspt10sMax, mspt10sMedian, cpuProcess != null ? cpuProcess : -1, cpuSystem != null ? cpuSystem : -1, gcInfo);
         } catch (Exception e) {
             PluginLoggerUtil.warn(LOG_PREFIX, I18nService.tr("采集 Spark 快照失败: {}", e.getMessage()), e);
             return emptySnapshot();
@@ -121,9 +130,10 @@ public class SparkDataCollector {
      * @param snapshot                 当前快照
      * @param thresholds               告警阈值配置
      * @param msptConsecutiveThreshold MSPT max 连续确认次数
+     * @param cpuConsecutiveThreshold  CPU process 连续确认次数
      * @return 告警列表（空表示正常）
      */
-    public List<String> checkThresholds(HealthSnapshot snapshot, Map<String, Double> thresholds, int msptConsecutiveThreshold) {
+    public List<String> checkThresholds(HealthSnapshot snapshot, Map<String, Double> thresholds, int msptConsecutiveThreshold, int cpuConsecutiveThreshold) {
         List<String> alerts = new ArrayList<>();
 
         // TPS 1m < threshold
@@ -132,25 +142,29 @@ public class SparkDataCollector {
             alerts.add("TPS 1m=" + String.format("%.1f", snapshot.tps1m()) + " < " + tpsThreshold.intValue());
         }
 
-        // MSPT max — 10s 窗口 + 连续确认机制
-        // 阈值对齐 Spark 标准：50ms 是单 tick 预算上限
-        // 连续 N 次轮询（约 30s）都超过阈值才触发
+        // MSPT max — median 门控：max 超标且 median(10s) 超标才计数
+        // max 阈值保持单 tick 预算 50ms（均匀型卡顿 max≈median≈70ms，抬高即漏报）
+        // median(10s) 区分单 tick 尖峰与健康服微抖动；不可用时（老 Spark 无 percentile）回退旧行为避免新增漏报
         Double msptMaxThreshold = thresholds.getOrDefault("mspt_max_threshold", 50.0);
+        Double msptMedianThreshold = thresholds.getOrDefault("mspt_median_threshold", 60.0);
         boolean has10sData = snapshot.mspt10sMax() > 0;
         double effectiveMax = has10sData ? snapshot.mspt10sMax() : snapshot.msptMax();
+        // 门控：median 可用时要求超标；不可用时放行
+        boolean medianGatePassed = !(snapshot.mspt10sMedian() > 0) || snapshot.mspt10sMedian() > msptMedianThreshold;
         String maxLabel = has10sData ? "MSPT max(10s)" : "MSPT max";
-        if (effectiveMax > msptMaxThreshold) {
+        if (effectiveMax > msptMaxThreshold && medianGatePassed) {
             mspt10sConsecutiveCount++;
             if (!has10sData || mspt10sConsecutiveCount >= msptConsecutiveThreshold) {
                 // 确认触发
-                alerts.add(maxLabel + "=" + String.format("%.1f", effectiveMax) + "ms > " + msptMaxThreshold.intValue() + "ms");
+                String medianInfo = snapshot.mspt10sMedian() > 0 ? " (median=" + String.format("%.1f", snapshot.mspt10sMedian()) + "ms > " + msptMedianThreshold.intValue() + "ms)" : "";
+                alerts.add(maxLabel + "=" + String.format("%.1f", effectiveMax) + "ms > " + msptMaxThreshold.intValue() + "ms" + medianInfo);
                 mspt10sConsecutiveCount = 0;
             } else {
                 // 尚未达到连续确认阈值
                 PluginLoggerUtil.debug(LOG_PREFIX, "MSPT 10s max={}ms 超过阈值，连续确认 {}/{}", String.format("%.1f", effectiveMax), mspt10sConsecutiveCount, msptConsecutiveThreshold);
             }
         } else {
-            // 恢复正常，重置连续计数
+            // 恢复正常或门控未通过，重置连续计数
             if (mspt10sConsecutiveCount > 0) {
                 PluginLoggerUtil.debug(LOG_PREFIX, "MSPT 10s max 已恢复正常，连续计数 {} → 0", mspt10sConsecutiveCount);
             }
@@ -163,10 +177,22 @@ public class SparkDataCollector {
             alerts.add("MSPT p95=" + String.format("%.1f", snapshot.msptP95()) + "ms > " + msptP95Threshold.intValue() + "ms");
         }
 
-        // CPU process > threshold
-        Double cpuThreshold = thresholds.getOrDefault("cpu_threshold", 80.0);
+        // CPU process — 阈值 + 连续确认（双防护）
+        // cpuProcess 是占整机全部核心比例；阈值 90 + 连续 3 次过滤日常波动，仅真实持续打满才告警
+        Double cpuThreshold = thresholds.getOrDefault("cpu_threshold", 90.0);
         if (snapshot.cpuProcess() > 0 && snapshot.cpuProcess() > cpuThreshold) {
-            alerts.add("CPU process=" + String.format("%.1f", snapshot.cpuProcess()) + "% > " + cpuThreshold.intValue() + "%");
+            cpuConsecutiveCount++;
+            if (cpuConsecutiveCount >= cpuConsecutiveThreshold) {
+                alerts.add("CPU process=" + String.format("%.1f", snapshot.cpuProcess()) + "% > " + cpuThreshold.intValue() + "%");
+                cpuConsecutiveCount = 0;
+            } else {
+                PluginLoggerUtil.debug(LOG_PREFIX, "CPU {}% 超过阈值，连续确认 {}/{}", String.format("%.1f", snapshot.cpuProcess()), cpuConsecutiveCount, cpuConsecutiveThreshold);
+            }
+        } else {
+            if (cpuConsecutiveCount > 0) {
+                PluginLoggerUtil.debug(LOG_PREFIX, "CPU 已恢复正常，连续计数 {} → 0", cpuConsecutiveCount);
+            }
+            cpuConsecutiveCount = 0;
         }
 
         return alerts;
@@ -210,26 +236,27 @@ public class SparkDataCollector {
     }
 
     private HealthSnapshot emptySnapshot() {
-        return new HealthSnapshot(null, null, null, -1, -1, -1, -1, -1, -1, Map.of());
+        return new HealthSnapshot(null, null, null, -1, -1, -1, -1, -1, -1, -1, Map.of());
     }
 
     /**
      * 服务器健康快照（不可变记录）
      *
-     * @param tps5s      TPS 5秒窗口
-     * @param tps1m      TPS 1分钟窗口
-     * @param tps5m      TPS 5分钟窗口
-     * @param msptMax    MSPT 最大值（1m 窗口）
-     * @param msptMedian MSPT 中位数（1m 窗口）
-     * @param msptP95    MSPT 95百分位（1m 窗口）
-     * @param mspt10sMax MSPT 最大值（10s 窗口，高灵敏度）
-     * @param cpuProcess 进程级 CPU 使用率
-     * @param cpuSystem  系统级 CPU 使用率
-     * @param gcInfo     GC 信息（按名称分组）
+     * @param tps5s         TPS 5秒窗口
+     * @param tps1m         TPS 1分钟窗口
+     * @param tps5m         TPS 5分钟窗口
+     * @param msptMax       MSPT 最大值（1m 窗口）
+     * @param msptMedian    MSPT 中位数（1m 窗口）
+     * @param msptP95       MSPT 95百分位（1m 窗口）
+     * @param mspt10sMax    MSPT 最大值（10s 窗口，高灵敏度）
+     * @param mspt10sMedian MSPT 中位数（10s 窗口，用于 max 门控——区分单 tick 尖峰与持续卡顿）
+     * @param cpuProcess    进程级 CPU 使用率
+     * @param cpuSystem     系统级 CPU 使用率
+     * @param gcInfo        GC 信息（按名称分组）
      */
     public record HealthSnapshot(Double tps5s, Double tps1m, Double tps5m, double msptMax, double msptMedian,
-                                 double msptP95, double mspt10sMax, double cpuProcess, double cpuSystem,
-                                 Map<String, GcInfo> gcInfo) {
+                                 double msptP95, double mspt10sMax, double mspt10sMedian, double cpuProcess,
+                                 double cpuSystem, Map<String, GcInfo> gcInfo) {
         /**
          * 判断是否存在任何有效数据
          */

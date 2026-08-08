@@ -18,6 +18,7 @@ import java.util.*;
  * <p>提供 {@code kca_player_profile} 表的 CRUD 操作。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class PlayerProfileDao {
 
@@ -195,29 +196,23 @@ public class PlayerProfileDao {
     }
 
     /**
-     * order_by 白名单映射
+     * order_by 白名单映射。
+     * 同时接受 total_playtime（对外友好别名，避免暴露数据库列名 _ms 后缀）与 total_playtime_ms。
      */
-    private static final Map<String, String> ORDER_BY_MAP = Map.of(
-        "login_count", "login_count",
-        "total_playtime_ms", "total_playtime_ms",
-        "last_login", "last_login"
-    );
+    private static final Map<String, String> ORDER_BY_MAP = Map.of("login_count", "login_count", "total_playtime_ms", "total_playtime_ms", "total_playtime", "total_playtime_ms", "last_login", "last_login");
 
     /**
      * 活跃玩家排行（top_active Action）
      *
      * @param conn      数据库连接
      * @param afterTime 起始时间戳（ms）—— 仅返回 last_login > afterTime 的玩家
-     * @param orderBy   排序字段（login_count / total_playtime_ms / last_login）
+     * @param orderBy   排序字段（login_count / total_playtime[_ms] / last_login）
      * @param limit     最大条数
      * @return 活跃玩家列表
      */
     public List<TopActivePlayer> queryTopActive(Connection conn, long afterTime, String orderBy, int limit) throws SQLException {
         String sqlColumn = ORDER_BY_MAP.getOrDefault(orderBy, "login_count");
-        String sql = "SELECT uuid, name, login_count, total_playtime_ms, last_login "
-            + "FROM " + tablePrefix + "player_profile "
-            + "WHERE last_login > ? "
-            + "ORDER BY " + sqlColumn + " DESC LIMIT ?";
+        String sql = "SELECT uuid, name, login_count, total_playtime_ms, last_login " + "FROM " + tablePrefix + "player_profile " + "WHERE last_login > ? " + "ORDER BY " + sqlColumn + " DESC LIMIT ?";
 
         List<TopActivePlayer> results = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -225,13 +220,7 @@ public class PlayerProfileDao {
             ps.setInt(2, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    results.add(new TopActivePlayer(
-                        UUID.fromString(rs.getString("uuid")),
-                        rs.getString("name"),
-                        rs.getInt("login_count"),
-                        rs.getLong("total_playtime_ms"),
-                        rs.getLong("last_login")
-                    ));
+                    results.add(new TopActivePlayer(UUID.fromString(rs.getString("uuid")), rs.getString("name"), rs.getInt("login_count"), rs.getLong("total_playtime_ms"), rs.getLong("last_login")));
                 }
             }
         }
@@ -246,11 +235,7 @@ public class PlayerProfileDao {
      * @return 覆盖率统计数据
      */
     public ProfileCoverageResult queryProfileCoverage(Connection conn, long afterTime) throws SQLException {
-        String sql = "SELECT "
-            + "COUNT(*) AS total_players, "
-            + "SUM(CASE WHEN profile_data IS NOT NULL AND profile_data != '' THEN 1 ELSE 0 END) AS analyzed_count, "
-            + "SUM(CASE WHEN profile_analyzed_at > ? THEN 1 ELSE 0 END) AS recently_analyzed "
-            + "FROM " + tablePrefix + "player_profile";
+        String sql = "SELECT " + "COUNT(*) AS total_players, " + "SUM(CASE WHEN profile_data IS NOT NULL AND profile_data != '' THEN 1 ELSE 0 END) AS analyzed_count, " + "SUM(CASE WHEN profile_analyzed_at > ? THEN 1 ELSE 0 END) AS recently_analyzed " + "FROM " + tablePrefix + "player_profile";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, afterTime);
@@ -276,10 +261,7 @@ public class PlayerProfileDao {
      * @return 待分析玩家列表
      */
     public List<TopActivePlayer> queryPendingAnalysis(Connection conn, long afterTime, int limit) throws SQLException {
-        String sql = "SELECT uuid, name, login_count, total_playtime_ms, last_login "
-            + "FROM " + tablePrefix + "player_profile "
-            + "WHERE last_login > ? AND (profile_data IS NULL OR profile_data = '') "
-            + "ORDER BY last_login DESC LIMIT ?";
+        String sql = "SELECT uuid, name, login_count, total_playtime_ms, last_login " + "FROM " + tablePrefix + "player_profile " + "WHERE last_login > ? AND (profile_data IS NULL OR profile_data = '') " + "ORDER BY last_login DESC LIMIT ?";
 
         List<TopActivePlayer> results = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -287,13 +269,7 @@ public class PlayerProfileDao {
             ps.setInt(2, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    results.add(new TopActivePlayer(
-                        UUID.fromString(rs.getString("uuid")),
-                        rs.getString("name"),
-                        rs.getInt("login_count"),
-                        rs.getLong("total_playtime_ms"),
-                        rs.getLong("last_login")
-                    ));
+                    results.add(new TopActivePlayer(UUID.fromString(rs.getString("uuid")), rs.getString("name"), rs.getInt("login_count"), rs.getLong("total_playtime_ms"), rs.getLong("last_login")));
                 }
             }
         }

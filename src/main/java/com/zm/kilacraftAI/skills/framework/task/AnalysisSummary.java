@@ -31,12 +31,14 @@ import java.util.List;
 public class AnalysisSummary {
 
     public static final String MARKER_USER_INPUT = "[用户输入]";
+    public static final String MARKER_RECOGNITION = "[识别说明]";
     public static final String MARKER_RESULTS = "[执行结果]";
     public static final String MARKER_STATS = "[统计]";
     public static final String MARKER_TASK_GOAL = "[任务目标]";
 
     private String userMessage;
     private String taskGoal;
+    private String reasoning;
     @Getter
     private final List<StepResult> results = new ArrayList<>();
     private int successCount;
@@ -51,6 +53,15 @@ public class AnalysisSummary {
 
     public AnalysisSummary taskGoal(String taskGoal) {
         this.taskGoal = taskGoal;
+        return this;
+    }
+
+    /**
+     * 注入意图识别理由（LLM reasoning 原文，可说明任务某部分因无对应能力而未达成）。
+     * <p>仅当非空时在提示词中输出 [识别说明] 区域；为空时输出与注入前完全一致，普通场景零漂移。</p>
+     */
+    public AnalysisSummary reasoning(String reasoning) {
+        this.reasoning = reasoning;
         return this;
     }
 
@@ -91,7 +102,7 @@ public class AnalysisSummary {
     }
 
     /**
-     * 注入事件触发描述（挂机任务回调场景）
+     * 注入事件触发描述（监听/PlayerWatch 主动通知场景）
      * <p>
      * 将事件触发描述作为第一条结果插入到 results 头部，
      * 让 LLM 二次分析时能在 [执行结果] 区域看到事件触发原因，
@@ -116,6 +127,11 @@ public class AnalysisSummary {
         if (userMessage != null && !userMessage.isEmpty()) {
             sb.append(I18nService.tr(MARKER_USER_INPUT)).append("\n");
             sb.append(userMessage).append("\n\n");
+        }
+
+        if (reasoning != null && !reasoning.isEmpty()) {
+            sb.append(I18nService.tr(MARKER_RECOGNITION)).append("\n");
+            sb.append(reasoning).append("\n\n");
         }
 
         if (taskGoal != null && !taskGoal.isEmpty()) {

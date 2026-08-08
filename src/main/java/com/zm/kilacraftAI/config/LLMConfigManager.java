@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.config;
 
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
+import com.zm.kilacraftAI.llm.LLMCompatibilityResolver;
 import lombok.Getter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -14,6 +15,7 @@ import java.io.File;
  * <p>管理独立的 llm.yml 配置文件，支持热重载。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class LLMConfigManager {
 
@@ -54,10 +56,10 @@ public class LLMConfigManager {
     private volatile String agentSystemPrompt;
     @Getter
     private volatile String agentSystemPromptEn;
+
+    // 全局预算/熔断（D6/D13）：正常使用绝对达不到，仅防 runaway。≤0 禁用治理。
     @Getter
-    private volatile String agentAnalysisPromptSuffix;
-    @Getter
-    private volatile String agentAnalysisPromptSuffixEn;
+    private volatile int budgetPerPlayerPerHour;
 
     public LLMConfigManager(KilacraftAI plugin) {
         this.plugin = plugin;
@@ -73,9 +75,9 @@ public class LLMConfigManager {
         FileConfiguration yaml = YamlConfiguration.loadConfiguration(configFile);
 
         // LLM 基础配置
-        this.apiUrl = yaml.getString("llm.api_url", "https://api.deepseek.com/v1/chat/completions");
+        this.apiUrl = LLMCompatibilityResolver.resolveApiUrl(yaml.getString("llm.api_url", "https://api.deepseek.com/v1/chat/completions"));
         this.apiKey = yaml.getString("llm.api_key", "");
-        this.model = yaml.getString("llm.model", "deepseek-chat");
+        this.model = LLMCompatibilityResolver.resolveModel(yaml.getString("llm.model", "deepseek-v4-flash"));
         this.temperature = yaml.getDouble("llm.temperature", 0.7);
         this.maxTokens = yaml.getInt("llm.max_tokens", 600);
         this.systemPrompt = yaml.getString("llm.system_prompt", "");
@@ -85,12 +87,13 @@ public class LLMConfigManager {
         this.agentEnabled = yaml.getBoolean("agent.enabled", true);
         this.agentEnableChatListener = yaml.getBoolean("agent.enable_chat_listener", true);
         this.agentEnableCommand = yaml.getBoolean("agent.enable_command", true);
-        this.agentIntentHistoryCount = yaml.getInt("agent.intent_history_count", 5);
-        this.agentAnalysisHistoryCount = yaml.getInt("agent.analysis_history_count", 2);
+        this.agentIntentHistoryCount = yaml.getInt("agent.intent_history_count", 7);
+        this.agentAnalysisHistoryCount = yaml.getInt("agent.analysis_history_count", 3);
         this.agentSystemPrompt = yaml.getString("agent.prompts.system_prompt", "");
         this.agentSystemPromptEn = yaml.getString("agent.prompts.system_prompt_en", "");
-        this.agentAnalysisPromptSuffix = yaml.getString("agent.prompts.analysis_prompt_suffix", "");
-        this.agentAnalysisPromptSuffixEn = yaml.getString("agent.prompts.analysis_prompt_suffix_en", "");
+
+        // 全局预算/熔断（D6/D13）。默认 200：正常使用绝对达不到，仅防 runaway。
+        this.budgetPerPlayerPerHour = yaml.getInt("llm.budget_per_player_per_hour", 200);
     }
 
     /**
@@ -126,13 +129,6 @@ public class LLMConfigManager {
      */
     public String getAgentSystemPromptByLanguage(boolean isChinese, String fallbackDefault) {
         return getByLanguage(isChinese, agentSystemPrompt, agentSystemPromptEn, fallbackDefault);
-    }
-
-    /**
-     * 按语言获取 Agent 分析提示词后缀
-     */
-    public String getAgentAnalysisPromptSuffixByLanguage(boolean isChinese, String fallbackDefault) {
-        return getByLanguage(isChinese, agentAnalysisPromptSuffix, agentAnalysisPromptSuffixEn, fallbackDefault);
     }
 
     /**

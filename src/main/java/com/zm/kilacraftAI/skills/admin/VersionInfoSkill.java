@@ -7,10 +7,8 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.update.UpdateChecker;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.*;
+import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -31,23 +29,26 @@ import java.util.concurrent.CompletableFuture;
  */
 public class VersionInfoSkill implements Skill {
 
+    private static final String SKILL_NAME = "version_info";
+    private static final String LOG_PREFIX = "版本更新";
+
     private final SkillConfigManager configManager;
 
     public VersionInfoSkill() {
         this.configManager = SkillConfigManager.getInstance();
-        if (configManager != null && configManager.getSkillConfig("admin", "VersionInfoSkill") == null) {
-            configManager.saveDefaultSkillConfig("admin", "VersionInfoSkill");
-            configManager.loadSingleSkillConfig("admin", "VersionInfoSkill");
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
     private SkillConfig getConfig() {
-        return configManager != null ? configManager.getSkillConfig("admin", "VersionInfoSkill") : null;
+        return configManager != null ? configManager.getSkillConfig(this) : null;
     }
 
     @Override
     public String getName() {
-        return "version_info";
+        return SKILL_NAME;
     }
 
     @Override
@@ -75,6 +76,12 @@ public class VersionInfoSkill implements Skill {
 
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
+        // 权限校验：player 为 null 视为无权限（正常调用路径必有在线 player）
+        Player caller = context.getPlayer();
+        if (caller == null || !PluginPermissionEnum.ADMIN_INFO.hasPermission(caller)) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.ADMIN_INFO.getNode())));
+        }
+
         String action = context.getAction();
         if (action == null || action.isEmpty()) {
             action = "check_update";
@@ -84,7 +91,7 @@ public class VersionInfoSkill implements Skill {
             case "check_update" -> executeCheckUpdate(context);
             case "read_changelog" -> executeReadChangelog(context);
             case "list_versions" -> executeListVersions(context);
-            default -> SkillResult.failure(I18nService.tr("未知的动作: {}", action)).toFuture();
+            default -> SkillResult.failure(I18nService.tr("未知动作: {}", action)).toFuture();
         };
     }
 
@@ -133,7 +140,7 @@ public class VersionInfoSkill implements Skill {
                 }
                 return SkillResult.success(msg.toString().trim(), dataMap);
             } catch (Exception e) {
-                PluginLoggerUtil.warn("版本更新", "check_update 失败: {}", e.getMessage());
+                PluginLoggerUtil.warn(LOG_PREFIX, "check_update 失败: {}", e.getMessage());
                 return SkillResult.failure(I18nService.tr("版本检查失败: {}", e.getMessage()));
             }
         }, FoliaCompat.getIOPool());
@@ -143,7 +150,7 @@ public class VersionInfoSkill implements Skill {
      * 读取指定版本的完整更新日志
      */
     private CompletableFuture<SkillResult> executeReadChangelog(SkillContext context) {
-        String versionRaw = context.getEntity("version");
+        String versionRaw = SkillEntityHelper.getString(context, "version");
         if (versionRaw == null || versionRaw.isBlank()) {
             return SkillResult.needInfo(I18nService.tr("请指定要查询的版本号，例如 v2.1.2")).toFuture();
         }
@@ -171,7 +178,7 @@ public class VersionInfoSkill implements Skill {
                 String message = I18nService.tr("版本 {}（发布于 {}）的更新日志：\n{}", release.tagName(), release.publishedAt().isEmpty() ? I18nService.tr("未知") : release.publishedAt(), release.body());
                 return SkillResult.success(message, dataMap);
             } catch (Exception e) {
-                PluginLoggerUtil.warn("版本更新", "read_changelog 失败: {}", e.getMessage());
+                PluginLoggerUtil.warn(LOG_PREFIX, "read_changelog 失败: {}", e.getMessage());
                 return SkillResult.failure(I18nService.tr("查询版本更新日志失败: {}", e.getMessage()));
             }
         }, FoliaCompat.getIOPool());
@@ -181,16 +188,7 @@ public class VersionInfoSkill implements Skill {
      * 列出近期所有版本
      */
     private CompletableFuture<SkillResult> executeListVersions(SkillContext context) {
-        String limitRaw = context.getEntity("limit");
-        int limit = 10;
-        if (limitRaw != null && !limitRaw.isBlank()) {
-            try {
-                limit = Integer.parseInt(limitRaw.trim());
-            } catch (NumberFormatException ignored) {
-            }
-        }
-
-        final int finalLimit = limit;
+        final int finalLimit = SkillEntityHelper.getInt(context, "limit", 10);
 
         return CompletableFuture.supplyAsync(() -> {
             UpdateChecker checker = KilacraftAI.getInstance().getUpdateChecker();
@@ -231,7 +229,7 @@ public class VersionInfoSkill implements Skill {
 
                 return SkillResult.success(sb.toString().trim(), dataMap);
             } catch (Exception e) {
-                PluginLoggerUtil.warn("版本更新", "list_versions 失败: {}", e.getMessage());
+                PluginLoggerUtil.warn(LOG_PREFIX, "list_versions 失败: {}", e.getMessage());
                 return SkillResult.failure(I18nService.tr("获取版本列表失败: {}", e.getMessage()));
             }
         }, FoliaCompat.getIOPool());

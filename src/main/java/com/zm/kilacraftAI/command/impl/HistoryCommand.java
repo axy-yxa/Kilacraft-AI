@@ -21,6 +21,9 @@ import java.util.UUID;
 /**
  * /kila history [玩家名] [页码] [-f]：查看对话历史（双维度，query.self / history.other）；-f 显示完整内容不缩略。
  * 数据源 kca_conversation，分页倒序。DB 查询在 IO 线程池执行，结果回主线程。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class HistoryCommand {
 

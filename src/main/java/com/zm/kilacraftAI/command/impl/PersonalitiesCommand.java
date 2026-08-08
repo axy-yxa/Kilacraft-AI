@@ -11,6 +11,9 @@ import java.util.Locale;
 
 /**
  * /kila personalities reload：人格配置管理（personalities 权限）。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class PersonalitiesCommand {
 

@@ -1,0 +1,94 @@
+# ═══════════════════════════════════════════════════════════
+# 玩家基础信息查询技能（BukkitPlayerInfoSkill）
+# 查询玩家自身的基础信息：位置、视线、速度、游戏模式、飞行、主手偏好、Ping、载具、瞄准/脚下方块、指南针/死亡/床点、姿势、语言、显示名。
+# 仅查询自己（SkillSecurityFilter 会拦截跨玩家参数）；查询实时状态（血量/饥饿）请用 player_status。
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  查询玩家自己的基础信息：当前坐标位置、视线位置、移动速度向量、游戏模式、飞行状态与速度、行走速度、主手偏好（左/右撇子）、网络延迟 Ping、是否在载具中、瞄准的方块、脚下方块、指南针目标、上次死亡位置、当前姿势、客户端语言、显示名称、床重生点。
+  触发场景：玩家问「我在哪」「坐标多少」「什么游戏模式」「Ping 多少」「瞄准的什么方块」「站在什么上面」「指南针指向哪」「死在哪了」「床设在哪」等基础信息查询时使用。
+  反向边界：不用于查询实时状态（血量/饥饿/经验等走 player_status），不用于查询物品栏（走 player_inventory），也不用于攻略/建议类问题。
+
+action_descriptions:
+  get_player_location: |
+    功能：获取玩家当前坐标位置和所在世界。
+    参数：无。
+    返回 data 字段：x、y、z（坐标）、world（世界名）。
+  get_player_eye_location: |
+    功能：获取玩家视线（眼睛）的精确坐标位置，常用于判断视线方向。
+    参数：无。
+    返回 data 字段：x、y、z、yaw、pitch、world。
+  get_player_velocity: |
+    功能：获取玩家当前的移动速度向量（X/Y/Z 三轴分量）。
+    参数：无。
+    返回 data 字段：x、y、z（各方向速度分量）。
+  get_player_gamemode: |
+    功能：获取玩家当前游戏模式（生存/创造/冒险/旁观）。
+    参数：无。
+    返回 data 字段：game_mode（游戏模式枚举名，SURVIVAL/CREATIVE/ADVENTURE/SPECTATOR）。
+  get_player_fly_status: |
+    功能：获取玩家是否允许飞行以及当前是否正在飞行。
+    参数：无。
+    返回 data 字段：allow_flight（是否允许飞行，布尔）、is_flying（是否正在飞行，布尔）。
+  get_player_fly_speed: |
+    功能：获取玩家的飞行速度设置。
+    参数：无。
+    返回 data 字段：fly_speed（飞行速度，0-1 之间浮点）。
+  get_player_walk_speed: |
+    功能：获取玩家的行走速度设置。
+    参数：无。
+    返回 data 字段：walk_speed（行走速度，0-1 之间浮点）。
+  get_player_main_hand: |
+    功能：获取玩家的左右手偏好（左撇子/右撇子）。
+    参数：无。
+    返回 data 字段：main_hand（主手偏好枚举名，LEFT/RIGHT）。
+  get_player_ping: |
+    功能：获取玩家的网络延迟（ping），单位毫秒。
+    参数：无。
+    返回 data 字段：ping（延迟毫秒数）。
+  get_player_vehicle: |
+    功能：获取玩家是否在载具中（船/矿车/坐骑等）。
+    参数：无。
+    返回 data 字段：in_vehicle（是否在载具中，布尔）。
+  get_player_target_block: |
+    功能：获取玩家准星瞄准的方块（最大距离 100 格）。
+    参数：无。
+    返回 data 字段：block_type（方块类型）、x、y、z（方块坐标）、world（世界名）。瞄准太远或无方块时返回空。
+  get_player_compass_target: |
+    功能：获取玩家指南针指向的目标位置。
+    参数：无。
+    返回 data 字段：x、y、z、yaw、pitch、world。
+  get_player_last_death: |
+    功能：获取玩家上次死亡的位置坐标。
+    参数：无。
+    返回 data 字段：x、y、z、yaw、pitch、world。从未死亡或服务器重启后可能返回空。
+  get_player_pose: |
+    功能：获取玩家当前的姿势状态（站立/潜行/游泳/睡觉/鞘翅飞行/旋转攻击/死亡）。
+    参数：无。
+    返回 data 字段：pose（姿势枚举名，如 STANDING/SNEAKING/SWIMMING 等）。
+  get_player_feet_block: |
+    功能：获取玩家脚下踩着的方块类型和位置（玩家实际站立的方块，在脚部下一格）。
+    参数：无。
+    返回 data 字段：block_type（方块类型）、x、y、z、world。
+  get_player_locale: |
+    功能：获取玩家客户端语言设置（如 zh_CN、en_US）。
+    参数：无。
+    返回 data 字段：locale（语言代码）。
+  get_player_display_name: |
+    功能：获取玩家的显示名称（可能含前缀/后缀，不同于 getName）。
+    参数：无。
+    返回 data 字段：display_name（显示名）。
+  get_player_bed_spawn: |
+    功能：获取玩家设置的床重生点位置（未设置返回空）。
+    参数：无。
+    返回 data 字段：x、y、z、yaw、pitch、world。未设置床点时返回空。
+
+hints:
+  - |
+    所有 action 仅查询玩家自己，参数中即使出现其他玩家名也会被安全拦截器替换为当前玩家。
+  - |
+    位置类区分：get_player_location 返回脚部坐标，get_player_eye_location 返回眼睛（视线起点）坐标，两者 Y 差约 1.625。需要精确视线方向（yaw/pitch）时用 eye_location。
+  - |
+    方块类区分：get_player_target_block 是准星瞄准的远处方块（最远 100 格），get_player_feet_block 是脚下踩着的方块。前者用于「看着什么」，后者用于「站在什么上」。
+  - |
+    get_player_last_death 和 get_player_bed_spawn 可能返回空（从未死亡/未设床点/服务器重启后）。返回空时无法提供坐标。

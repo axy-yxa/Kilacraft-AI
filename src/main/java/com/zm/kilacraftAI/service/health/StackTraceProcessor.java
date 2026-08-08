@@ -339,7 +339,7 @@ public class StackTraceProcessor {
                 } else if (wireType == 7) {
                     cis.readFixed64();
                 } else {
-                    throw new IOException("未知 wire type: " + wireType);
+                    throw new IOException(I18nService.tr("未知 wire type: {}", wireType));
                 }
             }
         }

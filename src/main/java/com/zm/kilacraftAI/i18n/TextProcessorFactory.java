@@ -1,7 +1,5 @@
 package com.zm.kilacraftAI.i18n;
 
-import com.zm.kilacraftAI.KilacraftAI;
-
 import java.util.List;
 
 /**
@@ -47,13 +45,8 @@ public final class TextProcessorFactory {
      * 根据当前语言配置创建 TextProcessor
      */
     private static TextProcessor create() {
-        try {
-            KilacraftAI plugin = KilacraftAI.getInstance();
-            if (plugin != null && plugin.getConfigManager() != null && plugin.getConfigManager().isChinese()) {
-                return new ChineseTextProcessor();
-            }
-        } catch (Exception ignored) {
-            // 插件未初始化，默认使用英文
+        if (I18nService.isZh()) {
+            return new ChineseTextProcessor();
         }
         return new EnglishTextProcessor();
     }

@@ -1,6 +1,6 @@
 # Kilacraft-AI Admin Features Guide
 
-> **Last Updated**: 2026-05-22
+> **Last Updated**: 2026-08-04
 > **Description**: Complete usage guide for Kilacraft-AI's admin features — server health monitoring, player behavior analysis, and audit log querying — including configuration reference and scenario examples
 
 ## Overview
@@ -17,8 +17,8 @@ Kilacraft-AI's admin features provide an intelligent monitoring and analysis sys
 ### System Requirements
 
 - **Recommended Plugin**: Spark (profiling plugin, soft dependency)
-- **Reasoning Model**: A valid API key must be configured in `admin.yml` (without it, health diagnostics are unavailable; other features remain unaffected)
-- **Full Dependencies**: The health monitoring daemon requires **both Spark and a reasoning model API key** to activate. If either is missing, the daemon won't start, but manual profiling commands and historical alert queries remain available (provided Spark is present)
+- **Reasoning Model**: Configured in the `thinking_model` section of `admin.yml` (API URL / key / model). **If not configured, automatically falls back to the base conversation model from `llm.yml`** to generate diagnostic reports (only url/key/model are reused; `max_tokens`/`timeout` still use diagnostic-specific values to prevent truncated reports) — lowering the barrier to entry, so health diagnostics work without a dedicated reasoning model.
+- **Full Dependencies**: The health monitoring daemon requires **both Spark and a reasoning model API key (or the fallback conversation model)** to activate. If either is missing, the daemon won't start, but manual profiling commands and historical alert queries remain available (provided Spark is present)
 - **Server Environment**: Supports Paper/Spigot and other major server cores
 - **Network**: Server must have outbound internet access (for Spark Profiler data upload and reasoning model API calls)
 
@@ -53,10 +53,12 @@ The daemon thread polls Spark API every 10 seconds, checking the following metri
 | Metric | Description | Normal Range | Alert Threshold |
 |--------|-------------|--------------|-----------------|
 | **TPS** | Ticks per second (1-min window) | 20.0 | < 15 |
-| **MSPT** | Milliseconds per tick (10s/1min window) | < 50ms | 10s window Max > 50ms (requires 3 consecutive confirmations) OR 1min window P95 > 50ms |
-| **CPU** | Process CPU usage (1-min window) | < 70% | > 80% |
+| **MSPT** | Milliseconds per tick (10s/1min window) | < 50ms | 10s window Max > 50ms **AND** 10s window median > 60ms (requires 3 consecutive confirmations) OR 1min window P95 > 100ms |
+| **CPU** | Process CPU usage (fraction of ALL machine cores, 1-min window) | < 70% | > 90% (requires 3 consecutive confirmations) |
 
-Once an alert triggers, the daemon automatically launches Spark Profiler sampling, then calls the reasoning model to generate a diagnostic report upon completion.
+> **Trigger tier**: Default thresholds target "obvious **sustained** lag players can clearly feel." Periodic single-tick micro-spikes from GC pauses and chunk saves on healthy servers are filtered out by the median gate and won't cause false alarms. Transient micro-lag (<10s) typically won't trigger either; for instant troubleshooting use manual profiling (`/kila profile`, unaffected by auto thresholds).
+
+> **About the CPU threshold**: `cpuProcess` is the process's share of **ALL machine cores**, not per-core. For example, 90% on a 2-core VPS means 1.8 cores are saturated. Active gameplay on a 2-core machine commonly runs 60~85% and won't trigger.
 
 #### Server Activity Metrics (Auxiliary Diagnostics)
 
@@ -78,9 +80,10 @@ Poll Spark API every 10s → Metric exceeds threshold → Launch Profiler sampli
 
 #### Protection Mechanisms
 
-- **MSPT Consecutive Confirmation**: MSPT max uses the 10-second window for detection, requiring 3 consecutive threshold breaches before triggering — effectively filtering transient spikes
-- **Unified Cooldown**: After one analysis completes, no new analysis triggers within 5 minutes (regardless of metric type)
-- **Rate Limiting**: Sliding time window limits automatic analysis frequency (default: max 5 per hour) to prevent resource exhaustion
+- **MSPT median gate + consecutive confirmation**: MSPT max(10s) > 50ms **AND** median(10s) > 60ms, confirmed over 3 consecutive polls. The median gate structurally filters single-tick spikes (periodic micro-jitter common on healthy servers from GC, chunk saves); falls back to max-only behavior on older Spark versions without median data
+- **CPU consecutive confirmation**: CPU > 90% requires 3 consecutive polls (~30 seconds) to trigger, filtering daily fluctuations
+- **Unified Cooldown**: After one analysis completes, no new analysis triggers within 30 minutes (regardless of metric type)
+- **Rate Limiting**: Sliding time window limits automatic analysis frequency (default: max 2 per 3 hours). Sustained anomaly over a full night (8 hours) produces ~5 reports, preventing resource exhaustion
 - **Mutex Lock**: Only one analysis task runs at a time; new alerts won't interrupt an ongoing analysis
 
 ### 1.3 Manual Profiling
@@ -270,26 +273,30 @@ All configuration is in `plugins/Kilacraft-AI/admin.yml`. Supports hot-reload vi
 health_guardian:
   enabled: true                    # Enable daemon thread
   interval_seconds: 10             # Polling interval (seconds)
-  cooldown_minutes: 5              # Post-analysis cooldown (minutes)
+  cooldown_minutes: 30             # Post-analysis cooldown (minutes)
   auto_profiler_timeout: 30        # Auto-mode sampling duration (seconds)
-  max_auto_analysis_per_window: 5  # Max auto analyses per sliding window
-  auto_analysis_window_minutes: 60 # Sliding window duration (minutes)
-  mspt_consecutive_threshold: 3    # MSPT max consecutive confirmation count
+  max_auto_analysis_per_window: 2  # Max auto analyses per sliding window
+  auto_analysis_window_minutes: 180 # Sliding window duration (minutes)
+  mspt_consecutive_threshold: 3    # MSPT max consecutive confirmation count (after max+median gate)
+  cpu_consecutive_threshold: 3     # CPU consecutive confirmation count
 
   alerts:
     tps_threshold: 15              # TPS 1-minute window threshold
-    mspt_max_threshold: 50         # MSPT max threshold (ms, 10s window)
-    mspt_p95_threshold: 50         # MSPT P95 threshold (ms, 1min window)
-    cpu_threshold: 80              # CPU process usage threshold (percent)
+    mspt_max_threshold: 50         # MSPT max threshold (ms, 10s window; requires median gate)
+    mspt_median_threshold: 60      # MSPT 10s median threshold (ms, max gate — distinguishes spikes from sustained lag)
+    mspt_p95_threshold: 100        # MSPT P95 threshold (ms, 1min window)
+    cpu_threshold: 90              # CPU process usage threshold (fraction of ALL cores, percent)
 ```
 
 **Threshold Tuning by Server Size:**
 
-| Server Size | TPS Threshold | MSPT Threshold | CPU Threshold |
-|-------------|---------------|----------------|---------------|
-| Small (1-20 players) | 18 | 40 | 70 |
-| Medium (20-100 players) | 15 | 50 | 80 |
-| Large (100+ players) | 12 | 60 | 85 |
+> The table below lists "more sensitive" reference values for server owners who want earlier alerts. Defaults already target the "obvious sustained lag" tier; most servers need no adjustment. CPU threshold is a whole-machine ratio: fewer cores = easier to reach (90% on 2 cores = 1.8 cores saturated).
+
+| Server Size | TPS | MSPT max | MSPT median | MSPT p95 | CPU |
+|-------------|-----|----------|-------------|----------|-----|
+| Small (1-20 players) | 16 | 50 | 55 | 90 | 85 |
+| Medium (20-100 players) | 15 | 50 | 60 | 100 | 90 (default) |
+| Large (100+ players) | 14 | 50 | 65 | 110 | 95 |
 
 ### 4.2 Reasoning Model
 
@@ -492,8 +499,10 @@ Adjust alert thresholds in `admin.yml`: lower thresholds for higher sensitivity,
 1. Check if alert thresholds in `admin.yml` are set too high
 2. Confirm the reasoning model API key is configured
 3. Verify Spark plugin is running normally
-4. Note the cooldown mechanism: no re-trigger within 5 minutes after the last analysis
-5. MSPT alerts require 3 consecutive threshold breaches — transient spikes won't trigger
+4. Note the cooldown mechanism: no re-trigger within 30 minutes after the last analysis
+5. MSPT alerts require max(10s) > 50ms **AND** median(10s) > 60ms over 3 consecutive polls — single-tick spikes won't trigger
+6. CPU alerts require > 90% over 3 consecutive polls (~30 seconds) — daily fluctuations won't trigger
+7. Defaults target the "obvious sustained lag" tier; transient micro-lag is intentionally filtered out — use `/kila profile` for manual sampling of instant issues
 
 ### Q8: How to check system logs for troubleshooting?
 
@@ -502,3 +511,26 @@ Key log identifiers:
 - `[Notification]`: External notification logs
 
 Log levels: INFO (normal operations), WARN (attention needed), ERROR (action required).
+
+---
+
+## 8. Auxiliary Diagnostic Commands
+
+In addition to the three main admin features, two general-purpose commands are closely relevant to server administration:
+
+### `/kila doctor` — Config Self-Diagnostic
+
+One-click diagnostic of plugin configuration and runtime status. The in-game output uses a **grouped summary** format: each group shows a `▌{group}` title line, and every check item occupies one line (✅/⚠/✗ icon + name + brief status); normal items are also listed, not folded. The console output is more detailed (includes desensitized full config, web search provider status, etc.).
+
+Example check categories: database connectivity, LLM connectivity, Spark availability, various AI capability toggles, web search provider status, and more. Requires `kilacraft.admin.info` permission (default OP).
+
+> Note: the observable group named `health_guardian` refers to server health monitoring (the feature described in this document), not the Guardian system (AI proactive watch). The two are distinct concepts with distinct naming to avoid confusion.
+
+### `/kila cache` — LLM Cache Hit-Rate Statistics
+
+Real-time view of LLM prompt cache hit rates and savings, helping determine whether LLM call costs are optimized. Displays per-type breakdowns for multiple AI call categories (intent recognition both phases, pending-resume classification, secondary analysis, normal chat, greeting, profile, suggestions, tool notifications, server diagnostics, etc.), showing request count, input token consumption, cache hit rate, and token savings for each.
+
+- Auto-detects caching fields from three major providers: DeepSeek (`prompt_cache_hit_tokens`), OpenAI (`cached_tokens`), Anthropic (`cache_read_input_tokens`) — no extra configuration needed.
+- Data accumulates in the current server session's memory only, reset on restart.
+- `/kila cache reset` manually resets statistics.
+- Requires `kilacraft.admin.cache` permission (default OP).

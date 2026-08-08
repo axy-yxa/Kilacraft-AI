@@ -32,14 +32,14 @@ public class ConfigManager {
 
     private final JavaPlugin plugin;
 
-    @Getter
     private final LLMConfigManager llmConfigManager;
     @Getter
     private final OutputConfigManager outputConfigManager;
-    @Getter
     private final KnowledgeConfigManager knowledgeConfigManager;
     @Getter
     private final GreetingConfigManager greetingConfigManager;
+    @Getter
+    private final WebConfigManager webConfigManager;
 
     @Getter
     private boolean enableChatCommand;
@@ -74,10 +74,6 @@ public class ConfigManager {
     @Getter
     private String language;
 
-    // 命令执行技能配置
-    @Getter
-    private boolean commandSkillEnabled;
-
     // 安全配置
     @Getter
     private boolean securityPlayerIsolationEnabled;
@@ -100,16 +96,6 @@ public class ConfigManager {
     @Getter
     private int pendingResumeMaxRounds;
 
-    // 挂机任务配置
-    @Getter
-    private boolean afkTaskEnabled;
-    @Getter
-    private int afkTaskMaxTasks;
-    @Getter
-    private int afkTaskCheckIntervalTicks;
-    @Getter
-    private int afkTaskMaxConsecutiveFailures;
-
     // 社交关系配置
     @Getter
     private List<String> socialSkillWhitelist;
@@ -127,6 +113,13 @@ public class ConfigManager {
 
     public int getMaxTokens() {
         return llmConfigManager.getMaxTokens();
+    }
+
+    /**
+     * 全局 LLM 预算/熔断阈值（D6/D13），转发 llm.yml。
+     */
+    public int getLlmBudgetPerHour() {
+        return llmConfigManager.getBudgetPerPlayerPerHour();
     }
 
     public String getSystemPrompt() {
@@ -172,10 +165,6 @@ public class ConfigManager {
 
     public String getAgentSystemPrompt() {
         return llmConfigManager.getAgentSystemPromptByLanguage(isChinese(), "");
-    }
-
-    public String getAgentAnalysisPromptSuffix() {
-        return llmConfigManager.getAgentAnalysisPromptSuffixByLanguage(isChinese(), "");
     }
 
     public boolean isKnowledgeEnabled() {
@@ -306,28 +295,13 @@ public class ConfigManager {
         return greetingConfigManager.isProfileInjectionEnabled();
     }
 
-    public boolean isCommandSkillEnabled() {
-        return commandSkillEnabled;
-    }
-
-    public boolean isPendingResumeEnabled() {
-        return pendingResumeEnabled;
-    }
-
-    public boolean isAfkTaskEnabled() {
-        return afkTaskEnabled;
-    }
-
-    public boolean isSecurityPlayerIsolationEnabled() {
-        return securityPlayerIsolationEnabled;
-    }
-
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
         this.llmConfigManager = new LLMConfigManager((KilacraftAI) plugin);
         this.knowledgeConfigManager = new KnowledgeConfigManager((KilacraftAI) plugin);
         this.greetingConfigManager = new GreetingConfigManager((KilacraftAI) plugin);
         this.outputConfigManager = new OutputConfigManager((KilacraftAI) plugin);
+        this.webConfigManager = new WebConfigManager((KilacraftAI) plugin);
         loadConfig();
     }
 
@@ -347,7 +321,7 @@ public class ConfigManager {
         this.cooldownSeconds = config.getInt("settings.cooldown_seconds", 5);
         this.pluginsCooldownSeconds = config.getInt("settings.plugins_cooldown_seconds", 5);
         this.callbackTimeoutSeconds = config.getInt("plugin_command.callback_timeout_seconds", 3);
-        this.maxHistory = config.getInt("settings.max_history", 10);
+        this.maxHistory = Math.max(0, Math.min(100, config.getInt("settings.max_history", 10)));
         this.allowedWorlds = config.getStringList("settings.allowed_worlds");
         if (this.allowedWorlds.isEmpty()) {
             this.allowedWorlds = new ArrayList<>();
@@ -362,9 +336,6 @@ public class ConfigManager {
         this.aiPrefix = config.getString("messages.ai_prefix", "§7[Kilacraft-AI] §f");
         this.thinkingMessage = getLocalizedString(config, "messages.thinking_message", "正在思考中...");
 
-        // 命令执行技能配置
-        this.commandSkillEnabled = config.getBoolean("command_skill.enabled", false);
-
         // 安全配置
         this.securityPlayerIsolationEnabled = config.getBoolean("security.player_isolation.enabled", true);
         this.securityAllowedActions = config.getStringList("security.player_isolation.allowed_actions");
@@ -378,23 +349,15 @@ public class ConfigManager {
         this.pendingResumeTtlSeconds = config.getInt("pending_resume.ttl_seconds", 300);
         this.pendingResumeMaxRounds = config.getInt("pending_resume.max_rounds", 5);
 
-        // 挂机任务配置
-        this.afkTaskEnabled = config.getBoolean("afk_task.enabled", true);
-        this.afkTaskMaxTasks = config.getInt("afk_task.max_tasks", 10);
-        this.afkTaskCheckIntervalTicks = config.getInt("afk_task.check_interval_ticks", 20);
-        this.afkTaskMaxConsecutiveFailures = config.getInt("afk_task.max_consecutive_failures", 10);
-
         // 社交关系配置
         this.socialSkillWhitelist = config.getStringList("social.skill_whitelist");
-        if (this.socialSkillWhitelist.isEmpty()) {
-            this.socialSkillWhitelist = List.of("market_action", "cmi", "AFKTask");
-        }
 
         // 加载子 Manager 配置（语言已从主配置读取，传递给需要语言感知的子 Manager）
         llmConfigManager.loadConfig();
         knowledgeConfigManager.loadConfig(this.language);
         greetingConfigManager.loadConfig(this.language);
         outputConfigManager.loadConfig();
+        webConfigManager.loadConfig();
 
         // 加载内置词汇表（语言变化时重新加载）
         if (vocabularyLoadedLanguage == null || !vocabularyLoadedLanguage.equals(this.language)) {
@@ -465,13 +428,13 @@ public class ConfigManager {
     private String getDefaultSystemPrompt() {
         if (!isChinese()) {
             return """
-                    You are a Minecraft game assistant, currently talking to player {player}. Please respond in a concise and plain manner, no more than 150 words. You may mention Minecraft-related content. Do not address the player by name in your responses. Do not use exclamation marks or exaggerated tone.
+                    You are the AI assistant of this Minecraft server, currently chatting with a player. Please respond in a concise and plain manner, no more than 150 words. You may mention Minecraft-related content. Do not address the player by name in your responses. Do not use exclamation marks or exaggerated tone.
                     [Operation Declaration Rules] You must NOT claim that you have executed any in-game operations unless you receive explicit success information from the skill system. Strictly avoid using phrases like "I'll help you", "already done", "success" or any other wording that implies an operation has been completed when there is no execution result.
                     [Skill System Fallback] The skill system uniformly tags results with [SUCCESS]/[FAILURE]/[NEED_INFO]/[SKIPPED]. When the user message contains these markers: [FAILURE]=failed, [NEED_INFO]=needs the player to supply info or confirm, [SKIPPED]=step skipped. Explain or relay the content to the player naturally (for [NEED_INFO], convey what needs confirming/supplementing). If the [Stats] line shows a "need-confirm" count, those steps are awaiting the player's input or confirmation (NOT failures) — convey what needs confirming rather than reporting an error. Never mention "system prompt" or internal mechanisms, and never expose these markers to the player.
                     [Currency Unit] The server's economy uses $ as the currency symbol (e.g., $100.00). Never use "emeralds", "emerald" or any other Minecraft item names to refer to currency. All amounts are in $ currency unit.""";
         }
         return """
-                你是一个 Minecraft 游戏助手，正在和玩家 {player} 对话。请用简洁、平实的方式回答，输出不超过200个汉字。可以提到 Minecraft 游戏相关的内容。不要在回复中称呼玩家名字。不要使用感叹号、波浪号等夸张语气。
+                你是这个 Minecraft 服务器的 AI 助手，正在和玩家对话。请用简洁、平实的方式回答，输出不超过200个汉字。可以提到 Minecraft 游戏相关的内容。不要在回复中称呼玩家名字。不要使用感叹号、波浪号等夸张语气。
                 【操作声明规范】你不得自行声称已执行任何游戏内操作，除非你收到了技能系统返回的明确成功信息。严禁在没有执行结果的情况下使用'我帮你'、'已经'、'成功'等暗示操作已完成的措辞。
                 【技能系统回退】技能系统统一用 [SUCCESS]/[FAILURE]/[NEED_INFO]/[SKIPPED] 标记执行结果。当用户消息中附带这些标记时：[FAILURE] 表示失败、[NEED_INFO] 表示需要玩家补全信息或二次确认、[SKIPPED] 表示该步骤被跳过。直接根据标记与内容用自然语言向玩家解释或转述（如遇 [NEED_INFO] 则把待确认/待补充的信息转达给玩家）。[统计] 行若出现"需确认"项，表示对应步骤正在等待玩家补充或确认（并非失败），应转达待确认内容而非向玩家报错。不得提及'系统提示'或内部机制，也不得向玩家暴露这些标记本身。
                 【货币单位】本服经济系统的货币符号为 $（如 $100.00）。绝对不要使用'绿宝石'、'emerald'或其他 Minecraft 物品名称指代货币，所有金额都是 $ 货币单位.""";

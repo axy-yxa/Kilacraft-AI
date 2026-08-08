@@ -5,7 +5,7 @@
 #
 # 说明：此文件仅控制"玩家在游戏中看到的消息"
 # - AI 回复内容（由 LLM 生成）：由 config.yml 的 agent.prompts 控制
-# - 内部错误消息（如挂机任务异常）：保持硬编码，不在此配置
+# - 内部错误消息（如健康监控异常）：保持硬编码，不在此配置
 # - 控制台日志：由下方 logs 段控制
 #
 # 修改后使用 /kila reload 热重载即可生效，无需重启服务器
@@ -31,8 +31,8 @@ help:
   knowledge: " §b/kila knowledge reload §8- §f重载知识库"
   personalities: " §b/kila personalities reload §8- §f重载人格配置"
 
-  # 挂机任务（kilacraft.afk 权限）
-  afk: " §b/kila afk §8- §f查询/取消挂机任务"
+  # 对话推荐（全体可用）
+  suggestion: " §b/kila suggestion §7<on|off|status> §8- §f管理对话推荐"
 
   # 性能采样（kilacraft.admin.health 权限）
   profile: " §b/kila profile start §7[秒数] §8- §f启动性能采样 (30~120s)"
@@ -55,6 +55,10 @@ help:
 
   # 定时任务（kilacraft.tasks 权限）
   tasks: " §b/kila tasks §8- §f查看定时任务状态"
+
+  # 大模型缓存统计（kilacraft.admin.cache 权限）
+  cache: " §b/kila cache §7[页码] §8- §f查看大模型缓存统计"
+  cache-reset: " §b/kila cache reset §8- §f重置缓存统计"
 
 # ==================== 权限相关消息 ====================
 # 以下配置控制玩家执行没有权限的命令时的提示
@@ -134,7 +138,29 @@ commands:
   # 变量: {ai_name}=AI 名称（来自 config.yml 的 ai_name）
   world-banned-hint: "§c当前世界禁止使用 {ai_name}！"
 
-  # ==================== /kila tasks 定时任务状态 ====================
+  # ==================== /kila cache 大模型缓存统计 ====================
+  cache-no-permission: "§c你没有权限查看大模型缓存统计。"
+  cache-reset-success: "§a大模型缓存统计已重置。"
+  cache-header: "§6▌大模型缓存命中率 §7({model})"
+  cache-avg-hit: "平均命中率"
+  cache-no-data: "§7暂无数据。至少需要一次大模型调用才会产生统计。"
+  cache-footer: "重启清零 · 控制台查看详情"
+  cache-unknown-model: "未知模型"
+  # 顺序必须与 CacheCallTypeEnum 保持一致
+  cache-type-names:
+    - "意图识别P1"
+    - "意图识别P2"
+    - "续体分类"
+    - "二次分析"
+    - "普通对话"
+    - "登录问候"
+    - "玩家画像"
+    - "对话推荐"
+    - "实用工具"
+    - "服务器诊断"
+    - "触发指令"
+
+      # ==================== /kila tasks 定时任务状态 ====================
   tasks-no-permission: "§c你没有权限查看定时任务状态。"
   tasks-not-init: "§cTaskScheduler 未初始化。"
   # 变量: {n}=任务数
@@ -155,6 +181,16 @@ commands:
   # 变量: {n}=时间间隔(如5s/12min)
   tasks-time-ago: "{n}前"
 
+  # ==================== /kila suggestion 对话推荐开关 ====================
+  suggestion-not-init: "§c对话推荐系统未初始化！"
+  suggestion-already-on: "§7对话推荐已经是开启状态。"
+  suggestion-already-off: "§7对话推荐已经是关闭状态。"
+  suggestion-on: "§a对话推荐已开启。AI 回复后将推荐你可能想问的问题。"
+  suggestion-off: "§a对话推荐已关闭。"
+  suggestion-status-on: "§a对话推荐：开启 §7（/kila suggestion off 关闭）"
+  suggestion-status-off: "§c对话推荐：关闭 §7（/kila suggestion on 开启）"
+  suggestion-usage: " §b/kila suggestion §7<on|off|status> §8- §f管理对话推荐"
+
   # ==================== /kila notify test 通知渠道测试 ====================
   notify-no-permission: "§c你没有权限使用通知测试功能。"
   notify-usage: "§7用法：/kila notify test"
@@ -165,24 +201,6 @@ commands:
   notify-send-success: "发送成功"
   # 变量: {msg}=失败原因
   notify-send-failed: "§c发送失败: {msg}"
-
-  # ==================== /kila afk 挂机任务查询/取消 ====================
-  afk-player-only: "§c挂机任务命令仅限玩家使用。"
-  afk-not-enabled: "§c挂机任务系统未启用。"
-  afk-no-task: "§7你当前没有正在运行的挂机任务。"
-  # 变量: {desc}=任务描述
-  afk-cancelled: "§a已取消挂机任务：§f{desc}"
-  afk-current-title: "§f当前挂机任务："
-  # 以下为任务详情行 — 变量: {id}/{type}/{desc}/{status}/{time}=对应字段
-  afk-task-id: "§f  任务ID：§e{id}"
-  afk-task-type: "§f  类型：§e{type}"
-  afk-task-desc: "§f  描述：§e{desc}"
-  afk-task-status: "§f  状态：§e{status}"
-  afk-task-time: "§f  创建时间：§e{time}"
-  afk-cancel-hint: "§7使用 /kila afk cancel 可取消此任务"
-  # 变量: {cmd}=输入的子命令
-  afk-unknown-sub: "§c未知的挂机任务子命令：{cmd}"
-  afk-usage: "§7用法：/kila afk [query|cancel]"
 
   # ==================== /kila profile 手动性能采样 ====================
   profile-no-permission: "§c你没有权限使用性能采样功能。"
@@ -216,8 +234,10 @@ commands:
   doctor-group-base: "基础"
   doctor-group-ai: "AI 能力"
   doctor-group-obs: "可观测与集成"
-  doctor-console-hint: "§7完整配置详情已输出到控制台。"
-  # 17 项诊断项名称
+  doctor-console-hint: "§7完整诊断详情已输出到控制台。"
+  doctor-group-title: "§e▌{group}"
+  doctor-check-line: "{icon} §f{name}§7：§f{detail}"
+  # 诊断项名称
   doctor-check-runtime-env: "运行环境"
   doctor-check-database: "数据库"
   doctor-check-llm: "LLM 连通"
@@ -227,11 +247,10 @@ commands:
   doctor-check-persona: "人格"
   doctor-check-agent: "Agent 能力"
   doctor-check-profile: "画像分析"
-  doctor-check-afk: "挂机任务"
   doctor-check-command-skill: "命令技能"
   doctor-check-pending-resume: "待确认续体"
   doctor-check-isolation: "玩家数据隔离"
-  doctor-check-guardian: "健康守护"
+  doctor-check-health-guardian: "健康监控"
   doctor-check-notify: "外部通知"
   doctor-check-thinking: "推理模型"
   doctor-check-greeting: "登录问候"
@@ -260,6 +279,16 @@ commands:
   # 变量: {scope}=入口范围（上面四项之一）
   doctor-agent-on: "启用（{scope}）"
   doctor-llm-no-provider: "未配置 LLM 提供商"
+  doctor-llm-latency: "{model}（{latency}ms）"
+  doctor-llm-error-latency: "{error}（{latency}ms）"
+  # 对话推荐 / 监听系统 / Web 搜索与抓取
+  doctor-check-suggestion: "对话推荐"
+  doctor-check-watch: "监听系统"
+  doctor-check-web-search: "Web 搜索"
+  doctor-check-web-fetch: "Web 抓取"
+  # 变量: {provider}=已配置的搜索供应商（可能多个，逗号分隔）
+  doctor-search-on: "启用（{provider}）"
+  doctor-search-no-provider: "启用，但未配置任何搜索供应商"
 
   # ==================== /kila about 版本与更新检查 ====================
   about-no-permission: "§c你没有权限使用此命令。"

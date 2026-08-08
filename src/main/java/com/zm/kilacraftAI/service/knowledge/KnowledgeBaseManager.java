@@ -1,7 +1,6 @@
 package com.zm.kilacraftAI.service.knowledge;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.i18n.I18nService;
 import lombok.Getter;
@@ -32,7 +31,6 @@ public class KnowledgeBaseManager {
      */
     @Getter
     private final Path knowledgeDir;
-    private Path effectiveDir;                           // 实际加载的知识库目录（根据语言动态选择）
     private final Map<String, String> knowledgeCache = new ConcurrentHashMap<>();
     private final Map<String, List<String>> chunkCache = new ConcurrentHashMap<>();
 
@@ -49,22 +47,6 @@ public class KnowledgeBaseManager {
     public KnowledgeBaseManager(KilacraftAI plugin, String dataFolderPath) {
         this.plugin = plugin;
         this.knowledgeDir = Paths.get(dataFolderPath, "knowledge");
-
-        updateEffectiveDir();
-    }
-
-    /**
-     * 根据当前语言更新 effectiveDir，并拷贝对应语言的默认知识库资源
-     */
-    private void updateEffectiveDir() {
-        String lang = plugin.getConfigManager().getLanguage();
-        if ("zh".equals(lang)) {
-            this.effectiveDir = knowledgeDir;
-            ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge", 1);
-        } else {
-            this.effectiveDir = knowledgeDir.resolve(lang);
-            ConfigResourceUtil.saveDefaultResourceDir(plugin, "knowledge/" + lang);
-        }
     }
 
     /**
@@ -74,26 +56,26 @@ public class KnowledgeBaseManager {
         knowledgeCache.clear();
         chunkCache.clear();
 
-        if (!Files.exists(effectiveDir)) {
+        if (!Files.exists(knowledgeDir)) {
             // 目录不存在时静默创建空目录，允许服主自行添加知识库文件
             try {
-                Files.createDirectories(effectiveDir);
+                Files.createDirectories(knowledgeDir);
             } catch (IOException e) {
                 PluginLoggerUtil.warn("知识库", I18nService.tr("创建知识库目录失败: {}", e.getMessage()));
             }
             return;
         }
 
-        try (var stream = Files.walk(effectiveDir)) {
+        try (var stream = Files.walk(knowledgeDir)) {
             List<Path> files = stream.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".md") || path.toString().endsWith(".txt")).toList();
 
             for (Path file : files) {
                 try {
                     String content = Files.readString(file, StandardCharsets.UTF_8);
-                    // 使用文件名作为 key
-                    String fileName = file.getFileName().toString();
-                    knowledgeCache.put(fileName, content);
-                    PluginLoggerUtil.info("知识库", "已加载知识文件：{}", fileName);
+                    // 用相对 knowledge/ 根的路径做 key，避免子目录归类时同名文件互相覆盖；正斜杠规范化保证跨平台一致
+                    String key = knowledgeDir.relativize(file).toString().replace('\\', '/');
+                    knowledgeCache.put(key, content);
+                    PluginLoggerUtil.info("知识库", "已加载知识文件：{}", key);
                 } catch (IOException e) {
                     PluginLoggerUtil.error("知识库", I18nService.tr("加载知识文件失败: {} - {}", file, e.getMessage()), e);
                 }
@@ -187,11 +169,10 @@ public class KnowledgeBaseManager {
     }
 
     /**
-     * 重新加载知识库（语言变更时同步切换目录）
+     * 重新加载知识库
      */
     public void reload() {
         PluginLoggerUtil.info("知识库", "正在重新加载知识库...");
-        updateEffectiveDir();
         loadAllKnowledge();
         PluginLoggerUtil.info("知识库", "知识库加载完成");
     }

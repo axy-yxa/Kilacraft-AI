@@ -27,19 +27,16 @@ import java.util.function.Consumer;
  */
 class FoliaReflection {
 
-    // ---- Folia 内部类全限定名 ----
     private static final String CLASS_GLOBAL_SCHEDULER = "io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler";
     private static final String CLASS_ENTITY_SCHEDULER = "io.papermc.paper.threadedregions.scheduler.EntityScheduler";
     private static final String CLASS_ASYNC_SCHEDULER = "io.papermc.paper.threadedregions.scheduler.AsyncScheduler";
     private static final String CLASS_SCHEDULED_TASK = "io.papermc.paper.threadedregions.scheduler.ScheduledTask";
 
-    // ---- 缓存的 Folia Class 对象 ----
     private final Class<?> globalSchedulerClass;
     private final Class<?> entitySchedulerClass;
     private final Class<?> asyncSchedulerClass;
     private final Class<?> scheduledTaskClass;
 
-    // ---- 缓存的 MethodHandle ----
     private final MethodHandle mhGetGlobalScheduler;
     private final MethodHandle mhGetEntityScheduler;
     private final MethodHandle mhGetAsyncScheduler;
@@ -115,8 +112,6 @@ class FoliaReflection {
         mhTaskIsCancelled = taskIsCancelled;
     }
 
-    // ---- GlobalRegionScheduler 调用 ----
-
     void invokeGlobalRun(Plugin plugin, Runnable task) {
         try {
             Object scheduler = mhGetGlobalScheduler.invoke();
@@ -141,17 +136,15 @@ class FoliaReflection {
         invokeGlobalRun(plugin, task);
     }
 
-    void invokeGlobalRunDelayed(Plugin plugin, Runnable task, long delay) {
+    Object invokeGlobalRunDelayed(Plugin plugin, Runnable task, long delay) {
         try {
             Object scheduler = mhGetGlobalScheduler.invoke();
             Consumer<Object> consumer = t -> task.run();
-            mhGlobalRunDelayed.invoke(scheduler, plugin, consumer, delay);
+            return mhGlobalRunDelayed.invoke(scheduler, plugin, consumer, delay);
         } catch (Throwable e) {
             throw new RuntimeException(I18nService.tr("[FoliaCompat] GlobalRegionScheduler.runDelayed 调用失败"), e);
         }
     }
-
-    // ---- AsyncScheduler 调用 ----
 
     Object scheduleAsyncAtFixedRate(Plugin plugin, Runnable task, long delayTicks, long intervalTicks) {
         try {
@@ -162,8 +155,6 @@ class FoliaReflection {
             throw new RuntimeException(I18nService.tr("[FoliaCompat] AsyncScheduler.runAtFixedRate 调用失败"), e);
         }
     }
-
-    // ---- EntityScheduler 调用 ----
 
     /**
      * 在玩家实体所属的区域线程执行任务
@@ -182,8 +173,6 @@ class FoliaReflection {
             throw new RuntimeException(I18nService.tr("[FoliaCompat] EntityScheduler.run 调用失败"), e);
         }
     }
-
-    // ---- ScheduledTask 操作 ----
 
     void cancelFoliaTask(Object task) {
         if (mhTaskCancel != null) {

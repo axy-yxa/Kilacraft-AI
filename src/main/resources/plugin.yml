@@ -46,12 +46,15 @@ permissions:
   kilacraft.personalities:
     description: 允许管理人格配置
     default: op                # 仅 OP 拥有此权限 / Only OP has this permission
-  kilacraft.afk:
-    description: 允许查询和取消挂机任务
-    default: true              # 所有玩家可用 / available to all players
   kilacraft.tasks:
     description: 允许查看定时任务运行状态
     default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+  kilacraft.player_watch:
+    description: 允许订阅其他玩家上线/下线通知
+    default: true              # 所有玩家可用 / available to all players
+  kilacraft.watch:
+    description: 允许使用玩家自定义监听系统
+    default: true              # 所有玩家可 / available to all players
 
   # 查询类命令权限（用量 / 对话历史 / 画像） / Query command permissions (usage / history / profile)
   kilacraft.query.self:
@@ -113,15 +116,15 @@ permissions:
   # 命令执行技能权限 / Command execution skill permissions
   kilacraft.command.execute:
     description: 允许 AI 帮助执行服务器命令（以玩家身份执行，受服务器权限约束）
-    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+    default: true              # 所有玩家可用 / available to all players
 
   # Bukkit 音效与粒子效果技能权限 / Bukkit sound effects and particle effects skill permissions
-  kilacraft.bukkit_fx:
+  kilacraft.sound_fx:
     description: 允许播放音效和显示粒子效果（仅自己听到/看到）
     default: true              # 所有玩家可用 / available to all players
 
   # Bukkit 原版统计数据查询权限 / Bukkit original statistical data query permission
-  kilacraft.bukkit_stats:
+  kilacraft.player_stats:
     description: 允许查询 Minecraft 原版统计数据（生涯累计统计）
     default: true              # 所有玩家可用 / available to all players
 
@@ -166,6 +169,9 @@ permissions:
   kilacraft.admin.info:
     description: 插件运行信息与配置自检（/kila doctor 自检、/kila about 版本检查）
     default: op                # 仅 OP 拥有此权限 / Only OP has this permission
+  kilacraft.admin.cache:
+    description: 大模型缓存命中率统计查看
+    default: op                # 仅 OP 拥有此权限 / Only OP has this permission
   kilacraft.admin.*:
     description: 允许使用所有管理员功能（包含以上全部）
     default: op
@@ -174,3 +180,12 @@ permissions:
       kilacraft.admin.player: true
       kilacraft.admin.audit: true
       kilacraft.admin.info: true
+      kilacraft.admin.cache: true
+
+  # Web 搜索与抓取技能权限 / Web search & fetch skill permissions
+  kilacraft.websearch:
+    description: 允许使用联网搜索技能（WebSearchSkill）
+    default: true              # 所有玩家可用（需服主配置搜索 API Key）/ available to all players (requires API Key config)
+  kilacraft.webfetch:
+    description: 允许使用网页抓取技能（WebFetchSkill）
+    default: true              # 所有玩家可用（零配置）/ available to all players (zero config)

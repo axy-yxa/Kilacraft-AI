@@ -18,6 +18,7 @@ import java.util.UUID;
  * <p>监听玩家登录/登出事件，驱动 ProfileManager 和 EventCollector。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class ProfileEventCollector implements Listener {
 

@@ -6,9 +6,6 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.greeting.FriendStatus;
 import com.zm.kilacraftAI.model.greeting.GreetingContext;
-import com.zm.kilacraftAI.model.greeting.PlayerVanillaStats;
-import com.zm.kilacraftAI.model.greeting.SummaryStats;
-import com.zm.kilacraftAI.model.profile.PlayerProfile;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -20,8 +17,15 @@ import java.util.stream.Collectors;
 /**
  * 问候提示词构建器
  *
- * <p>根据 {@link GreetingContext} 构建发送给 LLM 的系统提示词。</p>
- * <p>支持两种场景：首次登录和回归登录，各自有独立的默认提示词模板。</p>
+ * <p>根据 {@link GreetingContext} 构建发送给 LLM 的提示词，严格区分静态与动态两部分以最大化供应商侧缓存命中率：</p>
+ * <ul>
+ *   <li>{@link #buildStaticSystem(GreetingContext, String)} 返回纯静态系统提示词（角色定义 + 行为规则），
+ *       跨玩家、跨请求字节一致，可全量命中前缀缓存。仅支持 {@code {server_info}} 这一个跨玩家一致的占位符。</li>
+ *   <li>{@link #buildDynamicUserData(GreetingContext)} 返回每玩家/每请求变化的动态数据块，
+ *       由调用方拼入 user 消息（画像/元数据/时间也由 Provider 注入 user，互不干扰）。</li>
+ * </ul>
+ * <p>已废弃的占位符（{@code {player}}、{@code {offline_duration}} 等）不再在 system 中替换；
+ * 若配置模板仍含这些占位符，将作为字面量保留在 system 中（不报错，但缓存命中率会下降）。</p>
  *
  * @author Zm_Mmm
  * @since 2026-05-01
@@ -31,134 +35,163 @@ public class GreetingPromptBuilder {
     private static final DateTimeFormatter ALERT_DTF = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
     public static final String DEFAULT_FIRST_LOGIN_PROMPT = """
-            你是这个 Minecraft 服务器的 AI 助手，{player} 第一次来到服务器。
-            以平实自然的语气对 {player} 表示欢迎。
+            你是这个 Minecraft 服务器的 AI 助手，有玩家第一次来到服务器。
+            以平实自然的语气对新玩家表示欢迎。
             规则：
-            1. 简短介绍自己能做什么：回答问题、查物品、操作市场、挂机任务等，玩家用 /kila 就能找你
+            1. 简短介绍自己：你是 AI 助手，玩家用 /kila 或 /ai 就能随时找你——游戏问题、查信息、或任何需要帮忙的事，都可以找我
             2. 如果有服务器信息，顺便提一下；没有就不提
             3. 控制在 120 汉字以内
             
             {server_info}""";
 
     public static final String DEFAULT_RETURNING_PROMPT = """
-            你是这个 Minecraft 服务器的 AI 助手。{player} 登录了，距上次离线 {offline_duration}。
-            
-            {own_events_section}
-            {friend_events_section}
-            {online_friends_section}
-            {last_location}
-            {summary_section}
-            
-            以平实的语气欢迎 {player} 回来。
-            
-            规则：
-            1. 空内容分类（"没有""暂无"等）完全跳过，不提。不用"一切如故""没什么事""挺安静的"等概括句填充。
-            2. 无好友时禁止提任何与好友在线状态相关的表述。
-            3. 玩家数据仅在满足以下任一硬性条件时，才可用具体数字提及：(a)达到有意义的里程碑，(b)与本次离线事件有直接因果关联。不满足则完全不提任何玩家数据。提到时必须说出具体数字，禁止用"很长""相当多""打了不少""飞了好远"等模糊描述。
-            4. 上次位置仅作背景参考。除非在上次位置发生了离线事件，否则不提及。提及时不报坐标，不说世界名。
-            5. 不以疑问句结尾。
-            6. 控制在200汉字以内。若无可提内容，说"欢迎回来，有什么需要随时找我。"即可。
+            你是这个 Minecraft 服务器的 AI 助手，有玩家登录了。用户消息里会带有该玩家离线期间的动态数据：画像（参考用）、实时状态、离线时长，以及【】方括号标题的事实段落（如【离线期间发生的事】【好友动态】【好友在线状态】【上次游玩亮点】等）。请据此生成欢迎语。
+
+            用熟络自然的语气欢迎该玩家回来，亲切随意，不过分热情也不生硬客套。
+
+            【事实边界——最重要】
+            - 只有带【】标题的段落才是既成事实，可以陈述、转述、自然提起。
+            - 【玩家画像】段就是画像本身，不属于上述【】事实段落：其中的已知事实是长期稳定的历史记录（如与某玩家的关系），不是当前既成事实，不得陈述、转述或自然提起。
+            - 画像（游戏风格、兴趣偏好、性格等）只是参考，帮你把握语气和话题方向：可以据此生成开放性的闲聊或问句（如玩家对红石感兴趣，可顺口问"最近还在搞红石吗"），但不得把画像里的倾向说成已发生的事——不能说"你建过红石机""你炼过药"，更不能编造具体细节。
+            - 用户消息中未出现的【】段落，意味着该类信息不存在（不是遗漏）。绝不得凭空编造事件、成就、收获，更不得伪造任何人的言论（如"XX 说……""XX 夸你……"）。
+            - 玩家实时状态（位置、主手物品、时间、天气等）可作为开场寒暄的一句由头，但不得据此推断、猜测或暗示玩家正在做什么、准备做什么或过去做过什么。玩家的当前位置必须以实时状态为准；画像里的空间记忆、常去区域等是历史习惯，不得用来描述玩家当前所在。
+
+            【好友与他人的话】
+            - 只有出现【好友动态】或【好友在线状态】段落时，才能提到具体好友；没有这两段时，一句好友相关的话都不要说——画像或已知事实里记录的好友关系也不得作为提好友的依据。
+            - 绝不替任何人"说话"或"想事"——任何人的言论、评价、行为、想法、情绪都只能出自上述段落，不得自行虚构。
+
+            【有事可提时】
+            - 事件和动态是"顺便想起就提一句"，不是逐条汇报。提玩家自己的事用随口回忆的口吻（如"之前你把末影龙收拾了"），别用"上次你……"的汇报腔。
+            - 提完一件事，可顺势接一个和这事贴边的具体后续（如击杀末影龙后可接"接下来去末地城还是先把末影箱做了"）。后续话题要具体，禁止"需要帮忙吗""有什么问题吗"这类泛泛客套。
+
+            【无事可提时——不得硬凑】
+            - 若带【】标题的事实段落全部缺失（用户消息里只有画像 / 实时状态 / 离线时长），不得展开任何事件、不提好友、不编后续话题。以"欢迎回来，有什么需要随时找我。"收尾；可在其前后加一句基于实时状态（且仅限时间、天气、离线时长、主手物品，不得用画像信息）的口语寒暄让语气自然，但仅限一句，且不得陈述事件或替他人说话。
+            - 寒暄要是完整的口语句子——有"你"或明确主语、有动词，像熟人随口搭话（如"这么早就上线了""手里拿着蜘蛛眼干啥呢"）；不得堆砌名词短语营造画面感，也不得省略主语写成"清晨的草原上，手里捏着蜘蛛眼"这种悬空句。
+            - 不要用"一切如故""最近挺安静"等暗示有事发生、实则无内容的措辞填充。
+
+            【高优先级信息与字数】
+            - 若用户消息包含「Kilacraft-AI 插件新版本可用」或「服务器异常告警」段落，问候不受字数限制，必须完整转达这些段落的所有信息后再收尾（具体格式见各段落内的指引）。
+            - 否则控制在 200 汉字以内。
             """;
 
     public static final String DEFAULT_FIRST_LOGIN_PROMPT_EN = """
-            You are the AI assistant of this Minecraft server. {player} has just joined for the first time.
-            Welcome {player} in a calm, natural tone.
+            You are the AI assistant of this Minecraft server. A player has just joined for the first time.
+            Welcome the new player in a calm, natural tone.
             Rules:
-            1. Briefly introduce what you can do: answer questions, look up items, operate the market, AFK tasks, etc. Players can find you with /kila
+            1. Briefly introduce yourself: you're the server AI assistant. Players can reach you anytime with /kila or /ai — questions, info lookup, or anything they need help with in-game
             2. If there is server info, mention it briefly; if not, skip it
             3. Keep it under 120 words
             
             {server_info}""";
 
     public static final String DEFAULT_RETURNING_PROMPT_EN = """
-            You are the AI assistant of this Minecraft server. {player} just logged in, after being offline for {offline_duration}.
-            
-            {own_events_section}
-            {friend_events_section}
-            {online_friends_section}
-            {last_location}
-            {summary_section}
-            
-            Welcome {player} back in a calm, natural tone.
-            
-            Rules:
-            1. Skip empty categories ("none", "nothing", etc.) entirely. Do not pad with phrases like "nothing special", "all quiet", or "everything's normal".
-            2. If the player has no friends, do not mention anything about friend online status.
-            3. Only mention player stats if they meet one of these HARD criteria: (a) reaches a meaningful milestone, (b) has a direct causal link to an offline event this session. If nothing qualifies, do not mention any stats at all. When mentioning, you MUST state exact numbers — do NOT use vague phrases like "quite a lot", "a long way", or "quite a few".
-            4. Last location is for background context only. Do not mention it unless an offline event occurred there. When mentioned, do not reveal coordinates or world name.
-            5. Do not end with a question.
-            6. Keep it under 120 words. If there is nothing worth mentioning, just say "Welcome back, let me know if you need anything."
+            You are the AI assistant of this Minecraft server. A player just logged in. The user message provides this player's offline activity data: profile (reference only), real-time status, offline duration, and bracketed fact sections (e.g. [What happened while you were offline], [Friends Activity], [Friends Online Status], [Last Session Highlights]). Generate a welcome message based on them.
+
+            Welcome the player back in a naturally familiar tone — warm and casual, neither over-enthusiastic nor stiffly formal.
+
+            【Fact Boundary — Most Important】
+            - Only the bracketed fact sections in the user message are established facts you may state, convey, or naturally bring up.
+            - The [Player Profile] section is the profile itself and is NOT one of the bracketed fact sections: its known facts are long-term historical records (such as relationships with other players), not current established facts — never state, convey, or naturally bring them up.
+            - The profile (playstyle, interests, personality, etc.) is reference only — use it to gauge tone and topic direction. You may turn it into open-ended small talk or questions (e.g. if the player likes redstone, you can ask "still tinkering with redstone lately?"), but never present profile tendencies as things that actually happened — don't say "you built a redstone machine" or "you brewed potions," and never fabricate specific details.
+            - A bracketed fact section absent from the user message means that information does not exist (it is not missing/omitted). Never fabricate events, achievements, or gains, and never put words in anyone's mouth (e.g. "XX said…", "XX praised you…").
+            - Real-time status (location, held item, time, weather, etc.) may serve as a one-line opener for small talk, but must not be used to infer, guess, or imply what the player is doing, planning to do, or has done. The player's current location must be taken from real-time status; spatial memory or frequently-visited areas in the profile are historical habits and must not be used to describe where the player currently is.
+
+            【Friends and Others' Words】
+            - Only mention specific friends when a [Friends Activity] or [Friends Online Status] section is present; when neither is present, say nothing friend-related at all — friend relationships recorded in the profile or its known facts are not grounds to mention a friend.
+            - Never speak for anyone or attribute thoughts to them — any remark, opinion, action, thought, or feeling attributed to a person must come from those sections; do not fabricate it.
+
+            【When There's Something to Mention】
+            - Events and updates are "mentioned in passing if they come to mind," not a point-by-point briefing. Bring up the player's own past deeds in a casually recalling tone (e.g. "you took down the Ender Dragon earlier"), avoiding the report-like "last time you…".
+            - After mentioning something, you may naturally follow up with a concrete next step tied to it (e.g. after slaying the Ender Dragon, add "heading to an End City next, or getting End Chests set up first?"). Follow-up topics must be concrete — no vague pleasantries like "need any help?" or "got any questions?".
+
+            【When There's Nothing to Mention — Don't Force It】
+            - If all bracketed 【】 fact sections are absent (the user message contains only profile / real-time status / offline duration), do not expand on any event, mention no friends, and invent no follow-up topics. Close with "Welcome back, let me know if you need anything."; you may add one pleasantry based on real-time status (and only on time, weather, offline duration, or held item — not on profile info) to keep the tone natural, but only one line, and it must not state events or speak for others.
+            - The pleasantry must be a complete spoken sentence — with "you" or a clear subject and a verb, like casual chatter between acquaintances (e.g. "up this early?", "what're you doing with that spider eye?"); do not stack noun phrases to set a scene, and do not drop the subject into a dangling phrase like "on the savanna at dawn, holding a spider eye".
+            - Do not pad with vague phrasings that imply something happened but contain no real content, such as "nothing special" or "all quiet lately".
+
+            【High-Priority Info and Length】
+            - If the user message contains a "Kilacraft-AI plugin new version available" or "server anomaly alert" section, the greeting is exempt from the word limit — you must fully convey all info from these sections before wrapping up (follow the format guidance within each section).
+            - Otherwise keep it under 120 words.
             """;
 
     public static String getDefaultFirstLoginPrompt() {
-        return isEnglish() ? DEFAULT_FIRST_LOGIN_PROMPT_EN : DEFAULT_FIRST_LOGIN_PROMPT;
+        return !I18nService.isZh() ? DEFAULT_FIRST_LOGIN_PROMPT_EN : DEFAULT_FIRST_LOGIN_PROMPT;
     }
 
     public static String getDefaultReturningPrompt() {
-        return isEnglish() ? DEFAULT_RETURNING_PROMPT_EN : DEFAULT_RETURNING_PROMPT;
-    }
-
-    private static boolean isEnglish() {
-        try {
-            return !"zh".equals(KilacraftAI.getInstance().getConfigManager().getLanguage());
-        } catch (Exception e) {
-            return false;
-        }
+        return !I18nService.isZh() ? DEFAULT_RETURNING_PROMPT_EN : DEFAULT_RETURNING_PROMPT;
     }
 
     /**
-     * 构建问候提示词
+     * 构建纯静态系统提示词（跨玩家共享，最大化前缀缓存命中）。
+     * <p>仅替换 {@code {server_info}}（跨玩家一致的服务器介绍）；其余规则段原样透传。
+     * 已废弃的动态占位符（{@code {player}}/{@code {offline_duration}} 等）若残留在配置模板中，
+     * 将作为字面量保留——不影响功能，但会降低缓存命中率，应在配置迁移时移除。</p>
      *
-     * @param context      问候上下文
+     * @param context      问候上下文（仅取 serverInfo）
      * @param customPrompt 提示词模板（ConfigManager 保证不为空）
-     * @return 完整的系统提示词
+     * @return 纯静态系统提示词
      */
-    public String build(GreetingContext context, String customPrompt) {
-        String playerName = context.getPlayer().getName();
-
-        if (context.isFirstLogin()) {
-            return buildFirstLoginPrompt(context, customPrompt, playerName);
-        } else {
-            return buildReturningPrompt(context, customPrompt, playerName);
-        }
-    }
-
-    /**
-     * 构建首次登录提示词
-     */
-    private String buildFirstLoginPrompt(GreetingContext context, String customPrompt, String playerName) {
+    public String buildStaticSystem(GreetingContext context, String customPrompt) {
         String serverInfo = context.getServerInfo();
         if (serverInfo == null || serverInfo.isBlank()) {
             serverInfo = "";
         }
-
-        return customPrompt.replace("{player}", playerName).replace("{server_info}", serverInfo);
+        return customPrompt.replace("{server_info}", serverInfo);
     }
 
     /**
-     * 构建回归登录提示词
+     * 构建问候动态数据块（每玩家/每请求变化），供调用方拼入 user 消息。
+     * <p>包含：离线时长、离线事件、好友动态、在线好友、上次亮点、健康告警、版本提醒。
+     * 各段为空时返回空串（不注入），段落间以空行分隔。</p>
+     *
+     * @param context 问候上下文
+     * @return 动态数据文本块；无任何动态数据时返回空串
      */
-    private String buildReturningPrompt(GreetingContext context, String customPrompt, String playerName) {
+    public String buildDynamicUserData(GreetingContext context) {
+        String playerName = context.getPlayer().getName();
+
+        // 首次登录无离线动态数据，返回空串（user 消息仅含 Provider 注入的画像/元数据 + 欢迎指令）
+        if (context.isFirstLogin()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+
         String offlineDuration = formatDuration(context.getOfflineDurationMs());
+        sb.append(I18nService.tr("距上次离线：{}", offlineDuration)).append("\n\n");
+
         String ownEventsSection = buildOfflineEventsSection(context.getOfflineEvents(), context.getGlobalEventCount(), playerName);
+        if (!ownEventsSection.isEmpty()) {
+            sb.append(ownEventsSection).append("\n\n");
+        }
+
         String friendEventsSection = buildFriendEventsSection(context.getFriendEvents(), context.getFriendLoginCounts());
+        if (!friendEventsSection.isEmpty()) {
+            sb.append(friendEventsSection).append("\n\n");
+        }
+
         String onlineFriendsSection = buildOnlineFriendsSection(context.getOnlineFriends(), context.getOfflineFriends());
-        String lastLocationSection = buildLastLocationSection(context.getProfile(), playerName);
-        String summarySection = buildSummarySection(context.getSummaryStats(), context.getVanillaStats());
-        String healthAlertsSection = buildHealthAlertsSection(context.getHealthAlerts(), playerName);
+        if (!onlineFriendsSection.isEmpty()) {
+            sb.append(onlineFriendsSection).append("\n\n");
+        }
+
+        String highlightsSection = buildHighlightsSection(context.getHighlights());
+        if (!highlightsSection.isEmpty()) {
+            sb.append(highlightsSection).append("\n\n");
+        }
+
         String updateReminderSection = buildUpdateReminderSection(context.getUpdateReminders(), playerName);
-
-        String prompt = customPrompt.replace("{player}", playerName).replace("{offline_duration}", offlineDuration).replace("{own_events_section}", ownEventsSection).replace("{friend_events_section}", friendEventsSection).replace("{online_friends_section}", onlineFriendsSection).replace("{last_location}", lastLocationSection).replace("{summary_section}", summarySection);
-
-        // 更新提醒段落前置拼接（优先级次于告警）
-        if (updateReminderSection != null && !updateReminderSection.isEmpty()) {
-            prompt = updateReminderSection + "\n\n" + prompt;
+        if (!updateReminderSection.isEmpty()) {
+            sb.append(updateReminderSection).append("\n\n");
         }
-        // 告警段落插入到系统提示词最前面（最高优先级）
-        if (healthAlertsSection != null && !healthAlertsSection.isEmpty()) {
-            return healthAlertsSection + "\n\n" + prompt + "\n";
+
+        String healthAlertsSection = buildHealthAlertsSection(context.getHealthAlerts(), playerName);
+        if (!healthAlertsSection.isEmpty()) {
+            sb.append(healthAlertsSection).append("\n\n");
         }
-        return prompt;
+
+        return sb.toString().trim();
     }
 
     /**
@@ -169,11 +202,11 @@ public class GreetingPromptBuilder {
      */
     public String buildOfflineEventsSection(List<ServerEvent> events, int globalEventCount, String playerName) {
         if (events == null || events.isEmpty()) {
-            StringBuilder emptySb = new StringBuilder(I18nService.tr("【离线期间发生的事】\n没有特别的事情发生。"));
+            // 无离线事件时不注入本段；但全服事件数仍有意义，单独保留
             if (globalEventCount > 0) {
-                emptySb.append("\n").append(I18nService.tr("{}不在的时候，全服共发生了 {} 件事", playerName, globalEventCount));
+                return I18nService.tr("{}不在的时候，全服共发生了 {} 件事", playerName, globalEventCount);
             }
-            return emptySb.toString();
+            return "";
         }
 
         Map<ServerEventTypeEnum, List<ServerEvent>> grouped = events.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
@@ -276,7 +309,7 @@ public class GreetingPromptBuilder {
             case PLAYER_CRAFT_ENCH_GOLDEN_APPLE ->
                     events.size() > 1 ? I18nService.tr("{}合成了 {} 个附魔金苹果", playerName, events.size()) : I18nService.tr("{}合成了附魔金苹果", playerName);
             case PLAYER_BUILD_WITHER ->
-                    events.size() > 1 ? I18nService.tr("{}召唤了 {} 次凋零", playerName, events.size()) : I18nService.tr("{}召唤了凋零", playerName);
+                    events.size() > 1 ? I18nService.tr("{}召唤了 {} 次凋灵", playerName, events.size()) : I18nService.tr("{}召唤了凋灵", playerName);
             default ->
                     I18nService.tr("{}触发了 {} 次 {}", playerName, events.size(), I18nService.tr(type.getDescription()));
         };
@@ -581,20 +614,6 @@ public class GreetingPromptBuilder {
     }
 
     /**
-     * 构建上次位置文本段落
-     */
-    public String buildLastLocationSection(PlayerProfile profile, String playerName) {
-        if (profile == null) return "";
-
-        String world = profile.getLastWorld();
-        if (world == null || world.isEmpty()) return "";
-
-        String friendlyWorld = formatWorldName(world);
-
-        return I18nService.tr("【上次位置】\n{} 上次在世界 {}，坐标 ({}, {}, {})", playerName, friendlyWorld, (int) profile.getLastX(), (int) profile.getLastY(), (int) profile.getLastZ());
-    }
-
-    /**
      * 世界名友好化
      */
     private String formatWorldName(String world) {
@@ -617,7 +636,8 @@ public class GreetingPromptBuilder {
         boolean hasOffline = offlineFriends != null && !offlineFriends.isEmpty();
 
         if (!hasOnline && !hasOffline) {
-            return I18nService.tr("【好友在线状态】\n暂无好友。");
+            // 无好友时不注入本段
+            return "";
         }
 
         int onlineCount = org.bukkit.Bukkit.getOnlinePlayers().size();
@@ -682,7 +702,8 @@ public class GreetingPromptBuilder {
         boolean hasLogins = friendLoginCounts != null && !friendLoginCounts.isEmpty();
 
         if (!hasEvents && !hasLogins) {
-            return I18nService.tr("【好友动态】\n好友们最近没什么特别的事。");
+            // 无好友动态时不注入本段
+            return "";
         }
 
         StringJoiner joiner = new StringJoiner("\n");
@@ -728,7 +749,7 @@ public class GreetingPromptBuilder {
         if (entityType == null || entityType.isEmpty()) return I18nService.tr("未知生物");
         return switch (entityType) {
             case "ENDER_DRAGON" -> I18nService.tr("末影龙");
-            case "WITHER" -> I18nService.tr("凋零");
+            case "WITHER" -> I18nService.tr("凋灵");
             case "ELDER_GUARDIAN" -> I18nService.tr("远古守卫者");
             case "WARDEN" -> I18nService.tr("监守者");
             default -> entityType;
@@ -855,130 +876,18 @@ public class GreetingPromptBuilder {
     }
 
     /**
-     * 构建玩家数据文本段落
+     * 构建上次游玩亮点段落。空列表返回空串（不注入本段）。
      */
-    public String buildSummarySection(SummaryStats stats, PlayerVanillaStats vanillaStats) {
-        StringBuilder sb = new StringBuilder(I18nService.tr("【玩家数据】"));
-
-        if (vanillaStats != null) {
-            // 基础/战斗
-            sb.append("\n").append(I18nService.tr("游戏时长: {} 分钟", vanillaStats.playMinutes()));
-            sb.append("\n").append(I18nService.tr("死亡: {} 次", vanillaStats.deaths()));
-            sb.append("\n").append(I18nService.tr("击杀生物: {} 只", vanillaStats.mobKills()));
-            if (vanillaStats.playerKills() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀玩家: {} 人", vanillaStats.playerKills()));
-            }
-            if (vanillaStats.damageDealt() > 0) {
-                sb.append("\n").append(I18nService.tr("造成伤害: {} 颗心", vanillaStats.damageDealt() / 2));
-            }
-            if (vanillaStats.damageTaken() > 0) {
-                sb.append("\n").append(I18nService.tr("承受伤害: {} 颗心", vanillaStats.damageTaken() / 2));
-            }
-            if (vanillaStats.damageShielded() > 0) {
-                sb.append("\n").append(I18nService.tr("盾牌格挡: {} 颗心", vanillaStats.damageShielded() / 2));
-            }
-            if (vanillaStats.animalsBred() > 0) {
-                sb.append("\n").append(I18nService.tr("繁殖动物: {} 次", vanillaStats.animalsBred()));
-            }
-            if (vanillaStats.jumps() > 0) {
-                sb.append("\n").append(I18nService.tr("跳跃: {} 次", vanillaStats.jumps()));
-            }
-            if (vanillaStats.sleepCount() > 0) {
-                sb.append("\n").append(I18nService.tr("睡觉: {} 次", vanillaStats.sleepCount()));
-            }
-
-            // 稀有BOSS（只在有数据时输出）
-            if (vanillaStats.dragonKills() > 0 || vanillaStats.dragonDeaths() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀末影龙: {} 次，被末影龙击杀: {} 次", vanillaStats.dragonKills(), vanillaStats.dragonDeaths()));
-            }
-            if (vanillaStats.witherKills() > 0 || vanillaStats.witherDeaths() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀凋零: {} 次，被凋零击杀: {} 次", vanillaStats.witherKills(), vanillaStats.witherDeaths()));
-            }
-            if (vanillaStats.elderGuardianKills() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀远古守卫者: {} 次", vanillaStats.elderGuardianKills()));
-            }
-            if (vanillaStats.wardenKills() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀监守者: {} 次", vanillaStats.wardenKills()));
-            }
-            if (vanillaStats.ironGolemKills() > 0) {
-                sb.append("\n").append(I18nService.tr("击杀铁傀儡: {} 次", vanillaStats.ironGolemKills()));
-            }
-
-            // 探索/距离（统一输出格数：1格 = 100cm）
-            if (vanillaStats.walkCm() > 0) {
-                sb.append("\n").append(I18nService.tr("行走距离: {} 格", vanillaStats.walkCm() / 100));
-            }
-            if (vanillaStats.sprintCm() > 0) {
-                sb.append("\n").append(I18nService.tr("疾跑距离: {} 格", vanillaStats.sprintCm() / 100));
-            }
-            if (vanillaStats.flyCm() > 0) {
-                sb.append("\n").append(I18nService.tr("飞行距离: {} 格", vanillaStats.flyCm() / 100));
-            }
-            if (vanillaStats.elytraCm() > 0) {
-                sb.append("\n").append(I18nService.tr("鞘翅飞行距离: {} 格", vanillaStats.elytraCm() / 100));
-            }
-            if (vanillaStats.swimCm() > 0) {
-                sb.append("\n").append(I18nService.tr("游泳距离: {} 格", vanillaStats.swimCm() / 100));
-            }
-            if (vanillaStats.boatCm() > 0) {
-                sb.append("\n").append(I18nService.tr("划船距离: {} 格", vanillaStats.boatCm() / 100));
-            }
-            if (vanillaStats.minecartCm() > 0) {
-                sb.append("\n").append(I18nService.tr("矿车行驶距离: {} 格", vanillaStats.minecartCm() / 100));
-            }
-            if (vanillaStats.horseCm() > 0) {
-                sb.append("\n").append(I18nService.tr("骑马距离: {} 格", vanillaStats.horseCm() / 100));
-            }
-            if (vanillaStats.climbCm() > 0) {
-                sb.append("\n").append(I18nService.tr("攀爬距离: {} 格", vanillaStats.climbCm() / 100));
-            }
-            if (vanillaStats.fallCm() > 0) {
-                sb.append("\n").append(I18nService.tr("摔落距离: {} 格", vanillaStats.fallCm() / 100));
-            }
-
-            // 生活/趣味
-            if (vanillaStats.fishCaught() > 0) {
-                sb.append("\n").append(I18nService.tr("钓鱼: {} 次", vanillaStats.fishCaught()));
-            }
-            if (vanillaStats.enchantCount() > 0) {
-                sb.append("\n").append(I18nService.tr("附魔: {} 次", vanillaStats.enchantCount()));
-            }
-            if (vanillaStats.raidTriggered() > 0) {
-                sb.append("\n").append(I18nService.tr("触发袭击: {} 次", vanillaStats.raidTriggered()));
-            }
-            if (vanillaStats.raidWon() > 0) {
-                sb.append("\n").append(I18nService.tr("袭击胜利: {} 次", vanillaStats.raidWon()));
-            }
-            if (vanillaStats.diamondOreMined() > 0) {
-                sb.append("\n").append(I18nService.tr("挖钻石矿: {} 个", vanillaStats.diamondOreMined()));
-            }
+    public String buildHighlightsSection(List<ServerEvent> highlights) {
+        if (highlights == null || highlights.isEmpty()) {
+            return "";
         }
-
-        // 加入天数（来自 profile，Bukkit Stats 无对应项）
-        if (stats != null && stats.daysSinceFirstLogin() > 0) {
-            sb.append("\n").append(I18nService.tr("加入服务器: {} 天前", stats.daysSinceFirstLogin()));
+        Map<ServerEventTypeEnum, List<ServerEvent>> grouped = highlights.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
+        StringJoiner hj = new StringJoiner("，");
+        for (Map.Entry<ServerEventTypeEnum, List<ServerEvent>> entry : grouped.entrySet()) {
+            hj.add(summarizeEvent(I18nService.tr("你"), entry.getKey(), entry.getValue()));
         }
-
-        // 上次游玩时长（原始分钟数，LLM自行换算）
-        if (stats != null && stats.lastSessionDurationMs() > 0) {
-            long lastSessionMin = TimeUnit.MILLISECONDS.toMinutes(stats.lastSessionDurationMs());
-            if (lastSessionMin > 0) {
-                sb.append("\n").append(I18nService.tr("上次游玩时长: {} 分钟", lastSessionMin));
-            }
-        }
-
-        // 上次游玩亮点
-        List<ServerEvent> highlights = stats != null ? stats.lastSessionHighlights() : null;
-        if (highlights != null && !highlights.isEmpty()) {
-            Map<ServerEventTypeEnum, List<ServerEvent>> grouped = highlights.stream().collect(Collectors.groupingBy(ServerEvent::getEventType));
-            StringJoiner hj = new StringJoiner("，");
-            for (Map.Entry<ServerEventTypeEnum, List<ServerEvent>> entry : grouped.entrySet()) {
-                hj.add(summarizeEvent(I18nService.tr("你"), entry.getKey(), entry.getValue()));
-            }
-            sb.append("\n").append(I18nService.tr("【上次游玩亮点】\n")).append(hj);
-        }
-
-        return sb.toString();
+        return I18nService.tr("【上次游玩亮点】\n") + hj;
     }
 
     /**

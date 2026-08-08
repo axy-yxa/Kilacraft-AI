@@ -4,7 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.util.JsonSafeGetUtil;
+import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.common.util.LogSnippetUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
@@ -13,7 +15,6 @@ import com.zm.kilacraftAI.db.dao.ConversationDao;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.llm.LLMProvider;
-import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 
@@ -41,6 +42,7 @@ import java.util.concurrent.TimeUnit;
  * {@code tryAnalyze()} → 异步查 DB → 静默 LLM 调用 → JSON 解析 → {@code putExtendedData()} 写回
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class ProfileAnalysisService {
 
@@ -49,12 +51,16 @@ public class ProfileAnalysisService {
     }.getType();
 
     /**
-     * 参与画像分析的消息来源（排除 afk_callback、console、greeting、plugin）
-     *
-     * <p>greeting 是 AI 模板问候语，不反映玩家真实表达；
-     * plugin 是 NPC 人格对话，场景天然隔离，不消费画像数据，也不应污染画像。</p>
+     * 触发分析的消息来源（计数门控用）：仅玩家主动发起的对话。
      */
-    private static final String SOURCE_FILTER = "'chat','command'";
+    private static final String TRIGGER_SOURCE_FILTER = "'chat','command'";
+
+    /**
+     * 加载给 LLM 分析的消息来源。
+     *
+     * <p>排除 greeting（单向模板广播，无玩家交互信号）与 plugin（人格隔离场景）。</p>
+     */
+    private static final String ANALYSIS_SOURCE_FILTER = "'chat','command'";
 
     /**
      * LLM system prompt：要求输出固定 JSON 结构（8 维度扁平结构）
@@ -227,16 +233,16 @@ public class ProfileAnalysisService {
             int minMessages = databaseManager.getConfig().getProfileMinMessagesToTrigger();
 
             try (Connection conn = databaseManager.getConnection()) {
-                // 门控2：新消息数不足
-                int newMessageCount = conversationDao.countMessagesSince(conn, playerUuid.toString(), SOURCE_FILTER, lastAnalyzed);
+                // 门控2：玩家主动发言数不足（只数 role='user' 的 chat/command，不计 AI 回复）
+                int newMessageCount = conversationDao.countMessagesSince(conn, playerUuid.toString(), TRIGGER_SOURCE_FILTER, lastAnalyzed);
 
                 if (newMessageCount < minMessages) {
-                    PluginLoggerUtil.debug("画像分析", I18nService.tr("玩家 {} 新消息数 {} < 最低阈值 {}，跳过分析", playerUuid, newMessageCount, minMessages));
+                    PluginLoggerUtil.debug("画像分析", I18nService.tr("玩家 {} 发言数 {} < 最低阈值 {}，跳过分析", playerUuid, newMessageCount, minMessages));
                     return null;
                 }
 
                 // 门控通过：加载滑动窗口内全部消息（无数量上限）
-                List<ConversationManager.Message> messages = conversationDao.loadMessagesForAnalysis(conn, playerUuid.toString(), SOURCE_FILTER, lastAnalyzed);
+                List<ConversationManager.Message> messages = conversationDao.loadMessagesForAnalysis(conn, playerUuid.toString(), ANALYSIS_SOURCE_FILTER, lastAnalyzed);
 
                 if (messages.isEmpty()) {
                     return null;
@@ -299,7 +305,8 @@ public class ProfileAnalysisService {
 
         int timeoutSeconds = databaseManager.getConfig().getProfileAnalysisTimeoutSeconds();
 
-        provider.processRequestWithCustomSystemPrompt(userMessage, playerName, null, silentHandler, getAnalysisSystemPrompt(profile), false, false, true);
+        // player 传 null：画像分析是后台建画像任务，不持有 Player 对象、也不应读取画像（它是建画像而非用画像）
+        provider.processRequestWithCustomSystemPrompt(userMessage, null, null, silentHandler, getAnalysisSystemPrompt(profile), false, true, true, CacheCallTypeEnum.PROFILE);
 
         return responseFuture.orTimeout(timeoutSeconds, TimeUnit.SECONDS).thenAccept(response -> handleAnalysisResult(playerUuid, profile, response, messageCount, windowStart)).exceptionally(ex -> {
             PluginLoggerUtil.warn("画像分析", I18nService.tr("LLM 分析失败: {} - {}", playerUuid, ex.getMessage()));
@@ -434,7 +441,7 @@ public class ProfileAnalysisService {
      * 用户可在 database.yml 中自定义提示词，留空则使用内置默认值。</p>
      */
     private String getAnalysisSystemPrompt(PlayerProfile profile) {
-        boolean isChinese = plugin.getConfigManager().isChinese();
+        boolean isChinese = I18nService.isZh();
         boolean hasExistingProfile = profile.getExtendedData() != null && !profile.getExtendedData().isEmpty();
 
         if (hasExistingProfile) {

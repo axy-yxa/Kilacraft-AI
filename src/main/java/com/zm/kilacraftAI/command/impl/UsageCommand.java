@@ -23,6 +23,9 @@ import java.util.*;
  * /kila usage [all|玩家名] [时间范围]：AI 用量统计（双维度，query.self / usage.other）。
  * 纯只读聚合现有表（kca_skill_log + kca_conversation），不落盘。口径为活跃度
  * （对话轮数 + 技能调用数），非费用——主对话链路不采集 token。默认时间范围 7d。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class UsageCommand {
 

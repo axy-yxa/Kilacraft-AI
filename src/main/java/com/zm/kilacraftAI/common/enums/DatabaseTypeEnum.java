@@ -6,6 +6,7 @@ package com.zm.kilacraftAI.common.enums;
  * <p>H2 用于单服内嵌模式（零配置），MySQL 用于群组服远程共享模式。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public enum DatabaseTypeEnum {
 

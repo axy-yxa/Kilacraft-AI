@@ -2,6 +2,7 @@ package com.zm.kilacraftAI.llm;
 
 import com.google.gson.*;
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.MessageRoleEnum;
 import com.zm.kilacraftAI.common.exception.EmptyResponseException;
 import com.zm.kilacraftAI.common.exception.LLMException;
@@ -13,9 +14,17 @@ import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.handler.AIResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.i18n.TextProcessorFactory;
+import com.zm.kilacraftAI.llm.cache.CacheMetricsCollector;
+import com.zm.kilacraftAI.llm.cache.CacheMetricsParser;
+import com.zm.kilacraftAI.llm.cache.CacheMetricsResult;
+import com.zm.kilacraftAI.llm.cache.SSEParseResult;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
+import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
+import com.zm.kilacraftAI.service.profile.ProfileManager;
 import okhttp3.*;
 import okhttp3.internal.http2.ConnectionShutdownException;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -203,16 +212,6 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             return toSearchQuery(contentForExtraction);
         }
 
-        // ========== LLM 总结分析场景 ==========
-        String suffix = plugin.getConfigManager().getAgentAnalysisPromptSuffix();
-        if (suffix != null && !suffix.isEmpty()) {
-            int suffixIndex = userMessage.indexOf(suffix);
-            if (suffixIndex > 0) {
-                contentForExtraction = userMessage.substring(0, suffixIndex);
-            }
-        }
-
-        // 检测统一格式标记（AnalysisSummary 产生的格式，可能被翻译）
         contentForExtraction = extractCleanContent(contentForExtraction);
 
         PluginLoggerUtil.debug("知识库", "提取的内容: {}", contentForExtraction);
@@ -228,67 +227,48 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     }
 
     /**
-     * 从统一格式的摘要中提取干净的内容用于关键词提取
+     * 从统一格式的摘要中提取玩家原始输入用于关键词提取。
      *
-     * <p>保留用户输入 + 执行结果的实际数据，去除结构化标记和颜色代码</p>
+     * <p>知识库检索查询词只应来自玩家原始输入——[识别说明]（意图识别 reasoning 注入）、
+     * [执行结果]（技能执行产物，message 形态不可控且含坐标/数量等动态数据）均为噪音：
+     * 玩家原始意图已覆盖检索意图（核心概念都在输入里），执行结果增量对静态知识库检索
+     * 无增益，且执行结果每次不同会污染检索词稳定性。</p>
      *
      * @param content 截取后的业务内容
-     * @return 干净的文本内容
+     * @return 玩家原始输入文本（无标记注入时原样返回）
      */
     private String extractCleanContent(String content) {
-        // 检测统一格式标记（可能被翻译，同时尝试中英文版本）
-        String resultsMarker = I18nService.tr("[执行结果]");
-        if (!content.contains(resultsMarker)) {
-            resultsMarker = "[执行结果]"; // 回退中文原始
-        }
-        if (!content.contains(resultsMarker)) {
-            return content;
-        }
-
-        // 提取 [用户输入] 部分的内容
-        StringBuilder cleanContent = new StringBuilder();
+        // 二次分析/摘要格式：[用户输入] 段即玩家原始输入，提取到下一个标记为止
+        // （[识别说明]/[任务目标]/[执行结果]/[统计]，findNextMarker 已包含全部标记）
         String userInputMarker = I18nService.tr("[用户输入]");
         int userInputStart = content.indexOf(userInputMarker);
         if (userInputStart < 0) {
-            userInputStart = content.indexOf("[用户输入]"); // 回退
+            userInputStart = content.indexOf("[用户输入]"); // 回退中文原始
         }
         if (userInputStart >= 0) {
             int textStart = userInputStart + userInputMarker.length();
             int textEnd = findNextMarker(content, textStart);
-            String userInput = content.substring(textStart, textEnd).trim();
-            if (!userInput.isEmpty()) {
-                cleanContent.append(userInput).append(" ");
-            }
+            return content.substring(textStart, textEnd).trim();
         }
 
-        // 提取 [执行结果] 部分的实际数据（去除结构标记和颜色代码）
-        int resultsStart = content.indexOf(resultsMarker);
-        if (resultsStart >= 0) {
-            int textStart = resultsStart + resultsMarker.length();
-            String statsMarker = I18nService.tr("[统计]");
-            int textEnd = content.indexOf(statsMarker);
-            if (textEnd < 0) textEnd = content.indexOf("[统计]");
-            if (textEnd < 0) textEnd = content.length();
-
-            String resultsSection = content.substring(textStart, textEnd);
-            // 去除 step_id、状态标签、颜色代码、行首标记
-            String cleaned = resultsSection.replaceAll("-\\s*step_\\w+:\\s*", "").replaceAll("-\\s*(?=\\[)", "").replaceAll("\\[(SUCCESS|FAILURE|SKIPPED|UNKNOWN)]\\s*", "").replaceAll("§[0-9a-fk-orA-FK-OR]", "").replaceAll("^[\\s\\-]+", "").replaceAll("\\n\\s*-\\s*", " ").trim();
-            // 去除坐标/数值型数据（如 x: -11.00, y: 97.00），这些对知识库检索无语义价值
-            cleaned = cleaned.replaceAll("\\b(x|y|z|pitch|yaw):\\s*-?\\d+(\\.\\d+)?\\b", "").trim();
-            if (!cleaned.isEmpty()) {
-                cleanContent.append(cleaned);
+        // 普通 AI 注入路径（无 [用户输入] 标记）：玩家消息后的 [识别说明]/[系统提示： 注入为噪音，截断
+        int noiseIndex = content.length();
+        for (String marker : new String[]{I18nService.tr("[识别说明]"), "[识别说明]", "[系统提示："}) {
+            int idx = content.indexOf(marker);
+            if (idx >= 0 && idx < noiseIndex) {
+                noiseIndex = idx;
             }
         }
-
-        return cleanContent.toString().trim();
+        return content.substring(0, noiseIndex).trim();
     }
 
     /**
      * 查找下一个格式标记的位置
      */
     private int findNextMarker(String content, int fromIndex) {
-        // 同时查找翻译后和中文原始的标记
-        String[] markers = {I18nService.tr("[任务目标]"), I18nService.tr("[执行结果]"), I18nService.tr("[统计]"), "[任务目标]", "[执行结果]", "[统计]"};
+        // 同时查找翻译后和中文原始的标记；[识别说明] 必须包含——它是 [用户输入] 之后注入的
+        // 意图识别 reasoning，若不作为边界会被并入"用户输入"段污染知识库检索词
+        String[] markers = {I18nService.tr("[识别说明]"), I18nService.tr("[任务目标]"), I18nService.tr("[执行结果]"), I18nService.tr("[统计]"), "[识别说明]", "[任务目标]", "[执行结果]", "[统计]"};
         int nearest = content.length();
         for (String marker : markers) {
             int idx = content.indexOf(marker, fromIndex);
@@ -300,25 +280,20 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     }
 
     /**
-     * 打印调试日志（优化：减少字符串拼接）
+     * 打印 debug 模式下的请求详情
      */
-    private void printDebugLog(String playerName, String userMessage, Deque<ConversationManager.Message> history) {
-        PluginLoggerUtil.debug("LLM请求", "========== API 请求开始 ==========");
+    private void printDebugLog(String playerName, String userMessage, Deque<ConversationManager.Message> history, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
+        String scenario = cacheCallTypeEnum != null ? I18nService.tr(cacheCallTypeEnum.getDisplayName()) : I18nService.tr("未分类");
+        PluginLoggerUtil.debug("LLM请求", "========== API 请求开始 [场景: {}] ==========", scenario);
         PluginLoggerUtil.debug("LLM请求", "玩家：{}", playerName);
         PluginLoggerUtil.debug("LLM请求", "当前消息：{}", userMessage);
-        PluginLoggerUtil.debug("LLM请求", "模型：{}", cachedModel);
-        PluginLoggerUtil.debug("LLM请求", "URL: {}", cachedApiUrl);
-        PluginLoggerUtil.debug("LLM请求", "温度：{}", cachedTemperature);
-        PluginLoggerUtil.debug("LLM请求", "最大 Token:{}", cachedMaxTokens);
 
-        // 打印历史记录信息
         if (history != null && !history.isEmpty()) {
             PluginLoggerUtil.debug("LLM请求", "历史对话数量：{} 条", history.size());
             int index = 0;
             for (ConversationManager.Message msg : history) {
                 index++;
                 String content = msg.getContent();
-                // AI 回答的历史记录只打印前若干个字符，避免日志过长
                 if (MessageRoleEnum.ASSISTANT.value().equals(msg.getRole()) && content.length() > LOG_TRUNCATE_LENGTH) {
                     content = content.substring(0, LOG_TRUNCATE_LENGTH) + I18nService.tr("... (共{} 字符)", msg.getContent().length());
                 }
@@ -330,18 +305,18 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
     }
 
     @Override
-    public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, String playerName, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String customSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog, boolean enableJsonOutput) {
+    public CompletableFuture<String> processRequestWithCustomSystemPrompt(String userMessage, @Nullable Player player, Deque<ConversationManager.Message> history, AIResponseHandler responseHandler, String staticSystemPrompt, boolean enableKnowledgeRetrieval, boolean enableDebugLog, boolean enableJsonOutput, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                // 打印调试日志
+                // 调试日志（player 为 null 时取 handler 玩家名，如触发指令构造等无玩家上下文调用）
                 if (enableDebugLog && cachedDebugMode) {
-                    printDebugLog(playerName, userMessage, history);
+                    String logName = player != null ? player.getName() : (responseHandler != null && responseHandler.getPlayerName() != null ? responseHandler.getPlayerName() : "Unknown");
+                    printDebugLog(logName, userMessage, history, cacheCallTypeEnum);
                 }
 
                 // ========== 知识检索增强 ==========
-                String enhancedUserMessage = userMessage;
-
-                // 检查知识库和知识检索开关
+                // 命中的知识上下文拼到 user 消息、紧贴查询之前；与动态上下文一样置于 user 端（不污染 system 前缀缓存）
+                String knowledgeContext = null;
                 if (enableKnowledgeRetrieval && cachedKnowledgeEnabled) {
                     var knowledgeRetriever = plugin.getKnowledgeRetriever();
 
@@ -354,16 +329,15 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
                         // 如果有相关知识，添加到上下文中
                         if (!relevantKnowledge.isEmpty()) {
-                            String knowledgeContext = knowledgeRetriever.formatAsContext(relevantKnowledge);
-                            enhancedUserMessage = knowledgeContext + "\n" + I18nService.tr("用户问题：") + userMessage;
+                            knowledgeContext = knowledgeRetriever.formatAsContext(relevantKnowledge);
                             PluginLoggerUtil.debug("LLM请求", "已添加 {} 个知识片段到上下文中", relevantKnowledge.size());
                         }
                     }
                 }
                 // ===================================
 
-                // 构建 SSE 流式请求体
-                JsonObject requestBody = buildRequestBody(enhancedUserMessage, history, customSystemPrompt, playerName, enableJsonOutput);
+                // 构建 SSE 流式请求体（system 纯静态、动态上下文+KB+查询统一组装到 user 消息）
+                JsonObject requestBody = buildRequestBody(userMessage, player, history, staticSystemPrompt, knowledgeContext, enableJsonOutput, cacheCallTypeEnum);
 
                 // 构建 HTTP 请求
                 Request request = buildRequest(requestBody);
@@ -372,6 +346,16 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 okhttp3.Call httpCall = httpClient.newCall(request);
                 UUID inFlightPlayerId = responseHandler != null ? responseHandler.getPlayerId() : null;
                 registerInFlight(inFlightPlayerId, httpCall);
+                // 全局预算记账（所有 LLM 入口的唯一咽喉）：无论调用方是谁，每次实际调 LLM 都记一次，
+                // 使预算层的 per-player 计数覆盖画像/问候/玩家主动等全部路径。
+                // 意图识别 handler 的 getPlayerId 返回 null，不计入——玩家感知的是"问一次答一次"，
+                // 内部步骤不应消耗其预算。
+                if (inFlightPlayerId != null) {
+                    var budget = plugin.getLlmOutputCoordinator();
+                    if (budget != null) {
+                        budget.getBudgetManager().recordCall(inFlightPlayerId);
+                    }
+                }
                 try {
                     try (Response response = httpCall.execute()) {
                         if (!response.isSuccessful()) {
@@ -390,7 +374,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                                 // 自动降级：重新调用，不启用 JSON 输出。
                                 // enableJsonOutput=false 后不会再进入此分支（天然防递归）。
                                 PluginLoggerUtil.warn("LLM请求", "当前 LLM 不支持 response_format，自动降级为普通模式");
-                                return processRequestWithCustomSystemPrompt(userMessage, playerName, history, responseHandler, customSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false).join();
+                                return processRequestWithCustomSystemPrompt(userMessage, player, history, responseHandler, staticSystemPrompt, enableKnowledgeRetrieval, enableDebugLog, false, cacheCallTypeEnum).join();
                             }
                             // 分类化错误：游戏内只显示分类提示（如"模型名有误，请检查 llm.yml"），
                             // 厂商原始错误体进控制台 WARN。与异常分支一致地走 handleError，
@@ -402,8 +386,12 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                             return errorMsg;
                         }
 
-                        // 解析 SSE 流式响应
-                        return parseSSEStream(response, responseHandler);
+                        SSEParseResult parseResult = parseSSEStream(response, responseHandler);
+                        // 缓存命中率统计
+                        if (cacheCallTypeEnum != null) {
+                            recordCacheMetrics(cacheCallTypeEnum, parseResult);
+                        }
+                        return parseResult.content();
                     }
                 } finally {
                     unregisterInFlight(inFlightPlayerId, httpCall);
@@ -430,23 +418,59 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 return errorMsg;
             } finally {
                 if (enableDebugLog && cachedDebugMode) {
-                    PluginLoggerUtil.debug("LLM请求", "========== API 请求结束 ==========");
+                    String scenario = cacheCallTypeEnum != null ? I18nService.tr(cacheCallTypeEnum.getDisplayName()) : I18nService.tr("未分类");
+                    PluginLoggerUtil.debug("LLM请求", "========== API 请求结束 [场景: {}] ==========", scenario);
                 }
             }
         }, FoliaCompat.getIOPool());
     }
 
     /**
-     * 构建 SSE 流式请求体
+     * 记录一次大模型调用的缓存命中率数据。
+     */
+    private void recordCacheMetrics(CacheCallTypeEnum callType, SSEParseResult parseResult) {
+        JsonObject usage = parseResult.usage();
+        int promptTokens = -1;
+        if (usage != null && usage.has("prompt_tokens") && !usage.get("prompt_tokens").isJsonNull()) {
+            promptTokens = usage.get("prompt_tokens").getAsInt();
+        }
+
+        CacheMetricsResult cacheResult = CacheMetricsParser.parse(usage, Math.max(promptTokens, 0));
+        CacheMetricsCollector.getInstance().record(callType, cachedModel, cacheResult, Math.max(promptTokens, 0));
+    }
+
+    /**
+     * 记录推理模型路径的缓存命中率数据。
+     */
+    private void recordThinkingModelCacheMetrics(CacheCallTypeEnum callType, String modelName, LLMResponse llmResponse, String responseBody) {
+        JsonObject usage = null;
+        if (llmResponse.promptTokens() >= 0) {
+            try {
+                JsonObject json = gson.fromJson(responseBody, JsonObject.class);
+                if (json != null && json.has("usage") && !json.get("usage").isJsonNull()) {
+                    usage = json.getAsJsonObject("usage");
+                }
+            } catch (JsonSyntaxException ignored) {
+            }
+        }
+
+        CacheMetricsResult cacheResult = CacheMetricsParser.parse(usage, Math.max(llmResponse.promptTokens(), 0));
+        CacheMetricsCollector.getInstance().record(callType, modelName, cacheResult, Math.max(llmResponse.promptTokens(), 0));
+    }
+
+    /**
+     * 构建 SSE 流式请求体。
      *
-     * @param enhancedUserMessage 增强后的用户消息（可能包含知识库上下文）
-     * @param history             历史对话记录
-     * @param customSystemPrompt  自定义系统提示词
-     * @param playerName          玩家名称
-     * @param enableJsonOutput    是否启用 JSON 输出格式
+     * @param userMessage        实际用户查询
+     * @param player             触发请求的玩家；非 null 时采集画像/元数据/时间拼到 user 消息
+     * @param history            历史对话记录，作为 messages[1..N]
+     * @param staticSystemPrompt 系统提示词（必须纯静态，不含任何动态占位符）
+     * @param knowledgeContext   知识库检索结果（null 表示无）
+     * @param enableJsonOutput   是否启用 JSON 输出格式
+     * @param cacheCallTypeEnum  调用类型（AI 场景标识，用于调试输出区分来源）
      * @return 构建好的请求体 JSON
      */
-    private JsonObject buildRequestBody(String enhancedUserMessage, Deque<ConversationManager.Message> history, String customSystemPrompt, String playerName, boolean enableJsonOutput) {
+    private JsonObject buildRequestBody(String userMessage, @Nullable Player player, Deque<ConversationManager.Message> history, String staticSystemPrompt, @Nullable String knowledgeContext, boolean enableJsonOutput, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("model", cachedModel);
         requestBody.addProperty("temperature", cachedTemperature);
@@ -455,8 +479,11 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         if (!enableJsonOutput) {
             requestBody.addProperty("max_tokens", cachedMaxTokens);
         }
-        // 始终使用流式请求
+        // 始终使用流式请求，并请求流结束时返回完整 usage（含缓存 token）
         requestBody.addProperty("stream", true);
+        JsonObject streamOptions = new JsonObject();
+        streamOptions.addProperty("include_usage", true);
+        requestBody.add("stream_options", streamOptions);
 
         // 启用 JSON 输出格式（仅意图识别阶段使用）
         if (enableJsonOutput) {
@@ -472,22 +499,19 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
 
         JsonArray messages = new JsonArray();
 
-        // 使用自定义的系统提示词，替换 {player} 占位符
-        String systemPrompt = customSystemPrompt.replace("{player}", playerName);
-
-        // 语言约束：强制 AI 输出使用服务器配置的语言
-        // 防止第三方 SPI Skill 的多语言数据干扰输出语言
+        // system 消息保持纯静态：玩家身份/实时状态等动态信息由 assembleUserContent 注入 user 消息，
+        // 以最大化供应商侧前缀缓存命中率（system 跨玩家、跨请求字节一致）
+        String systemPrompt = staticSystemPrompt;
         String langDirective = plugin.getConfigManager().getLanguageDirective();
         if (langDirective != null) {
             systemPrompt += "\n" + langDirective;
         }
-
         JsonObject systemMessage = new JsonObject();
         systemMessage.addProperty("role", MessageRoleEnum.SYSTEM.value());
         systemMessage.addProperty("content", systemPrompt);
         messages.add(systemMessage);
 
-        // 添加历史对话记录
+        // 历史对话记录：messages[1..N]
         if (history != null && !history.isEmpty()) {
             for (ConversationManager.Message msg : history) {
                 JsonObject msgObj = new JsonObject();
@@ -497,14 +521,77 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             }
         }
 
-        // 用户消息
+        // user 消息：动态上下文（画像/元数据/时间，player 为 null 时为空）+ 知识库 + 实际查询
+        String userContent = assembleUserContent(userMessage, knowledgeContext, buildDynamicContext(player, cacheCallTypeEnum));
         JsonObject userMsg = new JsonObject();
         userMsg.addProperty("role", MessageRoleEnum.USER.value());
-        userMsg.addProperty("content", enhancedUserMessage);
+        userMsg.addProperty("content", userContent);
         messages.add(userMsg);
 
         requestBody.add("messages", messages);
+
+        if (cacheCallTypeEnum != null) {
+            // TODO 需手动开启的调试日志 / Debug logs requiring manual activation
+//            PluginLoggerUtil.warn("LLM请求", I18nService.tr("== 提示词调试 [场景: {}] ==\n[SYSTEM]\n{}\n\n[USER]\n{}", cacheCallTypeEnum.getDisplayName(), systemPrompt, userContent));
+        }
         return requestBody;
+    }
+
+    /**
+     * 组装最终 user 消息内容：动态上下文（画像+元数据+时间）+ 知识库 + 实际查询。
+     *
+     * @param userMessage      实际用户查询
+     * @param knowledgeContext 知识库检索结果，null 或空表示无
+     * @param dynamicContext   动态上下文块（画像+元数据+时间），null 或空表示无
+     * @return 组装后的 user 消息内容
+     */
+    public static String assembleUserContent(String userMessage, @Nullable String knowledgeContext, @Nullable String dynamicContext) {
+        StringBuilder sb = new StringBuilder();
+        if (dynamicContext != null && !dynamicContext.isEmpty()) {
+            sb.append(dynamicContext).append("\n\n");
+        }
+        if (knowledgeContext != null && !knowledgeContext.isEmpty()) {
+            sb.append(knowledgeContext).append("\n").append(I18nService.tr("用户问题："));
+        }
+        sb.append(userMessage);
+        return sb.toString();
+    }
+
+    /**
+     * 采集玩家画像、实时元数据与当前时间，拼接为 user 消息的背景信息块。
+     * <p>画像受 {@code isProfileInjectionEnabled} 开关控制；player 为 null 时返回空串。
+     * 意图识别三入口（Phase 1 / Phase 2 / 续体分类）**不注入**动态上下文：识别输入只含
+     * 当前话语+对话历史+技能描述，画像/实时状态/时间会诱导模型做倾向性选择且状态值在识别期到执行期之间可能已过期
+     */
+    private String buildDynamicContext(@Nullable Player player, @Nullable CacheCallTypeEnum callType) {
+        if (player == null) {
+            return "";
+        }
+        if (callType == CacheCallTypeEnum.INTENT_PHASE1 || callType == CacheCallTypeEnum.INTENT_PHASE2 || callType == CacheCallTypeEnum.PENDING_RESUME) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+
+        // 画像摘要
+        if (plugin.getConfigManager().isProfileInjectionEnabled()) {
+            ProfileManager profileManager = plugin.getProfileManager();
+            if (profileManager != null) {
+                String profileSummary = profileManager.buildProfileSummary(player.getUniqueId());
+                if (!profileSummary.isEmpty()) {
+                    sb.append(profileSummary).append("\n\n");
+                }
+            }
+        }
+
+        // 玩家实时元数据
+        String meta = PlayerMetaCollector.collect(player);
+        if (!meta.isEmpty()) {
+            sb.append(meta).append("\n\n");
+        }
+
+        // 当前时间
+        sb.append(I18nService.tr("【当前时间】")).append(I18nService.getCurrentTimeString());
+        return sb.toString();
     }
 
     /**
@@ -643,9 +730,9 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
      *
      * @param response        HTTP 响应
      * @param responseHandler 响应处理器（流式回调）
-     * @return 完整的响应文本
+     * @return 解析结果（含完整文本和最后一个 chunk 的 usage 对象）
      */
-    private String parseSSEStream(Response response, AIResponseHandler responseHandler) {
+    private SSEParseResult parseSSEStream(Response response, AIResponseHandler responseHandler) {
         ResponseBody body = response.body();
         if (body == null) {
             // 响应体为空：走 handleError 清占位符 + 提示玩家，避免卡在"正在思考中"
@@ -653,7 +740,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             if (responseHandler != null) {
                 responseHandler.handleError(errorMsg);
             }
-            return errorMsg;
+            return new SSEParseResult(errorMsg, null);
         }
 
         // 预分配容量，减少扩容开销
@@ -663,6 +750,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         // 收集原始 SSE 数据行（用于空响应时诊断）
         int chunkCount = 0;
         final Deque<String> recentRawChunks = new ArrayDeque<>(3);
+        JsonObject lastUsage = null;
 
         // 使用 BufferedReader 逐行流式读取（始终使用 SSE 模式）
         try (BufferedReader reader = new BufferedReader(body.charStream(), BUFFER_SIZE)) {
@@ -690,6 +778,11 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                         JsonObject json = gson.fromJson(data, JsonObject.class);
                         if (json == null) {
                             continue;
+                        }
+
+                        // 捕获最后一个 chunk 的 usage 对象（用于缓存命中率统计）
+                        if (json.has("usage") && !json.get("usage").isJsonNull()) {
+                            lastUsage = json.getAsJsonObject("usage");
                         }
 
                         JsonArray choices = json.getAsJsonArray("choices");
@@ -739,7 +832,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             if (responseHandler != null) {
                 responseHandler.handleError(errorMsg);
             }
-            return errorMsg;
+            return new SSEParseResult(errorMsg, null);
         }
 
         // 空响应检测：抛出异常走错误处理路径（handleError），避免玩家收到空消息，
@@ -755,7 +848,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
             responseHandler.showResponse(result);
         }
 
-        return result;
+        return new SSEParseResult(result, lastUsage);
     }
 
     /**
@@ -850,15 +943,16 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
      *
      * <p>此方法为 {@link ThinkingModelCapable} 接口方法，通过 {@code instanceof ThinkingModelCapable} 检查能力。</p>
      *
-     * @param systemPrompt 系统提示词
-     * @param userMessage  用户消息
-     * @param config       推理模型配置（API 地址、密钥、模型名等）
-     * @param client       推理模型专用 HTTP 客户端（由 AdminConfigManager 提供，共享连接池）
+     * @param systemPrompt      系统提示词
+     * @param userMessage       用户消息
+     * @param config            推理模型配置（API 地址、密钥、模型名等）
+     * @param client            推理模型专用 HTTP 客户端（由 AdminConfigManager 提供，共享连接池）
+     * @param cacheCallTypeEnum 调用类型（用于缓存命中率统计，可为 null 表示不统计）
      * @return LLM 响应（含推理过程和用量）
      * @throws LLMException 请求或解析失败时抛出
      */
     @Override
-    public LLMResponse processRequestWithThinkingModel(String systemPrompt, String userMessage, ThinkingModelConfig config, OkHttpClient client) throws LLMException {
+    public LLMResponse processRequestWithThinkingModel(String systemPrompt, String userMessage, ThinkingModelConfig config, OkHttpClient client, @Nullable CacheCallTypeEnum cacheCallTypeEnum) throws LLMException {
         // 构建请求体
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("model", config.model());
@@ -905,18 +999,23 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
                 String errorBody = response.body() != null ? response.body().string() : "unknown";
-                throw new LLMException("推理模型请求失败: HTTP " + response.code() + " - " + errorBody);
+                throw new LLMException(I18nService.tr("推理模型请求失败: HTTP {}", response.code()));
             }
 
             ResponseBody body = response.body();
             if (body == null) {
-                throw new LLMException("推理模型响应为空");
+                throw new LLMException(I18nService.tr("推理模型响应为空"));
             }
 
             String responseBody = body.string();
-            return parseThinkingModelResponse(responseBody);
+            LLMResponse llmResponse = parseThinkingModelResponse(responseBody);
+            // 缓存命中率统计
+            if (cacheCallTypeEnum != null) {
+                recordThinkingModelCacheMetrics(cacheCallTypeEnum, config.model(), llmResponse, responseBody);
+            }
+            return llmResponse;
         } catch (IOException e) {
-            throw new LLMException("推理模型请求异常: " + e.getMessage(), e);
+            throw new LLMException(I18nService.tr("推理模型请求异常: {}", e.getMessage()), e);
         }
     }
 
@@ -927,18 +1026,18 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         try {
             JsonObject json = gson.fromJson(responseBody, JsonObject.class);
             if (json == null) {
-                throw new LLMException("响应 JSON 为空");
+                throw new LLMException(I18nService.tr("响应 JSON 为空"));
             }
 
             JsonArray choices = json.getAsJsonArray("choices");
             if (choices == null || choices.isEmpty()) {
-                throw new LLMException("响应中无 choices");
+                throw new LLMException(I18nService.tr("响应中无 choices"));
             }
 
             JsonObject choice = choices.get(0).getAsJsonObject();
             JsonObject message = choice.getAsJsonObject("message");
             if (message == null) {
-                throw new LLMException("响应中无 message");
+                throw new LLMException(I18nService.tr("响应中无 message"));
             }
 
             // 提取 content
@@ -967,7 +1066,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
         } catch (LLMException e) {
             throw e;
         } catch (Exception e) {
-            throw new LLMException("解析推理模型响应失败: " + e.getMessage(), e);
+            throw new LLMException(I18nService.tr("解析推理模型响应失败: {}", e.getMessage()), e);
         }
     }
 

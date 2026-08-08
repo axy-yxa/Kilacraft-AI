@@ -1,17 +1,14 @@
 package com.zm.kilacraftAI.skills.bukkit;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.compat.folia.FoliaCompat;
-import com.zm.kilacraftAI.i18n.I18nService;
-import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.compat.folia.FoliaCompat;
+import com.zm.kilacraftAI.config.SkillConfigManager;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.knowledge.InternalEnumRegistry;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
+import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.Material;
 import org.bukkit.Statistic;
 import org.bukkit.entity.EntityType;
@@ -26,9 +23,19 @@ import java.util.concurrent.CompletableFuture;
  * @author Zm_Mmm
  * @since 2026-04-19
  */
-public class BukkitStatsSkill implements Skill {
+public class BukkitStatsSkill implements Skill, ProbeSource {
+
+    private static final String SKILL_NAME = "player_stats";
+    private static final String LOG_PREFIX = "原版统计";
 
     private static final String ACTION_QUERY_STATISTIC = "query_statistic";
+
+    private static final Set<String> PROBEABLE_ACTIONS = Set.of(ACTION_QUERY_STATISTIC);
+
+    @Override
+    public Set<String> getProbeableActions() {
+        return PROBEABLE_ACTIONS;
+    }
 
     /**
      * 距离统计后缀（厘米），需要自动转换单位
@@ -45,9 +52,9 @@ public class BukkitStatsSkill implements Skill {
     public BukkitStatsSkill() {
         this.configManager = SkillConfigManager.getInstance();
 
-        if (configManager != null && configManager.getSkillConfig("bukkit", "BukkitStatsSkill") == null) {
-            configManager.saveDefaultSkillConfig("bukkit", "BukkitStatsSkill");
-            configManager.loadSingleSkillConfig("bukkit", "BukkitStatsSkill");
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
@@ -55,12 +62,12 @@ public class BukkitStatsSkill implements Skill {
         if (configManager == null) {
             return null;
         }
-        return configManager.getSkillConfig("bukkit", "BukkitStatsSkill");
+        return configManager.getSkillConfig(this);
     }
 
     @Override
     public String getName() {
-        return "bukkit_stats";
+        return SKILL_NAME;
     }
 
     @Override
@@ -101,7 +108,7 @@ public class BukkitStatsSkill implements Skill {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("无法获取玩家对象")));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
         }
 
         if (!PluginPermissionEnum.BUKKIT_STATS.hasPermission(player)) {
@@ -127,25 +134,25 @@ public class BukkitStatsSkill implements Skill {
                 return future;
             }
         } catch (Exception e) {
-            PluginLoggerUtil.error("BukkitStats", "执行统计查询失败", e);
+            PluginLoggerUtil.error(LOG_PREFIX, "执行统计查询失败", e);
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("执行失败: {}", e.getMessage())));
         }
     }
 
     private SkillResult executeSync(String action, Player player, Map<String, String> entities) {
-        return switch (action) {
-            case ACTION_QUERY_STATISTIC -> queryStatistic(player, entities);
-            default -> SkillResult.failure(I18nService.tr("未知动作: {}", action));
-        };
+        if (!ACTION_QUERY_STATISTIC.equals(action)) {
+            return SkillResult.failure(I18nService.tr("未知动作: {}", action));
+        }
+        return queryStatistic(player, entities);
     }
 
     /**
      * 查询统计项
      */
     private SkillResult queryStatistic(Player player, Map<String, String> entities) {
-        String statisticName = entities.get("statistic");
-        if (statisticName == null || statisticName.isEmpty()) {
-            return SkillResult.failure(I18nService.tr("缺少参数: statistic（统计枚举名称）"));
+        String statisticName = SkillEntityHelper.getString(entities, "statistic");
+        if (statisticName == null) {
+            return SkillResult.needInfo(I18nService.tr("要查询哪项统计？请告诉我统计项的英文名或中文描述（如：DEATHS、死亡次数、MOB_KILLS）。"));
         }
 
         // 解析统计枚举：精确匹配 → 内置注册表模糊匹配
@@ -158,6 +165,11 @@ public class BukkitStatsSkill implements Skill {
         try {
             int value;
             String formattedResult;
+            String materialName = null;
+            String entityTypeName = null;
+            // 解析后的规范枚举对象，供 data 存 name()（data 结构化、message 语义化的分工）
+            Material material = null;
+            EntityType entityType = null;
 
             switch (statistic.getType()) {
                 case UNTYPED -> {
@@ -165,11 +177,11 @@ public class BukkitStatsSkill implements Skill {
                     formattedResult = formatResult(statistic, value);
                 }
                 case ITEM -> {
-                    String materialName = entities.get("material");
-                    if (materialName == null || materialName.isEmpty()) {
-                        return SkillResult.failure(I18nService.tr("统计项 {} 需要 material 参数（物品材质名，如 DIAMOND_SWORD）", statisticName));
+                    materialName = SkillEntityHelper.getString(entities, "material");
+                    if (materialName == null) {
+                        return SkillResult.needInfo(I18nService.tr("统计项 {} 需要指定物品材质名（如：DIAMOND_SWORD），请告诉我要查询哪种物品。", statisticName));
                     }
-                    Material material = parseMaterial(materialName);
+                    material = parseMaterial(materialName);
                     if (material == null || !material.isItem()) {
                         return SkillResult.failure(I18nService.tr("无效的物品材质名: {}", materialName));
                     }
@@ -177,11 +189,11 @@ public class BukkitStatsSkill implements Skill {
                     formattedResult = formatResult(statistic, value, materialName);
                 }
                 case BLOCK -> {
-                    String materialName = entities.get("material");
-                    if (materialName == null || materialName.isEmpty()) {
-                        return SkillResult.failure(I18nService.tr("统计项 {} 需要 material 参数（方块材质名，如 DIAMOND_ORE）", statisticName));
+                    materialName = SkillEntityHelper.getString(entities, "material");
+                    if (materialName == null) {
+                        return SkillResult.needInfo(I18nService.tr("统计项 {} 需要指定方块材质名（如：DIAMOND_ORE），请告诉我要查询哪种方块。", statisticName));
                     }
-                    Material material = parseMaterial(materialName);
+                    material = parseMaterial(materialName);
                     if (material == null || !material.isBlock()) {
                         return SkillResult.failure(I18nService.tr("无效的方块材质名: {}", materialName));
                     }
@@ -189,11 +201,11 @@ public class BukkitStatsSkill implements Skill {
                     formattedResult = formatResult(statistic, value, materialName);
                 }
                 case ENTITY -> {
-                    String entityTypeName = entities.get("entity_type");
-                    if (entityTypeName == null || entityTypeName.isEmpty()) {
-                        return SkillResult.failure(I18nService.tr("统计项 {} 需要 entity_type 参数（实体类型名，如 ZOMBIE）", statisticName));
+                    entityTypeName = SkillEntityHelper.getString(entities, "entity_type");
+                    if (entityTypeName == null) {
+                        return SkillResult.needInfo(I18nService.tr("统计项 {} 需要指定实体类型名（如：ZOMBIE），请告诉我要查询哪种实体。", statisticName));
                     }
-                    EntityType entityType = parseEntityType(entityTypeName);
+                    entityType = parseEntityType(entityTypeName);
                     if (entityType == null) {
                         return SkillResult.failure(I18nService.tr("无效的实体类型名: {}", entityTypeName));
                     }
@@ -205,20 +217,20 @@ public class BukkitStatsSkill implements Skill {
                 }
             }
 
-            // 构建 dataMap 供多步骤任务引用
+            // data 存规范枚举名（多步引用稳定），message 由 formatResult 转中文展示
             Map<String, Object> dataMap = new HashMap<>();
-            dataMap.put("statistic", statisticName);
+            dataMap.put("statistic", statistic.name());
             dataMap.put("value", value);
             dataMap.put("statistic_type", statistic.getType().name());
-            if (statistic.getType() == Statistic.Type.ITEM || statistic.getType() == Statistic.Type.BLOCK) {
-                dataMap.put("material", entities.get("material"));
-            } else if (statistic.getType() == Statistic.Type.ENTITY) {
-                dataMap.put("entity_type", entities.get("entity_type"));
+            if (material != null) {
+                dataMap.put("material", material.name());
+            } else if (entityType != null) {
+                dataMap.put("entity_type", entityType.name());
             }
 
             return SkillResult.success(formattedResult, dataMap);
         } catch (Exception e) {
-            PluginLoggerUtil.error("BukkitStats", I18nService.tr("查询统计失败: {}", statisticName), e);
+            PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询统计失败: {}", statisticName), e);
             return SkillResult.failure(I18nService.tr("查询统计失败: {}", e.getMessage()));
         }
     }
@@ -451,7 +463,7 @@ public class BukkitStatsSkill implements Skill {
                 case SPIDER -> "蜘蛛";
                 case ENDERMAN -> "末影人";
                 case ENDER_DRAGON -> "末影龙";
-                case WITHER -> "调灵";
+                case WITHER -> "凋灵";
                 case WITCH -> "女巫";
                 case BLAZE -> "烈焰人";
                 case GHAST -> "恶魂";
@@ -464,13 +476,13 @@ public class BukkitStatsSkill implements Skill {
                 case VEX -> "恼鬼";
                 case GUARDIAN -> "守卫者";
                 case ELDER_GUARDIAN -> "远古守卫者";
-                case SILVERFISH -> "蠢虫";
+                case SILVERFISH -> "蠹虫";
                 case ENDERMITE -> "末影螨";
                 case CAVE_SPIDER -> "洞穴蜘蛛";
                 case HUSK -> "尸壳";
                 case STRAY -> "流浪者";
                 case DROWNED -> "溺尸";
-                case WITHER_SKELETON -> "调灵骷髅";
+                case WITHER_SKELETON -> "凋灵骷髅";
                 case PIGLIN -> "猪灵";
                 case HOGLIN -> "疣猪兽";
                 case ZOGLIN -> "僵尸疣猪兽";

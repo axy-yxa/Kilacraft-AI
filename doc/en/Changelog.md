@@ -1,7 +1,141 @@
 # Kilacraft-AI Changelog
 
-> **Last Updated**: 2026-07-10  
+> **Last Updated**: 2026-08-07  
 > **Description**: This file records all important changes to the Kilacraft-AI plugin  
+
+---
+
+## v2.2.0 - Web Search & Fetch, Chat Suggestions, Command Execution Skill, Player Custom Watches, Cross-Player Subscriptions, LLM Budget Governance & Cache Hit-Rate Analytics
+
+### ✨ New Features
+
+- **Web Search (highlight of this release)**: The in-game AI can now look up real-time information on the internet — version updates, mod recommendations, today's gold price / exchange rates, sports scores, wiki entries — no longer limited by training-data cutoff. **9 search-engine providers** built in (China: Zhipu/Baidu Qianfan/Doubao/Qiniu/Alibaba IQS; international: Tavily/Brave/Exa/You.com), auto-selected by server language, most with free tiers. Server owners fill in one API Key in `web.yml` to start; `provider: auto` routes by language. Supports time-range filtering and automatic multi-step search (complex questions split into up to 5 sub-searches). Requires `kilacraft.websearch` permission (default: all players, but needs an API Key to function)
+
+- **Chat Suggestions (highlight of this release)**: After the AI replies, 1–5 clickable "you may also want to ask" follow-ups are appended below the chat — click to send, no typing, like the "suggested questions" in chat apps. Generated from multi-turn history + available skill summaries with a strict "quality over quantity" rule, **doubling as a way to discover what else the AI can do** (web search, watches, command execution can all appear). **Triggers only in command mode, never in continuous-chat mode**, preserving the natural feel. Players can `/kila suggestion off` (default on, no permission needed); the list wraps intelligently to actual chat-box width
+
+- **Command Execution Skill (CommandSkill, highlight of this release)**: Players can ask the AI in natural language to execute server commands — "teleport to spawn", "claim daily reward", "clear my chat history" — translated into the actual command **run as that player** (gated by server permissions, so the AI never exceeds the player's own). Three major upgrades this version:
+  - **On by default for all players**: previously required `command_skill.enabled: true` in `config.yml` and was OP-only; the toggle is removed and unified under the `kilacraft.command.execute` permission node (default: all players). Disable by revoking via your permission plugin (e.g. LuckPerms)
+  - **Command knowledge-base document**: a new `commands/commands.md` (zh + en) serves as the AI's command-recognition knowledge base, shipping with all of Kilacraft-AI's own commands (description/examples/permissions/keywords); server owners can **append third-party plugin commands** (e.g. Essentials `home`/`tpa`) using the template. `/kila reload` refreshes, `/kila doctor` checks health
+  - **Permission-aware dynamic filtering**: the command list the AI sees is filtered by the current player's permissions — commands the player can't use never appear, so the AI only suggests/executes what the player actually can
+
+- **Player Custom Watches (WatchSkill)**: Set an "auto-watch" with a single natural-language sentence; when the condition is met or the event fires, the AI proactively notifies you. Replaces the removed AFK-task system with stronger, safer capabilities:
+  - **Condition watch**: watch a number/state — "watch my iron ingots until 64", "remind me when health drops below 30%". Supports read-only queries of built-in skills (Bukkit stats, CMI, market, vanilla API), auto-detecting value type at runtime
+  - **Event watch**: watch 11 high-value game events — furnace smelt complete, crop mature, boss kill, nearby entity spawn, player death, teleport, XP level-up, world change, block break, fishing, chat keyword
+  - On trigger it **only notifies the AI, never auto-executes** (safer than old AFK tasks); brief disconnect (within 5 min) and reconnect auto-restores watches
+  - **Watchable scope**: the AI only creates watches from the built-in watchable list; items outside it (e.g. internet-only gold price/rates) are declined upfront, and AI mis-picks are rejected at the system boundary, leaving no invalid watch
+  - Requires `kilacraft.watch` permission (default: all players). Per-player cap: 3 condition / 5 event / 200 server-wide
+
+- **Cross-Player Online/Offline Subscription (PlayerWatchSkill)**: Subscribe to friends' login/logout notifications in natural language — "tell me when Steve logs in", "notify me on both for Alex". Replaces the same-named capability in the old AFK-task system and is **stronger**: supports multiple targets at once (old system tracked one), has anti-reordering (a logout cancels an un-sent login notification), and delays login notifications by 2 seconds so the player is fully loaded. Subscriptions are in-memory only, auto-clearing when the subscriber goes offline. Requires `kilacraft.player_watch` permission (default: all players), per-player cap 5
+
+- **Web Fetch**: Hand the AI a specific URL and it fetches the page body, reads it, and answers questions about that page — "what does this tutorial page say", "what's the crafting recipe on this mod's wiki". Complementary to Web Search: search gives keywords → page list; fetch gives a URL → reads the body. **Zero-config, no API Key**, with enterprise-grade security built in (see "Security Hardening" below). Requires `kilacraft.webfetch` permission (default: all players)
+
+- **LLM Budget Governance**: A safety net across all LLM entry points. Tracks per-player hourly calls; exceeding the threshold (default 200/hour/player, configurable in `llm.yml`) triggers a 1-hour circuit break. **Binary breaking** — player-initiated requests never trip; passive calls (greeting/suggestion/reminder/plugin callbacks) are rejected over budget. Normal use never notices it (200/hour is unreachable); it only kicks in under abnormal conditions — **prioritizing player experience and the server owner's wallet**. Set to 0 or negative to disable
+
+- **LLM Cache Hit-Rate Statistics (`/kila cache`)**: A new command to view LLM prompt-cache hit rate in real time, broken down across 10 AI call types (two-phase intent recognition, secondary analysis, chat, greeting, profile, suggestion, tool notification, diagnostics), each showing request count and hit rate. Auto-compatible with DeepSeek/OpenAI/Anthropic cache fields, no config needed. In-game bar chart + console aligned table. Data is memory-only, resets on restart; `/kila cache reset` for manual reset. Requires `kilacraft.admin.cache` permission (default: operators only)
+
+### 🔧 Improvements
+
+- **AI truthfully reports its capability limits (highlight of this release)**: when a player requests an operation beyond the AI's capabilities (e.g. teleporting to arbitrary coordinates, which is unsupported), the AI now truthfully states that the operation cannot be completed, while still delivering what it can do (e.g. looking up and reporting the location coordinates) — no more false successes like replying "teleported" when it only fetched the coordinates. No configuration required; takes effect automatically
+
+- **Knowledge base organization & reliability (key highlight)**: ① the `knowledge/` directory supports arbitrary subfolder organization — mixed Chinese/English files, nothing lost when switching languages; ② the AI no longer "stitches together" answers from irrelevant chunks — when there is no relevant content it answers normally and never fabricates details (no more invented "server restarts at 4 AM"), and servers without knowledge files are completely unaffected; ③ paraphrased or tangentially related questions are more likely to be matched
+
+- **Intent-recognition failure anti-hallucination (highlight of this release)**: when the skill path is attempted but fails (invalid skill name, JSON parse failure, model-call error, etc.), the system now injects a `[FAILURE]` marker when falling back to normal conversation, guiding the AI to honestly say "the skill system could not handle this request" instead of fabricating a plausible-sounding reply from its own knowledge. Pure chit-chat, real-world topics, and other inherently non-skill requests are unaffected and silently fall back to normal conversation
+
+- **system prompts made fully static (highlight of this release)**: the system prompt for **all** LLM calls (normal chat, greeting, secondary analysis, etc.) no longer contains any per-player placeholder (including `{player}`); it is now a byte-identical static text shared across all players, with player names, profile, offline events, time and other dynamic data **all moved into the user message**. Providers match prefix cache "from byte 0 onward as a continuous same-prefix"; the `{player}` that used to sit in system broke the prefix right there — staticizing it noticeably raises cache hit rate in multi-player scenarios. A leftover `{player}` in an old config is no longer replaced (stays as a literal, only lowering hit rate, not breaking functionality); if greeting config still has deprecated placeholders, a warning is logged on startup prompting migration
+
+- **Comprehensive cache-hit-rate & prompt governance optimization**: a set of coordinated changes around "making the cacheable prefix more stable" — ① per-player dynamic content scattered across AI entry points (command lists, metadata, profile, etc.) extracted into a dedicated injection slot; ② conversation history switched from text-block concatenation to the standard `messages` array, matching native multi-turn formats and clarifying the cache boundary; ③ pending-resume classification system prompt staticized (per-request pending-operation description moved into the user message); ④ the old `analysis_prompt_suffix` merged into `system_prompt`, carried by a single system prompt to reduce config keys and avoid suffix-concatenation hit-rate perturbation; ⑤ all built-in Skill prompts restructured into a three-part format (summary + triggers + boundaries), intent prompts add relative-adjustment rule & parameter-missing handling, secondary-analysis adds result-relevance filtering & wording-fidelity principle, suggestion restructured into a 3-layer framework
+
+- **Major config consolidation**: the existing `greeting.yml` plus new suggestion, watch, and utility-notification configs are integrated into a single `behavior.yml` (four sections: greeting / suggestion / watch / utility.prompts), single-file bilingual; `/kila reload` works seamlessly — fewer config files
+
+- **Greeting system rebuilt**: login greetings now draw on highlight events from the offline period (kills, boss kills, etc.) and bring them up in a casual, recalling tone instead of reporting raw statistics like playtime or distance traveled; greetings are no longer written into conversation history to avoid affecting subsequent chats; the prompt adds a fact-boundary rule — it states only actual events and never fabricates deeds or puts words in others' mouths based on the profile, stopping hallucinations like "you built an auto-farm"
+
+- **Bukkit query skill split**: the single generic Bukkit query skill (`apis.yml`) has been split into 5 independent skills (player info / status / inventory / world / server); all **71 read-only queries remain identical**. Each skill's prompt adds reverse-boundary and disambiguation hints (e.g. "location" = feet coords vs "eye location" = eye coords), so the AI routes queries more accurately
+
+- **Server health-monitor alert thresholds optimized**: debounce optimizations to reduce false positives — MSPT moved to "max + median dual gate", CPU to "confirm after 3 consecutive breaches"; thresholds relaxed (MSPT p95 50→100ms, CPU 80%→90%, cooldown 5→30 minutes); new `mspt_median_threshold` and `cpu_consecutive_threshold` config keys added
+
+- **Automatic LLM model-name and URL compatibility**: auto-maps legacy DeepSeek model names (`deepseek-chat`→`deepseek-v4-flash`, etc., **in-memory only — config file never touched**), so old configs keep working after upgrade; also auto-completes incomplete API URLs (e.g. entering `/v1` auto-appends `/chat/completions`). Zero-config, transparent to non-DeepSeek setups
+
+- **Conversation history management hardened**: three improvements to `settings.max_history` in `config.yml` — ① values clamped to 0-100 (prevents an accidentally huge value from OOM); ② in-memory capacity now tracks the config (previously hardcoded 100); ③ `max_history: 0` fully disables history (no save, no load, reconnect loads nothing). `/kila reload` takes effect immediately
+
+- **`/kila doctor` self-check enhanced**: in-game output now uses grouped fold-down summaries (each group shows "X pass, Y warn, Z fail", only failures expanded), dramatically reducing chat spam when healthy; console adds web-search provider status and other metrics; new command-document health check and `health_guardian` check added
+
+- **Current time injected into AI context**: the AI can now sense the precise current time (with timezone, to the minute), handling "what time is it" / "search today's news" more accurately; minute-level precision also preserves cache hit rate
+
+- **Default context-round counts tuned**: intent-recognition history `intent_history_count` default 5→7, secondary-analysis history `analysis_history_count` default 2→3 — longer history helps the AI resolve pronoun references (e.g. "check that item again") and makes suggestions less likely to repeat
+
+- **`/kila reload` enhanced**: now reloads watch/web/suggestion/greeting/utility-notification/command-document configs; budget threshold refreshes immediately
+
+- **SkillEntityHelper parameter extraction tool added to SPI**: a new `SkillEntityHelper` static utility (`getString`/`getInt`/`getDouble`/`getBoolean`, etc., zero-exception, returns defaults on failure) eliminates boilerplate `try { parse } catch` blocks. Included in the SPI assembly package for third-party skill developers
+
+- **Database table-prefix validation**: `mysql.table_prefix` now validates characters (letters/digits/underscores only); invalid values fall back to the default `kca_` with an error — since the prefix is concatenated directly into SQL, the check prevents misconfiguration or malicious injection
+
+- **API request debug logs now tagged with scenario**: when debug mode is on, the start/end of each LLM request log labels the call's scenario (e.g. "Intent Recognition Phase 2", "Secondary Analysis", "Greeting"), making it easier to distinguish log ownership when multiple entry points run concurrently
+
+- **Documentation archiving**: the AFK task system's user guide and detailed docs have been archived to `doc/归档/` following the system's removal; the intent recognition prompt configuration guide was updated
+
+- **Profile-analysis trigger threshold tuning**: `min_messages_to_trigger` default 10→20, reducing unnecessary LLM analyses triggered by low-quality message spam; `analysis_timeout_seconds` code default aligned with the config at 120 seconds
+
+- **Two existing skills renamed**: the sound/particle skill (formerly `bukkit_fx`) and the vanilla statistics skill (formerly `bukkit_stats`) were renamed to `sound_fx`/`player_stats` — shorter, clearer identifiers that improve AI accuracy when recognizing skill names (long mixed-language identifiers were a hotbed of AI spelling errors). The corresponding permission nodes followed the rename (`kilacraft.sound_fx`/`kilacraft.player_stats`, default-available to everyone, usually no action needed)
+
+### 🐛 Bug Fixes
+
+- **Security hardening (WebFetch SSRF protection)**: three layers of protection so server owners can enable it with confidence: ① **internal-address blocking**: access to the server's own/LAN addresses (`127.x`/`10.x`/`192.168.x`/`172.16-31.x`) forbidden by default; ② **DNS rebinding protection**: IP validation welded into the DNS resolution step, guaranteeing "the IP that's checked is the IP that's connected", eliminating the check-then-connect window; ③ **forced HTTPS + per-hop re-check**: when protection is on, `http://` is upgraded to `https://`, redirects handled hop-by-hop (max 3) with protocol and IP re-validated each hop. Response bodies read with a hard byte cap (prevents oversized pages from OOM); upstream errors redacted (raw errors go to logs only)
+- **Entity name localization & typo fixes**: Minecraft entity names (Creeper, Zombie, Skeleton, Wither, etc. — 26 total) are now localized — English servers show Creeper/Zombie/Skeleton, Chinese servers show official translations. Fixed historical typos: the Chinese name of "wither" is unified to the official "凋灵" (previously "凋零" — 凋零 is a status effect, 凋灵 is the boss), along with "蠹虫" (previously "蠢虫") and others
+- **Fixed YAML syntax error in English i18n config**: some translations in `messages_en.yml` contained nested double quotes that broke YAML parsing — English servers may have failed to load greeting/alert text; corrected
+- **Skill parameter description corrections**: the former `apis.yml` removed the non-existent `yaw`/`pitch` fields from `get_player_location`, and `get_player_open_inventory`'s `inventory_type` was corrected to the actual `raw_result` — previously the wrong field names could cause intent recognition failures
+- **Stateless hardening of the vanilla-API executor**: the executor's internal mutable "current calling player" field replaced with parameter-only pass-through, making it a stateless component (the current chain is serial with no actual concurrency — purely a defensive measure)
+- **Fixed bStats skill registry hijacking by renamed forks**: when multiple servers reported the same skill name, a renamed unofficial fork reporting first would override the official skill's identity; now the official source always wins, unofficial entries only contribute to the server count
+- **Fixed a regression that broke the secondary-analysis history-count config**: `agent.analysis_history_count` in `llm.yml` was accidentally broken by a previous version — the secondary-analysis call passed the full history queue, bypassing the configured round limit; it now truncates to the configured rounds again, avoiding token waste
+- **Fixed profile-analysis trigger count including AI replies**: the trigger gate `countMessagesSince` previously filtered only by `source` without distinguishing roles, so one player message + one AI reply (2 records) counted as 2, making the threshold effectively "turns × 2" and inflated; now corrected to count only `role='user'` player messages, matching the "player-initiated messages" semantics
+- **Fixed how-to questions being mistaken for execution requests**: when a player asks "how do I do X", the AI previously might treat it as an execution request and actually perform the action; asking-vs-executing is now strictly distinguished — a question only gets an explanation, while an explicit execution intent triggers the action
+- **Fixed missing-parameter operations answering incorrectly**: when an operation lacks required information (e.g. an unspecified teleport target), the AI previously might answer irrelevantly or refuse outright; it now automatically queries for the missing information first, then executes — multi-step operations chain automatically
+
+### ⚠️ Compatibility
+
+#### 📋 Configuration File Changes
+
+The plugin only generates configuration files if they don't already exist — existing files are never overwritten. To get the full configuration optimizations of this version, **it is recommended to delete all of the following files and restart to regenerate**. The following new config files are auto-generated on first start: `behavior.yml` (replaces the former `greeting.yml` and integrates config for suggestions, watches, and utility notifications), `web.yml`, the `commands/` command knowledge-base document, and new skill config files under `skills/`.
+
+The following **existing** configuration files have changed in this version:
+
+| File | Description of changes | Action |
+|------|----------------------|--------|
+| `behavior.yml` | New file replacing `greeting.yml`, integrating four sections (greeting/suggestion/watch/utility.prompts); greeting prompt rewritten, most dynamic placeholders deprecated after system staticization | ❌ Must delete `greeting.yml` then regenerate |
+| `intent_prompts.yml` / `_en.yml` | Prompt refactor: added rule 10/scenario 7; afk_task callbacks replaced by watch routing; removed history source-tag rule; pending-resume classification staticized | ❌ Must delete (otherwise routes to the deleted afk_task system) |
+| `skills/` (including removed `skills/afktask/`, `skills/guardian/`) | All Skill prompts restructured into three-part format; generic Bukkit query split into 5 independent skill configs, old `apis.yml` removed; afktask/guardian configs removed with their systems | ❌ Delete the entire `skills/` folder and regenerate |
+| `language.yml` / `_en.yml` | Added `/kila cache` text; `/kila doctor` now grouped fold-down format; added `kilacraft.admin.cache` permission | 📋 Recommended (otherwise missing text/placeholders or old format) |
+| `admin.yml` | Health-monitor threshold tweaks: added `mspt_median_threshold`/`cpu_consecutive_threshold`; several thresholds relaxed to reduce false positives | 📋 Recommended (otherwise keeps easily-triggering old thresholds) |
+| `config.yml` | Removed `afk_task`/`command_skill` sections; `allowed_actions` drops `AFKTask`, adds `player_watch`; `max_history` limited to 0-100 | 📋 Recommended (stale sections linger with no functional impact; if you customized `allowed_actions`, manually add `player_watch`) |
+| `llm.yml` | Added `budget_per_player_per_hour`; removed `analysis_prompt_suffix` (merged into `system_prompt`); `intent/analysis_history_count` defaults raised; system drops `{player}` | ✅ Optional (leftover suffix section ignored; `{player}` in system lowers hit rate) |
+| `output.yml` | `afk_callback` scenario merged into `skill_result` | ✅ Optional (no functional impact) |
+| `greeting.yml` / `_en.yml` | Consolidated into `behavior.yml` | 🗑️ Delete |
+
+> Except for ❌ entries, keeping any of the above files will not break functionality — new config keys all have built-in Java-level defaults. However, to get the complete configuration optimizations of this version, **deleting all of the above files and restarting to regenerate is still recommended**.
+
+#### Upgrading from v2.1.3
+
+1. Stop server, replace JAR, start; no database migration needed
+
+2. **Removed the AFK task system (breaking change)**: the legacy AFK-task system (`/kila afk query/cancel`, the `afk_task` config section, the `kilacraft.afk` permission) has been removed entirely. Its capabilities are **replaced by two new systems**:
+   - **Player Custom Watches (WatchSkill)**: players set condition/event watches in natural language (watch item counts, watch boss spawns, etc.) — more capable than the old AFK tasks
+   - **Cross-Player Online/Offline Subscription (PlayerWatchSkill)**: subscribe to friends' logins/logouts (replaces the same-named capability in the old system, now supports multiple targets)
+   - If any players relied on the old `/kila afk` command, guide them to the watch capabilities or just tell the AI "watch xxx for me"
+
+3. **Command Execution Skill now on by default (behavior change)**: the Command Execution Skill (which lets the AI execute server commands as the player) is now enabled for all players by default. Previously it required `command_skill.enabled: true` in `config.yml` and was OP-only; this toggle has been removed and control unified under the `kilacraft.command.execute` permission node (default: all players). **If you don't want players to use this capability, revoke the permission via your permission plugin (e.g. LuckPerms).** Server owners are encouraged to edit `commands/commands.md` to append their server's third-party plugin commands so the AI recognizes more commands
+
+4. **Config file changes**: the existing `greeting.yml` has been integrated into the new `behavior.yml` (four sections: greeting / suggestion / watch / utility.prompts), using the single-file bilingual pattern. When upgrading, **delete `greeting.yml` and `greeting_en.yml`**, let the plugin regenerate `behavior.yml`, then migrate your custom greeting values into the `greeting:` section of `behavior.yml` (key paths remain the same, only the file differs; note the old placeholders `{last_location}`/`{summary_section}` have been replaced by `{last_session_highlights}`). The other three sections (suggestion / watch / utility.prompts) are config for new features in this version and are auto-generated with defaults on first start
+
+5. **New permission nodes**:
+   - `kilacraft.watch` (player custom watches)
+   - `kilacraft.player_watch` (cross-player online/offline subscription)
+   - `kilacraft.websearch` (web search — needs server owner to configure an API Key)
+   - `kilacraft.webfetch` (web fetch — zero-config)
+   - `kilacraft.command.execute` (command execution skill — **default: all players**; revoke via permission plugin to disable)
+   - `kilacraft.admin.cache` (view LLM cache hit-rate statistics, default: operators only)
+
+6. **Removed permission node**: `kilacraft.afk` (AFK tasks, replaced by new systems)
+
+7. This is a major feature release: **internet capability + player custom watches + chat suggestions + command execution skill + cache hit-rate analytics**, among other additions. Server owners are encouraged to read this changelog to learn the new possibilities
 
 ---
 

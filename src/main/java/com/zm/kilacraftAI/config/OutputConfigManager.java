@@ -21,6 +21,7 @@ import java.util.Map;
  * <p>管理独立的 output.yml 配置文件，支持热重载。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-04-15
  */
 @Getter
 public class OutputConfigManager {

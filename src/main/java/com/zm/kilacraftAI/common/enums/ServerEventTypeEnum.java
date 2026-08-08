@@ -15,6 +15,7 @@ import lombok.Getter;
  * 无需在 SQL 中硬编码排除列表。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 @Getter
 public enum ServerEventTypeEnum {
@@ -44,7 +45,10 @@ public enum ServerEventTypeEnum {
     PLAYER_USE_TOTEM("触发不死图腾", Category.PLAYER), PLAYER_DEFEAT_BOSS("击杀BOSS", Category.PLAYER), PLAYER_COMPLETE_RAID("完成袭击", Category.PLAYER), PLAYER_PET_DEATH("宠物死亡", Category.PLAYER), PLAYER_PVP_KILL("PVP击杀", Category.PLAYER), PLAYER_PVP_DEATH("被玩家击杀", Category.PLAYER), PLAYER_TOOL_BREAK("工具断裂", Category.PLAYER), PLAYER_CATCH_TREASURE("钓到宝藏", Category.PLAYER), PLAYER_LIGHTNING_STRIKE("被雷劈", Category.PLAYER), PLAYER_CURE_VILLAGER("治愈僵尸村民", Category.PLAYER),
 
     // 稀有事件
-    PLAYER_MINE_ANCIENT_DEBRIS("挖到远古残骸", Category.PLAYER), PLAYER_TAME_ANIMAL("驯服动物", Category.PLAYER), PLAYER_CRAFT_ENCH_GOLDEN_APPLE("合成附魔金苹果", Category.PLAYER), PLAYER_BUILD_WITHER("召唤凋零", Category.PLAYER);
+    PLAYER_MINE_ANCIENT_DEBRIS("挖到远古残骸", Category.PLAYER), PLAYER_TAME_ANIMAL("驯服动物", Category.PLAYER), PLAYER_CRAFT_ENCH_GOLDEN_APPLE("合成附魔金苹果", Category.PLAYER), PLAYER_BUILD_WITHER("召唤凋灵", Category.PLAYER),
+
+    // 玩家自定义监听触发（监听条件满足时记录，供问候系统回顾）
+    PLAYER_WATCH_TRIGGERED("监听触发", Category.PLAYER);
 
     private final String description;
     private final Category category;

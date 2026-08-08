@@ -1,0 +1,43 @@
+# ═══════════════════════════════════════════════════════════
+# 服务器信息查询技能（BukkitServerSkill）
+# 查询服务器全局信息：在线玩家列表、最大玩家数、服务器版本、MOTD、世界列表、服务器设置。
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  查询服务器全局信息：当前在线玩家列表与人数、服务器最大玩家数上限、服务器与 Bukkit 版本、MOTD（服务器介绍）、已加载的世界列表、服务器基本设置（是否允许飞行/下界/末地）。
+  触发场景：玩家问「谁在线」「在线多少人」「最多能进多少人」「服务器什么版本」「服务器介绍/MOTD」「有哪些世界」「服务器能不能飞/有没有下界末地」等服务器全局查询时使用。
+  反向边界：不用于查询玩家自身或世界局部信息（走 player_* 或 world_info），不用于攻略/建议类问题。
+
+action_descriptions:
+  get_online_players: |
+    功能：获取当前服务器在线玩家列表和人数。
+    参数：无。
+    返回 data 字段：online_count（在线人数）、players（全部在线玩家名字逗号分隔字符串）。返回的展示消息中玩家名最多显示 20 个。
+  get_max_players: |
+    功能：获取服务器允许的最大玩家数量上限。
+    参数：无。
+    返回 data 字段：max_players（最大玩家数）。
+  get_server_version: |
+    功能：获取服务器的 Minecraft 版本和 Bukkit 版本信息。
+    参数：无。
+    返回 data 字段：version（服务器版本）、bukkit_version（Bukkit 版本）。
+  get_server_motd: |
+    功能：获取服务器的 MOTD（每日消息/服务器介绍文本，含格式化代码）。
+    参数：无。
+    返回 data 字段：raw_result（MOTD 原始文本）。注意：仅适合玩家直接询问服务器介绍，不适合作为多步骤任务的数据来源。
+  get_server_worlds: |
+    功能：获取服务器上所有已加载的世界列表。
+    参数：无。
+    返回 data 字段：world_count（世界数量）。返回的展示文本包含每个世界的名称和环境类型。
+  get_server_settings: |
+    功能：获取服务器的基本设置（是否允许飞行、下界、末地）。
+    参数：无。
+    返回 data 字段：allow_flight（布尔）、allow_nether（布尔）、allow_end（布尔）。
+
+hints:
+  - |
+    get_online_players 返回的是全服在线玩家列表，不是当前世界。查询当前世界玩家数用 world_info 的 get_world_player_count。
+  - |
+    get_server_motd 返回的文本含 Minecraft 格式化代码（§a/§b 等），仅适合直接展示给询问服务器介绍的玩家，不适合在多步骤任务中作为数据字段引用。需要引用请用 get_online_players 等。
+  - |
+    get_server_worlds 返回的是全服所有已加载世界，不是当前世界。查询当前世界信息用 world_info 的对应 action。

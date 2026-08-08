@@ -1,10 +1,7 @@
 package com.zm.kilacraftAI.service.greeting;
 
 import com.zm.kilacraftAI.KilacraftAI;
-import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
-import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
-import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
-import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.enums.*;
 import com.zm.kilacraftAI.common.util.LLMResponseUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.folia.FoliaCompat;
@@ -15,8 +12,6 @@ import com.zm.kilacraftAI.handler.impl.PlayerResponseHandler;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.model.event.ServerEvent;
 import com.zm.kilacraftAI.model.greeting.GreetingContext;
-import com.zm.kilacraftAI.model.greeting.PlayerVanillaStats;
-import com.zm.kilacraftAI.model.greeting.SummaryStats;
 import com.zm.kilacraftAI.model.profile.PlayerProfile;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.event.OfflineEventAggregator;
@@ -27,7 +22,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * AI 登录问候处理器
@@ -88,17 +82,6 @@ public class LoginGreetingHandler implements Listener {
 
         String serverInfo = config.getGreetingServerInfo();
 
-        // 主线程采集 Bukkit 原版统计（getStatistic() 必须在主线程调用）
-        PlayerVanillaStats vanillaStats;
-        try {
-            vanillaStats = PlayerVanillaStats.collect(player);
-        } catch (Exception e) {
-            PluginLoggerUtil.debug("问候系统", "Bukkit Stats 采集失败，降级跳过: {}", e.getMessage());
-            vanillaStats = null;
-        }
-
-        final PlayerVanillaStats finalVanillaStats = vanillaStats;
-
         // 主线程提前缓存权限检查结果
         final boolean isAdminHealth = PluginPermissionEnum.ADMIN_HEALTH.hasPermission(player);
         final boolean isAdminInfo = PluginPermissionEnum.ADMIN_INFO.hasPermission(player);
@@ -114,7 +97,7 @@ public class LoginGreetingHandler implements Listener {
             // loginCount == 1: 首次登录的正常路径（onPlayerJoin 中 updateLogin 后 loginCount = 1）
 
             if (isFirstLogin) {
-                GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(true).offlineDurationMs(0).offlineEvents(Collections.emptyList()).onlineFriends(Collections.emptyList()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).healthAlerts(Collections.emptyList()).updateReminders(Collections.emptyList()).build();
+                GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(true).offlineDurationMs(0).offlineEvents(Collections.emptyList()).onlineFriends(Collections.emptyList()).serverInfo(serverInfo).healthAlerts(Collections.emptyList()).updateReminders(Collections.emptyList()).build();
                 generateAndSend(context, playerName, playerUuid);
 
             } else {
@@ -130,12 +113,10 @@ public class LoginGreetingHandler implements Listener {
                 int maxSummaryEvents = config.getGreetingMaxSummaryEvents();
 
                 eventAggregator.loadAllOfflineDataForGreeting(playerUuid, lastLogout, profile.getLastGreetingTime(), maxOwnEvents, maxFriendEvents, maxSummaryEvents, isAdminHealth, isAdminInfo, data -> {
-                    SummaryStats summaryStats = computeSummaryStats(profile, data.highlights(), data.lastSessionDurationMs());
-
                     List<ServerEvent> healthAlerts = isAdminHealth && data.healthAlerts() != null ? data.healthAlerts() : Collections.emptyList();
                     List<ServerEvent> updateReminders = isAdminInfo && data.updateReminders() != null ? data.updateReminders() : Collections.emptyList();
 
-                    GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(false).offlineDurationMs(offlineDuration).offlineEvents(data.ownEvents()).friendEvents(data.friendEvents()).summaryStats(summaryStats).onlineFriends(data.onlineFriends()).serverInfo(serverInfo).vanillaStats(finalVanillaStats).offlineFriends(data.offlineFriends()).globalEventCount(data.globalEventCount()).friendLoginCounts(data.friendLoginCounts()).healthAlerts(healthAlerts).updateReminders(updateReminders).build();
+                    GreetingContext context = GreetingContext.builder().player(player).profile(profile).firstLogin(false).offlineDurationMs(offlineDuration).offlineEvents(data.ownEvents()).friendEvents(data.friendEvents()).highlights(data.highlights()).onlineFriends(data.onlineFriends()).serverInfo(serverInfo).offlineFriends(data.offlineFriends()).globalEventCount(data.globalEventCount()).friendLoginCounts(data.friendLoginCounts()).healthAlerts(healthAlerts).updateReminders(updateReminders).build();
 
                     generateAndSend(context, playerName, playerUuid);
                 });
@@ -154,18 +135,27 @@ public class LoginGreetingHandler implements Listener {
         // 优先读配置文件，配置文件没有才读硬编码默认值
         String customPrompt = context.isFirstLogin() ? config.getGreetingFirstLoginPrompt() : config.getGreetingReturningPrompt();
 
-        String systemPrompt = promptBuilder.build(context, customPrompt);
+        // system 保持纯静态（角色定义+行为规则，跨玩家共享前缀缓存）；动态数据 + 玩家身份经 user 消息注入
+        String systemPrompt = promptBuilder.buildStaticSystem(context, customPrompt);
+        String dynamicUserData = promptBuilder.buildDynamicUserData(context);
 
-        // 画像注入
-        ProfileManager pm = plugin.getProfileManager();
-        if (pm != null) {
-            systemPrompt = pm.injectProfileSummary(systemPrompt, playerUuid);
+        // 全局预算熔断闸门：问候属被动输出，runaway 时降级跳过（问候自身 30min 冷却保证正常极低频）
+        if (plugin.getLlmOutputCoordinator() != null) {
+            var budget = plugin.getLlmOutputCoordinator().getBudgetManager();
+            if (!budget.tryAcquire(playerUuid, com.zm.kilacraftAI.skills.framework.task.LLMBudgetManager.Priority.PASSIVE)) {
+                PluginLoggerUtil.debug("问候系统", "LLM 预算熔断中，跳过本次问候（玩家 {}）", playerName);
+                return;
+            }
         }
 
-        PluginLoggerUtil.debug("问候系统", "问候语摘要: {}", systemPrompt);
-
         Deque<ConversationManager.Message> emptyHistory = new ArrayDeque<>();
-        String userMessage = context.isFirstLogin() ? I18nService.tr("请欢迎新玩家 {}", playerName) : I18nService.tr("请欢迎 {} 回来", playerName);
+        // user 消息：动态数据块前置（供 LLM 基于离线事件等生成个性化问候），欢迎指令在后
+        StringBuilder userMsgBuilder = new StringBuilder();
+        if (!dynamicUserData.isEmpty()) {
+            userMsgBuilder.append(dynamicUserData).append("\n\n");
+        }
+        userMsgBuilder.append(context.isFirstLogin() ? I18nService.tr("请欢迎新玩家 {}", playerName) : I18nService.tr("请欢迎 {} 回来", playerName));
+        String userMessage = userMsgBuilder.toString();
 
         PlayerResponseHandler handler = new PlayerResponseHandler(KilacraftAI.getInstance(), player, OutputScenarioEnum.GREETING, null);
 
@@ -175,18 +165,15 @@ public class LoginGreetingHandler implements Listener {
             plugin.getResponsePipeline().startStream(player, channel, true);
         }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, playerName, emptyHistory, handler, systemPrompt, false, false, false).thenAccept(greeting -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(userMessage, player, emptyHistory, handler, systemPrompt, false, true, false, CacheCallTypeEnum.GREETING).thenAccept(greeting -> {
             // 错误响应（§c 开头）已由 handleError 提示玩家，不持久化到 DB、不写入对话历史，避免污染
             if (greeting != null && !LLMResponseUtil.isErrorResponse(greeting) && player.isOnline()) {
+                // 问候仅写 DB（source=greeting，DB 加载历史时不回读），不注入内存对话历史：
+                // 问候是孤立 assistant（无配对 user），写入会破坏历史成对结构、并在裁剪时拆散成对消息。
                 ConversationPersistenceService persistence = plugin.getPersistenceService();
                 if (persistence != null) {
                     persistence.submit(playerUuid, "assistant", greeting, "", ConversationSourceEnum.GREETING.getValue());
                 }
-
-                // 写入内存对话历史，使玩家能对问候内容进行追问
-                Deque<ConversationManager.Message> history = plugin.getConversationManager().getOrCreateHistory(playerUuid);
-                history.add(new ConversationManager.Message("assistant", greeting));
-
                 updateGreetingTime(playerUuid);
             }
         }).exceptionally(throwable -> {
@@ -202,19 +189,4 @@ public class LoginGreetingHandler implements Listener {
         }
     }
 
-    /**
-     * 根据玩家画像和上次游玩亮点计算摘要统计数据
-     *
-     * @param profile               玩家画像
-     * @param highlights            上次游玩亮点事件列表
-     * @param lastSessionDurationMs 上次会话时长（ms）
-     * @return 摘要统计数据
-     */
-    private SummaryStats computeSummaryStats(PlayerProfile profile, List<ServerEvent> highlights, long lastSessionDurationMs) {
-        long daysSinceFirstLogin = 0;
-        if (profile.getFirstLogin() > 0) {
-            daysSinceFirstLogin = TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - profile.getFirstLogin());
-        }
-        return new SummaryStats(profile.getTotalPlaytimeMs(), profile.getLoginCount(), daysSinceFirstLogin, highlights != null ? highlights : Collections.emptyList(), lastSessionDurationMs);
-    }
 }

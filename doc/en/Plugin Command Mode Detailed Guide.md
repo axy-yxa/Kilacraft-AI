@@ -1,6 +1,6 @@
 # Kilacraft-AI - Plugin Command Mode Detailed Guide
 
-> **Last Updated**: 2026-05-06  
+> **Last Updated**: 2026-08-04  
 > **Description**: This document details how third-party plugins can interact with Kilacraft-AI through plugin command mode
 
 ---
@@ -40,8 +40,10 @@ Plugin command mode is a dedicated interface designed by Kilacraft-AI for **thir
 | Mode | Trigger Method | Agent Capability | Knowledge Base Retrieval | Callback Mechanism | Typical Scenario |
 |------|---------------|------------------|-------------------------|-------------------|------------------|
 | **ChatListener** | `@ai` keyword / continuous chat | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Player active interaction |
-| **KilacraftCommand** | `/kila <message>` | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Server owner/admin queries |
+| **KilacraftCommand** | in-game `/kila <message>` | ✅ Enabled | ✅ Smart injection | ❌ Not needed | Server owner/admin queries |
 | **Plugin Command** | `/kila plugins ...` | ❌ Disabled | ✅ Normal retrieval | ✅ **Required** | Third-party plugin integration |
+
+> Running `/kila <message>` from the console no longer triggers AI dialogue (the console AI chat entry has been removed); the console can only use `/kila plugins`.
 
 ### Why Doesn't Plugin Command Mode Enable Agent Capability?
 
@@ -358,7 +360,7 @@ Assume you want to develop a plugin allowing players to ask about server rules t
 
 ```yaml
 # Common prompt (shared by all personalities)
-common_prompt: "You are an NPC on a Minecraft server, conversing with player {player}."
+common_prompt: "You are an NPC on a Minecraft server, conversing with the player."
 
 # Fox personality
 Fox: |
@@ -374,9 +376,11 @@ Strict Teacher: |
 
 # Adventure Partner personality
 Adventure Partner: |
-  You are player {player}'s loyal adventure partner, cheerful and humorous.
+  You are a loyal adventure partner, cheerful and humorous.
   Love sharing adventure stories, providing combat advice, always encouraging players to explore bravely.
 ```
+
+> **Personality prompts must be purely static**: dynamic placeholders like `{player}` are no longer replaced in the system prompt (the system prompt is fully static to maximize provider prefix-cache hit rate). Player names, real-time status, and other dynamic information are injected into the user message by the framework. A literal `{player}` left in the personality text will be sent to the LLM unreplaced.
 
 #### Step 2: Call in Your Plugin
 
@@ -463,7 +467,7 @@ Your plugin receives command and displays:
 
 ```yaml
 # Common prompt (shared by all personalities)
-common_prompt: "You are an NPC on a Minecraft server, conversing with player {player}."
+common_prompt: "You are an NPC on a Minecraft server, conversing with the player."
 
 # Custom personalities
 Fox: |
@@ -477,7 +481,7 @@ Strict Teacher: |
   Focus on teaching game mechanics, redstone circuits, and building techniques.
 
 Adventure Partner: |
-  You are player {player}'s loyal adventure partner, cheerful and humorous.
+  You are a loyal adventure partner, cheerful and humorous.
   Love sharing adventure stories, providing combat advice, always encouraging players to explore bravely.
 ```
 

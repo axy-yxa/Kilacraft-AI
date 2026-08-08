@@ -63,41 +63,41 @@ health_guardian:
   # 是否启用守护线程（默认: true）
   # Whether to enable guardian thread (default: true)
   enabled: true
-  
+
   # 轮询间隔（秒，默认: 10）
   # Polling interval in seconds (default: 10)
   interval_seconds: 10
-  
-  # 自动分析冷却期（分钟，默认: 5）
+
+  # 自动分析冷却期（分钟，默认: 30）
   # 触发一次自动分析后，在冷却期内不会再次触发，无论触发指标类型
-  # Cooldown period after auto analysis in minutes (default: 5)
+  # Cooldown period after auto analysis in minutes (default: 30)
   # Once triggered, no re-trigger within cooldown regardless of alert type
-  cooldown_minutes: 5
-  
-  # 滑动时间窗口内最大自动分析次数（默认: 5）
+  cooldown_minutes: 30
+
+  # 滑动时间窗口内最大自动分析次数（默认: 2）
   # 防止持续性能异常期间资源耗尽；manual 模式不受此限制
-  # Max auto analysis count within sliding window (default: 5)
+  # Max auto analysis count within sliding window (default: 2)
   # Prevents resource exhaustion during sustained performance issues; manual mode is not limited
-  max_auto_analysis_per_window: 5
-  
-  # 滑动窗口时长（分钟，默认: 60）
-  # Sliding window duration in minutes (default: 60)
-  auto_analysis_window_minutes: 60
-  
+  max_auto_analysis_per_window: 2
+
+  # 滑动窗口时长（分钟，默认: 180）
+  # Sliding window duration in minutes (default: 180)
+  auto_analysis_window_minutes: 180
+
   # MSPT max 连续确认次数（默认: 3）
-  # MSPT max 使用 10s 时间窗口检测，连续 N 次轮询超过阈值才触发分析
-  # 3 次约 30 秒（轮询间隔 10s），能有效过滤瞬时尖峰，真正持续的性问题不会受影响
   # MSPT max consecutive confirmation count (default: 3)
-  # MSPT max uses 10s time window; requires N consecutive polls exceeding threshold to trigger analysis
-  # 3 polls ≈ 30s (10s interval), effectively filters transient spikes; sustained issues are unaffected
   mspt_consecutive_threshold: 3
+
+  # CPU process 连续确认次数（默认: 3）
+  # CPU process consecutive confirmation count (default: 3)
+  cpu_consecutive_threshold: 3
 
   # Profiler 采样时长（秒，默认: 30）——仅用于 auto 自动模式
   # manual 手动模式的采样时长由命令参数控制（/kila profile start [秒]，默认 60，范围 30~120）
   # Profiler sampling duration in seconds (default: 30) — auto mode only
   # manual mode duration is controlled by command argument (/kila profile start [seconds], default 60, range 30~120)
   auto_profiler_timeout: 30
-  
+
   # Profiler 数据大小预检阈值（字节，默认: 52428800 即 50MB）
   # 完整 Profiler 数据通过流式写入临时文件（不占用堆内存），此值不影响内存安全
   # 仅用于 Content-Length 预检：超过此阈值时，根据 download_when_exceeded 配置决定是否继续下载
@@ -105,7 +105,7 @@ health_guardian:
   # Full Profiler data is streamed to a temp file (no heap memory impact); this value does NOT affect memory safety
   # Used only for Content-Length pre-check: when exceeded, behavior depends on download_when_exceeded setting
   max_profiler_download_bytes: 52428800
-  
+
   # 超过预检阈值时是否仍尝试下载（默认: false）
   # 设为 true 时，即使 Profiler 数据超过 max_profiler_download_bytes 阈值，仍会继续下载
   # 设为 false 时，超过阈值直接跳过下载以节省网络带宽
@@ -113,14 +113,30 @@ health_guardian:
   # When true, download proceeds even if data exceeds max_profiler_download_bytes threshold
   # When false, skips download when threshold exceeded to save network bandwidth
   download_when_exceeded: false
-  
-  # 告警阈值（可根据服务器规模调整）
-  # Alert thresholds (adjustable based on server scale)
+
+  # 告警阈值
+  # Alert thresholds
   alerts:
-    tps_threshold: 15           # TPS 1m < 15 → 触发分析 / trigger analysis
-    mspt_max_threshold: 50      # MSPT max > 50ms → 触发分析（对齐 Spark 标准：50ms 是单 tick 预算上限）/ trigger analysis (Spark standard: 50ms is single-tick budget)
-    mspt_p95_threshold: 50      # MSPT p95 > 50ms → 触发分析 / trigger analysis
-    cpu_threshold: 80           # 进程 CPU > 80% → 触发分析 / trigger analysis
+    # TPS 1 分钟均值 < 15 → 触发
+    # TPS 1m average < 15 → trigger
+    tps_threshold: 15
+
+    # MSPT 单 tick 最大值 > 50ms 且 10s 中位数 > 60ms → 连续 3 次触发
+    # 50ms = 单 tick 预算上限（保持不变：均匀型卡顿 max≈median≈70ms，抬高即漏报）
+    # 60ms 中位数 ≈ TPS ≤ 16（玩家明确可感知的持续卡顿档）
+    # MSPT single-tick max > 50ms AND 10s median > 60ms → trigger after 3 consecutive polls
+    # 50ms = single-tick budget (kept: uniform lag has max≈median≈70ms, raising misses it)
+    # 60ms median ≈ TPS ≤ 16 (clearly perceptible sustained lag tier)
+    mspt_max_threshold: 50
+    mspt_median_threshold: 60
+
+    # MSPT p95 > 100ms → 触发
+    # MSPT p95 > 100ms → trigger
+    mspt_p95_threshold: 100
+
+    # 进程 CPU（占整机全部核心比例）> 90% → 连续 3 次触发
+    # Process CPU (fraction of ALL machine cores) > 90% → trigger after 3 consecutive polls
+    cpu_threshold: 90
 
 # ==================== 诊断报告配置 / Diagnostic Report Configuration ====================
 # 报告文件永久保存，由服主自行管理（清理旧报告、备份等）

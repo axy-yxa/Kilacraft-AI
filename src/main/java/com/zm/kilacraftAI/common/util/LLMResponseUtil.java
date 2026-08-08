@@ -19,12 +19,16 @@ public final class LLMResponseUtil {
     private LLMResponseUtil() {
     }
 
-    /** 构造 §c 前缀错误字符串；所有 LLM 错误返回必须经此方法。 */
+    /**
+     * 构造 §c 前缀错误字符串；所有 LLM 错误返回必须经此方法。
+     */
     public static String errorResponse(String message) {
         return ERROR_PREFIX + message;
     }
 
-    /** null 安全的 §c 前缀判定。 */
+    /**
+     * null 安全的 §c 前缀判定。
+     */
     public static boolean isErrorResponse(String response) {
         return response != null && response.startsWith(ERROR_PREFIX);
     }

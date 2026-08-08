@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.handler;
 
 import com.zm.kilacraftAI.KilacraftAI;
+import com.zm.kilacraftAI.common.enums.CacheCallTypeEnum;
 import com.zm.kilacraftAI.common.enums.ConversationSourceEnum;
 import com.zm.kilacraftAI.common.enums.OutputChannelEnum;
 import com.zm.kilacraftAI.common.enums.OutputScenarioEnum;
@@ -13,7 +14,7 @@ import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.metrics.MetricsCollector;
 import com.zm.kilacraftAI.service.conversation.ConversationManager;
 import com.zm.kilacraftAI.service.output.AIResponsePipeline;
-import com.zm.kilacraftAI.service.player.PlayerMetaCollector;
+import com.zm.kilacraftAI.service.suggestion.SuggestionService;
 import com.zm.kilacraftAI.skills.framework.*;
 import com.zm.kilacraftAI.skills.framework.resume.PendingAction;
 import com.zm.kilacraftAI.skills.framework.resume.PendingResume;
@@ -72,21 +73,16 @@ public class AIRequestHandler {
         // 使用统一的响应管线
         AIResponsePipeline pipeline = plugin.getResponsePipeline();
 
-        Consumer<String> sendResponse;
-        if (publicReply) {
-            // 公屏模式：先发送给触发者（使用场景配置），再广播给所有人
-            sendResponse = response -> {
-                // 1. 发送给触发者（使用 NORMAL_CHAT 场景配置，如 ACTION_BAR/SIDEBAR/CHAT）
+        // 触发者输出统一经此回调：流式开启时走 completeStream 终结状态机，否则走 send。
+        // 公屏广播不内嵌于此——由 handleNormalAIRequest/handleTaskPlan/outputSingleSkillResult
+        // 在 LLM 完成后按 ctx.isBroadcast() 显式补，保证触发者的流式状态机被正确终结。
+        Consumer<String> sendResponse = response -> {
+            if (plugin.getConfigManager().getOutputConfigManager().isStreamEnabled()) {
+                pipeline.completeStream(player, response, OutputScenarioEnum.NORMAL_CHAT);
+            } else {
                 pipeline.send(player, response, OutputScenarioEnum.NORMAL_CHAT);
-                // 2. 公屏广播（强制 CHAT）
-                // 如果NORMAL_CHAT的载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
-                boolean isChatChannel = (pipeline.getChannelForScenario(OutputScenarioEnum.NORMAL_CHAT) == OutputChannelEnum.CHAT);
-                pipeline.broadcast(response, isChatChannel ? player : null);
-            };
-        } else {
-            // 私信模式：只发给触发者
-            sendResponse = response -> pipeline.send(player, response, OutputScenarioEnum.NORMAL_CHAT);
-        }
+            }
+        };
         Consumer<String> sendError = error -> {
             // 错误回调统一取消流式占位符（非流式时 cancelStream 是 no-op），避免卡在"正在思考中"
             pipeline.cancelStream(player);
@@ -137,7 +133,7 @@ public class AIRequestHandler {
             PendingResume slot = PendingResumeManager.getInstance().get(ctx.player().getUniqueId());
             if (slot != null) {
                 PluginLoggerUtil.debug("AI请求", "检测到待确认续体：{}.{}，进入恢复分类", slot.getSkillName(), slot.getAction());
-                intentRecognizer.classifyPendingResponse(message, slot).orTimeout(60, TimeUnit.SECONDS).thenAccept(pa -> {
+                intentRecognizer.classifyPendingResponse(message, slot, ctx.player()).orTimeout(60, TimeUnit.SECONDS).thenAccept(pa -> {
                     if (pa != null) {
                         // 恢复/补值/取消 → 计为一次 skill_execution（仅在此记一次，避免与 runNormalRecognition 双计）
                         MetricsCollector.getInstance().recordRequestType("skill_execution");
@@ -168,7 +164,7 @@ public class AIRequestHandler {
             handleNormalAIRequest(message, ctx, null);
             return;
         }
-        intentRecognizer.recognizeIntent(message, ctx.history(), ctx.name(), ctx.player()).orTimeout(120, TimeUnit.SECONDS).thenAccept(result -> {
+        intentRecognizer.recognizeIntent(message, ctx.history(), ctx.player()).orTimeout(120, TimeUnit.SECONDS).thenAccept(result -> {
             dispatchIntentResult(result, message, ctx);
         }).exceptionally(throwable -> {
             PluginLoggerUtil.warn("AI请求", "意图识别失败: {}", throwable.getMessage());
@@ -192,7 +188,22 @@ public class AIRequestHandler {
         } else {
             PluginLoggerUtil.debug("AI请求", "意图识别结束，回退到普通 AI 处理");
             MetricsCollector.getInstance().recordRequestType("normal_chat");
-            handleNormalAIRequest(message, ctx, null);
+            // 技能路径尝试过但失败（技能名无效/解析失败，识别器已用 §c 前缀标记 rawInput）时，
+            // 注入 [FAILURE] 标记，让普通对话 system prompt 的【技能系统回退】规则引导 LLM 如实告知
+            // 而非凭知识编造。非技能请求（闲聊/现实话题/Provider 错误）的 rawInput 无 §c 前缀，裸回退普通对话。
+            if (result instanceof SkillIntent intent && LLMResponseUtil.isErrorResponse(intent.getRawInput())) {
+                String enrichedMessage = message + "\n[系统提示：" + SkillResultFormatter.toLlmText(SkillStatus.FAILURE.name(), I18nService.tr("技能系统未能处理此请求")) + "]";
+                handleNormalAIRequest(enrichedMessage, ctx, message);
+            } else if (result instanceof SkillIntent intent && intent.getReasoning() != null && !intent.getReasoning().isEmpty()) {
+                // 无效意图（非技能失败）携带 reasoning 时，注入 [识别说明] 区域（与二次分析同构），
+                // 让普通 AI 看到意图识别判定与原因（如"无技能覆盖/无法执行"），
+                // 避免在确认语境下幻觉声称已执行（如"现在为你传送到该位置"）。
+                // 闲聊/现实话题的 invalid reasoning 为对应判定，消费规则按需忽略，不影响正常回答。
+                String enrichedMessage = message + "\n" + I18nService.tr("[识别说明]") + "\n" + intent.getReasoning();
+                handleNormalAIRequest(enrichedMessage, ctx, message);
+            } else {
+                handleNormalAIRequest(message, ctx, null);
+            }
         }
     }
 
@@ -213,9 +224,10 @@ public class AIRequestHandler {
             PluginLoggerUtil.debug("AI请求", "任务计划执行完成，开始 LLM 二次分析...");
 
             // 通过中间层输出（验证通过后已显示占位符，这里不需要再显示）
-            plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.TASK_RESULT, false).thenAccept(result -> {
+            plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.TASK_RESULT, false, CacheCallTypeEnum.SECONDARY_ANALYSIS).thenAccept(result -> {
                 // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, result.getMessage(), ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
+                triggerSuggestion(ctx, OutputScenarioEnum.TASK_RESULT);
 
                 // 公屏广播（outputAnalysisResult只输出给触发者，公屏需要额外广播）
                 // 如果场景载体是CHAT，需要排除触发者避免重复；否则传null让所有人都收到
@@ -303,7 +315,7 @@ public class AIRequestHandler {
         plugin.getSkillManager().executeSkillByIntent(intent, context).thenCompose(execResult -> {
             if (execResult.isSuccess()) {
                 PluginLoggerUtil.debug("技能执行", "技能执行成功");
-                return outputSingleSkillResult(execResult, context, message, ctx);
+                return outputSingleSkillResult(execResult, context, message, ctx, intent.getReasoning());
             }
             return CompletableFuture.completedFuture(execResult);
         }).thenAccept(finalResult -> {
@@ -314,6 +326,7 @@ public class AIRequestHandler {
             if (finalResult.isSuccess()) {
                 // 保存历史记录
                 validator.saveToHistory(ctx.history(), message, finalResult.getMessage(), ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
+                triggerSuggestion(ctx, OutputScenarioEnum.SKILL_RESULT);
             } else {
                 PluginLoggerUtil.debug("技能执行", "技能执行失败：{}", finalResult.getMessage());
                 PluginLoggerUtil.debug("技能执行", "已回退到普通 AI 处理");
@@ -334,10 +347,12 @@ public class AIRequestHandler {
     /**
      * 输出单技能执行结果（成功路径：构建摘要 → LLM 二次分析输出 → 公屏广播）。
      * 供 {@link #executeAndReport} 的单意图与恢复路径复用。
+     *
+     * @param reasoning 意图识别理由原文（可说明能力缺口，无则 null）
      */
-    private CompletableFuture<SkillResult> outputSingleSkillResult(SkillResult execResult, SkillContext context, String message, RequestContext ctx) {
-        AnalysisSummary summary = new AnalysisSummary().userMessage(message).addResult(execResult.getStatus().name(), execResult.getMessage()).statistics(1, 0, 0, 0);
-        return plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.SKILL_RESULT, false).thenApply(result -> {
+    private CompletableFuture<SkillResult> outputSingleSkillResult(SkillResult execResult, SkillContext context, String message, RequestContext ctx, String reasoning) {
+        AnalysisSummary summary = new AnalysisSummary().userMessage(message).reasoning(reasoning).addResult(execResult.getStatus().name(), execResult.getMessage()).statistics(1, 0, 0, 0);
+        return plugin.getLlmOutputCoordinator().outputAnalysisResult(ctx.player(), summary, context, ctx.history(), OutputScenarioEnum.SKILL_RESULT, false, CacheCallTypeEnum.SECONDARY_ANALYSIS).thenApply(result -> {
             if (ctx.isBroadcast()) {
                 boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenarioEnum.SKILL_RESULT) == OutputChannelEnum.CHAT);
                 plugin.getResponsePipeline().broadcast(result.getMessage(), isChatChannel ? ctx.player() : null);
@@ -362,26 +377,22 @@ public class AIRequestHandler {
         // RequestContext 仅由玩家流程构建，ctx.player() 非空
         AIResponseHandler handler = new PlayerResponseHandler(plugin, ctx.player(), ctx.scenario(), ctx.sendResponse);
 
-        // 构建系统提示词：人格 → 实时元数据 → 画像摘要
-        // 人格在前保持为可缓存前缀；元数据与画像都是动态内容，追加在尾部
+        // system 保持纯静态（人格 + langDirective）；动态上下文（画像/元数据/时间）由 Provider 统一注入 user 消息
         String systemPrompt = plugin.getConfigManager().getSystemPrompt();
-        if (ctx.player() != null) {
-            String playerMeta = PlayerMetaCollector.collect(ctx.player());
-            if (!playerMeta.isEmpty()) {
-                systemPrompt = systemPrompt + "\n\n" + playerMeta;
-            }
-            var profileManager = plugin.getProfileManager();
-            if (profileManager != null) {
-                systemPrompt = profileManager.injectProfileSummary(systemPrompt, ctx.player().getUniqueId());
-            }
-        }
 
-        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.name(), ctx.history(), handler, systemPrompt, true, true, false).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> {
+        plugin.getLlmManager().getCurrentProvider().processRequestWithCustomSystemPrompt(message, ctx.player(), ctx.history(), handler, systemPrompt, true, true, false, CacheCallTypeEnum.NORMAL_CHAT).orTimeout(120, TimeUnit.SECONDS).thenAccept(fullResponse -> {
             // 错误响应已由 handleError 提示玩家；跳过避免错误串污染对话历史
             if (LLMResponseUtil.isErrorResponse(fullResponse)) {
                 return;
             }
             validator.saveToHistory(ctx.history(), historyMessage, fullResponse, ctx.player() != null ? ctx.player().getUniqueId() : null, null, ctx.source());
+            triggerSuggestion(ctx, OutputScenarioEnum.NORMAL_CHAT);
+            // 公屏广播（与 handleTaskPlan / outputSingleSkillResult 对称）：
+            // 触发者的流式状态机已由 sendResponse 回调终结，此处仅给其他玩家补 CHAT 广播
+            if (ctx.isBroadcast()) {
+                boolean isChatChannel = (plugin.getResponsePipeline().getChannelForScenario(OutputScenarioEnum.NORMAL_CHAT) == OutputChannelEnum.CHAT);
+                plugin.getResponsePipeline().broadcast(fullResponse, isChatChannel ? ctx.player() : null);
+            }
         }).exceptionally(throwable -> {
             PluginLoggerUtil.warn("AI请求", "LLM 请求失败: {}", throwable.getMessage());
             ctx.sendError.accept(I18nService.tr("LLM 请求失败: {}", formatAsyncError(throwable)));
@@ -412,6 +423,18 @@ public class AIRequestHandler {
             return I18nService.tr("AI 请求失败，请稍后重试");
         }
         return msg;
+    }
+
+    /**
+     * 触发对话推荐。须在 saveToHistory 之后调用：此时 history 末尾已含本轮 user/assistant，
+     * 推荐服务从截断 history 获取完整多轮上下文。门控与来源过滤集中在 SuggestionService。
+     */
+    private void triggerSuggestion(RequestContext ctx, OutputScenarioEnum scenario) {
+        SuggestionService ss = plugin.getSuggestionService();
+        if (ss == null || ctx.player() == null) {
+            return;
+        }
+        ss.generateAsync(ctx.player(), ctx.history(), ctx.name(), scenario, ctx.source());
     }
 
     /**

@@ -169,12 +169,14 @@ public class FoliaCompat {
     /**
      * 延迟执行任务（相当于 Spigot 的 runTaskLater）
      */
-    public static void runTaskLater(Plugin plugin, Runnable task, long delay) {
+    public static ScheduledTask runTaskLater(Plugin plugin, Runnable task, long delay) {
         ensureInitialized();
         if (FOLIA) {
-            REFLECTION.invokeGlobalRunDelayed(plugin, task, delay);
+            Object handle = REFLECTION.invokeGlobalRunDelayed(plugin, task, delay);
+            return handle != null ? new ScheduledTask(handle) : null;
         } else {
-            Bukkit.getScheduler().runTaskLater(plugin, task, delay);
+            BukkitTask bt = Bukkit.getScheduler().runTaskLater(plugin, task, delay);
+            return new ScheduledTask(bt);
         }
     }
 

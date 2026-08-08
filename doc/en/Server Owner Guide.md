@@ -126,6 +126,27 @@ Use the /claim command to define your territory. Costs at least 10 coins.
 
 Run `/kila knowledge reload` to load. AI automatically retrieves and cites relevant content when players ask questions. Supports custom dictionaries for server-specific terminology to improve search accuracy.
 
+### Web Search
+
+Let AI break through training-data cutoff limits and query Minecraft version updates, mod recommendations, today's gold price/exchange rates, sports scores, wiki articles, and more in real time. Built-in **9 search-engine providers**, auto-routed by server language (`provider: auto`), or manually specified:
+
+- 5 domestic (China): Zhipu AI, Baidu Qianfan, Volcengine Doubao, Qiniu Baidu, Aliyun Bailian IQS
+- 4 international: Tavily, Brave, Exa, You.com
+
+All providers offer free tiers, so you can start at zero cost; you can configure multiple providers as mutual backups. Server owners just fill in one API Key in `web.yml`. Supports time-range filtering (today / last week / last month) and automatic multi-step search (complex questions are split into up to 5 sub-searches). Requires `kilacraft.websearch` permission (default: all players, but only takes effect once the server owner configures an API Key).
+
+### Web Fetch
+
+Give AI a specific URL and it will fetch the page body, read it, then answer your questions about that page — e.g. "help me read what this tutorial page is about" or "what's the crafting recipe on this mod wiki page". Complements web search: search finds a list of pages by keyword, while fetch reads the body of a specific URL.
+
+**Zero config — no API Key needed**, works out of the box. Built-in enterprise-grade SSRF protection (private-network address interception, anti-DNS-rebinding, forced HTTPS + per-hop redirect re-checking, byte-level hard limit on response body), so server owners can enable it with confidence. Requires `kilacraft.webfetch` permission (default: all players). Configured under the `web.fetch` section of `web.yml`.
+
+### Conversation Suggestions
+
+After AI finishes replying, 1-5 clickable "you might also want to ask" suggested questions are appended below the chat. Clicking sends them as a command — no typing needed. Generated intelligently from multi-turn conversation history + the summary of currently available skills, with a strict "quality over quantity" rule (no output when uncertain).
+
+**Only triggers in command mode, not in continuous chat mode** — to preserve the immersive "chat naturally" feel. Players can turn it off with `/kila suggestion off` (on by default, no permission required); server owners can configure suggestion count, timeout, excluded scenarios/skills, and display wording under the `suggestion:` section of `behavior.yml`.
+
 ***
 
 ## Advanced Features
@@ -164,7 +185,7 @@ agent:
 
 AI automatically sends personalized greetings when players log in. Based on player profiles, offline events, and friend dynamics, every greeting is unique.
 
-**First Login:** Welcomes new players with an introduction to AI assistant features. Supports custom server info (configured via `server_info` in `greeting.yml`).
+**First Login:** Welcomes new players with an introduction to AI assistant features. Supports custom server info (configured via `server_info` under the `greeting` section of `behavior.yml`).
 
 **Returning Login (Three-Category Data Aggregation):**
 
@@ -217,54 +238,38 @@ fox_npc_skill:
 
 > Plugin commands are console-only. Each `UUID_personality` combination has independent history.
 
-### AFK Task System
+### Player Watch (WatchSkill)
 
-Create background monitoring tasks via natural language. Automatically notifies or executes actions when conditions are met.
+Set an "auto-watch" in natural language — the AI proactively reminds you when a condition is met or an event occurs. More capable and safer than the old AFK task system:
 
-```
-Player: Watch for Steve to come online
-AI: Got it! I'll notify you as soon as Steve logs in.
+### Player Custom Watch (WatchSkill)
 
-[30 minutes later...]
-🔔 Steve has joined the server!
-```
+Set an "auto-watch" with a single natural-language sentence; AI proactively reminds you when a condition is met or an event occurs. More capable and safer than the old AFK task system:
 
 ```
-Player: Watch for Steve to come online, then check what he's holding
-AI: Will do! I'll automatically check Steve's item when he logs in.
+Player: Watch my iron ingots until they hit 64
+AI: OK, I'll remind you when your iron ingots reach 64.
 
-[After Steve joins...]
-🔔 Steve is online! He's holding a Diamond Sword x1 in main hand.
+[When iron ingots reach 64...]
+🔔 Your iron ingots have reached 64.
 ```
 
-**Supports 20 monitoring types (19 event listeners + custom polling):**
+**Two types of watches:**
 
-| Monitor Type | Description |
-| :---: | :---: |
-| Player Join/Quit | Monitor specific player online status |
-| Player Death/Respawn | Monitor death events and respawns |
-| Player Teleport/World Change | Monitor position changes |
-| Level Change | Monitor player level ups/downs |
-| Weather Change | Monitor world weather |
-| Sleep/Item Break | Enter/leave bed, item breakage |
-| Fishing | Notify or trigger actions on catch |
-| Chat | Trigger automation via keywords |
-| Block Break | Trigger actions when specific blocks mined |
-| Entity Death | Boss kill detection |
-| Entity Spawn | Mob farm efficiency monitoring |
-| Entity Explosion | Anti-grief warning |
-| Furnace Smelt | Notify when smelting completes |
-| Crop Growth | Notify when crops mature |
+- **Condition watch**: watch a numeric value or status — "watch my iron ingots until 64", "remind me when health drops below 30%", "notify me when balance hits 10000". Supports watching the read-only queries of built-in skills (Bukkit stats, CMI, market queries, vanilla APIs), auto-detecting the value type (number/boolean/string) at runtime.
+- **Event watch**: watch 11 high-value game events — furnace smelt complete, crop mature, boss kill, nearby entity spawn, player death, teleport, experience level up, world switch, block break, fishing, chat keyword.
 
-**Custom Condition Polling** — Monitor any numeric condition returned by Skills:
+When triggered it **only notifies AI, never auto-executes operations** (safer than the old AFK tasks — won't do anything while the player is offline). If a player briefly disconnects (within 5 minutes) and reconnects, watches auto-restore.
 
-```
-Player: Tell me when my health drops below 10
-Player: Remind me when my balance goes below 1000
-Player: Check diamond price when I reach level 30
-```
+Performance is optimized via a global singleton event listener + reverse index — events cost nothing when no one subscribes; all condition watches for the same player are merged into a single timer. Requires `kilacraft.watch` permission (default: all players). Per-player limits: 3 condition watches / 5 event watches / 200 total across the server. Configured under the `watch:` section of `behavior.yml`.
 
-Management: `/kila afk` to view, `/kila afk cancel` to cancel. One task per player at a time.
+### Cross-Player Online/Offline Subscription (PlayerWatchSkill)
+
+Subscribe to a friend's online/offline notifications via natural language — "tell me when Steve comes online", "notify me for both Alex online and offline". **More capable than the old system**: supports subscribing to multiple players at once (the old system could only watch one at a time), has built-in anti-reordering (an offline notification cancels any not-yet-sent online notification, avoiding "offline before online" inversion), and online notifications are delayed 2 seconds to wait until the player has fully joined the server.
+
+This is positioned as a lightweight social interaction — subscriptions live in memory only and aren't persisted, and are auto-cleared when the subscriber goes offline. Requires `kilacraft.player_watch` permission (default: all players), with a per-player limit of 5 subscriptions.
+
+> The two new systems above (Player Watch / Cross-Player Subscription) **replace the old AFK task system**. The old `/kila afk` command, `kilacraft.afk` permission, and `afk_task` config section have been removed. If you previously relied on the old AFK tasks, switch to these two new systems.
 
 ### Server Health Monitoring
 
@@ -335,17 +340,21 @@ AI interacts with the server through Skills, each corresponding to a category of
 
 | Category | Capabilities | Dependency | Permission Node |
 | :---: | :--- | :---: | :---: |
-| **Bukkit API** | 72 built-in read-only interfaces: player inventory/status/info, world info, server info, environment awareness | None | `kilacraft.api.*` |
-| **Vanilla Stats** | 80+ vanilla cumulative stat queries, knowledge base BM25 retrieval, auto unit conversion | None | `kilacraft.bukkit_stats` |
+| **Bukkit API** | 71 built-in read-only interfaces: player inventory/status/info, world info, server info, environment awareness | None | `kilacraft.api.*` |
+| **Vanilla Stats** | 80+ vanilla cumulative stat queries, knowledge base BM25 retrieval, auto unit conversion | None | `kilacraft.player_stats` |
 | **Global Market** | Search/list/collect/buy-order/delist/transfer/auction/bulk-sell/bulk-buy (9 operations) | GlobalMarketPlus | `kilacraft.market.*` |
 | **CMI Integration** | 5 queries (home/warp/player info/online/AFK) + 3 teleports | CMI | `kilacraft.cmi.*` |
-| **AFK Tasks** | 19 event listeners + custom polling, natural language creation, notification/callback dual mode | None | `kilacraft.afk` |
-| **Utility** | Timed delay, proactive notification, server-wide broadcast | None | — |
-| **Command Execution** | Execute commands as player, inherits permission system (disabled by default) | None | `kilacraft.command.execute` |
-| **Sound & Particles** | AI-triggered sounds/particles, only caller perceives, YAML-driven config | None | `kilacraft.bukkit_fx` |
+| **Player Watch** | Custom condition/event watches, 11 event types (see Advanced Features above) | None | `kilacraft.watch` |
+| **Cross-Player Watch** | Subscribe to friends' online/offline notifications (see Advanced Features above) | None | `kilacraft.player_watch` |
+| **Web Search** | Real-time web search, 9 search engine providers, time-range filtering | None (requires API Key) | `kilacraft.websearch` |
+| **Web Fetch** | Fetch page body from a given URL, zero-config, built-in SSRF protection | None | `kilacraft.webfetch` |
+| **Version Info** | Query plugin version, changelog, new version detection | None | `kilacraft.admin.info` |
+| **Utility** | Timed delay, proactive notification, server-wide broadcast | None | `kilacraft.utility` |
+| **Command Execution** | Execute commands as player, inherits permission system (default on for all players, controlled by kilacraft.command.execute permission) | None | `kilacraft.command.execute` |
+| **Sound & Particles** | AI-triggered sounds/particles, only caller perceives, YAML-driven config | None | `kilacraft.sound_fx` |
 | **Server Admin** | Health monitoring, player analysis, audit logs (see Advanced Features above) | Spark (optional) | `kilacraft.admin.*` |
 
-> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively.
+> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively. New feature permissions (Watch/WebSearch etc.) are all available to all players by default, but require opt-in (players must actively enable watch) or API Key configuration by the server owner for web search to function.
 
 ***
 
@@ -397,15 +406,15 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 | `/kila reload` | `kilacraft.reload` | Reload config and language files |
 | `/kila knowledge reload` | `kilacraft.knowledge` | Reload knowledge base |
 | `/kila personalities reload` | `kilacraft.personalities` | Reload personality config |
-| `/kila afk` | `kilacraft.afk` | View AFK tasks |
-| `/kila afk cancel` | `kilacraft.afk` | Cancel AFK task |
+| `/kila suggestion on\|off\|status` | None (open to all) | Enable/disable/check chat suggestions |
 | `/kila tasks` | `kilacraft.tasks` | View scheduled task status (default OP) |
 | `/kila usage [player\|all] [1d/3d/7d/30d]` | `kilacraft.query.self` / `kilacraft.usage.other` | AI usage stats (see "AI Data Query" section) |
 | `/kila history [player] [page] [-f]` | `kilacraft.query.self` / `kilacraft.history.other` | Conversation history (-f: full) |
 | `/kila memory [player]` | `kilacraft.query.self` / `kilacraft.memory.other` | Player profile & 8 dimensions |
 | `/kila skills [page]` | None | List available skills |
 | `/kila run <skill> <prompt>` | Per-skill | Force-execute a skill, skipping intent recognition (player only) |
-| `/kila doctor` | `kilacraft.admin.info` | 17-item config self-diagnostic |
+| `/kila doctor` | `kilacraft.admin.info` | Config self-diagnostic (grouped summary output) |
+| `/kila cache [reset]` | `kilacraft.admin.cache` | View/reset LLM cache hit-rate statistics |
 | `/kila about` | `kilacraft.admin.info` | Version & update check |
 | `/kila profile start [seconds]` | `kilacraft.admin.health` | Start manual profiling |
 | `/kila profile status` | `kilacraft.admin.health` | View profiling status |
@@ -426,9 +435,15 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 | `kilacraft.api.server.info` | true | Query server info |
 | `kilacraft.cmi.query` | true | CMI info queries |
 | `kilacraft.cmi.teleport` | true | CMI teleportation |
-| `kilacraft.bukkit_fx` | true | Sound & particle effects |
-| `kilacraft.bukkit_stats` | true | Vanilla stats queries |
-| `kilacraft.command.execute` | op | Command execution (OP only by default) |
+| `kilacraft.sound_fx` | true | Sound & particle effects |
+| `kilacraft.player_stats` | true | Vanilla stats queries |
+| `kilacraft.utility` | true | Utility tools (delay/notify) |
+| `kilacraft.utility.broadcast` | op | Server-wide broadcast (OP only by default) |
+| `kilacraft.command.execute` | true | Command execution (default on for all players) |
+| `kilacraft.watch` | true | Player custom watch |
+| `kilacraft.player_watch` | true | Cross-player watch subscription |
+| `kilacraft.websearch` | true | Web search (requires API Key configured) |
+| `kilacraft.webfetch` | true | Web fetch (zero-config) |
 | `kilacraft.tasks` | op | View scheduled task status (OP by default) |
 | `kilacraft.query.self` | true | View own AI data (usage / history / profile) |
 | `kilacraft.usage.other` | op | View others' usage & server-wide overview |
@@ -438,9 +453,10 @@ See [Skill SPI Integration Guide](./Skill%20SPI%20Integration%20Guide.md).
 | `kilacraft.admin.player` | op | Player behavior analysis |
 | `kilacraft.admin.audit` | op | Audit log query |
 | `kilacraft.admin.info` | op | Config self-diagnostic (doctor) / version check (about) |
+| `kilacraft.admin.cache` | op | View LLM cache hit-rate statistics |
 | `kilacraft.admin.*` | op | All admin features |
 
-> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively; `kilacraft.admin.*` includes all admin permissions (health / player / audit / info).
+> Wildcards `kilacraft.api.*` and `kilacraft.cmi.*` include all sub-permissions respectively; `kilacraft.admin.*` includes all admin permissions (health / player / audit / info / cache). New feature permissions (Watch/WebSearch etc.) default to available for all players, but are opt-in — players must actively enable watch or the server owner must configure API Keys for web search to take effect.
 
 ***
 

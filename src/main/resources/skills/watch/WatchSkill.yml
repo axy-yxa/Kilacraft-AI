@@ -1,0 +1,48 @@
+# ═══════════════════════════════════════════════════════════
+# 玩家自定义监听技能（WatchSkill）
+# 玩家指定监听源与触发条件，系统持续检测，满足时通知 AI（由 AI 决定如何回应）。
+# 支持条件监听（轮询型）与事件监听（事件型）；触发后只通知 AI，不自动执行回调。
+# 实现了 DynamicContextProvider：getDynamicContext 会向 AI 注入当前可用的【条件监听】与【事件监听】清单，创建监听时从中选择。
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  玩家自定义监听系统：玩家指定监听源和触发条件，系统持续检测，满足时通知 AI（由 AI 决定如何回应或执行，不自动回调）。
+  触发场景：玩家提出持续监控需求时——指定条件达成后提醒，条件包括数值型状态达到阈值（血量、物品数量、等级等）或事件发生（熔炉烧好、作物成熟、实体死亡/生成、玩家死亡、传送、升级、换世界、方块破坏、钓鱼、聊天等）。
+  反向边界：仅能监听【可监听清单】中声明的游戏内数据与事件（如血量/物品数量/熔炉/作物/方块破坏等游戏内状态）；清单之外的内容一律不支持——例如金价、汇率等需联网获取的外部实时数据。玩家要求监听清单外内容时直接告知无法监听、不要编造监听源。不用于订阅其他玩家的上下线（走 PlayerWatch）。
+
+action_descriptions:
+  create_watch: |
+    功能：创建监听。
+    参数：
+      - mode（必填，枚举名）：监听模式，polling=条件监听/event=事件监听。
+      - source（polling 模式必填，字符串）：监听源，格式 skill.action，从 getDynamicContext 注入的【条件监听】清单中选择（如 player_status.get_player_health）。
+      - result_path（polling 模式必填，字符串）：从 skill 返回值中提取的字段名（如 health），可从该 action 的返回 data 字段描述推断。
+      - operator（polling 模式必填，字符串）：比较操作符。number 用 greater_than_or_equal/greater_than/less_than_or_equal/less_than/equal/not_equal；string 用 equal/not_equal/contains。
+      - threshold（polling 模式必填，字符串）：阈值。number 填数值，string 填匹配值（如 OBSIDIAN）。
+      - event_type（event 模式必填，字符串）：事件类型，从 getDynamicContext 注入的【事件监听】清单中选择（如 furnace_smelt/player_death/block_break）。
+      - filter_ 前缀参数（可选，字符串）：事件 filter，如 filter_result_type=IRON_INGOT。
+      - intent（可选，字符串）：触发后想让 AI 知道的上下文。当玩家表达了触发后的后续动作意图时，必须把该意图写入此参数——系统会在触发时随通知展示，由玩家收到提醒后手动发起
+      - single_shot（可选，默认 true，布尔）：是否一次性监听。
+      - display_name（可选，字符串）：监听的人类可读名称。
+    约束：source/event_type 只能从注入的【条件监听】/【事件监听】清单中选择，严禁编造清单外的 skill.action 或事件类型。玩家要求监听的目标不在清单中（例如金价等需联网获取的外部数据）时，不要创建监听——返回无效意图（skill_name 为 null），由普通 AI 对话向玩家说明该内容无法监听。
+    返回 data 字段：watch_id、display_name。
+  cancel_watch: |
+    功能：取消指定监听。
+    参数：
+      - watch_id（可选，字符串）：监听 ID，精确匹配。
+      - description（可选，字符串）：监听描述，模糊匹配（与 watch_id 二选一）。
+    返回 data 字段：无。
+  list_watches: |
+    功能：查询当前玩家所有活跃监听。
+    参数：无。
+    返回 data 字段：watches（数组，每项含 watch_id/display_name/mode/source 或 event_type/condition（轮询型：操作符与阈值）/intent（如有））、total。
+
+hints:
+  - |
+    监听生命周期编排：先 create_watch 创建，list_watches 查看现有监听，cancel_watch 取消（可用 watch_id 精确或 description 模糊匹配）。玩家说「别盯了/取消盯 X 的」用 cancel_watch；「我在盯什么」用 list_watches。
+  - |
+    何时用 polling：监听对象是一个会变化的「数值或字符串状态」，如血量、某物品数量、某方块数量——需要定时轮询取值再比较。条件由 source + result_path + operator + threshold 四要素构成：source 选自注入清单（格式 skill.action），result_path 从该 action 返回的 data 字段推断，operator 取决于字段类型（number 用比较操作符，string 用 equal/not_equal/contains），threshold 填对应类型的值。
+  - |
+    何时用 event：监听对象是「某事件是否发生」，如熔炉烧好、作物成熟、方块破坏、玩家死亡、聊天含某词——事件命中即触发，无需轮询。event_type 选自注入清单；可用 filter_ 前缀参数收窄事件范围（如盯熔炉烧特定产物用 filter_result_type=IRON_INGOT，盯特定方块破坏用 filter_block_type=DIAMOND_ORE，盯聊天含某词用 filter_keyword=OK）。
+  - |
+    边界路由：订阅其他玩家上下线（「盯 Steve 上线」）走 PlayerWatch 技能；玩家要求监听的清单外内容（例如金价等需联网获取的实时数据）一律无法创建监听，直接告知玩家不支持。

@@ -17,6 +17,7 @@ import java.sql.SQLException;
  * 连接池参数采用自适应策略：maxPoolSize = min(max(4, CPU*2), 20)。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class MySQLProvider implements DatabaseProvider {
 

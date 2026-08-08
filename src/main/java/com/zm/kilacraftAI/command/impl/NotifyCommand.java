@@ -12,6 +12,9 @@ import java.util.Locale;
 
 /**
  * /kila notify test：外部通知渠道测试（admin.health 权限）。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class NotifyCommand {
 

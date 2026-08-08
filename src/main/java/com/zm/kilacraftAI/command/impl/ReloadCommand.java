@@ -7,8 +7,10 @@ import com.zm.kilacraftAI.compat.folia.FoliaCompat;
 import com.zm.kilacraftAI.config.ConfigManager;
 import com.zm.kilacraftAI.config.LanguageManager;
 import com.zm.kilacraftAI.db.model.DatabaseConfig;
+import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.i18n.TextProcessorFactory;
 import com.zm.kilacraftAI.service.knowledge.EmbeddingService;
+import com.zm.kilacraftAI.skills.command.CommandSkill;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -18,6 +20,9 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * /kila reload：热重载全部配置（reload 权限）。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class ReloadCommand {
 
@@ -40,10 +45,62 @@ public final class ReloadCommand {
             plugin.getI18nService().reload();
             plugin.getLanguageManager().loadConfig();
 
+            // 刷新 max_history 到 ConversationManager（内存 trim 闸门）与 PersistenceService（DB 加载量）
+            int reloadedMaxHistory = plugin.getConfigManager().getMaxHistory();
+            if (plugin.getConversationManager() != null) {
+                plugin.getConversationManager().setMaxHistoryRounds(reloadedMaxHistory);
+            }
+            if (plugin.getPersistenceService() != null) {
+                plugin.getPersistenceService().refreshMaxHistory(reloadedMaxHistory);
+            }
+
+            // 刷新 LLM 预算/熔断阈值（D6/D13），使 llm.yml 改动即时生效
+            if (plugin.getLlmOutputCoordinator() != null) {
+                plugin.getLlmOutputCoordinator().refreshBudget();
+            }
+
+            // 重载自定义监听配置，重建轮询定时器
+            if (plugin.getWatchConfigManager() != null) {
+                plugin.getWatchConfigManager().reload();
+                if (plugin.getWatchService() != null) {
+                    plugin.getWatchService().onConfigReload();
+                }
+                PluginLoggerUtil.info("热重载", I18nService.tr("自定义监听配置已重载"));
+            }
+
+            // 重载 Web 搜索与抓取配置
+            if (plugin.getWebConfigManager() != null) {
+                plugin.getWebConfigManager().reload();
+                PluginLoggerUtil.info("热重载", I18nService.tr("Web 搜索配置已重载"));
+            }
+
+            // 重载对话推荐配置
+            if (plugin.getSuggestionConfigManager() != null) {
+                plugin.getSuggestionConfigManager().reload();
+            }
+
+            // 重载问候配置（behavior.yml greeting 段）
+            if (plugin.getConfigManager().getGreetingConfigManager() != null) {
+                plugin.getConfigManager().getGreetingConfigManager().reload();
+            }
+
+            // 重载工具通知提示词（behavior.yml utility 段）
+            if (plugin.getUtilityConfigManager() != null) {
+                plugin.getUtilityConfigManager().reload();
+            }
+
             if (plugin.getSkillConfigManager() != null) {
                 plugin.getSkillConfigManager().reloadAllConfigs();
             }
             plugin.syncConditionalSkills();
+
+            // 重载命令文档（CommandSkill 始终注册，通过 SkillManager 拿到实例刷新文档缓存）
+            if (plugin.getSkillManager() != null) {
+                var commandSkill = plugin.getSkillManager().getSkill("command");
+                if (commandSkill instanceof CommandSkill cs) {
+                    cs.reloadCommandDocument();
+                }
+            }
 
             if (plugin.getAdminConfigManager() != null) {
                 plugin.getAdminConfigManager().reload();

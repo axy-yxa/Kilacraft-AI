@@ -1,0 +1,49 @@
+# English version of WatchSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Player Custom Watch Skill (WatchSkill)
+# The player specifies a watch source and trigger condition; the system monitors continuously and notifies the AI when met.
+# Supports conditional (polling) and event watches; only notifies the AI on trigger, no automatic callback.
+# Implements DynamicContextProvider: getDynamicContext injects the currently available [conditional watch] and [event watch] lists for the AI to choose from when creating a watch.
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  Player custom watch system: the player specifies a watch source and trigger condition, the system continuously monitors, and notifies the AI when the condition is met (the AI decides how to respond, with no automatic callback).
+  Triggers: when the player raises an ongoing monitoring need — notify when a specified condition is met, including numeric states reaching a threshold (health, item counts, levels, etc.) or events occurring (furnace done, crops mature, entity death/spawn, player death, teleport, level up, world change, block break, fishing, chat, etc.).
+  Reverse boundary: only in-game data and events declared in the [monitorable list] can be watched (e.g. in-game states like health/item counts/furnace/crops/block breaks); anything outside the list is never supported — e.g. external real-time data requiring network access, such as gold prices or exchange rates. When the player asks to monitor something outside the list, directly say it cannot be monitored and never fabricate a watch source. NOT for subscribing to other players' online/offline status (that goes to PlayerWatch).
+
+action_descriptions:
+  create_watch: |
+    Function: Create a watch.
+    Parameters:
+      - mode (required, enum name): watch mode, polling=conditional/event=event-driven.
+      - source (required for polling, string): watch source in skill.action format, chosen from the [conditional watch] list injected by getDynamicContext (e.g. player_status.get_player_health).
+      - result_path (required for polling, string): field name to extract from the skill return value (e.g. health); infer it from that action's returned data field description.
+      - operator (required for polling, string): comparison operator. number uses greater_than_or_equal/greater_than/less_than_or_equal/less_than/equal/not_equal; string uses equal/not_equal/contains.
+      - threshold (required for polling, string): threshold value. number for numeric, match value for string (e.g. OBSIDIAN).
+      - event_type (required for event, string): event type, chosen from the [event watch] list injected by getDynamicContext (e.g. furnace_smelt/player_death/block_break).
+      - filter_ prefixed params (optional, string): event filters, e.g. filter_result_type=IRON_INGOT.
+      - intent (optional, string): context for the AI when triggered. When the player expressed a follow-up action intent after the trigger, you MUST write that intent into this parameter — the system will surface it along with the notification when triggered, and the player initiates the follow-up action manually after the reminder.
+      - single_shot (optional, default true, boolean): one-time watch.
+      - display_name (optional, string): human-readable watch name.
+    Constraint: source/event_type must be chosen from the injected [conditional watch]/[event watch] lists; never fabricate a skill.action or event type outside those lists. If the target the player wants to monitor is not in the lists (e.g. external data requiring network access, such as gold prices), do NOT create a watch — return an invalid intent (skill_name: null) so the normal AI conversation can tell the player this cannot be monitored.
+    Returns data fields: watch_id, display_name.
+  cancel_watch: |
+    Function: Cancel a watch.
+    Parameters:
+      - watch_id (optional, string): watch ID, exact match.
+      - description (optional, string): watch description for fuzzy match (use one of watch_id/description).
+    Returns data fields: none.
+  list_watches: |
+    Function: Query all active watches for the current player.
+    Parameters: none.
+    Returns data fields: watches (array, each with watch_id/display_name/mode/source or event_type/condition (polling type: operator and threshold)/intent (if any)), total.
+
+hints:
+  - |
+    Watch lifecycle orchestration: create_watch to create, list_watches to view existing watches, cancel_watch to cancel (by exact watch_id or fuzzy description). Use cancel_watch when the player says "stop watching / cancel the X watch"; use list_watches for "what am I watching".
+  - |
+    When to use polling: the watched target is a "numeric or string state that changes over time", e.g. health, an item count, a block count — it must be polled periodically and then compared. The condition has four parts: source (chosen from the injected list, format skill.action), result_path (inferred from that action's returned data fields), operator (depends on the field type — number uses comparison operators, string uses equal/not_equal/contains), and threshold (a value of the matching type).
+  - |
+    When to use event: the watched target is "whether some event occurs", e.g. furnace done, crops mature, block broken, player death, chat containing a word — triggers on event match, no polling. Choose event_type from the injected list; narrow the event scope with filter_ prefixed params (e.g. a specific furnace product via filter_result_type=IRON_INGOT, a specific block break via filter_block_type=DIAMOND_ORE, chat containing a word via filter_keyword=OK).
+  - |
+    Boundary routing: subscribing to other players online/offline ("tell me when Steve comes online") uses PlayerWatch; anything outside the monitorable list (e.g. external real-time data requiring network access, such as gold prices) can never be watched — tell the player directly.

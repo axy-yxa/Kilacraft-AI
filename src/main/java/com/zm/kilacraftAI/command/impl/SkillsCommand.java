@@ -12,6 +12,9 @@ import java.util.List;
 /**
  * /kila skills：列出调用者有权使用的技能（与意图识别权限预过滤同源）。
  * 技能集合来自 SkillManager.getAvailableSkills(Player)，玩家只看到自己能触发的技能。分页展示。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class SkillsCommand {
 

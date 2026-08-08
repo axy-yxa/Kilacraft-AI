@@ -46,9 +46,6 @@ public class MetricsBootstrap {
         // Chart 2: 请求类型分布
         metrics.addCustomChart(new AdvancedPie("request_type", collector::getRequestTypeSnapshot));
 
-        // Chart 3: 挂机任务类型分布
-        metrics.addCustomChart(new AdvancedPie("afk_task_type", collector::getAfkTaskTypeSnapshot));
-
         // Chart 4: LLM 模型分布
         metrics.addCustomChart(new SimplePie("llm_model", collector::getLlmModel));
 

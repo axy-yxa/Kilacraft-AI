@@ -8,11 +8,11 @@
 settings:
   # 插件语言设置
   # zh = 中文，en = English
-  # 影响范围：日志输出、技能消息、LLM提示词、AFK任务通知等
+  # 影响范围：日志输出、技能消息、LLM提示词、监听/订阅通知等
   # 修改后执行 /kila reload 即时生效
   # Plugin language setting
   # zh = Chinese, en = English
-  # Scope: log output, skill messages, LLM prompts, AFK task notifications, etc.
+  # Scope: log output, skill messages, LLM prompts, watch/subscription notifications, etc.
   # Run /kila reload to apply changes immediately
   language: en
 
@@ -24,12 +24,12 @@ settings:
 
   # 是否启用匿名统计（bStats）
   # 收集匿名使用数据帮助改进插件，不收集任何敏感信息
-  # 统计内容：技能调用次数、请求类型分布、挂机任务类型、LLM模型名、服务端类型
+  # 统计内容：技能调用次数、请求类型分布、LLM模型名、服务端类型
   # 数据公开查看：https://bstats.org/plugin/bukkit/Kilacraft-AI
   # 注意：修改此项后需要重启服务器才能生效，热重载不会更新此配置
   # Whether to enable anonymous statistics (bStats)
   # Collects anonymous usage data to help improve the plugin, no sensitive information collected
-  # Statistics: skill call counts, request type distribution, AFK task types, LLM model names, server type
+  # Statistics: skill call counts, request type distribution, LLM model names, server type
   # Public data: https://bstats.org/plugin/bukkit/Kilacraft-AI
   # Note: Requires server restart to take effect, hot reload will not update this config
   metrics: true
@@ -78,15 +78,17 @@ settings:
   # Set to 0 to disable, -1 to share cooldown with normal commands
   plugins_cooldown_seconds: 3
 
-  # 最大历史消息数（用于上下文对话）
-  # 保存最近的 N 轮对话作为上下文
-  # max_history: 0 - 禁用历史记录（不保存）
+  # 最大历史消息数（用于上下文对话，单位：轮，1 轮 = user + assistant 共 2 条消息）
+  # 保存最近的 N 轮对话作为上下文；从数据库重连加载时恢复最近一半（N/2 轮）
+  # 取值范围：0-100（轮）。超出范围会被自动钳制到边界值。
+  # max_history: 0 - 禁用历史记录（不保存、不加载）
   # max_history: 5 - 保存最近 5 轮对话（10 条消息）
   # max_history: 10 - 保存最近 10 轮对话（20 条消息）
   # max_history: 20 - 保存最近 20 轮对话（40 条消息）
-  # Maximum history message count (for contextual conversation)
-  # Saves the latest N rounds of conversation as context
-  # max_history: 0 - Disable history (no saving)
+  # Maximum history message count (for contextual conversation, unit: rounds, 1 round = user + assistant = 2 messages)
+  # Saves the latest N rounds of conversation as context; on reconnect, loads the latest half (N/2 rounds) from DB
+  # Value range: 0-100 (rounds). Out-of-range values will be clamped to the boundary.
+  # max_history: 0 - Disable history (no saving, no loading)
   # max_history: 5 - Save latest 5 rounds (10 messages)
   # max_history: 10 - Save latest 10 rounds (20 messages)
   # max_history: 20 - Save latest 20 rounds (40 messages)
@@ -132,70 +134,6 @@ messages:
   # English prompt text (effective when language=en)
   thinking_message_en: "Thinking..."
 
-# ==================== 命令执行技能配置 / Command Execution Skill Configuration ====================
-# 命令执行技能说明：
-# 1. 开启后 AI 可以代替玩家执行服务器命令（如 /back、/home 等）
-# 2. AI 以玩家身份执行命令，权限边界等于玩家自身的权限
-#    - 玩家没有的命令权限，AI 代执行也会被服务器拒绝
-#    - 所有服务器安全机制（权限检查、冷却、安全区域等）均正常生效
-#    - 不存在越权风险：玩家不能做的事，AI 也做不了
-# 3. 权限要求：玩家必须拥有 kilacraft.command.execute 权限才能使用此功能
-#    - 即使配置开启，没有权限的玩家也无法触发命令执行
-#    - 建议在权限插件中按需分配（如只给 VIP 玩家）
-# 4. 建议服主在开启前确认服务器权限配置符合预期
-# Command execution skill description:
-# 1. When enabled, AI can execute server commands on behalf of the player (e.g., /back, /home)
-# 2. AI executes commands as the player, permission boundary equals the player's own permissions
-#    - Commands the player doesn't have permission for will also be rejected when AI executes them
-#    - All server security mechanisms (permission checks, cooldowns, safe zones, etc.) remain in effect
-#    - No privilege escalation risk: what the player can't do, AI can't do either
-# 3. Permission requirement: player must have kilacraft.command.execute permission to use this feature
-#    - Even if config is enabled, players without permission cannot trigger command execution
-#    - Recommended to assign via permission plugin as needed (e.g., VIP players only)
-# 4. Server owners should verify permission configuration meets expectations before enabling
-command_skill:
-  # 是否启用命令执行技能
-  # 注意：开启配置后，还需要给玩家分配 kilacraft.command.execute 权限
-  # Whether to enable command execution skill
-  # Note: After enabling config, players still need kilacraft.command.execute permission assigned
-  enabled: false
-
-# ==================== 挂机任务配置 / AFK Task Configuration ====================
-# 挂机任务功能说明：
-# 1. 玩家可以通过 AI 对话或命令创建后台监控任务
-# 2. 条件满足时自动通知玩家并执行动作
-# 3. 每个玩家同时只能拥有一个挂机任务
-# 4. 玩家下线或任务完成后自动释放资源
-# AFK task feature description:
-# 1. Players can create background monitoring tasks via AI conversation or commands
-# 2. Automatically notifies player and executes actions when conditions are met
-# 3. Each player can only have one AFK task at a time
-# 4. Resources are automatically released when player goes offline or task completes
-afk_task:
-  # 是否启用挂机任务功能
-  # Whether to enable AFK task feature
-  enabled: true
-  
-  # 最大并发任务数（全局限制）
-  # 同时运行的最大挂机任务数量
-  # Maximum concurrent tasks (global limit)
-  # Maximum number of AFK tasks running simultaneously
-  max_tasks: 10
-  
-  # 定时轮询间隔（单位：ticks，20 ticks = 1秒）
-  # 仅用于没有对应 Bukkit 事件的场景
-  # Polling interval (unit: ticks, 20 ticks = 1 second)
-  # Only used for scenarios without corresponding Bukkit events
-  check_interval_ticks: 20
-  
-  # 最大连续评估失败次数
-  # 当条件评估连续失败超过此次数时，自动终止任务并通知玩家
-  # 建议值：5-15，值太小可能误杀正常任务，值太大会浪费资源
-  # Maximum consecutive evaluation failures
-  # When condition evaluation fails consecutively beyond this count, task is automatically terminated and player is notified
-  # Recommended: 5-15, too small may kill normal tasks, too large wastes resources
-  max_consecutive_failures: 10
-
 # ==================== 安全配置 / Security Configuration ====================
 # 玩家数据隔离：防止通过AI技能查询/操作其他玩家的敏感数据
 # 安全拦截器会扫描所有Skill参数值，如果匹配到在线玩家名且不是调用者自己，则自动替换为调用者名
@@ -215,13 +153,13 @@ security:
     allowed_actions:
       - "cmi.send_tp_request"        # TPA传送请求：target_player是传送目的地 / TPA request: target_player is the teleport destination
       - "market_query.query_seller_items" # 市场查询：查看指定卖家在售商品（公开市场信息） / Market query: view a specific seller's listed items (public market info)
-      - "AFKTask.create_task"        # 挂机任务：只允许监控其他玩家上线和下线 / AFK Task: Only allow monitoring of other players' online and offline activities
       - "command.execute_command"    # 命令执行：以玩家身份执行命令，权限边界等于玩家自身权限 / Command execution: executes as the player, permission boundary equals player's own permissions
       - "market_action.transfer_money" # 转账：target_player是收款人，需要允许指定其他玩家 / Money transfer: target_player is the recipient, must allow specifying other players
       - "utility.notify_player"      # 中途通知：仅通知文本，不执行操作，消息中可包含其他玩家名 / Mid-task notification: text-only, no operations, message may contain other player names
       - "utility.broadcast_message"    # 全服广播：仅输出公告文本，消息中可能包含其他玩家名 / Server-wide broadcast: announcement text output only, message may contain other player names
       - "player_analysis.player_relations" # 玩家社交关系查询：管理员查询指定玩家的社交关系 / Player social relation query: admin queries a specific player's social relations
       - "audit_log.query_logs"         # 技能执行日志查询：管理员查询指定玩家的技能使用记录 / Skill execution log query: admin queries a specific player's skill usage logs
+      - "player_watch"                 # 跨玩家上下线订阅：target_player是被订阅玩家名，社交功能 / Cross-player join/quit subscription: target_player is the player being watched, social feature
     # 近期活跃玩家缓存配置（防止通过离线玩家名绕过隔离）
     # 仅缓存"在线 + 近期离线"玩家，有界 + TTL 淘汰，避免大服历史玩家名全量驻留内存
     # 覆盖盲区：从未在本服活跃、或长期未上线的玩家不在缓存内（此类玩家无可读画像数据，风险低）
@@ -274,4 +212,4 @@ social:
   skill_whitelist:
     - "market_action"    # 市场操作（转账等涉及其他玩家的交易） / Market operations (transactions involving other players such as transfers)
     - "cmi"              # CMI 操作（TPA 传送请求等） / CMI operation (TPA transmission request, etc.)
-    - "AFKTask"          # 挂机任务（监控其他玩家上线/下线） / Hanging task (monitoring other players online/offline)
+    - "player_watch"     # 跨玩家上下线订阅（target_player 是被订阅玩家，社交关注信号） / Cross-player join/quit subscription (target_player is the watched player, a social-follow signal)

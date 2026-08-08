@@ -15,10 +15,8 @@ import com.zm.kilacraftAI.db.DatabaseManager;
 import com.zm.kilacraftAI.db.dao.ServerEventDao;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.model.event.ServerEvent;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.*;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +45,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class ServerHealthSkill implements Skill {
 
+    private static final String SKILL_NAME = "server_health";
     private static final String LOG_PREFIX = "健康监控";
 
     /**
@@ -86,19 +85,19 @@ public class ServerHealthSkill implements Skill {
 
     public ServerHealthSkill() {
         this.configManager = SkillConfigManager.getInstance();
-        if (configManager != null && configManager.getSkillConfig("admin", "ServerHealthSkill") == null) {
-            configManager.saveDefaultSkillConfig("admin", "ServerHealthSkill");
-            configManager.loadSingleSkillConfig("admin", "ServerHealthSkill");
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
     private SkillConfig getConfig() {
-        return configManager != null ? configManager.getSkillConfig("admin", "ServerHealthSkill") : null;
+        return configManager != null ? configManager.getSkillConfig(this) : null;
     }
 
     @Override
     public String getName() {
-        return "server_health";
+        return SKILL_NAME;
     }
 
     @Override
@@ -126,6 +125,12 @@ public class ServerHealthSkill implements Skill {
 
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
+        // 权限校验：player 为 null 视为无权限（正常调用路径必有在线 player）
+        Player caller = context.getPlayer();
+        if (caller == null || !PluginPermissionEnum.ADMIN_HEALTH.hasPermission(caller)) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.ADMIN_HEALTH.getNode())));
+        }
+
         String action = context.getAction();
         if (action == null || action.isEmpty()) {
             action = "health_report";
@@ -135,7 +140,7 @@ public class ServerHealthSkill implements Skill {
             case "health_report" -> executeQueryMode(context);
             case "list_reports" -> executeListReports(context);
             case "read_report" -> executeReadReport(context);
-            default -> SkillResult.failure(I18nService.tr("未知的动作: {}", action)).toFuture();
+            default -> SkillResult.failure(I18nService.tr("未知动作: {}", action)).toFuture();
         };
     }
 
@@ -144,10 +149,9 @@ public class ServerHealthSkill implements Skill {
      */
     private CompletableFuture<SkillResult> executeQueryMode(SkillContext context) {
         // 解析查询参数
-        String pluginFilter = context.getEntity("plugin");
-        String metricTypeFilter = context.getEntity("metric_type");
-        String timeRangeRaw = context.getEntity("time_range");
-        final String timeRange = (timeRangeRaw == null || timeRangeRaw.isEmpty()) ? "7d" : timeRangeRaw;
+        String pluginFilter = SkillEntityHelper.getString(context, "plugin");
+        String metricTypeFilter = SkillEntityHelper.getString(context, "metric_type");
+        String timeRange = SkillEntityHelper.getString(context, "time_range", "7d");
 
         long afterTime = AdminSkillUtil.parseTimeRange(timeRange);
         if (afterTime < 0) {
@@ -156,7 +160,7 @@ public class ServerHealthSkill implements Skill {
 
         DatabaseManager dbManager = KilacraftAI.getInstance().getDatabaseManager();
         if (dbManager == null) {
-            return SkillResult.failure("数据库未初始化").toFuture();
+            return SkillResult.failure(I18nService.tr("数据库未初始化")).toFuture();
         }
 
         final String plugin = pluginFilter;
@@ -176,7 +180,7 @@ public class ServerHealthSkill implements Skill {
                 return buildQueryResult(alerts, plugin, metricType, timeRange);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询历史告警失败: {}", e.getMessage()), e);
-                return SkillResult.failure("查询历史告警失败", e);
+                return SkillResult.failure(I18nService.tr("查询历史告警失败: {}", e.getMessage()));
             }
         }, FoliaCompat.getIOPool());
     }
@@ -350,11 +354,11 @@ public class ServerHealthSkill implements Skill {
      * 列出报告目录中的诊断报告文件
      */
     private CompletableFuture<SkillResult> executeListReports(SkillContext context) {
-        String timeRangeStr = context.getEntity("time_range");
-        String modeFilter = context.getEntity("mode");
-        String limitStr = context.getEntity("limit");
+        String timeRangeStr = SkillEntityHelper.getString(context, "time_range");
+        String modeFilter = SkillEntityHelper.getString(context, "mode");
+        String limitStr = SkillEntityHelper.getString(context, "limit");
 
-        final String timeRange = (timeRangeStr == null || timeRangeStr.isEmpty()) ? "7d" : timeRangeStr;
+        final String timeRange = (timeRangeStr != null) ? timeRangeStr : "7d";
         final int limit = AdminSkillUtil.parseLimit(limitStr, 20);
 
         long afterTime = AdminSkillUtil.parseTimeRange(timeRange);
@@ -366,7 +370,7 @@ public class ServerHealthSkill implements Skill {
             try {
                 File reportDir = getReportDirectory();
                 if (reportDir == null) {
-                    return SkillResult.success("报告目录不存在或为空", Map.of("count", 0, "reports", List.of()));
+                    return SkillResult.success(I18nService.tr("报告目录不存在或为空"), Map.of("count", 0, "reports", List.of()));
                 }
 
                 List<Map<String, Object>> reportList = performListReports(reportDir, modeFilter, afterTime, limit);
@@ -393,7 +397,7 @@ public class ServerHealthSkill implements Skill {
                 return SkillResult.success(summary.toString(), data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("列出报告失败: {}", e.getMessage()), e);
-                return SkillResult.failure("列出报告失败", e);
+                return SkillResult.failure(I18nService.tr("列出报告失败: {}", e.getMessage()));
             }
         }, FoliaCompat.getIOPool());
     }
@@ -402,9 +406,9 @@ public class ServerHealthSkill implements Skill {
      * 读取指定诊断报告的完整内容（自动剥离推理过程折叠块）
      */
     private CompletableFuture<SkillResult> executeReadReport(SkillContext context) {
-        String filenameRaw = context.getEntity("filename");
-        String indexStr = context.getEntity("index");
-        String modeFilter = context.getEntity("mode");
+        String filenameRaw = SkillEntityHelper.getString(context, "filename");
+        String indexStr = SkillEntityHelper.getString(context, "index");
+        String modeFilter = SkillEntityHelper.getString(context, "mode");
 
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -416,12 +420,12 @@ public class ServerHealthSkill implements Skill {
                     try {
                         index = Integer.parseInt(indexStr);
                     } catch (NumberFormatException e) {
-                        return SkillResult.failure("无效的索引值");
+                        return SkillResult.failure(I18nService.tr("无效的索引值"));
                     }
 
                     File reportDir = getReportDirectory();
                     if (reportDir == null) {
-                        return SkillResult.failure("报告目录不存在");
+                        return SkillResult.failure(I18nService.tr("报告目录不存在"));
                     }
 
                     // 应用 mode 过滤（如果上游步骤指定了 mode，如多步骤任务中的 list_reports）
@@ -434,7 +438,7 @@ public class ServerHealthSkill implements Skill {
 
                 // 参数校验
                 if (filename == null || filename.isEmpty()) {
-                    return SkillResult.failure("请指定 filename 或 index 参数");
+                    return SkillResult.failure(I18nService.tr("请指定 filename 或 index 参数"));
                 }
 
                 // 安全检查
@@ -445,14 +449,14 @@ public class ServerHealthSkill implements Skill {
 
                 File reportDir = getReportDirectory();
                 if (reportDir == null) {
-                    return SkillResult.failure("报告目录不存在");
+                    return SkillResult.failure(I18nService.tr("报告目录不存在"));
                 }
 
                 File reportFile = new File(reportDir, filename);
 
                 // 路径穿越检查
                 if (!reportFile.getCanonicalPath().startsWith(reportDir.getCanonicalPath())) {
-                    return SkillResult.failure("无效的文件路径");
+                    return SkillResult.failure(I18nService.tr("无效的文件路径"));
                 }
                 if (!reportFile.exists() || !reportFile.isFile()) {
                     return SkillResult.failure(I18nService.tr("报告文件不存在: {}", filename));
@@ -483,7 +487,7 @@ public class ServerHealthSkill implements Skill {
                 return SkillResult.success(summary + "\n\n" + content, data);
             } catch (Exception e) {
                 PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("读取报告失败: {}", e.getMessage()), e);
-                return SkillResult.failure("读取报告失败", e);
+                return SkillResult.failure(I18nService.tr("读取报告失败: {}", e.getMessage()));
             }
         }, FoliaCompat.getIOPool());
     }
@@ -510,15 +514,15 @@ public class ServerHealthSkill implements Skill {
     private SkillResult validateFilename(String filename) {
         // 字符白名单
         if (!filename.matches("^[a-zA-Z0-9_\\-\\.]+$")) {
-            return SkillResult.failure("无效的文件名");
+            return SkillResult.failure(I18nService.tr("无效的文件名"));
         }
         // 扩展名校验
         if (!filename.endsWith(".md")) {
-            return SkillResult.failure("仅支持读取 .md 文件");
+            return SkillResult.failure(I18nService.tr("仅支持读取 .md 文件"));
         }
         // 禁止路径分隔符
         if (filename.contains("/") || filename.contains("\\")) {
-            return SkillResult.failure("无效的文件名");
+            return SkillResult.failure(I18nService.tr("无效的文件名"));
         }
         return null;
     }

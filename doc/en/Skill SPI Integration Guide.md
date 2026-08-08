@@ -1,6 +1,6 @@
 # Kilacraft-AI — Skill SPI Integration Guide
 
-> **Doc version**: v2.1.1 ｜ **Plugin version**: Kilacraft-AI ≥ 2.1.1 ｜ **SPI Jar**: `Kilacraft-Skill-API-2.1.1.jar`
+> **Doc version**: v2.2.0 ｜ **Plugin version**: Kilacraft-AI ≥ 2.2.0 ｜ **SPI Jar**: `Kilacraft-Skill-API-2.2.0.jar`
 > **Purpose**: Guide third-party plugin developers on integrating custom skills into Kilacraft-AI via the Skill SPI.
 
 ---
@@ -64,7 +64,7 @@ Before diving in, establish a high-level mental model:
 - **needInfo continuation**: when a Skill pauses via `needInfo(...)`, the framework snapshots the parameters and resumes execution after the player's next reply (confirm / supply a value / cancel). The confirmation state is read via `context.isConfirmed()` (see [§7](#7-needs-info--confirmation-needinfo)).
 - **Multi-step data**: the `data` from `success(msg, data)` can be referenced by later steps using `{step_x.field}` placeholders (see [§8](#8-multi-step-task-data-passing)).
 
-Integration requires only `compileOnly` on `Kilacraft-Skill-API-2.1.1.jar` (containing `Skill` / `SkillContext` / `SkillResult` / `SkillStatus` / `SkillIntent` / `SkillProvider`). **Do not package it** into your plugin — it is provided at runtime by the host plugin.
+Integration requires only `compileOnly` on `Kilacraft-Skill-API-2.2.0.jar` (containing `Skill` / `SkillContext` / `SkillResult` / `SkillStatus` / `SkillIntent` / `SkillProvider` / `SkillEntityHelper` — 7 classes). **Do not package it** into your plugin — it is provided at runtime by the host plugin.
 
 ---
 
@@ -114,9 +114,9 @@ User chat message
 <dependency>
     <groupId>com.zm</groupId>
     <artifactId>Kilacraft-Skill-API</artifactId>
-    <version>2.1.1</version>
+    <version>2.2.0</version>
     <scope>system</scope>
-    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-2.1.1.jar</systemPath>
+    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-2.2.0.jar</systemPath>
 </dependency>
 ```
 
@@ -306,6 +306,8 @@ public enum SkillStatus {
 }
 ```
 
+> There is also a `SKIPPED` status, used internally by the framework only (multi-step dependency unmet / param-parse failure); third-party Skills must not produce it.
+
 ---
 
 ## 6. Result Status Markers & Normalization
@@ -475,6 +477,8 @@ private CompletableFuture<SkillResult> queryPrice(SkillContext context) {
 
 Document: `"Returned data contains item_name and price fields."`
 
+**Important: `data` is never sent to the LLM prompt.** `data` is only used for multi-step placeholder resolution and watch threshold comparison; content the LLM must read (search summaries, fetched page text, diagnostics) must be put into `message`.
+
 ### 8.3 Placeholder Format
 
 ```
@@ -520,6 +524,8 @@ Skill names are globally unique; a third-party Skill whose name collides with a 
 // Bad
 "Query info"   // too vague
 ```
+
+> **`description` / `getHints()` content must be purely static** — no `{player}`, `{time}`, coordinates, or other dynamic placeholders (these placeholders are never replaced in the system prompt and would break LLM provider prefix caching). Dynamic information is injected into the user message uniformly by the framework.
 
 ### 9.3 Action Design
 
@@ -659,7 +665,7 @@ The whitelist is configured by the server owner; developers can't decide it them
 
 - **Not whitelisted but operates on others**: other-player names in entities are replaced with the current player's name; the Skill "thinks" it's operating on itself — a security design malicious Skills cannot bypass.
 
-Built-in whitelisted examples: `cmi.send_tp_request`, `AFKTask.create_task`, `command.execute_command`.
+Built-in whitelisted examples: `cmi.send_tp_request`, `player_watch.subscribe`, `command.execute_command`.
 
 ### 12.3 Notes
 
@@ -784,9 +790,9 @@ AI: Level 15, total XP 3200. Food 18/20.
 <dependency>
     <groupId>com.zm</groupId>
     <artifactId>Kilacraft-Skill-API</artifactId>
-    <version>2.1.1</version>
+    <version>2.2.0</version>
     <scope>system</scope>
-    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-2.1.1.jar</systemPath>
+    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-2.2.0.jar</systemPath>
 </dependency>
 <dependency>
     <groupId>org.spigotmc</groupId>
@@ -800,14 +806,14 @@ AI: Level 15, total XP 3200. Food 18/20.
 
 ```groovy
 dependencies {
-    implementation files('libs/Kilacraft-Skill-API-2.1.1.jar')
+    implementation files('libs/Kilacraft-Skill-API-2.2.0.jar')
     compileOnly 'org.spigotmc:spigot-api:1.21-R0.1-SNAPSHOT'
 }
 ```
 
 ### About kilacraft-skill-api.jar
 
-This JAR contains the compiled **6 classes** below for third-party compile-time reference:
+This JAR contains the compiled **7 classes** below for third-party compile-time reference:
 
 ```
 com.zm.kilacraftAI.skills.framework.Skill
@@ -816,8 +822,11 @@ com.zm.kilacraftAI.skills.framework.SkillResult
 com.zm.kilacraftAI.skills.framework.SkillStatus
 com.zm.kilacraftAI.skills.framework.SkillIntent
 com.zm.kilacraftAI.skills.framework.SkillProvider
+com.zm.kilacraftAI.skills.framework.SkillEntityHelper
 ```
 
+> `SkillEntityHelper` is a static utility class added to the SPI in v2.2.0, providing safe parameter extraction and type-conversion methods (`getString` / `getInt` / `getIntClamped` / `getLong` / `getDouble` / `getBoolean`). All methods throw no exceptions (return a default value on failure), eliminating the scattered `try { Integer.parseInt(...) } catch` boilerplate inside skills.
+>
 > This JAR must **not** be packaged into your plugin; it's provided at runtime by the Kilacraft-AI host plugin.
 
 ---
@@ -919,6 +928,8 @@ A: Document the returned data fields clearly in the description / action descrip
 | `FAILURE` | `[FAILURE]` | hard failure |
 | `NEED_INFO` | `[NEED_INFO]` | needs info / confirmation |
 
+> There is also a `SKIPPED` status, used internally by the framework only (multi-step dependency unmet / param-parse failure); third-party Skills must not produce it.
+
 ---
 
 ## 19. Publishing & Review
@@ -927,7 +938,7 @@ A: Document the returned data fields clearly in the description / action descrip
 
 **Integrate into your plugin (recommended)**: users need no extra install; auto-registered via SPI; low maintenance.
 
-**Standalone Skill plugin**: create a standalone Bukkit plugin project, publish to MineBBS/SpigotMC/GitHub, label the README "Requires Kilacraft-AI 2.1.1+".
+**Standalone Skill plugin**: create a standalone Bukkit plugin project, publish to MineBBS/SpigotMC/GitHub, label the README "Requires Kilacraft-AI 2.2.0+".
 
 ### 19.2 Security Review (Required)
 

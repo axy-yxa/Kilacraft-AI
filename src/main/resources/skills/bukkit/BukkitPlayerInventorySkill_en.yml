@@ -1,0 +1,53 @@
+# English version of BukkitPlayerInventorySkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Player Inventory & Gear Query Skill (BukkitPlayerInventorySkill)
+# Query the player's own inventory, held items, armor, ender chest, and currently open container contents.
+# Self-only (SkillSecurityFilter blocks cross-player params); for real-time status (health/hunger) use player_status.
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  Query the player's own inventory and gear: main/off-hand item details, inventory slot usage, inventory/ender chest item summaries, equipped armor, currently open UI and container contents.
+  Triggers: when players ask "what am I holding", "what's in my inventory", "is my inventory full", "are there diamonds in my ender chest", "what armor am I wearing", "what's in the chest I opened", etc.
+  Reverse boundary: NOT for real-time status (health/hunger/coords/XP — use player_status), NOT for basic info (location/game mode — use player_info), NOT for market/trade operations.
+
+action_descriptions:
+  get_player_hand_item: |
+    Function: Get details of the item in the player's main hand (type, amount, enchantments, durability, etc.).
+    Parameters: none.
+    Returns data fields: item_type (material enum name), item_name (custom name, only present when the item has one), item_amount, enchantments (Map<enchant name, level>), damage, max_durability, remaining_durability, unbreakable, lore, attributes (Folia only), custom_model_data, item_flags. Empty when bare-handed.
+  get_player_offhand_item: |
+    Function: Get details of the item in the player's off-hand (shield slot).
+    Parameters: none.
+    Returns data fields: same as get_player_hand_item.
+  get_player_inventory_usage: |
+    Function: [Lightweight] Get the used and empty slot counts of the player's inventory (hotbar + main, 36 slots total) without reading item details.
+    Parameters: none.
+    Returns data fields: item_count (used slots), empty_slots (empty slots). Suitable for WatchSkill polling to monitor if inventory is nearly full.
+  get_player_inventory: |
+    Function: Get a summary list of all items in the player's inventory (36 slots) — item names and amounts only, no enchantment/durability details.
+    Parameters: none.
+    Returns data fields: item_count, empty_slots, items (summary list, each entry has slot/item_type/item_amount; item_name only present when the item has a custom name). For item details use get_player_hand_item.
+  get_player_ender_chest: |
+    Function: Get a summary list of all items in the player's ender chest — item names and amounts only.
+    Parameters: none.
+    Returns data fields: item_count, empty_slots, items (summary list, each entry has slot/item_type/item_amount; item_name only present when the item has a custom name).
+  get_player_armor: |
+    Function: Get the player's full equipped armor (helmet, chestplate, leggings, boots) with enchantments and durability.
+    Parameters: none.
+    Returns data fields: for each non-empty slot returns helmet_*/chestplate_*/leggings_*/boots_* fields including _type (material enum name), _name (custom name, only present when the item has one), _amount, _enchantments (Map), _max_durability, _remaining_durability.
+  get_player_open_inventory: |
+    Function: Get the type of UI the player is currently viewing (chest, furnace, enchanting table, player inventory, etc.).
+    Parameters: none.
+    Returns data fields: raw_result (inventory type enum value). Only queries UI type, not container contents.
+  get_player_open_container: |
+    Function: Get a summary of all items in the container the player is currently viewing (chest, furnace, enchanting table, shulker box, etc.). Prerequisite: the player is viewing a container UI.
+    Parameters: none.
+    Returns data fields: item_count, empty_slots, items (summary list), container_type (container type enum name), container_title (container title).
+
+hints:
+  - |
+    All actions query the player themselves; even if another player's name appears in params, the security filter replaces it with the current player.
+  - |
+    Item details vs summary: get_player_hand_item/get_player_offhand_item return full details of a single item (enchantments/durability/attributes); get_player_inventory/get_player_ender_chest/get_player_open_container return a summary list (names + amounts only). To get details, first locate the slot via summary, then query the corresponding detail.
+  - |
+    Relationship between get_player_open_container and get_player_open_inventory: the latter only returns the UI type (whether the player is viewing some UI), the former returns the container contents. Use open_inventory to check if the player is trading/crafting, use open_container to see container contents.

@@ -1,0 +1,41 @@
+# English version of PlayerWatchSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Cross-player online/offline subscription skill (PlayerWatchSkill)
+# Subscribe to another player's join/quit notifications; the AI proactively alerts the subscriber when the watched player's status changes.
+# Subscriptions are only valid while the subscriber is online — cleared on logout (not persisted, not restored on restart).
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  Subscribe to another player's join/quit notifications; the AI proactively alerts the subscriber when the watched player's status changes.
+  Triggers: when the player wants to be notified about another player's online/offline status, e.g. "tell me when Steve comes online", "alert me when Alex logs in", "watch someone's online status", "cancel my subscription to X", "who am I subscribed to / list my subscriptions", "clear all my subscriptions".
+  Reverse boundary: NOT for continuously monitoring a player's own state (health/items/position — that belongs to the player-custom watch skill category).
+
+action_descriptions:
+  subscribe: |
+    Function: Subscribe to a player's join/quit notifications.
+    Parameters:
+      - target_player (required, player name): the player name to watch.
+      - trigger_event (optional, default BOTH, string, allowed values JOIN/QUIT/BOTH): the triggering event — JOIN=only online, QUIT=only offline, BOTH=both.
+      - note (optional, string): a note shown alongside the notification. When the player expressed a follow-up action intent after the event fires (e.g. "teleport me home after he joins"), you MUST write that intent into this parameter — the system will surface it along with the notification when the event fires, and the player initiates the follow-up action manually after the reminder.
+    Returns data fields: target_player, trigger_event, subscription_count.
+  unsubscribe: |
+    Function: Cancel subscriptions to a player.
+    Parameters:
+      - target_player (optional, player name): the player to stop watching; when omitted, cancels all subscriptions matching the given trigger_event.
+      - trigger_event (optional, string, allowed values JOIN/QUIT/BOTH): cancel only this event type; omit to cancel all of that player's subscriptions.
+    Prerequisite: at least one of target_player or trigger_event must be given; to clear everything use unsubscribe_all.
+    Returns data fields: target_player, removed_count.
+  list: |
+    Function: Query all active subscriptions for the current player.
+    Parameters: none.
+    Returns data fields: subscriptions (array; each item has target_player/trigger_event/online/note/created_at), total.
+  unsubscribe_all: |
+    Function: Cancel all subscriptions for the current player.
+    Parameters: none.
+    Returns data fields: removed_count.
+
+hints:
+  - |
+    This is a "social notification" capability: a one-way subscription — the watched player is unaware and it can be canceled unilaterally at any time. All subscriptions auto-expire on subscriber logout and do not persist across sessions or restarts.
+  - |
+    trigger_event accepts only JOIN/QUIT/BOTH (case-insensitive), omitted defaults to BOTH; omitting trigger_event in unsubscribe means canceling all event types for that player.

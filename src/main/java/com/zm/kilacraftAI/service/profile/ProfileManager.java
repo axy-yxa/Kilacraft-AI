@@ -31,6 +31,7 @@ import java.util.function.Consumer;
  * </ul>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class ProfileManager {
 
@@ -320,26 +321,6 @@ public class ProfileManager {
         return sb.toString();
     }
 
-    /**
-     * 将玩家画像摘要注入系统提示词（如果配置开启且有画像数据）
-     *
-     * <p>封装了画像注入的完整逻辑：配置开关检查 → 画像数据获取 → 拼接。
-     * 所有面向玩家的 LLM 输出路径统一使用此方法。</p>
-     *
-     * @param systemPrompt 原始系统提示词
-     * @param uuid         玩家 UUID
-     * @return 注入画像后的系统提示词（无数据时原样返回）
-     */
-    public String injectProfileSummary(String systemPrompt, UUID uuid) {
-        if (uuid == null || !plugin.getConfigManager().isProfileInjectionEnabled()) {
-            return systemPrompt;
-        }
-        String profileSummary = buildProfileSummary(uuid);
-        if (profileSummary.isEmpty()) {
-            return systemPrompt;
-        }
-        return systemPrompt + "\n\n" + profileSummary;
-    }
 
     /**
      * 数据库热重载后补录在线玩家画像，并从新库重新加载画像数据到内存缓存

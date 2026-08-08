@@ -54,9 +54,9 @@ public class GreetingContext {
     private final List<ServerEvent> friendEvents;
 
     /**
-     * 摘要统计数据（可为 null）
+     * 上次游玩亮点事件（已按稀有成就型白名单过滤，可为空）
      */
-    private final SummaryStats summaryStats;
+    private final List<ServerEvent> highlights;
 
     /**
      * 目前在线的好友状态列表（可为空）
@@ -84,11 +84,6 @@ public class GreetingContext {
      * 服务器信息（来自知识库，可为 null）
      */
     private final String serverInfo;
-
-    /**
-     * Bukkit 原版统计数据（主线程采集，可为 null 表示采集失败）
-     */
-    private final PlayerVanillaStats vanillaStats;
 
     /**
      * 离线期间的系统健康告警事件（仅对有 kilacraft.admin.health 权限的管理员填充）

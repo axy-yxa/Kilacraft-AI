@@ -1,6 +1,6 @@
 # Kilacraft-AI — Skill SPI 接入文档
 
-> **文档版本**: v2.1.1 ｜ **适用插件版本**: Kilacraft-AI ≥ 2.1.1 ｜ **SPI Jar**: `Kilacraft-Skill-API-2.1.1.jar`
+> **文档版本**: v2.2.0 ｜ **适用插件版本**: Kilacraft-AI ≥ 2.2.0 ｜ **SPI Jar**: `Kilacraft-Skill-API-2.2.0.jar`
 > **说明**: 指导第三方插件开发者通过 Skill SPI 将自定义技能接入 Kilacraft-AI。
 
 ---
@@ -64,7 +64,7 @@ Kilacraft-AI 通过 **SPI（Service Provider Interface）** 机制，允许第�
 - **needInfo 续体**：Skill 返回 `needInfo(...)` 暂停后，框架自动快照参数、在玩家下轮回复（确认/补值/取消）后恢复执行；确认状态经 `context.isConfirmed()` 读取（见 [§7](#7-需补充信息--二次确认needinfo)）。
 - **多步骤数据**：`success(msg, data)` 的 `data` 可被后续步骤用 `{step_x.field}` 占位符引用（见 [§8](#8-多步骤任务数据传递)）。
 
-接入只需 `compileOnly` 引入 `Kilacraft-Skill-API-2.1.1.jar`（含 `Skill`/`SkillContext`/`SkillResult`/`SkillStatus`/`SkillIntent`/`SkillProvider`），**不要打包进你的插件**，运行时由主插件提供。
+接入只需 `compileOnly` 引入 `Kilacraft-Skill-API-2.2.0.jar`（含 `Skill`/`SkillContext`/`SkillResult`/`SkillStatus`/`SkillIntent`/`SkillProvider`/`SkillEntityHelper` 共 7 个类），**不要打包进你的插件**，运行时由主插件提供。
 
 ---
 
@@ -113,9 +113,9 @@ Kilacraft-AI 通过 **SPI（Service Provider Interface）** 机制，允许第�
 <dependency>
     <groupId>com.zm</groupId>
     <artifactId>Kilacraft-Skill-API</artifactId>
-    <version>2.1.1</version>
+    <version>2.2.0</version>
     <scope>system</scope>
-    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-2.1.1.jar</systemPath>
+    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-2.2.0.jar</systemPath>
 </dependency>
 ```
 
@@ -305,6 +305,8 @@ public enum SkillStatus {
 }
 ```
 
+> 另有 `SKIPPED` 状态，仅供框架内部使用（多步骤依赖未满足 / 参数解析失败），第三方 Skill 不得产生。
+
 ---
 
 ## 6. 结果状态标记与归一化
@@ -472,6 +474,8 @@ private CompletableFuture<SkillResult> queryPrice(SkillContext context) {
 
 描述里写明：`"返回数据包含 item_name、price 字段"`。
 
+**重要：`data` 不会进入 LLM 提示词**。`data` 仅供多步骤占位符解析与监听阈值比较；需要 LLM 阅读的内容（如搜索摘要、网页正文、诊断报告）必须拼进 `message`。
+
 ### 8.3 占位符格式
 
 ```
@@ -517,6 +521,8 @@ Skill 名称全局唯一，与内置 Skill 重名时第三方会被跳过（内�
 // 差
 "查询信息"   // 太模糊
 ```
+
+> **description / getHints() 内容必须纯静态**：禁止使用 `{player}`、`{time}`、坐标等动态占位符（这些占位符在 system 提示词中不会被替换，且会破坏 LLM 供应商的前缀缓存）。动态信息由框架统一注入 user 消息。
 
 ### 9.3 Action 设计
 
@@ -656,7 +662,7 @@ security:
 
 - **不在白名单却操作其他玩家**：entities 中的他人玩家名会被替换为当前玩家名，Skill"以为"在给自己操作——这是安全设计，恶意 Skill 无法绕过。
 
-已内置白名单示例：`cmi.send_tp_request`、`AFKTask.create_task`、`command.execute_command`。
+已内置白名单示例：`cmi.send_tp_request`、`player_watch.subscribe`、`command.execute_command`。
 
 ### 12.3 注意事项
 
@@ -782,9 +788,9 @@ AI：等级 15，总经验 3200。饱食度 18/20。
 <dependency>
     <groupId>com.zm</groupId>
     <artifactId>Kilacraft-Skill-API</artifactId>
-    <version>2.1.1</version>
+    <version>2.2.0</version>
     <scope>system</scope>
-    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-2.1.1.jar</systemPath>
+    <systemPath>${project.basedir}/libs/Kilacraft-Skill-API-2.2.0.jar</systemPath>
 </dependency>
 <dependency>
     <groupId>org.spigotmc</groupId>
@@ -798,14 +804,14 @@ AI：等级 15，总经验 3200。饱食度 18/20。
 
 ```groovy
 dependencies {
-    implementation files('libs/Kilacraft-Skill-API-2.1.1.jar')
+    implementation files('libs/Kilacraft-Skill-API-2.2.0.jar')
     compileOnly 'org.spigotmc:spigot-api:1.21-R0.1-SNAPSHOT'
 }
 ```
 
 ### 关于 kilacraft-skill-api.jar
 
-此 JAR 包含以下 **6 个**类的编译产物，供第三方编译时引用：
+此 JAR 包含以下 **7 个**类的编译产物，供第三方编译时引用：
 
 ```
 com.zm.kilacraftAI.skills.framework.Skill
@@ -814,8 +820,11 @@ com.zm.kilacraftAI.skills.framework.SkillResult
 com.zm.kilacraftAI.skills.framework.SkillStatus
 com.zm.kilacraftAI.skills.framework.SkillIntent
 com.zm.kilacraftAI.skills.framework.SkillProvider
+com.zm.kilacraftAI.skills.framework.SkillEntityHelper
 ```
 
+> `SkillEntityHelper` 是 v2.2.0 新增入 SPI 的静态工具类，提供 `getString`/`getInt`/`getIntClamped`/`getLong`/`getDouble`/`getBoolean` 等安全的参数提取与类型转换方法，所有方法零异常抛出（失败返回默认值），消除各技能内散落的 `try { Integer.parseInt(...) } catch` 样板代码。
+>
 > 此 JAR **不需要也不能**打包进你的插件，运行时由 Kilacraft-AI 主插件提供。
 
 ---
@@ -917,6 +926,8 @@ A: 关键是 description / action 描述清楚说明返回的 data 字段，LLM 
 | `FAILURE` | `[FAILURE]` | 硬失败 |
 | `NEED_INFO` | `[NEED_INFO]` | 需补充/确认 |
 
+> 另有 `SKIPPED` 状态，仅供框架内部使用（多步骤依赖未满足 / 参数解析失败），第三方 Skill 不得产生。
+
 ---
 
 ## 19. 发布与审查
@@ -925,7 +936,7 @@ A: 关键是 description / action 描述清楚说明返回的 data 字段，LLM 
 
 **集成到你的插件（推荐）**：用户无需额外安装，通过 SPI 自动注册，维护成本低。
 
-**独立 Skill 插件**：创建独立 Bukkit 插件项目，发布到 MineBBS/SpigotMC/GitHub，README 标注 "Requires Kilacraft-AI 2.1.1+"。
+**独立 Skill 插件**：创建独立 Bukkit 插件项目，发布到 MineBBS/SpigotMC/GitHub，README 标注 "Requires Kilacraft-AI 2.2.0+"。
 
 ### 19.2 安全审查（必做）
 

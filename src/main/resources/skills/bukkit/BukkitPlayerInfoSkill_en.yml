@@ -1,0 +1,95 @@
+# English version of BukkitPlayerInfoSkill.yml — keep action keys in sync with the Chinese version
+# ═══════════════════════════════════════════════════════════
+# Player Basic Info Skill (BukkitPlayerInfoSkill)
+# Query the player's own basic info: location, eye location, velocity, game mode, flight, main-hand preference, ping, vehicle, target/feet block, compass/death/bed location, pose, locale, display name.
+# Self-only (SkillSecurityFilter blocks cross-player params); for real-time status (health/hunger) use player_status.
+# ═══════════════════════════════════════════════════════════
+
+description: |
+  Query the player's own basic info: current coordinates, eye location, movement velocity, game mode, flight status & speed, walk speed, main-hand preference (left/right-handed), network ping, vehicle status, target block, feet block, compass target, last death location, current pose, client locale, display name, bed spawn location.
+  Triggers: when players ask "where am I", "what are my coords", "what game mode am I in", "what's my ping", "what block am I looking at", "what am I standing on", "where does my compass point", "where did I last die", "where is my bed spawn" etc.
+  Reverse boundary: NOT for real-time status (health/hunger/XP — use player_status), NOT for inventory (use player_inventory), NOT for guide/advice questions.
+
+action_descriptions:
+  get_player_location: |
+    Function: Get the player's current coordinates and world.
+    Parameters: none.
+    Returns data fields: x, y, z (coords), world (world name).
+  get_player_eye_location: |
+    Function: Get the precise coordinates of the player's eye (line of sight origin), useful for determining view direction.
+    Parameters: none.
+    Returns data fields: x, y, z, yaw, pitch, world.
+  get_player_velocity: |
+    Function: Get the player's current movement velocity vector (X/Y/Z components).
+    Parameters: none.
+    Returns data fields: x, y, z (velocity components per axis).
+  get_player_gamemode: |
+    Function: Get the player's current game mode (Survival/Creative/Adventure/Spectator).
+    Parameters: none.
+    Returns data fields: game_mode (game mode enum name, SURVIVAL/CREATIVE/ADVENTURE/SPECTATOR).
+  get_player_fly_status: |
+    Function: Get whether the player is allowed to fly and is currently flying.
+    Parameters: none.
+    Returns data fields: allow_flight (boolean), is_flying (boolean).
+  get_player_fly_speed: |
+    Function: Get the player's fly speed setting.
+    Parameters: none.
+    Returns data fields: fly_speed (float between 0-1).
+  get_player_walk_speed: |
+    Function: Get the player's walk speed setting.
+    Parameters: none.
+    Returns data fields: walk_speed (float between 0-1).
+  get_player_main_hand: |
+    Function: Get the player's left/right hand preference (left-handed/right-handed).
+    Parameters: none.
+    Returns data fields: main_hand (enum name, LEFT/RIGHT).
+  get_player_ping: |
+    Function: Get the player's network latency (ping) in milliseconds.
+    Parameters: none.
+    Returns data fields: ping (latency in ms).
+  get_player_vehicle: |
+    Function: Get whether the player is in a vehicle (boat/minecart/mount etc.).
+    Parameters: none.
+    Returns data fields: in_vehicle (boolean).
+  get_player_target_block: |
+    Function: Get the block the player's crosshair is aiming at (max distance 100 blocks).
+    Parameters: none.
+    Returns data fields: block_type, x, y, z, world. Empty when aiming too far or no block.
+  get_player_compass_target: |
+    Function: Get the location the player's compass points to.
+    Parameters: none.
+    Returns data fields: x, y, z, yaw, pitch, world.
+  get_player_last_death: |
+    Function: Get the location where the player last died.
+    Parameters: none.
+    Returns data fields: x, y, z, yaw, pitch, world. May be empty if never died or after server restart.
+  get_player_pose: |
+    Function: Get the player's current pose (standing/sneaking/swimming/sleeping/elytra flying/spin attack/dying).
+    Parameters: none.
+    Returns data fields: pose (pose enum name, e.g. STANDING/SNEAKING/SWIMMING).
+  get_player_feet_block: |
+    Function: Get the block type and location the player is standing on (the block directly below the feet).
+    Parameters: none.
+    Returns data fields: block_type, x, y, z, world.
+  get_player_locale: |
+    Function: Get the player's client language setting (e.g. zh_CN, en_US).
+    Parameters: none.
+    Returns data fields: locale (language code).
+  get_player_display_name: |
+    Function: Get the player's display name (may include prefix/suffix, distinct from getName).
+    Parameters: none.
+    Returns data fields: display_name (display name).
+  get_player_bed_spawn: |
+    Function: Get the player's bed spawn location (empty if not set).
+    Parameters: none.
+    Returns data fields: x, y, z, yaw, pitch, world. Empty if no bed spawn set.
+
+hints:
+  - |
+    All actions query the player themselves; even if another player's name appears in params, the security filter replaces it with the current player.
+  - |
+    Location distinction: get_player_location returns feet coords, get_player_eye_location returns eye (line of sight origin) coords — Y differs by about 1.625. Use eye_location when precise view direction (yaw/pitch) is needed.
+  - |
+    Block distinction: get_player_target_block is the distant block the crosshair aims at (max 100 blocks), get_player_feet_block is the block under the player's feet. Use the former for "what am I looking at", the latter for "what am I standing on".
+  - |
+    get_player_last_death and get_player_bed_spawn may return empty (never died / no bed set / after server restart). When empty, no coordinates are provided.

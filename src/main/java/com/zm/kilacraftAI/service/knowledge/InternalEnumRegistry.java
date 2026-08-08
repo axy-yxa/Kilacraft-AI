@@ -82,7 +82,7 @@ public class InternalEnumRegistry {
                 }
 
                 // 非中文模式下，自动从枚举名提取英文 token 作为补充关键词（支持英文用户模糊匹配）
-                if (!KilacraftAI.getInstance().getConfigManager().isChinese()) {
+                if (!I18nService.isZh()) {
                     appendEnumNameTokens(key, allKeywords);
                 }
 

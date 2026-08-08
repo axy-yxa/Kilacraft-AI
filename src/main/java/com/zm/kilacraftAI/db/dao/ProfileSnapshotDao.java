@@ -14,6 +14,7 @@ import java.util.UUID;
  * <p>提供 {@code kca_profile_snapshot} 表的写入操作，用于记录玩家画像的历史版本。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-12
  */
 public class ProfileSnapshotDao {
 

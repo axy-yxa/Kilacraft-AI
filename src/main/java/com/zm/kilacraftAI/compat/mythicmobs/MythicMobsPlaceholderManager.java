@@ -9,6 +9,9 @@ import org.bukkit.Bukkit;
 
 /**
  * MythicMobs 占位符管理器
+ *
+ * @author Zm_Mmm
+ * @since 2026-03-27
  */
 public class MythicMobsPlaceholderManager {
 

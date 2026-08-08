@@ -135,13 +135,8 @@ public class CMIAPI {
         info.put("fly", user.isFlying());
         info.put("game_mode", player.getGameMode().toString());
 
-        // 游戏时长（总在线时间，单位：毫秒）
-        long playtime = user.getTotalPlayTime();
-        info.put("playtime_ms", playtime);
-        // 转换为可读格式
-        long hours = playtime / 3600000;
-        long minutes = (playtime % 3600000) / 60000;
-        info.put("playtime_formatted", I18nService.tr("{}小时{}分钟", hours, minutes));
+        // 游戏时长（总在线时间，单位：毫秒）——结构化数据，可读格式由调用方在 message 层拼装
+        info.put("playtime_ms", user.getTotalPlayTime());
 
         return info;
     }
@@ -187,20 +182,5 @@ public class CMIAPI {
             result.add(playerInfo);
         }
         return result;
-    }
-
-    /**
-     * 查询指定玩家的 CMI 增强信息（用于查看其他玩家）
-     *
-     * @param targetName 目标玩家名称
-     * @return 玩家信息，如果玩家不在线或不存在返回 null
-     */
-    public static Map<String, Object> getOtherPlayerInfo(String targetName) {
-        if (!isAvailable() || targetName == null) return null;
-
-        Player target = Bukkit.getPlayer(targetName);
-        if (target == null) return null;
-
-        return getPlayerInfo(target);
     }
 }

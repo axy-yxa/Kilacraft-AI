@@ -11,6 +11,9 @@ import org.bukkit.command.CommandSender;
  * /kila about：版本与更新检查（管理员专用，admin.info）。
  * 复用 UpdateChecker 的发布源检测（按 i18n 语言选 GitHub/Gitee）。
  * 网络请求在 IO 线程池执行，结果回主线程。
+ *
+ * @author Zm_Mmm
+ * @since 2026-06-25
  */
 public final class AboutCommand {
 

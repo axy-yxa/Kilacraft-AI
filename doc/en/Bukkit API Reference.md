@@ -1,216 +1,169 @@
 # Kilacraft-AI - Bukkit API Reference Manual
 
-> **Last Updated**: 2026-05-06  
+> **Last Updated**: 2026-08-04  
 > **Description**: This document provides detailed explanations, configuration examples, and usage scenarios for all built-in Bukkit APIs
 
 ---
 
 ## 📊 Bukkit API Quick Reference
 
-### 👤 Player APIs (45)
+### 👤 Player-related APIs (44)
 
 | API ID | Display Name | Function | Call Mode | Permission |
 |--------|-------------|----------|-----------|------------|
 | `get_player_hand_item` | Get Player Main Hand Item | Get main hand item info | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_offhand_item` | Get Player Off Hand Item | Get off hand item info | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_armor_contents` | Get Player Armor | Get 4 armor slot items | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_inventory` | Get Player Inventory | Get all inventory items | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_health` | Get Player Health | Get current/max health | method_chain | `kilacraft.api.player.status` |
-| `get_player_hunger` | Get Player Hunger | Get current/max hunger | method_chain | `kilacraft.api.player.status` |
-| `get_player_level` | Get Player Level | Get current level/exp | method_chain | `kilacraft.api.player.status` |
-| `get_player_gamemode` | Get Player Gamemode | Get current gamemode | method_chain | `kilacraft.api.player.status` |
-| `get_player_location` | Get Player Location | Get coordinates/world/direction | method_chain | `kilacraft.api.player.location` |
-| `get_player_velocity` | Get Player Velocity | Get movement speed/direction | method_chain | `kilacraft.api.player.location` |
-| `get_player_fly_status` | Get Player Fly Status | Get fly mode/allow fly/speed | method_chain | `kilacraft.api.player.status` |
-| `get_player_game_time` | Get Player Game Time | Get player-specific game time | method_chain | `kilacraft.api.player.info` |
-| `get_player_statistics` | Get Player Statistics | Get custom statistics | method_chain | `kilacraft.api.player.stats` |
-| `get_player_max_health` | Get Player Max Health | Get maximum health value | method_chain | `kilacraft.api.player.status` |
-| `get_player_absorption` | Get Player Absorption | Get absorption hearts | method_chain | `kilacraft.api.player.status` |
-| `get_player_saturation` | Get Player Saturation | Get saturation value | method_chain | `kilacraft.api.player.status` |
-| `get_player_exhaustion` | Get Player Exhaustion | Get exhaustion value | method_chain | `kilacraft.api.player.status` |
-| `get_player_food_level` | Get Player Food Level | Get food level | method_chain | `kilacraft.api.player.status` |
-| `get_player_total_experience` | Get Player Total Exp | Get total experience | method_chain | `kilacraft.api.player.status` |
-| `get_player_exp` | Get Player Exp Progress | Get exp bar progress | method_chain | `kilacraft.api.player.status` |
-| `get_player_exp_to_level` | Get Exp to Next Level | Get exp needed for next level | method_chain | `kilacraft.api.player.status` |
-| `get_player_display_name` | Get Player Display Name | Get display name | method_chain | `kilacraft.api.player.info` |
-| `get_player_ip` | Get Player IP | Get IP address | method_chain | `kilacraft.api.player.info` |
-| `get_player_port` | Get Player Port | Get port number | method_chain | `kilacraft.api.player.info` |
-| `get_player_address` | Get Player Address | Get full address | method_chain | `kilacraft.api.player.info` |
-| `get_player_unique_id` | Get Player UUID | Get unique identifier | method_chain | `kilacraft.api.player.info` |
-| `get_player_first_played` | Get Player First Join | Get first join time | method_chain | `kilacraft.api.player.info` |
-| `get_player_last_played` | Get Player Last Seen | Get last seen time | method_chain | `kilacraft.api.player.info` |
-| `get_player_is_banned` | Get Player Ban Status | Check if banned | method_chain | `kilacraft.api.player.info` |
-| `get_player_is_op` | Get Player OP Status | Check if OP | method_chain | `kilacraft.api.player.info` |
-| `get_player_is_online` | Get Player Online Status | Check if online | method_chain | `kilacraft.api.player.info` |
-| `get_player_inventory_usage` | Get Inventory Usage | Get occupied slots/total/% | additional_methods | `kilacraft.api.player.inventory` |
-| `get_player_inventory` | Get Inventory Summary | Get inventory items name+amount | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_ender_chest` | Get Ender Chest Summary | Get ender chest items name+amount | method_chain | `kilacraft.api.player.inventory` |
-| `get_player_open_container` | Get Open Container Content | Get current open container items | additional_methods | `kilacraft.api.player.inventory` |
-| `get_player_open_inventory` | Get Open Inventory | Get currently viewing container/type | additional_methods | `kilacraft.api.player.info` |
+| `get_player_offhand_item` | Get Player Offhand Item | Get off hand (shield slot) item | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_health` | Get Player Health | Get current/max health | additional_methods | `kilacraft.api.player.status` |
+| `get_player_food` | Get Player Hunger | Get food level and saturation | additional_methods | `kilacraft.api.player.status` |
+| `get_player_oxygen` | Get Player Oxygen | Get underwater breathing time | additional_methods | `kilacraft.api.player.status` |
+| `get_player_location` | Get Player Location | Get coordinates and world | additional_methods | `kilacraft.api.player.info` |
+| `get_player_eye_location` | Get Player Eye Location | Get precise eye coordinates | method_chain | `kilacraft.api.player.info` |
+| `get_player_velocity` | Get Player Velocity | Get movement velocity vector | method_chain | `kilacraft.api.player.info` |
+| `get_player_gamemode` | Get Player Gamemode | Get Survival/Creative/Adventure/Spectator | method_chain | `kilacraft.api.player.info` |
+| `get_player_fly_status` | Get Player Fly Status | Get allow flying/is flying | additional_methods | `kilacraft.api.player.info` |
+| `get_player_fly_speed` | Get Player Fly Speed | Get fly speed setting | method_chain | `kilacraft.api.player.info` |
+| `get_player_walk_speed` | Get Player Walk Speed | Get walk speed setting | method_chain | `kilacraft.api.player.info` |
+| `get_player_exp` | Get Player Experience | Get level and exp progress | additional_methods | `kilacraft.api.player.status` |
+| `get_player_exp_to_level` | Get Exp to Next Level | Get exp needed to level up | method_chain | `kilacraft.api.player.status` |
+| `get_player_main_hand` | Get Player Main Hand Preference | Get left-handed/right-handed setting | method_chain | `kilacraft.api.player.info` |
+| `get_player_ping` | Get Player Ping | Get network latency (ms) | method_chain | `kilacraft.api.player.info` |
+| `get_player_sleep_status` | Get Player Sleep Status | Get whether sleeping and duration | additional_methods | `kilacraft.api.player.status` |
+| `get_player_last_death` | Get Player Last Death Location | Get death location coordinates | method_chain | `kilacraft.api.player.info` |
+| `get_player_attack_cooldown` | Get Player Attack Cooldown | Get attack cooldown progress (0-1) | method_chain | `kilacraft.api.player.status` |
+| `get_player_vehicle` | Get Player Vehicle Status | Get whether in a vehicle | additional_methods | `kilacraft.api.player.info` |
+| `get_player_fire_status` | Get Player Fire Status | Get whether on fire and burn time | additional_methods | `kilacraft.api.player.status` |
+| `get_player_freeze_status` | Get Player Freeze Status | Get whether frozen and freeze level | additional_methods | `kilacraft.api.player.status` |
+| `get_player_pose` | Get Player Pose | Get standing/crouching/swimming, etc. | method_chain | `kilacraft.api.player.info` |
+| `get_player_armor` | Get Player Armor | Get full armor set info | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_potion_effects` | Get Player Potion Effects | Get all active potion effects | method_chain | `kilacraft.api.player.status` |
+| `get_player_target_block` | Get Player Target Block | Get block the crosshair is aiming at | method_chain | `kilacraft.api.player.info` |
+| `get_player_sneak_status` | Get Player Sneak Status | Get whether sneaking (Shift) | method_chain | `kilacraft.api.player.status` |
+| `get_player_sprint_status` | Get Player Sprint Status | Get whether sprinting (double-tap W) | method_chain | `kilacraft.api.player.status` |
+| `get_player_locale` | Get Player Client Language | Get language setting (e.g. zh_CN) | method_chain | `kilacraft.api.player.info` |
+| `get_player_display_name` | Get Player Display Name | Get display name (incl. prefix) | method_chain | `kilacraft.api.player.info` |
+| `get_player_bed_spawn` | Get Player Bed Spawn | Get bed spawn location | method_chain | `kilacraft.api.player.info` |
+| `get_player_total_exp` | Get Player Total Experience | Get accumulated total experience | method_chain | `kilacraft.api.player.status` |
+| `get_player_inventory_usage` | Get Inventory Usage | Get occupied slots/empty slots | additional_methods | `kilacraft.api.player.inventory` |
+| `get_player_inventory` | Get Inventory Summary | Get inventory item name+amount list | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_ender_chest` | Get Ender Chest Summary | Get ender chest item name+amount list | method_chain | `kilacraft.api.player.inventory` |
+| `get_player_open_container` | Get Open Container Content | Get current open container item summary | additional_methods | `kilacraft.api.player.inventory` |
+| `get_player_open_inventory` | Get Open Inventory | Get currently viewing container/type | additional_methods | `kilacraft.api.player.inventory` |
 | `get_player_absorption` | Get Absorption Hearts | Get extra absorption health | method_chain | `kilacraft.api.player.status` |
 | `get_player_arrows_in_body` | Get Arrows in Body | Get embedded arrow count | method_chain | `kilacraft.api.player.status` |
-| `get_player_no_damage_ticks` | Get No Damage Ticks | Get invincibility time after hit | method_chain | `kilacraft.api.player.status` |
+| `get_player_no_damage_ticks` | Get No Damage Ticks | Get invincibility time after hit (tick) | method_chain | `kilacraft.api.player.status` |
 | `get_player_fall_distance` | Get Fall Distance | Get accumulated fall distance | method_chain | `kilacraft.api.player.status` |
 | `get_player_compass_target` | Get Compass Target | Get compass pointing coordinates | additional_methods | `kilacraft.api.player.info` |
 | `get_player_feet_block` | Get Feet Block | Get block standing on | method_chain | `kilacraft.api.player.info` |
 | `get_player_last_damage` | Get Last Damage | Get last damage source/cause/amount | method_chain | `kilacraft.api.player.status` |
 
-### 🌍 World APIs (22)
+### 🌍 World-related APIs (21)
 
 | API ID | Display Name | Function | Call Mode | Permission |
 |--------|-------------|----------|-----------|------------|
 | `get_world_time` | Get World Time | Get game time (HH:MM) | method_chain | `kilacraft.api.world.info` |
-| `get_world_full_time` | Get World Full Time | Get total ticks | method_chain | `kilacraft.api.world.info` |
-| `get_world_day` | Get World Day | Get day count | method_chain | `kilacraft.api.world.info` |
-| `get_world_difficulty` | Get World Difficulty | Get difficulty level | method_chain | `kilacraft.api.world.info` |
-| `get_world_environment` | Get World Environment | Get environment type | method_chain | `kilacraft.api.world.info` |
-| `get_world_weather` | Get World Weather | Get weather status | method_chain | `kilacraft.api.world.info` |
-| `get_world_storm_duration` | Get Storm Duration | Get rain remaining time | method_chain | `kilacraft.api.world.info` |
-| `get_world_thunder_duration` | Get Thunder Duration | Get thunder remaining time | method_chain | `kilacraft.api.world.info` |
-| `get_world_spawn_location` | Get World Spawn | Get spawn point coordinates | method_chain | `kilacraft.api.world.info` |
-| `get_world_max_height` | Get World Max Height | Get maximum height | method_chain | `kilacraft.api.world.info` |
-| `get_world_min_height` | Get World Min Height | Get minimum height | method_chain | `kilacraft.api.world.info` |
-| `get_world_chunk_count` | Get Loaded Chunks | Get loaded chunk count | method_chain | `kilacraft.api.world.info` |
-| `get_world_entity_count` | Get World Entities | Get entity count | method_chain | `kilacraft.api.world.info` |
-| `get_world_living_entity_count` | Get Living Entities | Get living entity count | method_chain | `kilacraft.api.world.info` |
-| `get_world_player_count` | Get World Players | Get player count in world | method_chain | `kilacraft.api.world.info` |
-| `get_world_name` | Get World Name | Get world name | method_chain | `kilacraft.api.world.info` |
-| `get_world_seed` | Get World Seed | Get world seed | method_chain | `kilacraft.api.world.info` |
-| `get_world_is_pvp_allowed` | Get PvP Status | Check if PvP allowed | method_chain | `kilacraft.api.world.info` |
-| `get_world_is_hardcore` | Get Hardcore Status | Check if hardcore mode | method_chain | `kilacraft.api.world.info` |
-| `get_world_is_natural_regeneration` | Get Natural Regen | Check natural regeneration | method_chain | `kilacraft.api.world.info` |
-| `get_world_ultra_warm` | Get Ultra Warm | Check if ultra warm | method_chain | `kilacraft.api.world.info` |
+| `get_weather` | Get Weather | Get clear/rain/thunderstorm | additional_methods | `kilacraft.api.world.info` |
+| `get_world_info` | Get World Basic Info | Get name/environment/difficulty | additional_methods | `kilacraft.api.world.info` |
+| `get_world_seed` | Get World Seed | Get world seed value | method_chain | `kilacraft.api.world.info` |
+| `get_world_spawn` | Get World Spawn | Get world spawn location | method_chain | `kilacraft.api.world.info` |
+| `get_world_height_limit` | Get World Height Limit | Get min/max build height | additional_methods | `kilacraft.api.world.info` |
+| `get_world_spawn_rules` | Get World Spawn Rules | Get whether mobs/animals can spawn | additional_methods | `kilacraft.api.world.info` |
+| `get_world_pvp` | Get World PVP Setting | Get whether PVP is allowed | method_chain | `kilacraft.api.world.info` |
+| `get_world_biome` | Get World Biome | Get biome type (plains/desert, etc.) | method_chain | `kilacraft.api.world.info` |
+| `get_world_temperature` | Get World Temperature | Get temperature (affects snowfall) | method_chain | `kilacraft.api.world.info` |
+| `get_world_humidity` | Get World Humidity | Get humidity (affects rainfall) | method_chain | `kilacraft.api.world.info` |
+| `get_world_player_count` | Get World Player Count | Get player count in world | additional_methods | `kilacraft.api.world.info` |
+| `get_world_living_entities` | Get World Living Entities Count | Get living entity count | additional_methods | `kilacraft.api.world.info` |
+| `get_world_entity_count` | Get World Entity Count | Get total entity count | additional_methods | `kilacraft.api.world.info` |
+| `get_world_sea_level` | Get World Sea Level | Get sea level Y coordinate | method_chain | `kilacraft.api.world.info` |
+| `get_world_clear_weather_duration` | Get Clear Weather Duration | Get remaining clear weather ticks | method_chain | `kilacraft.api.world.info` |
+| `get_world_thunder_duration` | Get Thunder Duration | Get remaining thunder ticks | method_chain | `kilacraft.api.world.info` |
+| `get_world_full_time` | Get World Full Time | Get total running time (unaffected by sleep) | method_chain | `kilacraft.api.world.info` |
+| `get_world_game_time` | Get World Game Time | Get total time since creation | method_chain | `kilacraft.api.world.info` |
+| `get_world_raids` | Get World Raids | Get list of ongoing raids | method_chain | `kilacraft.api.world.info` |
 | `get_world_border` | Get World Border | Get border center/size/damage | method_chain | `kilacraft.api.world.info` |
 
 ### 🖥️ Server APIs (6)
 
 | API ID | Display Name | Function | Call Mode | Permission |
 |--------|-------------|----------|-----------|------------|
-| `get_online_players` | Get Online Players | Get online player count and list | method_chain | `kilacraft.api.server.info` |
-| `get_max_players` | Get Max Players | Get max player limit | method_chain | `kilacraft.api.server.info` |
-| `get_server_version` | Get Server Version | Get server version | method_chain | `kilacraft.api.server.info` |
-| `get_server_motd` | Get Server MOTD | Get server description | method_chain | `kilacraft.api.server.info` |
-| `get_server_worlds` | Get All Worlds | Get all world names | method_chain | `kilacraft.api.server.info` |
-| `get_server_name` | Get Server Name | Get server name | method_chain | `kilacraft.api.server.info` |
+| `get_online_players` | Get Online Player Count | Get online player count and list | method_chain | `kilacraft.api.server.info` |
+| `get_max_players` | Get Max Players | Get server max capacity | method_chain | `kilacraft.api.server.info` |
+| `get_server_version` | Get Server Version | Get Bukkit and MC version | additional_methods | `kilacraft.api.server.info` |
+| `get_server_motd` | Get Server MOTD | Get server intro message | method_chain | `kilacraft.api.server.info` |
+| `get_server_worlds` | Get Server Worlds List | Get all loaded worlds | method_chain | `kilacraft.api.server.info` |
+| `get_server_settings` | Get Server Settings | Get flight/nether/end settings | additional_methods | `kilacraft.api.server.info` |
 
-**Statistics**: Total **58 APIs** (Player 31 + World 21 + Server 6)
+**Statistics**: Total **71 APIs** (Player 44 + World 21 + Server 6)
 
 ---
 
 ## 📖 Overview
 
-Kilacraft-AI includes **58 built-in Bukkit APIs**, allowing AI to access various data from the Minecraft server. These APIs are defined through YAML configuration and can be used without writing code.
+Kilacraft-AI includes **71 built-in read-only Bukkit APIs**, allowing AI to access various data from the Minecraft server. These APIs are provided by 5 independent config-driven skills, all extending `AbstractBukkitQuerySkill`.
 
 ### Core Features
 
-- ✅ **Data-driven configuration**: Define APIs in `apis.yml`, supports hot reload
-- ✅ **Permission control**: Each API can have independent access permissions
-- ✅ **Dual-mode execution**: Supports method_chain (chained calls) and additional_methods (parallel calls)
-- ✅ **Smart formatting**: Automatically handles complex types (Location, ItemStack, GameMode, ItemStack[], Set<PotionEffect>, etc.)
+- ✅ **Standard config-driven**: 5 independent skills (`BukkitPlayerInfo`/`BukkitPlayerStatus`/`BukkitPlayerInventory`/`BukkitWorld`/`BukkitServer`), each defined via `description`+`action_descriptions`+`hints`, fully consistent with other built-in skills in the project
+- ✅ **Per-skill permission control**: Each skill has a single permission node covering all APIs in that skill (see "Permission Management")
+- ✅ **Smart formatting**: Complex types (Location, ItemStack, GameMode, ItemStack[], Set<PotionEffect>, etc.) are handled automatically by each skill's Java class (`AbstractBukkitQuerySkill` and subclasses)
 - ✅ **Error isolation**: API execution failures don't affect other features
 
 ### Configuration File Location
 
+The 5 split skill config files, all under the `skills/bukkit/` directory:
+
 ```
-plugins/Kilacraft-AI/skills/bukkit/apis.yml
+plugins/Kilacraft-AI/skills/bukkit/BukkitPlayerInfoSkill.yml
+plugins/Kilacraft-AI/skills/bukkit/BukkitPlayerStatusSkill.yml
+plugins/Kilacraft-AI/skills/bukkit/BukkitPlayerInventorySkill.yml
+plugins/Kilacraft-AI/skills/bukkit/BukkitWorldSkill.yml
+plugins/Kilacraft-AI/skills/bukkit/BukkitServerSkill.yml
 ```
+
+> Note: The old single `apis.yml` / `apis_en.yml` were removed in commit b64cb0e and are no longer used.
 
 ---
 
-## 🔧 API Configuration Structure
+## 🔧 Skill Configuration Structure
 
-### Basic Structure
+> As of commit b64cb0e, the old data-driven model based on a single `apis.yml` + `method_chain`/`additional_methods`/`result_template` has been removed. The 5 split skills now use the same standard skill configuration structure as every other built-in skill in the project.
 
-```yaml
-player:  # Category (player/world/server/paper_player/paper_world/paper_server)
-  api_id:  # API unique identifier
-    id: "api_id"  # API ID (consistent with key name)
-    display_name: "API Display Name"
-    description: "API function description, sent to LLM"
-    usage_scenarios:  # Usage scenario examples (optional)
-      - "When user asks 'what am I holding'"
-      - "Check my items"
-    target_type: "Player"  # Target type: Player/World/Server
-    required_permission: "kilacraft.api.player.inventory"  # Required permission (optional)
-    
-    # Choose one of the following two configurations:
-    
-    # Mode 1: method_chain (chained calls, returns complex objects)
-    method_chain:
-      - "getInventory"
-      - "getItemInMainHand"
-    
-    # Mode 2: additional_methods (parallel calls to multiple methods)
-    additional_methods:
-      health: "getHealth"
-      max_health: "getMaxHealth"
-    result_template: "Health: {health}/{max_health}"  # Result template (only for additional_methods)
-```
+### Standard Skill Configuration Schema
 
-### Important Rules
-
-#### 1. method_chain vs additional_methods
-
-| Feature | method_chain | additional_methods |
-|---------|--------------|-------------------|
-| **Purpose** | Chained calls (relay), returns complex objects | Parallel calls to multiple independent methods, returns simple values |
-| **Return Value** | ItemStack, Location, GameMode, etc. | Map<String, Object> |
-| **Formatting** | Special handling by code (formatItemStack, etc.) | Uses result_template for replacement |
-| **Typical Use** | Get items, locations, game modes | Get health, coordinates, experience, etc. |
-
-**Example Comparison**:
+Each `Bukkit*Skill.yml` file follows the unified skill config schema, with core fields `description` + `action_descriptions` (text block) + `hints`:
 
 ```yaml
-# ✅ method_chain: Get main hand item (returns ItemStack)
-get_player_hand_item:
-  target_type: "Player"
-  method_chain:
-    - "getInventory"
-    - "getItemInMainHand"
-  # No need for result_template, ItemStack is automatically formatted by code
+# BukkitPlayerInventorySkill.yml (excerpt)
+skill_id: "player_inventoryentory"
+display_name: "Bukkit Player Inventory Query"
+description: |
+  Query player inventory-related info: main/off-hand items, inventory and ender chest
+  summaries, inventory usage, armor equipment, currently open container/inventory type, etc.
+permission: "kilacraft.api.player.inventory"
 
-# ✅ additional_methods: Get health (returns multiple values)
-get_player_health:
-  target_type: "Player"
-  additional_methods:
-    health: "getHealth"
-    max_health: "getMaxHealth"
-  result_template: "Health: {health}/{max_health}"
+action_descriptions: |
+  get_player_hand_item — Get player main hand item (type/amount/enchantments/durability)
+  get_player_offhand_item — Get player offhand item (shield slot)
+  get_player_armor — Get full armor set (helmet/chestplate/leggings/boots, incl. name/type/amount/enchantments/durability)
+  get_player_inventory_usage — Get inventory occupied slots/empty slots
+  get_player_inventory — Get inventory item name+amount list
+  ...
+
+hints: |
+  - Inventory queries are read-only and safe to run async.
+  - Methods requiring the main thread (armor/inventory/container) are scheduled internally by the skill.
 ```
 
-#### 2. additional_methods Supports Simple Chained Calls
+### Key Changes
 
-In `additional_methods`, method names can use dots for two-level chained calls:
+| Old model (removed) | New model (current) |
+|---------------------|---------------------|
+| Single `apis.yml` with 71 API entries | 5 independent `Bukkit*Skill.yml` skill files |
+| Per-API `method_chain` / `additional_methods` / `result_template` | Invocation and formatting logic moved into Java classes (`AbstractBukkitQuerySkill` + subclasses) |
+| One `required_permission` node per API | One permission node per skill, covering all APIs in that skill |
+| `description` as a single-API description | `action_descriptions` text block describing all actions in the skill |
 
-```yaml
-get_player_location:
-  target_type: "Player"
-  additional_methods:
-    x: "getLocation.getX"        # player.getLocation().getX()
-    y: "getLocation.getY"        # player.getLocation().getY()
-    z: "getLocation.getZ"        # player.getLocation().getZ()
-    world: "getLocation.getWorld.getName"  # player.getLocation().getWorld().getName()
-  result_template: "Location: X={x}, Y={y}, Z={z}, World={world}"
-```
-
-**Limitations**:
-- ✅ Supports up to 2 levels of chaining (e.g., `"a.b"`)
-- ❌ Does not support 3+ levels of chaining (e.g., `"a.b.c"`)
-- ❌ Does not support methods with parameters
-
-#### 3. result_template Placeholder Rules
-
-Placeholders `{key}` in `result_template` must exactly match keys in `additional_methods`:
-
-```yaml
-# ✅ Correct
-additional_methods:
-  health: "getHealth"
-result_template: "Health: {health}"
-
-# ❌ Incorrect: Case mismatch
-result_template: "Health: {Health}"
-```
+> **Note**: The action IDs, return fields (e.g. `helmet_name`, `item_count`, `raw_result`), and output format are all preserved from the original `apis.yml` — only the organization changed from "one config block per API in a single file" to "one yml + Java implementation per skill". The "Return Fields" and "Multi-step Data Passing" notes for each API below remain valid.
 
 ---
 
@@ -742,7 +695,7 @@ get_player_pose:
 get_player_armor:
   id: "get_player_armor"
   display_name: "Get Player Armor"
-  description: "Get all armor currently worn by the player (helmet, chestplate, leggings, boots). The returned data contains helmet, chestplate, leggings, boots fields for subsequent steps to reference."
+  description: "Get all armor currently worn by the player (helmet, chestplate, leggings, boots). The returned data is expanded per-slot into a series of fields: helmet_name/helmet_type/helmet_amount/helmet_enchantments/helmet_max_durability/helmet_remaining_durability (and identically-structured chestplate_*/leggings_*/boots_*), for subsequent steps to reference."
   usage_scenarios:
     - "What armor am I wearing"
     - "Check my armor"
@@ -765,7 +718,7 @@ AI: Your armor equipment:
 ```
 
 **Multi-step Data Passing**:
-The returned data contains `helmet`, `chestplate`, `leggings`, `boots` fields. Subsequent steps can reference them via `{step_xxx.helmet}`, etc.
+The returned data expands each slot into a group of fields: `<slot>_name`, `<slot>_type`, `<slot>_amount`, and if applicable `<slot>_enchantments`, `<slot>_max_durability`, `<slot>_remaining_durability`, where `<slot>` ∈ `helmet`/`chestplate`/`leggings`/`boots`. Subsequent steps can reference them via `{step_xxx.helmet_name}`, `{step_xxx.boots_remaining_durability}`, etc. Empty slots do not write their corresponding fields.
 
 ---
 
@@ -1658,26 +1611,19 @@ get_server_settings:
 
 ## 🎯 Advanced Usage
 
-### Custom APIs
+### About "Custom Read-Only Query APIs"
 
-You can add your own Bukkit API calls. For example, add an API to get player kill count:
+> ⚠️ Important change: The old single `apis.yml` allowed users to add query APIs themselves via `method_chain`/`additional_methods`; that model has been removed.
 
-```yaml
-player:
-  get_player_kills:
-    id: "get_player_kills"
-    display_name: "Get Player Kills"
-    description: "Query player's total kill count"
-    usage_scenarios:
-      - "How many players have I killed"
-      - "My kill count"
-    target_type: "Player"
-    required_permission: "kilacraft.api.player.stats"
-    method_chain:
-      - "getStatistic"  # Note: This method requires parameters, not supported in current version
-```
+After being split into 5 standard config-driven skills in commit b64cb0e, **these 71 read-only query APIs are no longer user-extensible via configuration**. Reasons:
 
-**Note**: Current version only supports parameterless method calls. Methods with parameters (like `getStatistic(Statistic.PLAYER_KILLS)`) cannot be used yet.
+- The query logic (method invocation, parameter handling, result formatting) has moved into each skill's Java class (`AbstractBukkitQuerySkill` + subclasses) and no longer reads user-written `method_chain` configs;
+- Adding a new query API now requires editing the relevant Java skill class + updating that skill's yml `action_descriptions`. This is code-level development, no longer a no-code configuration task.
+
+If you want to cover more query scenarios, the recommended approaches are:
+
+1. **Extend the knowledge base**: Add documents under the `knowledge/` directory so the AI can leverage the existing 71 APIs + the knowledge base to answer broader questions;
+2. **Develop a custom Skill**: Follow the "Skill SPI Integration Guide" to develop an independent Skill (entirely outside the bukkit read-only query skill system) implementing any custom logic.
 
 ---
 
@@ -1706,19 +1652,22 @@ Player: How is my current status?
 
 ### Permission Nodes
 
-All Bukkit APIs have independent permission nodes in format: `kilacraft.api.<category>.<type>`
+Permissions are granted at the **skill** granularity — **a single permission node covers all APIs in that skill** (no longer one node per API). There are 5 nodes, one per split skill:
 
-**Categories**:
-- `player.info` - Player basic info (location, game mode, ping, etc.)
-- `player.status` - Player status info (health, hunger, experience, etc.)
-- `player.inventory` - Player inventory info
-- `world.info` - World information
-- `server.info` - Server information
+| Permission Node | Skill | API Coverage |
+|-----------------|-------|--------------|
+| `kilacraft.api.player.info` | `player_info` | Player basic info: location, eye location, velocity, gamemode, flight, main-hand preference, ping, last death, vehicle, pose, target block, client language, display name, bed spawn, compass target, feet block, etc. |
+| `kilacraft.api.player.status` | `player_status` | Player status: health, hunger, oxygen, exp/level, sleep, attack cooldown, fire, freeze, potion effects, sneak, sprint, absorption, arrows in body, no-damage ticks, fall distance, last damage, etc. |
+| `kilacraft.api.player.inventory` | `player_inventoryentory` | Player inventory: main/off-hand items, inventory summary, ender chest summary, inventory usage, armor, open container, open inventory type |
+| `kilacraft.api.world.info` | `world_info` | World info: time, weather, seed, spawn, height limit, spawn rules, PVP, biome, temperature, humidity, sea level, entity counts, raids, border, etc. |
+| `kilacraft.api.server.info` | `server_info` | Server info: online players, max players, version, MOTD, world list, server settings |
+
+> ⚠️ Note: Nodes like `kilacraft.api.player.health` or `kilacraft.api.player.stats` no longer exist. Health/hunger and other status APIs are all covered by `kilacraft.api.player.status`.
 
 **Wildcard Permissions**:
 ```yaml
 kilacraft.api.*              # All API permissions
-kilacraft.api.player.*       # All player-related APIs
+kilacraft.api.player.*       # All player-related APIs (info + status + inventory)
 kilacraft.api.world.*        # All world-related APIs
 kilacraft.api.server.*       # All server-related APIs
 ```
@@ -1728,8 +1677,8 @@ kilacraft.api.server.*       # All server-related APIs
 Use LuckPerms plugin to grant permissions:
 
 ```bash
-# Grant single API permission
-/lp user <player> permission set kilacraft.api.player.health true
+# Grant a skill's permission (e.g. player status skill, covers health/hunger and all status APIs)
+/lp user <player> permission set kilacraft.api.player.status true
 
 # Grant all player-related API permissions
 /lp user <player> permission set kilacraft.api.player.* true
@@ -1751,11 +1700,11 @@ All Bukkit APIs are **read-only operations** that don't modify game state:
 
 ### 2. Permission Checks
 
-Each API has independent permission checks to ensure only authorized players can access sensitive information.
+Permissions are checked at the skill granularity: before executing an API, the permission node of the skill that API belongs to is re-checked, ensuring only authorized players can access sensitive information.
 
-### 3. Reflection Caching
+### 3. Direct Invocation
 
-BukkitAPIExecutor uses reflection to call methods, and JVM automatically optimizes frequently called methods.
+Each skill's Java class (`AbstractBukkitQuerySkill` + subclasses) calls Bukkit APIs directly. The old reflection-based executor (`BukkitAPIExecutor`) was removed together with `apis.yml`, resulting in a shorter call path that is easier for the JVM to inline and optimize.
 
 ---
 
@@ -1768,12 +1717,12 @@ BukkitAPIExecutor uses reflection to call methods, and JVM automatically optimiz
 **Causes**:
 - Player offline
 - World doesn't exist
-- Method call failed
+- Target object doesn't exist (e.g. querying `get_player_open_container` when no container is open)
 
 **Solutions**:
-- Check if `target_type` in API configuration is correct
-- Confirm methods in `method_chain` or `additional_methods` exist
+- Confirm the target player is online and the world is loaded
 - Check console for error logs
+- If the issue persists, it may be an internal scheduling failure in the skill's Java class — please report it
 
 ---
 
@@ -1781,11 +1730,12 @@ BukkitAPIExecutor uses reflection to call methods, and JVM automatically optimiz
 
 **Problem**: Player receives "You don't have permission to perform this operation" error
 
-**Cause**: Player doesn't have corresponding permission node
+**Cause**: Player doesn't have the corresponding skill's permission node (permissions are granted per skill)
 
 **Solution**:
 ```bash
-/lp user <player> permission set kilacraft.api.player.health true
+# e.g. a player querying health/hunger and other status APIs needs the player.status skill permission
+/lp user <player> permission set kilacraft.api.player.status true
 ```
 
 ---
@@ -1795,25 +1745,17 @@ BukkitAPIExecutor uses reflection to call methods, and JVM automatically optimiz
 **Problem**: AI cannot recognize an API
 
 **Causes**:
-- `apis.yml` file format error
+- The corresponding `Bukkit*Skill.yml` skill config file has a format error or is missing (`BukkitPlayerInfoSkill.yml` / `BukkitPlayerStatusSkill.yml` / `BukkitPlayerInventorySkill.yml` / `BukkitWorldSkill.yml` / `BukkitServerSkill.yml`)
+- The skill wasn't loaded correctly
 - Configuration not reloaded
 
 **Solutions**:
-1. Check if YAML format is correct
-2. Execute `/kila reload` to reload configuration
-3. Check console for error logs
+1. Check the YAML format of the relevant `Bukkit*.yml` skill file
+2. Confirm all 5 skill files exist under the `skills/bukkit/` directory
+3. Execute `/kila reload` to reload configuration
+4. Check console for error logs
 
----
-
-### Both method_chain and additional_methods Configured
-
-**Problem**: API execution fails with message "API must configure method_chain or additional_methods"
-
-**Cause**: Only one of the two configurations can be used, not both simultaneously
-
-**Solution**:
-- If returning complex objects (ItemStack, Location, etc.) → Use `method_chain`
-- If returning multiple simple values → Use `additional_methods` + `result_template`
+> Note: The old `apis.yml` has been removed and is no longer read. Do not create or edit that file.
 
 ---
 

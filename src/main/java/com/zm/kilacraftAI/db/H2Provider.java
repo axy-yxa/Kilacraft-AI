@@ -22,6 +22,7 @@ import java.util.List;
  * 连接池参数采用自适应策略：maxPoolSize = max(2, CPU)。</p>
  *
  * @author Zm_Mmm
+ * @since 2026-05-07
  */
 public class H2Provider implements DatabaseProvider {
 

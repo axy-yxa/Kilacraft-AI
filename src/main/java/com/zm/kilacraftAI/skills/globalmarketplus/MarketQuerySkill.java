@@ -1,6 +1,7 @@
 package com.zm.kilacraftAI.skills.globalmarketplus;
 
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
+import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.compat.globalmarketplus.GlobalMarketPlusAPI;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MailItem;
 import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketItem;
@@ -9,17 +10,11 @@ import com.zm.kilacraftAI.compat.globalmarketplus.model.MarketStats;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
 import com.zm.kilacraftAI.service.translate.ItemTranslator;
-import com.zm.kilacraftAI.skills.framework.Skill;
-import com.zm.kilacraftAI.skills.framework.SkillConfig;
-import com.zm.kilacraftAI.skills.framework.SkillContext;
-import com.zm.kilacraftAI.skills.framework.SkillResult;
+import com.zm.kilacraftAI.skills.framework.*;
 import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-
-import static java.util.Map.entry;
 
 /**
  * GlobalMarketPlus 市场查询技能
@@ -29,36 +24,39 @@ import static java.util.Map.entry;
  * @author Zm_Mmm
  * @since 2026-03-30
  */
-public class MarketQuerySkill implements Skill {
+public class MarketQuerySkill implements Skill, ProbeSource {
+
+    private static final String SKILL_NAME = "market_query";
+    private static final String LOG_PREFIX = "市场查询";
+
+    private static final Set<String> PROBEABLE_ACTIONS = Set.of("query_balance", "query_price", "query_items", "query_availability", "query_my_items", "query_seller_items", "query_mailbox", "query_market_stats");
+
+    @Override
+    public Set<String> getProbeableActions() {
+        return PROBEABLE_ACTIONS;
+    }
 
     private final SkillConfigManager configManager;
 
     public MarketQuerySkill() {
-        // 获取配置管理器实例
         this.configManager = SkillConfigManager.getInstance();
 
-        // 如果配置不存在，保存默认配置并动态加载
-        if (configManager != null && configManager.getSkillConfig("globalmarketplus", "MarketQuerySkill") == null) {
-            // 保存默认配置到磁盘
-            configManager.saveDefaultSkillConfig("globalmarketplus", "MarketQuerySkill");
-            // 从磁盘动态加载配置到内存
-            configManager.loadSingleSkillConfig("globalmarketplus", "MarketQuerySkill");
+        if (configManager != null && configManager.getSkillConfig(this) == null) {
+            configManager.saveDefaultSkillConfig(this);
+            configManager.loadSingleSkillConfig(this);
         }
     }
 
-    /**
-     * 获取当前最新的技能配置（支持热重载）
-     */
     private SkillConfig getConfig() {
         if (configManager == null) {
             return null;
         }
-        return configManager.getSkillConfig("globalmarketplus", "MarketQuerySkill");
+        return configManager.getSkillConfig(this);
     }
 
     @Override
     public String getName() {
-        return "market_query";
+        return SKILL_NAME;
     }
 
     @Override
@@ -101,25 +99,33 @@ public class MarketQuerySkill implements Skill {
 
     @Override
     public CompletableFuture<SkillResult> execute(SkillContext context) {
-        // Skill 级权限校验
         Player player = context.getPlayer();
-        if (player != null && !PluginPermissionEnum.MARKET_QUERY.hasPermission(player)) {
+        if (player == null) {
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
+        }
+        // Skill 级权限复查（防御纵深：/kila run 可绕过意图识别）
+        if (!PluginPermissionEnum.MARKET_QUERY.hasPermission(player)) {
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("你没有权限使用此功能: {}", PluginPermissionEnum.MARKET_QUERY.getNode())));
         }
 
         try {
             String action = context.getAction();
-            return actionToHandler.getOrDefault(action, this::handleUnknownAction).apply(context);
+            return switch (action) {
+                case "query_balance" -> queryBalance(context);
+                case "query_price" -> queryPrices(context);
+                case "query_items" -> queryMarketItems(context);
+                case "query_availability" -> queryAvailability(context);
+                case "query_my_items" -> queryMyItems(context);
+                case "query_seller_items" -> querySellerItems(context);
+                case "query_mailbox" -> queryMailbox(context);
+                case "query_market_stats" -> queryMarketStats(context);
+                default ->
+                        CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("未知动作: {}", action)));
+            };
         } catch (Exception e) {
+            PluginLoggerUtil.error(LOG_PREFIX, I18nService.tr("查询失败: {}", e.getMessage()), e);
             return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("查询失败: {}", e.getMessage())));
         }
-    }
-
-    // 初始化映射关系
-    private final Map<String, Function<SkillContext, CompletableFuture<SkillResult>>> actionToHandler = Map.ofEntries(entry("query_balance", this::queryBalance), entry("query_price", this::queryPrices), entry("query_items", this::queryMarketItems), entry("query_availability", this::queryAvailability), entry("query_my_items", this::queryMyItems), entry("query_seller_items", this::querySellerItems), entry("query_mailbox", this::queryMailbox), entry("query_market_stats", this::queryMarketStats));
-
-    private CompletableFuture<SkillResult> handleUnknownAction(SkillContext context) {
-        return CompletableFuture.completedFuture(SkillResult.failure("不支持的市场查询操作"));
     }
 
     /**
@@ -129,14 +135,14 @@ public class MarketQuerySkill implements Skill {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("仅限在线玩家使用"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
         }
 
         // 使用 GlobalMarketPlus API
         double balance = GlobalMarketPlusAPI.getBalance(player);
 
         if (balance < 0) {
-            return CompletableFuture.completedFuture(SkillResult.failure("无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("无法获取余额信息，请确保 GlobalMarketPlus 插件已正确安装")));
         }
 
         // 构建 data Map，供多步骤任务引用
@@ -153,10 +159,10 @@ public class MarketQuerySkill implements Skill {
      */
     private CompletableFuture<SkillResult> queryPrices(SkillContext context) {
         // 从 LLM 提取的实体中获取物品名称（格式："物品 1:数量 1，物品 2:数量 2"）
-        String itemName = context.getEntity("item");
+        String itemName = SkillEntityHelper.getString(context, "item");
 
-        if (itemName == null || itemName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure("缺少参数: item(物品名称)"));
+        if (itemName == null) {
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请告诉我要查询什么物品的价格（物品名称）")));
         }
 
         // 严格按逗号分割（LLM 已被要求多个物品时必须用逗号分隔）
@@ -207,7 +213,7 @@ public class MarketQuerySkill implements Skill {
             // 使用 API 获取所有匹配的商品信息
             List<MarketItem> matchingItems = GlobalMarketPlusAPI.getMatchingItems(englishItemName);
 
-            // 如果找不到，尝试用中文名再查一次（兼容情况）
+            // 英文翻译查不到时用原始输入再查一次（兼容翻译不匹配或原文即中文的情况）
             if (matchingItems.isEmpty()) {
                 matchingItems = GlobalMarketPlusAPI.getMatchingItems(itemNameOnly);
             }
@@ -308,7 +314,7 @@ public class MarketQuerySkill implements Skill {
                 String singleItem = parts[0].trim();
                 int colonIdx = singleItem.lastIndexOf(':');
                 String itemNameOnly = colonIdx > 0 ? singleItem.substring(0, colonIdx).trim() : singleItem;
-                dataMap.put("item_name", translator.translateToChinese(itemNameOnly));
+                dataMap.put("item_name", translator.translateToEnglish(itemNameOnly));
                 dataMap.put("price", totalPrice);
             }
         }
@@ -355,7 +361,7 @@ public class MarketQuerySkill implements Skill {
         List<String> items = GlobalMarketPlusAPI.getAllMarketItems();
 
         if (items == null || items.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.success("市场上暂无商品"));
+            return CompletableFuture.completedFuture(SkillResult.success(I18nService.tr("市场上暂无商品")));
         }
 
         // 获取翻译器实例
@@ -383,7 +389,7 @@ public class MarketQuerySkill implements Skill {
             sb.append("- ").append(translator.translateToChinese(itemName)).append(pricePart).append("\n");
         }
 
-        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        // 构建 dataMap，供多步骤任务引用和监听系统(Watch)轮询条件评估
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("items", items);
         dataMap.put("count", items.size());
@@ -395,10 +401,10 @@ public class MarketQuerySkill implements Skill {
      * 查询物品是否在售、在售数量和卖家信息
      */
     private CompletableFuture<SkillResult> queryAvailability(SkillContext context) {
-        String itemName = context.getEntity("item");
+        String itemName = SkillEntityHelper.getString(context, "item");
 
-        if (itemName == null || itemName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("缺少参数: item(物品名称)")));
+        if (itemName == null) {
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请告诉我要查询什么物品在售（物品名称）")));
         }
 
         // 去掉数量后缀（如果有）
@@ -437,7 +443,7 @@ public class MarketQuerySkill implements Skill {
             uniqueSellers.add(detail.getSellerName());
         }
 
-        // 构建 dataMap，供挂机任务条件评估和多步骤任务引用
+        // 构建 dataMap，供监听系统(Watch)轮询条件评估和多步骤任务引用
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("available", true);
         dataMap.put("total_stock", totalStock);
@@ -472,13 +478,13 @@ public class MarketQuerySkill implements Skill {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("仅限在线玩家使用"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
         }
 
         List<MarketItemDetail> myItems = GlobalMarketPlusAPI.getMyMerchandises(player);
 
         if (myItems.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.success("你没有在售的商品"));
+            return CompletableFuture.completedFuture(SkillResult.success(I18nService.tr("你没有在售的商品")));
         }
 
         ItemTranslator translator = ItemTranslator.getInstance();
@@ -494,8 +500,7 @@ public class MarketQuerySkill implements Skill {
             sb.append(String.format("[%d] %s x %d - $%.2f\n", i + 1, displayName, item.getAmount(), item.getPrice()));
 
             Map<String, Object> itemData = new LinkedHashMap<>();
-            itemData.put("item_name", displayName);
-            itemData.put("english_name", item.getItemName());
+            itemData.put("item_name", item.getItemName());
             itemData.put("amount", item.getAmount());
             itemData.put("price", item.getPrice());
             itemData.put("seller_name", item.getSellerName());
@@ -506,7 +511,7 @@ public class MarketQuerySkill implements Skill {
             sb.append(I18nService.tr("... 还有 {} 个商品", myItems.size() - 10));
         }
 
-        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        // 构建 dataMap，供多步骤任务引用和监听系统(Watch)轮询条件评估
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("my_items", myItemsData);
         dataMap.put("count", myItems.size());
@@ -518,10 +523,10 @@ public class MarketQuerySkill implements Skill {
      * 查询指定卖家的在售商品
      */
     private CompletableFuture<SkillResult> querySellerItems(SkillContext context) {
-        String sellerName = context.getEntity("seller_name");
+        String sellerName = SkillEntityHelper.getString(context, "seller_name");
 
-        if (sellerName == null || sellerName.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("缺少参数: seller_name(卖家名称)")));
+        if (sellerName == null) {
+            return CompletableFuture.completedFuture(SkillResult.needInfo(I18nService.tr("请告诉我要查询哪位卖家的在售商品（卖家名称）")));
         }
 
         List<MarketItemDetail> sellerItems = GlobalMarketPlusAPI.getSellerMerchandises(sellerName);
@@ -542,8 +547,7 @@ public class MarketQuerySkill implements Skill {
             sb.append(String.format("[%d] %s x %d - $%.2f\n", i + 1, displayName, item.getAmount(), item.getPrice()));
 
             Map<String, Object> itemData = new LinkedHashMap<>();
-            itemData.put("item_name", displayName);
-            itemData.put("english_name", item.getItemName());
+            itemData.put("item_name", item.getItemName());
             itemData.put("amount", item.getAmount());
             itemData.put("price", item.getPrice());
             itemData.put("seller_name", item.getSellerName());
@@ -568,13 +572,13 @@ public class MarketQuerySkill implements Skill {
         Player player = context.getPlayer();
 
         if (player == null) {
-            return CompletableFuture.completedFuture(SkillResult.failure("仅限在线玩家使用"));
+            return CompletableFuture.completedFuture(SkillResult.failure(I18nService.tr("此功能仅限玩家使用")));
         }
 
         List<MailItem> mails = GlobalMarketPlusAPI.getMailboxItems(player);
 
         if (mails.isEmpty()) {
-            return CompletableFuture.completedFuture(SkillResult.success("邮箱是空的"));
+            return CompletableFuture.completedFuture(SkillResult.success(I18nService.tr("邮箱是空的")));
         }
 
         ItemTranslator translator = ItemTranslator.getInstance();
@@ -590,8 +594,7 @@ public class MarketQuerySkill implements Skill {
             sb.append(String.format("[%d] %s x %d ", i + 1, displayName, mail.getAmount())).append(I18nService.tr("来自: {}", mail.getSenderName() != null ? mail.getSenderName() : I18nService.tr("系统"))).append("\n");
 
             Map<String, Object> mailData = new LinkedHashMap<>();
-            mailData.put("item_name", displayName);
-            mailData.put("english_name", mail.getItemName());
+            mailData.put("item_name", mail.getItemName());
             mailData.put("amount", mail.getAmount());
             mailData.put("sender_name", mail.getSenderName() != null ? mail.getSenderName() : I18nService.tr("系统"));
             mailsData.add(mailData);
@@ -601,7 +604,7 @@ public class MarketQuerySkill implements Skill {
             sb.append(I18nService.tr("... 还有 {} 封邮件", mails.size() - 5));
         }
 
-        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        // 构建 dataMap，供多步骤任务引用和监听系统(Watch)轮询条件评估
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("mails", mailsData);
         dataMap.put("count", mails.size());
@@ -619,12 +622,12 @@ public class MarketQuerySkill implements Skill {
             Map<String, Object> dataMap = new LinkedHashMap<>();
             dataMap.put("total_items", 0);
             dataMap.put("total_sellers", 0);
-            return CompletableFuture.completedFuture(SkillResult.success("市场暂无商品", dataMap));
+            return CompletableFuture.completedFuture(SkillResult.success(I18nService.tr("市场暂无商品"), dataMap));
         }
 
         String sb = I18nService.tr("市场统计: 商品总数 {} 个, 卖家数量 {} 人", stats.getTotalItems(), stats.getTotalSellers());
 
-        // 构建 dataMap，供多步骤任务引用和挂机任务条件评估
+        // 构建 dataMap，供多步骤任务引用和监听系统(Watch)轮询条件评估
         Map<String, Object> dataMap = new LinkedHashMap<>();
         dataMap.put("total_items", stats.getTotalItems());
         dataMap.put("total_sellers", stats.getTotalSellers());
