@@ -123,7 +123,7 @@ critical_rules:
   continuous_conversation: |
     [Continuous Conversation Principles]
     1. Always interpret the current input in light of conversation history
-    2. If the user uses pronouns ("this", "it", "that") or vague instructions ("check again", "what about now"), resolve the referent from history
+    2. If the user uses pronouns ("this", "it", "that") or vague instructions ("check again", "what about now"), resolve the referent from history. **Referent resolution follows the history topic**: when history contains a location/coordinate topic and this turn uses "go back", "over there" etc., the referent is that historical location — do NOT swap the referent because of an action's common phrasing (e.g. "go home"); if the referent has no executable action in the skill list (e.g. teleporting to that historical location has no matching teleport action), declare a capability gap per item 10 or return invalid per the rules — NEVER substitute a different executable target (e.g. replacing "return to death location" with "go home")
     3. If the user says "check again", "same question", repeat the previous turn's intent
     4. [Real-time Data Re-fetch Rule]
        When the user's pronoun or vague instruction refers to data that must be fetched in real time via a skill, you MUST re-execute the fetch action — never reuse the concrete value from last turn's history
@@ -328,7 +328,7 @@ phase1:
     A user's request may implicitly require multiple skills working together. You must recognize such combined intents:
     - When a parameter in the user's request is a ratio/percentage/relative value (e.g., "half", "all", "one third", "50%", "the rest") based on some real-time data, this implies needing BOTH an execution skill AND the query skill that can obtain that real-time data — include both
     - When the request involves a cross-category operation chain (e.g., "look up X then do Y with the result"), include both the data-fetch skill and the execution skill
-    - **Implicit data dependency of execution actions**: when an execution action lacks runtime data that must be provided by some query skill, include that query skill even if the player did not explicitly ask for a query — the execution action cannot run without the data
+    - **Implicit data dependency of execution actions**: when an execution action lacks runtime data that must be provided by some query skill, include that query skill even if the player did not explicitly ask for a query — the execution action cannot run without the data. Referential scenarios where the execution target must be resolved from conversation history fall under the same dependency: when the player refers to a previously discussed object without naming it literally in the current wording, include the skill(s) that can provide or operate on that object as well
     - **Break umbrella-word requests into all dimensions**: when the player asks for comprehensive info with umbrella wording, check each dimension that has a corresponding skill and include each — do not settle for the single most similar skill
     - Decision principle: do not only look at the operation the user literally mentioned — also consider whether completing that operation depends on data provided by another skill. If yes, include that skill as well
     - This concretely applies the coarse-selection principle — the cost of including an extra relevant skill is far lower than missing one. Phase 2 can only build correct multi-step tasks when it receives the full set of needed skills
