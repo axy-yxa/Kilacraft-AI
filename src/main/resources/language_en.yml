@@ -114,6 +114,7 @@ commands:
     - "Suggestion"
     - "Utilities"
     - "Diagnostics"
+    - "Trigger Action"
 
       # ==================== /kila tasks Scheduled task status ====================
   tasks-no-permission: "§cYou do not have permission to view scheduled task status."

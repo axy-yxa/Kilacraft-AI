@@ -283,7 +283,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
      * 打印 debug 模式下的请求详情
      */
     private void printDebugLog(String playerName, String userMessage, Deque<ConversationManager.Message> history, @Nullable CacheCallTypeEnum cacheCallTypeEnum) {
-        String scenario = cacheCallTypeEnum != null ? cacheCallTypeEnum.getDisplayName() : I18nService.tr("未分类");
+        String scenario = cacheCallTypeEnum != null ? I18nService.tr(cacheCallTypeEnum.getDisplayName()) : I18nService.tr("未分类");
         PluginLoggerUtil.debug("LLM请求", "========== API 请求开始 [场景: {}] ==========", scenario);
         PluginLoggerUtil.debug("LLM请求", "玩家：{}", playerName);
         PluginLoggerUtil.debug("LLM请求", "当前消息：{}", userMessage);
@@ -418,7 +418,7 @@ public class GenericLLMProvider implements LLMProvider, ThinkingModelCapable {
                 return errorMsg;
             } finally {
                 if (enableDebugLog && cachedDebugMode) {
-                    String scenario = cacheCallTypeEnum != null ? cacheCallTypeEnum.getDisplayName() : I18nService.tr("未分类");
+                    String scenario = cacheCallTypeEnum != null ? I18nService.tr(cacheCallTypeEnum.getDisplayName()) : I18nService.tr("未分类");
                     PluginLoggerUtil.debug("LLM请求", "========== API 请求结束 [场景: {}] ==========", scenario);
                 }
             }

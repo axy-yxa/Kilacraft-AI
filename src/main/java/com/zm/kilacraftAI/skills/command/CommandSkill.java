@@ -3,6 +3,7 @@ package com.zm.kilacraftAI.skills.command;
 import com.zm.kilacraftAI.KilacraftAI;
 import com.zm.kilacraftAI.common.enums.PluginPermissionEnum;
 import com.zm.kilacraftAI.common.util.BukkitCommandUtil;
+import com.zm.kilacraftAI.common.util.ConfigResourceUtil;
 import com.zm.kilacraftAI.common.util.PluginLoggerUtil;
 import com.zm.kilacraftAI.config.SkillConfigManager;
 import com.zm.kilacraftAI.i18n.I18nService;
@@ -272,7 +273,9 @@ public class CommandSkill implements Skill, DynamicContextProvider, CallerDescri
      * 热重载命令文档（/kila reload 级联调用）。
      */
     public void reloadCommandDocument() {
-        this.commandDocument = CommandDocumentParser.parse(resolveCommandDocPath());
+        Path docPath = resolveCommandDocPath();
+        ConfigResourceUtil.saveDefaultResource(KilacraftAI.getInstance(), "commands/" + docPath.getFileName());
+        this.commandDocument = CommandDocumentParser.parse(docPath);
         PluginLoggerUtil.info(LOG_PREFIX, "命令文档已重载");
     }
 }
