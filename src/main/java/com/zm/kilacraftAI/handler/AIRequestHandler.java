@@ -194,6 +194,13 @@ public class AIRequestHandler {
             if (result instanceof SkillIntent intent && LLMResponseUtil.isErrorResponse(intent.getRawInput())) {
                 String enrichedMessage = message + "\n[系统提示：" + SkillResultFormatter.toLlmText(SkillStatus.FAILURE.name(), I18nService.tr("技能系统未能处理此请求")) + "]";
                 handleNormalAIRequest(enrichedMessage, ctx, message);
+            } else if (result instanceof SkillIntent intent && intent.getReasoning() != null && !intent.getReasoning().isEmpty()) {
+                // 无效意图（非技能失败）携带 reasoning 时，注入 [识别说明] 区域（与二次分析同构），
+                // 让普通 AI 看到意图识别判定与原因（如"无技能覆盖/无法执行"），
+                // 避免在确认语境下幻觉声称已执行（如"现在为你传送到该位置"）。
+                // 闲聊/现实话题的 invalid reasoning 为对应判定，消费规则按需忽略，不影响正常回答。
+                String enrichedMessage = message + "\n" + I18nService.tr("[识别说明]") + "\n" + intent.getReasoning();
+                handleNormalAIRequest(enrichedMessage, ctx, message);
             } else {
                 handleNormalAIRequest(message, ctx, null);
             }

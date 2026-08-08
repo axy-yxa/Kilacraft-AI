@@ -597,7 +597,8 @@ public class SkillIntentRecognizer {
         // skill_name 非 null 但未注册才是技能路径尝试过但失败，标记 [FAILURE]。
         if (skillName == null) {
             PluginLoggerUtil.debug("意图识别", "Phase 2 未返回 skill_name");
-            return createInvalidIntent(I18nService.tr("技能名称无效"), false);
+            // 无效意图也携带 reasoning：无技能覆盖类 invalid 由下游注入普通 AI 的 [识别说明]，避免幻觉声称执行
+            return createInvalidIntent(I18nService.tr("技能名称无效"), false, readReasoning(json));
         }
         if (!isValidSkillName(skillName)) {
             PluginLoggerUtil.warn("意图识别", "Phase 2 返回了不存在的技能名称: {}，已拒绝执行", skillName);
@@ -729,11 +730,17 @@ public class SkillIntentRecognizer {
      *                    true 时 rawInput 以 §c 前缀标记（复用 {@link LLMResponseUtil} 错误信号协议），
      *                    供下游 {@code dispatchIntentResult} 用 {@code isErrorResponse} 判定是否注入 [FAILURE]；
      *                    false 表示非技能请求（闲聊/现实话题/Provider 错误），静默回退普通对话。
+     * @param reasoning  LLM reasoning 原文（可为 null）。非空时由下游注入普通 AI 的 [识别说明] 区域，
+     *                    让普通 AI 知晓意图识别判定与原因（如"无技能覆盖"），避免在确认语境下幻觉声称已执行。
      */
-    private SkillIntent createInvalidIntent(String reason, boolean skillFailed) {
+    private SkillIntent createInvalidIntent(String reason, boolean skillFailed, String reasoning) {
         PluginLoggerUtil.debug("意图识别", "创建无效意图：{}", reason);
         String rawInput = skillFailed ? LLMResponseUtil.errorResponse(reason) : reason;
-        return new SkillIntent(null, null, new HashMap<>(), 0.0, rawInput);
+        return new SkillIntent(null, null, new HashMap<>(), 0.0, rawInput, reasoning);
+    }
+
+    private SkillIntent createInvalidIntent(String reason, boolean skillFailed) {
+        return createInvalidIntent(reason, skillFailed, null);
     }
 
     /**
