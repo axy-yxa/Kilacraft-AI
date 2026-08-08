@@ -8,7 +8,7 @@
 
 description: |
   Player custom watch system: the player specifies a watch source and trigger condition, the system continuously monitors, and notifies the AI when the condition is met (the AI decides how to respond, with no automatic callback).
-  Triggers: when the player raises an ongoing monitoring need, e.g. "watch my health below 10", "tell me when iron ingots reach 64", "remind me when the furnace is done", "notify me when crops mature", "ping me when I die once".
+  Triggers: when the player raises an ongoing monitoring need — notify when a specified condition is met, including numeric states reaching a threshold (health, item counts, levels, etc.) or events occurring (furnace done, crops mature, entity death/spawn, player death, teleport, level up, world change, block break, fishing, chat, etc.).
   Reverse boundary: only in-game data and events declared in the [monitorable list] can be watched (e.g. in-game states like health/item counts/furnace/crops/block breaks); anything outside the list is never supported — e.g. external real-time data requiring network access, such as gold prices or exchange rates. When the player asks to monitor something outside the list, directly say it cannot be monitored and never fabricate a watch source. NOT for subscribing to other players' online/offline status (that goes to PlayerWatch).
 
 action_descriptions:
@@ -22,7 +22,7 @@ action_descriptions:
       - threshold (required for polling, string): threshold value. number for numeric, match value for string (e.g. OBSIDIAN).
       - event_type (required for event, string): event type, chosen from the [event watch] list injected by getDynamicContext (e.g. furnace_smelt/player_death/block_break).
       - filter_ prefixed params (optional, string): event filters, e.g. filter_result_type=IRON_INGOT.
-      - intent (optional, string): context for the AI when triggered. When the player expressed a follow-up action intent after the trigger (e.g. "melt the iron into blocks once it reaches 64"), you MUST write that intent into this parameter — the system will surface it along with the notification when triggered, and the player initiates the follow-up action manually after the reminder.
+      - intent (optional, string): context for the AI when triggered. When the player expressed a follow-up action intent after the trigger, you MUST write that intent into this parameter — the system will surface it along with the notification when triggered, and the player initiates the follow-up action manually after the reminder.
       - single_shot (optional, default true, boolean): one-time watch.
       - display_name (optional, string): human-readable watch name.
     Constraint: source/event_type must be chosen from the injected [conditional watch]/[event watch] lists; never fabricate a skill.action or event type outside those lists. If the target the player wants to monitor is not in the lists (e.g. external data requiring network access, such as gold prices), do NOT create a watch — return an invalid intent (skill_name: null) so the normal AI conversation can tell the player this cannot be monitored.
